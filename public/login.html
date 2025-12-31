@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaviar Admin - Login</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #075e54 0%, #128c7e 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #075e54;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #25d366;
+        }
+        
+        .login-button {
+            width: 100%;
+            background: #25d366;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .login-button:hover:not(:disabled) {
+            background: #128c7e;
+        }
+        
+        .login-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .forgot-password {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .forgot-password a {
+            color: #075e54;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>Kaviar Admin</h1>
+            <p>WhatsApp Dashboard</p>
+        </div>
+        
+        <div id="messageArea"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" required autocomplete="current-password">
+            </div>
+            
+            <button type="submit" id="loginButton" class="login-button">
+                Entrar
+            </button>
+        </form>
+        
+        <div class="forgot-password">
+            <a href="#" id="forgotPasswordLink">Esqueci minha senha</a>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://xcxxcexdsbaxgmmnxkgc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjeHhjZXhkc2JheGdtbW54a2djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU2NzE2NzEsImV4cCI6MjA1MTI0NzY3MX0.Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7E';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('loginButton');
+        const messageArea = document.getElementById('messageArea');
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        
+        // Verificar se já está logado
+        async function checkAuth() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                // Verificar se é admin
+                const isAdmin = user.user_metadata?.role === 'admin' || 
+                               user.app_metadata?.role === 'admin';
+                
+                if (isAdmin) {
+                    window.location.href = '/';
+                    return;
+                }
+            }
+        }
+        
+        // Mostrar mensagem
+        function showMessage(message, type = 'error') {
+            messageArea.innerHTML = `<div class="${type}-message">${message}</div>`;
+        }
+        
+        // Limpar mensagem
+        function clearMessage() {
+            messageArea.innerHTML = '';
+        }
+        
+        // Login
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                showMessage('Preencha todos os campos');
+                return;
+            }
+            
+            // Loading state
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<span class="loading"></span> Entrando...';
+            clearMessage();
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) throw error;
+                
+                // Verificar se é admin
+                const user = data.user;
+                const isAdmin = user.user_metadata?.role === 'admin' || 
+                               user.app_metadata?.role === 'admin';
+                
+                if (!isAdmin) {
+                    await supabase.auth.signOut();
+                    throw new Error('Acesso negado. Apenas administradores podem acessar.');
+                }
+                
+                // Verificar se precisa trocar senha
+                if (user.user_metadata?.force_password_change) {
+                    showMessage('Redirecionando para troca de senha...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/change-password.html';
+                    }, 1500);
+                    return;
+                }
+                
+                // Login bem-sucedido
+                showMessage('Login realizado com sucesso!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Erro no login:', error);
+                showMessage(error.message || 'Erro ao fazer login');
+            } finally {
+                loginButton.disabled = false;
+                loginButton.innerHTML = 'Entrar';
+            }
+        }
+        
+        // Esqueci minha senha
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            
+            const email = emailInput.value.trim();
+            if (!email) {
+                showMessage('Digite seu e-mail primeiro');
+                emailInput.focus();
+                return;
+            }
+            
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + '/reset-password.html'
+                });
+                
+                if (error) throw error;
+                
+                showMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.', 'success');
+            } catch (error) {
+                console.error('Erro ao enviar e-mail:', error);
+                showMessage('Erro ao enviar e-mail de recuperação');
+            }
+        }
+        
+        // Event listeners
+        loginForm.addEventListener('submit', handleLogin);
+        forgotPasswordLink.addEventListener('click', handleForgotPassword);
+        
+        // Verificar auth na inicialização
+        checkAuth();
+    </script>
+</body>
+</html>

@@ -53,6 +53,12 @@ app.get('/health', (req, res) => {
 // Webhook routes
 app.use('/webhooks', webhookRoutes);
 
+// API routes
+const messagesApi = require('./api/messages');
+const auditApi = require('./api/audit');
+app.use('/api/messages', messagesApi);
+app.use('/api/audit', auditApi);
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -62,7 +68,11 @@ app.use('*', (req, res) => {
       'GET /health',
       'POST /webhooks/twilio/whatsapp',
       'GET /webhooks/twilio/test',
-      'GET /webhooks/twilio/conversations'
+      'GET /webhooks/twilio/conversations',
+      'POST /api/messages/send',
+      'POST /api/messages/panic',
+      'GET /api/messages/test',
+      'POST /api/audit/log'
     ]
   });
 });
