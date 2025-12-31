@@ -3,24 +3,373 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaviar WhatsApp Monitor</title>
+    <title>Kaviar WhatsApp Admin Dashboard</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .conversation { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 8px; }
-        .message { margin: 5px 0; padding: 8px; border-radius: 4px; }
-        .inbound { background: #f0f0f0; }
-        .outbound { background: #dcf8c6; }
-        .status { position: fixed; top: 10px; right: 10px; padding: 10px; border-radius: 4px; }
-        .connected { background: #d4edda; color: #155724; }
-        .disconnected { background: #f8d7da; color: #721c24; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            background: #f0f2f5;
+        }
+        
+        .header {
+            background: #075e54;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .connected { background: #25d366; color: white; }
+        .disconnected { background: #dc3545; color: white; }
+        
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+        
+        .conversations-panel {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+        
+        .conversation-item {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .conversation-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .conversation-item.emergency {
+            background: #ffebee !important;
+            border-left: 4px solid #f44336;
+            animation: pulse-red 2s infinite;
+        }
+        
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+        }
+        
+        .emergency-badge {
+            background: #f44336;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .emergency-alert {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #f44336;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .emergency-alert button {
+            background: white;
+            color: #f44336;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .conversation-item.active {
+            background: #e3f2fd;
+        }
+        
+        .conv-type {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .type-driver { background: #e8f5e8; color: #2e7d32; }
+        .type-passenger { background: #e3f2fd; color: #1976d2; }
+        .type-unknown { background: #f5f5f5; color: #666; }
+        
+        .conv-last-msg {
+            font-size: 13px;
+            color: #667781;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .conv-time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+        
+        .messages-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #e5ddd5;
+        }
+        
+        .messages-header {
+            background: white;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .message-input-area {
+            background: white;
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: none;
+        }
+        
+        .quick-messages {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .quick-btn {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 8px 15px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        .quick-btn:hover:not(:disabled) {
+            background: #25d366;
+            color: white;
+            border-color: #25d366;
+        }
+        
+        .quick-btn:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        .message-input-container {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            resize: none;
+            max-height: 100px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        .send-button {
+            background: #25d366;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .send-button:hover:not(:disabled) {
+            background: #128c7e;
+        }
+        
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+        }
+        
+        .message.inbound {
+            justify-content: flex-start;
+        }
+        
+        .message.outbound {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .message.inbound .message-bubble {
+            background: white;
+            border-bottom-left-radius: 2px;
+        }
+        
+        .message.outbound .message-bubble {
+            background: #dcf8c6;
+            border-bottom-right-radius: 2px;
+        }
+        
+        .message-text {
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: #667781;
+            margin-top: 4px;
+            text-align: right;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #667781;
+        }
+        
+        .filter-bar {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .filter-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <div id="status" class="status disconnected">Desconectado</div>
+    <div class="header">
+        <h1>Kaviar WhatsApp Admin</h1>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span id="userInfo" style="color: #ccc; font-size: 14px;"></span>
+            <button id="logoutButton" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                Sair
+            </button>
+            <div id="status" class="status disconnected">Desconectado</div>
+        </div>
+    </div>
     
-    <h1>Kaviar WhatsApp Monitor</h1>
-    <div id="conversations"></div>
+    <div id="emergencyAlert" class="emergency-alert">
+        <strong>🚨 EMERGÊNCIA DETECTADA!</strong>
+        <span id="emergencyDetails"></span>
+        <button onclick="acknowledgeEmergency()">Atender</button>
+    </div>
+    
+    <div class="container">
+        <div class="conversations-panel">
+            <div class="filter-bar">
+                <select id="typeFilter" class="filter-select">
+                    <option value="">Todos os tipos</option>
+                    <option value="driver">Motoristas</option>
+                    <option value="passenger">Passageiros</option>
+                    <option value="unknown">Desconhecidos</option>
+                </select>
+            </div>
+            <div id="conversationsList"></div>
+        </div>
+        
+        <div class="messages-panel">
+            <div id="messagesHeader" class="messages-header" style="display: none;">
+                <div id="selectedPhone" class="conv-phone"></div>
+                <div id="selectedType" class="conv-type"></div>
+            </div>
+            <div id="messagesContainer" class="messages-container">
+                <div class="empty-state">
+                    <h3>Selecione uma conversa</h3>
+                    <p>Escolha uma conversa à esquerda para ver as mensagens</p>
+                </div>
+            </div>
+            
+            <div id="messageInputArea" class="message-input-area">
+                <div class="quick-messages">
+                    <button class="quick-btn" onclick="sendQuickMessage('Motorista a caminho 🚗')">
+                        🚗 A caminho
+                    </button>
+                    <button class="quick-btn" onclick="sendQuickMessage('Sua corrida foi cancelada ❌')">
+                        ❌ Cancelada
+                    </button>
+                    <button class="quick-btn" onclick="sendQuickMessage('Aguardando confirmação ⏳')">
+                        ⏳ Aguardando
+                    </button>
+                    <button class="quick-btn" onclick="sendQuickMessage('Motorista chegou! 📍')">
+                        📍 Chegou
+                    </button>
+                </div>
+                <div class="message-input-container">
+                    <textarea id="messageInput" class="message-input" 
+                              placeholder="Digite sua mensagem..." 
+                              rows="1"></textarea>
+                    <button id="sendButton" class="send-button" disabled>
+                        ➤
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         const SUPABASE_URL = 'https://xcxxcexdsbaxgmmnxkgc.supabase.co';
@@ -29,22 +378,109 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         let conversations = new Map();
+        let messages = new Map();
+        let selectedConversationId = null;
+        let currentFilter = '';
         
         // Elementos DOM
         const statusEl = document.getElementById('status');
-        const conversationsEl = document.getElementById('conversations');
+        const conversationsListEl = document.getElementById('conversationsList');
+        const messagesContainerEl = document.getElementById('messagesContainer');
+        const messagesHeaderEl = document.getElementById('messagesHeader');
+        const selectedPhoneEl = document.getElementById('selectedPhone');
+        const selectedTypeEl = document.getElementById('selectedType');
+        const typeFilterEl = document.getElementById('typeFilter');
+        const messageInputEl = document.getElementById('messageInput');
+        const sendButtonEl = document.getElementById('sendButton');
+        const messageInputAreaEl = document.getElementById('messageInputArea');
+        const userInfoEl = document.getElementById('userInfo');
+        const logoutButtonEl = document.getElementById('logoutButton');
+        const emergencyAlertEl = document.getElementById('emergencyAlert');
+        const emergencyDetailsEl = document.getElementById('emergencyDetails');
         
-        // Carregar conversas iniciais
+        // Verificar autenticação
+        async function checkAuth() {
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error) throw error;
+                
+                if (!user) {
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                
+                // Verificar se é admin
+                const isAdmin = user.user_metadata?.role === 'admin' || 
+                               user.app_metadata?.role === 'admin';
+                
+                if (!isAdmin) {
+                    alert('Acesso negado. Apenas administradores podem acessar.');
+                    await supabase.auth.signOut();
+                    window.location.href = '/login.html';
+                    return false;
+                }
+                
+                // Verificar se precisa trocar senha
+                if (user.user_metadata?.force_password_change) {
+                    window.location.href = '/change-password.html';
+                    return false;
+                }
+                
+                // Mostrar info do usuário
+                userInfoEl.textContent = user.email;
+                
+                return true;
+            } catch (error) {
+                console.error('Erro na verificação de auth:', error);
+                window.location.href = '/login.html';
+                return false;
+            }
+        }
+        
+        // Logout
+        async function handleLogout() {
+            try {
+                await supabase.auth.signOut();
+                window.location.href = '/login.html';
+            } catch (error) {
+                console.error('Erro no logout:', error);
+                window.location.href = '/login.html';
+            }
+        }
+        
+        // Sanitizar HTML para prevenir XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Formatar tempo relativo
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'agora';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm';
+            if (diff < 86400000) return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        }
+        
+        // Carregar conversas
         async function loadConversations() {
             try {
                 const { data, error } = await supabase
                     .from('whatsapp_conversations')
                     .select('*')
                     .order('last_message_at', { ascending: false })
-                    .limit(20);
+                    .limit(50);
                 
                 if (error) throw error;
                 
+                conversations.clear();
                 data.forEach(conv => {
                     conversations.set(conv.id, conv);
                 });
@@ -63,46 +499,214 @@
                     .select('*')
                     .eq('conversation_id', conversationId)
                     .order('created_at', { ascending: true })
-                    .limit(50);
+                    .limit(100);
                 
                 if (error) throw error;
-                return data || [];
+                
+                messages.set(conversationId, data || []);
+                
+                if (conversationId === selectedConversationId) {
+                    renderMessages();
+                }
             } catch (error) {
                 console.error('Erro ao carregar mensagens:', error);
-                return [];
             }
         }
         
-        // Renderizar conversas
-        async function renderConversations() {
-            conversationsEl.innerHTML = '';
+        // Renderizar lista de conversas
+        function renderConversations() {
+            const filteredConversations = Array.from(conversations.values())
+                .filter(conv => !currentFilter || conv.user_type === currentFilter);
             
-            for (const [id, conv] of conversations) {
-                const messages = await loadMessages(id);
-                
-                const convEl = document.createElement('div');
-                convEl.className = 'conversation';
-                convEl.innerHTML = `
-                    <h3>${conv.phone} (${conv.user_type})</h3>
-                    <small>Última mensagem: ${new Date(conv.last_message_at).toLocaleString()}</small>
-                    <div class="messages">
-                        ${messages.map(msg => `
-                            <div class="message ${msg.direction}">
-                                <strong>${msg.direction === 'inbound' ? 'Recebida' : 'Enviada'}:</strong>
-                                ${msg.body || '<sem texto>'}
-                                <small>(${new Date(msg.created_at).toLocaleTimeString()})</small>
-                            </div>
-                        `).join('')}
+            conversationsListEl.innerHTML = filteredConversations.map(conv => `
+                <div class="conversation-item ${conv.id === selectedConversationId ? 'active' : ''} ${conv.is_emergency ? 'emergency' : ''}" 
+                     onclick="selectConversation('${conv.id}')">
+                    <div class="conv-phone">
+                        ${escapeHtml(conv.phone)}
+                        ${conv.is_emergency ? '<span class="emergency-badge">EMERGÊNCIA</span>' : ''}
                     </div>
-                `;
+                    <span class="conv-type type-${conv.user_type}">
+                        ${conv.user_type === 'driver' ? 'Motorista' : 
+                          conv.user_type === 'passenger' ? 'Passageiro' : 'Desconhecido'}
+                    </span>
+                    <div class="conv-time">${formatTime(conv.last_message_at)}</div>
+                </div>
+            `).join('');
+        }
+        
+        // Renderizar mensagens
+        function renderMessages() {
+            if (!selectedConversationId) return;
+            
+            const conversationMessages = messages.get(selectedConversationId) || [];
+            
+            messagesContainerEl.innerHTML = conversationMessages.map(msg => `
+                <div class="message ${msg.direction}">
+                    <div class="message-bubble">
+                        <div class="message-text">${escapeHtml(msg.body) || '<sem texto>'}</div>
+                        <div class="message-time">${formatTime(msg.created_at)}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Scroll para o final
+            messagesContainerEl.scrollTop = messagesContainerEl.scrollHeight;
+        }
+        
+        // Selecionar conversa
+        function selectConversation(conversationId) {
+            selectedConversationId = conversationId;
+            const conv = conversations.get(conversationId);
+            
+            if (conv) {
+                selectedPhoneEl.textContent = conv.phone;
+                selectedTypeEl.textContent = conv.user_type === 'driver' ? 'Motorista' : 
+                                           conv.user_type === 'passenger' ? 'Passageiro' : 'Desconhecido';
+                selectedTypeEl.className = `conv-type type-${conv.user_type}`;
+                messagesHeaderEl.style.display = 'block';
+                messageInputAreaEl.style.display = 'block';
                 
-                conversationsEl.appendChild(convEl);
+                // Registrar auditoria se for emergência
+                if (conv.is_emergency) {
+                    logAdminAction('VIEW_EMERGENCY', conversationId);
+                }
+                
+                loadMessages(conversationId);
+            }
+            
+            renderConversations();
+        }
+        
+        // Registrar ação de auditoria
+        async function logAdminAction(action, emergencyId = null) {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                
+                await fetch('/api/audit/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action,
+                        emergencyId,
+                        adminId: user.id,
+                        adminEmail: user.email
+                    })
+                });
+            } catch (error) {
+                console.error('Erro ao registrar auditoria:', error);
             }
         }
         
-        // Configurar realtime
-        function setupRealtime() {
-            // Escutar novas conversas
+        // Enviar mensagem rápida
+        async function sendQuickMessage(messageText) {
+            if (!selectedConversationId) {
+                alert('Selecione uma conversa primeiro');
+                return;
+            }
+            
+            const conv = conversations.get(selectedConversationId);
+            
+            // Desabilitar todos os botões durante envio
+            const quickButtons = document.querySelectorAll('.quick-btn');
+            quickButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+            });
+            
+            try {
+                const response = await fetch('/api/messages/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        to: conv.phone,
+                        body: messageText
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ Mensagem rápida enviada:', result);
+                } else {
+                    console.error('❌ Erro ao enviar mensagem rápida:', result.error);
+                    alert('Erro ao enviar: ' + result.error);
+                }
+            } catch (error) {
+                console.error('❌ Erro de rede:', error);
+                alert('Erro de conexão. Tente novamente.');
+            } finally {
+                // Reabilitar botões
+                quickButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                });
+            }
+        }
+        
+        // Enviar mensagem manual
+        async function sendMessage() {
+            if (!selectedConversationId || !messageInputEl.value.trim()) return;
+            
+            const conv = conversations.get(selectedConversationId);
+            const messageText = messageInputEl.value.trim();
+            
+            // Desabilitar botão durante envio
+            sendButtonEl.disabled = true;
+            sendButtonEl.textContent = '⏳';
+            
+            try {
+                const response = await fetch('/api/messages/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        to: conv.phone,
+                        body: messageText
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ Mensagem enviada:', result);
+                    messageInputEl.value = '';
+                    messageInputEl.style.height = 'auto';
+                } else {
+                    console.error('❌ Erro ao enviar:', result.error);
+                    alert('Erro ao enviar mensagem: ' + result.error);
+                }
+            } catch (error) {
+                console.error('❌ Erro de rede:', error);
+                alert('Erro de conexão. Tente novamente.');
+            } finally {
+                // Reabilitar botão
+                sendButtonEl.disabled = false;
+                sendButtonEl.textContent = '➤';
+                messageInputEl.focus();
+            }
+        }
+        
+        // Mostrar alerta de emergência
+        function showEmergencyAlert(conversation) {
+            emergencyDetailsEl.textContent = `Conversa: ${conversation.phone}`;
+            emergencyAlertEl.style.display = 'block';
+            
+            // Som de alerta (se permitido pelo navegador)
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+                audio.play().catch(() => {}); // Ignorar se não conseguir tocar
+            } catch (e) {}
+        }
+        
+        // Reconhecer emergência
+        function acknowledgeEmergency() {
+            emergencyAlertEl.style.display = 'none';
+        }
+            // Escutar conversas
             supabase
                 .channel('conversations')
                 .on('postgres_changes', {
@@ -121,6 +725,12 @@
                 }, (payload) => {
                     console.log('Conversa atualizada:', payload.new);
                     conversations.set(payload.new.id, payload.new);
+                    
+                    // Verificar se virou emergência
+                    if (payload.new.is_emergency && !payload.old?.is_emergency) {
+                        showEmergencyAlert(payload.new);
+                    }
+                    
                     renderConversations();
                 })
                 .subscribe((status) => {
@@ -128,7 +738,7 @@
                     updateStatus(status === 'SUBSCRIBED');
                 });
             
-            // Escutar novas mensagens
+            // Escutar mensagens
             supabase
                 .channel('messages')
                 .on('postgres_changes', {
@@ -137,7 +747,17 @@
                     table: 'whatsapp_messages'
                 }, (payload) => {
                     console.log('Nova mensagem:', payload.new);
-                    renderConversations(); // Re-render para mostrar nova mensagem
+                    const conversationId = payload.new.conversation_id;
+                    
+                    // Atualizar cache de mensagens
+                    if (messages.has(conversationId)) {
+                        messages.get(conversationId).push(payload.new);
+                    }
+                    
+                    // Re-renderizar se é a conversa ativa
+                    if (conversationId === selectedConversationId) {
+                        renderMessages();
+                    }
                 })
                 .subscribe((status) => {
                     console.log('Status mensagens:', status);
@@ -147,7 +767,7 @@
         // Atualizar status de conexão
         function updateStatus(connected) {
             if (connected) {
-                statusEl.textContent = 'Conectado - Tempo Real';
+                statusEl.textContent = 'Conectado';
                 statusEl.className = 'status connected';
             } else {
                 statusEl.textContent = 'Desconectado';
@@ -155,8 +775,50 @@
             }
         }
         
+        // Event listeners
+        typeFilterEl.addEventListener('change', (e) => {
+            currentFilter = e.target.value;
+            renderConversations();
+        });
+        
+        // Input de mensagem - auto-resize
+        messageInputEl.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+            
+            // Habilitar/desabilitar botão
+            sendButtonEl.disabled = !e.target.value.trim();
+        });
+        
+        // Enviar com Enter (Shift+Enter para nova linha)
+        messageInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendButtonEl.disabled) {
+                    sendMessage();
+                }
+            }
+        });
+        
+        // Botão de enviar
+        sendButtonEl.addEventListener('click', sendMessage);
+        
+        // Logout
+        logoutButtonEl.addEventListener('click', handleLogout);
+        
+        // Tornar funções globais para onclick
+        window.selectConversation = selectConversation;
+        window.sendMessage = sendMessage;
+        window.sendQuickMessage = sendQuickMessage;
+        window.acknowledgeEmergency = acknowledgeEmergency;
+        
         // Inicializar
         async function init() {
+            // Verificar autenticação primeiro
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) return;
+            
+            // Carregar dados e configurar realtime
             await loadConversations();
             setupRealtime();
         }
