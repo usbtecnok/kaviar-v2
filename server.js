@@ -2,7 +2,7 @@ require('dotenv').config()
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-
+const path = require('path');
 
 const webhookRoutes = require('./webhooks/twilio-whatsapp');
 
@@ -32,6 +32,9 @@ app.use(cors());
 // Parse URL-encoded bodies (Twilio webhook format)
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Servir arquivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {

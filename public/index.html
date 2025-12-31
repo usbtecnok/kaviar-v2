@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaviar WhatsApp Monitor</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .conversation { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 8px; }
+        .message { margin: 5px 0; padding: 8px; border-radius: 4px; }
+        .inbound { background: #f0f0f0; }
+        .outbound { background: #dcf8c6; }
+        .status { position: fixed; top: 10px; right: 10px; padding: 10px; border-radius: 4px; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div id="status" class="status disconnected">Desconectado</div>
+    
+    <h1>Kaviar WhatsApp Monitor</h1>
+    <div id="conversations"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://xcxxcexdsbaxgmmnxkgc.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjeHhjZXhkc2JheGdtbW54a2djIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU2NzE2NzEsImV4cCI6MjA1MTI0NzY3MX0.Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7Ej7E';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let conversations = new Map();
+        
+        // Elementos DOM
+        const statusEl = document.getElementById('status');
+        const conversationsEl = document.getElementById('conversations');
+        
+        // Carregar conversas iniciais
+        async function loadConversations() {
+            try {
+                const { data, error } = await supabase
+                    .from('whatsapp_conversations')
+                    .select('*')
+                    .order('last_message_at', { ascending: false })
+                    .limit(20);
+                
+                if (error) throw error;
+                
+                data.forEach(conv => {
+                    conversations.set(conv.id, conv);
+                });
+                
+                renderConversations();
+            } catch (error) {
+                console.error('Erro ao carregar conversas:', error);
+            }
+        }
+        
+        // Carregar mensagens de uma conversa
+        async function loadMessages(conversationId) {
+            try {
+                const { data, error } = await supabase
+                    .from('whatsapp_messages')
+                    .select('*')
+                    .eq('conversation_id', conversationId)
+                    .order('created_at', { ascending: true })
+                    .limit(50);
+                
+                if (error) throw error;
+                return data || [];
+            } catch (error) {
+                console.error('Erro ao carregar mensagens:', error);
+                return [];
+            }
+        }
+        
+        // Renderizar conversas
+        async function renderConversations() {
+            conversationsEl.innerHTML = '';
+            
+            for (const [id, conv] of conversations) {
+                const messages = await loadMessages(id);
+                
+                const convEl = document.createElement('div');
+                convEl.className = 'conversation';
+                convEl.innerHTML = `
+                    <h3>${conv.phone} (${conv.user_type})</h3>
+                    <small>Última mensagem: ${new Date(conv.last_message_at).toLocaleString()}</small>
+                    <div class="messages">
+                        ${messages.map(msg => `
+                            <div class="message ${msg.direction}">
+                                <strong>${msg.direction === 'inbound' ? 'Recebida' : 'Enviada'}:</strong>
+                                ${msg.body || '<sem texto>'}
+                                <small>(${new Date(msg.created_at).toLocaleTimeString()})</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                conversationsEl.appendChild(convEl);
+            }
+        }
+        
+        // Configurar realtime
+        function setupRealtime() {
+            // Escutar novas conversas
+            supabase
+                .channel('conversations')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'whatsapp_conversations'
+                }, (payload) => {
+                    console.log('Nova conversa:', payload.new);
+                    conversations.set(payload.new.id, payload.new);
+                    renderConversations();
+                })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'whatsapp_conversations'
+                }, (payload) => {
+                    console.log('Conversa atualizada:', payload.new);
+                    conversations.set(payload.new.id, payload.new);
+                    renderConversations();
+                })
+                .subscribe((status) => {
+                    console.log('Status conversas:', status);
+                    updateStatus(status === 'SUBSCRIBED');
+                });
+            
+            // Escutar novas mensagens
+            supabase
+                .channel('messages')
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'whatsapp_messages'
+                }, (payload) => {
+                    console.log('Nova mensagem:', payload.new);
+                    renderConversations(); // Re-render para mostrar nova mensagem
+                })
+                .subscribe((status) => {
+                    console.log('Status mensagens:', status);
+                });
+        }
+        
+        // Atualizar status de conexão
+        function updateStatus(connected) {
+            if (connected) {
+                statusEl.textContent = 'Conectado - Tempo Real';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = 'Desconectado';
+                statusEl.className = 'status disconnected';
+            }
+        }
+        
+        // Inicializar
+        async function init() {
+            await loadConversations();
+            setupRealtime();
+        }
+        
+        init();
+    </script>
+</body>
+</html>
