@@ -1,0 +1,709 @@
+swagger: "2.0"
+info:
+  title: "Kaviar WhatsApp Integration API"
+  description: "API para integração WhatsApp + Supabase do sistema Kaviar"
+  version: "1.0.0"
+  contact:
+    name: "Kaviar Team"
+host: "localhost:3000"
+basePath: "/"
+schemes:
+  - "http"
+  - "https"
+consumes:
+  - "application/json"
+  - "application/x-www-form-urlencoded"
+produces:
+  - "application/json"
+
+paths:
+  /health:
+    get:
+      summary: "Health check do sistema"
+      description: "Verifica se o sistema está funcionando corretamente"
+      tags:
+        - "Health"
+      responses:
+        200:
+          description: "Sistema funcionando"
+          schema:
+            type: "object"
+            properties:
+              status:
+                type: "string"
+                example: "ok"
+              timestamp:
+                type: "string"
+                format: "date-time"
+
+  /webhooks/twilio/whatsapp:
+    post:
+      summary: "Webhook principal do Twilio"
+      description: "Recebe mensagens do WhatsApp via Twilio e processa no Supabase"
+      tags:
+        - "Webhooks"
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              From:
+                type: "string"
+                description: "Número do remetente no formato whatsapp:+5511999999999"
+                example: "whatsapp:+5511999999999"
+              Body:
+                type: "string"
+                description: "Conteúdo da mensagem"
+                example: "Preciso de uma corrida"
+              MessageSid:
+                type: "string"
+                description: "ID único da mensagem do Twilio"
+                example: "SMxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              To:
+                type: "string"
+                description: "Número do destinatário"
+                example: "whatsapp:+14134759634"
+              AccountSid:
+                type: "string"
+                description: "SID da conta Twilio"
+              NumMedia:
+                type: "string"
+                description: "Número de mídias anexadas"
+      responses:
+        200:
+          description: "Mensagem processada com sucesso"
+          schema:
+            type: "object"
+            properties:
+              success:
+                type: "boolean"
+              conversationId:
+                type: "string"
+                format: "uuid"
+              messageId:
+                type: "string"
+                format: "uuid"
+        400:
+          description: "Dados inválidos"
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+        500:
+          description: "Erro interno do servidor"
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+
+  /webhooks/twilio/test:
+    get:
+      summary: "Teste de integração"
+      description: "Endpoint para testar a conectividade e configuração do sistema"
+      tags:
+        - "Webhooks"
+      responses:
+        200:
+          description: "Teste executado com sucesso"
+          schema:
+            type: "object"
+            properties:
+              status:
+                type: "string"
+                example: "test_ok"
+              supabase:
+                type: "string"
+                example: "connected"
+              timestamp:
+                type: "string"
+                format: "date-time"
+
+  /webhooks/twilio/conversations:
+    get:
+      summary: "Listar conversas recentes"
+      description: "Retorna lista das conversas WhatsApp mais recentes"
+      tags:
+        - "Conversations"
+      parameters:
+        - name: "limit"
+          in: "query"
+          type: "integer"
+          description: "Número máximo de conversas a retornar"
+          default: 10
+        - name: "offset"
+          in: "query"
+          type: "integer"
+          description: "Número de conversas a pular (paginação)"
+          default: 0
+      responses:
+        200:
+          description: "Lista de conversas"
+          schema:
+            type: "object"
+            properties:
+              conversations:
+                type: "array"
+                items:
+                  $ref: "#/definitions/Conversation"
+              total:
+                type: "integer"
+        500:
+          description: "Erro interno do servidor"
+          schema:
+            type: "object"
+            properties:
+              error:
+                type: "string"
+
+  /api/v1/communities:
+    get:
+      summary: "Listar comunidades ativas"
+      description: "Retorna lista de todas as comunidades ativas do sistema"
+      tags:
+        - "Communities"
+      responses:
+        200:
+          description: "Lista de comunidades"
+          schema:
+            type: "object"
+            properties:
+              success:
+                type: "boolean"
+              data:
+                type: "array"
+                items:
+                  $ref: "#/definitions/Community"
+              count:
+                type: "integer"
+    post:
+      summary: "Criar nova comunidade"
+      description: "Cria uma nova comunidade no sistema"
+      tags:
+        - "Communities"
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              name:
+                type: "string"
+                description: "Nome da comunidade"
+                example: "Vila Madalena"
+              type:
+                type: "string"
+                enum: ["bairro", "vila", "comunidade", "condominio"]
+                description: "Tipo da comunidade"
+      responses:
+        201:
+          description: "Comunidade criada com sucesso"
+          schema:
+            type: "object"
+            properties:
+              success:
+                type: "boolean"
+              data:
+                $ref: "#/definitions/Community"
+        400:
+          description: "Dados inválidos"
+        409:
+          description: "Comunidade já existe"
+
+  /api/v1/communities/{id}:
+    get:
+      summary: "Buscar comunidade por ID"
+      description: "Retorna dados de uma comunidade específica"
+      tags:
+        - "Communities"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          type: "string"
+          format: "uuid"
+          description: "ID da comunidade"
+      responses:
+        200:
+          description: "Dados da comunidade"
+          schema:
+            type: "object"
+            properties:
+              success:
+                type: "boolean"
+              data:
+                $ref: "#/definitions/Community"
+        404:
+          description: "Comunidade não encontrada"
+
+  /api/v1/rides:
+    post:
+      summary: "Criar corrida com isolamento por comunidade"
+      description: "Cria nova corrida respeitando isolamento geográfico"
+      tags:
+        - "Rides"
+      parameters:
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              passenger_id:
+                type: "string"
+                format: "uuid"
+                description: "ID do passageiro"
+              pickup_location:
+                type: "string"
+                description: "Local de embarque"
+              destination:
+                type: "string"
+                description: "Destino da corrida"
+              allow_external_drivers:
+                type: "boolean"
+                default: false
+                description: "Permitir motoristas de outras comunidades"
+      responses:
+        201:
+          description: "Corrida criada com sucesso"
+          schema:
+            type: "object"
+            properties:
+              success:
+                type: "boolean"
+              data:
+                $ref: "#/definitions/Ride"
+
+  /api/v1/rides/{id}/allow-external:
+    post:
+      summary: "Permitir motoristas externos"
+      description: "Permite que motoristas de outras comunidades aceitem a corrida"
+      tags:
+        - "Rides"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          type: "string"
+          format: "uuid"
+        - name: "body"
+          in: "body"
+          required: true
+          schema:
+            type: "object"
+            properties:
+              passenger_id:
+                type: "string"
+                format: "uuid"
+                description: "ID do passageiro (validação)"
+      responses:
+        200:
+          description: "Motoristas externos permitidos"
+        400:
+          description: "Erro de validação"
+
+  /api/v1/rides/{id}/eligible-drivers:
+    get:
+      summary: "Listar motoristas elegíveis"
+      description: "Retorna motoristas que podem aceitar a corrida"
+      tags:
+        - "Rides"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          type: "string"
+          format: "uuid"
+      responses:
+        200:
+          description: "Lista de motoristas elegíveis"
+          schema:
+            type: "object"
+            properties:
+              success:
+                type: "boolean"
+              data:
+                type: "array"
+                items:
+                  $ref: "#/definitions/Driver"
+
+  /api/v1/rides/{rideId}/can-accept/{driverId}:
+    get:
+      summary: "Verificar elegibilidade do motorista"
+      description: "Verifica se motorista pode aceitar a corrida"
+      tags:
+        - "Rides"
+      parameters:
+        - name: "rideId"
+          in: "path"
+          required: true
+          type: "string"
+          format: "uuid"
+        - name: "driverId"
+          in: "path"
+          required: true
+          type: "string"
+          format: "uuid"
+      responses:
+        200:
+          description: "Resultado da verificação"
+          schema:
+            type: "object"
+            properties:
+              success:
+                type: "boolean"
+              data:
+                type: "object"
+                properties:
+                  can_accept:
+                    type: "boolean"
+                  driver_id:
+                    type: "string"
+                  ride_id:
+                    type: "string"
+  Conversation:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "ID único da conversa"
+      phone:
+        type: "string"
+        description: "Número de telefone normalizado"
+        example: "+5511999999999"
+      user_id:
+        type: "string"
+        format: "uuid"
+        description: "ID do usuário associado (nullable)"
+      user_type:
+        type: "string"
+        enum: ["passenger", "driver", "unknown"]
+        description: "Tipo de usuário identificado"
+      last_message_at:
+        type: "string"
+        format: "date-time"
+        description: "Timestamp da última mensagem"
+      created_at:
+        type: "string"
+        format: "date-time"
+        description: "Timestamp de criação da conversa"
+      updated_at:
+        type: "string"
+        format: "date-time"
+        description: "Timestamp da última atualização"
+
+  Message:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "ID único da mensagem"
+      conversation_id:
+        type: "string"
+        format: "uuid"
+        description: "ID da conversa associada"
+      direction:
+        type: "string"
+        enum: ["inbound", "outbound"]
+        description: "Direção da mensagem"
+      body:
+        type: "string"
+        description: "Conteúdo da mensagem"
+      message_sid:
+        type: "string"
+        description: "SID único do Twilio"
+      raw_payload:
+        type: "object"
+        description: "Payload completo do Twilio em formato JSON"
+      created_at:
+        type: "string"
+        format: "date-time"
+        description: "Timestamp de criação da mensagem"
+
+  Community:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "ID único da comunidade"
+      name:
+        type: "string"
+        description: "Nome da comunidade"
+        example: "Vila Madalena"
+      type:
+        type: "string"
+        enum: ["bairro", "vila", "comunidade", "condominio"]
+        description: "Tipo da comunidade"
+      is_active:
+        type: "boolean"
+        description: "Se a comunidade está ativa"
+      created_at:
+        type: "string"
+        format: "date-time"
+        description: "Data de criação"
+      updated_at:
+        type: "string"
+        format: "date-time"
+        description: "Data da última atualização"
+
+  Driver:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "ID único do motorista"
+      community_id:
+        type: "string"
+        format: "uuid"
+        description: "ID da comunidade do motorista"
+      communities:
+        $ref: "#/definitions/Community"
+
+  Ride:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "ID único da corrida"
+      passenger_id:
+        type: "string"
+        format: "uuid"
+        description: "ID do passageiro"
+      driver_id:
+        type: "string"
+        format: "uuid"
+        description: "ID do motorista (nullable)"
+      community_id:
+        type: "string"
+        format: "uuid"
+        description: "ID da comunidade da corrida"
+      allow_external_drivers:
+        type: "boolean"
+        description: "Se permite motoristas de outras comunidades"
+      pickup_location:
+        type: "string"
+        description: "Local de embarque"
+      destination:
+        type: "string"
+        description: "Destino da corrida"
+      status:
+        type: "string"
+        enum: ["pending", "accepted", "in_progress", "completed", "cancelled"]
+        description: "Status da corrida"
+      created_at:
+        type: "string"
+        format: "date-time"
+        description: "Data de criação"
+      communities:
+        $ref: "#/definitions/Community"
+
+  BonusConfig:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+      community_id:
+        type: "string"
+        format: "uuid"
+        description: "ID da comunidade (null = global)"
+      bonus_type:
+        type: "string"
+        enum: ["percentage", "fixed"]
+      bonus_value:
+        type: "number"
+        format: "decimal"
+      is_active:
+        type: "boolean"
+      created_at:
+        type: "string"
+        format: "date-time"
+
+  DriverEarning:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+      driver_id:
+        type: "string"
+        format: "uuid"
+      ride_id:
+        type: "string"
+        format: "uuid"
+      base_amount:
+        type: "number"
+        format: "decimal"
+        description: "Valor base da corrida"
+      bonus_amount:
+        type: "number"
+        format: "decimal"
+        description: "Valor do bônus aplicado"
+      total_amount:
+        type: "number"
+        format: "decimal"
+        description: "Total recebido (base + bônus)"
+      bonus_type:
+        type: "string"
+        enum: ["community_bonus", "none"]
+      created_at:
+        type: "string"
+        format: "date-time"
+
+  EarningsTotals:
+    type: "object"
+    properties:
+      total_base:
+        type: "number"
+        description: "Soma dos valores base"
+      total_bonus:
+        type: "number"
+        description: "Soma dos bônus"
+      total_earnings:
+        type: "number"
+        description: "Total geral recebido"
+      rides_count:
+        type: "integer"
+        description: "Número de corridas"
+      bonus_rides:
+        type: "integer"
+        description: "Corridas com bônus"
+
+  CommunityChangeRequest:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+        description: "ID único da solicitação"
+      user_id:
+        type: "string"
+        format: "uuid"
+        description: "ID do usuário solicitante"
+      user_type:
+        type: "string"
+        enum: ["driver", "passenger"]
+        description: "Tipo do usuário"
+      current_community:
+        $ref: "#/definitions/Community"
+      requested_community:
+        $ref: "#/definitions/Community"
+      reason:
+        type: "string"
+        description: "Motivo da mudança"
+      document_url:
+        type: "string"
+        format: "uri"
+        description: "URL do documento comprobatório"
+      status:
+        type: "string"
+        enum: ["pending", "approved", "rejected"]
+        description: "Status da solicitação"
+      reviewed_by:
+        type: "string"
+        description: "Quem revisou a solicitação"
+      review_notes:
+        type: "string"
+        description: "Notas da revisão"
+      reviewed_at:
+        type: "string"
+        format: "date-time"
+        description: "Data da revisão"
+      created_at:
+        type: "string"
+        format: "date-time"
+      updated_at:
+        type: "string"
+        format: "date-time"
+
+  CommunityChangeHistory:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: "uuid"
+      user_id:
+        type: "string"
+        format: "uuid"
+      user_type:
+        type: "string"
+        enum: ["driver", "passenger"]
+      old_community:
+        $ref: "#/definitions/Community"
+      new_community:
+        $ref: "#/definitions/Community"
+      change_type:
+        type: "string"
+        enum: ["request_approved", "admin_change"]
+      changed_by:
+        type: "string"
+        description: "Quem fez a mudança"
+      reason:
+        type: "string"
+        description: "Motivo da mudança"
+      request_id:
+        type: "string"
+        format: "uuid"
+        description: "ID da solicitação relacionada"
+      changed_at:
+        type: "string"
+        format: "date-time"
+
+  CommunityChangeStats:
+    type: "object"
+    properties:
+      period_days:
+        type: "integer"
+        description: "Período analisado em dias"
+      total:
+        type: "integer"
+        description: "Total de solicitações"
+      by_status:
+        type: "object"
+        properties:
+          pending:
+            type: "integer"
+          approved:
+            type: "integer"
+          rejected:
+            type: "integer"
+      by_user_type:
+        type: "object"
+        properties:
+          driver:
+            type: "integer"
+          passenger:
+            type: "integer"
+
+tags:
+  - name: "Health"
+    description: "Endpoints de monitoramento do sistema"
+  - name: "Webhooks"
+    description: "Webhooks para integração com Twilio"
+  - name: "Conversations"
+    description: "Gestão de conversas WhatsApp"
+  - name: "Communities"
+    description: "Gestão de comunidades (cerca comunitária)"
+  - name: "Rides"
+    description: "Corridas com isolamento por comunidade"
+  - name: "Incentives"
+    description: "Sistema de incentivos ao motorista local"
+  - name: "Analytics"
+    description: "Analytics e monitoramento de métricas"
+  - name: "Dashboard"
+    description: "Dashboard executivo e visualizações"
+  - name: "Alerts"
+    description: "Sistema de alertas automáticos"
+  - name: "Reports"
+    description: "Relatórios executivos e distribuição"
+  - name: "Community Change"
+    description: "Sistema de mudança de comunidade com governança"
