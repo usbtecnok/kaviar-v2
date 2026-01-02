@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  admins Admin[]
+
+  @@map("roles")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  isActive     Boolean  @default(true) @map("is_active")
+  roleId       String   @map("role_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@map("admins")
+}
+
+model Driver {
+  id                String    @id @default(cuid())
+  name              String
+  email             String    @unique
+  phone             String?
+  status            String    @default("pending") // pending, approved, suspended, rejected
+  suspensionReason  String?   @map("suspension_reason")
+  suspendedAt       DateTime? @map("suspended_at")
+  suspendedBy       String?   @map("suspended_by") // Admin ID who suspended
+  lastActiveAt      DateTime? @map("last_active_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  rides Ride[]
+
+  @@map("drivers")
+}
+
+model Passenger {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  rides Ride[]
+
+  @@map("passengers")
+}
+
+model Ride {
+  id                String    @id @default(cuid())
+  driverId          String?   @map("driver_id")
+  passengerId       String    @map("passenger_id")
+  origin            String
+  destination       String
+  type              String    @default("normal") // normal, combo, comunidade
+  status            String    @default("requested") // requested, accepted, arrived, started, completed, paid, cancelled_by_user, cancelled_by_driver, cancelled_by_admin
+  price             Decimal   @db.Decimal(10, 2)
+  platformFee       Decimal?  @db.Decimal(10, 2) @map("platform_fee")
+  driverAmount      Decimal?  @db.Decimal(10, 2) @map("driver_amount")
+  paymentMethod     String?   @map("payment_method") @default("credit_card")
+  cancelReason      String?   @map("cancel_reason")
+  cancelledBy       String?   @map("cancelled_by") // Admin ID who cancelled
+  cancelledAt       DateTime? @map("cancelled_at")
+  forcedCompletedBy String?   @map("forced_completed_by") // Admin ID who forced completion
+  forcedCompletedAt DateTime? @map("forced_completed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  driver         Driver?            @relation(fields: [driverId], references: [id])
+  passenger      Passenger          @relation(fields: [passengerId], references: [id])
+  statusHistory  RideStatusHistory[]
+  adminActions   RideAdminAction[]
+
+  @@map("rides")
+}
+
+model RideAdminAction {
+  id        String   @id @default(cuid())
+  rideId    String   @map("ride_id")
+  adminId   String   @map("admin_id")
+  action    String   // cancel, reassign_driver, force_complete
+  reason    String?
+  oldValue  String?  @map("old_value") // For reassignment: old driver ID
+  newValue  String?  @map("new_value") // For reassignment: new driver ID
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  ride Ride @relation(fields: [rideId], references: [id])
+
+  @@map("ride_admin_actions")
+}
+
+model RideStatusHistory {
+  id        String   @id @default(cuid())
+  rideId    String   @map("ride_id")
+  status    String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  ride Ride @relation(fields: [rideId], references: [id])
+
+  @@map("ride_status_history")
+}

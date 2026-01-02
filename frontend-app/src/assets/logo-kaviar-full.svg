@@ -1,0 +1,18 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo completo KAVIAR -->
+  <g>
+    <!-- Ícone K -->
+    <rect x="10" y="10" width="40" height="40" rx="8" fill="currentColor"/>
+    <path d="M20 20 L30 30 L40 20 M30 30 L40 40" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- Texto KAVIAR -->
+    <text x="60" y="35" font-family="Inter, sans-serif" font-size="24" font-weight="600" fill="currentColor">
+      KAVIAR
+    </text>
+    
+    <!-- Subtítulo -->
+    <text x="60" y="48" font-family="Inter, sans-serif" font-size="10" fill="currentColor" opacity="0.7">
+      Corridas Comunitárias
+    </text>
+  </g>
+</svg>
