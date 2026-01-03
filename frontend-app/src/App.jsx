@@ -6,7 +6,6 @@ import AuthApp from "./components/auth/AuthApp";
 import AdminApp from "./components/admin/AdminApp";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
-import logo from "./assets/kaviar-logo.jpg";
 
 function Home() {
   return (
@@ -14,7 +13,7 @@ function Home() {
       <Container maxWidth="md" sx={{ textAlign: "center", py: 4 }}>
         <Box sx={{ mb: 6 }}>
           <img 
-            src={logo} 
+            src="/kaviar-logo.jpg" 
             alt="Kaviar" 
             style={{ 
               width: 120, 
