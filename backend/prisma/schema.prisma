@@ -48,25 +48,38 @@ model Driver {
   suspendedAt       DateTime? @map("suspended_at")
   suspendedBy       String?   @map("suspended_by") // Admin ID who suspended
   lastActiveAt      DateTime? @map("last_active_at")
+  // Campos complementares FASE 8
+  communityId       String?   @map("community_id")
+  documentCpf       String?   @map("document_cpf")
+  documentRg        String?   @map("document_rg")
+  documentCnh       String?   @map("document_cnh")
+  vehiclePlate      String?   @map("vehicle_plate")
+  vehicleModel      String?   @map("vehicle_model")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  rides Ride[]
+  rides     Ride[]
+  community Community? @relation(fields: [communityId], references: [id])
 
   @@map("drivers")
 }
 
 model Passenger {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String?
+  // Campos complementares FASE 8
+  communityId String?  @map("community_id")
+  status      String   @default("pending") // pending, approved, suspended
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  rides Ride[]
+  rides     Ride[]
+  community Community? @relation(fields: [communityId], references: [id])
+  consents  UserConsent[]
 
   @@map("passengers")
 }
@@ -126,4 +139,58 @@ model RideStatusHistory {
   ride Ride @relation(fields: [rideId], references: [id])
 
   @@map("ride_status_history")
+}
+
+// FASE 8 - Novos modelos complementares
+
+model Community {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  drivers     Driver[]
+  passengers  Passenger[]
+  guides      TouristGuide[]
+
+  @@map("communities")
+}
+
+model UserConsent {
+  id           String   @id @default(cuid())
+  passengerId  String   @map("passenger_id")
+  consentType  String   @map("consent_type") // lgpd, terms, privacy
+  accepted     Boolean  @default(false)
+  acceptedAt   DateTime? @map("accepted_at")
+  ipAddress    String?  @map("ip_address")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  passenger Passenger @relation(fields: [passengerId], references: [id])
+
+  @@unique([passengerId, consentType])
+  @@map("user_consents")
+}
+
+model TouristGuide {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  communityId  String   @map("community_id")
+  status       String   @default("pending") // pending, approved, suspended, rejected
+  isBilingual  Boolean  @default(false) @map("is_bilingual")
+  languages    String[] // Array de idiomas
+  alsoDriver   Boolean  @default(false) @map("also_driver") // Atua também como motorista
+  driverId     String?  @map("driver_id") // Se também for motorista
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  community Community @relation(fields: [communityId], references: [id])
+
+  @@map("tourist_guides")
 }
