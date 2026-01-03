@@ -20,7 +20,7 @@ import {
   Grid
 } from '@mui/material';
 import { CheckCircle, Cancel, Visibility } from '@mui/icons-material';
-import adminApi from '../../services/adminApi';
+import { adminApi } from '../../services/adminApi';
 
 export default function DriverApproval() {
   const [drivers, setDrivers] = useState([]);
