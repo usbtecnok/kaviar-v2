@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { Container, Typography, Box, Card, CardContent, Button, Chip } from "@mui/material";
 import { DirectionsCar, AttachMoney, NotificationImportant } from "@mui/icons-material";
+import { Link } from "react-router-dom";
 import DomainHeader from "../common/DomainHeader";
 import DriverHome from "../../pages/driver/Home";
 import RideReceived from "../../pages/driver/RideReceived";
@@ -37,7 +38,12 @@ function DriverDashboard() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Status e disponibilidade
             </Typography>
-            <Button variant="contained" color="warning" href="/motorista/home">
+            <Button 
+              variant="contained" 
+              color="warning" 
+              component={Link}
+              to="/motorista/home"
+            >
               Acessar
             </Button>
           </CardContent>
@@ -52,7 +58,12 @@ function DriverDashboard() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Gerenciar solicitações
             </Typography>
-            <Button variant="contained" color="success" href="/motorista/ride">
+            <Button 
+              variant="contained" 
+              color="success" 
+              component={Link}
+              to="/motorista/ride"
+            >
               Acessar
             </Button>
           </CardContent>
@@ -67,7 +78,11 @@ function DriverDashboard() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Relatórios financeiros
             </Typography>
-            <Button variant="contained" href="/motorista/earnings">
+            <Button 
+              variant="contained" 
+              component={Link}
+              to="/motorista/earnings"
+            >
               Acessar
             </Button>
           </CardContent>
