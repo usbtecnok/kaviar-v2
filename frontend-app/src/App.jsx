@@ -4,6 +4,7 @@ import PassengerApp from "./components/passenger/PassengerApp";
 import DriverApp from "./components/driver/DriverApp";
 import AuthApp from "./components/auth/AuthApp";
 import AdminApp from "./components/admin/AdminApp";
+import CompleteOnboarding from "./pages/onboarding/CompleteOnboarding";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
 
@@ -74,31 +75,31 @@ function Home() {
           maxWidth: 400, 
           mx: 'auto' 
         }}>
-          <Button 
-            variant="contained" 
-            size="large" 
-            component={Link}
-            to="/passageiro" 
-            sx={{ 
-              py: 3, 
-              px: 6,
-              width: '100%',
-              backgroundColor: '#2e7d32',
-              borderRadius: 3,
-              fontWeight: 700,
-              fontSize: '1.1rem',
-              textTransform: 'none',
-              boxShadow: '0 8px 24px rgba(46, 125, 50, 0.3)',
-              '&:hover': {
-                backgroundColor: '#1b5e20',
-                boxShadow: '0 12px 32px rgba(46, 125, 50, 0.4)',
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.3s ease'
-            }}
-          >
-            🚗 Solicitar Corrida
-          </Button>
+            <Button 
+              variant="contained" 
+              size="large" 
+              component={Link}
+              to="/cadastro" 
+              sx={{ 
+                py: 3, 
+                px: 6,
+                width: '100%',
+                backgroundColor: '#2e7d32',
+                borderRadius: 3,
+                fontWeight: 700,
+                fontSize: '1.1rem',
+                textTransform: 'none',
+                boxShadow: '0 8px 24px rgba(46, 125, 50, 0.3)',
+                '&:hover': {
+                  backgroundColor: '#1b5e20',
+                  boxShadow: '0 12px 32px rgba(46, 125, 50, 0.4)',
+                  transform: 'translateY(-2px)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              🚀 Cadastrar-se no KAVIAR
+            </Button>
           
           <Box sx={{ 
             display: 'grid', 
@@ -194,6 +195,7 @@ export default function App() {
       <DriverProvider>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/cadastro" element={<CompleteOnboarding />} />
           <Route path="/login/*" element={<AuthApp />} />
           <Route path="/passageiro/*" element={<PassengerApp />} />
           <Route path="/motorista/*" element={<DriverApp />} />

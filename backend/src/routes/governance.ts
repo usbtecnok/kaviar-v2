@@ -17,6 +17,27 @@ router.get('/communities', async (req, res) => {
   }
 });
 
+// Cadastrar passageiro
+router.post('/passenger', async (req, res) => {
+  try {
+    const { name, email, phone, communityId } = req.body;
+    
+    const passenger = await prisma.passenger.create({
+      data: {
+        name,
+        email,
+        phone,
+        communityId,
+        status: 'pending'
+      }
+    });
+    
+    res.json({ success: true, data: passenger });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Registrar consentimento LGPD
 router.post('/consent', async (req, res) => {
   try {
