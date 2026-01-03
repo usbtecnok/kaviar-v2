@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import { Container, Typography, Box, Button } from "@mui/material";
 import PassengerApp from "./components/passenger/PassengerApp";
 import DriverApp from "./components/driver/DriverApp";
@@ -77,7 +77,8 @@ function Home() {
           <Button 
             variant="contained" 
             size="large" 
-            href="/passageiro" 
+            component={Link}
+            to="/passageiro" 
             sx={{ 
               py: 3, 
               px: 6,
@@ -108,7 +109,8 @@ function Home() {
             <Button 
               variant="outlined" 
               size="medium" 
-              href="/motorista" 
+              component={Link}
+              to="/motorista" 
               sx={{ 
                 py: 2, 
                 borderRadius: 2,
@@ -130,7 +132,8 @@ function Home() {
             <Button 
               variant="outlined" 
               size="medium" 
-              href="/login" 
+              component={Link}
+              to="/login" 
               sx={{ 
                 py: 2, 
                 borderRadius: 2,
@@ -152,7 +155,8 @@ function Home() {
             <Button 
               variant="outlined" 
               size="medium" 
-              href="/admin" 
+              component={Link}
+              to="/admin" 
               sx={{ 
                 py: 2, 
                 borderRadius: 2,
