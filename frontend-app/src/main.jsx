@@ -3,6 +3,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { CssBaseline, GlobalStyles } from "@mui/material";
 import { kaviarTheme, globalAnimationStyles } from "./styles/theme-premium.js";
+import { AuthProvider } from "./auth/AuthContext.jsx";
 import App from "./App.jsx";
 
 const root = document.getElementById("root");
@@ -12,7 +13,9 @@ createRoot(root).render(
     <ThemeProvider theme={kaviarTheme}>
       <CssBaseline />
       <GlobalStyles styles={globalAnimationStyles} />
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ThemeProvider>
   </BrowserRouter>
 );
