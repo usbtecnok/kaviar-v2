@@ -67,6 +67,32 @@ router.post('/consent', async (req, res) => {
   }
 });
 
+// Cadastrar motorista
+router.post('/driver', async (req, res) => {
+  try {
+    const { name, email, phone, communityId, documentCpf, documentRg, documentCnh, vehiclePlate, vehicleModel } = req.body;
+    
+    const driver = await prisma.driver.create({
+      data: {
+        name,
+        email,
+        phone,
+        communityId,
+        documentCpf,
+        documentRg,
+        documentCnh,
+        vehiclePlate,
+        vehicleModel,
+        status: 'pending'
+      }
+    });
+    
+    res.json({ success: true, data: driver });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Atualizar documentos do motorista
 router.put('/driver/:id/documents', async (req, res) => {
   try {

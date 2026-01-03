@@ -5,6 +5,33 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Iniciando seed de ativação do sistema...');
 
+  // 0. Criar admin se não existir
+  const adminRole = await prisma.role.upsert({
+    where: { name: 'SUPER_ADMIN' },
+    update: {},
+    create: { name: 'SUPER_ADMIN' }
+  });
+
+  let admin = await prisma.admin.findFirst({
+    where: { email: 'admin@kaviar.com' }
+  });
+
+  if (!admin) {
+    const bcrypt = await import('bcrypt');
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    
+    admin = await prisma.admin.create({
+      data: {
+        name: 'Admin Kaviar',
+        email: 'admin@kaviar.com',
+        passwordHash: hashedPassword,
+        roleId: adminRole.id,
+        isActive: true
+      }
+    });
+  }
+  console.log('✅ Admin criado/verificado');
+
   // 1. Verificar se comunidade Furnas já existe
   let community = await prisma.community.findFirst({
     where: { name: 'Furnas' }
