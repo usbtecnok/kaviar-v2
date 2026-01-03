@@ -15,3 +15,5 @@ Thumbs.db
 # Frontend build artifacts
 frontend-app/dist
 frontend-app/dist/**
+.env
+.env.*
