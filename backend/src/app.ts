@@ -9,8 +9,14 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || true,
-  credentials: true
+  origin: [
+    'https://kaviar-frontend.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  allowedHeaders: ['Authorization', 'Content-Type'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 app.options("*", cors());
 
