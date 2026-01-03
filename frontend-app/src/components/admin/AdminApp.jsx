@@ -1,12 +1,13 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import { Container, Typography, Box, Card, CardContent, Button } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import DomainHeader from "../common/DomainHeader";
 import AdminDashboard from "../../pages/admin/Dashboard";
 import CommunityManagement from "../../pages/admin/CommunityManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
+import DriverApproval from "../../pages/admin/DriverApproval";
 import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
 
 function AdminHeader() {
@@ -83,6 +84,26 @@ function AdminHome() {
 
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <PersonAdd sx={{ fontSize: 40, color: 'success.main', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Aprovação Motoristas
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Aprovar/reprovar motoristas
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="success"
+              component={Link}
+              to="/admin/drivers/approval"
+            >
+              Acessar
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
             <DirectionsCar sx={{ fontSize: 40, color: 'primary.main', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
               Corridas
@@ -90,7 +111,11 @@ function AdminHome() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Gestão operacional de corridas
             </Typography>
-            <Button variant="contained" href="/admin/rides">
+            <Button 
+              variant="contained" 
+              component={Link}
+              to="/admin/rides"
+            >
               Acessar
             </Button>
           </CardContent>
@@ -214,6 +239,13 @@ export default function AdminApp() {
       <Route path="/rides/audit" element={
         <ProtectedAdminRoute>
           <RideAudit />
+        </ProtectedAdminRoute>
+      } />
+      
+      {/* Rota de Aprovação de Motoristas */}
+      <Route path="/drivers/approval" element={
+        <ProtectedAdminRoute>
+          <DriverApproval />
         </ProtectedAdminRoute>
       } />
     </Routes>
