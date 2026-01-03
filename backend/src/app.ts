@@ -9,15 +9,10 @@ const app = express();
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // curl/Postman
-    if (origin.startsWith("http://localhost")) {
-      return callback(null, true);
-    }
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
+  origin: process.env.CORS_ORIGIN || true,
+  credentials: true
 }));
+app.options("*", cors());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
