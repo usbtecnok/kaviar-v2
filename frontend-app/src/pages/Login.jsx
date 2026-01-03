@@ -40,8 +40,8 @@ const Login = () => {
     if (result.success) {
       // Redirecionar baseado no tipo de usuário
       const redirectPath = userType === 'admin' ? '/admin' : 
-                          userType === 'driver' ? '/driver' : 
-                          '/passenger';
+                          userType === 'driver' ? '/motorista' : 
+                          '/passageiro';
       navigate(redirectPath);
     } else {
       setError(result.error);

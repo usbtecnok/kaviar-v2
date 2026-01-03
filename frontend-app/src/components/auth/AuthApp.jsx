@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import { Container, Typography, Box, Button } from "@mui/material";
 import { Login as LoginIcon } from "@mui/icons-material";
 import DomainHeader from "../common/DomainHeader";
@@ -30,7 +30,8 @@ function AuthHome() {
         <Button 
           variant="contained" 
           size="large" 
-          href="/login/form"
+          component={Link}
+          to="/login/form"
           sx={{ py: 2, px: 4 }}
         >
           Fazer Login
