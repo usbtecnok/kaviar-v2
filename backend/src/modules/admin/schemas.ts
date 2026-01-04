@@ -27,7 +27,7 @@ export const passengersQuerySchema = paginationSchema;
 // Rides query schema
 export const ridesQuerySchema = paginationSchema.extend({
   status: z.enum(['requested', 'accepted', 'arrived', 'started', 'completed', 'paid', 'cancelled_by_user', 'cancelled_by_driver', 'cancelled_by_admin']).optional(),
-  type: z.enum(['normal', 'combo', 'comunidade']).optional(),
+  type: z.enum(['normal', 'combo', 'comunidade', 'TOURISM']).optional(),
   driverId: z.string().optional(),
   passengerId: z.string().optional(),
   search: z.string().optional(),

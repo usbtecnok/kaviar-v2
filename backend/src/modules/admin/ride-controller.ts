@@ -67,6 +67,15 @@ export class RideAdminController {
         message: 'Status atualizado com sucesso',
       });
     } catch (error) {
+      // Handle concurrent modification specifically
+      if (error instanceof Error && error.message === 'CONCURRENT_MODIFICATION') {
+        return res.status(409).json({
+          success: false,
+          error: 'Conflito: o status da corrida foi modificado por outra operação. Tente novamente.',
+          code: 'CONCURRENT_MODIFICATION'
+        });
+      }
+
       const statusCode = error instanceof Error && error.message.includes('não encontrada') ? 404 : 400;
       
       res.status(statusCode).json({
@@ -91,6 +100,15 @@ export class RideAdminController {
         message: 'Corrida cancelada com sucesso',
       });
     } catch (error) {
+      // Handle concurrent modification specifically
+      if (error instanceof Error && error.message === 'CONCURRENT_MODIFICATION') {
+        return res.status(409).json({
+          success: false,
+          error: 'Conflito: a corrida foi modificada por outra operação. Tente novamente.',
+          code: 'CONCURRENT_MODIFICATION'
+        });
+      }
+
       const statusCode = error instanceof Error && error.message.includes('não encontrada') ? 404 : 400;
       
       res.status(statusCode).json({

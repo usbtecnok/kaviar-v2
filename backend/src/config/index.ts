@@ -19,6 +19,44 @@ export const config = {
     defaultEmail: process.env.ADMIN_DEFAULT_EMAIL || 'admin@kaviar.com',
     defaultPassword: process.env.ADMIN_DEFAULT_PASSWORD || 'admin123',
   },
+
+  rateLimit: {
+    adminLogin: parseInt(process.env.ADMIN_LOGIN_RATE_LIMIT || '10'),
+    adminLoginPerEmail: parseInt(process.env.ADMIN_LOGIN_RATE_LIMIT_PER_EMAIL || '5'),
+  },
+
+  driverGovernance: {
+    enableApprovalGates: process.env.ENABLE_DRIVER_APPROVAL_GATES === 'true',
+  },
+
+  geofence: {
+    enableGeofence: process.env.ENABLE_GEOFENCE === 'true',
+    fallbackWaitSeconds: parseInt(process.env.FALLBACK_WAIT_SECONDS || '0'),
+    locationValidityMinutes: parseInt(process.env.GEOFENCE_LOCATION_VALIDITY || '5'),
+  },
+
+  driverEnforcement: {
+    enableEnforcementGates: process.env.ENABLE_DRIVER_ENFORCEMENT_GATES === 'true',
+  },
+
+  diamond: {
+    enableDiamond: process.env.ENABLE_DIAMOND === 'true',
+    bonusFixed: parseFloat(process.env.DIAMOND_BONUS_FIXED || '5.00'),
+    dailyCap: parseFloat(process.env.DIAMOND_BONUS_DAILY_CAP || '25.00'),
+    timezone: 'America/Sao_Paulo'
+  },
+
+  rating: {
+    enableRatingSystem: process.env.ENABLE_RATING_SYSTEM === 'true',
+    windowDays: parseInt(process.env.RATING_WINDOW_DAYS || '7'),
+    commentMaxLength: parseInt(process.env.RATING_COMMENT_MAX_LENGTH || '200')
+  },
+
+  premiumTourism: {
+    enablePremiumTourism: process.env.ENABLE_PREMIUM_TOURISM === 'true',
+    minRatingPremium: parseFloat(process.env.MIN_RATING_PREMIUM || '4.7'),
+    minRatingsCountPremium: parseInt(process.env.MIN_RATINGS_COUNT_PREMIUM || '20')
+  },
 };
 
 // Validate required environment variables

@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { AdminService } from '../modules/admin/service';
+import { DriverEnforcementService } from '../services/driver-enforcement';
 
 const adminService = new AdminService();
+const enforcementService = new DriverEnforcementService();
 
 export const checkDriverStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -14,6 +16,21 @@ export const checkDriverStatus = async (req: Request, res: Response, next: NextF
       });
     }
 
+    // Check enforcement status first
+    const enforcementStatus = await enforcementService.checkDriverStatus(driverId);
+    if (enforcementStatus.isBlocked) {
+      const errorCode = `DRIVER_${enforcementStatus.blockReason}`;
+      
+      return res.status(403).json({
+        success: false,
+        error: errorCode,
+        message: enforcementStatus.message,
+        details: enforcementStatus.details,
+        contact: 'Entre em contato com o suporte para mais informações'
+      });
+    }
+
+    // Check if driver can accept rides
     const canAcceptRides = await adminService.canDriverAcceptRides(driverId);
     
     if (!canAcceptRides) {
@@ -25,6 +42,7 @@ export const checkDriverStatus = async (req: Request, res: Response, next: NextF
 
     next();
   } catch (error) {
+    console.error('Driver status check failed:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao verificar status do motorista',

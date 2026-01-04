@@ -1,8 +1,17 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { DriverGovernanceController } from '../modules/governance/driver-controller';
+import { RideController } from '../modules/governance/ride-controller';
+import { RatingController } from '../modules/rating/controller';
+import { TourController } from '../modules/governance/tour-controller';
+import { checkDriverForLocationUpdate } from '../middlewares/driver-enforcement';
 
 const router = Router();
 const prisma = new PrismaClient();
+const driverController = new DriverGovernanceController();
+const rideController = new RideController();
+const ratingController = new RatingController();
+const tourController = new TourController();
 
 // Listar comunidades ativas
 router.get('/communities', async (req, res) => {
@@ -12,8 +21,9 @@ router.get('/communities', async (req, res) => {
       select: { id: true, name: true, description: true }
     });
     res.json({ success: true, data: communities });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error);
+    res.status(500).json({ success: false, error: message });
   }
 });
 
@@ -33,8 +43,9 @@ router.post('/passenger', async (req, res) => {
     });
     
     res.json({ success: true, data: passenger });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error);
+    res.status(500).json({ success: false, error: message });
   }
 });
 
@@ -62,8 +73,8 @@ router.post('/consent', async (req, res) => {
     });
     
     res.json({ success: true, data: consent });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -88,8 +99,8 @@ router.post('/driver', async (req, res) => {
     });
     
     res.json({ success: true, data: driver });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -112,8 +123,8 @@ router.put('/driver/:id/documents', async (req, res) => {
     });
     
     res.json({ success: true, data: driver });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -136,9 +147,28 @@ router.post('/guide', async (req, res) => {
     });
     
     res.json({ success: true, data: guide });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
+
+// Driver governance endpoints
+router.post('/driver/consent', driverController.recordConsent);
+router.put('/driver/:id/documents', driverController.submitDocuments);
+
+// Ride endpoints (with geofence)
+router.post('/ride/request', rideController.requestRide);
+
+// Location tracking endpoints (with enforcement gates)
+router.put('/driver/:id/location', checkDriverForLocationUpdate, rideController.updateDriverLocation);
+router.put('/passenger/:id/location', rideController.updatePassengerLocation);
+
+// Rating endpoints
+router.post('/ratings', ratingController.createRating);
+router.get('/ratings/summary/:type/:id', ratingController.getRatingSummary);
+
+// Premium Tourism endpoints
+router.get('/tour-packages', tourController.getActiveTourPackages);
+router.post('/tour-bookings', tourController.createTourBooking);
 
 export { router as governanceRoutes };
