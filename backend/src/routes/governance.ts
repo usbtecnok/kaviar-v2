@@ -25,6 +25,11 @@ router.get('/communities', async (req, res) => {
   }
 });
 
+// Test endpoint
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'Test endpoint working' });
+});
+
 // Cadastrar passageiro
 router.post('/passenger', async (req, res) => {
   try {
