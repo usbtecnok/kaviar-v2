@@ -17,3 +17,11 @@ frontend-app/dist
 frontend-app/dist/**
 .env
 .env.*
+*.swp
+*.swo
+*.swx
+
+# editor swap files
+*.swp
+*.swo
+*.swx
