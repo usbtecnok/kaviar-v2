@@ -15,22 +15,26 @@ const webhookRoutes = require('./webhooks/twilio-whatsapp');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 // Verificar configurações obrigatórias
 const requiredEnvVars = [
   'TWILIO_ACCOUNT_SID',
-  'TWILIO_AUTH_TOKEN', 
+  'TWILIO_AUTH_TOKEN',
   'TWILIO_WHATSAPP_NUMBER',
-  'SUPABASE_URL',
-  'SUPABASE_SERVICE_ROLE_KEY',
   'JWT_SECRET'
 ];
 
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+// Só exige Supabase se estiver explicitamente habilitado
+if (process.env.ENABLE_SUPABASE === 'true') {
+  requiredEnvVars.push('SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY');
+}
+
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 if (missingVars.length > 0) {
   logger.error('Missing required environment variables:', missingVars);
   process.exit(1);
 }
+
+
 
 // SEGURANÇA: Helmet com configurações restritivas
 app.use(helmet({
