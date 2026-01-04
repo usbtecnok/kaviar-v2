@@ -10,6 +10,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TourPackageType {
+  TOUR
+  AIRPORT_TRANSFER
+}
+
+enum TourBookingStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
 model Role {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -249,7 +261,7 @@ model TourPackage {
   id                        String        @id @default(cuid())
   title                     String
   description               String
-  type                      String        // TOUR, AIRPORT_TRANSFER
+  type                      TourPackageType // TOUR, AIRPORT_TRANSFER
   partnerName               String        @map("partner_name")
   basePrice                 Decimal       @map("base_price") @db.Decimal(10, 2)
   locations                 String[]
@@ -267,7 +279,7 @@ model TourBooking {
   id              String    @id @default(cuid())
   packageId       String    @map("package_id")
   passengerId     String    @map("passenger_id")
-  status          String    @default("REQUESTED") // REQUESTED, CONFIRMED, CANCELLED, COMPLETED
+  status          TourBookingStatus @default(REQUESTED) // REQUESTED, CONFIRMED, CANCELLED, COMPLETED
   scheduledAt     DateTime  @map("scheduled_at")
   pickupLocation  String    @map("pickup_location")
   dropoffLocation String?   @map("dropoff_location")

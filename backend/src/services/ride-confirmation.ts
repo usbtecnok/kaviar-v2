@@ -1,0 +1,195 @@
+import { prisma } from '../config/database';
+import { randomBytes, createHash } from 'crypto';
+
+export interface ConfirmationTokenResult {
+  confirmationToken: string;
+  expiresAt: Date;
+  ttlMinutes: number;
+}
+
+export interface ConfirmationValidationResult {
+  isValid: boolean;
+  isUsed: boolean;
+  isExpired: boolean;
+  existingRideId?: string;
+  error?: string;
+}
+
+export class RideConfirmationService {
+  private readonly TTL_MINUTES = 5; // 5 minutes TTL
+
+  /**
+   * Generate confirmation token for out-of-fence fallback
+   */
+  async generateConfirmationToken(
+    passengerId: string,
+    rideData: any
+  ): Promise<ConfirmationTokenResult> {
+    const confirmationToken = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + this.TTL_MINUTES * 60 * 1000);
+    
+    // Create request fingerprint for validation
+    const requestFingerprint = this.createRequestFingerprint(rideData);
+
+    // Clean up expired tokens for this passenger
+    await this.cleanupExpiredTokens(passengerId);
+
+    // Create confirmation record
+    await prisma.rideConfirmation.create({
+      data: {
+        passengerId,
+        confirmationToken,
+        rideData: {
+          ...rideData,
+          requestFingerprint
+        },
+        expiresAt
+      }
+    });
+
+    return {
+      confirmationToken,
+      expiresAt,
+      ttlMinutes: this.TTL_MINUTES
+    };
+  }
+
+  /**
+   * Validate and use confirmation token (idempotent)
+   */
+  async validateAndUseToken(
+    confirmationToken: string,
+    passengerId: string
+  ): Promise<ConfirmationValidationResult> {
+    const confirmation = await prisma.rideConfirmation.findUnique({
+      where: { confirmationToken },
+      select: {
+        id: true,
+        passengerId: true,
+        isUsed: true,
+        usedAt: true,
+        createdRideId: true,
+        expiresAt: true,
+        rideData: true
+      }
+    });
+
+    if (!confirmation) {
+      return {
+        isValid: false,
+        isUsed: false,
+        isExpired: false,
+        error: 'Token de confirmação inválido'
+      };
+    }
+
+    if (confirmation.passengerId !== passengerId) {
+      return {
+        isValid: false,
+        isUsed: false,
+        isExpired: false,
+        error: 'Token não pertence a este passageiro'
+      };
+    }
+
+    if (new Date() > confirmation.expiresAt) {
+      return {
+        isValid: false,
+        isUsed: false,
+        isExpired: true,
+        error: 'Token de confirmação expirado'
+      };
+    }
+
+    if (confirmation.isUsed) {
+      return {
+        isValid: true,
+        isUsed: true,
+        isExpired: false,
+        existingRideId: confirmation.createdRideId || undefined
+      };
+    }
+
+    return {
+      isValid: true,
+      isUsed: false,
+      isExpired: false
+    };
+  }
+
+  /**
+   * Mark token as used (idempotent)
+   */
+  async markTokenAsUsed(confirmationToken: string, rideId: string): Promise<void> {
+    await prisma.rideConfirmation.updateMany({
+      where: {
+        confirmationToken,
+        isUsed: false // Only update if not already used
+      },
+      data: {
+        isUsed: true,
+        usedAt: new Date(),
+        createdRideId: rideId
+      }
+    });
+  }
+
+  /**
+   * Clean up expired tokens for a passenger
+   */
+  private async cleanupExpiredTokens(passengerId: string): Promise<void> {
+    await prisma.rideConfirmation.deleteMany({
+      where: {
+        passengerId,
+        expiresAt: {
+          lt: new Date()
+        }
+      }
+    });
+  }
+
+  /**
+   * Get confirmation data by token
+   */
+  async getConfirmationData(confirmationToken: string): Promise<any> {
+    const confirmation = await prisma.rideConfirmation.findUnique({
+      where: { confirmationToken },
+      select: { rideData: true, isUsed: true, expiresAt: true }
+    });
+
+    if (!confirmation || confirmation.isUsed || new Date() > confirmation.expiresAt) {
+      return null;
+    }
+
+    return confirmation.rideData;
+  }
+
+  /**
+   * Validate request matches original (same fingerprint)
+   */
+  validateRequestMatch(originalData: any, newRequest: any): boolean {
+    const originalFingerprint = originalData.requestFingerprint;
+    const newFingerprint = this.createRequestFingerprint(newRequest);
+    
+    return originalFingerprint === newFingerprint;
+  }
+
+  /**
+   * Create request fingerprint from key fields
+   */
+  private createRequestFingerprint(rideData: any): string {
+    const keyFields = {
+      passengerId: rideData.passengerId,
+      type: rideData.type,
+      origin: rideData.origin,
+      destination: rideData.destination,
+      price: rideData.price,
+      // Include coordinates if provided (rounded to avoid precision issues)
+      passengerLat: rideData.passengerLat ? Math.round(rideData.passengerLat * 10000) / 10000 : null,
+      passengerLng: rideData.passengerLng ? Math.round(rideData.passengerLng * 10000) / 10000 : null
+    };
+    
+    const fingerprintString = JSON.stringify(keyFields, Object.keys(keyFields).sort());
+    return createHash('sha256').update(fingerprintString).digest('hex');
+  }
+}

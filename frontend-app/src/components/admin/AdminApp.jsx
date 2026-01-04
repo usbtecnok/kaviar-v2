@@ -1,6 +1,6 @@
 import { Routes, Route, Link } from "react-router-dom";
 import { Container, Typography, Box, Card, CardContent, Button } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import DomainHeader from "../common/DomainHeader";
@@ -9,6 +9,10 @@ import CommunityManagement from "../../pages/admin/CommunityManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
 import DriverApproval from "../../pages/admin/DriverApproval";
 import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
+import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
+import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
+import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
+import PremiumTourismButton from "./PremiumTourismButton";
 
 function AdminHeader() {
   const adminData = localStorage.getItem('kaviar_admin_data');
@@ -150,6 +154,19 @@ function AdminHome() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <Tour sx={{ fontSize: 40, color: 'secondary.main', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Premium Tourism
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Pacotes e reservas turísticas
+            </Typography>
+            <PremiumTourismButton />
+          </CardContent>
+        </Card>
       </Box>
     </Container>
   );
@@ -246,6 +263,28 @@ export default function AdminApp() {
       <Route path="/drivers/approval" element={
         <ProtectedAdminRoute>
           <DriverApproval />
+        </ProtectedAdminRoute>
+      } />
+      
+      {/* Rotas Premium Tourism */}
+      <Route path="/premium-tourism/packages" element={
+        <ProtectedAdminRoute>
+          <TourPackages />
+        </ProtectedAdminRoute>
+      } />
+      <Route path="/premium-tourism/packages/new" element={
+        <ProtectedAdminRoute>
+          <TourPackageForm />
+        </ProtectedAdminRoute>
+      } />
+      <Route path="/premium-tourism/packages/:id/edit" element={
+        <ProtectedAdminRoute>
+          <TourPackageForm />
+        </ProtectedAdminRoute>
+      } />
+      <Route path="/premium-tourism/bookings" element={
+        <ProtectedAdminRoute>
+          <TourBookings />
         </ProtectedAdminRoute>
       } />
     </Routes>

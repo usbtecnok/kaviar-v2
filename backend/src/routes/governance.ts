@@ -3,7 +3,6 @@ import { PrismaClient } from '@prisma/client';
 import { DriverGovernanceController } from '../modules/governance/driver-controller';
 import { RideController } from '../modules/governance/ride-controller';
 import { RatingController } from '../modules/rating/controller';
-import { TourController } from '../modules/governance/tour-controller';
 import { checkDriverForLocationUpdate } from '../middlewares/driver-enforcement';
 
 const router = Router();
@@ -11,7 +10,6 @@ const prisma = new PrismaClient();
 const driverController = new DriverGovernanceController();
 const rideController = new RideController();
 const ratingController = new RatingController();
-const tourController = new TourController();
 
 // Listar comunidades ativas
 router.get('/communities', async (req, res) => {
@@ -166,9 +164,5 @@ router.put('/passenger/:id/location', rideController.updatePassengerLocation);
 // Rating endpoints
 router.post('/ratings', ratingController.createRating);
 router.get('/ratings/summary/:type/:id', ratingController.getRatingSummary);
-
-// Premium Tourism endpoints
-router.get('/tour-packages', tourController.getActiveTourPackages);
-router.post('/tour-bookings', tourController.createTourBooking);
 
 export { router as governanceRoutes };

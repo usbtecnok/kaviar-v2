@@ -57,6 +57,14 @@ export const config = {
     minRatingPremium: parseFloat(process.env.MIN_RATING_PREMIUM || '4.7'),
     minRatingsCountPremium: parseInt(process.env.MIN_RATINGS_COUNT_PREMIUM || '20')
   },
+
+  integrations: {
+    enableTwilioWhatsapp: process.env.ENABLE_TWILIO_WHATSAPP !== 'false', // Default true
+  },
+
+  legacy: {
+    enableLegacy: process.env.ENABLE_LEGACY === 'true', // Default false
+  },
 };
 
 // Validate required environment variables

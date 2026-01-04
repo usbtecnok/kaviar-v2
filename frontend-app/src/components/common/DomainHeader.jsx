@@ -1,83 +1,96 @@
-import { Box, Typography, Button, Breadcrumbs, Link } from "@mui/material";
-import { ArrowBack, Home } from "@mui/icons-material";
+import { Box, Typography, Breadcrumbs, Link, IconButton } from '@mui/material';
+import { ArrowBack, Home } from '@mui/icons-material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
-const DomainHeader = ({ 
+export default function DomainHeader({ 
   domain, 
   title, 
   breadcrumbs = [], 
-  showBackButton = true,
-  backUrl = "/" 
-}) => {
-  const getDomainColor = () => {
-    switch (domain) {
-      case 'passageiro': return '#2e7d32';
-      case 'motorista': return '#ed6c02';
-      case 'admin': return '#d32f2f';
-      case 'login': return '#1976d2';
-      default: return '#1976d2';
-    }
+  backUrl,
+  actions 
+}) {
+  const navigate = useNavigate();
+
+  const getDomainColor = (domain) => {
+    const colors = {
+      'admin': 'primary',
+      'governance': 'secondary', 
+      'premium-tourism': 'info'
+    };
+    return colors[domain] || 'primary';
+  };
+
+  const getDomainLabel = (domain) => {
+    const labels = {
+      'admin': 'Administração',
+      'governance': 'Governança',
+      'premium-tourism': 'Premium Tourism'
+    };
+    return labels[domain] || domain;
   };
 
   return (
-    <Box sx={{ 
-      borderBottom: '1px solid #e0e0e0', 
-      pb: 2, 
-      mb: 3,
-      backgroundColor: 'background.paper'
-    }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {showBackButton && (
-            <Button
-              variant="outlined"
+    <Box sx={{ mb: 3 }}>
+      {/* Header Principal */}
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        mb: 1 
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {backUrl && (
+            <IconButton 
+              onClick={() => navigate(backUrl)}
               size="small"
-              startIcon={<ArrowBack />}
-              href={backUrl}
-              sx={{ minWidth: 'auto' }}
+              color="primary"
             >
-              Voltar
-            </Button>
+              <ArrowBack />
+            </IconButton>
           )}
+          
           <Typography 
-            variant="h5" 
-            sx={{ 
-              fontWeight: 600, 
-              color: getDomainColor(),
-              textTransform: 'capitalize'
-            }}
+            variant="h4" 
+            component="h1"
+            color={`${getDomainColor(domain)}.main`}
           >
             {title}
           </Typography>
         </Box>
-        
-        <Button
-          variant="text"
-          size="small"
-          startIcon={<Home />}
-          href="/"
-          sx={{ color: 'text.secondary' }}
-        >
-          Início
-        </Button>
+
+        {actions && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {actions}
+          </Box>
+        )}
       </Box>
-      
-      {breadcrumbs.length > 0 && (
-        <Breadcrumbs separator="›" sx={{ fontSize: '0.875rem' }}>
-          <Link href="/" color="inherit" underline="hover">
-            KAVIAR
-          </Link>
-          <Link href={`/${domain}`} color="inherit" underline="hover" sx={{ textTransform: 'capitalize' }}>
-            {domain}
-          </Link>
-          {breadcrumbs.map((crumb, index) => (
-            <Typography key={index} color="text.primary" sx={{ fontSize: '0.875rem' }}>
-              {crumb}
-            </Typography>
-          ))}
-        </Breadcrumbs>
-      )}
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs separator="›" sx={{ color: 'text.secondary' }}>
+        <Link 
+          component={RouterLink} 
+          to="/" 
+          color="inherit"
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+        >
+          <Home fontSize="small" />
+          Kaviar
+        </Link>
+        
+        <Link 
+          component={RouterLink} 
+          to={`/${domain}`} 
+          color="inherit"
+        >
+          {getDomainLabel(domain)}
+        </Link>
+        
+        {breadcrumbs.map((crumb, index) => (
+          <Typography key={index} color="text.primary">
+            {crumb}
+          </Typography>
+        ))}
+      </Breadcrumbs>
     </Box>
   );
-};
-
-export default DomainHeader;
+}

@@ -1,0 +1,203 @@
+import { prisma } from '../config/database';
+import { config } from '../config';
+import { RatingData, RatingStats, RatingSummary, RaterType, UserType } from '../types/rating';
+
+export class RatingService {
+
+  /**
+   * Create rating (idempotent)
+   */
+  async createRating(data: RatingData): Promise<{ success: boolean; rating?: any; error?: string; existingRating?: any }> {
+    if (!config.rating.enableRatingSystem) {
+      return { success: false, error: 'Rating system disabled' };
+    }
+
+    // Validate rating window
+    const windowCheck = await this.validateRatingWindow(data.rideId);
+    if (!windowCheck.isValid) {
+      return { success: false, error: windowCheck.error };
+    }
+
+    // Validate score
+    if (data.score < 1 || data.score > 5) {
+      return { success: false, error: 'Score must be between 1 and 5' };
+    }
+
+    // Validate comment length
+    if (data.comment && data.comment.length > config.rating.commentMaxLength) {
+      return { success: false, error: `Comment exceeds ${config.rating.commentMaxLength} characters` };
+    }
+
+    try {
+      // Check for existing rating (idempotency)
+      const existingRating = await prisma.rating.findUnique({
+        where: {
+          rideId_userId: {
+            rideId: data.rideId,
+            userId: data.raterId
+          }
+        }
+      });
+
+      if (existingRating) {
+        return { 
+          success: false, 
+          error: 'RATING_ALREADY_EXISTS',
+          existingRating: {
+            id: existingRating.id,
+            score: existingRating.score,
+            comment: existingRating.comment,
+            createdAt: existingRating.createdAt
+          }
+        };
+      }
+
+      // Create rating and update stats in transaction
+      const result = await prisma.$transaction(async (tx) => {
+        // Create rating
+        const rating = await tx.rating.create({
+          data: {
+            entityType: data.raterType === 'DRIVER' ? 'passenger' : 'driver',
+            entityId: data.ratedId,
+            userId: data.raterId,
+            rideId: data.rideId,
+            raterId: data.raterId,
+            ratedId: data.ratedId,
+            raterType: data.raterType,
+            rating: data.score,
+            score: data.score,
+            comment: data.comment
+          }
+        });
+
+        // Update stats for rated user
+        await this.updateRatingStats(data.ratedId, data.raterType === RaterType.DRIVER ? UserType.PASSENGER : UserType.DRIVER, tx);
+
+        return rating;
+      });
+
+      // Log for moderation (audit trail)
+      if (data.comment) {
+        console.log(`[RATING_COMMENT] RideId: ${data.rideId}, RaterId: ${data.raterId}, Comment: "${data.comment}"`);
+      }
+
+      return {
+        success: true,
+        rating: {
+          id: result.id,
+          score: result.score,
+          comment: result.comment,
+          createdAt: result.createdAt
+        }
+      };
+
+    } catch (error) {
+      console.error('Error creating rating:', error);
+      return { success: false, error: 'Internal server error' };
+    }
+  }
+
+  /**
+   * Get rating summary for user
+   */
+  async getRatingSummary(userId: string, userType: UserType): Promise<RatingSummary> {
+    if (!config.rating.enableRatingSystem) {
+      return { stats: null, recentRatings: [] };
+    }
+
+    // Get stats
+    const stats = await prisma.ratingStats.findUnique({
+      where: { userId }
+    });
+
+    // Get recent ratings (last 10)
+    const recentRatings = await prisma.rating.findMany({
+      where: { ratedId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        score: true,
+        comment: true,
+        createdAt: true
+      }
+    });
+
+    return {
+      stats: stats ? {
+        userId: stats.userId || userId,
+        userType: userType,
+        averageRating: parseFloat(stats.averageRating.toString()),
+        totalRatings: stats.totalRatings,
+        updatedAt: stats.updatedAt
+      } : null,
+      recentRatings: recentRatings.map(r => ({
+        id: r.id,
+        score: r.score,
+        comment: r.comment || undefined,
+        createdAt: r.createdAt
+      }))
+    };
+  }
+
+  /**
+   * Validate rating window
+   */
+  private async validateRatingWindow(rideId: string): Promise<{ isValid: boolean; error?: string }> {
+    const ride = await prisma.ride.findUnique({
+      where: { id: rideId },
+      select: { status: true, updatedAt: true }
+    });
+
+    if (!ride) {
+      return { isValid: false, error: 'Ride not found' };
+    }
+
+    if (ride.status !== 'completed') {
+      return { isValid: false, error: 'Ride must be completed to rate' };
+    }
+
+    // Check window expiration
+    const windowMs = config.rating.windowDays * 24 * 60 * 60 * 1000;
+    const expiresAt = new Date(ride.updatedAt.getTime() + windowMs);
+    
+    if (new Date() > expiresAt) {
+      return { isValid: false, error: 'RATING_WINDOW_EXPIRED' };
+    }
+
+    return { isValid: true };
+  }
+
+  /**
+   * Update rating stats for user
+   */
+  private async updateRatingStats(userId: string, userType: UserType, tx: any): Promise<void> {
+    // Calculate new average
+    const ratings = await tx.rating.findMany({
+      where: { ratedId: userId },
+      select: { score: true }
+    });
+
+    const totalRatings = ratings.length;
+    const averageRating = totalRatings > 0 
+      ? ratings.reduce((sum: number, r: { score: number }) => sum + r.score, 0) / totalRatings 
+      : 0;
+
+    // Upsert stats
+    await tx.ratingStats.upsert({
+      where: { userId },
+      update: {
+        averageRating,
+        totalRatings,
+        updatedAt: new Date()
+      },
+      create: {
+        userId,
+        userType,
+        averageRating,
+        totalRatings,
+        updatedAt: new Date()
+      }
+    });
+  }
+}

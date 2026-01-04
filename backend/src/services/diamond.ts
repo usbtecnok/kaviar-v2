@@ -1,0 +1,349 @@
+import { prisma } from '../config/database';
+import { config } from '../config';
+import { DiamondState, DiamondInfo, DiamondAuditEntry } from '../types/diamond';
+
+export class DiamondService {
+  
+  /**
+   * Initialize diamond for new ride
+   */
+  async initializeDiamond(rideId: string, rideType: string, communityId?: string): Promise<void> {
+    if (!config.diamond.enableDiamond) return;
+    
+    // Only community rides in active communities are diamond eligible
+    if (rideType !== 'comunidade') return;
+    
+    if (communityId) {
+      const community = await prisma.community.findUnique({
+        where: { id: communityId },
+        select: { isActive: true }
+      });
+      
+      if (!community?.isActive) return;
+    }
+
+    await prisma.ride.update({
+      where: { id: rideId },
+      data: {
+        isDiamondEligible: true,
+        diamondState: DiamondState.ELIGIBLE
+      }
+    });
+
+    await this.createAuditLog({
+      rideId,
+      diamondStateFrom: null,
+      diamondStateTo: DiamondState.ELIGIBLE,
+      reason: 'RIDE_CREATED'
+    });
+  }
+
+  /**
+   * Handle driver accept
+   */
+  async handleDriverAccept(rideId: string, driverId: string): Promise<void> {
+    if (!config.diamond.enableDiamond) return;
+
+    const ride = await prisma.ride.findUnique({
+      where: { id: rideId },
+      select: { isDiamondEligible: true, diamondState: true, diamondCandidateDriverId: true }
+    });
+
+    if (!ride?.isDiamondEligible || ride.diamondState !== DiamondState.ELIGIBLE) return;
+
+    await prisma.ride.update({
+      where: { id: rideId },
+      data: { diamondCandidateDriverId: driverId }
+    });
+
+    await this.createAuditLog({
+      rideId,
+      driverId,
+      diamondStateFrom: DiamondState.ELIGIBLE,
+      diamondStateTo: DiamondState.ELIGIBLE,
+      reason: 'DRIVER_ACCEPTED'
+    });
+  }
+
+  /**
+   * Handle driver cancel (dies on cancel rule)
+   */
+  async handleDriverCancel(rideId: string, driverId: string, cancelReason?: string): Promise<void> {
+    if (!config.diamond.enableDiamond) return;
+
+    const ride = await prisma.ride.findUnique({
+      where: { id: rideId },
+      select: { 
+        isDiamondEligible: true, 
+        diamondState: true, 
+        diamondCandidateDriverId: true 
+      }
+    });
+
+    // Only lose diamond if cancelled by the candidate driver
+    if (!ride?.isDiamondEligible || 
+        ride.diamondState !== DiamondState.ELIGIBLE ||
+        ride.diamondCandidateDriverId !== driverId) {
+      return;
+    }
+
+    // Idempotent update - only if still ELIGIBLE
+    const updateResult = await prisma.ride.updateMany({
+      where: { 
+        id: rideId,
+        diamondState: DiamondState.ELIGIBLE // Only update if still ELIGIBLE
+      },
+      data: {
+        isDiamondEligible: false,
+        diamondState: DiamondState.LOST_BY_DRIVER_CANCEL,
+        diamondLostAt: new Date(),
+        diamondLostReason: 'CANCELLED_BY_DRIVER'
+      }
+    });
+
+    // Only create audit if state actually changed
+    if (updateResult.count > 0) {
+      await this.createAuditLog({
+        rideId,
+        driverId,
+        diamondStateFrom: DiamondState.ELIGIBLE,
+        diamondStateTo: DiamondState.LOST_BY_DRIVER_CANCEL,
+        reason: cancelReason || 'CANCELLED_BY_DRIVER'
+      });
+    }
+  }
+
+  /**
+   * Handle ride completion
+   */
+  async handleRideComplete(rideId: string, driverId?: string): Promise<void> {
+    if (!config.diamond.enableDiamond) return;
+
+    const ride = await prisma.ride.findUnique({
+      where: { id: rideId },
+      select: { isDiamondEligible: true, diamondState: true }
+    });
+
+    if (!ride?.isDiamondEligible || ride.diamondState !== DiamondState.ELIGIBLE) return;
+    if (!driverId) return; // Need driverId for daily cap validation
+
+    const bonusAmount = config.diamond.bonusFixed;
+
+    // Use transaction to prevent concurrent cap violations
+    await prisma.$transaction(async (tx) => {
+      // Revalidate state within transaction
+      const currentRide = await tx.ride.findUnique({
+        where: { id: rideId },
+        select: { diamondState: true }
+      });
+
+      if (currentRide?.diamondState !== DiamondState.ELIGIBLE) return;
+
+      // Check daily cap
+      const dailyEarned = await this.getDailyEarnedAmount(driverId, tx);
+      const wouldExceedCap = (dailyEarned + bonusAmount) > config.diamond.dailyCap;
+
+      if (wouldExceedCap) {
+        // Cap reached - don't apply bonus but audit the attempt
+        await this.createAuditLogInTx({
+          rideId,
+          driverId,
+          diamondStateFrom: DiamondState.ELIGIBLE,
+          diamondStateTo: DiamondState.ELIGIBLE, // State unchanged
+          reason: 'DAILY_CAP_REACHED',
+          bonusAmount: 0 // No bonus applied
+        }, tx);
+        return;
+      }
+
+      // Apply bonus - idempotent update
+      const updateResult = await tx.ride.updateMany({
+        where: { 
+          id: rideId,
+          diamondState: DiamondState.ELIGIBLE // Only update if still ELIGIBLE
+        },
+        data: {
+          diamondState: DiamondState.EARNED,
+          bonusAmount,
+          bonusAppliedAt: new Date()
+        }
+      });
+
+      // Only create audit if state actually changed
+      if (updateResult.count > 0) {
+        await this.createAuditLogInTx({
+          rideId,
+          driverId,
+          diamondStateFrom: DiamondState.ELIGIBLE,
+          diamondStateTo: DiamondState.EARNED,
+          reason: 'RIDE_COMPLETED',
+          bonusAmount
+        }, tx);
+      }
+    });
+  }
+
+  /**
+   * Get diamond info for response
+   */
+  async getDiamondInfo(ride: any, driverId?: string): Promise<DiamondInfo | null> {
+    if (!config.diamond.enableDiamond) return null;
+
+    if (!ride.isDiamondEligible && !ride.diamondState) {
+      return {
+        isEligible: false,
+        state: null,
+        message: '',
+        bonusAmount: null
+      };
+    }
+
+    // Get daily earned amount for cap info
+    let dailyEarned = 0;
+    let dailyCapReached = false;
+    
+    if (driverId && ride.diamondState === DiamondState.ELIGIBLE) {
+      dailyEarned = await this.getDailyEarnedAmount(driverId);
+      dailyCapReached = (dailyEarned + config.diamond.bonusFixed) > config.diamond.dailyCap;
+    }
+
+    switch (ride.diamondState) {
+      case DiamondState.ELIGIBLE:
+        if (dailyCapReached) {
+          return {
+            isEligible: false,
+            state: DiamondState.ELIGIBLE,
+            message: `Limite diário de bônus atingido (R$ ${config.diamond.dailyCap.toFixed(2)})`,
+            bonusAmount: null,
+            dailyCapReached: true,
+            dailyEarned,
+            dailyLimit: config.diamond.dailyCap,
+            candidateDriverId: ride.diamondCandidateDriverId
+          };
+        }
+        
+        return {
+          isEligible: true,
+          state: DiamondState.ELIGIBLE,
+          message: `💎 Corrida Diamante - Bônus de R$ ${config.diamond.bonusFixed.toFixed(2)} se não cancelar`,
+          bonusAmount: config.diamond.bonusFixed,
+          dailyCapReached: false,
+          dailyEarned,
+          dailyLimit: config.diamond.dailyCap,
+          candidateDriverId: ride.diamondCandidateDriverId
+        };
+
+      case DiamondState.EARNED:
+        return {
+          isEligible: true,
+          state: DiamondState.EARNED,
+          message: `💎 Diamante conquistado! Bônus de R$ ${ride.bonusAmount?.toFixed(2) || '0.00'}`,
+          bonusAmount: ride.bonusAmount ? parseFloat(ride.bonusAmount.toString()) : null
+        };
+
+      case DiamondState.LOST_BY_DRIVER_CANCEL:
+        return {
+          isEligible: false,
+          state: DiamondState.LOST_BY_DRIVER_CANCEL,
+          message: 'Diamante perdido - motorista cancelou',
+          bonusAmount: null,
+          lostAt: ride.diamondLostAt,
+          lostReason: ride.diamondLostReason
+        };
+
+      default:
+        return {
+          isEligible: false,
+          state: null,
+          message: '',
+          bonusAmount: null
+        };
+    }
+  }
+
+  /**
+   * Create audit log (idempotent)
+   */
+  private async createAuditLog(entry: DiamondAuditEntry): Promise<void> {
+    await prisma.diamondAuditLog.create({
+      data: {
+        rideId: entry.rideId,
+        driverId: entry.driverId,
+        action: 'STATE_CHANGE',
+        diamondStateFrom: entry.diamondStateFrom,
+        diamondStateTo: entry.diamondStateTo,
+        reason: entry.reason,
+        bonusAmount: entry.bonusAmount
+      }
+    });
+  }
+
+  /**
+   * Create audit log within transaction
+   */
+  private async createAuditLogInTx(entry: DiamondAuditEntry, tx: any): Promise<void> {
+    await tx.diamondAuditLog.create({
+      data: {
+        rideId: entry.rideId,
+        driverId: entry.driverId,
+        diamondStateFrom: entry.diamondStateFrom,
+        diamondStateTo: entry.diamondStateTo,
+        reason: entry.reason,
+        bonusAmount: entry.bonusAmount
+      }
+    });
+  }
+
+  /**
+   * Get daily earned amount for driver (timezone-aware)
+   */
+  private async getDailyEarnedAmount(driverId: string, tx?: any): Promise<number> {
+    const { startOfDay, endOfDay } = this.getDayRange();
+    
+    const client = tx || prisma;
+    
+    const result = await client.diamondAuditLog.aggregate({
+      where: {
+        driverId,
+        diamondStateTo: DiamondState.EARNED,
+        createdAt: {
+          gte: startOfDay,
+          lt: endOfDay
+        }
+      },
+      _sum: {
+        bonusAmount: true
+      }
+    });
+
+    return result._sum.bonusAmount ? parseFloat(result._sum.bonusAmount.toString()) : 0;
+  }
+
+  /**
+   * Get day range in business timezone (America/Sao_Paulo)
+   */
+  private getDayRange(): { startOfDay: Date; endOfDay: Date } {
+    const now = new Date();
+    
+    // Convert to São Paulo timezone
+    const spTime = new Date(now.toLocaleString("en-US", { timeZone: config.diamond.timezone }));
+    
+    // Start of day in SP timezone
+    const startOfDay = new Date(spTime);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    // End of day in SP timezone
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    
+    // Convert back to UTC for database query
+    const utcOffset = now.getTimezoneOffset() * 60000;
+    const spOffset = -3 * 3600000; // São Paulo is UTC-3
+    const adjustment = utcOffset - spOffset;
+    
+    return {
+      startOfDay: new Date(startOfDay.getTime() + adjustment),
+      endOfDay: new Date(endOfDay.getTime() + adjustment)
+    };
+  }
+}
