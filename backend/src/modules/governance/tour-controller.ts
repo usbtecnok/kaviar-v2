@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PremiumTourismService } from '../../services/premium-tourism';
-import { createTourBookingSchema } from './tour-schemas';
+import { createTourBookingSchema, CreateTourBookingData } from './tour-schemas';
 
 export class TourController {
   private premiumTourismService = new PremiumTourismService();

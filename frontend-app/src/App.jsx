@@ -5,6 +5,7 @@ import DriverApp from "./components/driver/DriverApp";
 import AuthApp from "./components/auth/AuthApp";
 import AdminApp from "./components/admin/AdminApp";
 import CompleteOnboarding from "./pages/onboarding/CompleteOnboarding";
+import PremiumTourism from "./pages/PremiumTourism";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
 
@@ -177,6 +178,34 @@ function Home() {
               Admin
             </Button>
           </Box>
+
+          {/* Botão Premium Tourism */}
+          <Button 
+            variant="contained" 
+            size="large" 
+            component={Link}
+            to="/turismo" 
+            sx={{ 
+              py: 2.5, 
+              px: 5,
+              width: '100%',
+              backgroundColor: '#9c27b0',
+              borderRadius: 3,
+              fontWeight: 700,
+              fontSize: '1rem',
+              textTransform: 'none',
+              boxShadow: '0 6px 20px rgba(156, 39, 176, 0.3)',
+              '&:hover': {
+                backgroundColor: '#7b1fa2',
+                boxShadow: '0 8px 28px rgba(156, 39, 176, 0.4)',
+                transform: 'translateY(-2px)'
+              },
+              transition: 'all 0.3s ease',
+              mt: 2
+            }}
+          >
+            🏖️ Turismo Premium
+          </Button>
         </Box>
         
         <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid', borderColor: 'divider' }}>
@@ -200,6 +229,7 @@ export default function App() {
           <Route path="/passageiro/*" element={<PassengerApp />} />
           <Route path="/motorista/*" element={<DriverApp />} />
           <Route path="/admin/*" element={<AdminApp />} />
+          <Route path="/turismo" element={<PremiumTourism />} />
         </Routes>
       </DriverProvider>
     </RideProvider>

@@ -48,8 +48,8 @@ export class TourBookingController {
       res.json({
         success: true,
         booking: result.booking,
-        rideId: result.rideId,
-        message: 'Tour booking confirmed and ride created'
+        // rideId: result.rideId, // TODO: Implementar após ajustar schema
+        message: 'Tour booking confirmed'
       });
 
     } catch (error) {

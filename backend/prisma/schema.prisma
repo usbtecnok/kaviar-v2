@@ -278,19 +278,33 @@ model TourPackage {
 model TourBooking {
   id              String    @id @default(cuid())
   packageId       String    @map("package_id")
-  passengerId     String    @map("passenger_id")
+  passengerId     String?   @map("passenger_id") // Opcional para bookings públicos
   status          TourBookingStatus @default(REQUESTED) // REQUESTED, CONFIRMED, CANCELLED, COMPLETED
-  scheduledAt     DateTime  @map("scheduled_at")
-  pickupLocation  String    @map("pickup_location")
+  scheduledDate   DateTime? @map("scheduled_date") // Data desejada pelo cliente
+  scheduledAt     DateTime? @map("scheduled_at") // Data/hora confirmada
+  pickupLocation  String?   @map("pickup_location")
   dropoffLocation String?   @map("dropoff_location")
+  
+  // Dados do passageiro (para bookings públicos)
+  passengerName   String?   @map("passenger_name")
+  passengerEmail  String?   @map("passenger_email")
+  passengerPhone  String?   @map("passenger_phone")
+  passengerCount  Int       @default(1) @map("passenger_count")
+  
+  // Dados adicionais
+  specialRequests String?   @map("special_requests")
+  emergencyContact String?  @map("emergency_contact")
+  emergencyPhone  String?   @map("emergency_phone")
+  
   totalPrice      Decimal   @default(0) @map("total_price") @db.Decimal(10, 2)
   rideId          String?   @map("ride_id")
   confirmedBy     String?   @map("confirmed_by")
   confirmedAt     DateTime? @map("confirmed_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  
   package         TourPackage @relation(fields: [packageId], references: [id])
-  passenger       Passenger   @relation(fields: [passengerId], references: [id])
+  passenger       Passenger?  @relation(fields: [passengerId], references: [id])
 
   @@map("tour_bookings")
 }

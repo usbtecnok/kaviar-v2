@@ -88,6 +88,8 @@ console.log('✅ Core: /api/admin/*, /api/governance/* (filtered internally)');
 
 // Feature disabled handler for disabled routes
 app.use((req, res, next) => {
+  console.log(`Request: ${req.method} ${req.path}`);
+  
   if (req.path.startsWith('/api/legacy') && !config.legacy.enableLegacy) {
     return res.status(404).json({
       error: 'FEATURE_DISABLED',
