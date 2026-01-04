@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { prisma } from '../../config/database';
 import { config } from '../../config';
 import { LoginRequest } from './schemas';
@@ -25,14 +25,19 @@ export class AuthService {
     }
 
     // Generate JWT
+    const secret = config.jwt.secret;
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
+    }
+    
     const token = jwt.sign(
       {
         adminId: admin.id,
         email: admin.email,
         role: admin.role.name,
       },
-      config.jwt.secret,
-      { expiresIn: config.jwt.expiresIn }
+      secret,
+      { expiresIn: config.jwt.expiresIn } as any
     );
 
     return {

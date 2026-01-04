@@ -39,24 +39,35 @@ model Admin {
 }
 
 model Driver {
-  id                String    @id @default(cuid())
-  name              String
-  email             String    @unique
-  phone             String?
-  status            String    @default("pending") // pending, approved, suspended, rejected
-  suspensionReason  String?   @map("suspension_reason")
-  suspendedAt       DateTime? @map("suspended_at")
-  suspendedBy       String?   @map("suspended_by") // Admin ID who suspended
-  lastActiveAt      DateTime? @map("last_active_at")
+  id                        String    @id @default(cuid())
+  name                      String
+  email                     String    @unique
+  phone                     String?
+  status                    String    @default("pending") // pending, approved, suspended, rejected
+  suspensionReason          String?   @map("suspension_reason")
+  suspendedAt               DateTime? @map("suspended_at")
+  suspendedBy               String?   @map("suspended_by") // Admin ID who suspended
+  lastActiveAt              DateTime? @map("last_active_at")
   // Campos complementares FASE 8
-  communityId       String?   @map("community_id")
-  documentCpf       String?   @map("document_cpf")
-  documentRg        String?   @map("document_rg")
-  documentCnh       String?   @map("document_cnh")
-  vehiclePlate      String?   @map("vehicle_plate")
-  vehicleModel      String?   @map("vehicle_model")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  communityId               String?   @map("community_id")
+  documentCpf               String?   @map("document_cpf")
+  documentRg                String?   @map("document_rg")
+  documentCnh               String?   @map("document_cnh")
+  vehiclePlate              String?   @map("vehicle_plate")
+  vehicleModel              String?   @map("vehicle_model")
+  // Campos adicionais
+  bannedAt                  DateTime? @map("banned_at")
+  bannedReason              String?   @map("banned_reason")
+  bannedBy                  String?   @map("banned_by")
+  deletedAt                 DateTime? @map("deleted_at")
+  deletedBy                 String?   @map("deleted_by")
+  lastLocationUpdatedAt     DateTime? @map("last_location_updated_at")
+  lastLat                   Decimal?  @map("last_lat") @db.Decimal(10, 8)
+  lastLng                   Decimal?  @map("last_lng") @db.Decimal(11, 8)
+  isPremium                 Boolean   @default(false) @map("is_premium")
+  premiumOverride           Boolean?  @map("premium_override")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
 
   // Relations
   rides     Ride[]
@@ -66,43 +77,59 @@ model Driver {
 }
 
 model Passenger {
-  id          String   @id @default(cuid())
-  name        String
-  email       String   @unique
-  phone       String?
+  id                        String   @id @default(cuid())
+  name                      String
+  email                     String   @unique
+  phone                     String?
   // Campos complementares FASE 8
-  communityId String?  @map("community_id")
-  status      String   @default("pending") // pending, approved, suspended
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  communityId               String?  @map("community_id")
+  status                    String   @default("pending") // pending, approved, suspended
+  lastLat                   Decimal? @map("last_lat") @db.Decimal(10, 8)
+  lastLng                   Decimal? @map("last_lng") @db.Decimal(11, 8)
+  lastLocationUpdatedAt     DateTime? @map("last_location_updated_at")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
 
   // Relations
   rides     Ride[]
   community Community? @relation(fields: [communityId], references: [id])
   consents  UserConsent[]
+  rideConfirmations RideConfirmation[]
+  tourBookings TourBooking[]
 
   @@map("passengers")
 }
 
 model Ride {
-  id                String    @id @default(cuid())
-  driverId          String?   @map("driver_id")
-  passengerId       String    @map("passenger_id")
-  origin            String
-  destination       String
-  type              String    @default("normal") // normal, combo, comunidade
-  status            String    @default("requested") // requested, accepted, arrived, started, completed, paid, cancelled_by_user, cancelled_by_driver, cancelled_by_admin
-  price             Decimal   @db.Decimal(10, 2)
-  platformFee       Decimal?  @db.Decimal(10, 2) @map("platform_fee")
-  driverAmount      Decimal?  @db.Decimal(10, 2) @map("driver_amount")
-  paymentMethod     String?   @map("payment_method") @default("credit_card")
-  cancelReason      String?   @map("cancel_reason")
-  cancelledBy       String?   @map("cancelled_by") // Admin ID who cancelled
-  cancelledAt       DateTime? @map("cancelled_at")
-  forcedCompletedBy String?   @map("forced_completed_by") // Admin ID who forced completion
-  forcedCompletedAt DateTime? @map("forced_completed_at")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  id                        String    @id @default(cuid())
+  driverId                  String?   @map("driver_id")
+  passengerId               String    @map("passenger_id")
+  origin                    String
+  destination               String
+  type                      String    @default("normal") // normal, combo, comunidade
+  status                    String    @default("requested") // requested, accepted, arrived, started, completed, paid, cancelled_by_user, cancelled_by_driver, cancelled_by_admin
+  price                     Decimal   @db.Decimal(10, 2)
+  platformFee               Decimal?  @db.Decimal(10, 2) @map("platform_fee")
+  driverAmount              Decimal?  @db.Decimal(10, 2) @map("driver_amount")
+  paymentMethod             String?   @map("payment_method") @default("credit_card")
+  cancelReason              String?   @map("cancel_reason")
+  cancelledBy               String?   @map("cancelled_by") // Admin ID who cancelled
+  cancelledAt               DateTime? @map("cancelled_at")
+  forcedCompletedBy         String?   @map("forced_completed_by") // Admin ID who forced completion
+  forcedCompletedAt         DateTime? @map("forced_completed_at")
+  fallbackOutOfFence        Boolean?  @default(false) @map("fallback_out_of_fence")
+  fallbackReason            String?   @map("fallback_reason")
+  driversInFenceCount       Int?      @map("drivers_in_fence_count")
+  passengerConfirmedAt      DateTime? @map("passenger_confirmed_at")
+  isDiamondEligible         Boolean?  @default(false) @map("is_diamond_eligible")
+  diamondState              String?   @map("diamond_state")
+  diamondCandidateDriverId  String?   @map("diamond_candidate_driver_id")
+  diamondLostAt             DateTime? @map("diamond_lost_at")
+  diamondLostReason         String?   @map("diamond_lost_reason")
+  bonusAmount               Decimal?  @map("bonus_amount") @db.Decimal(10, 2)
+  bonusAppliedAt            DateTime? @map("bonus_applied_at")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
 
   // Relations
   driver         Driver?            @relation(fields: [driverId], references: [id])
@@ -144,17 +171,25 @@ model RideStatusHistory {
 // FASE 8 - Novos modelos complementares
 
 model Community {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(cuid())
+  name                  String
+  description           String?
+  isActive              Boolean  @default(true) @map("is_active")
+  centerLat             Decimal? @map("center_lat") @db.Decimal(10, 8)
+  centerLng             Decimal? @map("center_lng") @db.Decimal(11, 8)
+  radiusMeters          Int?     @map("radius_meters")
+  minActiveDrivers      Int      @default(3) @map("min_active_drivers")
+  deactivationThreshold Int      @default(1) @map("deactivation_threshold")
+  autoActivation        Boolean  @default(false) @map("auto_activation")
+  lastEvaluatedAt       DateTime? @map("last_evaluated_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   // Relations
-  drivers     Driver[]
-  passengers  Passenger[]
-  guides      TouristGuide[]
+  drivers       Driver[]
+  passengers    Passenger[]
+  guides        TouristGuide[]
+  statusHistory CommunityStatusHistory[]
 
   @@map("communities")
 }
@@ -193,4 +228,186 @@ model TouristGuide {
   community Community @relation(fields: [communityId], references: [id])
 
   @@map("tourist_guides")
+}
+
+model RideConfirmation {
+  id                String   @id @default(cuid())
+  passengerId       String   @map("passenger_id")
+  confirmationToken String   @unique @map("confirmation_token")
+  rideData          Json     @map("ride_data")
+  expiresAt         DateTime @map("expires_at")
+  isUsed            Boolean  @default(false) @map("is_used")
+  usedAt            DateTime? @map("used_at")
+  createdRideId     String?  @map("created_ride_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  passenger         Passenger @relation(fields: [passengerId], references: [id])
+
+  @@map("ride_confirmations")
+}
+
+model TourPackage {
+  id                        String        @id @default(cuid())
+  title                     String
+  description               String
+  type                      String        // TOUR, AIRPORT_TRANSFER
+  partnerName               String        @map("partner_name")
+  basePrice                 Decimal       @map("base_price") @db.Decimal(10, 2)
+  locations                 String[]
+  estimatedDurationMinutes  Int           @map("estimated_duration_minutes")
+  isActive                  Boolean       @default(true) @map("is_active")
+  createdBy                 String?       @map("created_by")
+  createdAt                 DateTime      @default(now()) @map("created_at")
+  updatedAt                 DateTime      @updatedAt @map("updated_at")
+  bookings                  TourBooking[]
+
+  @@map("tour_packages")
+}
+
+model TourBooking {
+  id              String    @id @default(cuid())
+  packageId       String    @map("package_id")
+  passengerId     String    @map("passenger_id")
+  status          String    @default("REQUESTED") // REQUESTED, CONFIRMED, CANCELLED, COMPLETED
+  scheduledAt     DateTime  @map("scheduled_at")
+  pickupLocation  String    @map("pickup_location")
+  dropoffLocation String?   @map("dropoff_location")
+  totalPrice      Decimal   @default(0) @map("total_price") @db.Decimal(10, 2)
+  rideId          String?   @map("ride_id")
+  confirmedBy     String?   @map("confirmed_by")
+  confirmedAt     DateTime? @map("confirmed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  package         TourPackage @relation(fields: [packageId], references: [id])
+  passenger       Passenger   @relation(fields: [passengerId], references: [id])
+
+  @@map("tour_bookings")
+}
+
+model RatingStats {
+  id              String   @id @default(cuid())
+  entityType      String   @map("entity_type") // driver, guide, package
+  entityId        String   @map("entity_id")
+  userId          String?  @map("user_id") // For compatibility
+  averageRating   Decimal  @map("average_rating") @db.Decimal(3, 2)
+  totalRatings    Int      @map("total_ratings")
+  ratingSum       Int      @map("rating_sum")
+  updatedAt       DateTime @map("updated_at") @updatedAt
+  lastUpdated     DateTime @map("last_updated") @updatedAt
+
+  @@unique([entityType, entityId])
+  @@unique([userId], map: "rating_stats_user_id_key")
+  @@map("rating_stats")
+}
+
+model DriverVerification {
+  id                    String   @id @default(cuid())
+  driverId              String   @map("driver_id")
+  communityId           String?  @map("community_id")
+  status                String   @default("pending")
+  verifiedAt            DateTime? @map("verified_at")
+  approvedAt            DateTime? @map("approved_at")
+  approvedByAdminId     String?  @map("approved_by_admin_id")
+  eligibilityCheckedAt  DateTime? @map("eligibility_checked_at")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@unique([driverId])
+  @@map("driver_verifications")
+}
+
+model DriverDocument {
+  id                    String   @id @default(cuid())
+  driverId              String   @map("driver_id")
+  type                  String   // cpf, rg, cnh
+  documentUrl           String   @default("") @map("document_url")
+  fileUrl               String?  @map("file_url")
+  status                String   @default("pending")
+  submittedAt           DateTime? @map("submitted_at")
+  verifiedAt            DateTime? @map("verified_at")
+  verifiedByAdminId     String?  @map("verified_by_admin_id")
+  rejectedAt            DateTime? @map("rejected_at")
+  rejectedByAdminId     String?  @map("rejected_by_admin_id")
+  rejectReason          String?  @map("reject_reason")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("driver_documents")
+}
+
+model DriverEnforcementHistory {
+  id          String   @id @default(cuid())
+  driverId    String   @map("driver_id")
+  action      String   // ban, unban, delete, restore
+  reason      String?
+  metadata    Json?
+  adminId     String   @map("admin_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("driver_enforcement_history")
+}
+
+model CommunityStatusHistory {
+  id          String    @id @default(cuid())
+  communityId String    @map("community_id")
+  status      String
+  fromIsActive Boolean? @map("from_is_active")
+  toIsActive  Boolean?  @map("to_is_active")
+  driverCount Int?      @map("driver_count")
+  changedBy   String?   @map("changed_by")
+  reason      String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  community   Community @relation(fields: [communityId], references: [id])
+
+  @@map("community_status_history")
+}
+
+model DiamondAuditLog {
+  id              String   @id @default(cuid())
+  rideId          String   @map("ride_id")
+  driverId        String?  @map("driver_id")
+  action          String
+  reason          String?
+  bonusAmount     Decimal? @map("bonus_amount") @db.Decimal(10, 2)
+  diamondStateFrom String? @map("diamond_state_from")
+  diamondStateTo  String?  @map("diamond_state_to")
+  details         Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("diamond_audit_logs")
+}
+
+model Rating {
+  id          String   @id @default(cuid())
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  userId      String   @map("user_id")
+  rideId      String?  @map("ride_id")
+  ratedId     String?  @map("rated_id")
+  raterId     String?  @map("rater_id")
+  raterType   String?  @map("rater_type")
+  rating      Int
+  score       Int      @default(0) // For compatibility, maps to rating
+  comment     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([rideId, userId], map: "rating_ride_id_user_id_key")
+  @@map("ratings")
+}
+
+model Consent {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  subjectType String?  @map("subject_type")
+  subjectId   String?  @map("subject_id")
+  type        String
+  consentType String?  @map("consent_type")
+  accepted    Boolean  @default(false)
+  acceptedAt  DateTime? @map("accepted_at")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, type], map: "consent_user_id_type_key")
+  @@unique([subjectType, subjectId, type], map: "consent_subject_type_subject_id_type_key")
+  @@map("consents")
 }

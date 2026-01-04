@@ -1,7 +1,10 @@
 import { prisma } from '../../config/database';
+import { DiamondService } from '../../services/diamond';
 import { RidesQuery, CancelRideData, ReassignRideData, ForceCompleteRideData, UpdateStatusData, AuditQuery } from './schemas';
 
 export class RideAdminService {
+  private diamondService = new DiamondService();
+
   // Calculate financial breakdown
   private calculateFinancials(price: number) {
     const grossValue = price;
@@ -148,23 +151,24 @@ export class RideAdminService {
     return ride;
   }
 
-  // Update ride status
+  // Update ride status (atomic with concurrency protection)
   async updateRideStatus(rideId: string, data: UpdateStatusData, adminId: string) {
-    const ride = await prisma.ride.findUnique({
-      where: { id: rideId },
-      select: { status: true, price: true }
-    });
-
-    if (!ride) {
-      throw new Error('Corrida não encontrada');
-    }
-
-    // Validate transition
-    if (!this.validateStatusTransition(ride.status, data.status)) {
-      throw new Error(`Transição inválida: ${ride.status} → ${data.status}`);
-    }
-
     return prisma.$transaction(async (tx) => {
+      // Get current ride state within transaction for consistency
+      const ride = await tx.ride.findUnique({
+        where: { id: rideId },
+        select: { status: true, price: true, updatedAt: true }
+      });
+
+      if (!ride) {
+        throw new Error('Corrida não encontrada');
+      }
+
+      // Validate transition
+      if (!this.validateStatusTransition(ride.status, data.status)) {
+        throw new Error(`Transição inválida: ${ride.status} → ${data.status}`);
+      }
+
       // Calculate financials if completing
       let updateData: any = { status: data.status };
       
@@ -174,9 +178,24 @@ export class RideAdminService {
         updateData.driverAmount = financials.driverAmount;
       }
 
-      const updatedRide = await tx.ride.update({
-        where: { id: rideId },
+      // Atomic update with optimistic locking check
+      const updatedRide = await tx.ride.updateMany({
+        where: { 
+          id: rideId,
+          status: ride.status, // Ensure status hasn't changed since we read it
+          updatedAt: ride.updatedAt // Optimistic locking
+        },
         data: updateData,
+      });
+
+      // Check if update actually happened (concurrency protection)
+      if (updatedRide.count === 0) {
+        throw new Error('CONCURRENT_MODIFICATION');
+      }
+
+      // Get updated ride for return
+      const finalRide = await tx.ride.findUnique({
+        where: { id: rideId }
       });
 
       // Add status history
@@ -199,34 +218,50 @@ export class RideAdminService {
         },
       });
 
-      return updatedRide;
+      return finalRide;
     });
   }
 
-  // Cancel ride administratively
+  // Cancel ride administratively (atomic with concurrency protection)
   async cancelRide(rideId: string, data: CancelRideData, adminId: string) {
-    const ride = await prisma.ride.findUnique({
-      where: { id: rideId },
-      select: { status: true }
-    });
-
-    if (!ride) {
-      throw new Error('Corrida não encontrada');
-    }
-
-    if (['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)) {
-      throw new Error('Corrida já foi finalizada ou cancelada');
-    }
-
     return prisma.$transaction(async (tx) => {
-      const updatedRide = await tx.ride.update({
+      // Get current ride state within transaction
+      const ride = await tx.ride.findUnique({
         where: { id: rideId },
+        select: { status: true, updatedAt: true }
+      });
+
+      if (!ride) {
+        throw new Error('Corrida não encontrada');
+      }
+
+      if (['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)) {
+        throw new Error('Corrida já foi finalizada ou cancelada');
+      }
+
+      // Atomic update with optimistic locking
+      const updatedRideCount = await tx.ride.updateMany({
+        where: { 
+          id: rideId,
+          status: ride.status, // Ensure status hasn't changed
+          updatedAt: ride.updatedAt // Optimistic locking
+        },
         data: {
           status: 'cancelled_by_admin',
           cancelReason: data.reason,
           cancelledBy: adminId,
           cancelledAt: new Date(),
         },
+      });
+
+      // Check if update actually happened (concurrency protection)
+      if (updatedRideCount.count === 0) {
+        throw new Error('CONCURRENT_MODIFICATION');
+      }
+
+      // Get updated ride for return
+      const updatedRide = await tx.ride.findUnique({
+        where: { id: rideId }
       });
 
       await tx.rideStatusHistory.create({
@@ -293,6 +328,9 @@ export class RideAdminService {
           reason: data.reason,
         },
       });
+
+      // Handle diamond completion
+      await this.diamondService.handleRideComplete(rideId, updatedRide.driverId || undefined);
 
       return updatedRide;
     });

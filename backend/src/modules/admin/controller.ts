@@ -66,6 +66,16 @@ export class AdminController {
         message: 'Motorista aprovado com sucesso',
       });
     } catch (error) {
+      // Handle eligibility error specifically (only when gates are enabled)
+      if (error instanceof Error && (error as any).code === 'DRIVER_NOT_ELIGIBLE') {
+        return res.status(400).json({
+          success: false,
+          error: 'DRIVER_NOT_ELIGIBLE',
+          missingRequirements: (error as any).missingRequirements,
+          details: (error as any).details
+        });
+      }
+
       const statusCode = error instanceof Error && error.message.includes('não encontrado') ? 404 : 400;
       
       res.status(statusCode).json({
@@ -103,7 +113,12 @@ export class AdminController {
   reactivateDriver = async (req: Request, res: Response) => {
     try {
       const { id } = driverIdSchema.parse(req.params);
-      const driver = await this.adminService.reactivateDriver(id);
+      const adminId = req.user?.id;
+      if (!adminId) {
+        return res.status(401).json({ success: false, error: 'Admin ID required' });
+      }
+      
+      const driver = await this.adminService.reactivateDriver(id, adminId);
 
       res.json({
         success: true,

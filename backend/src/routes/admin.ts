@@ -2,12 +2,18 @@ import { Router } from 'express';
 import { AdminController } from '../modules/admin/controller';
 import { RideAdminController } from '../modules/admin/ride-controller';
 import { DashboardController } from '../modules/admin/dashboard-controller';
+import { DriverAdminController } from '../modules/admin/driver-admin-controller';
+import { TourPackageController } from '../modules/admin/tour-package-controller';
+import { TourBookingController } from '../modules/admin/tour-booking-controller';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 
 const router = Router();
 const adminController = new AdminController();
 const rideController = new RideAdminController();
 const dashboardController = new DashboardController();
+const driverAdminController = new DriverAdminController();
+const tourPackageController = new TourPackageController();
+const tourBookingController = new TourBookingController();
 
 // Apply authentication and authorization to all admin routes
 router.use(authenticateAdmin);
@@ -21,9 +27,12 @@ router.get('/dashboard/drivers-overview', dashboardController.getDriversOverview
 // Drivers routes
 router.get('/drivers', adminController.getDrivers);
 router.get('/drivers/:id', adminController.getDriverById);
+router.get('/drivers/:id/verification', driverAdminController.getVerificationStatus);
 router.put('/drivers/:id/approve', adminController.approveDriver);
 router.put('/drivers/:id/suspend', adminController.suspendDriver);
 router.put('/drivers/:id/reactivate', adminController.reactivateDriver);
+router.put('/drivers/:id/documents/:docId/verify', driverAdminController.verifyDocument);
+router.put('/drivers/:id/documents/:docId/reject', driverAdminController.rejectDocument);
 
 // Passengers routes
 router.get('/passengers', adminController.getPassengers);
@@ -35,5 +44,15 @@ router.get('/rides/:id', rideController.getRideById);
 router.patch('/rides/:id/status', rideController.updateRideStatus);
 router.post('/rides/:id/cancel', rideController.cancelRide);
 router.post('/rides/:id/force-complete', requireRole(['SUPER_ADMIN']), rideController.forceCompleteRide);
+
+// Premium Tourism routes
+router.post('/tour-packages', tourPackageController.createTourPackage);
+router.get('/tour-packages', tourPackageController.getAllTourPackages);
+router.get('/tour-packages/:id', tourPackageController.getTourPackage);
+router.put('/tour-packages/:id', tourPackageController.updateTourPackage);
+router.patch('/tour-packages/:id/deactivate', tourPackageController.deactivateTourPackage);
+
+router.get('/tour-bookings', tourBookingController.getAllTourBookings);
+router.post('/tour-bookings/:id/confirm', tourBookingController.confirmTourBooking);
 
 export { router as adminRoutes };
