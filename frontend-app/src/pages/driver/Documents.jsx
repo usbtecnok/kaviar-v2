@@ -57,7 +57,7 @@ export default function DriverDocuments() {
       // Assumindo que o ID do motorista vem do contexto de auth
       const driverId = 'current-driver-id'; // Implementar com contexto real
       
-      const response = await api.put(`/governance/driver/${driverId}/documents`, formData);
+      const response = await api.put(`/api/governance/driver/${driverId}/documents`, formData);
       
       if (response.data.success) {
         setSuccess(true);
