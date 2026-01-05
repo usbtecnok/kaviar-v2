@@ -15,8 +15,8 @@ const contractsQuerySchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'CANCELLED']).optional(),
   serviceType: z.string().optional(),
   activeOnly: z.string().transform(val => val === 'true').optional(),
-  page: z.string().transform(val => Math.max(1, parseInt(val) || 1)),
-  pageSize: z.string().transform(val => Math.min(100, Math.max(1, parseInt(val) || 10)))
+  page: z.string().transform(val => Math.max(1, parseInt(val) || 1)).optional().default('1'),
+  pageSize: z.string().transform(val => Math.min(100, Math.max(1, parseInt(val) || 10))).optional().default('10')
 });
 
 const createContractSchema = z.object({

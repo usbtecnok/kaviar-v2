@@ -28,7 +28,7 @@ export const authenticateAdmin = async (
 
     const token = authHeader.substring(7);
     
-    const decoded = jwt.verify(token, config.jwt.secret) as any;
+    const decoded = jwt.verify(token, config.jwtSecret) as any;
     
     // Verify admin still exists and is active
     const admin = await prisma.admin.findUnique({

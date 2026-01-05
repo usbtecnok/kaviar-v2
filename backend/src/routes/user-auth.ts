@@ -107,8 +107,7 @@ router.post('/driver/login', loginRateLimit, async (req, res) => {
         name: true,
         email: true,
         passwordHash: true,
-        status: true,
-        isActive: true
+        status: true
       }
     });
 
