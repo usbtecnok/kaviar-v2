@@ -32,3 +32,8 @@ frontend-app/dist/**
 /audit/backups/
 **/.env
 **/.env.*
+
+# Bloquear backups e env
+/audit/backups/
+*.env*
+.env*
