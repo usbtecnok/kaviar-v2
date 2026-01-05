@@ -8,6 +8,7 @@ import { handleFeatureDisabledError, handleStatusTransitionError } from './middl
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
 import { adminRoutes } from './routes/admin';
+import { adminManagementRoutes } from './routes/admin-management';
 import { governanceRoutes } from './routes/governance';
 import { userAuthRoutes } from './routes/user-auth';
 import { passwordResetRoutes } from './routes/password-reset';
@@ -88,6 +89,7 @@ if (config.legacy.enableLegacy) {
 
 // Core admin/governance routes (filtered by feature flags internally)
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminManagementRoutes);
 app.use('/api/governance', governanceRoutes);
 console.log('✅ Core: /api/admin/*, /api/governance/* (filtered internally)');
 
