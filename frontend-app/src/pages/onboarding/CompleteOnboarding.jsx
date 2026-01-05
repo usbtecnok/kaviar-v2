@@ -114,12 +114,11 @@ export default function CompleteOnboarding() {
         setLoading(false);
         return;
       }
-      // Se você quiser exigir docs/veículo já aqui, descomente:
-      // if (!clean.documentCpf || !clean.vehiclePlate || !clean.vehicleModel) {
-      //   setError('Preencha CPF e dados do veículo.');
-      //   setLoading(false);
-      //   return;
-      // }
+      if (!clean.documentCpf || !clean.documentRg || !clean.documentCnh || !clean.vehiclePlate || !clean.vehicleModel) {
+        setError('Preencha CPF, RG, CNH e dados do veículo.');
+        setLoading(false);
+        return;
+      }
     }
 
     if (userType === 'guide') {
