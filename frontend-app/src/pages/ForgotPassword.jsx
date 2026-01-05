@@ -1,41 +1,38 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
-export default function AdminLogin() {
+export default function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [userType, setUserType] = useState('driver');
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  const from = location.state?.from?.pathname || '/admin';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setMessage('');
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, userType }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('kaviar_admin_token', data.data.token);
-        localStorage.setItem('kaviar_admin_data', JSON.stringify(data.data.admin));
-        navigate(from, { replace: true });
+        setMessage(data.message);
       } else {
-        setError(data.error || 'Erro ao fazer login');
+        setError(data.error || 'Erro ao solicitar redefinição de senha');
       }
     } catch (error) {
       setError('Erro de conexão. Tente novamente.');
@@ -47,8 +44,8 @@ export default function AdminLogin() {
   return (
     <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
       <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1 style={{ color: '#d32f2f' }}>Admin Login</h1>
-        <p>Acesso restrito ao painel administrativo</p>
+        <h1 style={{ color: '#d32f2f' }}>Esqueci minha senha</h1>
+        <p>Digite seu email para receber instruções de redefinição</p>
       </div>
 
       {error && (
@@ -63,14 +60,26 @@ export default function AdminLogin() {
         </div>
       )}
 
+      {message && (
+        <div style={{ 
+          backgroundColor: '#e8f5e8', 
+          color: '#2e7d32', 
+          padding: '10px', 
+          borderRadius: '4px', 
+          marginBottom: '20px' 
+        }}>
+          {message}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '15px' }}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+            Tipo de usuário:
+          </label>
+          <select
+            value={userType}
+            onChange={(e) => setUserType(e.target.value)}
             disabled={loading}
             style={{
               width: '100%',
@@ -79,15 +88,19 @@ export default function AdminLogin() {
               borderRadius: '4px',
               fontSize: '16px'
             }}
-          />
+          >
+            <option value="driver">Motorista</option>
+            <option value="passenger">Passageiro</option>
+            <option value="admin">Administrador</option>
+          </select>
         </div>
-        
+
         <div style={{ marginBottom: '20px' }}>
           <input
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            type="email"
+            placeholder="Seu email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             disabled={loading}
             style={{
@@ -111,16 +124,17 @@ export default function AdminLogin() {
             border: 'none',
             borderRadius: '4px',
             fontSize: '16px',
-            cursor: loading ? 'not-allowed' : 'pointer'
+            cursor: loading ? 'not-allowed' : 'pointer',
+            marginBottom: '15px'
           }}
         >
-          {loading ? 'Entrando...' : 'Entrar'}
+          {loading ? 'Enviando...' : 'Enviar instruções'}
         </button>
       </form>
 
-      <div style={{ textAlign: 'center', marginTop: '20px' }}>
+      <div style={{ textAlign: 'center' }}>
         <button
-          onClick={() => navigate('/forgot-password')}
+          onClick={() => navigate('/login')}
           disabled={loading}
           style={{
             background: 'none',
@@ -131,7 +145,7 @@ export default function AdminLogin() {
             marginRight: '20px'
           }}
         >
-          Esqueci minha senha
+          Voltar ao login
         </button>
         
         <button
@@ -145,7 +159,7 @@ export default function AdminLogin() {
             textDecoration: 'underline'
           }}
         >
-          Voltar ao início
+          Início
         </button>
       </div>
     </div>
