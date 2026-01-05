@@ -1,10 +1,14 @@
 import { Routes, Route, Link } from "react-router-dom";
 import { Container, Typography, Box, Card, CardContent, Button } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, ElderlyCare } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import DomainHeader from "../common/DomainHeader";
 import AdminDashboard from "../../pages/admin/Dashboard";
+import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
+import DriversManagement from "../../pages/admin/DriversManagement";
+import PassengersManagement from "../../pages/admin/PassengersManagement";
+import GuidesManagement from "../../pages/admin/GuidesManagement";
 import CommunityManagement from "../../pages/admin/CommunityManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
 import DriverApproval from "../../pages/admin/DriverApproval";
@@ -127,14 +131,74 @@ function AdminHome() {
         
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 3 }}>
-            <Group sx={{ fontSize: 40, color: 'info.main', mb: 2 }} />
+            <LocationCity sx={{ fontSize: 40, color: 'info.main', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              Comunidades
+              Bairros
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Gestão de comunidades ativas
+              Gestão de bairros e ativação
             </Typography>
             <Button variant="contained" color="info" href="/admin/communities">
+              Acessar
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <DirectionsCar sx={{ fontSize: 40, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Motoristas
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Aprovar e gerenciar motoristas
+            </Typography>
+            <Button variant="contained" href="/admin/drivers">
+              Acessar
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <People sx={{ fontSize: 40, color: 'success.main', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Passageiros
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Aprovar e gerenciar passageiros
+            </Typography>
+            <Button variant="contained" color="success" href="/admin/passengers">
+              Acessar
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <Tour sx={{ fontSize: 40, color: 'secondary.main', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Guias Turísticos
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Aprovar e gerenciar guias
+            </Typography>
+            <Button variant="contained" color="secondary" href="/admin/guides">
+              Acessar
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <ElderlyCare sx={{ fontSize: 40, color: 'warning.main', mb: 2 }} />
+            <Typography variant="h6" gutterBottom>
+              Acompanhamento Ativo
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Contratos de cuidados para idosos
+            </Typography>
+            <Button variant="contained" color="warning" href="/admin/elderly">
               Acessar
             </Button>
           </CardContent>
@@ -233,7 +297,48 @@ export default function AdminApp() {
       } />
       <Route path="/communities" element={
         <ProtectedAdminRoute>
-          <AdminCommunitiesWrapper />
+          <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <AdminHeader />
+            <CommunitiesManagement />
+          </Container>
+        </ProtectedAdminRoute>
+      } />
+      
+      <Route path="/drivers" element={
+        <ProtectedAdminRoute>
+          <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <AdminHeader />
+            <DriversManagement />
+          </Container>
+        </ProtectedAdminRoute>
+      } />
+      
+      <Route path="/passengers" element={
+        <ProtectedAdminRoute>
+          <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <AdminHeader />
+            <PassengersManagement />
+          </Container>
+        </ProtectedAdminRoute>
+      } />
+      
+      <Route path="/guides" element={
+        <ProtectedAdminRoute>
+          <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <AdminHeader />
+            <GuidesManagement />
+          </Container>
+        </ProtectedAdminRoute>
+      } />
+      
+      <Route path="/elderly" element={
+        <ProtectedAdminRoute>
+          <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <AdminHeader />
+            <Typography variant="h4" sx={{ p: 3 }}>
+              Acompanhamento Ativo - Em desenvolvimento
+            </Typography>
+          </Container>
         </ProtectedAdminRoute>
       } />
       <Route path="/metrics" element={
