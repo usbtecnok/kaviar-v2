@@ -45,7 +45,7 @@ function sanitizeAuditData(data: any): any {
   const sensitiveFields = ['medicalNotes', 'emergencyContact', 'emergencyPhone', 'notes'];
   sensitiveFields.forEach(field => {
     if (sanitized[field]) {
-      sanitized[field] = '[REDACTED]';
+      sanitized[field] = '[CONFIDENCIAL]';
     }
   });
   

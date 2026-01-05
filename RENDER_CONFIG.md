@@ -49,6 +49,8 @@ ENABLE_TWILIO_WHATSAPP=true
 ❌ npx prisma migrate reset    # PROIBIDO - Apaga dados
 ❌ npx prisma db seed          # PROIBIDO - Popula dados demo
 ❌ DROP TABLE                  # PROIBIDO - Destrutivo
+❌ TRUNCATE TABLE              # PROIBIDO - Apaga dados
+❌ DELETE FROM users           # PROIBIDO - Sem WHERE específico
 ```
 
 ## ✅ COMANDOS PERMITIDOS
@@ -60,15 +62,37 @@ ENABLE_TWILIO_WHATSAPP=true
 ✅ npm run start              # PERMITIDO - Iniciar app
 ```
 
-## 🧪 TESTES PÓS-DEPLOY
+## 🔄 PROCEDIMENTO ROLLBACK
 
-Executar após deploy:
+### **Em caso de falha no deploy:**
+
 ```bash
+# 1. Parar serviço no Render
+# Via dashboard: Stop service
+
+# 2. Reverter código
+git revert HEAD --no-edit
+git push origin main
+
+# 3. Restaurar banco (se necessário)
+psql $DATABASE_URL < backup_TIMESTAMP.sql
+
+# 4. Reiniciar serviço
+# Via dashboard: Start service
+
+# 5. Validar rollback
 ./scripts/post-deploy-tests.sh
 ```
 
-Validações obrigatórias:
-1. GET /api/health → 200
-2. Login admin → token válido
-3. GET /api/admin/elderly/contracts → 200
-4. GET /api/admin/tour-packages → 200
+### **Rollback de migrations:**
+```bash
+# CUIDADO: Apenas se migration causou problema
+# 1. Backup atual
+pg_dump $DATABASE_URL > rollback_backup.sql
+
+# 2. Restaurar backup pré-migration
+psql $DATABASE_URL < backup_pre_migration.sql
+
+# 3. Reverter código para versão anterior
+git checkout PREVIOUS_COMMIT
+```
