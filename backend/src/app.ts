@@ -9,6 +9,8 @@ import { handleFeatureDisabledError, handleStatusTransitionError } from './middl
 import { authRoutes } from './routes/auth';
 import { adminRoutes } from './routes/admin';
 import { governanceRoutes } from './routes/governance';
+import { userAuthRoutes } from './routes/user-auth';
+import { passwordResetRoutes } from './routes/password-reset';
 
 // Feature-based routes
 import { integrationsRoutes } from './routes/integrations';
@@ -54,6 +56,8 @@ app.get('/api/health', (req, res) => {
 
 // Core routes (always enabled)
 app.use('/api/admin/auth', authRoutes);
+app.use('/api/auth', userAuthRoutes);
+app.use('/api/auth', passwordResetRoutes);
 
 // Feature-based route mounting with logging
 console.log('🚀 Mounting routes based on feature flags:');
