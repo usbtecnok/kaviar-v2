@@ -54,6 +54,7 @@ model Driver {
   id                        String    @id @default(cuid())
   name                      String
   email                     String    @unique
+  passwordHash              String?   @map("password_hash") // Nullable para transição segura
   phone                     String?
   status                    String    @default("pending") // pending, approved, suspended, rejected
   suspensionReason          String?   @map("suspension_reason")
@@ -92,6 +93,7 @@ model Passenger {
   id                        String   @id @default(cuid())
   name                      String
   email                     String   @unique
+  passwordHash              String?  @map("password_hash") // Nullable para transição segura
   phone                     String?
   // Campos complementares FASE 8
   communityId               String?  @map("community_id")
