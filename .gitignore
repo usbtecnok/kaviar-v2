@@ -25,3 +25,5 @@ frontend-app/dist/**
 *.swp
 *.swo
 *.swx
+
+*.bak
