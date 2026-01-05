@@ -2,11 +2,13 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../config/database';
 import { elderlyAdminRateLimit } from '../middlewares/auth-rate-limit';
+import { authenticateAdmin } from '../middlewares/auth';
 import { createAuditLog } from '../utils/audit';
 
 const router = Router();
 
-// Apply rate limiting to all elderly routes
+// Apply authentication and rate limiting to all elderly routes
+router.use(authenticateAdmin);
 router.use(elderlyAdminRateLimit);
 
 // Validation schemas

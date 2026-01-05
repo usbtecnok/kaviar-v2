@@ -1,8 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../config/database';
+import { authenticateAdmin } from '../middlewares/auth';
 
 const router = Router();
+
+// Apply authentication to all admin management routes
+router.use(authenticateAdmin);
 
 // Dashboard Overview
 router.get('/dashboard', async (req, res) => {
