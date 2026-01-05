@@ -22,13 +22,25 @@ const twilioClient = twilio(
  */
 router.post('/twilio/whatsapp', async (req, res) => {
   try {
+    // Validar payload obrigatório
+    const { From, To, Body, MessageSid } = req.body;
+    
+    if (!From || !To || !MessageSid) {
+      console.log('⚠️ Invalid payload - missing required fields:', {
+        hasFrom: !!From,
+        hasTo: !!To,
+        hasMessageSid: !!MessageSid
+      });
+      return res.status(200).send('OK'); // Não processar, mas não falhar
+    }
+    
     // Log do payload recebido
     console.log('📱 WhatsApp Webhook Received:', {
       timestamp: new Date().toISOString(),
-      from: req.body.From,
-      to: req.body.To,
-      body: req.body.Body?.substring(0, 100) + '...', // Truncar para log
-      messageSid: req.body.MessageSid
+      from: From,
+      to: To,
+      body: Body?.substring(0, 100) + '...', // Truncar para log
+      messageSid: MessageSid
     });
 
     // Processar mensagem com Supabase
@@ -36,8 +48,8 @@ router.post('/twilio/whatsapp', async (req, res) => {
     
     if (result.success) {
       console.log('✅ Message processed successfully:', {
-        conversationId: result.conversation.id,
-        messageId: result.message.id,
+        conversationId: result.conversation?.id,
+        messageId: result.message?.id,
         userType: result.userType,
         phone: result.normalizedPhone
       });
