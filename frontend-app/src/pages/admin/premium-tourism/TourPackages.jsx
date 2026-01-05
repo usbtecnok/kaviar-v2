@@ -227,6 +227,8 @@ export default function TourPackages() {
               </Button>
             </Box>
           )}
+        </CardContent>
+        </Card>
         </Grid>
       </Grid>
     </Container>
