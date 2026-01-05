@@ -4,7 +4,6 @@ import { RideAdminController } from '../modules/admin/ride-controller';
 import { DashboardController } from '../modules/admin/dashboard-controller';
 import { DriverAdminController } from '../modules/admin/driver-admin-controller';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
-import { prisma } from '../config/database';
 
 const router = Router();
 const adminController = new AdminController();
@@ -37,6 +36,8 @@ router.get('/passengers', adminController.getPassengers);
 // Communities routes (alias to admin-management logic)
 router.get('/communities', async (req, res) => {
   try {
+    const { prisma } = require('../config/database');
+    
     const communities = await prisma.community.findMany({
       include: {
         drivers: {
