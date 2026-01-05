@@ -27,3 +27,8 @@ frontend-app/dist/**
 *.swx
 
 *.bak
+
+# anti-lixo / anti-secrets
+/audit/backups/
+**/.env
+**/.env.*
