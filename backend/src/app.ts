@@ -22,8 +22,9 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'https://kaviar-frontend.onrender.com',
-    'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:5173',  // Vite dev
+    'http://localhost:4173',  // Vite preview
+    'http://localhost:3000'   // Legacy (manter por enquanto)
   ],
   credentials: true,
   allowedHeaders: ['Authorization', 'Content-Type'],

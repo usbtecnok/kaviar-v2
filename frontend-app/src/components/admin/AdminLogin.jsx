@@ -120,6 +120,21 @@ export default function AdminLogin() {
 
       <div style={{ textAlign: 'center', marginTop: '20px' }}>
         <button
+          onClick={() => alert('Funcionalidade "Esqueci minha senha" será implementada na Fase 3')}
+          disabled={loading}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#1976d2',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            marginRight: '20px'
+          }}
+        >
+          Esqueci minha senha
+        </button>
+        
+        <button
           onClick={() => navigate('/')}
           disabled={loading}
           style={{

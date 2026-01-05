@@ -1,11 +1,19 @@
 {
-  "name": "kaviar-whatsapp-webhook",
-  "version": "1.0.0",
-  "description": "Kaviar WhatsApp Business API Webhook - Twilio + Supabase Integration",
-  "main": "server.js",
+  "name": "kaviar-app",
+  "version": "2.0.0",
+  "description": "Kaviar - Sistema de Corridas Comunitárias (Frontend React + Backend TypeScript)",
+  "main": "backend/dist/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "npm run start:backend",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend-app && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend-app && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend-app && npm run build",
+    "legacy:start": "node legacy/server_legacy.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:final": "node tests/final-freeze-test.js",
     "activate": "node scripts/activate-kaviar.js",
@@ -13,19 +21,20 @@
     "security:test": "psql -d kaviar -f tests/security-validation.test.sql"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "dotenv": "^16.3.1",
-    "twilio": "^4.19.0",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
     "@supabase/supabase-js": "^2.38.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
     "node-cron": "^3.0.3",
     "pdfkit": "^0.14.0",
-    "bcrypt": "^5.1.1",
-    "express-rate-limit": "^7.1.5",
-    "jsonwebtoken": "^9.0.2"
+    "twilio": "^4.19.0"
   },
   "devDependencies": {
+    "concurrently": "^7.6.0",
     "nodemon": "^3.0.2"
   },
   "engines": {
