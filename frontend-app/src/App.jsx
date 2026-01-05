@@ -7,6 +7,8 @@ import AdminApp from "./components/admin/AdminApp";
 import CompleteOnboarding from "./pages/onboarding/CompleteOnboarding";
 import PremiumTourism from "./pages/PremiumTourism";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
 
@@ -229,6 +231,10 @@ export default function App() {
 
           {/* Tela de escolha */}
           <Route path="/login" element={<Login />} />
+          
+          {/* Reset de senha */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Mantém o AuthApp (se ainda existir fluxo interno) */}
           <Route path="/auth/*" element={<AuthApp />} />
