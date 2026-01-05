@@ -37,3 +37,15 @@ export const registrationRateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Rate limiting for elderly admin operations
+export const elderlyAdminRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute for admin
+  message: {
+    success: false,
+    error: 'Muitas operações administrativas. Tente novamente em 1 minuto.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
