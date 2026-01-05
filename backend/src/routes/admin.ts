@@ -33,71 +33,8 @@ router.put('/drivers/:id/documents/:docId/reject', driverAdminController.rejectD
 // Passengers routes
 router.get('/passengers', adminController.getPassengers);
 
-// Communities routes (alias to admin-management logic)
-router.get('/communities', async (req, res) => {
-  try {
-    const { prisma } = require('../config/database');
-    
-    const communities = await prisma.community.findMany({
-      include: {
-        drivers: {
-          select: {
-            id: true,
-            status: true,
-            isPremium: true
-          }
-        },
-        passengers: {
-          select: {
-            id: true,
-            status: true
-          }
-        },
-        guides: {
-          select: {
-            id: true,
-            status: true
-          }
-        }
-      },
-      orderBy: {
-        name: 'asc'
-      }
-    });
-
-    const communitiesWithStats = communities.map(community => {
-      const activeDrivers = community.drivers.filter(d => d.status === 'approved').length;
-      const premiumDrivers = community.drivers.filter(d => d.status === 'approved' && d.isPremium).length;
-      const activePassengers = community.passengers.filter(p => p.status === 'approved').length;
-      const activeGuides = community.guides.filter(g => g.status === 'approved').length;
-
-      const canActivate = activeDrivers >= community.minActiveDrivers;
-
-      return {
-        ...community,
-        stats: {
-          activeDrivers,
-          premiumDrivers,
-          activePassengers,
-          activeGuides,
-          canActivate,
-          minRequired: community.minActiveDrivers
-        }
-      };
-    });
-
-    res.json({
-      success: true,
-      data: communitiesWithStats
-    });
-  } catch (error) {
-    console.error('Get communities error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor'
-    });
-  }
-});
+// Communities routes
+router.get('/communities', adminController.getCommunities);
 
 // Rides routes
 router.get('/rides/audit', rideController.getAuditLogs);
