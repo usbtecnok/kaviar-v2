@@ -35,7 +35,7 @@ export default function DriverApproval() {
 
   const loadDrivers = async () => {
     try {
-      const response = await adminApi.get('/drivers');
+      const response = await adminApi.get('/api/admin/drivers');
       if (response.data.success) {
         setDrivers(response.data.data);
       }
