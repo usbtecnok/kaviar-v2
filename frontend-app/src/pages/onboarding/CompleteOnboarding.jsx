@@ -82,49 +82,96 @@ export default function CompleteOnboarding() {
     setLoading(true);
     setError('');
 
+    // Normaliza campos para evitar undefined/null
+    const clean = {
+      name: (clean.name ?? '').trim(),
+      email: (clean.email ?? '').trim(),
+      phone: (clean.phone ?? '').trim(),
+      communityId: (clean.communityId ?? '').trim(),
+      documentCpf: (clean.documentCpf ?? '').trim(),
+      documentRg: (clean.documentRg ?? '').trim(),
+      documentCnh: (clean.documentCnh ?? '').trim(),
+      vehiclePlate: (clean.vehiclePlate ?? '').trim(),
+      vehicleModel: (clean.vehicleModel ?? '').trim(),
+      isBilingual: !!clean.isBilingual,
+      languages: clean.languages ?? [],
+      alsoDriver: !!clean.alsoDriver,
+    };
+
+    // Validação mínima por tipo (evita 500 no backend)
+    if (userType === 'passenger') {
+      if (!clean.name || !clean.phone || !clean.communityId) {
+        setError('Preencha nome, telefone e comunidade.');
+        setLoading(false);
+        return;
+      }
+    }
+
+    if (userType === 'driver') {
+      if (!clean.name || !clean.phone || !clean.communityId) {
+        setError('Preencha nome, telefone e comunidade.');
+        setLoading(false);
+        return;
+      }
+      // Se você quiser exigir docs/veículo já aqui, descomente:
+      // if (!clean.documentCpf || !clean.vehiclePlate || !clean.vehicleModel) {
+      //   setError('Preencha CPF e dados do veículo.');
+      //   setLoading(false);
+      //   return;
+      // }
+    }
+
+    if (userType === 'guide') {
+      if (!clean.name || !clean.phone || !clean.communityId) {
+        setError('Preencha nome, telefone e comunidade.');
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       let userId;
 
       // 1. Criar usuário baseado no tipo
       if (userType === 'passenger') {
         const response = await api.post('/api/governance/passenger', {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          communityId: formData.communityId
+          name: clean.name,
+          email: clean.email,
+          phone: clean.phone,
+          communityId: clean.communityId
         });
         userId = response.data.data.id;
 
         // Registrar consentimento LGPD
         await api.post('/api/governance/consent', {
           passengerId: userId,
-          consentType: 'lgpd',
+          consentType: 'LGPD',
           accepted: lgpdAccepted,
           ipAddress: 'onboarding'
         });
       } else if (userType === 'driver') {
         // Criar driver e enviar documentos
         const response = await api.post('/api/governance/driver', {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          communityId: formData.communityId,
-          documentCpf: formData.documentCpf,
-          documentRg: formData.documentRg,
-          documentCnh: formData.documentCnh,
-          vehiclePlate: formData.vehiclePlate,
-          vehicleModel: formData.vehicleModel
+          name: clean.name,
+          email: clean.email,
+          phone: clean.phone,
+          communityId: clean.communityId,
+          documentCpf: clean.documentCpf,
+          documentRg: clean.documentRg,
+          documentCnh: clean.documentCnh,
+          vehiclePlate: clean.vehiclePlate,
+          vehicleModel: clean.vehicleModel
         });
         userId = response.data.data.id;
       } else if (userType === 'guide') {
         const response = await api.post('/api/governance/guide', {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          communityId: formData.communityId,
-          isBilingual: formData.isBilingual,
-          languages: formData.languages,
-          alsoDriver: formData.alsoDriver
+          name: clean.name,
+          email: clean.email,
+          phone: clean.phone,
+          communityId: clean.communityId,
+          isBilingual: clean.isBilingual,
+          languages: clean.languages,
+          alsoDriver: clean.alsoDriver
         });
         userId = response.data.data.id;
       }
@@ -180,7 +227,7 @@ export default function CompleteOnboarding() {
             </FormControl>
             <TextField
               label="Nome Completo"
-              value={formData.name}
+              value={clean.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               required
               fullWidth
@@ -188,14 +235,14 @@ export default function CompleteOnboarding() {
             <TextField
               label="Email"
               type="email"
-              value={formData.email}
+              value={clean.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               required
               fullWidth
             />
             <TextField
               label="Telefone"
-              value={formData.phone}
+              value={clean.phone}
               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               fullWidth
             />
@@ -206,35 +253,35 @@ export default function CompleteOnboarding() {
                 <Typography variant="h6" sx={{ mt: 2 }}>Documentos</Typography>
                 <TextField
                   label="CPF"
-                  value={formData.documentCpf}
+                  value={clean.documentCpf}
                   onChange={(e) => setFormData(prev => ({ ...prev, documentCpf: e.target.value }))}
                   required
                   fullWidth
                 />
                 <TextField
                   label="RG"
-                  value={formData.documentRg}
+                  value={clean.documentRg}
                   onChange={(e) => setFormData(prev => ({ ...prev, documentRg: e.target.value }))}
                   required
                   fullWidth
                 />
                 <TextField
                   label="CNH"
-                  value={formData.documentCnh}
+                  value={clean.documentCnh}
                   onChange={(e) => setFormData(prev => ({ ...prev, documentCnh: e.target.value }))}
                   required
                   fullWidth
                 />
                 <TextField
                   label="Placa do Veículo"
-                  value={formData.vehiclePlate}
+                  value={clean.vehiclePlate}
                   onChange={(e) => setFormData(prev => ({ ...prev, vehiclePlate: e.target.value }))}
                   required
                   fullWidth
                 />
                 <TextField
                   label="Modelo do Veículo"
-                  value={formData.vehicleModel}
+                  value={clean.vehicleModel}
                   onChange={(e) => setFormData(prev => ({ ...prev, vehicleModel: e.target.value }))}
                   required
                   fullWidth
@@ -249,7 +296,7 @@ export default function CompleteOnboarding() {
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={formData.isBilingual}
+                      checked={clean.isBilingual}
                       onChange={(e) => setFormData(prev => ({ ...prev, isBilingual: e.target.checked }))}
                     />
                   }
@@ -257,7 +304,7 @@ export default function CompleteOnboarding() {
                 />
                 <TextField
                   label="Idiomas (separados por vírgula)"
-                  value={formData.languages.join(', ')}
+                  value={clean.languages.join(', ')}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
                     languages: e.target.value.split(',').map(lang => lang.trim()) 
@@ -268,7 +315,7 @@ export default function CompleteOnboarding() {
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={formData.alsoDriver}
+                      checked={clean.alsoDriver}
                       onChange={(e) => setFormData(prev => ({ ...prev, alsoDriver: e.target.checked }))}
                     />
                   }
@@ -283,7 +330,7 @@ export default function CompleteOnboarding() {
           <FormControl fullWidth required>
             <InputLabel>Comunidade</InputLabel>
             <Select
-              value={formData.communityId}
+              value={clean.communityId}
               onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
             >
               {communities.map(community => (
@@ -322,9 +369,9 @@ export default function CompleteOnboarding() {
               Revisão dos Dados
             </Typography>
             <Typography>Tipo: {userType === 'passenger' ? 'Passageiro' : userType === 'driver' ? 'Motorista' : 'Guia Turístico'}</Typography>
-            <Typography>Nome: {formData.name}</Typography>
-            <Typography>Email: {formData.email}</Typography>
-            <Typography>Telefone: {formData.phone}</Typography>
+            <Typography>Nome: {clean.name}</Typography>
+            <Typography>Email: {clean.email}</Typography>
+            <Typography>Telefone: {clean.phone}</Typography>
             <Typography>LGPD: {lgpdAccepted ? 'Aceito' : 'Não aceito'}</Typography>
           </Box>
         );
