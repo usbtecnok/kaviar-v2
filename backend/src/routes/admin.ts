@@ -36,6 +36,15 @@ router.get('/passengers', adminController.getPassengers);
 // Communities routes
 router.get('/communities', adminController.getCommunities);
 
+// Test route
+router.get('/test-communities', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Test endpoint working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Rides routes
 router.get('/rides/audit', rideController.getAuditLogs);
 router.get('/rides', rideController.getRides);
