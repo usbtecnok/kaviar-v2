@@ -248,7 +248,7 @@ export default function GuidesManagement() {
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            Tem certeza que deseja {getActionText(actionDialog.action).toLowerCase()} o guia turístico{' '}
+            Tem certeza que deseja {String(getActionText(actionDialog.action) ?? '').toLowerCase()} o guia turístico{' '}
             <strong>{actionDialog.guide?.name}</strong>?
           </Typography>
         </DialogContent>
