@@ -12,7 +12,10 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  Divider
+  Divider,
+  TextField,
+  Checkbox,
+  FormControlLabel
 } from '@mui/material';
 import {
   MyLocation,
@@ -34,6 +37,25 @@ const PassengerHome = () => {
   const [pickupCoords, setPickupCoords] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
   const [serviceType, setServiceType] = useState('STANDARD_RIDE');
+  const [careNotes, setCareNotes] = useState('');
+  const [careNeedsEscort, setCareNeedsEscort] = useState(false);
+
+  // WhatsApp do suporte (pode configurar por env VITE_SUPPORT_WHATSAPP)
+  const SUPPORT_WHATSAPP = import.meta.env.VITE_SUPPORT_WHATSAPP || '5521980669989';
+
+  const openCareWhatsApp = () => {
+    const msg = [
+      '🧓 *KAVIAR CARE / Acompanhamento*',
+      '',
+      `📍 Origem: ${pickup || '(não informado)'}`,
+      `🎯 Destino: ${destination || '(não informado)'}`,
+      `👥 Precisa de acompanhante: ${careNeedsEscort ? 'SIM' : 'NÃO'}`,
+      careNotes ? `📝 Observações: ${careNotes}` : ''
+    ].filter(Boolean).join('\n');
+
+    const url = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { rideStatus, requestRide } = useRide();
@@ -94,6 +116,43 @@ const PassengerHome = () => {
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
         Solicitar Corrida
       </Typography>
+
+      {/* Atalhos rápidos de serviço */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+            Atalhos rápidos
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button
+              variant={serviceType === 'STANDARD_RIDE' ? 'contained' : 'outlined'}
+              startIcon={<DirectionsCar />}
+              onClick={() => setServiceType('STANDARD_RIDE')}
+              disabled={rideStatus !== 'idle'}
+            >
+              Corrida Normal
+            </Button>
+
+            <Button
+              variant={serviceType === 'TOUR_GUIDE' ? 'contained' : 'outlined'}
+              onClick={() => setServiceType('TOUR_GUIDE')}
+              disabled={rideStatus !== 'idle'}
+            >
+              🧭 Guia Turístico
+            </Button>
+
+            <Button
+              variant={serviceType === 'ELDERLY_ASSISTANCE' ? 'contained' : 'outlined'}
+              color="secondary"
+              onClick={() => setServiceType('ELDERLY_ASSISTANCE')}
+              disabled={rideStatus !== 'idle'}
+            >
+              🧓 CARE (Idosos/Consulta)
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -206,6 +265,61 @@ const PassengerHome = () => {
                 </Select>
               </FormControl>
             </Box>
+
+            {/* CARE - campos extras + WhatsApp */}
+            {serviceType === 'ELDERLY_ASSISTANCE' && (
+              <Card sx={{ mb: 3, border: '1px solid', borderColor: 'secondary.light' }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                    🧓 CARE / Acompanhamento
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Para levar/ buscar em consulta, acompanhamento de idosos ou pessoas doentes.
+                  </Typography>
+
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={careNeedsEscort}
+                        onChange={(e) => setCareNeedsEscort(e.target.checked)}
+                      />
+                    }
+                    label="Preciso de acompanhante/ajuda no trajeto"
+                    sx={{ mb: 1 }}
+                  />
+
+                  <TextField
+                    label="Observações (opcional)"
+                    placeholder="Ex.: retornar com receita, esperar na clínica, cadeira de rodas..."
+                    value={careNotes}
+                    onChange={(e) => setCareNotes(e.target.value)}
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    sx={{ mb: 2 }}
+                  />
+
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={openCareWhatsApp}
+                      disabled={rideStatus !== 'idle'}
+                    >
+                      Falar com agente (WhatsApp)
+                    </Button>
+
+                    <Button
+                      variant="outlined"
+                      onClick={handleRequestRide}
+                      disabled={rideStatus !== 'idle'}
+                    >
+                      Solicitar corrida CARE
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Serviço Selecionado */}
             <Box sx={{ mb: 3, textAlign: 'center' }}>
