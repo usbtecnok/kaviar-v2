@@ -11,7 +11,23 @@ npm install
 
 ### 2. Configurar banco de dados
 
-**IMPORTANTE: Este projeto usa Supabase PostgreSQL**
+#### Opção 1: Neon PostgreSQL (Recomendado)
+
+1. **Criar conta no Neon**: https://neon.tech
+2. **Criar projeto** e obter connection strings:
+   - **Direct**: Para migrations/DDL (ex: `ep-xxxx.us-east-1.aws.neon.tech`)
+   - **Pooler**: Para runtime/conexões (ex: `ep-xxxx-pooler.c-2.us-east-1.aws.neon.tech`)
+
+3. **Configurar .env**:
+   ```bash
+   # Direct connection (migrations)
+   DATABASE_URL="postgresql://USER:PASSWORD@ep-xxxx.us-east-1.aws.neon.tech/neondb?sslmode=require"
+   
+   # Optional: Pooler (runtime)
+   DATABASE_URL_POOLER="postgresql://USER:PASSWORD@ep-xxxx-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+   ```
+
+#### Opção 2: Supabase PostgreSQL (Alternativa)
 
 Siga as instruções detalhadas em: `SUPABASE_SETUP.md`
 
@@ -21,6 +37,11 @@ Siga as instruções detalhadas em: `SUPABASE_SETUP.md`
    ```
    postgresql://postgres:<PASSWORD>@db.<PROJECT_ID>.supabase.co:5432/postgres
    ```
+
+**📋 Importante: Conexões Direct vs Pooler**
+- **Migrations/DDL**: Use sempre conexão **direct** (sem pooler)
+- **Runtime/App**: Pode usar **pooler** para melhor performance
+- **Desenvolvimento**: Direct é suficiente para ambos
 
 ### 3. Configurar variáveis de ambiente
 ```bash
