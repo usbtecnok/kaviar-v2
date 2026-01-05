@@ -66,6 +66,24 @@ export default function CompleteOnboarding() {
     }
   };
 
+
+  // === CLEAN_FORM_VALUES (component scope) ===
+  // Valores seguros para o JSX (evita null/undefined)
+  const clean = {
+    name: formData.name ?? '',
+    email: formData.email ?? '',
+    phone: formData.phone ?? '',
+    communityId: formData.communityId ?? '',
+    documentCpf: formData.documentCpf ?? '',
+    documentRg: formData.documentRg ?? '',
+    documentCnh: formData.documentCnh ?? '',
+    vehiclePlate: formData.vehiclePlate ?? '',
+    vehicleModel: formData.vehicleModel ?? '',
+    isBilingual: !!formData.isBilingual,
+    languages: formData.languages ?? [],
+    alsoDriver: !!formData.alsoDriver,
+  };
+
   const handleNext = () => {
     if (activeStep === steps.length - 1) {
       handleSubmit();
@@ -81,23 +99,6 @@ export default function CompleteOnboarding() {
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
-
-    // Normaliza campos para evitar undefined/null
-    const clean = {
-      name: (clean.name ?? '').trim(),
-      email: (clean.email ?? '').trim(),
-      phone: (clean.phone ?? '').trim(),
-      communityId: (clean.communityId ?? '').trim(),
-      documentCpf: (clean.documentCpf ?? '').trim(),
-      documentRg: (clean.documentRg ?? '').trim(),
-      documentCnh: (clean.documentCnh ?? '').trim(),
-      vehiclePlate: (clean.vehiclePlate ?? '').trim(),
-      vehicleModel: (clean.vehicleModel ?? '').trim(),
-      isBilingual: !!clean.isBilingual,
-      languages: clean.languages ?? [],
-      alsoDriver: !!clean.alsoDriver,
-    };
-
     // Validação mínima por tipo (evita 500 no backend)
     if (userType === 'passenger') {
       if (!clean.name || !clean.phone || !clean.communityId) {
