@@ -229,7 +229,7 @@ export default function PassengersManagement() {
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            Tem certeza que deseja {getActionText(actionDialog.action).toLowerCase()} o passageiro{' '}
+            Tem certeza que deseja {String(getActionText(actionDialog.action) ?? '').toLowerCase()} o passageiro{' '}
             <strong>{actionDialog.passenger?.name}</strong>?
           </Typography>
         </DialogContent>

@@ -244,7 +244,7 @@ export default function DriversManagement() {
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>
-            Tem certeza que deseja {getActionText(actionDialog.action).toLowerCase()} o motorista{' '}
+            Tem certeza que deseja {String(getActionText(actionDialog.action) ?? '').toLowerCase()} o motorista{' '}
             <strong>{actionDialog.driver?.name}</strong>?
           </Typography>
           

@@ -56,15 +56,16 @@ export default function PremiumTourism() {
 
   const filteredPackages = packages.filter(pkg => {
     const matchesType = !typeFilter || pkg.type === typeFilter;
-    const matchesSearch = !search || 
-      pkg.title.toLowerCase().includes(search.toLowerCase()) ||
-      pkg.description.toLowerCase().includes(search.toLowerCase()) ||
-      pkg.partnerName.toLowerCase().includes(search.toLowerCase());
-    
+
+    const q = (search ?? '').toLowerCase();
+    const matchesSearch = !q ||
+      (pkg.title ?? '').toLowerCase().includes(q) ||
+      (pkg.description ?? '').toLowerCase().includes(q) ||
+      (pkg.partnerName ?? '').toLowerCase().includes(q);
+
     return matchesType && matchesSearch;
   });
-
-  if (loading) {
+if (loading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, textAlign: 'center' }}>
         <CircularProgress />
