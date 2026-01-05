@@ -53,6 +53,7 @@ app.get('/api/health', (req, res) => {
     message: 'KAVIAR Backend is running',
     features,
     timestamp: new Date().toISOString(),
+    version: '1.0.1' // Force restart
   });
 });
 
