@@ -34,7 +34,7 @@ import {
   PlayArrow, 
   Pause, 
   Cancel,
-  ElderlyCare,
+  Elderly,
   Info
 } from '@mui/icons-material';
 
@@ -178,7 +178,7 @@ export default function ElderlyManagement() {
       {/* Header com informação do serviço */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <ElderlyCare sx={{ fontSize: 40, color: 'warning.main', mr: 2 }} />
+          <Elderly sx={{ fontSize: 40, color: 'warning.main', mr: 2 }} />
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
               Acompanhamento Ativo
@@ -371,7 +371,7 @@ export default function ElderlyManagement() {
 
       {contracts.length === 0 && !loading && (
         <Box sx={{ textAlign: 'center', py: 4 }}>
-          <ElderlyCare sx={{ fontSize: 64, color: 'grey.300', mb: 2 }} />
+          <Elderly sx={{ fontSize: 64, color: 'grey.300', mb: 2 }} />
           <Typography color="text.secondary" variant="h6">
             Nenhum contrato de acompanhamento encontrado
           </Typography>

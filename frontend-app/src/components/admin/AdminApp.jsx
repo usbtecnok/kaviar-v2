@@ -1,6 +1,6 @@
 import { Routes, Route, Link } from "react-router-dom";
 import { Container, Typography, Box, Card, CardContent, Button } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, ElderlyCare } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import DomainHeader from "../common/DomainHeader";
@@ -192,7 +192,7 @@ function AdminHome() {
 
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 3 }}>
-            <ElderlyCare sx={{ fontSize: 40, color: 'warning.main', mb: 2 }} />
+            <Elderly sx={{ fontSize: 40, color: 'warning.main', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
               Acompanhamento Ativo
             </Typography>
