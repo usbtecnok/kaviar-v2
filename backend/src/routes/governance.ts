@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { DriverGovernanceController } from '../modules/governance/driver-controller';
 import { RideController } from '../modules/governance/ride-controller';
 import { RatingController } from '../modules/rating/controller';
@@ -85,7 +85,7 @@ router.post('/consent', async (req, res) => {
 router.post('/driver', async (req, res) => {
   try {
     const { name, email, phone, communityId, documentCpf, documentRg, documentCnh, vehiclePlate, vehicleModel } = req.body;
-    
+
     const driver = await prisma.driver.create({
       data: {
         name,
@@ -100,9 +100,16 @@ router.post('/driver', async (req, res) => {
         status: 'pending'
       }
     });
-    
+
     res.json({ success: true, data: driver });
   } catch (error: unknown) {
+    // Prisma: duplicidade (unique constraint)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const target = (error.meta as any)?.target;
+      const fields = Array.isArray(target) ? target.join(', ') : (target ?? 'campo único');
+      return res.status(409).json({ success: false, error: `Já existe cadastro com este ${fields}.` });
+    }
+
     res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
   }
 });
@@ -157,8 +164,6 @@ router.post('/guide', async (req, res) => {
 
 // Driver governance endpoints
 router.post('/driver/consent', driverController.recordConsent);
-router.put('/driver/:id/documents', driverController.submitDocuments);
-
 // Ride endpoints (with geofence)
 router.post('/ride/request', rideController.requestRide);
 
