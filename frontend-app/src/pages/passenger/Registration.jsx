@@ -42,7 +42,7 @@ export default function PassengerRegistration() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/governance/communities');
+      const response = await api.get('/api/governance/communities');
       if (response.data.success) {
         setCommunities(response.data.data);
       }
@@ -69,7 +69,7 @@ export default function PassengerRegistration() {
 
     try {
       // 1. Criar passageiro
-      const passengerResponse = await api.post('/governance/passenger', {
+      const passengerResponse = await api.post('/api/governance/passenger', {
         ...formData,
         status: 'pending'
       });
@@ -78,7 +78,7 @@ export default function PassengerRegistration() {
         const passengerId = passengerResponse.data.data.id;
 
         // 2. Registrar consentimento LGPD
-        await api.post('/governance/consent', {
+        await api.post('/api/governance/consent', {
           passengerId,
           consentType: 'lgpd',
           accepted: lgpdAccepted,

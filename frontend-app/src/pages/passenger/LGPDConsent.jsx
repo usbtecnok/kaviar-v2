@@ -29,7 +29,7 @@ export default function LGPDConsent() {
     setLoading(true);
     try {
       // Implementar chamada para API de consentimento
-      // await api.post('/governance/consent', {
+      // await api.post('/api/governance/consent', {
       //   passengerId: currentUser.id,
       //   consentType: 'lgpd',
       //   accepted: true

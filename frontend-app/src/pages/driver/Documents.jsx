@@ -39,7 +39,7 @@ export default function DriverDocuments() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/governance/communities');
+      const response = await api.get('/api/governance/communities');
       if (response.data.success) {
         setCommunities(response.data.data);
       }

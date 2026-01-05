@@ -57,7 +57,7 @@ export default function CompleteOnboarding() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/governance/communities');
+      const response = await api.get('/api/governance/communities');
       if (response.data.success) {
         setCommunities(response.data.data);
       }
@@ -87,7 +87,7 @@ export default function CompleteOnboarding() {
 
       // 1. Criar usuário baseado no tipo
       if (userType === 'passenger') {
-        const response = await api.post('/governance/passenger', {
+        const response = await api.post('/api/governance/passenger', {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -96,7 +96,7 @@ export default function CompleteOnboarding() {
         userId = response.data.data.id;
 
         // Registrar consentimento LGPD
-        await api.post('/governance/consent', {
+        await api.post('/api/governance/consent', {
           passengerId: userId,
           consentType: 'lgpd',
           accepted: lgpdAccepted,
@@ -104,7 +104,7 @@ export default function CompleteOnboarding() {
         });
       } else if (userType === 'driver') {
         // Criar driver e enviar documentos
-        const response = await api.post('/governance/driver', {
+        const response = await api.post('/api/governance/driver', {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -117,7 +117,7 @@ export default function CompleteOnboarding() {
         });
         userId = response.data.data.id;
       } else if (userType === 'guide') {
-        const response = await api.post('/governance/guide', {
+        const response = await api.post('/api/governance/guide', {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
