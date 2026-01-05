@@ -25,7 +25,7 @@ export class AuthService {
     }
 
     // Generate JWT
-    const secret = config.jwt.secret;
+    const secret = config.jwtSecret;
     if (!secret) {
       throw new Error('JWT_SECRET is not configured');
     }
@@ -37,7 +37,7 @@ export class AuthService {
         role: admin.role.name,
       },
       secret,
-      { expiresIn: config.jwt.expiresIn } as any
+      { expiresIn: config.jwtExpiresIn } as any
     );
 
     return {
