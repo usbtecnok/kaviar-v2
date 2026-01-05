@@ -17,6 +17,7 @@ import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
 import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
 import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
 import PremiumTourismButton from "./PremiumTourismButton";
+import ElderlyManagement from "../../pages/admin/ElderlyManagement";
 
 function AdminHeader() {
   const adminData = localStorage.getItem('kaviar_admin_data');
@@ -281,6 +282,21 @@ function AdminMetricsWrapper() {
   );
 }
 
+function AdminElderlyWrapper() {
+  return (
+    <Container maxWidth="lg" sx={{ mt: 2 }}>
+      <AdminHeader />
+      <DomainHeader 
+        domain="admin" 
+        title="Acompanhamento Ativo"
+        breadcrumbs={["Acompanhamento Ativo"]}
+        backUrl="/admin"
+      />
+      <ElderlyManagement />
+    </Container>
+  );
+}
+
 export default function AdminApp() {
   return (
     <Routes>
@@ -390,6 +406,11 @@ export default function AdminApp() {
       <Route path="/premium-tourism/bookings" element={
         <ProtectedAdminRoute>
           <TourBookings />
+        </ProtectedAdminRoute>
+      } />
+      <Route path="/elderly" element={
+        <ProtectedAdminRoute>
+          <AdminElderlyWrapper />
         </ProtectedAdminRoute>
       } />
     </Routes>
