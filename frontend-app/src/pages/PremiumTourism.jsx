@@ -8,7 +8,7 @@ import { formatPrice, formatDuration, formatTourType } from '../utils/premiumTou
 import { checkPremiumTourismEnabled } from '../services/featureFlags';
 import BookingDialog from '../components/BookingDialog';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function PremiumTourism() {
   const [packages, setPackages] = useState([]);
@@ -40,7 +40,7 @@ export default function PremiumTourism() {
 
   const loadPackages = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/governance/tour-packages`);
+      const response = await fetch(`${API_BASE_URL}/api/governance/tour-packages`);
       
       if (!response.ok) {
         throw new Error('Erro ao carregar pacotes');

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -38,7 +38,7 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

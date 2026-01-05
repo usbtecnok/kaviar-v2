@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Language } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function GuidesManagement() {
   const [guides, setGuides] = useState([]);
@@ -43,7 +43,7 @@ export default function GuidesManagement() {
     try {
       setLoading(true);
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/admin/guides?status=${status}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/guides?status=${status}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -67,7 +67,7 @@ export default function GuidesManagement() {
       const { guide, action } = actionDialog;
       const token = localStorage.getItem('kaviar_admin_token');
 
-      const response = await fetch(`${API_BASE_URL}/admin/guides/${guide.id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/guides/${guide.id}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

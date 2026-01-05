@@ -18,7 +18,7 @@ import {
   CheckCircle
 } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -32,7 +32,7 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/admin/dashboard`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
