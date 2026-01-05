@@ -264,21 +264,4 @@ export class AdminController {
       });
     }
   };
-
-  // GET /api/admin/communities
-  getCommunities = async (req: Request, res: Response) => {
-    try {
-      const communities = await this.adminService.getCommunities();
-      
-      res.json({
-        success: true,
-        data: communities,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Erro ao buscar comunidades',
-      });
-    }
-  };
 }
