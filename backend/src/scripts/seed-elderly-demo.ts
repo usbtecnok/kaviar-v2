@@ -18,7 +18,7 @@ async function seedElderlyDemo() {
           email: adminEmail,
           name: 'Admin KAVIAR',
           passwordHash: hashedPassword,
-          role: 'SUPER_ADMIN'
+          roleId: 'default-role-id' // Simplified for demo
         }
       });
       console.log('✅ Admin criado:', admin.email);

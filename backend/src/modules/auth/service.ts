@@ -37,7 +37,7 @@ export class AuthService {
         role: admin.role.name,
       },
       secret,
-      { expiresIn: config.jwtExpiresIn } as any
+      { expiresIn: config.jwtExpiresIn }
     );
 
     return {
