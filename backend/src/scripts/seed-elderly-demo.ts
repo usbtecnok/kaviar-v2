@@ -133,7 +133,7 @@ async function seedElderlyDemo() {
 
     for (const contractData of contracts) {
       const contract = await prisma.elderlyContract.create({
-        data: contractData
+        data: contractData as any
       });
       console.log(`✅ Contrato criado: ${contract.status} (${contract.id})`);
     }

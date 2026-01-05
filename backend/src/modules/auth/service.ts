@@ -37,7 +37,7 @@ export class AuthService {
         role: admin.role.name,
       },
       secret,
-      { expiresIn: config.jwtExpiresIn }
+      { expiresIn: config.jwtExpiresIn } as any
     );
 
     return {
@@ -56,6 +56,6 @@ export class AuthService {
   }
 
   verifyToken(token: string) {
-    return jwt.verify(token, config.jwt.secret);
+    return jwt.verify(token, config.jwtSecret);
   }
 }

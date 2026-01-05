@@ -26,7 +26,7 @@ const generateToken = (userId: string, userType: 'driver' | 'passenger') => {
   return jwt.sign(
     { userId, userType },
     config.jwtSecret,
-    { expiresIn: config.jwtExpiresIn }
+    { expiresIn: config.jwtExpiresIn } as any
   );
 };
 
