@@ -152,6 +152,17 @@ export default function CompleteOnboarding() {
         });
       } else if (userType === 'driver') {
         // Criar driver e enviar documentos
+        console.log('[DEBUG] driver payload:', {
+          name: clean.name,
+          email: clean.email,
+          phone: clean.phone,
+          communityId: clean.communityId,
+          documentCpf: clean.documentCpf,
+          documentRg: clean.documentRg,
+          documentCnh: clean.documentCnh,
+          vehiclePlate: clean.vehiclePlate,
+          vehicleModel: clean.vehicleModel
+        });
         const response = await api.post('/api/governance/driver', {
           name: clean.name,
           email: clean.email,
