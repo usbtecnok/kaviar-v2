@@ -1,135 +1,112 @@
-import { useState } from 'react';
-import {
-  Container,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Box,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress
-} from '@mui/material';
-import KaviarLogo from '../components/common/KaviarLogo';
-import { useAuth } from '../auth/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Container, Grid, Card, CardContent, Typography, Button, Stack } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
-const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState('passenger');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const from = location.state?.from?.pathname || '/';
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    const result = await login(email, password, userType);
-
-    if (result.success) {
-      // Redirecionar baseado no tipo de usuário
-      const redirectPath = userType === 'admin' ? '/admin' : 
-                          userType === 'driver' ? '/motorista' : 
-                          '/passageiro';
-      navigate(redirectPath);
-    } else {
-      setError(result.error);
-    }
-
-    setLoading(false);
-  };
-
+export default function Login() {
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-            <KaviarLogo variant="full" size="large" sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary">
-              Faça login para continuar
-            </Typography>
-          </Box>
+    <Container maxWidth="md" sx={{ py: 6 }}>
+      <Typography variant="h4" fontWeight={800} gutterBottom>
+        Acesso ao sistema
+      </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+        Escolha como você quer entrar. (Admin é separado do Passageiro/Motorista)
+      </Typography>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Email"
-              name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Senha"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+      <Grid container spacing={2}>
+        {/* PASSAGEIRO */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} gutterBottom>
+                Passageiro
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Solicitar corrida, escolher serviço (inclui CARE), acompanhar status e avaliar motorista.
+              </Typography>
 
-            <FormControl fullWidth margin="normal">
-              <InputLabel id="user-type-label">Tipo de Usuário</InputLabel>
-              <Select
-                labelId="user-type-label"
-                id="user-type"
-                value={userType}
-                label="Tipo de Usuário"
-                onChange={(e) => setUserType(e.target.value)}
-              >
-                <MenuItem value="passenger">Passageiro</MenuItem>
-                <MenuItem value="driver">Motorista</MenuItem>
-                <MenuItem value="admin">Administrador</MenuItem>
-              </Select>
-            </FormControl>
+              <Stack spacing={1}>
+                <Button
+                  component={RouterLink}
+                  to="/passageiro"
+                  variant="contained"
+                  fullWidth
+                >
+                  Entrar como Passageiro
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
 
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Entrar'}
-            </Button>
-          </Box>
-        </Paper>
-      </Box>
+        {/* MOTORISTA */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} gutterBottom>
+                Motorista
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Cadastro, envio de documentos e corridas (área protegida).
+              </Typography>
+
+              <Stack spacing={1}>
+                <Button
+                  component={RouterLink}
+                  to="/cadastro"
+                  variant="contained"
+                  fullWidth
+                >
+                  Cadastrar / Completar Cadastro
+                </Button>
+
+                <Button
+                  component={RouterLink}
+                  to="/motorista/documents"
+                  variant="outlined"
+                  fullWidth
+                >
+                  Enviar Documentos
+                </Button>
+              </Stack>
+
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                Obs.: A área do motorista exige autenticação. Se não tiver login ainda, ela vai te mandar para esta tela.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* ADMIN */}
+        <Grid item xs={12} md={4}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h6" fontWeight={700} gutterBottom>
+                Administrador
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Painel admin (Premium Tourism, aprovações, etc).
+              </Typography>
+
+              <Stack spacing={1}>
+                <Button
+                  component={RouterLink}
+                  to="/admin/login"
+                  variant="contained"
+                  color="secondary"
+                  fullWidth
+                >
+                  Entrar como Admin
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3 }}>
+        Dica: o serviço CARE aparece dentro de Passageiro → “Escolha seu serviço”.
+      </Typography>
     </Container>
   );
-};
-
-export default Login;
+}
