@@ -38,7 +38,7 @@ import {
   Info
 } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function ElderlyManagement() {
   const [contracts, setContracts] = useState([]);
@@ -80,7 +80,7 @@ export default function ElderlyManagement() {
   const fetchCommunities = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/admin/communities`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -106,7 +106,7 @@ export default function ElderlyManagement() {
       if (filters.status) params.append('status', filters.status);
       if (filters.activeOnly) params.append('activeOnly', 'true');
 
-      const response = await fetch(`${API_BASE_URL}/admin/elderly/contracts?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/elderly/contracts?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -131,7 +131,7 @@ export default function ElderlyManagement() {
   const handleStatusChange = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/admin/elderly/contracts/${statusDialog.contract.id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/elderly/contracts/${statusDialog.contract.id}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 import { LocationCity, Warning, CheckCircle, Block } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function CommunitiesManagement() {
   const [communities, setCommunities] = useState([]);
@@ -38,7 +38,7 @@ export default function CommunitiesManagement() {
   const fetchCommunities = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/admin/communities`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -60,7 +60,7 @@ export default function CommunitiesManagement() {
   const handleToggleStatus = async (community) => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/admin/communities/${community.id}/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities/${community.id}/toggle`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

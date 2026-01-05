@@ -7,7 +7,7 @@ import {
 import { Person, Event, Payment, CheckCircle } from '@mui/icons-material';
 import { formatPrice } from '../utils/premiumTourismHelpers';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function BookingDialog({ open, onClose, tourPackage }) {
   const [activeStep, setActiveStep] = useState(0);
@@ -94,7 +94,7 @@ export default function BookingDialog({ open, onClose, tourPackage }) {
         emergencyPhone: formData.emergencyPhone
       };
 
-      const response = await fetch(`${API_BASE_URL}/governance/tour-bookings`, {
+      const response = await fetch(`${API_BASE_URL}/api/governance/tour-bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

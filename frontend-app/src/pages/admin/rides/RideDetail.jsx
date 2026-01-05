@@ -49,6 +49,8 @@ const statusColors = {
 };
 
 export default function RideDetail() {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  
   const { id } = useParams();
   const navigate = useNavigate();
   const [ride, setRide] = useState(null);
@@ -73,7 +75,7 @@ export default function RideDetail() {
     
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`http://localhost:3001/api/admin/rides/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -104,7 +106,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`http://localhost:3001/api/admin/rides/${id}/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/cancel`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -135,7 +137,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`http://localhost:3001/api/admin/rides/${id}/force-complete`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/force-complete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -166,7 +168,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`http://localhost:3001/api/admin/rides/${id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

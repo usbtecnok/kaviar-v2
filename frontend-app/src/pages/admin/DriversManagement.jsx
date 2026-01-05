@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Visibility } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function DriversManagement() {
   const [drivers, setDrivers] = useState([]);
@@ -45,7 +45,7 @@ export default function DriversManagement() {
     try {
       setLoading(true);
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/admin/drivers?status=${status}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/drivers?status=${status}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -74,7 +74,7 @@ export default function DriversManagement() {
         body.reason = reason;
       }
 
-      const response = await fetch(`${API_BASE_URL}/admin/drivers/${driver.id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/drivers/${driver.id}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

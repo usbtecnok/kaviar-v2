@@ -45,6 +45,8 @@ const rideTypes = {
 };
 
 export default function RideList() {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  
   const navigate = useNavigate();
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export default function RideList() {
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       });
 
-      const response = await fetch(`http://localhost:3001/api/admin/rides?${queryParams}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

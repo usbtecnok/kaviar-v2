@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 class AdminApiService {
   constructor() {
@@ -81,87 +81,87 @@ class AdminApiService {
   // Admin-specific methods
   async getDrivers(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.get(`/admin/drivers${queryString ? `?${queryString}` : ''}`);
+    return this.get(`/api/admin/drivers${queryString ? `?${queryString}` : ''}`);
   }
 
   async getDriverById(id) {
-    return this.get(`/admin/drivers/${id}`);
+    return this.get(`/api/admin/drivers/${id}`);
   }
 
   async approveDriver(id) {
-    return this.put(`/admin/drivers/${id}/approve`);
+    return this.put(`/api/admin/drivers/${id}/approve`);
   }
 
   async suspendDriver(id, reason) {
-    return this.put(`/admin/drivers/${id}/suspend`, { reason });
+    return this.put(`/api/admin/drivers/${id}/suspend`, { reason });
   }
 
   async reactivateDriver(id) {
-    return this.put(`/admin/drivers/${id}/reactivate`);
+    return this.put(`/api/admin/drivers/${id}/reactivate`);
   }
 
   async getRides(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.get(`/admin/rides${queryString ? `?${queryString}` : ''}`);
+    return this.get(`/api/admin/rides${queryString ? `?${queryString}` : ''}`);
   }
 
   async getRideById(id) {
-    return this.get(`/admin/rides/${id}`);
+    return this.get(`/api/admin/rides/${id}`);
   }
 
   async cancelRide(id, reason) {
-    return this.put(`/admin/rides/${id}/cancel`, { reason });
+    return this.put(`/api/admin/rides/${id}/cancel`, { reason });
   }
 
   async reassignDriver(id, newDriverId, reason) {
-    return this.put(`/admin/rides/${id}/reassign-driver`, { newDriverId, reason });
+    return this.put(`/api/admin/rides/${id}/reassign-driver`, { newDriverId, reason });
   }
 
   async forceCompleteRide(id, reason) {
-    return this.put(`/admin/rides/${id}/force-complete`, { reason });
+    return this.put(`/api/admin/rides/${id}/force-complete`, { reason });
   }
 
   async getDashboardMetrics() {
-    return this.get('/admin/dashboard/metrics');
+    return this.get('/api/admin/dashboard/metrics');
   }
 
   // Premium Tourism - Tour Packages
   async getTourPackages(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.get(`/admin/tour-packages${queryString ? `?${queryString}` : ''}`);
+    return this.get(`/api/admin/tour-packages${queryString ? `?${queryString}` : ''}`);
   }
 
   async createTourPackage(data) {
-    return this.post('/admin/tour-packages', data);
+    return this.post('/api/admin/tour-packages', data);
   }
 
   async getTourPackage(id) {
-    return this.get(`/admin/tour-packages/${id}`);
+    return this.get(`/api/admin/tour-packages/${id}`);
   }
 
   async updateTourPackage(id, data) {
-    return this.put(`/admin/tour-packages/${id}`, data);
+    return this.put(`/api/admin/tour-packages/${id}`, data);
   }
 
   async deactivateTourPackage(id) {
-    return this.request(`/admin/tour-packages/${id}/deactivate`, { method: 'PATCH' });
+    return this.request(`/api/admin/tour-packages/${id}/deactivate`, { method: 'PATCH' });
   }
 
   // Premium Tourism - Tour Bookings
   async getTourBookings(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.get(`/admin/tour-bookings${queryString ? `?${queryString}` : ''}`);
+    return this.get(`/api/admin/tour-bookings${queryString ? `?${queryString}` : ''}`);
   }
 
   async updateTourBookingStatus(id, status) {
-    return this.request(`/admin/tour-bookings/${id}/status`, {
+    return this.request(`/api/admin/tour-bookings/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status })
     });
   }
 
   async confirmTourBooking(id, adminId) {
-    return this.post(`/admin/tour-bookings/${id}/confirm`, { adminId });
+    return this.post(`/api/admin/tour-bookings/${id}/confirm`, { adminId });
   }
 }
 

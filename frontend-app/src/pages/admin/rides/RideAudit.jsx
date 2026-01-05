@@ -54,6 +54,8 @@ const actionLabels = {
 };
 
 export default function RideAudit() {
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -85,7 +87,7 @@ export default function RideAudit() {
         ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
       });
 
-      const response = await fetch(`http://localhost:3001/api/admin/rides/audit?${queryParams}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/audit?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
