@@ -110,6 +110,8 @@ model Passenger {
   consents  UserConsent[]
   rideConfirmations RideConfirmation[]
   tourBookings TourBooking[]
+  elderlyProfile ElderlyProfile?
+  elderlyContracts ElderlyContract[] @relation("ResponsiblePassenger")
 
   @@map("passengers")
 }
@@ -204,6 +206,7 @@ model Community {
   passengers    Passenger[]
   guides        TouristGuide[]
   statusHistory CommunityStatusHistory[]
+  elderlyContracts ElderlyContract[]
 
   @@map("communities")
 }
@@ -438,4 +441,42 @@ model Consent {
   @@unique([userId, type], map: "consent_user_id_type_key")
   @@unique([subjectType, subjectId, type], map: "consent_subject_type_subject_id_type_key")
   @@map("consents")
+}
+
+model ElderlyProfile {
+  id               String   @id @default(cuid())
+  passengerId      String   @unique @map("passenger_id")
+  emergencyContact String?  @map("emergency_contact")
+  emergencyPhone   String?  @map("emergency_phone")
+  medicalNotes     String?  @map("medical_notes")
+  careLevel        String   @default("basic") // basic, intensive, medical
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  passenger Passenger @relation(fields: [passengerId], references: [id], onDelete: Cascade)
+  contracts ElderlyContract[]
+
+  @@map("elderly_profiles")
+}
+
+model ElderlyContract {
+  id               String    @id @default(cuid())
+  elderlyProfileId String    @map("elderly_profile_id")
+  responsibleId    String?   @map("responsible_id")
+  communityId      String    @map("community_id")
+  status           String    @default("ACTIVE") // ACTIVE, INACTIVE, CANCELLED
+  serviceType      String    @default("ACOMPANHAMENTO_ATIVO") @map("service_type")
+  startsAt         DateTime  @map("starts_at")
+  endsAt           DateTime? @map("ends_at")
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  elderlyProfile ElderlyProfile @relation(fields: [elderlyProfileId], references: [id], onDelete: Cascade)
+  responsible    Passenger?     @relation("ResponsiblePassenger", fields: [responsibleId], references: [id])
+  community      Community      @relation(fields: [communityId], references: [id])
+
+  @@map("elderly_contracts")
 }
