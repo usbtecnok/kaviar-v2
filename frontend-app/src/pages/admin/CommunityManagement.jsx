@@ -33,7 +33,7 @@ const CommunityManagement = () => {
 
   const fetchCommunities = async () => {
     try {
-      const response = await api.get('/api/v1/communities');
+      const response = await api.get('/api/admin/communities');
       // Adaptar resposta para formato esperado
       const communities = response.data.map(community => ({
         ...community,
@@ -53,7 +53,7 @@ const CommunityManagement = () => {
 
   const toggleCommunityStatus = async (communityId, isActive) => {
     try {
-      await api.patch(`/api/admin/communities/${communityId}`, {
+      await api.patch(`/api/admin/communities/${communityId}/toggle`, {
         is_active: !isActive
       });
       fetchCommunities(); // Recarregar lista
