@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react';
-import { GoogleMap, LoadScript, Marker, Polygon, Circle, DrawingManager, StandaloneSearchBox } from '@react-google-maps/api';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { GoogleMap, useJsApiLoader, Marker, Polygon, Circle, DrawingManager, StandaloneSearchBox } from '@react-google-maps/api';
 import { Box, Alert, Typography } from '@mui/material';
 
 const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing', 'places'];
@@ -14,7 +14,9 @@ const defaultCenter = {
   lng: -43.1729
 };
 
-const getMapCenter = (communities, selectedCommunity) => {
+const getMapCenter = (communities, selectedCommunity, isLoaded) => {
+  if (!isLoaded || !window.google?.maps) return defaultCenter;
+  
   if (selectedCommunity) {
     // Se tem geofence, calcular centro do polígono
     if (selectedCommunity.geofence) {
@@ -65,21 +67,41 @@ const GeofenceMap = ({
   showSearch = false,
   onCenterChange = null
 }) => {
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES
+  });
+
   const [map, setMap] = useState(null);
   const [isOutsideGeofence, setIsOutsideGeofence] = useState(false);
   const [editedPath, setEditedPath] = useState(null);
   const [drawingManager, setDrawingManager] = useState(null);
   const [centerCandidate, setCenterCandidate] = useState(null);
   const [searchBox, setSearchBox] = useState(null);
+  const [mapCenter, setMapCenter] = useState(defaultCenter);
   const geometryRef = useRef(null);
 
+  // Log seguro da API key
+  console.log("MAPS KEY:", !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+
+  // Calcular centro quando Maps carrega ou comunidade muda
+  useEffect(() => {
+    if (!isLoaded || !window.google?.maps) return;
+    
+    const center = getMapCenter(communities, selectedCommunity, isLoaded);
+    setMapCenter(center);
+  }, [isLoaded, communities, selectedCommunity]);
+
   const onLoad = useCallback((map) => {
+    if (!isLoaded || !window.google?.maps) return;
+    
     setMap(map);
     // Aguardar carregamento da geometry library
-    if (window.google && window.google.maps && window.google.maps.geometry) {
+    if (window.google.maps.geometry) {
       geometryRef.current = window.google.maps.geometry;
     }
-  }, []);
+  }, [isLoaded]);
 
   const onSearchBoxLoad = useCallback((searchBox) => {
     setSearchBox(searchBox);
@@ -102,10 +124,13 @@ const GeofenceMap = ({
   }, [searchBox, map]);
 
   const onDrawingManagerLoad = useCallback((drawingManager) => {
+    if (!isLoaded || !window.google?.maps) return;
     setDrawingManager(drawingManager);
-  }, []);
+  }, [isLoaded]);
 
   const onPolygonComplete = useCallback((polygon) => {
+    if (!isLoaded || !window.google?.maps) return;
+    
     // Capturar path do polígono desenhado
     const path = polygon.getPath().getArray().map(point => ({
       lat: point.lat(),
@@ -126,9 +151,11 @@ const GeofenceMap = ({
     if (onGeofenceChange) {
       onGeofenceChange({ type: 'polygon', path });
     }
-  }, [drawingManager, onGeofenceChange]);
+  }, [isLoaded, drawingManager, onGeofenceChange]);
 
   const onPolygonEdit = useCallback((polygon) => {
+    if (!isLoaded || !window.google?.maps) return;
+    
     // Capturar path editado
     const path = polygon.getPath().getArray().map(point => ({
       lat: point.lat(),
@@ -141,7 +168,7 @@ const GeofenceMap = ({
     if (onGeofenceChange) {
       onGeofenceChange({ type: 'polygon', path });
     }
-  }, [onGeofenceChange]);
+  }, [isLoaded, onGeofenceChange]);
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -149,7 +176,7 @@ const GeofenceMap = ({
 
   // Validar se ponto está dentro do geofence
   const validateLocation = useCallback((location, community) => {
-    if (!geometryRef.current || !community) return true;
+    if (!isLoaded || !window.google?.maps || !geometryRef.current || !community) return true;
 
     try {
       // Priorizar polígono se existir
@@ -183,9 +210,11 @@ const GeofenceMap = ({
       console.error('Erro na validação de geofence:', error);
       return true; // Em caso de erro, permitir
     }
-  }, []);
+  }, [isLoaded]);
 
   const handleMapClick = useCallback((event) => {
+    if (!isLoaded || !window.google?.maps) return;
+    
     const location = {
       lat: event.latLng.lat(),
       lng: event.latLng.lng()
@@ -212,7 +241,7 @@ const GeofenceMap = ({
 
     setIsOutsideGeofence(false);
     onLocationSelect(location);
-  }, [onLocationSelect, selectedCommunity, showGeofenceValidation, validateLocation, editMode, onCenterChange]);
+  }, [isLoaded, onLocationSelect, selectedCommunity, showGeofenceValidation, validateLocation, editMode, onCenterChange]);
 
   // Renderizar polígonos/círculos dos bairros
   const renderGeofences = () => {
@@ -296,6 +325,27 @@ const GeofenceMap = ({
     });
   };
 
+  // Renderizar placeholders de carregamento
+  if (loadError) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Alert severity="error">
+          <Typography variant="body2">
+            ❌ Erro ao carregar mapa: {loadError.message}
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center', height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography variant="body1">🗺️ Carregando mapa...</Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box>
       {isOutsideGeofence && (
@@ -332,114 +382,109 @@ const GeofenceMap = ({
         </Box>
       )}
       
-      <LoadScript
-        googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-        libraries={GOOGLE_MAPS_LIBRARIES}
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={mapCenter}
+        zoom={15}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+        onClick={handleMapClick}
+        options={mapOptions}
       >
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={getMapCenter(communities, selectedCommunity)}
-          zoom={15}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          onClick={handleMapClick}
-          options={mapOptions}
-        >
-          {editMode && (
-            <DrawingManager
-              onLoad={onDrawingManagerLoad}
-              onPolygonComplete={onPolygonComplete}
-              options={{
-                drawingControl: true,
-                drawingControlOptions: {
-                  position: window.google?.maps?.ControlPosition?.TOP_CENTER,
-                  drawingModes: [window.google?.maps?.drawing?.OverlayType?.POLYGON]
-                },
-                polygonOptions: {
-                  fillColor: '#FF9800',
-                  fillOpacity: 0.4,
-                  strokeColor: '#F57C00',
-                  strokeOpacity: 1,
-                  strokeWeight: 3,
-                  editable: true,
-                  draggable: true
-                }
-              }}
-            />
-          )}
+        {editMode && isLoaded && window.google?.maps && (
+          <DrawingManager
+            onLoad={onDrawingManagerLoad}
+            onPolygonComplete={onPolygonComplete}
+            options={{
+              drawingControl: true,
+              drawingControlOptions: {
+                position: window.google.maps.ControlPosition.TOP_CENTER,
+                drawingModes: [window.google.maps.drawing.OverlayType.POLYGON]
+              },
+              polygonOptions: {
+                fillColor: '#FF9800',
+                fillOpacity: 0.4,
+                strokeColor: '#F57C00',
+                strokeOpacity: 1,
+                strokeWeight: 3,
+                editable: true,
+                draggable: true
+              }
+            }}
+          />
+        )}
 
-          {renderGeofences()}
-          
-          {/* Centro candidato */}
-          {centerCandidate && (
-            <Marker
-              position={centerCandidate}
-              icon={{
-                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="8" fill="#FF9800"/>
-                    <circle cx="12" cy="12" r="3" fill="white"/>
-                  </svg>
-                `),
-                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
-              }}
-              title="Centro do Bairro"
-            />
-          )}
+        {renderGeofences()}
+        
+        {/* Centro candidato */}
+        {centerCandidate && isLoaded && window.google?.maps && (
+          <Marker
+            position={centerCandidate}
+            icon={{
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="8" fill="#FF9800"/>
+                  <circle cx="12" cy="12" r="3" fill="white"/>
+                </svg>
+              `),
+              scaledSize: new window.google.maps.Size(24, 24)
+            }}
+            title="Centro do Bairro"
+          />
+        )}
 
-          {/* Centro atual */}
-          {selectedCommunity?.centerLat && selectedCommunity?.centerLng && !centerCandidate && (
-            <Marker
-              position={{
-                lat: parseFloat(selectedCommunity.centerLat),
-                lng: parseFloat(selectedCommunity.centerLng)
-              }}
-              icon={{
-                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="8" fill="#2196F3"/>
-                    <circle cx="12" cy="12" r="3" fill="white"/>
-                  </svg>
-                `),
-                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
-              }}
-              title="Centro do Bairro"
-            />
-          )}
-          
-          {pickupLocation && (
-            <Marker
-              position={pickupLocation}
-              icon={{
-                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="8" fill="#4CAF50"/>
-                    <circle cx="12" cy="12" r="3" fill="white"/>
-                  </svg>
-                `),
-                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
-              }}
-              title="Ponto de Partida"
-            />
-          )}
-          
-          {dropoffLocation && (
-            <Marker
-              position={dropoffLocation}
-              icon={{
-                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="8" fill="#F44336"/>
-                    <circle cx="12" cy="12" r="3" fill="white"/>
-                  </svg>
-                `),
-                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
-              }}
-              title="Destino"
-            />
-          )}
-        </GoogleMap>
-      </LoadScript>
+        {/* Centro atual */}
+        {selectedCommunity?.centerLat && selectedCommunity?.centerLng && !centerCandidate && isLoaded && window.google?.maps && (
+          <Marker
+            position={{
+              lat: parseFloat(selectedCommunity.centerLat),
+              lng: parseFloat(selectedCommunity.centerLng)
+            }}
+            icon={{
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="8" fill="#2196F3"/>
+                  <circle cx="12" cy="12" r="3" fill="white"/>
+                </svg>
+              `),
+              scaledSize: new window.google.maps.Size(24, 24)
+            }}
+            title="Centro do Bairro"
+          />
+        )}
+        
+        {pickupLocation && isLoaded && window.google?.maps && (
+          <Marker
+            position={pickupLocation}
+            icon={{
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="8" fill="#4CAF50"/>
+                  <circle cx="12" cy="12" r="3" fill="white"/>
+                </svg>
+              `),
+              scaledSize: new window.google.maps.Size(24, 24)
+            }}
+            title="Ponto de Partida"
+          />
+        )}
+        
+        {dropoffLocation && isLoaded && window.google?.maps && (
+          <Marker
+            position={dropoffLocation}
+            icon={{
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="8" fill="#F44336"/>
+                  <circle cx="12" cy="12" r="3" fill="white"/>
+                </svg>
+              `),
+              scaledSize: new window.google.maps.Size(24, 24)
+            }}
+            title="Destino"
+          />
+        )}
+      </GoogleMap>
     </Box>
   );
 };
