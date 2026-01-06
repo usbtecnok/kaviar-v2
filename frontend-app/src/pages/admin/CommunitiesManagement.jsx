@@ -42,7 +42,7 @@ export default function CommunitiesManagement() {
   const fetchCommunities = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin-management/communities`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -67,7 +67,7 @@ export default function CommunitiesManagement() {
     setSaving(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin-management/communities`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -81,13 +81,20 @@ export default function CommunitiesManagement() {
 
       const data = await response.json();
       if (data.success) {
+        const created = data?.data;
+        if (!created?.id) {
+          throw new Error("Create community: resposta sem data.id");
+        }
+
         await fetchCommunities();
         setCreateDialog({ open: false });
         setNewCommunity({ name: '', isActive: true });
         
-        // Opcional: abrir mapa do bairro recém-criado
+        // Auto-abrir mapa do bairro recém-criado com guard
         setTimeout(() => {
-          openMapDialog(data.data);
+          if (created.id) {
+            openMapDialog(created);
+          }
         }, 500);
       } else {
         setError(data.message || 'Erro ao criar bairro');
@@ -102,7 +109,7 @@ export default function CommunitiesManagement() {
   const handleToggleStatus = async (community) => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/communities/${community.id}/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin-management/communities/${community.id}/toggle`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
