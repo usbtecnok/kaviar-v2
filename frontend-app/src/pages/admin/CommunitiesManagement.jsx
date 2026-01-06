@@ -48,6 +48,12 @@ export default function CommunitiesManagement() {
         }
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        window.location.href = '/admin/login';
+        return;
+      }
+
       const data = await response.json();
       if (data.success) {
         setCommunities(data.data);
@@ -78,6 +84,12 @@ export default function CommunitiesManagement() {
           isActive: newCommunity.isActive
         })
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        window.location.href = '/admin/login';
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -116,6 +128,12 @@ export default function CommunitiesManagement() {
           'Content-Type': 'application/json'
         }
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        window.location.href = '/admin/login';
+        return;
+      }
 
       const data = await response.json();
       if (data.success) {
@@ -168,11 +186,17 @@ export default function CommunitiesManagement() {
       const response = await fetch(`${API_BASE_URL}/api/admin/communities/${mapDialog.community.id}/geofence`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Authorization': `Bearer ${localStorage.getItem('kaviar_admin_token')}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        window.location.href = '/admin/login';
+        return;
+      }
 
       if (!response.ok) throw new Error('Erro ao salvar');
 
