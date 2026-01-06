@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { GoogleMap, LoadScript, Marker, Polygon } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, Polygon, Circle } from '@react-google-maps/api';
 import { Box, Alert, Typography } from '@mui/material';
 
 const GOOGLE_MAPS_LIBRARIES = ['geometry'];
@@ -93,26 +93,50 @@ const GeofenceMap = ({
     onLocationSelect(location);
   }, [onLocationSelect, selectedCommunity, showGeofenceValidation, validateLocation]);
 
-  // Renderizar polígonos dos bairros
-  const renderPolygons = () => {
+  // Renderizar polígonos/círculos dos bairros
+  const renderGeofences = () => {
     if (!communities.length) return null;
 
     return communities.map((community) => {
-      if (!community.geofence) return null;
+      const isSelected = selectedCommunity?.id === community.id;
 
-      try {
-        const geofence = typeof community.geofence === 'string' 
-          ? JSON.parse(community.geofence) 
-          : community.geofence;
+      // Se tem geofence JSON (polígono)
+      if (community.geofence) {
+        try {
+          const geofence = typeof community.geofence === 'string' 
+            ? JSON.parse(community.geofence) 
+            : community.geofence;
 
-        if (geofence.type !== 'polygon' || !geofence.path) return null;
+          if (geofence.type === 'polygon' && geofence.path) {
+            return (
+              <Polygon
+                key={community.id}
+                paths={geofence.path}
+                options={{
+                  fillColor: isSelected ? '#2196F3' : '#4CAF50',
+                  fillOpacity: isSelected ? 0.3 : 0.2,
+                  strokeColor: isSelected ? '#1976D2' : '#388E3C',
+                  strokeOpacity: 1,
+                  strokeWeight: 2
+                }}
+              />
+            );
+          }
+        } catch (error) {
+          console.error(`Erro ao renderizar polígono do bairro ${community.name}:`, error);
+        }
+      }
 
-        const isSelected = selectedCommunity?.id === community.id;
-
+      // Se tem coordenadas de círculo (fallback)
+      if (community.centerLat && community.centerLng && community.radiusMeters) {
         return (
-          <Polygon
+          <Circle
             key={community.id}
-            paths={geofence.path}
+            center={{
+              lat: parseFloat(community.centerLat),
+              lng: parseFloat(community.centerLng)
+            }}
+            radius={community.radiusMeters}
             options={{
               fillColor: isSelected ? '#2196F3' : '#4CAF50',
               fillOpacity: isSelected ? 0.3 : 0.2,
@@ -122,10 +146,9 @@ const GeofenceMap = ({
             }}
           />
         );
-      } catch (error) {
-        console.error(`Erro ao renderizar polígono do bairro ${community.name}:`, error);
-        return null;
       }
+
+      return null;
     });
   };
 
@@ -152,7 +175,7 @@ const GeofenceMap = ({
           onClick={handleMapClick}
           options={mapOptions}
         >
-          {renderPolygons()}
+          {renderGeofences()}
           
           {pickupLocation && (
             <Marker
