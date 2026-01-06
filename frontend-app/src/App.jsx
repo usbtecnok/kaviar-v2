@@ -66,8 +66,8 @@ function Home() {
               fontWeight: 400
             }}
           >
-            Conecte-se à sua comunidade através de transporte colaborativo inteligente.<br />
-            Motoristas especializados, passageiros satisfeitos, comunidades fortalecidas.
+            Conecte-se ao seu bairro através de transporte colaborativo inteligente.<br />
+            Motoristas especializados, passageiros satisfeitos, bairros fortalecidos.
           </Typography>
         </Box>
 
