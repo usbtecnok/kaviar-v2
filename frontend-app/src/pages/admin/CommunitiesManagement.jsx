@@ -42,7 +42,7 @@ export default function CommunitiesManagement() {
   const fetchCommunities = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin-management/communities`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -67,7 +67,7 @@ export default function CommunitiesManagement() {
     setSaving(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin-management/communities`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -109,7 +109,7 @@ export default function CommunitiesManagement() {
   const handleToggleStatus = async (community) => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin-management/communities/${community.id}/toggle`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities/${community.id}/toggle`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
