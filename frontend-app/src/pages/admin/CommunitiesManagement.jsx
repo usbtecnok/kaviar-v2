@@ -26,6 +26,7 @@ export default function CommunitiesManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ open: false, community: null });
+  const [mapDialog, setMapDialog] = useState({ open: false, community: null });
 
   useEffect(() => {
     fetchCommunities();
@@ -74,6 +75,14 @@ export default function CommunitiesManagement() {
     } catch (error) {
       setError('Erro de conexão');
     }
+  };
+
+  const openMapDialog = (community) => {
+    setMapDialog({ open: true, community });
+  };
+
+  const closeMapDialog = () => {
+    setMapDialog({ open: false, community: null });
   };
 
   const openConfirmDialog = (community) => {
@@ -162,15 +171,29 @@ export default function CommunitiesManagement() {
                 </Box>
 
                 {/* Controles */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Typography variant="body2">
-                    {community.isActive ? 'Desativar' : 'Ativar'} bairro
-                  </Typography>
-                  <Switch
-                    checked={community.isActive}
-                    onChange={() => openConfirmDialog(community)}
-                    disabled={!community.isActive && !community.stats.canActivate}
-                  />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Botão Ver no Mapa */}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Map />}
+                    onClick={() => openMapDialog(community)}
+                    fullWidth
+                  >
+                    Ver no Mapa
+                  </Button>
+
+                  {/* Switch de Ativação */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">
+                      {community.isActive ? 'Desativar' : 'Ativar'} bairro
+                    </Typography>
+                    <Switch
+                      checked={community.isActive}
+                      onChange={() => openConfirmDialog(community)}
+                      disabled={!community.isActive && !community.stats.canActivate}
+                    />
+                  </Box>
                 </Box>
               </CardContent>
             </Card>
@@ -212,6 +235,49 @@ export default function CommunitiesManagement() {
             color={confirmDialog.community?.isActive ? 'warning' : 'primary'}
           >
             {confirmDialog.community?.isActive ? 'Desativar' : 'Ativar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog do Mapa */}
+      <Dialog
+        open={mapDialog.open}
+        onClose={closeMapDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Map sx={{ mr: 1 }} />
+            Mapa do Bairro: {mapDialog.community?.name}
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {mapDialog.community ? (
+            // Verificar se tem geofence (usando centerLat/centerLng como proxy)
+            mapDialog.community.centerLat && mapDialog.community.centerLng ? (
+              <Box sx={{ height: 400, width: '100%' }}>
+                <GeofenceMap
+                  communities={[mapDialog.community]}
+                  selectedCommunity={mapDialog.community}
+                  showGeofenceValidation={false}
+                />
+              </Box>
+            ) : (
+              <Alert severity="info" sx={{ my: 2 }}>
+                <Typography variant="body1">
+                  📍 Sem geofence cadastrado para este bairro.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Configure as coordenadas do bairro para visualizar no mapa.
+                </Typography>
+              </Alert>
+            )
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeMapDialog}>
+            Fechar
           </Button>
         </DialogActions>
       </Dialog>
