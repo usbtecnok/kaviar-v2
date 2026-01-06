@@ -27,6 +27,8 @@ export default function CommunitiesManagement() {
   const [error, setError] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ open: false, community: null });
   const [mapDialog, setMapDialog] = useState({ open: false, community: null });
+  const [createDialog, setCreateDialog] = useState({ open: false });
+  const [newCommunity, setNewCommunity] = useState({ name: '', isActive: true });
   const [editMode, setEditMode] = useState(false);
   const [editedGeofence, setEditedGeofence] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -56,6 +58,44 @@ export default function CommunitiesManagement() {
       setError('Erro de conexão');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createCommunity = async () => {
+    if (!newCommunity.name.trim()) return;
+
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: newCommunity.name.trim(),
+          isActive: newCommunity.isActive
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        await fetchCommunities();
+        setCreateDialog({ open: false });
+        setNewCommunity({ name: '', isActive: true });
+        
+        // Opcional: abrir mapa do bairro recém-criado
+        setTimeout(() => {
+          openMapDialog(data.data);
+        }, 500);
+      } else {
+        setError(data.message || 'Erro ao criar bairro');
+      }
+    } catch (error) {
+      setError('Erro de conexão');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -179,9 +219,18 @@ export default function CommunitiesManagement() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
-        Gerenciamento de Bairros
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          Gerenciamento de Bairros
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<LocationCity />}
+          onClick={() => setCreateDialog({ open: true })}
+        >
+          Criar novo bairro
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -402,6 +451,44 @@ export default function CommunitiesManagement() {
               Fechar
             </Button>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Create Community Dialog */}
+      <Dialog open={createDialog.open} onClose={() => setCreateDialog({ open: false })} maxWidth="sm" fullWidth>
+        <DialogTitle>Criar Novo Bairro</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Nome do Bairro"
+            fullWidth
+            variant="outlined"
+            value={newCommunity.name}
+            onChange={(e) => setNewCommunity({ ...newCommunity, name: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={newCommunity.isActive}
+                onChange={(e) => setNewCommunity({ ...newCommunity, isActive: e.target.checked })}
+              />
+            }
+            label="Ativo"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCreateDialog({ open: false })}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={createCommunity} 
+            variant="contained"
+            disabled={saving || !newCommunity.name.trim()}
+          >
+            {saving ? 'Criando...' : 'Criar'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
