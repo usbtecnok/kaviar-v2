@@ -119,6 +119,62 @@ router.get('/communities', async (req, res) => {
   }
 });
 
+// Create Community
+router.post('/communities', async (req, res) => {
+  try {
+    const createSchema = z.object({
+      name: z.string().trim().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+      isActive: z.boolean().optional().default(true)
+    });
+
+    const { name, isActive } = createSchema.parse(req.body);
+
+    // Check for duplicate (case-insensitive)
+    const existing = await prisma.community.findFirst({
+      where: {
+        name: {
+          equals: name,
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: 'Bairro já existe'
+      });
+    }
+
+    // Create community
+    const community = await prisma.community.create({
+      data: {
+        name: name.trim(),
+        isActive: isActive ?? true
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      data: community
+    });
+
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: error.errors[0]?.message || 'Dados inválidos'
+      });
+    }
+
+    console.error('Create community error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor'
+    });
+  }
+});
+
 // Toggle Community Status
 router.patch('/communities/:id/toggle', async (req, res) => {
   try {
