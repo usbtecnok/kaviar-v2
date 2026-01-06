@@ -45,7 +45,7 @@ export default function DriversManagement() {
     try {
       setLoading(true);
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/drivers?status=${status}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/drivers${status ? `?status=${status}` : ''}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -74,8 +74,8 @@ export default function DriversManagement() {
         body.reason = reason;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/drivers/${driver.id}/status`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_BASE_URL}/api/admin/drivers/${driver.id}/approve`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
