@@ -18,10 +18,6 @@ import {
 } from '@mui/material';
 import { Map, Visibility } from '@mui/icons-material';
 import GeofenceMap from '../../components/maps/GeofenceMap';
-  TableRow,
-  Paper
-} from '@mui/material';
-import { LocationCity, Warning, CheckCircle, Block } from '@mui/icons-material';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
