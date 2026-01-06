@@ -304,4 +304,54 @@ router.post('/passenger/login', loginRateLimit, async (req, res) => {
   }
 });
 
+// Driver Set Password (First Access)
+router.post('/driver/set-password', loginRateLimit, async (req, res) => {
+  try {
+    const schema = z.object({
+      email: z.string().email('Email inválido'),
+      password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+    });
+
+    const { email, password } = schema.parse(req.body);
+
+    const driver = await prisma.driver.findUnique({
+      where: { email },
+      select: { id: true, passwordHash: true }
+    });
+
+    // Evita enumeração de email (segurança)
+    if (!driver) {
+      return res.json({
+        success: true,
+        message: 'Se o email existir, a senha será definida.'
+      });
+    }
+
+    if (driver.passwordHash) {
+      return res.status(409).json({
+        success: false,
+        error: 'Senha já definida'
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    await prisma.driver.update({
+      where: { id: driver.id },
+      data: { passwordHash }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Senha definida com sucesso'
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
+    console.error('Driver set-password error:', error);
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
 export { router as userAuthRoutes };
