@@ -5,6 +5,7 @@ import { DashboardController } from '../modules/admin/dashboard-controller';
 import { DriverAdminController } from '../modules/admin/driver-admin-controller';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { prisma } from '../config/database';
+import { updateCommunityGeofence } from '../controllers/geofence';
 
 const router = Router();
 const adminController = new AdminController();
@@ -97,6 +98,9 @@ router.get('/communities', async (req, res) => {
     });
   }
 });
+
+// Community geofence management
+router.patch('/communities/:id/geofence', updateCommunityGeofence);
 
 // Rides routes
 router.get('/rides/audit', rideController.getAuditLogs);

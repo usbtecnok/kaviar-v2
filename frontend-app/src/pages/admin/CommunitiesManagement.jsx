@@ -27,6 +27,9 @@ export default function CommunitiesManagement() {
   const [error, setError] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ open: false, community: null });
   const [mapDialog, setMapDialog] = useState({ open: false, community: null });
+  const [editMode, setEditMode] = useState(false);
+  const [editedGeofence, setEditedGeofence] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchCommunities();
@@ -83,6 +86,50 @@ export default function CommunitiesManagement() {
 
   const closeMapDialog = () => {
     setMapDialog({ open: false, community: null });
+    setEditMode(false);
+    setEditedGeofence(null);
+  };
+
+  const handleGeofenceChange = (geofence) => {
+    setEditedGeofence(geofence);
+  };
+
+  const saveGeofence = async () => {
+    if (!mapDialog.community) return;
+
+    setSaving(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities/${mapDialog.community.id}/geofence`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          geofence: editedGeofence
+        })
+      });
+
+      if (!response.ok) throw new Error('Erro ao salvar geofence');
+
+      const data = await response.json();
+      
+      // Atualizar lista de comunidades
+      fetchCommunities();
+      
+      // Fechar modal
+      closeMapDialog();
+      
+      setError('');
+    } catch (err) {
+      setError('Erro ao salvar geofence: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearGeofence = () => {
+    setEditedGeofence(null);
   };
 
   const openConfirmDialog = (community) => {
@@ -247,12 +294,31 @@ export default function CommunitiesManagement() {
         fullWidth
       >
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Map sx={{ mr: 1 }} />
-            Mapa do Bairro: {mapDialog.community?.name}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Map sx={{ mr: 1 }} />
+              Mapa do Bairro: {mapDialog.community?.name}
+            </Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={editMode}
+                  onChange={(e) => setEditMode(e.target.checked)}
+                />
+              }
+              label="Editar"
+            />
           </Box>
         </DialogTitle>
         <DialogContent>
+          {editMode && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                🖊️ Modo edição ativo. Use as ferramentas do mapa para desenhar ou editar o polígono.
+              </Typography>
+            </Alert>
+          )}
+          
           {mapDialog.community ? (
             // Verificar se tem geofence (usando centerLat/centerLng como proxy)
             mapDialog.community.centerLat && mapDialog.community.centerLng ? (
@@ -261,6 +327,8 @@ export default function CommunitiesManagement() {
                   communities={[mapDialog.community]}
                   selectedCommunity={mapDialog.community}
                   showGeofenceValidation={false}
+                  editMode={editMode}
+                  onGeofenceChange={handleGeofenceChange}
                 />
               </Box>
             ) : (
@@ -276,9 +344,27 @@ export default function CommunitiesManagement() {
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeMapDialog}>
-            Fechar
-          </Button>
+          {editMode ? (
+            <>
+              <Button onClick={clearGeofence} color="warning">
+                Limpar
+              </Button>
+              <Button onClick={closeMapDialog}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={saveGeofence} 
+                variant="contained"
+                disabled={saving || !editedGeofence}
+              >
+                {saving ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </>
+          ) : (
+            <Button onClick={closeMapDialog}>
+              Fechar
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </Box>

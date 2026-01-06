@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { GoogleMap, LoadScript, Marker, Polygon, Circle } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, Polygon, Circle, DrawingManager } from '@react-google-maps/api';
 import { Box, Alert, Typography } from '@mui/material';
 
-const GOOGLE_MAPS_LIBRARIES = ['geometry'];
+const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing'];
 
 const mapContainerStyle = {
   width: '100%',
@@ -59,10 +59,14 @@ const GeofenceMap = ({
   pickupLocation = null,
   dropoffLocation = null,
   onLocationSelect = null,
-  showGeofenceValidation = false 
+  showGeofenceValidation = false,
+  editMode = false,
+  onGeofenceChange = null
 }) => {
   const [map, setMap] = useState(null);
   const [isOutsideGeofence, setIsOutsideGeofence] = useState(false);
+  const [editedPath, setEditedPath] = useState(null);
+  const [drawingManager, setDrawingManager] = useState(null);
   const geometryRef = useRef(null);
 
   const onLoad = useCallback((map) => {
@@ -72,6 +76,48 @@ const GeofenceMap = ({
       geometryRef.current = window.google.maps.geometry;
     }
   }, []);
+
+  const onDrawingManagerLoad = useCallback((drawingManager) => {
+    setDrawingManager(drawingManager);
+  }, []);
+
+  const onPolygonComplete = useCallback((polygon) => {
+    // Capturar path do polígono desenhado
+    const path = polygon.getPath().getArray().map(point => ({
+      lat: point.lat(),
+      lng: point.lng()
+    }));
+    
+    setEditedPath(path);
+    
+    // Remover o polígono temporário do mapa
+    polygon.setMap(null);
+    
+    // Desabilitar drawing mode
+    if (drawingManager) {
+      drawingManager.setDrawingMode(null);
+    }
+    
+    // Notificar mudança
+    if (onGeofenceChange) {
+      onGeofenceChange({ type: 'polygon', path });
+    }
+  }, [drawingManager, onGeofenceChange]);
+
+  const onPolygonEdit = useCallback((polygon) => {
+    // Capturar path editado
+    const path = polygon.getPath().getArray().map(point => ({
+      lat: point.lat(),
+      lng: point.lng()
+    }));
+    
+    setEditedPath(path);
+    
+    // Notificar mudança
+    if (onGeofenceChange) {
+      onGeofenceChange({ type: 'polygon', path });
+    }
+  }, [onGeofenceChange]);
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -144,6 +190,26 @@ const GeofenceMap = ({
     return communities.map((community) => {
       const isSelected = selectedCommunity?.id === community.id;
 
+      // Se está em modo edição e tem path editado, usar o editado
+      if (editMode && isSelected && editedPath) {
+        return (
+          <Polygon
+            key={`${community.id}-edited`}
+            paths={editedPath}
+            editable={true}
+            draggable={true}
+            onMouseUp={(e) => onPolygonEdit(e.overlay)}
+            options={{
+              fillColor: '#FF9800',
+              fillOpacity: 0.4,
+              strokeColor: '#F57C00',
+              strokeOpacity: 1,
+              strokeWeight: 3
+            }}
+          />
+        );
+      }
+
       // Se tem geofence JSON (polígono)
       if (community.geofence) {
         try {
@@ -156,12 +222,15 @@ const GeofenceMap = ({
               <Polygon
                 key={community.id}
                 paths={geofence.path}
+                editable={editMode && isSelected}
+                draggable={editMode && isSelected}
+                onMouseUp={editMode && isSelected ? (e) => onPolygonEdit(e.overlay) : undefined}
                 options={{
                   fillColor: isSelected ? '#2196F3' : '#4CAF50',
                   fillOpacity: isSelected ? 0.3 : 0.2,
                   strokeColor: isSelected ? '#1976D2' : '#388E3C',
                   strokeOpacity: 1,
-                  strokeWeight: 2
+                  strokeWeight: editMode && isSelected ? 3 : 2
                 }}
               />
             );
@@ -219,6 +288,29 @@ const GeofenceMap = ({
           onClick={handleMapClick}
           options={mapOptions}
         >
+          {editMode && (
+            <DrawingManager
+              onLoad={onDrawingManagerLoad}
+              onPolygonComplete={onPolygonComplete}
+              options={{
+                drawingControl: true,
+                drawingControlOptions: {
+                  position: window.google?.maps?.ControlPosition?.TOP_CENTER,
+                  drawingModes: [window.google?.maps?.drawing?.OverlayType?.POLYGON]
+                },
+                polygonOptions: {
+                  fillColor: '#FF9800',
+                  fillOpacity: 0.4,
+                  strokeColor: '#F57C00',
+                  strokeOpacity: 1,
+                  strokeWeight: 3,
+                  editable: true,
+                  draggable: true
+                }
+              }}
+            />
+          )}
+
           {renderGeofences()}
           
           {pickupLocation && (
