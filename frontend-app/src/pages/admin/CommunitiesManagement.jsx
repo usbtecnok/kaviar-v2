@@ -13,11 +13,11 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
+  TextField,
+  FormControlLabel
+} from '@mui/material';
+import { Map, Visibility } from '@mui/icons-material';
+import GeofenceMap from '../../components/maps/GeofenceMap';
   TableRow,
   Paper
 } from '@mui/material';

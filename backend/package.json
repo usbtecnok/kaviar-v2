@@ -37,7 +37,7 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.19.27",
     "prisma": "^5.7.1",
-    "tsx": "^4.6.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }
