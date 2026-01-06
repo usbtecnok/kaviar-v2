@@ -164,7 +164,7 @@ const GeofenceMap = ({
                     <circle cx="12" cy="12" r="3" fill="white"/>
                   </svg>
                 `),
-                scaledSize: new window.google?.maps?.Size(24, 24)
+                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
               }}
               title="Ponto de Partida"
             />
@@ -180,7 +180,7 @@ const GeofenceMap = ({
                     <circle cx="12" cy="12" r="3" fill="white"/>
                   </svg>
                 `),
-                scaledSize: new window.google?.maps?.Size(24, 24)
+                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
               }}
               title="Destino"
             />
