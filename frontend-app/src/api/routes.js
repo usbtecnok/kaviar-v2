@@ -7,9 +7,9 @@ export const API_ROUTES = {
   
   // Dashboard Admin
   ADMIN: {
-    SUMMARY: '/api/v1/dashboard/overview',
-    COMMUNITIES: '/api/v1/communities',
-    COMMUNITY_UPDATE: (id) => `/api/v1/communities/${id}`,
+    SUMMARY: '/api/admin/dashboard/metrics',
+    COMMUNITIES: '/api/admin/communities',
+    COMMUNITY_UPDATE: (id) => `/api/admin/communities/${id}/toggle`,
   },
   
   // Motorista
@@ -41,8 +41,8 @@ export const API_ROUTES = {
   
   // Analytics (usar endpoints existentes)
   ANALYTICS: {
-    COMMUNITIES: '/api/v1/analytics/communities',
-    METRICS: '/api/v1/analytics/calculate-metrics',
+    COMMUNITIES: '/api/admin/communities',
+    METRICS: '/api/admin/dashboard/metrics',
   }
 };
 
