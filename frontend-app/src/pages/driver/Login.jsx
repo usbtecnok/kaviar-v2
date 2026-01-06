@@ -11,6 +11,25 @@ export default function DriverLogin() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  async function onSetPassword() {
+    setMsg("");
+
+    const res = await fetch(`${API_BASE_URL}/api/auth/driver/set-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setMsg(data?.error || data?.message || "Erro ao definir senha.");
+      return;
+    }
+
+    setMsg("Senha definida! Agora clique em Entrar.");
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
     setMsg("");
@@ -51,6 +70,9 @@ export default function DriverLogin() {
           <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <TextField label="Senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
           <Button type="submit" variant="contained">Entrar</Button>
+          <Button variant="outlined" onClick={onSetPassword}>
+            Primeiro acesso / Definir senha
+          </Button>
           {msg && <Typography color="error">{msg}</Typography>}
         </Stack>
       </form>
