@@ -9,6 +9,17 @@ const GEOFENCE_COMMUNITIES = [
     centerLat: -22.9068,
     centerLng: -43.1729,
     radiusMeters: 1000,
+    // Polígono de exemplo para Furnas (Rio de Janeiro)
+    geofence: {
+      type: 'polygon',
+      path: [
+        { lat: -22.9058, lng: -43.1739 },
+        { lat: -22.9058, lng: -43.1719 },
+        { lat: -22.9078, lng: -43.1719 },
+        { lat: -22.9078, lng: -43.1739 },
+        { lat: -22.9058, lng: -43.1739 }
+      ]
+    },
     is_active: true
   },
   {
@@ -17,6 +28,17 @@ const GEOFENCE_COMMUNITIES = [
     centerLat: -22.8968,
     centerLng: -43.1629,
     radiusMeters: 1200,
+    // Polígono de exemplo para Agrícola
+    geofence: {
+      type: 'polygon',
+      path: [
+        { lat: -22.8958, lng: -43.1639 },
+        { lat: -22.8958, lng: -43.1619 },
+        { lat: -22.8978, lng: -43.1619 },
+        { lat: -22.8978, lng: -43.1639 },
+        { lat: -22.8958, lng: -43.1639 }
+      ]
+    },
     is_active: true
   },
   {
@@ -25,6 +47,17 @@ const GEOFENCE_COMMUNITIES = [
     centerLat: -22.9168,
     centerLng: -43.1829,
     radiusMeters: 800,
+    // Polígono de exemplo para Mata Machado
+    geofence: {
+      type: 'polygon',
+      path: [
+        { lat: -22.9158, lng: -43.1839 },
+        { lat: -22.9158, lng: -43.1819 },
+        { lat: -22.9178, lng: -43.1819 },
+        { lat: -22.9178, lng: -43.1839 },
+        { lat: -22.9158, lng: -43.1839 }
+      ]
+    },
     is_active: true
   }
 ];
@@ -44,6 +77,7 @@ async function seedGeofence() {
           centerLat: community.centerLat,
           centerLng: community.centerLng,
           radiusMeters: community.radiusMeters,
+          geofence: JSON.stringify(community.geofence),
           isActive: community.is_active
         }
       });
@@ -56,6 +90,7 @@ async function seedGeofence() {
           centerLat: community.centerLat,
           centerLng: community.centerLng,
           radiusMeters: community.radiusMeters,
+          geofence: JSON.stringify(community.geofence),
           isActive: community.is_active
         }
       });
