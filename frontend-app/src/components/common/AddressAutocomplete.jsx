@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { TextField, Box, List, ListItem, ListItemText, Paper } from '@mui/material';
-import { LoadScript } from '@react-google-maps/api';
+import { useJsApiLoader } from '@react-google-maps/api';
 
 const libraries = ['places'];
 
@@ -12,6 +12,12 @@ const AddressAutocomplete = ({
   onPlaceSelect,
   icon 
 }) => {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: libraries
+  });
+
   const [predictions, setPredictions] = useState([]);
   const [showPredictions, setShowPredictions] = useState(false);
   const autocompleteService = useRef(null);
@@ -21,7 +27,7 @@ const AddressAutocomplete = ({
     const inputValue = e.target.value;
     onChange(inputValue);
 
-    if (inputValue.length > 2 && window.google) {
+    if (inputValue.length > 2 && isLoaded && window.google?.maps) {
       if (!autocompleteService.current) {
         autocompleteService.current = new window.google.maps.places.AutocompleteService();
       }
@@ -49,7 +55,7 @@ const AddressAutocomplete = ({
     onChange(prediction.description);
     setShowPredictions(false);
     
-    if (onPlaceSelect && window.google) {
+    if (onPlaceSelect && isLoaded && window.google?.maps) {
       if (!placesService.current) {
         const map = new window.google.maps.Map(document.createElement('div'));
         placesService.current = new window.google.maps.places.PlacesService(map);
@@ -72,16 +78,12 @@ const AddressAutocomplete = ({
   };
 
   return (
-    <LoadScript
-      googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-      libraries={libraries}
-    >
-      <Box position="relative">
-        <Box display="flex" alignItems="center" gap={1}>
-          {icon}
-          <TextField
-            fullWidth
-            label={label}
+    <Box position="relative">
+      <Box display="flex" alignItems="center" gap={1}>
+        {icon}
+        <TextField
+          fullWidth
+          label={label}
             placeholder={placeholder}
             value={value}
             onChange={handleInputChange}
@@ -119,7 +121,6 @@ const AddressAutocomplete = ({
           </Paper>
         )}
       </Box>
-    </LoadScript>
   );
 };
 

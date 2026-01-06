@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { GoogleMap, LoadScript, Marker, DirectionsRenderer } from '@react-google-maps/api';
-import { Box, CircularProgress } from '@mui/material';
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
+import { Box, CircularProgress, Typography, Alert } from '@mui/material';
 
 const libraries = ['places'];
 
@@ -11,6 +11,12 @@ const MapComponent = ({
   onDestinationChange,
   showDirections = false 
 }) => {
+  const { isLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: libraries
+  });
+
   const [map, setMap] = useState(null);
   const [directions, setDirections] = useState(null);
 
@@ -34,7 +40,7 @@ const MapComponent = ({
 
   // Calcular rota quando tiver origem e destino
   useEffect(() => {
-    if (pickup && destination && showDirections && window.google) {
+    if (pickup && destination && showDirections && isLoaded && window.google?.maps) {
       const directionsService = new window.google.maps.DirectionsService();
       
       directionsService.route(
@@ -50,28 +56,40 @@ const MapComponent = ({
         }
       );
     }
-  }, [pickup, destination, showDirections]);
+  }, [pickup, destination, showDirections, isLoaded]);
+
+  if (loadError) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Alert severity="error">
+          <Typography variant="body2">
+            ❌ Erro ao carregar mapa: {loadError.message}
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: '400px' }}>
+        <CircularProgress />
+        <Typography variant="body1" sx={{ ml: 2 }}>🗺️ Carregando mapa...</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <LoadScript
-      googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-      libraries={libraries}
-      loadingElement={
-        <Box display="flex" justifyContent="center" p={2}>
-          <CircularProgress />
-        </Box>
-      }
+    <GoogleMap
+      mapContainerStyle={mapContainerStyle}
+      center={center}
+      zoom={12}
+      onLoad={onLoad}
+      onUnmount={onUnmount}
     >
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={center}
-        zoom={12}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-      >
-        {pickup && (
-          <Marker
-            position={pickup}
+      {pickup && (
+        <Marker
+          position={pickup}
             icon={{
               url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
             }}
@@ -91,7 +109,6 @@ const MapComponent = ({
           <DirectionsRenderer directions={directions} />
         )}
       </GoogleMap>
-    </LoadScript>
   );
 };
 
