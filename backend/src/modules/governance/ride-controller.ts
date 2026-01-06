@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { RideService } from './ride-service';
 import { GeofenceService } from '../../services/geofence';
 import { DiamondService } from '../../services/diamond';
+import { validateLocationInCommunity } from '../../utils/geofence-validator';
+import { prisma } from '../../config/database';
 import { 
   rideRequestSchema,
   locationUpdateSchema,
@@ -17,6 +19,35 @@ export class RideController {
   requestRide = async (req: Request, res: Response) => {
     try {
       const data = rideRequestSchema.parse(req.body);
+      
+      // Validar geofence para corridas de comunidade
+      if (data.type === 'comunidade' && data.passengerLat && data.passengerLng) {
+        // Buscar comunidade do passageiro
+        const passenger = await prisma.passenger.findUnique({
+          where: { id: data.passengerId },
+          select: { communityId: true, community: { select: { name: true } } }
+        });
+
+        if (!passenger?.communityId) {
+          return res.status(400).json({
+            success: false,
+            error: 'Passageiro não está associado a nenhum bairro'
+          });
+        }
+
+        // Validar se está dentro do geofence
+        const geofenceValidation = await validateLocationInCommunity(
+          passenger.communityId,
+          { lat: data.passengerLat, lng: data.passengerLng }
+        );
+
+        if (!geofenceValidation.isValid) {
+          return res.status(400).json({
+            success: false,
+            error: geofenceValidation.message || 'Fora da área atendida deste bairro'
+          });
+        }
+      }
       
       // If confirmation token provided, process confirmed ride
       if (data.confirmationToken) {
