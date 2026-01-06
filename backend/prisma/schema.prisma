@@ -194,6 +194,7 @@ model Community {
   centerLat             Decimal? @map("center_lat") @db.Decimal(10, 8)
   centerLng             Decimal? @map("center_lng") @db.Decimal(11, 8)
   radiusMeters          Int?     @map("radius_meters")
+  geofence              String?  @map("geofence") // JSON polygon data
   minActiveDrivers      Int      @default(3) @map("min_active_drivers")
   deactivationThreshold Int      @default(1) @map("deactivation_threshold")
   autoActivation        Boolean  @default(false) @map("auto_activation")

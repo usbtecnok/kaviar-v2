@@ -14,6 +14,37 @@ const defaultCenter = {
   lng: -43.1729
 };
 
+const getMapCenter = (communities, selectedCommunity) => {
+  if (selectedCommunity) {
+    // Se tem geofence, calcular centro do polígono
+    if (selectedCommunity.geofence) {
+      try {
+        const geofence = typeof selectedCommunity.geofence === 'string' 
+          ? JSON.parse(selectedCommunity.geofence) 
+          : selectedCommunity.geofence;
+        
+        if (geofence.type === 'polygon' && geofence.path?.length > 0) {
+          const bounds = new window.google.maps.LatLngBounds();
+          geofence.path.forEach(point => bounds.extend(point));
+          return bounds.getCenter().toJSON();
+        }
+      } catch (error) {
+        console.error('Erro ao calcular centro do polígono:', error);
+      }
+    }
+    
+    // Fallback para centerLat/centerLng
+    if (selectedCommunity.centerLat && selectedCommunity.centerLng) {
+      return {
+        lat: parseFloat(selectedCommunity.centerLat),
+        lng: parseFloat(selectedCommunity.centerLng)
+      };
+    }
+  }
+  
+  return defaultCenter;
+};
+
 const mapOptions = {
   disableDefaultUI: false,
   zoomControl: true,
@@ -46,25 +77,38 @@ const GeofenceMap = ({
     setMap(null);
   }, []);
 
-  // Validar se ponto está dentro do polígono
+  // Validar se ponto está dentro do geofence
   const validateLocation = useCallback((location, community) => {
-    if (!geometryRef.current || !community?.geofence) return true;
+    if (!geometryRef.current || !community) return true;
 
     try {
-      const geofence = typeof community.geofence === 'string' 
-        ? JSON.parse(community.geofence) 
-        : community.geofence;
+      // Priorizar polígono se existir
+      if (community.geofence) {
+        const geofence = typeof community.geofence === 'string' 
+          ? JSON.parse(community.geofence) 
+          : community.geofence;
 
-      if (geofence.type !== 'polygon' || !geofence.path) return true;
+        if (geofence.type === 'polygon' && geofence.path) {
+          const polygon = new window.google.maps.Polygon({
+            paths: geofence.path
+          });
+          const point = new window.google.maps.LatLng(location.lat, location.lng);
+          return geometryRef.current.poly.containsLocation(point, polygon);
+        }
+      }
 
-      const polygon = new window.google.maps.Polygon({
-        paths: geofence.path
-      });
+      // Fallback para círculo
+      if (community.centerLat && community.centerLng && community.radiusMeters) {
+        const center = new window.google.maps.LatLng(
+          parseFloat(community.centerLat),
+          parseFloat(community.centerLng)
+        );
+        const point = new window.google.maps.LatLng(location.lat, location.lng);
+        const distance = window.google.maps.geometry.spherical.computeDistanceBetween(center, point);
+        return distance <= community.radiusMeters;
+      }
 
-      const point = new window.google.maps.LatLng(location.lat, location.lng);
-      const isInside = geometryRef.current.poly.containsLocation(point, polygon);
-      
-      return isInside;
+      return true; // Se não tem geofence, permitir
     } catch (error) {
       console.error('Erro na validação de geofence:', error);
       return true; // Em caso de erro, permitir
@@ -168,7 +212,7 @@ const GeofenceMap = ({
       >
         <GoogleMap
           mapContainerStyle={mapContainerStyle}
-          center={defaultCenter}
+          center={getMapCenter(communities, selectedCommunity)}
           zoom={15}
           onLoad={onLoad}
           onUnmount={onUnmount}
