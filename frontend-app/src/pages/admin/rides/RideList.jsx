@@ -41,7 +41,7 @@ const statusColors = {
 const rideTypes = {
   normal: 'Normal',
   combo: 'Combo',
-  comunidade: 'Comunidade'
+  comunidade: 'Bairro'
 };
 
 export default function RideList() {
@@ -169,7 +169,7 @@ export default function RideList() {
                 <MenuItem value="">Todos</MenuItem>
                 <MenuItem value="normal">Normal</MenuItem>
                 <MenuItem value="combo">Combo</MenuItem>
-                <MenuItem value="comunidade">Comunidade</MenuItem>
+                <MenuItem value="comunidade">Bairro</MenuItem>
               </Select>
             </FormControl>
 

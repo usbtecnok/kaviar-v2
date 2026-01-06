@@ -129,7 +129,7 @@ const BonusMetrics = () => {
                   label="Comunidade"
                   onChange={(e) => setSelectedCommunity(e.target.value)}
                 >
-                  <MenuItem value="">Todas as comunidades</MenuItem>
+                  <MenuItem value="">Todos os bairros</MenuItem>
                   {communities.map((community) => (
                     <MenuItem key={community.id} value={community.id}>
                       {community.name}
