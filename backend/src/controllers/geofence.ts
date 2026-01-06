@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export const updateCommunityGeofence = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { geofence } = req.body;
+    const { geofence, centerLat, centerLng } = req.body;
 
     // Validações básicas
     if (!id) {
@@ -50,6 +50,23 @@ export const updateCommunityGeofence = async (req: Request, res: Response) => {
       }
     }
 
+    // Validar centerLat/centerLng se fornecidos
+    if (centerLat !== undefined || centerLng !== undefined) {
+      if (centerLat !== null && (typeof centerLat !== 'number' || centerLat < -90 || centerLat > 90)) {
+        return res.status(400).json({
+          success: false,
+          message: 'centerLat deve ser um número entre -90 e 90'
+        });
+      }
+
+      if (centerLng !== null && (typeof centerLng !== 'number' || centerLng < -180 || centerLng > 180)) {
+        return res.status(400).json({
+          success: false,
+          message: 'centerLng deve ser um número entre -180 e 180'
+        });
+      }
+    }
+
     // Verificar se comunidade existe
     const existingCommunity = await prisma.community.findUnique({
       where: { id }
@@ -62,12 +79,25 @@ export const updateCommunityGeofence = async (req: Request, res: Response) => {
       });
     }
 
-    // Atualizar geofence
+    // Preparar dados para atualização
+    const updateData: any = {};
+    
+    if (geofence !== undefined) {
+      updateData.geofence = geofence ? JSON.stringify(geofence) : null;
+    }
+    
+    if (centerLat !== undefined) {
+      updateData.centerLat = centerLat;
+    }
+    
+    if (centerLng !== undefined) {
+      updateData.centerLng = centerLng;
+    }
+
+    // Atualizar comunidade
     const updatedCommunity = await prisma.community.update({
       where: { id },
-      data: {
-        geofence: geofence ? JSON.stringify(geofence) : null
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,
@@ -78,16 +108,16 @@ export const updateCommunityGeofence = async (req: Request, res: Response) => {
       }
     });
 
-    console.log(`✅ Geofence updated for community: ${updatedCommunity.name}`);
+    console.log(`✅ Community updated: ${updatedCommunity.name}`);
 
     res.json({
       success: true,
       data: updatedCommunity,
-      message: geofence ? 'Geofence salvo com sucesso' : 'Geofence removido com sucesso'
+      message: 'Comunidade atualizada com sucesso'
     });
 
   } catch (error) {
-    console.error('❌ Error updating community geofence:', error);
+    console.error('❌ Error updating community:', error);
     res.status(500).json({
       success: false,
       message: 'Erro interno do servidor'
