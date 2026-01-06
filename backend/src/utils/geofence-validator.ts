@@ -1,0 +1,116 @@
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+import { point, polygon } from '@turf/helpers';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export interface GeofenceValidationResult {
+  isValid: boolean;
+  message?: string;
+}
+
+export interface LocationPoint {
+  lat: number;
+  lng: number;
+}
+
+export const validateLocationInCommunity = async (
+  communityId: string,
+  location: LocationPoint
+): Promise<GeofenceValidationResult> => {
+  try {
+    // Buscar comunidade com geofence
+    const community = await prisma.community.findUnique({
+      where: { id: communityId },
+      select: { 
+        id: true, 
+        name: true, 
+        geofence: true,
+        centerLat: true,
+        centerLng: true,
+        radiusMeters: true
+      }
+    });
+
+    if (!community) {
+      return {
+        isValid: false,
+        message: 'Bairro não encontrado'
+      };
+    }
+
+    // Validar se tem geofence configurado
+    if (!community.geofence && !community.centerLat) {
+      return {
+        isValid: true, // Se não tem geofence, permitir (fallback)
+        message: 'Bairro sem geofence configurado - permitindo'
+      };
+    }
+
+    // Priorizar polígono se existir
+    if (community.geofence) {
+      try {
+        const geofence = JSON.parse(community.geofence);
+        
+        if (geofence.type === 'polygon' && geofence.path && geofence.path.length >= 3) {
+          // Converter para formato Turf.js
+          const coordinates = geofence.path.map((p: any) => [p.lng, p.lat]);
+          // Fechar polígono se necessário
+          if (coordinates[0][0] !== coordinates[coordinates.length - 1][0] || 
+              coordinates[0][1] !== coordinates[coordinates.length - 1][1]) {
+            coordinates.push(coordinates[0]);
+          }
+          
+          const turfPolygon = polygon([coordinates]);
+          const turfPoint = point([location.lng, location.lat]);
+          
+          const isInside = booleanPointInPolygon(turfPoint, turfPolygon);
+          
+          return {
+            isValid: isInside,
+            message: isInside ? 'Localização válida' : `Fora da área atendida do bairro ${community.name}`
+          };
+        }
+      } catch (error) {
+        console.error('Erro ao validar polígono:', error);
+        // Continuar para validação de círculo como fallback
+      }
+    }
+
+    // Fallback: validação por círculo
+    if (community.centerLat && community.centerLng && community.radiusMeters) {
+      const centerLat = parseFloat(community.centerLat.toString());
+      const centerLng = parseFloat(community.centerLng.toString());
+      
+      // Calcular distância usando fórmula de Haversine
+      const R = 6371000; // Raio da Terra em metros
+      const dLat = (location.lat - centerLat) * Math.PI / 180;
+      const dLng = (location.lng - centerLng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(centerLat * Math.PI / 180) * Math.cos(location.lat * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      
+      const isInside = distance <= community.radiusMeters;
+      
+      return {
+        isValid: isInside,
+        message: isInside ? 'Localização válida' : `Fora da área atendida do bairro ${community.name}`
+      };
+    }
+
+    // Se chegou aqui, não tem geofence nem círculo configurado
+    return {
+      isValid: true,
+      message: 'Bairro sem geofence - permitindo'
+    };
+
+  } catch (error) {
+    console.error('Erro na validação de geofence:', error);
+    return {
+      isValid: false,
+      message: 'Erro interno na validação de localização'
+    };
+  }
+};
