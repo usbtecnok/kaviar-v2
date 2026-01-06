@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { GoogleMap, LoadScript, Marker, Polygon, Circle, DrawingManager } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, Polygon, Circle, DrawingManager, StandaloneSearchBox } from '@react-google-maps/api';
 import { Box, Alert, Typography } from '@mui/material';
 
-const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing'];
+const GOOGLE_MAPS_LIBRARIES = ['geometry', 'drawing', 'places'];
 
 const mapContainerStyle = {
   width: '100%',
@@ -61,12 +61,16 @@ const GeofenceMap = ({
   onLocationSelect = null,
   showGeofenceValidation = false,
   editMode = false,
-  onGeofenceChange = null
+  onGeofenceChange = null,
+  showSearch = false,
+  onCenterChange = null
 }) => {
   const [map, setMap] = useState(null);
   const [isOutsideGeofence, setIsOutsideGeofence] = useState(false);
   const [editedPath, setEditedPath] = useState(null);
   const [drawingManager, setDrawingManager] = useState(null);
+  const [centerCandidate, setCenterCandidate] = useState(null);
+  const [searchBox, setSearchBox] = useState(null);
   const geometryRef = useRef(null);
 
   const onLoad = useCallback((map) => {
@@ -76,6 +80,26 @@ const GeofenceMap = ({
       geometryRef.current = window.google.maps.geometry;
     }
   }, []);
+
+  const onSearchBoxLoad = useCallback((searchBox) => {
+    setSearchBox(searchBox);
+  }, []);
+
+  const onPlacesChanged = useCallback(() => {
+    if (searchBox && map) {
+      const places = searchBox.getPlaces();
+      if (places.length > 0) {
+        const place = places[0];
+        const location = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        
+        map.panTo(location);
+        map.setZoom(16);
+      }
+    }
+  }, [searchBox, map]);
 
   const onDrawingManagerLoad = useCallback((drawingManager) => {
     setDrawingManager(drawingManager);
@@ -162,12 +186,19 @@ const GeofenceMap = ({
   }, []);
 
   const handleMapClick = useCallback((event) => {
-    if (!onLocationSelect) return;
-
     const location = {
       lat: event.latLng.lat(),
       lng: event.latLng.lng()
     };
+
+    // Se está definindo centro, capturar clique
+    if (editMode && onCenterChange) {
+      setCenterCandidate(location);
+      return;
+    }
+
+    // Lógica original de seleção de localização
+    if (!onLocationSelect) return;
 
     // Validar geofence se necessário
     if (showGeofenceValidation && selectedCommunity) {
@@ -181,7 +212,7 @@ const GeofenceMap = ({
 
     setIsOutsideGeofence(false);
     onLocationSelect(location);
-  }, [onLocationSelect, selectedCommunity, showGeofenceValidation, validateLocation]);
+  }, [onLocationSelect, selectedCommunity, showGeofenceValidation, validateLocation, editMode, onCenterChange]);
 
   // Renderizar polígonos/círculos dos bairros
   const renderGeofences = () => {
@@ -274,6 +305,32 @@ const GeofenceMap = ({
           </Typography>
         </Alert>
       )}
+
+      {showSearch && (
+        <Box sx={{ mb: 2 }}>
+          <StandaloneSearchBox
+            onLoad={onSearchBoxLoad}
+            onPlacesChanged={onPlacesChanged}
+          >
+            <input
+              type="text"
+              placeholder="Buscar bairro ou endereço..."
+              style={{
+                boxSizing: 'border-box',
+                border: '1px solid transparent',
+                width: '100%',
+                height: '40px',
+                padding: '0 12px',
+                borderRadius: '3px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
+                fontSize: '14px',
+                outline: 'none',
+                textOverflow: 'ellipses'
+              }}
+            />
+          </StandaloneSearchBox>
+        </Box>
+      )}
       
       <LoadScript
         googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
@@ -312,6 +369,43 @@ const GeofenceMap = ({
           )}
 
           {renderGeofences()}
+          
+          {/* Centro candidato */}
+          {centerCandidate && (
+            <Marker
+              position={centerCandidate}
+              icon={{
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="8" fill="#FF9800"/>
+                    <circle cx="12" cy="12" r="3" fill="white"/>
+                  </svg>
+                `),
+                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
+              }}
+              title="Centro do Bairro"
+            />
+          )}
+
+          {/* Centro atual */}
+          {selectedCommunity?.centerLat && selectedCommunity?.centerLng && !centerCandidate && (
+            <Marker
+              position={{
+                lat: parseFloat(selectedCommunity.centerLat),
+                lng: parseFloat(selectedCommunity.centerLng)
+              }}
+              icon={{
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="8" fill="#2196F3"/>
+                    <circle cx="12" cy="12" r="3" fill="white"/>
+                  </svg>
+                `),
+                scaledSize: window.google?.maps ? new window.google.maps.Size(24, 24) : undefined
+              }}
+              title="Centro do Bairro"
+            />
+          )}
           
           {pickupLocation && (
             <Marker
