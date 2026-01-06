@@ -16,7 +16,7 @@ import {
   TextField,
   FormControlLabel
 } from '@mui/material';
-import { Map, Visibility } from '@mui/icons-material';
+import { Map, Visibility, LocationCity } from '@mui/icons-material';
 import GeofenceMap from '../../components/maps/GeofenceMap';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
