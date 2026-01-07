@@ -16,7 +16,10 @@ import {
   TextField,
   FormControlLabel
 } from '@mui/material';
-import { Map, Visibility, LocationCity } from '@mui/icons-material';
+import Map from '@mui/icons-material/Map';
+import Visibility from '@mui/icons-material/Visibility';
+import LocationCity from '@mui/icons-material/LocationCity';
+import WarningAmber from '@mui/icons-material/WarningAmber';
 import GeofenceMap from '../../components/maps/GeofenceMap';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
@@ -310,7 +313,7 @@ export default function CommunitiesManagement() {
                   </Typography>
                   {!community.stats.canActivate && (
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                      <Warning sx={{ fontSize: 16, color: 'warning.main', mr: 0.5 }} />
+                      <WarningAmber sx={{ fontSize: 16, color: 'warning.main', mr: 0.5 }} />
                       <Typography variant="caption" color="warning.main">
                         Não pode ativar: poucos motoristas
                       </Typography>

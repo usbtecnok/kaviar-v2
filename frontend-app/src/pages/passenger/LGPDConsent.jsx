@@ -13,7 +13,8 @@ import {
   DialogContent,
   DialogActions
 } from '@mui/material';
-import { Shield, Warning } from '@mui/icons-material';
+import Shield from '@mui/icons-material/Shield';
+import WarningAmber from '@mui/icons-material/WarningAmber';
 
 export default function LGPDConsent() {
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
@@ -62,7 +63,7 @@ export default function LGPDConsent() {
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Alert severity="error" sx={{ mb: 3 }}>
         <Typography variant="subtitle1" gutterBottom>
-          <Warning sx={{ mr: 1, verticalAlign: 'middle' }} />
+          <WarningAmber sx={{ mr: 1, verticalAlign: 'middle' }} />
           Consentimento LGPD Obrigatório
         </Typography>
         Para usar o sistema KAVIAR, você deve aceitar nossos termos de privacidade conforme a LGPD.
