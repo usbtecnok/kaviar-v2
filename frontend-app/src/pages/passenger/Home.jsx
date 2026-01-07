@@ -17,12 +17,10 @@ import {
   Checkbox,
   FormControlLabel
 } from '@mui/material';
-import {
-  MyLocation,
-  LocationOn,
-  DirectionsCar,
-  Warning
-} from '@mui/icons-material';
+import MyLocation from '@mui/icons-material/MyLocation';
+import LocationOn from '@mui/icons-material/LocationOn';
+import DirectionsCar from '@mui/icons-material/DirectionsCar';
+import WarningAmber from '@mui/icons-material/WarningAmber';
 import Layout from '../../components/common/Layout';
 import AddressAutocomplete from '../../components/common/AddressAutocomplete';
 import MapComponent from '../../components/common/MapComponent';
@@ -376,7 +374,7 @@ const PassengerHome = () => {
               color="error"
               fullWidth
               size="large"
-              startIcon={<Warning />}
+              startIcon={<WarningAmber />}
               onClick={handlePanicButton}
               sx={{ 
                 py: 2,

@@ -11,13 +11,11 @@ import {
   Chip,
   Alert
 } from '@mui/material';
-import {
-  DirectionsCar,
-  AccountBalanceWallet,
-  LocationCity,
-  Warning,
-  PowerSettingsNew
-} from '@mui/icons-material';
+import DirectionsCar from '@mui/icons-material/DirectionsCar';
+import AccountBalanceWallet from '@mui/icons-material/AccountBalanceWallet';
+import LocationCity from '@mui/icons-material/LocationCity';
+import WarningAmber from '@mui/icons-material/WarningAmber';
+import PowerSettingsNew from '@mui/icons-material/PowerSettingsNew';
 import Layout from '../../components/common/Layout';
 import DriverRideCard from '../../components/common/DriverRideCard';
 import { useDriver } from '../../context/DriverContext';
@@ -213,7 +211,7 @@ const DriverHome = () => {
             color="error"
             fullWidth
             size="large"
-            startIcon={<Warning />}
+            startIcon={<WarningAmber />}
             onClick={handlePanicButton}
             sx={{ py: 2 }}
           >

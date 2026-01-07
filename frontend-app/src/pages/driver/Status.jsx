@@ -10,7 +10,9 @@ import {
   CardContent,
   LinearProgress
 } from '@mui/material';
-import { Warning, CheckCircle, HourglassEmpty } from '@mui/icons-material';
+import WarningAmber from '@mui/icons-material/WarningAmber';
+import CheckCircle from '@mui/icons-material/CheckCircle';
+import HourglassEmpty from '@mui/icons-material/HourglassEmpty';
 import { Link } from 'react-router-dom';
 
 export default function DriverStatus() {
@@ -31,7 +33,7 @@ export default function DriverStatus() {
           return (
             <Card sx={{ mb: 3 }}>
               <CardContent sx={{ textAlign: 'center' }}>
-                <Warning sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
+                <WarningAmber sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
                 <Typography variant="h5" gutterBottom>
                   Documentos Pendentes
                 </Typography>
@@ -97,7 +99,7 @@ export default function DriverStatus() {
         return (
           <Card sx={{ mb: 3 }}>
             <CardContent sx={{ textAlign: 'center' }}>
-              <Warning sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
+              <WarningAmber sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
               <Typography variant="h5" gutterBottom>
                 Cadastro Rejeitado
               </Typography>
