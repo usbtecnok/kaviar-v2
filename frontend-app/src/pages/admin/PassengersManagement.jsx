@@ -20,7 +20,7 @@ import {
   Tab,
   IconButton
 } from '@mui/material';
-import { CheckCircle, Cancel, Block } from '@mui/icons-material';
+import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -189,18 +189,59 @@ export default function PassengersManagement() {
                         >
                           <Cancel />
                         </IconButton>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => openActionDialog(passenger, 'suspended')}
+                          title="Suspender"
+                        >
+                          <Block />
+                        </IconButton>
                       </>
                     )}
                     {passenger.status === 'approved' && (
-                      <IconButton
-                        size="small"
-                        color="warning"
-                        onClick={() => openActionDialog(passenger, 'suspended')}
-                        title="Suspender"
-                      >
-                        <Block />
-                      </IconButton>
+                      <>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => openActionDialog(passenger, 'suspended')}
+                          title="Suspender"
+                        >
+                          <Block />
+                        </IconButton>
+                      </>
                     )}
+                    {passenger.status === 'rejected' && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => openActionDialog(passenger, 'approved')}
+                          title="Aprovar (reverter)"
+                        >
+                          <CheckCircle />
+                        </IconButton>
+                      </>
+                    )}
+                    {passenger.status === 'suspended' && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => openActionDialog(passenger, 'approved')}
+                          title="Reativar"
+                        >
+                          <Restore />
+                        </IconButton>
+                      </>
+                    )}
+                    <IconButton
+                      size="small"
+                      color="info"
+                      title="Ver detalhes"
+                    >
+                      <Visibility />
+                    </IconButton>
                   </Box>
                 </TableCell>
               </TableRow>

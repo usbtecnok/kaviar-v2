@@ -21,7 +21,7 @@ import {
   Tab,
   IconButton
 } from '@mui/material';
-import { CheckCircle, Cancel, Block, Visibility } from '@mui/icons-material';
+import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -74,8 +74,8 @@ export default function DriversManagement() {
         body.reason = reason;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/drivers/${driver.id}/approve`, {
-        method: 'PUT',
+      const response = await fetch(`${API_BASE_URL}/api/admin/drivers/${driver.id}/status`, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -204,18 +204,59 @@ export default function DriversManagement() {
                         >
                           <Cancel />
                         </IconButton>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => openActionDialog(driver, 'suspended')}
+                          title="Suspender"
+                        >
+                          <Block />
+                        </IconButton>
                       </>
                     )}
                     {driver.status === 'approved' && (
-                      <IconButton
-                        size="small"
-                        color="warning"
-                        onClick={() => openActionDialog(driver, 'suspended')}
-                        title="Suspender"
-                      >
-                        <Block />
-                      </IconButton>
+                      <>
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => openActionDialog(driver, 'suspended')}
+                          title="Suspender"
+                        >
+                          <Block />
+                        </IconButton>
+                      </>
                     )}
+                    {driver.status === 'rejected' && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => openActionDialog(driver, 'approved')}
+                          title="Aprovar (reverter)"
+                        >
+                          <CheckCircle />
+                        </IconButton>
+                      </>
+                    )}
+                    {driver.status === 'suspended' && (
+                      <>
+                        <IconButton
+                          size="small"
+                          color="success"
+                          onClick={() => openActionDialog(driver, 'approved')}
+                          title="Reativar"
+                        >
+                          <Restore />
+                        </IconButton>
+                      </>
+                    )}
+                    <IconButton
+                      size="small"
+                      color="info"
+                      title="Ver detalhes"
+                    >
+                      <Visibility />
+                    </IconButton>
                   </Box>
                 </TableCell>
               </TableRow>
