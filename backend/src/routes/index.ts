@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authRoutes } from './auth';
 import { adminRoutes } from './admin';
 import { governanceRoutes } from './governance';
+import geoRoutes from './geo';
 
 const router = Router();
 
@@ -22,5 +23,8 @@ router.use('/admin', adminRoutes);
 
 // Governance routes
 router.use('/governance', governanceRoutes);
+
+// Geo routes
+router.use('/geo', geoRoutes);
 
 export { router as apiRoutes };
