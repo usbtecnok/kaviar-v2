@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Copacabana",
+        "type": "NEIGHBORHOOD"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.1900, -22.9600],
+          [-43.1800, -22.9600], 
+          [-43.1800, -22.9700],
+          [-43.1900, -22.9700],
+          [-43.1900, -22.9600]
+        ]]
+      }
+    },
+    {
+      "type": "Feature", 
+      "properties": {
+        "name": "Ipanema",
+        "type": "NEIGHBORHOOD"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2000, -22.9800],
+          [-43.1900, -22.9800],
+          [-43.1900, -22.9900], 
+          [-43.2000, -22.9900],
+          [-43.2000, -22.9800]
+        ]]
+      }
+    }
+  ]
+}
