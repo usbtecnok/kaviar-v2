@@ -18,6 +18,8 @@ import { passwordResetRoutes } from './routes/password-reset';
 import { integrationsRoutes } from './routes/integrations';
 import { premiumTourismRoutes } from './routes/premium-tourism';
 import { legacyRoutes } from './routes/legacy';
+import geoRoutes from './routes/geo';
+import adminGeofenceRoutes from './routes/admin-geofence';
 
 const app = express();
 
@@ -93,6 +95,12 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminManagementRoutes);
 app.use('/api/admin/elderly', elderlyRoutes);
 app.use('/api/governance', governanceRoutes);
+
+// Geo routes
+app.use('/api/geo', geoRoutes);
+app.use('/api/admin/geofence', adminGeofenceRoutes);
+console.log('✅ Geo: /api/geo/*, /api/admin/geofence/*');
+
 console.log('✅ Core: /api/admin/*, /api/governance/* (filtered internally)');
 
 // Feature disabled handler for disabled routes
