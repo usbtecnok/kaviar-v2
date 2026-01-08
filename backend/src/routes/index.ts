@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authRoutes } from './auth';
 import { adminRoutes } from './admin';
 import { governanceRoutes } from './governance';
+import geoRoutes from './geo';
+import adminGeofenceRoutes from './admin-geofence';
 
 const router = Router();
 
@@ -20,7 +22,13 @@ router.use('/admin/auth', authRoutes);
 // Admin routes
 router.use('/admin', adminRoutes);
 
+// Admin geofence routes
+router.use('/admin/geofence', adminGeofenceRoutes);
+
 // Governance routes
 router.use('/governance', governanceRoutes);
+
+// Geo routes
+router.use('/geo', geoRoutes);
 
 export { router as apiRoutes };
