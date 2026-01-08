@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,26 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TourPackageType {
-  TOUR
-  AIRPORT_TRANSFER
-}
-
-enum TourBookingStatus {
-  REQUESTED
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
 model Role {
   id        String   @id @default(cuid())
   name      String   @unique
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  admins Admin[]
+  admins    Admin[]
 
   @@map("roles")
 }
@@ -43,115 +26,104 @@ model Admin {
   roleId       String   @map("role_id")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  role Role @relation(fields: [roleId], references: [id])
+  role         Role     @relation(fields: [roleId], references: [id])
 
   @@map("admins")
 }
 
 model Driver {
-  id                        String    @id @default(cuid())
-  name                      String
-  email                     String    @unique
-  passwordHash              String?   @map("password_hash") // Nullable para transição segura
-  phone                     String?
-  status                    String    @default("pending") // pending, approved, suspended, rejected
-  suspensionReason          String?   @map("suspension_reason")
-  suspendedAt               DateTime? @map("suspended_at")
-  suspendedBy               String?   @map("suspended_by") // Admin ID who suspended
-  lastActiveAt              DateTime? @map("last_active_at")
-  // Campos complementares FASE 8
-  communityId               String?   @map("community_id")
-  documentCpf               String?   @map("document_cpf")
-  documentRg                String?   @map("document_rg")
-  documentCnh               String?   @map("document_cnh")
-  vehiclePlate              String?   @map("vehicle_plate")
-  vehicleModel              String?   @map("vehicle_model")
-  // Campos adicionais
-  bannedAt                  DateTime? @map("banned_at")
-  bannedReason              String?   @map("banned_reason")
-  bannedBy                  String?   @map("banned_by")
-  deletedAt                 DateTime? @map("deleted_at")
-  deletedBy                 String?   @map("deleted_by")
-  lastLocationUpdatedAt     DateTime? @map("last_location_updated_at")
-  lastLat                   Decimal?  @map("last_lat") @db.Decimal(10, 8)
-  lastLng                   Decimal?  @map("last_lng") @db.Decimal(11, 8)
-  isPremium                 Boolean   @default(false) @map("is_premium")
-  premiumOverride           Boolean?  @map("premium_override")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-  updatedAt                 DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  rides     Ride[]
-  community Community? @relation(fields: [communityId], references: [id])
+  id                    String     @id @default(cuid())
+  name                  String
+  email                 String     @unique
+  phone                 String?
+  status                String     @default("pending")
+  suspensionReason      String?    @map("suspension_reason")
+  suspendedAt           DateTime?  @map("suspended_at")
+  suspendedBy           String?    @map("suspended_by")
+  lastActiveAt          DateTime?  @map("last_active_at")
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+  communityId           String?    @map("community_id")
+  documentCnh           String?    @map("document_cnh")
+  documentCpf           String?    @map("document_cpf")
+  documentRg            String?    @map("document_rg")
+  vehicleModel          String?    @map("vehicle_model")
+  vehiclePlate          String?    @map("vehicle_plate")
+  bannedAt              DateTime?  @map("banned_at")
+  bannedReason          String?    @map("banned_reason")
+  deletedAt             DateTime?  @map("deleted_at")
+  isPremium             Boolean    @default(false) @map("is_premium")
+  lastLat               Decimal?   @map("last_lat") @db.Decimal(10, 8)
+  lastLng               Decimal?   @map("last_lng") @db.Decimal(11, 8)
+  lastLocationUpdatedAt DateTime?  @map("last_location_updated_at")
+  premiumOverride       Boolean?   @map("premium_override")
+  bannedBy              String?    @map("banned_by")
+  deletedBy             String?    @map("deleted_by")
+  passwordHash          String?    @map("password_hash")
+  community             Community? @relation(fields: [communityId], references: [id])
+  rides                 Ride[]
 
   @@map("drivers")
 }
 
 model Passenger {
-  id                        String   @id @default(cuid())
-  name                      String
-  email                     String   @unique
-  passwordHash              String?  @map("password_hash") // Nullable para transição segura
-  phone                     String?
-  // Campos complementares FASE 8
-  communityId               String?  @map("community_id")
-  status                    String   @default("pending") // pending, approved, suspended
-  lastLat                   Decimal? @map("last_lat") @db.Decimal(10, 8)
-  lastLng                   Decimal? @map("last_lng") @db.Decimal(11, 8)
-  lastLocationUpdatedAt     DateTime? @map("last_location_updated_at")
-  createdAt                 DateTime @default(now()) @map("created_at")
-  updatedAt                 DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  rides     Ride[]
-  community Community? @relation(fields: [communityId], references: [id])
-  consents  UserConsent[]
-  rideConfirmations RideConfirmation[]
-  tourBookings TourBooking[]
-  elderlyProfile ElderlyProfile?
-  elderlyContracts ElderlyContract[] @relation("ResponsiblePassenger")
+  id                    String             @id @default(cuid())
+  name                  String
+  email                 String             @unique
+  phone                 String?
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+  communityId           String?            @map("community_id")
+  status                String             @default("pending")
+  lastLat               Decimal?           @map("last_lat") @db.Decimal(10, 8)
+  lastLng               Decimal?           @map("last_lng") @db.Decimal(11, 8)
+  lastLocationUpdatedAt DateTime?          @map("last_location_updated_at")
+  passwordHash          String?            @map("password_hash")
+  elderlyContracts      ElderlyContract[]  @relation("ResponsiblePassenger")
+  elderlyProfile        ElderlyProfile?
+  community             Community?         @relation(fields: [communityId], references: [id])
+  rideConfirmations     RideConfirmation[]
+  rides                 Ride[]
+  tourBookings          TourBooking[]
+  consents              UserConsent[]
 
   @@map("passengers")
 }
 
 model Ride {
-  id                        String    @id @default(cuid())
-  driverId                  String?   @map("driver_id")
-  passengerId               String    @map("passenger_id")
-  origin                    String
-  destination               String
-  type                      String    @default("normal") // normal, combo, comunidade
-  status                    String    @default("requested") // requested, accepted, arrived, started, completed, paid, cancelled_by_user, cancelled_by_driver, cancelled_by_admin
-  price                     Decimal   @db.Decimal(10, 2)
-  platformFee               Decimal?  @db.Decimal(10, 2) @map("platform_fee")
-  driverAmount              Decimal?  @db.Decimal(10, 2) @map("driver_amount")
-  paymentMethod             String?   @map("payment_method") @default("credit_card")
-  cancelReason              String?   @map("cancel_reason")
-  cancelledBy               String?   @map("cancelled_by") // Admin ID who cancelled
-  cancelledAt               DateTime? @map("cancelled_at")
-  forcedCompletedBy         String?   @map("forced_completed_by") // Admin ID who forced completion
-  forcedCompletedAt         DateTime? @map("forced_completed_at")
-  fallbackOutOfFence        Boolean?  @default(false) @map("fallback_out_of_fence")
-  fallbackReason            String?   @map("fallback_reason")
-  driversInFenceCount       Int?      @map("drivers_in_fence_count")
-  passengerConfirmedAt      DateTime? @map("passenger_confirmed_at")
-  isDiamondEligible         Boolean?  @default(false) @map("is_diamond_eligible")
-  diamondState              String?   @map("diamond_state")
-  diamondCandidateDriverId  String?   @map("diamond_candidate_driver_id")
-  diamondLostAt             DateTime? @map("diamond_lost_at")
-  diamondLostReason         String?   @map("diamond_lost_reason")
-  bonusAmount               Decimal?  @map("bonus_amount") @db.Decimal(10, 2)
-  bonusAppliedAt            DateTime? @map("bonus_applied_at")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-  updatedAt                 DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  driver         Driver?            @relation(fields: [driverId], references: [id])
-  passenger      Passenger          @relation(fields: [passengerId], references: [id])
-  statusHistory  RideStatusHistory[]
-  adminActions   RideAdminAction[]
+  id                       String              @id @default(cuid())
+  driverId                 String?             @map("driver_id")
+  passengerId              String              @map("passenger_id")
+  origin                   String
+  destination              String
+  status                   String              @default("requested")
+  price                    Decimal             @db.Decimal(10, 2)
+  cancelReason             String?             @map("cancel_reason")
+  cancelledBy              String?             @map("cancelled_by")
+  cancelledAt              DateTime?           @map("cancelled_at")
+  forcedCompletedBy        String?             @map("forced_completed_by")
+  forcedCompletedAt        DateTime?           @map("forced_completed_at")
+  createdAt                DateTime            @default(now()) @map("created_at")
+  updatedAt                DateTime            @updatedAt @map("updated_at")
+  driverAmount             Decimal?            @map("driver_amount") @db.Decimal(10, 2)
+  paymentMethod            String?             @default("credit_card") @map("payment_method")
+  platformFee              Decimal?            @map("platform_fee") @db.Decimal(10, 2)
+  type                     String              @default("normal")
+  diamondCandidateDriverId String?             @map("diamond_candidate_driver_id")
+  diamondState             String?             @map("diamond_state")
+  fallbackOutOfFence       Boolean?            @default(false) @map("fallback_out_of_fence")
+  isDiamondEligible        Boolean?            @default(false) @map("is_diamond_eligible")
+  bonusAmount              Decimal?            @map("bonus_amount") @db.Decimal(10, 2)
+  diamondLostAt            DateTime?           @map("diamond_lost_at")
+  driversInFenceCount      Int?                @map("drivers_in_fence_count")
+  fallbackReason           String?             @map("fallback_reason")
+  bonusAppliedAt           DateTime?           @map("bonus_applied_at")
+  diamondLostReason        String?             @map("diamond_lost_reason")
+  passengerConfirmedAt     DateTime?           @map("passenger_confirmed_at")
+  adminActions             RideAdminAction[]
+  statusHistory            RideStatusHistory[]
+  driver                   Driver?             @relation(fields: [driverId], references: [id])
+  passenger                Passenger           @relation(fields: [passengerId], references: [id])
 
   @@map("rides")
 }
@@ -160,14 +132,12 @@ model RideAdminAction {
   id        String   @id @default(cuid())
   rideId    String   @map("ride_id")
   adminId   String   @map("admin_id")
-  action    String   // cancel, reassign_driver, force_complete
+  action    String
   reason    String?
-  oldValue  String?  @map("old_value") // For reassignment: old driver ID
-  newValue  String?  @map("new_value") // For reassignment: new driver ID
+  oldValue  String?  @map("old_value")
+  newValue  String?  @map("new_value")
   createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  ride Ride @relation(fields: [rideId], references: [id])
+  ride      Ride     @relation(fields: [rideId], references: [id])
 
   @@map("ride_admin_actions")
 }
@@ -177,267 +147,249 @@ model RideStatusHistory {
   rideId    String   @map("ride_id")
   status    String
   createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  ride Ride @relation(fields: [rideId], references: [id])
+  ride      Ride     @relation(fields: [rideId], references: [id])
 
   @@map("ride_status_history")
 }
 
-// FASE 8 - Novos modelos complementares
-
 model Community {
-  id                    String   @id @default(cuid())
+  id                    String                   @id @default(cuid())
   name                  String
   description           String?
-  isActive              Boolean  @default(true) @map("is_active")
-  centerLat             Decimal? @map("center_lat") @db.Decimal(10, 8)
-  centerLng             Decimal? @map("center_lng") @db.Decimal(11, 8)
-  radiusMeters          Int?     @map("radius_meters")
-  geofence              String?  @map("geofence") // JSON polygon data
-  minActiveDrivers      Int      @default(3) @map("min_active_drivers")
-  deactivationThreshold Int      @default(1) @map("deactivation_threshold")
-  autoActivation        Boolean  @default(false) @map("auto_activation")
-  lastEvaluatedAt       DateTime? @map("last_evaluated_at")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  drivers       Driver[]
-  passengers    Passenger[]
-  guides        TouristGuide[]
-  statusHistory CommunityStatusHistory[]
-  elderlyContracts ElderlyContract[]
+  isActive              Boolean                  @default(true) @map("is_active")
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+  autoActivation        Boolean                  @default(false) @map("auto_activation")
+  centerLat             Decimal?                 @map("center_lat") @db.Decimal(10, 8)
+  centerLng             Decimal?                 @map("center_lng") @db.Decimal(11, 8)
+  deactivationThreshold Int                      @default(1) @map("deactivation_threshold")
+  lastEvaluatedAt       DateTime?                @map("last_evaluated_at")
+  minActiveDrivers      Int                      @default(3) @map("min_active_drivers")
+  radiusMeters          Int?                     @map("radius_meters")
+  geofence              String?                  @map("geofence")
+  statusHistory         CommunityStatusHistory[]
+  drivers               Driver[]
+  elderlyContracts      ElderlyContract[]
+  passengers            Passenger[]
+  guides                TouristGuide[]
 
   @@map("communities")
 }
 
 model UserConsent {
-  id           String   @id @default(cuid())
-  passengerId  String   @map("passenger_id")
-  consentType  String   @map("consent_type") // lgpd, terms, privacy
-  accepted     Boolean  @default(false)
-  acceptedAt   DateTime? @map("accepted_at")
-  ipAddress    String?  @map("ip_address")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  // Relations
-  passenger Passenger @relation(fields: [passengerId], references: [id])
+  id          String    @id @default(cuid())
+  passengerId String    @map("passenger_id")
+  consentType String    @map("consent_type")
+  accepted    Boolean   @default(false)
+  acceptedAt  DateTime? @map("accepted_at")
+  ipAddress   String?   @map("ip_address")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  passenger   Passenger @relation(fields: [passengerId], references: [id])
 
   @@unique([passengerId, consentType])
   @@map("user_consents")
 }
 
 model TouristGuide {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  phone        String?
-  communityId  String   @map("community_id")
-  status       String   @default("pending") // pending, approved, suspended, rejected
-  isBilingual  Boolean  @default(false) @map("is_bilingual")
-  languages    String[] // Array de idiomas
-  alsoDriver   Boolean  @default(false) @map("also_driver") // Atua também como motorista
-  driverId     String?  @map("driver_id") // Se também for motorista
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  community Community @relation(fields: [communityId], references: [id])
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  phone       String?
+  communityId String    @map("community_id")
+  status      String    @default("pending")
+  isBilingual Boolean   @default(false) @map("is_bilingual")
+  languages   String[]
+  alsoDriver  Boolean   @default(false) @map("also_driver")
+  driverId    String?   @map("driver_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  community   Community @relation(fields: [communityId], references: [id])
 
   @@map("tourist_guides")
 }
 
 model RideConfirmation {
-  id                String   @id @default(cuid())
-  passengerId       String   @map("passenger_id")
-  confirmationToken String   @unique @map("confirmation_token")
-  rideData          Json     @map("ride_data")
-  expiresAt         DateTime @map("expires_at")
-  isUsed            Boolean  @default(false) @map("is_used")
+  id                String    @id @default(cuid())
+  passengerId       String    @map("passenger_id")
+  confirmationToken String    @unique @map("confirmation_token")
+  rideData          Json      @map("ride_data")
+  expiresAt         DateTime  @map("expires_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  createdRideId     String?   @map("created_ride_id")
+  isUsed            Boolean   @default(false) @map("is_used")
   usedAt            DateTime? @map("used_at")
-  createdRideId     String?  @map("created_ride_id")
-  createdAt         DateTime @default(now()) @map("created_at")
   passenger         Passenger @relation(fields: [passengerId], references: [id])
 
   @@map("ride_confirmations")
 }
 
 model TourPackage {
-  id                        String        @id @default(cuid())
-  title                     String
-  description               String
-  type                      TourPackageType // TOUR, AIRPORT_TRANSFER
-  partnerName               String        @map("partner_name")
-  basePrice                 Decimal       @map("base_price") @db.Decimal(10, 2)
-  locations                 String[]
-  estimatedDurationMinutes  Int           @map("estimated_duration_minutes")
-  isActive                  Boolean       @default(true) @map("is_active")
-  createdBy                 String?       @map("created_by")
-  createdAt                 DateTime      @default(now()) @map("created_at")
-  updatedAt                 DateTime      @updatedAt @map("updated_at")
-  bookings                  TourBooking[]
+  id                       String          @id @default(cuid())
+  title                    String
+  description              String
+  partnerName              String          @map("partner_name")
+  basePrice                Decimal         @map("base_price") @db.Decimal(10, 2)
+  locations                String[]
+  estimatedDurationMinutes Int             @map("estimated_duration_minutes")
+  isActive                 Boolean         @default(true) @map("is_active")
+  createdAt                DateTime        @default(now()) @map("created_at")
+  updatedAt                DateTime        @updatedAt @map("updated_at")
+  createdBy                String?         @map("created_by")
+  type                     TourPackageType
+  bookings                 TourBooking[]
 
   @@map("tour_packages")
 }
 
 model TourBooking {
-  id              String    @id @default(cuid())
-  packageId       String    @map("package_id")
-  passengerId     String?   @map("passenger_id") // Opcional para bookings públicos
-  status          TourBookingStatus @default(REQUESTED) // REQUESTED, CONFIRMED, CANCELLED, COMPLETED
-  scheduledDate   DateTime? @map("scheduled_date") // Data desejada pelo cliente
-  scheduledAt     DateTime? @map("scheduled_at") // Data/hora confirmada
-  pickupLocation  String?   @map("pickup_location")
-  dropoffLocation String?   @map("dropoff_location")
-  
-  // Dados do passageiro (para bookings públicos)
-  passengerName   String?   @map("passenger_name")
-  passengerEmail  String?   @map("passenger_email")
-  passengerPhone  String?   @map("passenger_phone")
-  passengerCount  Int       @default(1) @map("passenger_count")
-  
-  // Dados adicionais
-  specialRequests String?   @map("special_requests")
-  emergencyContact String?  @map("emergency_contact")
-  emergencyPhone  String?   @map("emergency_phone")
-  
-  totalPrice      Decimal   @default(0) @map("total_price") @db.Decimal(10, 2)
-  rideId          String?   @map("ride_id")
-  confirmedBy     String?   @map("confirmed_by")
-  confirmedAt     DateTime? @map("confirmed_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  
-  package         TourPackage @relation(fields: [packageId], references: [id])
-  passenger       Passenger?  @relation(fields: [passengerId], references: [id])
+  id               String            @id @default(cuid())
+  packageId        String            @map("package_id")
+  passengerId      String?           @map("passenger_id")
+  scheduledAt      DateTime?         @map("scheduled_at")
+  pickupLocation   String?           @map("pickup_location")
+  dropoffLocation  String?           @map("dropoff_location")
+  totalPrice       Decimal           @default(0) @map("total_price") @db.Decimal(10, 2)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  rideId           String?           @map("ride_id")
+  confirmedBy      String?           @map("confirmed_by")
+  confirmedAt      DateTime?         @map("confirmed_at")
+  status           TourBookingStatus @default(REQUESTED)
+  emergencyContact String?           @map("emergency_contact")
+  emergencyPhone   String?           @map("emergency_phone")
+  passengerCount   Int               @default(1) @map("passenger_count")
+  passengerEmail   String?           @map("passenger_email")
+  passengerName    String?           @map("passenger_name")
+  passengerPhone   String?           @map("passenger_phone")
+  scheduledDate    DateTime?         @map("scheduled_date")
+  specialRequests  String?           @map("special_requests")
+  package          TourPackage       @relation(fields: [packageId], references: [id])
+  passenger        Passenger?        @relation(fields: [passengerId], references: [id])
 
   @@map("tour_bookings")
 }
 
 model RatingStats {
-  id              String   @id @default(cuid())
-  entityType      String   @map("entity_type") // driver, guide, package
-  entityId        String   @map("entity_id")
-  userId          String?  @map("user_id") // For compatibility
-  averageRating   Decimal  @map("average_rating") @db.Decimal(3, 2)
-  totalRatings    Int      @map("total_ratings")
-  ratingSum       Int      @map("rating_sum")
-  updatedAt       DateTime @map("updated_at") @updatedAt
-  lastUpdated     DateTime @map("last_updated") @updatedAt
+  id            String   @id @default(cuid())
+  entityType    String   @map("entity_type")
+  entityId      String   @map("entity_id")
+  averageRating Decimal  @map("average_rating") @db.Decimal(3, 2)
+  totalRatings  Int      @map("total_ratings")
+  ratingSum     Int      @map("rating_sum")
+  lastUpdated   DateTime @updatedAt @map("last_updated")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  userId        String?  @unique @map("user_id")
 
   @@unique([entityType, entityId])
-  @@unique([userId], map: "rating_stats_user_id_key")
   @@map("rating_stats")
 }
 
 model DriverVerification {
-  id                    String   @id @default(cuid())
-  driverId              String   @map("driver_id")
-  communityId           String?  @map("community_id")
-  status                String   @default("pending")
-  verifiedAt            DateTime? @map("verified_at")
-  approvedAt            DateTime? @map("approved_at")
-  approvedByAdminId     String?  @map("approved_by_admin_id")
-  eligibilityCheckedAt  DateTime? @map("eligibility_checked_at")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                   String    @id @default(cuid())
+  driverId             String    @unique @map("driver_id")
+  status               String    @default("pending")
+  verifiedAt           DateTime? @map("verified_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  approvedAt           DateTime? @map("approved_at")
+  communityId          String?   @map("community_id")
+  eligibilityCheckedAt DateTime? @map("eligibility_checked_at")
+  approvedByAdminId    String?   @map("approved_by_admin_id")
 
-  @@unique([driverId])
   @@map("driver_verifications")
 }
 
 model DriverDocument {
-  id                    String   @id @default(cuid())
-  driverId              String   @map("driver_id")
-  type                  String   // cpf, rg, cnh
-  documentUrl           String   @default("") @map("document_url")
-  fileUrl               String?  @map("file_url")
-  status                String   @default("pending")
-  submittedAt           DateTime? @map("submitted_at")
-  verifiedAt            DateTime? @map("verified_at")
-  verifiedByAdminId     String?  @map("verified_by_admin_id")
-  rejectedAt            DateTime? @map("rejected_at")
-  rejectedByAdminId     String?  @map("rejected_by_admin_id")
-  rejectReason          String?  @map("reject_reason")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(cuid())
+  driverId          String    @map("driver_id")
+  type              String
+  documentUrl       String    @default("") @map("document_url")
+  status            String    @default("pending")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  fileUrl           String?   @map("file_url")
+  rejectedAt        DateTime? @map("rejected_at")
+  verifiedAt        DateTime? @map("verified_at")
+  rejectedByAdminId String?   @map("rejected_by_admin_id")
+  submittedAt       DateTime? @map("submitted_at")
+  verifiedByAdminId String?   @map("verified_by_admin_id")
+  rejectReason      String?   @map("reject_reason")
 
   @@map("driver_documents")
 }
 
 model DriverEnforcementHistory {
-  id          String   @id @default(cuid())
-  driverId    String   @map("driver_id")
-  action      String   // ban, unban, delete, restore
-  reason      String?
-  metadata    Json?
-  adminId     String   @map("admin_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id        String   @id @default(cuid())
+  driverId  String   @map("driver_id")
+  action    String
+  reason    String?
+  adminId   String   @map("admin_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  metadata  Json?
 
   @@map("driver_enforcement_history")
 }
 
 model CommunityStatusHistory {
-  id          String    @id @default(cuid())
-  communityId String    @map("community_id")
-  status      String
-  fromIsActive Boolean? @map("from_is_active")
-  toIsActive  Boolean?  @map("to_is_active")
-  driverCount Int?      @map("driver_count")
-  changedBy   String?   @map("changed_by")
-  reason      String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  community   Community @relation(fields: [communityId], references: [id])
+  id           String    @id @default(cuid())
+  communityId  String    @map("community_id")
+  status       String
+  reason       String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  fromIsActive Boolean?  @map("from_is_active")
+  toIsActive   Boolean?  @map("to_is_active")
+  driverCount  Int?      @map("driver_count")
+  changedBy    String?   @map("changed_by")
+  community    Community @relation(fields: [communityId], references: [id])
 
   @@map("community_status_history")
 }
 
 model DiamondAuditLog {
-  id              String   @id @default(cuid())
-  rideId          String   @map("ride_id")
-  driverId        String?  @map("driver_id")
-  action          String
-  reason          String?
-  bonusAmount     Decimal? @map("bonus_amount") @db.Decimal(10, 2)
-  diamondStateFrom String? @map("diamond_state_from")
-  diamondStateTo  String?  @map("diamond_state_to")
-  details         Json?
-  createdAt       DateTime @default(now()) @map("created_at")
+  id               String   @id @default(cuid())
+  rideId           String   @map("ride_id")
+  action           String
+  details          Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+  driverId         String?  @map("driver_id")
+  diamondStateFrom String?  @map("diamond_state_from")
+  diamondStateTo   String?  @map("diamond_state_to")
+  reason           String?
+  bonusAmount      Decimal? @map("bonus_amount") @db.Decimal(10, 2)
 
   @@map("diamond_audit_logs")
 }
 
 model Rating {
-  id          String   @id @default(cuid())
-  entityType  String   @map("entity_type")
-  entityId    String   @map("entity_id")
-  userId      String   @map("user_id")
-  rideId      String?  @map("ride_id")
-  ratedId     String?  @map("rated_id")
-  raterId     String?  @map("rater_id")
-  raterType   String?  @map("rater_type")
-  rating      Int
-  score       Int      @default(0) // For compatibility, maps to rating
-  comment     String?
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String   @id @default(cuid())
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  userId     String   @map("user_id")
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  ratedId    String?  @map("rated_id")
+  rideId     String?  @map("ride_id")
+  score      Int      @default(0)
+  raterId    String?  @map("rater_id")
+  raterType  String?  @map("rater_type")
 
   @@unique([rideId, userId], map: "rating_ride_id_user_id_key")
   @@map("ratings")
 }
 
 model Consent {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  subjectType String?  @map("subject_type")
-  subjectId   String?  @map("subject_id")
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
   type        String
-  consentType String?  @map("consent_type")
-  accepted    Boolean  @default(false)
+  accepted    Boolean   @default(false)
   acceptedAt  DateTime? @map("accepted_at")
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  createdAt   DateTime @default(now()) @map("created_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  ipAddress   String?   @map("ip_address")
+  subjectId   String?   @map("subject_id")
+  subjectType String?   @map("subject_type")
+  consentType String?   @map("consent_type")
+  userAgent   String?   @map("user_agent")
 
   @@unique([userId, type], map: "consent_user_id_type_key")
   @@unique([subjectType, subjectId, type], map: "consent_subject_type_subject_id_type_key")
@@ -445,39 +397,56 @@ model Consent {
 }
 
 model ElderlyProfile {
-  id               String   @id @default(cuid())
-  passengerId      String   @unique @map("passenger_id")
-  emergencyContact String?  @map("emergency_contact")
-  emergencyPhone   String?  @map("emergency_phone")
-  medicalNotes     String?  @map("medical_notes")
-  careLevel        String   @default("basic") // basic, intensive, medical
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  passenger Passenger @relation(fields: [passengerId], references: [id], onDelete: Cascade)
-  contracts ElderlyContract[]
+  id               String            @id @default(cuid())
+  passengerId      String            @unique @map("passenger_id")
+  emergencyContact String?           @map("emergency_contact")
+  emergencyPhone   String?           @map("emergency_phone")
+  medicalNotes     String?           @map("medical_notes")
+  careLevel        String            @default("basic")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  contracts        ElderlyContract[]
+  passenger        Passenger         @relation(fields: [passengerId], references: [id], onDelete: Cascade)
 
   @@map("elderly_profiles")
 }
 
 model ElderlyContract {
-  id               String    @id @default(cuid())
-  elderlyProfileId String    @map("elderly_profile_id")
-  responsibleId    String?   @map("responsible_id")
-  communityId      String    @map("community_id")
-  status           String    @default("ACTIVE") // ACTIVE, INACTIVE, CANCELLED
-  serviceType      String    @default("ACOMPANHAMENTO_ATIVO") @map("service_type")
-  startsAt         DateTime  @map("starts_at")
-  endsAt           DateTime? @map("ends_at")
+  id               String         @id @default(cuid())
+  elderlyProfileId String         @map("elderly_profile_id")
+  responsibleId    String?        @map("responsible_id")
+  communityId      String         @map("community_id")
+  status           String         @default("ACTIVE")
+  serviceType      String         @default("ACOMPANHAMENTO_ATIVO") @map("service_type")
+  startsAt         DateTime       @map("starts_at")
+  endsAt           DateTime?      @map("ends_at")
   notes            String?
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  elderlyProfile ElderlyProfile @relation(fields: [elderlyProfileId], references: [id], onDelete: Cascade)
-  responsible    Passenger?     @relation("ResponsiblePassenger", fields: [responsibleId], references: [id])
-  community      Community      @relation(fields: [communityId], references: [id])
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  community        Community      @relation(fields: [communityId], references: [id])
+  elderlyProfile   ElderlyProfile @relation(fields: [elderlyProfileId], references: [id], onDelete: Cascade)
+  responsible      Passenger?     @relation("ResponsiblePassenger", fields: [responsibleId], references: [id])
 
   @@map("elderly_contracts")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+enum TourPackageType {
+  TOUR
+  AIRPORT_TRANSFER
+}
+
+enum TourBookingStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
 }
