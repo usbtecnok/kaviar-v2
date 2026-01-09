@@ -17,8 +17,8 @@ Automação para importar comunidades/favelas do Rio de Janeiro usando dados ofi
 
 ## Fonte de Dados
 
-SABREN - Limites de Favelas 2022 (FeatureServer Layer 13):
-`https://pgeo3.rio.rj.gov.br/arcgis/rest/services/SABREN/Limites_de_Favelas/FeatureServer/13/query`
+SABREN - Limites de Favelas 2022 (MapServer Layer 13):
+`https://pgeo3.rio.rj.gov.br/arcgis/rest/services/SABREN/Limites_de_Favelas/MapServer/13/query`
 
 ## Hierarquia de Resolução
 
@@ -36,7 +36,7 @@ O sistema agora prioriza **COMUNIDADE > BAIRRO**:
 curl -X POST https://kaviar-v2.onrender.com/api/admin/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@kaviar.com","password":"sua_senha"}' \
-  | jq -r '.token'
+  | jq -r '.data.token'
 ```
 
 ### Variáveis de Ambiente

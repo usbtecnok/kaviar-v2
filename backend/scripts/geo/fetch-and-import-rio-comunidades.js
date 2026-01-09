@@ -26,8 +26,8 @@ const TARGET_COMUNIDADES = [
 
 const TARGET_BAIRROS = ['Copacabana', 'Leme', 'Ipanema'];
 
-// SABREN FeatureServer endpoint
-const SABREN_BASE = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/SABREN/Limites_de_Favelas/FeatureServer/13/query';
+// SABREN MapServer endpoint
+const SABREN_BASE = 'https://pgeo3.rio.rj.gov.br/arcgis/rest/services/SABREN/Limites_de_Favelas/MapServer/13/query';
 
 async function fetchFromSABREN() {
   console.log('🔍 Fetching communities from SABREN FeatureServer...');
