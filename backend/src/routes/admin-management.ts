@@ -100,11 +100,51 @@ router.get('/communities', async (req, res) => {
       orderBy: { name: 'asc' }
     });
 
-    const communitiesWithStats = communities.map(community => {
-      const activeDrivers = community.drivers.filter(d => d.status === 'approved').length;
-      const premiumDrivers = community.drivers.filter(d => d.status === 'approved' && d.isPremium).length;
-      const activePassengers = community.passengers.filter(p => p.status === 'approved').length;
-      const activeGuides = community.guides.filter(g => g.status === 'approved').length;
+    // Deduplicate by name, prioritizing records with better geofence
+    const deduplicatedCommunities = [];
+    const nameMap = new Map();
+
+    communities.forEach(community => {
+      const existing = nameMap.get(community.name);
+      
+      if (!existing) {
+        nameMap.set(community.name, community);
+        return;
+      }
+
+      // Priority: Polygon/MultiPolygon > Point > SEM_DADOS
+      const getGeofencePriority = (comm: any) => {
+        if (!comm.geofenceData?.geojson) return 0; // SEM_DADOS
+        
+        try {
+          const geojson = JSON.parse(comm.geofenceData.geojson);
+          const type = geojson.type;
+          
+          if (type === 'Polygon' || type === 'MultiPolygon') return 3;
+          if (type === 'Point') return 2;
+          return 1; // Other types
+        } catch (e) {
+          return 0; // Invalid geojson
+        }
+      };
+
+      const existingPriority = getGeofencePriority(existing);
+      const currentPriority = getGeofencePriority(community);
+
+      // Replace if current has better geofence
+      if (currentPriority > existingPriority) {
+        nameMap.set(community.name, community);
+      }
+    });
+
+    // Convert back to array
+    const canonicalCommunities = Array.from(nameMap.values());
+
+    const communitiesWithStats = canonicalCommunities.map(community => {
+      const activeDrivers = community.drivers.filter((d: any) => d.status === 'approved').length;
+      const premiumDrivers = community.drivers.filter((d: any) => d.status === 'approved' && d.isPremium).length;
+      const activePassengers = community.passengers.filter((p: any) => p.status === 'approved').length;
+      const activeGuides = community.guides.filter((g: any) => g.status === 'approved').length;
       
       const canActivate = activeDrivers >= community.minActiveDrivers;
       
