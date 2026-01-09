@@ -151,7 +151,12 @@ export default function CommunitiesManagement() {
   };
 
   const openMapDialog = (community) => {
-    setMapDialog({ open: true, community });
+    // Transformar geofenceData para o formato esperado pelo GeofenceMap
+    const communityForMap = {
+      ...community,
+      geofence: community.geofenceData?.geojson || null
+    };
+    setMapDialog({ open: true, community: communityForMap });
   };
 
   const closeMapDialog = () => {
