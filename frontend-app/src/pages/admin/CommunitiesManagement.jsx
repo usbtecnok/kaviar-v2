@@ -21,6 +21,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import LocationCity from '@mui/icons-material/LocationCity';
 import WarningAmber from '@mui/icons-material/WarningAmber';
 import GeofenceMap from '../../components/maps/GeofenceMap';
+import LeafletGeofenceMap from '../../components/maps/LeafletGeofenceMap';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -150,13 +151,44 @@ export default function CommunitiesManagement() {
     }
   };
 
-  const openMapDialog = (community) => {
-    // Transformar geofenceData para o formato esperado pelo GeofenceMap
-    const communityForMap = {
-      ...community,
-      geofence: community.geofenceData?.geojson || null
-    };
-    setMapDialog({ open: true, community: communityForMap });
+  const openMapDialog = async (community) => {
+    try {
+      // Buscar dados completos do geofence da API
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/governance/communities/${community.id}/geofence`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const geofenceData = await response.json();
+        
+        // Transformar para o formato esperado pelo componente
+        const communityForMap = {
+          ...community,
+          geometry: geofenceData.data?.geometry || null,
+          geofence: community.geofenceData?.geojson || null
+        };
+        
+        setMapDialog({ open: true, community: communityForMap });
+      } else {
+        // Fallback se não conseguir buscar geofence
+        const communityForMap = {
+          ...community,
+          geofence: community.geofenceData?.geojson || null
+        };
+        setMapDialog({ open: true, community: communityForMap });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar geofence:', error);
+      // Fallback em caso de erro
+      const communityForMap = {
+        ...community,
+        geofence: community.geofenceData?.geojson || null
+      };
+      setMapDialog({ open: true, community: communityForMap });
+    }
   };
 
   const closeMapDialog = () => {
@@ -449,15 +481,28 @@ export default function CommunitiesManagement() {
           
           {mapDialog.community ? (
             <Box sx={{ height: 400, width: '100%' }}>
-              <GeofenceMap
-                communities={[mapDialog.community]}
-                selectedCommunity={mapDialog.community}
-                showGeofenceValidation={false}
-                editMode={editMode}
-                onGeofenceChange={handleGeofenceChange}
-                showSearch={true}
-                onCenterChange={centerMode ? handleCenterChange : null}
-              />
+              {import.meta.env.VITE_GOOGLE_MAPS_API_KEY && 
+               import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== 'your_google_maps_api_key_here' ? (
+                <GeofenceMap
+                  communities={[mapDialog.community]}
+                  selectedCommunity={mapDialog.community}
+                  showGeofenceValidation={false}
+                  editMode={editMode}
+                  onGeofenceChange={handleGeofenceChange}
+                  showSearch={true}
+                  onCenterChange={centerMode ? handleCenterChange : null}
+                />
+              ) : (
+                <LeafletGeofenceMap
+                  communities={[mapDialog.community]}
+                  selectedCommunity={mapDialog.community}
+                  showGeofenceValidation={false}
+                  editMode={editMode}
+                  onGeofenceChange={handleGeofenceChange}
+                  showSearch={true}
+                  onCenterChange={centerMode ? handleCenterChange : null}
+                />
+              )}
             </Box>
           ) : null}
         </DialogContent>
