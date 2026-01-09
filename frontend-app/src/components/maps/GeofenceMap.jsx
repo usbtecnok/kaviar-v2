@@ -10,8 +10,8 @@ const mapContainerStyle = {
 };
 
 const defaultCenter = {
-  lat: -22.9068,
-  lng: -43.1729
+  lat: -14.2350,
+  lng: -51.9253
 };
 
 const getMapCenter = (communities, selectedCommunity, isLoaded) => {
