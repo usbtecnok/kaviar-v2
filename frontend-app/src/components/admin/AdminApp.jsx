@@ -9,6 +9,7 @@ import DriversManagement from "../../pages/admin/DriversManagement";
 import PassengersManagement from "../../pages/admin/PassengersManagement";
 import GuidesManagement from "../../pages/admin/GuidesManagement";
 import CommunityManagement from "../../pages/admin/CommunityManagement";
+import GeofenceManagement from "../../pages/admin/GeofenceManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
 import DriverApproval from "../../pages/admin/DriverApproval";
 import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
@@ -319,6 +320,23 @@ function AdminHome() {
           <Grid item xs={12} sm={6} md={4}>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <LocationCity sx={{ fontSize: 40, color: 'warning.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Geofences
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Revisão e validação de geofences
+                </Typography>
+                <Button variant="contained" color="warning" href="/admin/geofences">
+                  Revisar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <DirectionsCar sx={{ fontSize: 40, color: 'primary.main', mb: 2 }} />
                 <Typography variant="h6" gutterBottom>
                   Motoristas
@@ -464,6 +482,15 @@ export default function AdminApp() {
           <Container maxWidth="lg" sx={{ mt: 2 }}>
             <AdminHeader />
             <CommunitiesManagement />
+          </Container>
+        </ProtectedAdminRoute>
+      } />
+      
+      <Route path="/geofences" element={
+        <ProtectedAdminRoute>
+          <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <AdminHeader />
+            <GeofenceManagement />
           </Container>
         </ProtectedAdminRoute>
       } />

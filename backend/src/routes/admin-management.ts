@@ -80,6 +80,21 @@ router.get('/communities', async (req, res) => {
             id: true,
             status: true
           }
+        },
+        geofenceData: {
+          select: {
+            centerLat: true,
+            centerLng: true,
+            minLat: true,
+            minLng: true,
+            maxLat: true,
+            maxLng: true,
+            geojson: true,
+            confidence: true,
+            isVerified: true,
+            reviewNotes: true,
+            updatedAt: true
+          }
         }
       },
       orderBy: { name: 'asc' }
