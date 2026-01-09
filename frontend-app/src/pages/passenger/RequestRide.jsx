@@ -11,7 +11,11 @@ import {
   Select,
   MenuItem,
   Alert,
-  Divider
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { LocationOn, MyLocation } from '@mui/icons-material';
 import GeofenceMap from '../components/maps/GeofenceMap';
@@ -27,6 +31,10 @@ const RequestRide = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectingLocation, setSelectingLocation] = useState(null); // 'pickup' ou 'dropoff'
+  
+  // Fallback confirmation states
+  const [showFallbackModal, setShowFallbackModal] = useState(false);
+  const [fallbackData, setFallbackData] = useState(null);
 
   useEffect(() => {
     fetchCommunities();
@@ -103,10 +111,68 @@ const RequestRide = () => {
       }
     } catch (error) {
       console.error('Erro ao solicitar corrida:', error);
-      setError(error.response?.data?.message || 'Erro ao solicitar corrida');
+      
+      // Handle fallback confirmation (HTTP 202)
+      if (error.response?.status === 202 && error.response?.data?.requiresConfirmation) {
+        setFallbackData(error.response.data);
+        setShowFallbackModal(true);
+        return;
+      }
+      
+      // Handle geofence error from backend
+      if (error.response?.status === 403) {
+        setError('Você está fora da área atendida');
+      } else {
+        setError(error.response?.data?.error || 'Erro ao solicitar corrida');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFallbackConfirm = async () => {
+    if (!fallbackData?.confirmationToken) return;
+    
+    setLoading(true);
+    try {
+      const rideData = {
+        communityId: selectedCommunity,
+        pickup: {
+          lat: pickupLocation.lat,
+          lng: pickupLocation.lng,
+          address: pickupAddress
+        },
+        dropoff: {
+          lat: dropoffLocation.lat,
+          lng: dropoffLocation.lng,
+          address: dropoffAddress
+        },
+        confirmationToken: fallbackData.confirmationToken
+      };
+
+      const response = await api.post('/api/governance/ride/request', rideData);
+      
+      if (response.data.success) {
+        alert('Corrida solicitada com motorista de fora da área!');
+        setShowFallbackModal(false);
+        setFallbackData(null);
+        // Reset form
+        setSelectedCommunity('');
+        setPickupLocation(null);
+        setDropoffLocation(null);
+        setPickupAddress('');
+        setDropoffAddress('');
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || 'Erro ao confirmar corrida');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFallbackCancel = () => {
+    setShowFallbackModal(false);
+    setFallbackData(null);
   };
 
   const selectedCommunityData = communities.find(c => c.id === selectedCommunity);
@@ -237,6 +303,36 @@ const RequestRide = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Fallback Confirmation Modal */}
+      <Dialog open={showFallbackModal} onClose={handleFallbackCancel}>
+        <DialogTitle>Sem motoristas na sua área</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom>
+            Não encontramos motoristas disponíveis na sua área no momento.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Motoristas na área: {fallbackData?.fallbackInfo?.driversInFence || 0}
+            <br />
+            Motoristas fora da área: {fallbackData?.fallbackInfo?.driversOutOfFence || 0}
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            Deseja aceitar um motorista de fora da sua área?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleFallbackCancel}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleFallbackConfirm} 
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? 'Confirmando...' : 'Aceitar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
