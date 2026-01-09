@@ -11,9 +11,10 @@ import {
   Select,
   MenuItem,
   Alert,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
-import { LocationOn, MyLocation } from '@mui/icons-material';
+import { LocationOn, MyLocation, GpsOff } from '@mui/icons-material';
 import GeofenceMap from '../components/maps/GeofenceMap';
 import api from '../api';
 
@@ -27,10 +28,67 @@ const RequestRide = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectingLocation, setSelectingLocation] = useState(null); // 'pickup' ou 'dropoff'
+  
+  // Geofence validation states
+  const [userLocation, setUserLocation] = useState(null);
+  const [geofenceStatus, setGeofenceStatus] = useState('checking'); // 'checking', 'inside', 'outside', 'error'
+  const [geofenceArea, setGeofenceArea] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(true);
 
   useEffect(() => {
     fetchCommunities();
+    getCurrentLocation();
   }, []);
+
+  const getCurrentLocation = () => {
+    setLocationLoading(true);
+    
+    if (!navigator.geolocation) {
+      setGeofenceStatus('error');
+      setLocationLoading(false);
+      setError('Geolocalização não suportada pelo navegador');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        
+        // Validate geofence
+        await validateUserGeofence(latitude, longitude);
+        setLocationLoading(false);
+      },
+      (error) => {
+        console.error('Erro ao obter localização:', error);
+        setGeofenceStatus('error');
+        setLocationLoading(false);
+        setError('Erro ao obter sua localização. Permita o acesso ao GPS.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  };
+
+  const validateUserGeofence = async (lat, lng) => {
+    try {
+      const response = await api.get(`/api/geo/resolve?lat=${lat}&lon=${lng}`);
+      
+      if (response.data.match) {
+        setGeofenceStatus('inside');
+        setGeofenceArea(response.data.area);
+      } else {
+        setGeofenceStatus('outside');
+        setGeofenceArea(null);
+      }
+    } catch (error) {
+      console.error('Erro ao validar geofence:', error);
+      setGeofenceStatus('error');
+    }
+  };
 
   const fetchCommunities = async () => {
     try {
@@ -72,12 +130,20 @@ const RequestRide = () => {
       return;
     }
 
+    // Double-check geofence before submitting
+    if (geofenceStatus !== 'inside') {
+      setError('Você está fora da área atendida pela KAVIAR');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
       const rideData = {
         communityId: selectedCommunity,
+        passengerLat: userLocation?.lat || pickupLocation.lat,
+        passengerLng: userLocation?.lng || pickupLocation.lng,
         pickup: {
           lat: pickupLocation.lat,
           lng: pickupLocation.lng,
@@ -103,7 +169,13 @@ const RequestRide = () => {
       }
     } catch (error) {
       console.error('Erro ao solicitar corrida:', error);
-      setError(error.response?.data?.message || 'Erro ao solicitar corrida');
+      
+      // Handle geofence error from backend
+      if (error.response?.status === 403) {
+        setError('Você está fora da área atendida');
+      } else {
+        setError(error.response?.data?.error || 'Erro ao solicitar corrida');
+      }
     } finally {
       setLoading(false);
     }
@@ -116,6 +188,36 @@ const RequestRide = () => {
       <Typography variant="h4" gutterBottom>
         🚗 Solicitar Corrida
       </Typography>
+
+      {/* Geofence Status Alert */}
+      {locationLoading && (
+        <Alert severity="info" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
+          <CircularProgress size={20} sx={{ mr: 1 }} />
+          Verificando sua localização...
+        </Alert>
+      )}
+
+      {geofenceStatus === 'inside' && geofenceArea && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          ✅ Área atendida: {geofenceArea.name}
+        </Alert>
+      )}
+
+      {geofenceStatus === 'outside' && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          <GpsOff sx={{ mr: 1 }} />
+          Você está fora da área atendida pela KAVIAR
+        </Alert>
+      )}
+
+      {geofenceStatus === 'error' && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          ⚠️ Não foi possível verificar sua localização. Permita o acesso ao GPS.
+          <Button size="small" onClick={getCurrentLocation} sx={{ ml: 1 }}>
+            Tentar novamente
+          </Button>
+        </Alert>
+      )}
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -229,10 +331,12 @@ const RequestRide = () => {
               size="large"
               fullWidth
               onClick={handleRequestRide}
-              disabled={loading}
+              disabled={loading || geofenceStatus !== 'inside'}
               sx={{ mt: 2 }}
             >
-              {loading ? 'Solicitando...' : 'Solicitar Corrida'}
+              {loading ? 'Solicitando...' : 
+               geofenceStatus !== 'inside' ? 'Fora da área atendida' : 
+               'Solicitar Corrida'}
             </Button>
           </CardContent>
         </Card>
