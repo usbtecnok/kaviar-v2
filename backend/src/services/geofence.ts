@@ -371,50 +371,6 @@ export class GeofenceService {
       blockReason: 'Nenhum motorista disponível no momento'
     };
   }
-  
-  if (!passengerGeofence.isWithinFence) {
-      return {
-        canCreateCommunityRide: false,
-        requiresOutOfFenceConfirmation: false,
-        geofenceInfo: {
-          passengerWithinFence: false,
-          driversInFence: 0,
-          driversOutOfFence: 0,
-          fallbackAvailable: false
-        },
-        blockReason: 'Passageiro fora da área de cobertura da comunidade'
-      };
-    }
-
-    // Find available drivers
-    const driversInfo = await this.findAvailableDrivers(passenger.communityId);
-
-    // If there are drivers within fence, allow normal community ride
-    if (driversInfo.driversInFence > 0) {
-      return {
-        canCreateCommunityRide: true,
-        requiresOutOfFenceConfirmation: false,
-        geofenceInfo: {
-          passengerWithinFence: true,
-          driversInFence: driversInfo.driversInFence,
-          driversOutOfFence: driversInfo.driversOutOfFence,
-          fallbackAvailable: false
-        }
-      };
-    }
-
-    // No drivers within fence - offer fallback (immediate, no wait)
-    return {
-      canCreateCommunityRide: false,
-      requiresOutOfFenceConfirmation: true,
-      geofenceInfo: {
-        passengerWithinFence: true,
-        driversInFence: 0,
-        driversOutOfFence: driversInfo.driversOutOfFence,
-        fallbackAvailable: driversInfo.driversOutOfFence > 0
-      }
-    };
-  }
 
   /**
    * Update driver location
@@ -475,8 +431,8 @@ export class GeofenceService {
 
       // Check if driver is in the same area as passenger
       const driverArea = await this.geoResolveService.resolveCoordinates(
-        driver.lastLat,
-        driver.lastLng
+        Number(driver.lastLat),
+        Number(driver.lastLng)
       );
 
       const isWithinFence = driverArea.match && driverArea.area?.id === areaId;

@@ -16,13 +16,6 @@ router.get('/communities', async (req, res) => {
   try {
     const communities = await prisma.community.findMany({
       where: { isActive: true },
-      select: { 
-        id: true, 
-        name: true, 
-        description: true,
-        centerLat: true,
-        centerLng: true
-      },
       include: {
         geofenceData: {
           select: {

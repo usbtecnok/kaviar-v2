@@ -6,6 +6,41 @@ const path = require('path');
 
 const prisma = new PrismaClient();
 
+function normalizeName(name) {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/[^a-z0-9\s]/g, '') // Remove caracteres especiais
+    .replace(/\s+/g, ' ') // Normaliza espaços
+    .trim();
+}
+
+function generateCanonicalKey(name, description) {
+  const normalizedName = normalizeName(name);
+  
+  // Extrair cidade/estado da descrição se disponível
+  let city = '';
+  let state = '';
+  
+  if (description) {
+    const parts = description.split(' - ');
+    if (parts.length > 1) {
+      const location = parts[1];
+      if (location.includes(',')) {
+        [city, state] = location.split(',').map(s => s.trim());
+      } else {
+        city = location;
+      }
+    }
+  }
+  
+  const normalizedCity = city ? normalizeName(city) : '';
+  const normalizedState = state ? normalizeName(state) : '';
+  
+  return `${normalizedName}|${normalizedCity}|${normalizedState}`;
+}
+
 async function importGeofenceData() {
   console.log('🗺️ Importando dados de geofence...');
   
@@ -23,23 +58,53 @@ async function importGeofenceData() {
   let imported = 0;
   let skipped = 0;
   let errors = 0;
+  const matchingReport = [];
   
   for (const item of geofenceData) {
     try {
-      // Verificar se a comunidade existe (por ID ou nome)
+      // Gerar chave canônica estável
+      const canonicalKey = generateCanonicalKey(item.name, item.description);
+      
+      // Verificar se a comunidade existe (por ID, nome ou chave canônica)
       let community = await prisma.community.findUnique({
         where: { id: item.id }
       });
       
+      let matchMethod = 'id';
+      
       if (!community) {
-        // Tentar encontrar por nome se não encontrou por ID
+        // Tentar encontrar por nome exato
         community = await prisma.community.findFirst({
           where: { name: item.name }
         });
+        matchMethod = 'name';
       }
       
       if (!community) {
-        console.log(`⚠️ Comunidade não encontrada: ${item.name} (${item.id})`);
+        // Tentar encontrar por nome normalizado (fuzzy match)
+        const normalizedName = normalizeName(item.name);
+        community = await prisma.community.findFirst({
+          where: { 
+            name: {
+              contains: normalizedName,
+              mode: 'insensitive'
+            }
+          }
+        });
+        matchMethod = 'fuzzy_name';
+      }
+      
+      matchingReport.push({
+        originalName: item.name,
+        canonicalKey,
+        found: !!community,
+        matchMethod: community ? matchMethod : 'none',
+        matchedName: community?.name || null,
+        matchedId: community?.id || null
+      });
+      
+      if (!community) {
+        console.log(`⚠️ Comunidade não encontrada: ${item.name} (${canonicalKey})`);
         skipped++;
         continue;
       }
@@ -93,7 +158,45 @@ async function importGeofenceData() {
   console.log(`⚠️ Ignorados: ${skipped}`);
   console.log(`❌ Erros: ${errors}`);
   
-  return { imported, skipped, errors };
+  // Gerar relatório de matching
+  const matchingReportPath = path.join(__dirname, '..', '..', 'audit', 'geofence_matching_report.md');
+  
+  let report = '# Relatório de Matching - Import Geofence\n\n';
+  report += `**Data:** ${new Date().toISOString()}\n`;
+  report += `**Total processado:** ${matchingReport.length}\n\n`;
+  
+  report += '## Resultados do Matching\n\n';
+  report += '| Nome Original | Chave Canônica | Encontrado | Método | Nome Matched | ID Matched |\n';
+  report += '|---------------|----------------|------------|--------|--------------|------------|\n';
+  
+  matchingReport.forEach(r => {
+    const found = r.found ? 'Sim' : 'Não';
+    const method = r.matchMethod || '-';
+    const matchedName = r.matchedName || '-';
+    const matchedId = r.matchedId || '-';
+    
+    report += `| ${r.originalName} | ${r.canonicalKey} | ${found} | ${method} | ${matchedName} | ${matchedId} |\n`;
+  });
+  
+  const stats = {
+    total: matchingReport.length,
+    found: matchingReport.filter(r => r.found).length,
+    byId: matchingReport.filter(r => r.matchMethod === 'id').length,
+    byName: matchingReport.filter(r => r.matchMethod === 'name').length,
+    byFuzzy: matchingReport.filter(r => r.matchMethod === 'fuzzy_name').length
+  };
+  
+  report += '\n## Estatísticas de Matching\n\n';
+  report += `- **Total:** ${stats.total}\n`;
+  report += `- **Encontrados:** ${stats.found} (${(stats.found/stats.total*100).toFixed(1)}%)\n`;
+  report += `- **Por ID:** ${stats.byId}\n`;
+  report += `- **Por nome exato:** ${stats.byName}\n`;
+  report += `- **Por nome fuzzy:** ${stats.byFuzzy}\n`;
+  
+  fs.writeFileSync(matchingReportPath, report);
+  console.log(`📋 Relatório de matching gerado: ${matchingReportPath}`);
+  
+  return { imported, skipped, errors, matchingReport };
 }
 
 function calculateBbox(geometry) {
