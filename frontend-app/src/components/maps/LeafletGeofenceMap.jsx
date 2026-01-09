@@ -20,24 +20,39 @@ const LeafletGeofenceMap = ({
     // Carregar Leaflet dinamicamente
     const loadLeaflet = async () => {
       try {
+        console.log('🗺️ [MAP DIAGNOSTIC] Iniciando carregamento do Leaflet...');
+        
         // Carregar CSS do Leaflet
         if (!document.querySelector('link[href*="leaflet"]')) {
+          console.log('🗺️ [MAP DIAGNOSTIC] Carregando Leaflet CSS...');
           const link = document.createElement('link');
           link.rel = 'stylesheet';
           link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          link.onload = () => console.log('✅ [MAP DIAGNOSTIC] Leaflet CSS carregado');
+          link.onerror = () => console.error('❌ [MAP DIAGNOSTIC] Erro ao carregar Leaflet CSS');
           document.head.appendChild(link);
         }
 
         // Carregar JS do Leaflet
         if (!window.L) {
+          console.log('🗺️ [MAP DIAGNOSTIC] Carregando Leaflet JS...');
           const script = document.createElement('script');
           script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          script.onload = () => initializeMap();
+          script.onload = () => {
+            console.log('✅ [MAP DIAGNOSTIC] Leaflet JS carregado');
+            initializeMap();
+          };
+          script.onerror = () => {
+            console.error('❌ [MAP DIAGNOSTIC] Erro ao carregar Leaflet JS');
+            setError('Erro ao carregar Leaflet JS');
+          };
           document.head.appendChild(script);
         } else {
+          console.log('✅ [MAP DIAGNOSTIC] Leaflet já disponível');
           initializeMap();
         }
       } catch (err) {
+        console.error('❌ [MAP DIAGNOSTIC] Erro geral:', err);
         setError('Erro ao carregar mapa: ' + err.message);
       }
     };
@@ -46,6 +61,8 @@ const LeafletGeofenceMap = ({
       if (!mapRef.current || mapInstanceRef.current) return;
 
       try {
+        console.log('🗺️ [MAP DIAGNOSTIC] Inicializando mapa Leaflet...');
+        
         // Calcular centro inicial
         let center = [-22.9068, -43.1729]; // Rio de Janeiro default
         
@@ -54,6 +71,7 @@ const LeafletGeofenceMap = ({
             parseFloat(selectedCommunity.centerLat),
             parseFloat(selectedCommunity.centerLng)
           ];
+          console.log('📍 [MAP DIAGNOSTIC] Centro da community:', center);
         }
 
         // Criar mapa
@@ -63,23 +81,42 @@ const LeafletGeofenceMap = ({
           zoomControl: true
         });
 
+        console.log('🗺️ [MAP DIAGNOSTIC] Adicionando tiles OpenStreetMap...');
+        
         // Adicionar tiles do OpenStreetMap
-        window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        const tileLayer = window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 19
-        }).addTo(map);
+        });
+        
+        tileLayer.on('loading', () => console.log('🔄 [MAP DIAGNOSTIC] Carregando tiles...'));
+        tileLayer.on('load', () => console.log('✅ [MAP DIAGNOSTIC] Tiles carregados com sucesso'));
+        tileLayer.on('tileerror', (e) => {
+          console.error('❌ [MAP DIAGNOSTIC] Erro no tile:', e.tile.src, 'Status:', e.tile.status || 'unknown');
+          console.error('❌ [MAP DIAGNOSTIC] Possível bloqueio CSP ou rate limit (403/429)');
+        });
+        tileLayer.on('tileload', (e) => {
+          console.log('🟢 [MAP DIAGNOSTIC] Tile carregado:', e.url);
+        });
+        
+        tileLayer.addTo(map);
 
         mapInstanceRef.current = map;
         setIsLoaded(true);
+        
+        console.log('✅ [MAP DIAGNOSTIC] Mapa inicializado com sucesso');
 
         // Renderizar geofences após o mapa carregar
         setTimeout(() => {
+          console.log('🔍 [MAP DIAGNOSTIC] Renderizando geofences...');
           renderGeofences(map);
           // Invalidar tamanho para corrigir renderização em modal
           map.invalidateSize();
+          console.log('🔄 [MAP DIAGNOSTIC] invalidateSize() executado');
         }, 200);
 
       } catch (err) {
+        console.error('❌ [MAP DIAGNOSTIC] Erro ao inicializar mapa:', err);
         setError('Erro ao inicializar mapa: ' + err.message);
       }
     };
@@ -107,6 +144,8 @@ const LeafletGeofenceMap = ({
   const renderGeofences = (map) => {
     if (!window.L || !communities.length) return;
 
+    console.log('🔍 [MAP DIAGNOSTIC] Renderizando geofences para', communities.length, 'communities');
+
     communities.forEach((community) => {
       const isSelected = selectedCommunity?.id === community.id;
 
@@ -115,6 +154,7 @@ const LeafletGeofenceMap = ({
       
       if (community.geometry) {
         // Formato da API: {type: "Polygon", coordinates: [...]}
+        console.log('📐 [MAP DIAGNOSTIC] Geometry encontrada:', typeof community.geometry, community.geometry.type);
         geometryData = community.geometry;
       } else if (community.geofence) {
         // Formato legacy: {type: "polygon", path: [...]}
@@ -122,6 +162,8 @@ const LeafletGeofenceMap = ({
           const geofence = typeof community.geofence === 'string' 
             ? JSON.parse(community.geofence) 
             : community.geofence;
+          
+          console.log('📐 [MAP DIAGNOSTIC] Geofence legacy:', typeof community.geofence, geofence.type);
           
           if (geofence.type === 'polygon' && geofence.path) {
             // Converter para formato GeoJSON
@@ -131,7 +173,7 @@ const LeafletGeofenceMap = ({
             };
           }
         } catch (error) {
-          console.error(`Erro ao processar geofence legacy do bairro ${community.name}:`, error);
+          console.error(`❌ [MAP DIAGNOSTIC] Erro ao processar geofence legacy do bairro ${community.name}:`, error);
         }
       }
 
@@ -141,6 +183,8 @@ const LeafletGeofenceMap = ({
           // Converter coordenadas GeoJSON [lng, lat] para Leaflet [lat, lng]
           const latLngs = geometryData.coordinates[0].map(coord => [coord[1], coord[0]]);
           
+          console.log('🗺️ [MAP DIAGNOSTIC] Criando polígono com', latLngs.length, 'pontos');
+          
           const polygon = window.L.polygon(latLngs, {
             color: isSelected ? '#1976D2' : '#388E3C',
             fillColor: isSelected ? '#2196F3' : '#4CAF50',
@@ -149,15 +193,18 @@ const LeafletGeofenceMap = ({
           }).addTo(map);
 
           if (isSelected) {
-            map.fitBounds(polygon.getBounds());
+            const bounds = polygon.getBounds();
+            console.log('📏 [MAP DIAGNOSTIC] FitBounds executado:', bounds.toString());
+            map.fitBounds(bounds, { padding: [20, 20] });
           }
         } catch (error) {
-          console.error(`Erro ao renderizar polígono do bairro ${community.name}:`, error);
+          console.error(`❌ [MAP DIAGNOSTIC] Erro ao renderizar polígono do bairro ${community.name}:`, error);
         }
       }
 
       // Renderizar círculo se não tem polígono
       else if (community.centerLat && community.centerLng && community.radiusMeters) {
+        console.log('⭕ [MAP DIAGNOSTIC] Renderizando círculo para', community.name);
         const circle = window.L.circle(
           [parseFloat(community.centerLat), parseFloat(community.centerLng)],
           {
@@ -212,15 +259,22 @@ const LeafletGeofenceMap = ({
   }
 
   return (
-    <Box sx={{ height: 400, width: '100%', position: 'relative' }}>
+    <Box sx={{ height: 420, width: '100%', position: 'relative' }}>
       <div 
         ref={mapRef} 
         style={{ 
-          height: '100%', 
+          height: '420px', 
           width: '100%',
-          borderRadius: '4px'
+          borderRadius: '4px',
+          minHeight: '420px'
         }} 
       />
+      {/* Container height diagnostic */}
+      {mapRef.current && (
+        <div style={{ display: 'none' }}>
+          {console.log('📏 [MAP DIAGNOSTIC] Container height:', mapRef.current.offsetHeight, 'px')}
+        </div>
+      )}
     </Box>
   );
 };
