@@ -83,7 +83,7 @@ function convertEsriToGeoJSON(esriData) {
     return {
       type: 'Feature',
       properties: {
-        name: feature.attributes.nome || feature.attributes.NOME
+        name: feature.attributes?.nome ?? feature.attributes?.NOME ?? ''
       },
       geometry: {
         type: 'Polygon',
@@ -152,8 +152,12 @@ function generateReport(geojson, importResult) {
   console.log('\n📊 IMPORT REPORT');
   console.log('================');
   
-  const found = geojson.features.map(f => f.properties.name);
-  const missing = TARGET_BAIRROS.filter(target => 
+  const found = geojson.features
+    .map(f => f?.properties?.name)
+    .filter(Boolean)
+    .map(name => String(name).trim());
+
+  const missing = TARGET_BAIRROS.filter(target =>
     !found.some(name => name.toLowerCase().includes(target.toLowerCase()))
   );
 
