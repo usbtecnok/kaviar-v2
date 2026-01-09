@@ -25,6 +25,8 @@ export default defineConfig({
     }
   },
   define: {
-    'process.env': {}
+    'process.env': {},
+    __BUILD_HASH__: JSON.stringify(process.env.VITE_BUILD_HASH || 'dev'),
+    __BUILD_TIME__: JSON.stringify(process.env.VITE_BUILD_TIME || new Date().toISOString())
   }
 })

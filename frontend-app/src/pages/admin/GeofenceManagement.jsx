@@ -37,32 +37,44 @@ const validateGeometry = (geofence) => {
   if (!geofence?.geometry) {
     return {
       centerInside: 'N/A (Sem geofence)',
-      areaSize: 'N/A'
+      areaSize: 'N/A',
+      isValidGeometry: false
     };
   }
 
   const { geometry, centerLat, centerLng } = geofence;
   
-  if (geometry.type === 'Point') {
+  // Verificar se é geometria válida para cálculos
+  const validTypes = ['Polygon', 'MultiPolygon'];
+  if (!validTypes.includes(geometry.type)) {
     return {
-      centerInside: 'N/A (Point)',
-      areaSize: 'N/A'
+      centerInside: `N/A (${geometry.type})`,
+      areaSize: 'N/A',
+      isValidGeometry: false
+    };
+  }
+
+  // Verificar se centro está no RJ (heurística básica)
+  const lat = parseFloat(centerLat);
+  const lng = parseFloat(centerLng);
+  const isInRJ = lat >= -23.1 && lat <= -22.7 && lng >= -43.8 && lng <= -43.1;
+  
+  if (!isInRJ) {
+    return {
+      centerInside: 'N/A (Fora do RJ)',
+      areaSize: 'N/A',
+      isValidGeometry: false
     };
   }
 
   try {
     // Verificar se centro está dentro do polígono
-    const centerPoint = turf.point([parseFloat(centerLng), parseFloat(centerLat)]);
+    const centerPoint = turf.point([lng, lat]);
     const polygon = turf.feature(geometry);
     const isInside = turf.booleanPointInPolygon(centerPoint, polygon);
 
     // Calcular área
-    let area = 0;
-    if (geometry.type === 'Polygon') {
-      area = turf.area(polygon);
-    } else if (geometry.type === 'MultiPolygon') {
-      area = turf.area(polygon);
-    }
+    const area = turf.area(polygon);
 
     // Classificar tamanho (em km²)
     const areaKm2 = area / 1000000;
@@ -74,13 +86,15 @@ const validateGeometry = (geofence) => {
 
     return {
       centerInside: isInside ? 'Sim' : 'Não',
-      areaSize: `${sizeClass} (${areaKm2.toFixed(2)} km²)`
+      areaSize: `${sizeClass} (${areaKm2.toFixed(2)} km²)`,
+      isValidGeometry: true
     };
   } catch (error) {
     console.error('Erro ao validar geometria:', error);
     return {
       centerInside: 'Erro',
-      areaSize: 'Erro'
+      areaSize: 'Erro',
+      isValidGeometry: false
     };
   }
 };

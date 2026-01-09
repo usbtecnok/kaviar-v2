@@ -418,6 +418,13 @@ function AdminHome() {
           </Grid>
         </Grid>
       </Box>
+
+      {/* Build Stamp */}
+      <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
+        <Typography variant="caption" color="text.secondary">
+          Build: {__BUILD_HASH__} - {new Date(__BUILD_TIME__).toLocaleString('pt-BR')}
+        </Typography>
+      </Box>
     </Container>
   );
 }
