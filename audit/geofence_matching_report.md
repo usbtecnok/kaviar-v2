@@ -1,6 +1,6 @@
 # Relatório de Matching - Import Geofence
 
-**Data:** 2026-01-09T12:10:15.473Z
+**Data:** 2026-01-09T12:18:16.778Z
 **Total processado:** 22
 
 ## Resultados do Matching

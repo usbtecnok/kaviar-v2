@@ -42,7 +42,9 @@ function generateCanonicalKey(name, description) {
 }
 
 async function importGeofenceData() {
-  console.log('🗺️ Importando dados de geofence...');
+  const isDryRun = process.env.DRY_RUN === 'true';
+  
+  console.log(`🗺️ ${isDryRun ? 'SIMULANDO' : 'Importando'} dados de geofence...`);
   
   // Ler dados da auditoria
   const auditFile = path.join(__dirname, '..', '..', 'audit', 'geofences_raw.json');
@@ -92,6 +94,22 @@ async function importGeofenceData() {
           }
         });
         matchMethod = 'fuzzy_name';
+        
+        // REGRA: Fuzzy match não importa automaticamente
+        if (community && !isDryRun) {
+          console.log(`⚠️ Fuzzy match encontrado mas não importado: ${item.name} → ${community.name}`);
+          matchingReport.push({
+            originalName: item.name,
+            canonicalKey,
+            found: true,
+            matchMethod: 'fuzzy_blocked',
+            matchedName: community.name,
+            matchedId: community.id,
+            reason: 'Fuzzy match bloqueado - requer revisão manual'
+          });
+          skipped++;
+          continue;
+        }
       }
       
       matchingReport.push({
@@ -100,12 +118,19 @@ async function importGeofenceData() {
         found: !!community,
         matchMethod: community ? matchMethod : 'none',
         matchedName: community?.name || null,
-        matchedId: community?.id || null
+        matchedId: community?.id || null,
+        reason: community ? null : 'Não encontrado'
       });
       
       if (!community) {
         console.log(`⚠️ Comunidade não encontrada: ${item.name} (${canonicalKey})`);
         skipped++;
+        continue;
+      }
+      
+      if (isDryRun) {
+        console.log(`🔍 DRY-RUN: Importaria ${item.name} → ${community.name} (${matchMethod})`);
+        imported++;
         continue;
       }
       
