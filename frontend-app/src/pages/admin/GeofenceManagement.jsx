@@ -27,9 +27,63 @@ import {
   FormControlLabel
 } from '@mui/material';
 import { Map, Visibility, Edit, CheckCircle } from '@mui/icons-material';
+import * as turf from '@turf/turf';
 import GeofenceMap from '../../components/maps/GeofenceMap';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+// Funções de validação geométrica
+const validateGeometry = (geofence) => {
+  if (!geofence?.geometry) {
+    return {
+      centerInside: 'N/A (Sem geofence)',
+      areaSize: 'N/A'
+    };
+  }
+
+  const { geometry, centerLat, centerLng } = geofence;
+  
+  if (geometry.type === 'Point') {
+    return {
+      centerInside: 'N/A (Point)',
+      areaSize: 'N/A'
+    };
+  }
+
+  try {
+    // Verificar se centro está dentro do polígono
+    const centerPoint = turf.point([parseFloat(centerLng), parseFloat(centerLat)]);
+    const polygon = turf.feature(geometry);
+    const isInside = turf.booleanPointInPolygon(centerPoint, polygon);
+
+    // Calcular área
+    let area = 0;
+    if (geometry.type === 'Polygon') {
+      area = turf.area(polygon);
+    } else if (geometry.type === 'MultiPolygon') {
+      area = turf.area(polygon);
+    }
+
+    // Classificar tamanho (em km²)
+    const areaKm2 = area / 1000000;
+    let sizeClass;
+    if (areaKm2 < 1) sizeClass = 'Pequena';
+    else if (areaKm2 < 10) sizeClass = 'Média';
+    else if (areaKm2 < 50) sizeClass = 'Grande';
+    else sizeClass = 'Muito grande';
+
+    return {
+      centerInside: isInside ? 'Sim' : 'Não',
+      areaSize: `${sizeClass} (${areaKm2.toFixed(2)} km²)`
+    };
+  } catch (error) {
+    console.error('Erro ao validar geometria:', error);
+    return {
+      centerInside: 'Erro',
+      areaSize: 'Erro'
+    };
+  }
+};
 
 export default function GeofenceManagement() {
   const [communities, setCommunities] = useState([]);
@@ -424,6 +478,39 @@ export default function GeofenceManagement() {
                 <br />
                 <strong>Fonte:</strong> {mapDialog.geofence.source}
               </Typography>
+
+              {/* Indicadores de Validação Geométrica */}
+              {(() => {
+                const validation = validateGeometry(mapDialog.geofence);
+                return (
+                  <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Chip 
+                      label={`Centro dentro: ${validation.centerInside}`}
+                      color={validation.centerInside === 'Sim' ? 'success' : 
+                             validation.centerInside === 'Não' ? 'error' : 'default'}
+                      size="small"
+                    />
+                    <Chip 
+                      label={`Tamanho: ${validation.areaSize}`}
+                      color="info"
+                      size="small"
+                    />
+                  </Box>
+                );
+              })()}
+
+              {/* Alerta se centro estiver fora */}
+              {(() => {
+                const validation = validateGeometry(mapDialog.geofence);
+                if (validation.centerInside === 'Não') {
+                  return (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      ⚠️ Centro fora do polígono. Considere ajustar as coordenadas do centro.
+                    </Alert>
+                  );
+                }
+                return null;
+              })()}
               
               {mapDialog.geofence.geometry ? (
                 <Box>
@@ -496,6 +583,33 @@ export default function GeofenceManagement() {
           Editar Geofence: {editDialog.community?.name}
         </DialogTitle>
         <DialogContent>
+          {/* Indicadores de Validação Geométrica */}
+          {editDialog.geofence && (() => {
+            const validation = validateGeometry(editDialog.geofence);
+            return (
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                  <Chip 
+                    label={`Centro dentro: ${validation.centerInside}`}
+                    color={validation.centerInside === 'Sim' ? 'success' : 
+                           validation.centerInside === 'Não' ? 'error' : 'default'}
+                    size="small"
+                  />
+                  <Chip 
+                    label={`Tamanho: ${validation.areaSize}`}
+                    color="info"
+                    size="small"
+                  />
+                </Box>
+                {validation.centerInside === 'Não' && (
+                  <Alert severity="warning" sx={{ mb: 1 }}>
+                    ⚠️ Centro fora do polígono. Ajuste as coordenadas abaixo.
+                  </Alert>
+                )}
+              </Box>
+            );
+          })()}
+
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField
               label="Latitude do Centro"
