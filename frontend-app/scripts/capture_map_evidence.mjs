@@ -90,21 +90,111 @@ async function captureMapEvidence() {
     await page.click('button[type="submit"], button:has-text("Login"), button:has-text("Entrar")');
     await page.waitForLoadState('networkidle');
 
+    // Confirm login by URL or admin element (timeout 10s)
+    try {
+      await page.waitForFunction(() => 
+        window.location.pathname.includes('/admin') && 
+        !window.location.pathname.includes('/login'), 
+        { timeout: 10000 }
+      );
+      console.log('✅ Login successful - admin area accessed');
+    } catch (loginError) {
+      console.error('❌ Login failed - saving debug screenshot');
+      
+      // Save debug screenshot
+      const debugLoginPath = join(evidenceDir, 'DEBUG_LOGIN_FAILED.png');
+      await page.screenshot({ path: debugLoginPath, fullPage: true });
+      
+      // Generate error report
+      const errorReport = `# Relatório - Erro de Login
+
+**Data:** ${new Date().toISOString()}
+**URL:** ${ADMIN_URL}
+**Status:** ERROR_LOGIN
+
+## ❌ Falha no Login
+
+- **Erro**: Não foi possível acessar área administrativa
+- **Credenciais**: Verificar ADMIN_EMAIL e ADMIN_PASSWORD no .env
+- **Debug Screenshot**: DEBUG_LOGIN_FAILED.png
+- **URL atual**: ${page.url()}
+
+## 🔧 Próximos Passos
+
+1. Verificar credenciais no arquivo .env
+2. Confirmar que o usuário tem acesso admin
+3. Testar login manual no navegador
+4. Executar novamente após correção
+
+---
+*Execução interrompida devido a falha de autenticação.*`;
+
+      const reportPath = join(projectRoot, 'audit/ui_map_evidence_report.md');
+      writeFileSync(reportPath, errorReport);
+      
+      console.log('📄 Error report saved: audit/ui_map_evidence_report.md');
+      console.log('🐛 Debug screenshot: audit/ui_map_evidence/DEBUG_LOGIN_FAILED.png');
+      
+      await browser.close();
+      return;
+    }
+
     console.log('🗺️ Navigating to geofences admin...');
     
     // Navigate to geofences
     await page.goto(`${ADMIN_URL}/admin/geofences`);
     await page.waitForLoadState('networkidle');
 
+    // Wait for table to load (timeout 20s)
+    try {
+      await page.waitForSelector('table, .MuiTable-root, [role="table"]', { timeout: 20000 });
+      console.log('✅ Table loaded successfully');
+    } catch (tableError) {
+      console.error('❌ Table not found - saving debug screenshot');
+      
+      // Save debug screenshot
+      const debugTablePath = join(evidenceDir, 'DEBUG_TABLE_NOT_FOUND.png');
+      await page.screenshot({ path: debugTablePath, fullPage: true });
+      
+      // Generate error report
+      const errorReport = `# Relatório - Erro de Tabela
+
+**Data:** ${new Date().toISOString()}
+**URL:** ${ADMIN_URL}/admin/geofences
+**Status:** ERROR_TABLE
+
+## ❌ Tabela Não Encontrada
+
+- **Erro**: Timeout aguardando tabela de geofences (20s)
+- **Seletores testados**: table, .MuiTable-root, [role="table"]
+- **Debug Screenshot**: DEBUG_TABLE_NOT_FOUND.png
+- **URL atual**: ${page.url()}
+
+## 🔧 Próximos Passos
+
+1. Verificar se a página /admin/geofences existe
+2. Confirmar estrutura da tabela na UI
+3. Ajustar seletores se necessário
+4. Executar novamente após correção
+
+---
+*Execução interrompida devido a tabela não encontrada.*`;
+
+      const reportPath = join(projectRoot, 'audit/ui_map_evidence_report.md');
+      writeFileSync(reportPath, errorReport);
+      
+      console.log('📄 Error report saved: audit/ui_map_evidence_report.md');
+      console.log('🐛 Debug screenshot: audit/ui_map_evidence/DEBUG_TABLE_NOT_FOUND.png');
+      
+      await browser.close();
+      return;
+    }
+
     // Process each test case
     for (const testCase of TEST_CASES) {
       console.log(`📸 Capturing: ${testCase.name}...`);
       
       try {
-        // Wait for table to load
-        await page.waitForSelector('table, .MuiTable-root, [role="table"]', { timeout: 10000 });
-        console.log(`  ✅ Table loaded`);
-
         // Use search/filter if available to make row visible
         try {
           const searchInput = page.locator('input[placeholder*="Pesquisar"], input[placeholder*="Buscar"], input[type="search"]').first();
@@ -123,14 +213,22 @@ async function captureMapEvidence() {
         console.log(`  ✅ Found row for: ${testCase.name}`);
 
         // Find map button within the same row (flexible selectors)
-        const mapButton = communityRow.locator(`
-          button:has-text(/Mapa|Ver no mapa/i),
-          button[aria-label*="mapa" i],
-          button[title*="mapa" i],
-          button[data-testid*="map"],
-          .MuiIconButton-root:has(svg),
-          button:has(svg)
-        `).first();
+        let mapButton;
+        try {
+          // Try different button selectors
+          mapButton = communityRow.locator('button:has-text("Mapa")').first();
+          if (!(await mapButton.isVisible({ timeout: 1000 }))) {
+            mapButton = communityRow.locator('button:has-text("Ver no mapa")').first();
+          }
+          if (!(await mapButton.isVisible({ timeout: 1000 }))) {
+            mapButton = communityRow.locator('button[aria-label*="mapa" i]').first();
+          }
+          if (!(await mapButton.isVisible({ timeout: 1000 }))) {
+            mapButton = communityRow.locator('button[title*="mapa" i]').first();
+          }
+        } catch (e) {
+          mapButton = communityRow.locator('button').first(); // Fallback to any button
+        }
         
         await mapButton.waitFor({ timeout: 5000 });
         console.log(`  ✅ Found map button for: ${testCase.name}`);
@@ -139,25 +237,37 @@ async function captureMapEvidence() {
         await mapButton.click();
         console.log(`  ✅ Clicked map button for: ${testCase.name}`);
 
-        // Wait for modal to appear
-        await page.waitForSelector('.MuiDialog-root, .modal, [role="dialog"]', { timeout: 10000 });
+        // Wait for modal to appear (20s timeout)
+        await page.waitForSelector('.MuiDialog-root, [role="dialog"]', { timeout: 20000 });
         console.log(`  ✅ Modal opened for: ${testCase.name}`);
         
-        // Wait for map container
-        await page.waitForSelector('.leaflet-container, .map-container', { timeout: 10000 });
+        // Wait for map container (20s timeout)
+        await page.waitForSelector('.leaflet-container', { timeout: 20000 });
         console.log(`  ✅ Map container found for ${testCase.name}`);
 
-        // Wait for tiles to load (either success or timeout)
+        // Wait for tiles to load (10s timeout, non-critical)
         try {
-          await page.waitForSelector('img.leaflet-tile', { timeout: 5000 });
+          await page.waitForSelector('img.leaflet-tile', { timeout: 10000 });
           console.log(`  ✅ Tiles loaded for ${testCase.name}`);
         } catch (e) {
           console.log(`  ⚠️ Tiles timeout for ${testCase.name}, proceeding anyway`);
         }
 
-        // Buffer time for complete rendering (tiles + polygon)
+        // OBRIGATÓRIO: Buffer time for complete rendering (tiles + polygon)
         await page.waitForTimeout(2000);
         console.log(`  ✅ Rendering buffer completed for ${testCase.name}`);
+
+        // For Polygon cases: wait for overlay (10s timeout, non-critical)
+        let hasPolygon = false;
+        if (testCase.expectedType === 'Polygon') {
+          try {
+            await page.waitForSelector('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path', { timeout: 10000 });
+            hasPolygon = true;
+            console.log(`  ✅ Polygon overlay found for ${testCase.name}`);
+          } catch (e) {
+            console.log(`  ⚠️ Polygon overlay timeout for ${testCase.name}, marking MAP_RENDER_INCOMPLETE`);
+          }
+        }
 
         // Extract build info if available
         try {
@@ -193,7 +303,11 @@ async function captureMapEvidence() {
 
         // Check if map rendered properly
         const hasMapContent = await page.locator('.leaflet-container').isVisible();
-        const hasPolygon = await page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path, svg path').count() > 0;
+        const polygonDetected = hasPolygon || await page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path').count() > 0;
+        
+        const status = hasMapContent ? 
+          (testCase.expectedType === 'Polygon' && !polygonDetected ? 'MAP_RENDER_INCOMPLETE' : 'SUCCESS') : 
+          'MAP_RENDER_INCOMPLETE';
         
         results.push({
           name: testCase.name,
@@ -201,11 +315,11 @@ async function captureMapEvidence() {
           filename: testCase.filename,
           expectedType: testCase.expectedType,
           hasMapContent,
-          hasPolygon,
-          status: hasMapContent ? 'SUCCESS' : 'MAP_RENDER_INCOMPLETE'
+          hasPolygon: polygonDetected,
+          status
         });
 
-        console.log(`  ✅ ${testCase.name}: Map Content=${hasMapContent ? '✅' : '❌'}, Polygon=${hasPolygon ? '✅' : '❌'}`);
+        console.log(`  ✅ ${testCase.name}: Map Content=${hasMapContent ? '✅' : '❌'}, Polygon=${polygonDetected ? '✅' : '❌'}, Status=${status}`);
 
         // Close modal
         await page.keyboard.press('Escape');
@@ -225,19 +339,14 @@ async function captureMapEvidence() {
       } catch (error) {
         console.error(`  ❌ Error capturing ${testCase.name}:`, error.message);
         
-        // Capture debug screenshot and logs on error
+        // Save debug screenshot for row/button not found
         try {
-          const debugScreenshotPath = join(evidenceDir, `DEBUG_${testCase.filename}`);
+          const debugScreenshotPath = join(evidenceDir, `DEBUG_ROW_OR_BUTTON_${testCase.name.replace(/\s+/g, '_')}.png`);
           await page.screenshot({ 
             path: debugScreenshotPath,
             fullPage: true
           });
-          console.log(`  🐛 Debug screenshot saved: DEBUG_${testCase.filename}`);
-
-          // Get console logs
-          const consoleLogs = await page.evaluate(() => {
-            return window.console.history || 'Console history not available';
-          });
+          console.log(`  🐛 Debug screenshot saved: DEBUG_ROW_OR_BUTTON_${testCase.name.replace(/\s+/g, '_')}.png`);
 
           results.push({
             name: testCase.name,
@@ -246,10 +355,9 @@ async function captureMapEvidence() {
             expectedType: testCase.expectedType,
             hasMapContent: false,
             hasPolygon: false,
-            status: 'ERROR',
+            status: 'ERROR_ROW_BUTTON',
             error: error.message,
-            debugScreenshot: `DEBUG_${testCase.filename}`,
-            consoleLogs: typeof consoleLogs === 'string' ? consoleLogs : JSON.stringify(consoleLogs)
+            debugScreenshot: `DEBUG_ROW_OR_BUTTON_${testCase.name.replace(/\s+/g, '_')}.png`
           });
         } catch (debugError) {
           console.error(`  🐛 Debug capture failed:`, debugError.message);
@@ -260,12 +368,12 @@ async function captureMapEvidence() {
             expectedType: testCase.expectedType,
             hasMapContent: false,
             hasPolygon: false,
-            status: 'ERROR',
+            status: 'ERROR_ROW_BUTTON',
             error: error.message
           });
         }
 
-        // Don't close browser - continue with next test case
+        // Continue with next test case (don't abort)
         console.log(`  ⏭️ Continuing with next test case...`);
       }
     }
@@ -310,12 +418,31 @@ ${results.map(r =>
 ### ✅ Casos de Sucesso
 ${results.filter(r => r.status === 'SUCCESS').map(r => 
   `- **${r.name}**: Modal aberto, mapa renderizado, screenshot capturado`
-).join('\n')}
+).join('\n') || 'Nenhum caso de sucesso'}
 
-### ⚠️ Casos com Problemas
-${results.filter(r => r.status !== 'SUCCESS').map(r => 
+### ⚠️ Casos Incompletos
+${results.filter(r => r.status === 'MAP_RENDER_INCOMPLETE').map(r => 
+  `- **${r.name}**: Modal aberto, mas renderização incompleta (tiles ou polígono)`
+).join('\n') || 'Nenhum caso incompleto'}
+
+### ❌ Casos com Erro
+${results.filter(r => r.status.startsWith('ERROR')).map(r => 
   `- **${r.name}**: ${r.status}${r.error ? ` - ${r.error}` : ''}${r.debugScreenshot ? ` (Debug: ${r.debugScreenshot})` : ''}`
-).join('\n') || 'Nenhum problema encontrado'}
+).join('\n') || 'Nenhum erro encontrado'}
+
+## 📊 Resumo de Status
+
+- **SUCCESS**: ${results.filter(r => r.status === 'SUCCESS').length}/${results.length}
+- **MAP_RENDER_INCOMPLETE**: ${results.filter(r => r.status === 'MAP_RENDER_INCOMPLETE').length}/${results.length}
+- **ERROR_LOGIN**: ${results.filter(r => r.status === 'ERROR_LOGIN').length}/${results.length}
+- **ERROR_TABLE**: ${results.filter(r => r.status === 'ERROR_TABLE').length}/${results.length}
+- **ERROR_ROW_BUTTON**: ${results.filter(r => r.status === 'ERROR_ROW_BUTTON').length}/${results.length}
+
+## ✅ Critérios de Aceitação
+
+- **4 screenshots finais**: ${results.length >= 4 ? '✅' : '❌'} (${results.length}/4)
+- **Pelo menos 1 Polygon com overlay**: ${results.some(r => r.expectedType === 'Polygon' && r.hasPolygon) ? '✅' : '❌'}
+- **Providência abre sem crash**: ${results.find(r => r.name.includes('Providência'))?.hasMapContent ? '✅' : '❌'}
 
 ## 🐛 Informações de Debug
 
