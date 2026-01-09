@@ -1,0 +1,1720 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2096,
+              -22.9711
+            ],
+            [
+              -43.1776,
+              -22.9711
+            ],
+            [
+              -43.1776,
+              -22.9506
+            ],
+            [
+              -43.2096,
+              -22.9506
+            ],
+            [
+              -43.2096,
+              -22.9711
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Copacabana",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "8.083",
+        "center": [
+          -43.1936,
+          -22.96085
+        ],
+        "bbox": [
+          -43.2096,
+          -22.9711,
+          -43.1776,
+          -22.9506
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2276,
+              -22.9896
+            ],
+            [
+              -43.1996,
+              -22.9896
+            ],
+            [
+              -43.1996,
+              -22.9791
+            ],
+            [
+              -43.2276,
+              -22.9791
+            ],
+            [
+              -43.2276,
+              -22.9896
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Ipanema",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "3.622",
+        "center": [
+          -43.2136,
+          -22.98435
+        ],
+        "bbox": [
+          -43.2276,
+          -22.9896,
+          -43.1996,
+          -22.9791
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2376,
+              -22.9946
+            ],
+            [
+              -43.2176,
+              -22.9946
+            ],
+            [
+              -43.2176,
+              -22.9841
+            ],
+            [
+              -43.2376,
+              -22.9841
+            ],
+            [
+              -43.2376,
+              -22.9946
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Leblon",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "2.587",
+        "center": [
+          -43.227599999999995,
+          -22.98935
+        ],
+        "bbox": [
+          -43.2376,
+          -22.9946,
+          -43.2176,
+          -22.9841
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1976,
+              -22.9596
+            ],
+            [
+              -43.1656,
+              -22.9596
+            ],
+            [
+              -43.1656,
+              -22.9391
+            ],
+            [
+              -43.1976,
+              -22.9391
+            ],
+            [
+              -43.1976,
+              -22.9596
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Botafogo",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "8.083",
+        "center": [
+          -43.1816,
+          -22.94935
+        ],
+        "bbox": [
+          -43.1976,
+          -22.9596,
+          -43.1656,
+          -22.9391
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1856,
+              -22.9396
+            ],
+            [
+              -43.1636,
+              -22.9396
+            ],
+            [
+              -43.1636,
+              -22.9191
+            ],
+            [
+              -43.1856,
+              -22.9191
+            ],
+            [
+              -43.1856,
+              -22.9396
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Flamengo",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.1746,
+          -22.92935
+        ],
+        "bbox": [
+          -43.1856,
+          -22.9396,
+          -43.1636,
+          -22.9191
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1936,
+              -22.9396
+            ],
+            [
+              -43.1716,
+              -22.9396
+            ],
+            [
+              -43.1716,
+              -22.9191
+            ],
+            [
+              -43.1936,
+              -22.9191
+            ],
+            [
+              -43.1936,
+              -22.9396
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Laranjeiras",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.1826,
+          -22.92935
+        ],
+        "bbox": [
+          -43.1936,
+          -22.9396,
+          -43.1716,
+          -22.9191
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1836,
+              -22.9296
+            ],
+            [
+              -43.1616,
+              -22.9296
+            ],
+            [
+              -43.1616,
+              -22.9091
+            ],
+            [
+              -43.1836,
+              -22.9091
+            ],
+            [
+              -43.1836,
+              -22.9296
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Catete",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.1726,
+          -22.91935
+        ],
+        "bbox": [
+          -43.1836,
+          -22.9296,
+          -43.1616,
+          -22.9091
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1816,
+              -22.9196
+            ],
+            [
+              -43.1596,
+              -22.9196
+            ],
+            [
+              -43.1596,
+              -22.8991
+            ],
+            [
+              -43.1816,
+              -22.8991
+            ],
+            [
+              -43.1816,
+              -22.9196
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Glória",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.1706,
+          -22.90935
+        ],
+        "bbox": [
+          -43.1816,
+          -22.9196,
+          -43.1596,
+          -22.8991
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1776,
+              -22.9696
+            ],
+            [
+              -43.1656,
+              -22.9696
+            ],
+            [
+              -43.1656,
+              -22.9591
+            ],
+            [
+              -43.1776,
+              -22.9591
+            ],
+            [
+              -43.1776,
+              -22.9696
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Leme",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "1.552",
+        "center": [
+          -43.1716,
+          -22.96435
+        ],
+        "bbox": [
+          -43.1776,
+          -22.9696,
+          -43.1656,
+          -22.9591
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1696,
+              -22.9596
+            ],
+            [
+              -43.1576,
+              -22.9596
+            ],
+            [
+              -43.1576,
+              -22.9491
+            ],
+            [
+              -43.1696,
+              -22.9491
+            ],
+            [
+              -43.1696,
+              -22.9596
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Urca",
+        "zone": "Zona Sul",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "1.552",
+        "center": [
+          -43.1636,
+          -22.954349999999998
+        ],
+        "bbox": [
+          -43.1696,
+          -22.9596,
+          -43.1576,
+          -22.9491
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2576,
+              -22.9296
+            ],
+            [
+              -43.2156,
+              -22.9296
+            ],
+            [
+              -43.2156,
+              -22.9091
+            ],
+            [
+              -43.2576,
+              -22.9091
+            ],
+            [
+              -43.2576,
+              -22.9296
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Tijuca",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "10.608",
+        "center": [
+          -43.236599999999996,
+          -22.91935
+        ],
+        "bbox": [
+          -43.2576,
+          -22.9296,
+          -43.2156,
+          -22.9091
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2676,
+              -22.9196
+            ],
+            [
+              -43.2456,
+              -22.9196
+            ],
+            [
+              -43.2456,
+              -22.8991
+            ],
+            [
+              -43.2676,
+              -22.8991
+            ],
+            [
+              -43.2676,
+              -22.9196
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Vila Isabel",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.256600000000006,
+          -22.90935
+        ],
+        "bbox": [
+          -43.2676,
+          -22.9196,
+          -43.2456,
+          -22.8991
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2376,
+              -22.9196
+            ],
+            [
+              -43.2156,
+              -22.9196
+            ],
+            [
+              -43.2156,
+              -22.8991
+            ],
+            [
+              -43.2376,
+              -22.8991
+            ],
+            [
+              -43.2376,
+              -22.9196
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Maracanã",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.226600000000005,
+          -22.90935
+        ],
+        "bbox": [
+          -43.2376,
+          -22.9196,
+          -43.2156,
+          -22.8991
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2776,
+              -22.9296
+            ],
+            [
+              -43.2556,
+              -22.9296
+            ],
+            [
+              -43.2556,
+              -22.9091
+            ],
+            [
+              -43.2776,
+              -22.9091
+            ],
+            [
+              -43.2776,
+              -22.9296
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Grajaú",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.2666,
+          -22.91935
+        ],
+        "bbox": [
+          -43.2776,
+          -22.9296,
+          -43.2556,
+          -22.9091
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2576,
+              -22.9396
+            ],
+            [
+              -43.2356,
+              -22.9396
+            ],
+            [
+              -43.2356,
+              -22.9191
+            ],
+            [
+              -43.2576,
+              -22.9191
+            ],
+            [
+              -43.2576,
+              -22.9396
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Andaraí",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.2466,
+          -22.92935
+        ],
+        "bbox": [
+          -43.2576,
+          -22.9396,
+          -43.2356,
+          -22.9191
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2276,
+              -22.9096
+            ],
+            [
+              -43.2056,
+              -22.9096
+            ],
+            [
+              -43.2056,
+              -22.8891
+            ],
+            [
+              -43.2276,
+              -22.8891
+            ],
+            [
+              -43.2276,
+              -22.9096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "São Cristóvão",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.2166,
+          -22.89935
+        ],
+        "bbox": [
+          -43.2276,
+          -22.9096,
+          -43.2056,
+          -22.8891
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2376,
+              -22.8996
+            ],
+            [
+              -43.2156,
+              -22.8996
+            ],
+            [
+              -43.2156,
+              -22.8791
+            ],
+            [
+              -43.2376,
+              -22.8791
+            ],
+            [
+              -43.2376,
+              -22.8996
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Benfica",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.226600000000005,
+          -22.88935
+        ],
+        "bbox": [
+          -43.2376,
+          -22.8996,
+          -43.2156,
+          -22.8791
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2476,
+              -22.8996
+            ],
+            [
+              -43.2256,
+              -22.8996
+            ],
+            [
+              -43.2256,
+              -22.8791
+            ],
+            [
+              -43.2476,
+              -22.8791
+            ],
+            [
+              -43.2476,
+              -22.8996
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Sampaio",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.236599999999996,
+          -22.88935
+        ],
+        "bbox": [
+          -43.2476,
+          -22.8996,
+          -43.2256,
+          -22.8791
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2676,
+              -22.9096
+            ],
+            [
+              -43.2456,
+              -22.9096
+            ],
+            [
+              -43.2456,
+              -22.8891
+            ],
+            [
+              -43.2676,
+              -22.8891
+            ],
+            [
+              -43.2676,
+              -22.9096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Engenho Novo",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.256600000000006,
+          -22.89935
+        ],
+        "bbox": [
+          -43.2676,
+          -22.9096,
+          -43.2456,
+          -22.8891
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2876,
+              -22.9096
+            ],
+            [
+              -43.2656,
+              -22.9096
+            ],
+            [
+              -43.2656,
+              -22.8891
+            ],
+            [
+              -43.2876,
+              -22.8891
+            ],
+            [
+              -43.2876,
+              -22.9096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Méier",
+        "zone": "Zona Norte",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.2766,
+          -22.89935
+        ],
+        "bbox": [
+          -43.2876,
+          -22.9096,
+          -43.2656,
+          -22.8891
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1896,
+              -22.9196
+            ],
+            [
+              -43.1676,
+              -22.9196
+            ],
+            [
+              -43.1676,
+              -22.8991
+            ],
+            [
+              -43.1896,
+              -22.8991
+            ],
+            [
+              -43.1896,
+              -22.9196
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Centro",
+        "zone": "Centro",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.1786,
+          -22.90935
+        ],
+        "bbox": [
+          -43.1896,
+          -22.9196,
+          -43.1676,
+          -22.8991
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1996,
+              -22.9196
+            ],
+            [
+              -43.1776,
+              -22.9196
+            ],
+            [
+              -43.1776,
+              -22.8991
+            ],
+            [
+              -43.1996,
+              -22.8991
+            ],
+            [
+              -43.1996,
+              -22.9196
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Lapa",
+        "zone": "Centro",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.188599999999994,
+          -22.90935
+        ],
+        "bbox": [
+          -43.1996,
+          -22.9196,
+          -43.1776,
+          -22.8991
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1996,
+              -22.9296
+            ],
+            [
+              -43.1776,
+              -22.9296
+            ],
+            [
+              -43.1776,
+              -22.9091
+            ],
+            [
+              -43.1996,
+              -22.9091
+            ],
+            [
+              -43.1996,
+              -22.9296
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Santa Teresa",
+        "zone": "Centro",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.188599999999994,
+          -22.91935
+        ],
+        "bbox": [
+          -43.1996,
+          -22.9296,
+          -43.1776,
+          -22.9091
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1996,
+              -22.9096
+            ],
+            [
+              -43.1776,
+              -22.9096
+            ],
+            [
+              -43.1776,
+              -22.8891
+            ],
+            [
+              -43.1996,
+              -22.8891
+            ],
+            [
+              -43.1996,
+              -22.9096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Gamboa",
+        "zone": "Centro",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.188599999999994,
+          -22.89935
+        ],
+        "bbox": [
+          -43.1996,
+          -22.9096,
+          -43.1776,
+          -22.8891
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1896,
+              -22.9096
+            ],
+            [
+              -43.1676,
+              -22.9096
+            ],
+            [
+              -43.1676,
+              -22.8891
+            ],
+            [
+              -43.1896,
+              -22.8891
+            ],
+            [
+              -43.1896,
+              -22.9096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Saúde",
+        "zone": "Centro",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.1786,
+          -22.89935
+        ],
+        "bbox": [
+          -43.1896,
+          -22.9096,
+          -43.1676,
+          -22.8891
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2096,
+              -22.9096
+            ],
+            [
+              -43.1876,
+              -22.9096
+            ],
+            [
+              -43.1876,
+              -22.8891
+            ],
+            [
+              -43.2096,
+              -22.8891
+            ],
+            [
+              -43.2096,
+              -22.9096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Santo Cristo",
+        "zone": "Centro",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.1986,
+          -22.89935
+        ],
+        "bbox": [
+          -43.2096,
+          -22.9096,
+          -43.1876,
+          -22.8891
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2196,
+              -22.8996
+            ],
+            [
+              -43.1976,
+              -22.8996
+            ],
+            [
+              -43.1976,
+              -22.8791
+            ],
+            [
+              -43.2196,
+              -22.8791
+            ],
+            [
+              -43.2196,
+              -22.8996
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Caju",
+        "zone": "Centro",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.557",
+        "center": [
+          -43.208600000000004,
+          -22.88935
+        ],
+        "bbox": [
+          -43.2196,
+          -22.8996,
+          -43.1976,
+          -22.8791
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.3676,
+              -23.0196
+            ],
+            [
+              -43.2976,
+              -23.0196
+            ],
+            [
+              -43.2976,
+              -22.9791
+            ],
+            [
+              -43.3676,
+              -22.9791
+            ],
+            [
+              -43.3676,
+              -23.0196
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Barra da Tijuca",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "34.930",
+        "center": [
+          -43.3326,
+          -22.99935
+        ],
+        "bbox": [
+          -43.3676,
+          -23.0196,
+          -43.2976,
+          -22.9791
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.4676,
+              -23.0396
+            ],
+            [
+              -43.3976,
+              -23.0396
+            ],
+            [
+              -43.3976,
+              -22.9991
+            ],
+            [
+              -43.4676,
+              -22.9991
+            ],
+            [
+              -43.4676,
+              -23.0396
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Recreio dos Bandeirantes",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "34.930",
+        "center": [
+          -43.432599999999994,
+          -23.01935
+        ],
+        "bbox": [
+          -43.4676,
+          -23.0396,
+          -43.3976,
+          -22.9991
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.3876,
+              -22.9796
+            ],
+            [
+              -43.3176,
+              -22.9796
+            ],
+            [
+              -43.3176,
+              -22.9391
+            ],
+            [
+              -43.3876,
+              -22.9391
+            ],
+            [
+              -43.3876,
+              -22.9796
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Jacarepaguá",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "34.930",
+        "center": [
+          -43.352599999999995,
+          -22.95935
+        ],
+        "bbox": [
+          -43.3876,
+          -22.9796,
+          -43.3176,
+          -22.9391
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.3776,
+              -22.9296
+            ],
+            [
+              -43.3476,
+              -22.9296
+            ],
+            [
+              -43.3476,
+              -22.9091
+            ],
+            [
+              -43.3776,
+              -22.9091
+            ],
+            [
+              -43.3776,
+              -22.9296
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Taquara",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "7.577",
+        "center": [
+          -43.3626,
+          -22.91935
+        ],
+        "bbox": [
+          -43.3776,
+          -22.9296,
+          -43.3476,
+          -22.9091
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.3476,
+              -22.9396
+            ],
+            [
+              -43.3176,
+              -22.9396
+            ],
+            [
+              -43.3176,
+              -22.9191
+            ],
+            [
+              -43.3476,
+              -22.9191
+            ],
+            [
+              -43.3476,
+              -22.9396
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Freguesia",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "7.577",
+        "center": [
+          -43.3326,
+          -22.92935
+        ],
+        "bbox": [
+          -43.3476,
+          -22.9396,
+          -43.3176,
+          -22.9191
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.3576,
+              -22.9296
+            ],
+            [
+              -43.3276,
+              -22.9296
+            ],
+            [
+              -43.3276,
+              -22.9091
+            ],
+            [
+              -43.3576,
+              -22.9091
+            ],
+            [
+              -43.3576,
+              -22.9296
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Pechincha",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "7.577",
+        "center": [
+          -43.3426,
+          -22.91935
+        ],
+        "bbox": [
+          -43.3576,
+          -22.9296,
+          -43.3276,
+          -22.9091
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.5676,
+              -22.9196
+            ],
+            [
+              -43.5176,
+              -22.9196
+            ],
+            [
+              -43.5176,
+              -22.8791
+            ],
+            [
+              -43.5676,
+              -22.8791
+            ],
+            [
+              -43.5676,
+              -22.9196
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Campo Grande",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "24.950",
+        "center": [
+          -43.5426,
+          -22.89935
+        ],
+        "bbox": [
+          -43.5676,
+          -22.9196,
+          -43.5176,
+          -22.8791
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.6876,
+              -22.9296
+            ],
+            [
+              -43.6176,
+              -22.9296
+            ],
+            [
+              -43.6176,
+              -22.8891
+            ],
+            [
+              -43.6876,
+              -22.8891
+            ],
+            [
+              -43.6876,
+              -22.9296
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Santa Cruz",
+        "zone": "Zona Oeste",
+        "parent": null,
+        "type": "BAIRRO",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "34.930",
+        "center": [
+          -43.65260000000001,
+          -22.90935
+        ],
+        "bbox": [
+          -43.6876,
+          -22.9296,
+          -43.6176,
+          -22.8891
+        ]
+      }
+    }
+  ]
+}

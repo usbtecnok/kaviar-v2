@@ -1,36 +1,36 @@
 # Relatório - Importação RJ Padrão Ouro (Piloto)
 
-**Data:** 2026-01-09T15:34:10.296Z
+**Data:** 2026-01-09T16:13:55.063Z
 
 ## Resumo
 
-- **Total processados:** 3
+- **Total processados:** 0
 - **Criados:** 0
-- **Atualizados:** 3
-- **Ignorados:** 0
+- **Atualizados:** 0
+- **Ignorados:** 3
 
 ## Detalhes
 
 ### Glória
-- **Ação:** UPDATED
-- **Community ID:** cmk6uwq9u0007qqr3pxqr64ce
-- **Tipo:** Polygon
-- **Confidence:** MED
+- **Ação:** SKIPPED
 
+
+
+- **Motivo:** Geofence existente é melhor ou igual
 
 ### Botafogo
-- **Ação:** UPDATED
-- **Community ID:** cmk6ux02j0011qqr398od1msm
-- **Tipo:** Polygon
-- **Confidence:** MED
+- **Ação:** SKIPPED
 
+
+
+- **Motivo:** Geofence existente é melhor ou igual
 
 ### Tijuca
-- **Ação:** UPDATED
-- **Community ID:** cmk6ux8fk001rqqr371kc4ple
-- **Tipo:** Polygon
-- **Confidence:** MED
+- **Ação:** SKIPPED
 
+
+
+- **Motivo:** Geofence existente é melhor ou igual
 
 ## Validação Obrigatória
 

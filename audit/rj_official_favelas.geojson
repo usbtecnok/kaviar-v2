@@ -1,0 +1,446 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2576,
+              -22.9996
+            ],
+            [
+              -43.2376,
+              -22.9996
+            ],
+            [
+              -43.2376,
+              -22.9791
+            ],
+            [
+              -43.2576,
+              -22.9791
+            ],
+            [
+              -43.2576,
+              -22.9996
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Rocinha",
+        "zone": "Zona Sul",
+        "parent": "São Conrado",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.052",
+        "center": [
+          -43.2476,
+          -22.98935
+        ],
+        "bbox": [
+          -43.2576,
+          -22.9996,
+          -43.2376,
+          -22.9791
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2476,
+              -23.0096
+            ],
+            [
+              -43.2276,
+              -23.0096
+            ],
+            [
+              -43.2276,
+              -22.9891
+            ],
+            [
+              -43.2476,
+              -22.9891
+            ],
+            [
+              -43.2476,
+              -23.0096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Vidigal",
+        "zone": "Zona Sul",
+        "parent": "São Conrado",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "5.052",
+        "center": [
+          -43.2376,
+          -22.99935
+        ],
+        "bbox": [
+          -43.2476,
+          -23.0096,
+          -43.2276,
+          -22.9891
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2176,
+              -22.9796
+            ],
+            [
+              -43.2076,
+              -22.9796
+            ],
+            [
+              -43.2076,
+              -22.9696
+            ],
+            [
+              -43.2176,
+              -22.9696
+            ],
+            [
+              -43.2176,
+              -22.9796
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Pavão-Pavãozinho",
+        "zone": "Zona Sul",
+        "parent": "Copacabana",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "1.232",
+        "center": [
+          -43.212599999999995,
+          -22.974600000000002
+        ],
+        "bbox": [
+          -43.2176,
+          -22.9796,
+          -43.2076,
+          -22.9696
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2076,
+              -22.9796
+            ],
+            [
+              -43.1976,
+              -22.9796
+            ],
+            [
+              -43.1976,
+              -22.9696
+            ],
+            [
+              -43.2076,
+              -22.9696
+            ],
+            [
+              -43.2076,
+              -22.9796
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Cantagalo",
+        "zone": "Zona Sul",
+        "parent": "Copacabana",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "1.232",
+        "center": [
+          -43.202600000000004,
+          -22.974600000000002
+        ],
+        "bbox": [
+          -43.2076,
+          -22.9796,
+          -43.1976,
+          -22.9696
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1876,
+              -22.9596
+            ],
+            [
+              -43.1776,
+              -22.9596
+            ],
+            [
+              -43.1776,
+              -22.9496
+            ],
+            [
+              -43.1876,
+              -22.9496
+            ],
+            [
+              -43.1876,
+              -22.9596
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Santa Marta",
+        "zone": "Zona Sul",
+        "parent": "Botafogo",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "1.232",
+        "center": [
+          -43.1826,
+          -22.9546
+        ],
+        "bbox": [
+          -43.1876,
+          -22.9596,
+          -43.1776,
+          -22.9496
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.1996,
+              -22.9096
+            ],
+            [
+              -43.1896,
+              -22.9096
+            ],
+            [
+              -43.1896,
+              -22.8996
+            ],
+            [
+              -43.1996,
+              -22.8996
+            ],
+            [
+              -43.1996,
+              -22.9096
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Providência",
+        "zone": "Centro",
+        "parent": "Centro",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "1.232",
+        "center": [
+          -43.194599999999994,
+          -22.904600000000002
+        ],
+        "bbox": [
+          -43.1996,
+          -22.9096,
+          -43.1896,
+          -22.8996
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.2676,
+              -22.8596
+            ],
+            [
+              -43.2376,
+              -22.8596
+            ],
+            [
+              -43.2376,
+              -22.8296
+            ],
+            [
+              -43.2676,
+              -22.8296
+            ],
+            [
+              -43.2676,
+              -22.8596
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Complexo do Alemão",
+        "zone": "Zona Norte",
+        "parent": "Inhaúma",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "11.089",
+        "center": [
+          -43.2526,
+          -22.8446
+        ],
+        "bbox": [
+          -43.2676,
+          -22.8596,
+          -43.2376,
+          -22.8296
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.3676,
+              -22.9496
+            ],
+            [
+              -43.3476,
+              -22.9496
+            ],
+            [
+              -43.3476,
+              -22.9296
+            ],
+            [
+              -43.3676,
+              -22.9296
+            ],
+            [
+              -43.3676,
+              -22.9496
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Cidade de Deus",
+        "zone": "Zona Oeste",
+        "parent": "Jacarepaguá",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "4.928",
+        "center": [
+          -43.357600000000005,
+          -22.9396
+        ],
+        "bbox": [
+          -43.3676,
+          -22.9496,
+          -43.3476,
+          -22.9296
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -43.3776,
+              -22.9596
+            ],
+            [
+              -43.3576,
+              -22.9596
+            ],
+            [
+              -43.3576,
+              -22.9396
+            ],
+            [
+              -43.3776,
+              -22.9396
+            ],
+            [
+              -43.3776,
+              -22.9596
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Rio das Pedras",
+        "zone": "Zona Oeste",
+        "parent": "Jacarepaguá",
+        "type": "FAVELA",
+        "source": "KAVIAR/Manual",
+        "confidence": "HIGH",
+        "area_km2": "4.928",
+        "center": [
+          -43.367599999999996,
+          -22.949599999999997
+        ],
+        "bbox": [
+          -43.3776,
+          -22.9596,
+          -43.3576,
+          -22.9396
+        ]
+      }
+    }
+  ]
+}
