@@ -86,6 +86,43 @@ async function captureMapEvidence() {
   let buildHash = 'unknown';
   let provider = 'unknown';
 
+  // Capture all API requests
+  const apiRequests = [];
+  
+  page.on('request', request => {
+    const url = request.url();
+    if (url.includes('/api/')) {
+      apiRequests.push({
+        url: url,
+        method: request.method(),
+        timestamp: Date.now(),
+        type: 'request'
+      });
+    }
+  });
+
+  page.on('response', async response => {
+    const url = response.url();
+    if (url.includes('/api/')) {
+      let responseBody = '';
+      try {
+        const text = await response.text();
+        responseBody = text.length > 500 ? text.substring(0, 500) + '...' : text;
+      } catch (e) {
+        responseBody = 'Could not read response body';
+      }
+      
+      apiRequests.push({
+        url: url,
+        method: response.request().method(),
+        status: response.status(),
+        responseBody: responseBody,
+        timestamp: Date.now(),
+        type: 'response'
+      });
+    }
+  });
+
   try {
     console.log('🔐 Logging into admin...');
     
@@ -253,9 +290,44 @@ async function captureMapEvidence() {
         await mapButton.waitFor({ timeout: 5000 });
         console.log(`  ✅ Found map button for: ${testCase.name}`);
         
-        // Click the map button
+        // Click the map button and capture requests
+        const requestsBefore = apiRequests.length;
+        const clickTimestamp = Date.now();
+        
         await mapButton.click();
         console.log(`  ✅ Clicked map button for: ${testCase.name}`);
+
+        // Wait a bit for requests to be made
+        await page.waitForTimeout(3000);
+        
+        // Filter requests made after the click
+        const requestsAfterClick = apiRequests.filter(req => req.timestamp >= clickTimestamp);
+        const geofenceRequests = requestsAfterClick.filter(req => 
+          req.url.includes('/geofence') || req.url.includes('/communities/')
+        );
+        
+        // Save requests data
+        const requestsData = {
+          clickTimestamp: clickTimestamp,
+          totalRequestsAfterClick: requestsAfterClick.length,
+          geofenceRequests: geofenceRequests,
+          allRequestsAfterClick: requestsAfterClick
+        };
+        
+        const requestsPath = join(evidenceDir, `requests_${testCase.slug}.json`);
+        writeFileSync(requestsPath, JSON.stringify(requestsData, null, 2));
+        
+        console.log(`  🔍 Captured ${geofenceRequests.length} geofence requests for ${testCase.name}`);
+        
+        if (geofenceRequests.length === 0) {
+          console.log(`  🚨 BUG: UI não dispara fetch de geofence ao abrir modal para ${testCase.name}`);
+        } else {
+          geofenceRequests.forEach(req => {
+            if (req.type === 'response') {
+              console.log(`  📡 ${testCase.name} API call: ${req.status} ${req.url}`);
+            }
+          });
+        }
 
         // Wait for modal to appear (20s timeout)
         await page.waitForSelector('[role="dialog"]', { timeout: 20000 });

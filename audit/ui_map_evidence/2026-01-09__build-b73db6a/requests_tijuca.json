@@ -1,0 +1,36 @@
+{
+  "clickTimestamp": 1767995577024,
+  "totalRequestsAfterClick": 2,
+  "geofenceRequests": [
+    {
+      "url": "https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux8rf001sqqr38hes7gqf/geofence",
+      "method": "GET",
+      "timestamp": 1767995577081,
+      "type": "request"
+    },
+    {
+      "url": "https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux8rf001sqqr38hes7gqf/geofence",
+      "method": "GET",
+      "status": 404,
+      "responseBody": "{\"success\":false,\"error\":\"Geofence não encontrado para esta comunidade\"}",
+      "timestamp": 1767995578136,
+      "type": "response"
+    }
+  ],
+  "allRequestsAfterClick": [
+    {
+      "url": "https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux8rf001sqqr38hes7gqf/geofence",
+      "method": "GET",
+      "timestamp": 1767995577081,
+      "type": "request"
+    },
+    {
+      "url": "https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux8rf001sqqr38hes7gqf/geofence",
+      "method": "GET",
+      "status": 404,
+      "responseBody": "{\"success\":false,\"error\":\"Geofence não encontrado para esta comunidade\"}",
+      "timestamp": 1767995578136,
+      "type": "response"
+    }
+  ]
+}
