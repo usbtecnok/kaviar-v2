@@ -36,34 +36,46 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 const validateGeometry = (geofence) => {
   if (!geofence?.geometry) {
     return {
-      centerInside: 'N/A (Sem geofence)',
+      hasFence: 'Não (sem dados)',
+      centerInside: 'N/A',
       areaSize: 'N/A',
-      isValidGeometry: false
+      isOutsideRJ: false
     };
   }
 
   const { geometry, centerLat, centerLng } = geofence;
   
-  // Verificar se é geometria válida para cálculos
-  const validTypes = ['Polygon', 'MultiPolygon'];
-  if (!validTypes.includes(geometry.type)) {
-    return {
-      centerInside: `N/A (${geometry.type})`,
-      areaSize: 'N/A',
-      isValidGeometry: false
-    };
-  }
-
   // Verificar se centro está no RJ (heurística básica)
   const lat = parseFloat(centerLat);
   const lng = parseFloat(centerLng);
   const isInRJ = lat >= -23.1 && lat <= -22.7 && lng >= -43.8 && lng <= -43.1;
   
+  // Verificar tipo de geometria
+  if (geometry.type === 'Point') {
+    return {
+      hasFence: 'Não (somente centro)',
+      centerInside: 'N/A',
+      areaSize: 'N/A',
+      isOutsideRJ: !isInRJ
+    };
+  }
+
+  if (geometry.type !== 'Polygon' && geometry.type !== 'MultiPolygon') {
+    return {
+      hasFence: 'Não (não suportado)',
+      centerInside: 'N/A',
+      areaSize: 'N/A',
+      isOutsideRJ: !isInRJ
+    };
+  }
+
+  // Para Polygon/MultiPolygon
   if (!isInRJ) {
     return {
-      centerInside: 'N/A (Fora do RJ)',
+      hasFence: 'Sim',
+      centerInside: 'N/A',
       areaSize: 'N/A',
-      isValidGeometry: false
+      isOutsideRJ: true
     };
   }
 
@@ -75,9 +87,8 @@ const validateGeometry = (geofence) => {
 
     // Calcular área
     const area = turf.area(polygon);
-
-    // Classificar tamanho (em km²)
     const areaKm2 = area / 1000000;
+    
     let sizeClass;
     if (areaKm2 < 1) sizeClass = 'Pequena';
     else if (areaKm2 < 10) sizeClass = 'Média';
@@ -85,16 +96,18 @@ const validateGeometry = (geofence) => {
     else sizeClass = 'Muito grande';
 
     return {
+      hasFence: 'Sim',
       centerInside: isInside ? 'Sim' : 'Não',
-      areaSize: `${sizeClass} (${areaKm2.toFixed(2)} km²)`,
-      isValidGeometry: true
+      areaSize: `${areaKm2.toFixed(2)} km² (${sizeClass})`,
+      isOutsideRJ: false
     };
   } catch (error) {
     console.error('Erro ao validar geometria:', error);
     return {
-      centerInside: 'Erro',
-      areaSize: 'Erro',
-      isValidGeometry: false
+      hasFence: 'Sim',
+      centerInside: 'N/A',
+      areaSize: 'N/A',
+      isOutsideRJ: false
     };
   }
 };
@@ -497,33 +510,41 @@ export default function GeofenceManagement() {
               {(() => {
                 const validation = validateGeometry(mapDialog.geofence);
                 return (
-                  <Box sx={{ mb: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Chip 
-                      label={`Centro dentro: ${validation.centerInside}`}
-                      color={validation.centerInside === 'Sim' ? 'success' : 
-                             validation.centerInside === 'Não' ? 'error' : 'default'}
-                      size="small"
-                    />
-                    <Chip 
-                      label={`Tamanho: ${validation.areaSize}`}
-                      color="info"
-                      size="small"
-                    />
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                      <Chip 
+                        label={`Cerca: ${validation.hasFence}`}
+                        color={validation.hasFence === 'Sim' ? 'success' : 'default'}
+                        size="small"
+                      />
+                      <Chip 
+                        label={`Centro dentro: ${validation.centerInside}`}
+                        color={validation.centerInside === 'Sim' ? 'success' : 
+                               validation.centerInside === 'Não' ? 'error' : 'default'}
+                        size="small"
+                      />
+                      <Chip 
+                        label={`Tamanho: ${validation.areaSize}`}
+                        color="info"
+                        size="small"
+                      />
+                    </Box>
+                    
+                    {/* Alerta se centro estiver fora do polígono */}
+                    {validation.centerInside === 'Não' && (
+                      <Alert severity="warning" sx={{ mb: 1 }}>
+                        ⚠️ Centro fora do polígono. Considere ajustar as coordenadas do centro.
+                      </Alert>
+                    )}
+                    
+                    {/* Alerta se local estiver fora do RJ */}
+                    {validation.isOutsideRJ && (
+                      <Alert severity="warning" sx={{ mb: 1 }}>
+                        ⚠️ Local fora do RJ — revisar / refetch
+                      </Alert>
+                    )}
                   </Box>
                 );
-              })()}
-
-              {/* Alerta se centro estiver fora */}
-              {(() => {
-                const validation = validateGeometry(mapDialog.geofence);
-                if (validation.centerInside === 'Não') {
-                  return (
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      ⚠️ Centro fora do polígono. Considere ajustar as coordenadas do centro.
-                    </Alert>
-                  );
-                }
-                return null;
               })()}
               
               {mapDialog.geofence.geometry ? (
@@ -604,6 +625,11 @@ export default function GeofenceManagement() {
               <Box sx={{ mb: 2 }}>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
                   <Chip 
+                    label={`Cerca: ${validation.hasFence}`}
+                    color={validation.hasFence === 'Sim' ? 'success' : 'default'}
+                    size="small"
+                  />
+                  <Chip 
                     label={`Centro dentro: ${validation.centerInside}`}
                     color={validation.centerInside === 'Sim' ? 'success' : 
                            validation.centerInside === 'Não' ? 'error' : 'default'}
@@ -615,9 +641,18 @@ export default function GeofenceManagement() {
                     size="small"
                   />
                 </Box>
+                
+                {/* Alerta se centro estiver fora do polígono */}
                 {validation.centerInside === 'Não' && (
                   <Alert severity="warning" sx={{ mb: 1 }}>
                     ⚠️ Centro fora do polígono. Ajuste as coordenadas abaixo.
+                  </Alert>
+                )}
+                
+                {/* Alerta se local estiver fora do RJ */}
+                {validation.isOutsideRJ && (
+                  <Alert severity="warning" sx={{ mb: 1 }}>
+                    ⚠️ Local fora do RJ — revisar / refetch
                   </Alert>
                 )}
               </Box>
