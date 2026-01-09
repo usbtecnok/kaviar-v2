@@ -149,6 +149,24 @@ const LeafletGeofenceMap = ({
     communities.forEach((community) => {
       const isSelected = selectedCommunity?.id === community.id;
 
+      // Verificar se tem flag de SEM DADOS
+      if (community.hasNoGeofence) {
+        console.log('📍 [MAP DIAGNOSTIC] Community SEM DADOS:', community.name);
+        
+        // Mostrar apenas centro se disponível
+        if (community.centerLat && community.centerLng) {
+          window.L.marker([
+            parseFloat(community.centerLat),
+            parseFloat(community.centerLng)
+          ]).addTo(map).bindPopup(`${community.name} - SEM DADOS`);
+          
+          if (isSelected) {
+            map.setView([parseFloat(community.centerLat), parseFloat(community.centerLng)], 15);
+          }
+        }
+        return;
+      }
+
       // Processar geometry (formato da API) ou geofence (formato legacy)
       let geometryData = null;
       
@@ -222,11 +240,15 @@ const LeafletGeofenceMap = ({
       }
 
       // Adicionar marcador do centro
-      if (community.centerLat && community.centerLng) {
+      else if (community.centerLat && community.centerLng) {
         window.L.marker([
           parseFloat(community.centerLat),
           parseFloat(community.centerLng)
         ]).addTo(map).bindPopup(community.name);
+        
+        if (isSelected) {
+          map.setView([parseFloat(community.centerLat), parseFloat(community.centerLng)], 15);
+        }
       }
     });
   };

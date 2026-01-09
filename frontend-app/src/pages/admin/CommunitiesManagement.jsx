@@ -172,10 +172,27 @@ export default function CommunitiesManagement() {
         };
         
         setMapDialog({ open: true, community: communityForMap });
-      } else {
-        // Fallback se não conseguir buscar geofence
+      } else if (response.status === 204 || response.status === 404) {
+        // SEM DADOS - não chamar response.json() para 204/404
+        console.log(`📍 [MAP DIAGNOSTIC] Community ${community.name}: SEM DADOS (${response.status})`);
+        
         const communityForMap = {
           ...community,
+          geometry: null,
+          geofence: null,
+          hasNoGeofence: true // Flag para mostrar "SEM DADOS"
+        };
+        
+        setMapDialog({ open: true, community: communityForMap });
+      } else {
+        // Outros erros
+        const errorData = await response.json();
+        console.error('Erro ao buscar geofence:', errorData);
+        
+        // Fallback
+        const communityForMap = {
+          ...community,
+          geometry: null,
           geofence: community.geofenceData?.geojson || null
         };
         setMapDialog({ open: true, community: communityForMap });
@@ -185,6 +202,7 @@ export default function CommunitiesManagement() {
       // Fallback em caso de erro
       const communityForMap = {
         ...community,
+        geometry: null,
         geofence: community.geofenceData?.geojson || null
       };
       setMapDialog({ open: true, community: communityForMap });
