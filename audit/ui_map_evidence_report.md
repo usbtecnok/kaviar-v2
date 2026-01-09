@@ -1,6 +1,6 @@
 # Relatório - Evidência Automatizada UI Mapa
 
-**Data:** 2026-01-09T20:54:51.966Z
+**Data:** 2026-01-09T21:04:30.646Z
 **URL:** https://kaviar-frontend.onrender.com
 **Build Hash:** unknown
 **Provider:** unknown
@@ -21,19 +21,65 @@
 
 
 ### ⚠️ Casos com Problemas
-- **Botafogo**: ERROR - locator.waitFor: Timeout 10000ms exceeded.
+- **Botafogo**: ERROR - page.waitForSelector: Timeout 10000ms exceeded.
 Call log:
-[2m  - waiting for locator('button:has-text("Ver no mapa")').first() to be visible[22m
-
-- **Tijuca**: ERROR - locator.waitFor: Timeout 10000ms exceeded.
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+ (Debug: DEBUG_Botafogo_polygon_render.png)
+- **Tijuca**: ERROR - page.waitForSelector: Timeout 10000ms exceeded.
 Call log:
-[2m  - waiting for locator('button:has-text("Ver no mapa")').first() to be visible[22m
-
-- **Glória**: ERROR - locator.waitFor: Target page, context or browser has been closed
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+ (Debug: DEBUG_Tijuca_polygon_render.png)
+- **Glória**: ERROR - page.waitForSelector: Timeout 10000ms exceeded.
 Call log:
-[2m  - waiting for locator('button:has-text("Ver no mapa")').first() to be visible[22m
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+ (Debug: DEBUG_Gloria_polygon_render.png)
+- **Morro da Providência**: ERROR - page.waitForSelector: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+ (Debug: DEBUG_Providencia_sem_dados.png)
 
-- **Morro da Providência**: ERROR - locator.waitFor: Target page, context or browser has been closed
+## 🐛 Informações de Debug
+
+
+### Botafogo - Erro Detalhado
+- **Status**: ERROR
+- **Erro**: page.waitForSelector: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+
+- **Debug Screenshot**: DEBUG_Botafogo_polygon_render.png
+- **Console Logs**: Capturados
+
+
+### Tijuca - Erro Detalhado
+- **Status**: ERROR
+- **Erro**: page.waitForSelector: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+
+- **Debug Screenshot**: DEBUG_Tijuca_polygon_render.png
+- **Console Logs**: Capturados
+
+
+### Glória - Erro Detalhado
+- **Status**: ERROR
+- **Erro**: page.waitForSelector: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+
+- **Debug Screenshot**: DEBUG_Gloria_polygon_render.png
+- **Console Logs**: Capturados
+
+
+### Morro da Providência - Erro Detalhado
+- **Status**: ERROR
+- **Erro**: page.waitForSelector: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('table, .MuiTable-root, [role="table"]') to be visible[22m
+
+- **Debug Screenshot**: DEBUG_Providencia_sem_dados.png
+- **Console Logs**: Capturados
+
 
 ## 🔧 Detalhes Técnicos
 

@@ -101,13 +101,47 @@ async function captureMapEvidence() {
       console.log(`📸 Capturing: ${testCase.name}...`);
       
       try {
-        // Find and click "Ver no mapa" button for this community
-        const mapButton = page.locator(`button:has-text("Ver no mapa")`).first();
-        await mapButton.waitFor({ timeout: 10000 });
+        // Wait for table to load
+        await page.waitForSelector('table, .MuiTable-root, [role="table"]', { timeout: 10000 });
+        console.log(`  ✅ Table loaded`);
+
+        // Use search/filter if available to make row visible
+        try {
+          const searchInput = page.locator('input[placeholder*="Pesquisar"], input[placeholder*="Buscar"], input[type="search"]').first();
+          if (await searchInput.isVisible({ timeout: 2000 })) {
+            await searchInput.fill(testCase.name);
+            await page.waitForTimeout(1000); // Wait for filter
+            console.log(`  ✅ Filtered by: ${testCase.name}`);
+          }
+        } catch (e) {
+          console.log(`  ⚠️ No search filter found, proceeding...`);
+        }
+
+        // Find the table row containing the community name
+        const communityRow = page.locator(`tr:has-text("${testCase.name}")`).first();
+        await communityRow.waitFor({ timeout: 10000 });
+        console.log(`  ✅ Found row for: ${testCase.name}`);
+
+        // Find map button within the same row (flexible selectors)
+        const mapButton = communityRow.locator(`
+          button:has-text(/Mapa|Ver no mapa/i),
+          button[aria-label*="mapa" i],
+          button[title*="mapa" i],
+          button[data-testid*="map"],
+          .MuiIconButton-root:has(svg),
+          button:has(svg)
+        `).first();
+        
+        await mapButton.waitFor({ timeout: 5000 });
+        console.log(`  ✅ Found map button for: ${testCase.name}`);
+        
+        // Click the map button
         await mapButton.click();
+        console.log(`  ✅ Clicked map button for: ${testCase.name}`);
 
         // Wait for modal to appear
         await page.waitForSelector('.MuiDialog-root, .modal, [role="dialog"]', { timeout: 10000 });
+        console.log(`  ✅ Modal opened for: ${testCase.name}`);
         
         // Wait for map container
         await page.waitForSelector('.leaflet-container, .map-container', { timeout: 10000 });
@@ -121,8 +155,9 @@ async function captureMapEvidence() {
           console.log(`  ⚠️ Tiles timeout for ${testCase.name}, proceeding anyway`);
         }
 
-        // Buffer time for complete rendering
+        // Buffer time for complete rendering (tiles + polygon)
         await page.waitForTimeout(2000);
+        console.log(`  ✅ Rendering buffer completed for ${testCase.name}`);
 
         // Extract build info if available
         try {
@@ -158,7 +193,7 @@ async function captureMapEvidence() {
 
         // Check if map rendered properly
         const hasMapContent = await page.locator('.leaflet-container').isVisible();
-        const hasPolygon = await page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane svg').count() > 0;
+        const hasPolygon = await page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path, svg path').count() > 0;
         
         results.push({
           name: testCase.name,
@@ -170,22 +205,68 @@ async function captureMapEvidence() {
           status: hasMapContent ? 'SUCCESS' : 'MAP_RENDER_INCOMPLETE'
         });
 
+        console.log(`  ✅ ${testCase.name}: Map Content=${hasMapContent ? '✅' : '❌'}, Polygon=${hasPolygon ? '✅' : '❌'}`);
+
         // Close modal
         await page.keyboard.press('Escape');
         await page.waitForTimeout(1000);
 
+        // Clear search if used
+        try {
+          const searchInput = page.locator('input[placeholder*="Pesquisar"], input[placeholder*="Buscar"], input[type="search"]').first();
+          if (await searchInput.isVisible({ timeout: 1000 })) {
+            await searchInput.fill('');
+            await page.waitForTimeout(500);
+          }
+        } catch (e) {
+          // Search clear failed, continue
+        }
+
       } catch (error) {
         console.error(`  ❌ Error capturing ${testCase.name}:`, error.message);
-        results.push({
-          name: testCase.name,
-          id: testCase.id,
-          filename: testCase.filename,
-          expectedType: testCase.expectedType,
-          hasMapContent: false,
-          hasPolygon: false,
-          status: 'ERROR',
-          error: error.message
-        });
+        
+        // Capture debug screenshot and logs on error
+        try {
+          const debugScreenshotPath = join(evidenceDir, `DEBUG_${testCase.filename}`);
+          await page.screenshot({ 
+            path: debugScreenshotPath,
+            fullPage: true
+          });
+          console.log(`  🐛 Debug screenshot saved: DEBUG_${testCase.filename}`);
+
+          // Get console logs
+          const consoleLogs = await page.evaluate(() => {
+            return window.console.history || 'Console history not available';
+          });
+
+          results.push({
+            name: testCase.name,
+            id: testCase.id,
+            filename: testCase.filename,
+            expectedType: testCase.expectedType,
+            hasMapContent: false,
+            hasPolygon: false,
+            status: 'ERROR',
+            error: error.message,
+            debugScreenshot: `DEBUG_${testCase.filename}`,
+            consoleLogs: typeof consoleLogs === 'string' ? consoleLogs : JSON.stringify(consoleLogs)
+          });
+        } catch (debugError) {
+          console.error(`  🐛 Debug capture failed:`, debugError.message);
+          results.push({
+            name: testCase.name,
+            id: testCase.id,
+            filename: testCase.filename,
+            expectedType: testCase.expectedType,
+            hasMapContent: false,
+            hasPolygon: false,
+            status: 'ERROR',
+            error: error.message
+          });
+        }
+
+        // Don't close browser - continue with next test case
+        console.log(`  ⏭️ Continuing with next test case...`);
       }
     }
 
@@ -233,8 +314,18 @@ ${results.filter(r => r.status === 'SUCCESS').map(r =>
 
 ### ⚠️ Casos com Problemas
 ${results.filter(r => r.status !== 'SUCCESS').map(r => 
-  `- **${r.name}**: ${r.status} - ${r.error || 'Map rendering incomplete'}`
-).join('\n')}
+  `- **${r.name}**: ${r.status}${r.error ? ` - ${r.error}` : ''}${r.debugScreenshot ? ` (Debug: ${r.debugScreenshot})` : ''}`
+).join('\n') || 'Nenhum problema encontrado'}
+
+## 🐛 Informações de Debug
+
+${results.filter(r => r.error).map(r => `
+### ${r.name} - Erro Detalhado
+- **Status**: ${r.status}
+- **Erro**: ${r.error}
+- **Debug Screenshot**: ${r.debugScreenshot || 'N/A'}
+- **Console Logs**: ${r.consoleLogs ? 'Capturados' : 'N/A'}
+`).join('\n')}
 
 ## 🔧 Detalhes Técnicos
 
