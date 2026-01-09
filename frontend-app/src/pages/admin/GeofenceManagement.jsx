@@ -107,6 +107,28 @@ export default function GeofenceManagement() {
       filtered = filtered.filter(c => hasGeometry ? c.geofenceData?.geojson : !c.geofenceData?.geojson);
     }
 
+    // Ordenação padrão: pendentes primeiro, depois LOW, depois MED, depois HIGH
+    filtered.sort((a, b) => {
+      const aHasGeofence = !!a.geofenceData;
+      const bHasGeofence = !!b.geofenceData;
+      
+      // Pendentes (sem geofence) primeiro
+      if (!aHasGeofence && bHasGeofence) return -1;
+      if (aHasGeofence && !bHasGeofence) return 1;
+      
+      // Se ambos têm geofence, ordenar por confidence
+      if (aHasGeofence && bHasGeofence) {
+        const confidenceOrder = { 'LOW': 0, 'MED': 1, 'HIGH': 2 };
+        const aOrder = confidenceOrder[a.geofenceData.confidence] || 3;
+        const bOrder = confidenceOrder[b.geofenceData.confidence] || 3;
+        
+        if (aOrder !== bOrder) return aOrder - bOrder;
+      }
+      
+      // Ordenação secundária por nome
+      return a.name.localeCompare(b.name);
+    });
+
     setFilteredCommunities(filtered);
   };
 
@@ -199,6 +221,26 @@ export default function GeofenceManagement() {
     return '-';
   };
 
+  const openNextPending = () => {
+    // Encontrar próximo item pendente (sem geofence ou LOW confidence)
+    const pending = filteredCommunities.find(c => 
+      !c.geofenceData || 
+      c.geofenceData.confidence === 'LOW' || 
+      !c.geofenceData.isVerified
+    );
+    
+    if (pending) {
+      if (pending.geofenceData) {
+        openEditDialog(pending);
+      } else {
+        openMapDialog(pending);
+      }
+    } else {
+      setError('Nenhum item pendente encontrado');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -209,9 +251,19 @@ export default function GeofenceManagement() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 3 }}>
-        Revisão de Geofences
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          Revisão de Geofences
+        </Typography>
+        <Button
+          variant="contained"
+          color="warning"
+          startIcon={<CheckCircle />}
+          onClick={openNextPending}
+        >
+          Abrir próximo pendente
+        </Button>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -277,13 +329,19 @@ export default function GeofenceManagement() {
               <TableCell>Bairro Pai</TableCell>
               <TableCell>Confiança</TableCell>
               <TableCell>GeoJSON</TableCell>
+              <TableCell>Pendente</TableCell>
               <TableCell>Verificado</TableCell>
               <TableCell>Atualizado</TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredCommunities.map((community) => (
+            {filteredCommunities.map((community) => {
+              const isPending = !community.geofenceData || 
+                               community.geofenceData.confidence === 'LOW' || 
+                               !community.geofenceData.isVerified;
+              
+              return (
               <TableRow key={community.id}>
                 <TableCell>{community.name}</TableCell>
                 <TableCell>{getCommunityType(community.description)}</TableCell>
@@ -301,6 +359,13 @@ export default function GeofenceManagement() {
                 </TableCell>
                 <TableCell>
                   {community.geofenceData?.geojson ? 'Sim' : 'Não'}
+                </TableCell>
+                <TableCell>
+                  {isPending ? (
+                    <Chip label="Sim" color="warning" size="small" />
+                  ) : (
+                    <Chip label="Não" color="success" size="small" />
+                  )}
                 </TableCell>
                 <TableCell>
                   {community.geofenceData?.isVerified ? (
@@ -336,7 +401,8 @@ export default function GeofenceManagement() {
                   </Box>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </TableContainer>
