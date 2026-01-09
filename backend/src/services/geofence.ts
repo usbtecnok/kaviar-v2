@@ -2,6 +2,13 @@ import { prisma } from '../config/database';
 import { config } from '../config';
 import { RideConfirmationService } from './ride-confirmation';
 import { GeoResolveService } from './geo-resolve';
+import { 
+  isSensitiveNeighborhood, 
+  getAllowedNeighbors, 
+  isNeighborhoodAllowed,
+  FALLBACK_RADIUS_METERS,
+  OPT_IN_MESSAGES 
+} from '../config/neighborhood-policy';
 
 export interface GeofenceValidationResult {
   isWithinFence: boolean;
@@ -270,7 +277,7 @@ export class GeofenceService {
 
   /**
    * Main geofence check for community ride requests
-   * Uses centralized geo resolve service for consistency
+   * Implements 4-layer fallback: A(Polygon) → B(Center+Radius) → C(Neighbors) → D(Out-of-fence)
    */
   async checkCommunityRideGeofence(
     passengerId: string,
@@ -312,64 +319,186 @@ export class GeofenceService {
       passengerLng
     );
 
-    // If passenger is outside any geofence area, block ride
-    if (!geofenceResult.match) {
-      return {
-        canCreateCommunityRide: false,
-        requiresOutOfFenceConfirmation: false,
-        geofenceInfo: {
-          passengerWithinFence: false,
-          driversInFence: 0,
-          driversOutOfFence: 0,
-          fallbackAvailable: false
-        },
-        blockReason: 'Fora da área atendida'
-      };
+    // CAMADA A: Polygon existente (lógica atual)
+    if (geofenceResult.match && geofenceResult.area) {
+      const driversInfo = await this.getAvailableDriversInArea(geofenceResult.area.id);
+      
+      if (driversInfo.driversInFence > 0) {
+        return {
+          canCreateCommunityRide: true,
+          requiresOutOfFenceConfirmation: false,
+          geofenceInfo: {
+            passengerWithinFence: true,
+            driversInFence: driversInfo.driversInFence,
+            driversOutOfFence: driversInfo.driversOutOfFence,
+            fallbackAvailable: driversInfo.driversOutOfFence > 0
+          }
+        };
+      }
+
+      // Sem motoristas na cerca - verificar se é bairro sensível
+      const communityName = geofenceResult.area.name;
+      if (isSensitiveNeighborhood(communityName)) {
+        // Bairros sensíveis: nunca Camada C automática, sempre opt-in
+        return {
+          canCreateCommunityRide: false,
+          requiresOutOfFenceConfirmation: true,
+          geofenceInfo: {
+            passengerWithinFence: true,
+            driversInFence: 0,
+            driversOutOfFence: driversInfo.driversOutOfFence,
+            fallbackAvailable: driversInfo.driversOutOfFence > 0
+          }
+        };
+      }
+
+      // CAMADA C: Vizinhos permitidos (só se não for sensível)
+      const allowedNeighbors = getAllowedNeighbors(communityName);
+      if (allowedNeighbors.length > 0) {
+        const neighborDrivers = await this.findDriversInNeighbors(allowedNeighbors);
+        if (neighborDrivers > 0) {
+          return {
+            canCreateCommunityRide: false,
+            requiresOutOfFenceConfirmation: true,
+            geofenceInfo: {
+              passengerWithinFence: true,
+              driversInFence: 0,
+              driversOutOfFence: neighborDrivers,
+              fallbackAvailable: true
+            }
+          };
+        }
+      }
+
+      // CAMADA D: Out-of-fence (lógica atual)
+      if (driversInfo.driversOutOfFence > 0) {
+        return {
+          canCreateCommunityRide: false,
+          requiresOutOfFenceConfirmation: true,
+          geofenceInfo: {
+            passengerWithinFence: true,
+            driversInFence: 0,
+            driversOutOfFence: driversInfo.driversOutOfFence,
+            fallbackAvailable: true
+          }
+        };
+      }
     }
 
-    // Get available drivers info
-    const driversInfo = await this.getAvailableDriversInArea(geofenceResult.area!.id);
-
-    // If there are drivers in the same area, allow ride
-    if (driversInfo.driversInFence > 0) {
+    // CAMADA B: SEM_DADOS - usar centro + raio pequeno
+    const centerFallback = await this.findDriversInCenterRadius(passengerLat, passengerLng);
+    if (centerFallback.driversFound > 0) {
       return {
         canCreateCommunityRide: true,
         requiresOutOfFenceConfirmation: false,
         geofenceInfo: {
-          passengerWithinFence: true,
-          driversInFence: driversInfo.driversInFence,
-          driversOutOfFence: driversInfo.driversOutOfFence,
-          fallbackAvailable: driversInfo.driversOutOfFence > 0
+          passengerWithinFence: false, // SEM_DADOS
+          driversInFence: centerFallback.driversFound,
+          driversOutOfFence: 0,
+          fallbackAvailable: false
         }
       };
     }
 
-    // No drivers in area - check if fallback is available
-    if (driversInfo.driversOutOfFence > 0) {
-      return {
-        canCreateCommunityRide: false,
-        requiresOutOfFenceConfirmation: true,
-        geofenceInfo: {
-          passengerWithinFence: true,
-          driversInFence: 0,
-          driversOutOfFence: driversInfo.driversOutOfFence,
-          fallbackAvailable: true
-        }
-      };
-    }
-
-    // No drivers available anywhere
+    // Nenhum motorista disponível
     return {
       canCreateCommunityRide: false,
       requiresOutOfFenceConfirmation: false,
       geofenceInfo: {
-        passengerWithinFence: true,
+        passengerWithinFence: geofenceResult.match || false,
         driversInFence: 0,
         driversOutOfFence: 0,
         fallbackAvailable: false
       },
       blockReason: 'Nenhum motorista disponível no momento'
     };
+  }
+
+  /**
+   * CAMADA B: Encontrar motoristas em raio pequeno (SEM_DADOS fallback)
+   */
+  private async findDriversInCenterRadius(
+    centerLat: number, 
+    centerLng: number
+  ): Promise<{ driversFound: number }> {
+    const locationValidityMs = config.geofence.locationValidityMinutes * 60 * 1000;
+    const locationValidityTime = new Date(Date.now() - locationValidityMs);
+    
+    // Buscar motoristas disponíveis em raio pequeno (800m)
+    const drivers = await prisma.driver.findMany({
+      where: {
+        status: 'approved',
+        suspendedAt: null,
+        lastLocationUpdatedAt: { gte: locationValidityTime },
+        lastLat: { not: null },
+        lastLng: { not: null },
+        rides: {
+          none: {
+            status: { in: ['accepted', 'arrived', 'started'] }
+          }
+        }
+      },
+      select: {
+        id: true,
+        lastLat: true,
+        lastLng: true
+      }
+    });
+
+    // Filtrar por distância
+    const driversInRadius = drivers.filter(driver => {
+      const distance = this.calculateHaversineDistance(
+        centerLat,
+        centerLng,
+        Number(driver.lastLat),
+        Number(driver.lastLng)
+      );
+      return distance <= FALLBACK_RADIUS_METERS;
+    });
+
+    return { driversFound: driversInRadius.length };
+  }
+
+  /**
+   * CAMADA C: Encontrar motoristas em bairros vizinhos permitidos
+   */
+  private async findDriversInNeighbors(allowedNeighbors: string[]): Promise<number> {
+    if (allowedNeighbors.length === 0) return 0;
+
+    const locationValidityMs = config.geofence.locationValidityMinutes * 60 * 1000;
+    const locationValidityTime = new Date(Date.now() - locationValidityMs);
+
+    // Buscar communities dos vizinhos permitidos
+    const neighborCommunities = await prisma.community.findMany({
+      where: {
+        name: { in: allowedNeighbors },
+        isActive: true
+      },
+      select: { id: true }
+    });
+
+    if (neighborCommunities.length === 0) return 0;
+
+    const neighborIds = neighborCommunities.map(c => c.id);
+
+    // Contar motoristas disponíveis nos bairros vizinhos
+    const driversCount = await prisma.driver.count({
+      where: {
+        communityId: { in: neighborIds },
+        status: 'approved',
+        suspendedAt: null,
+        lastLocationUpdatedAt: { gte: locationValidityTime },
+        lastLat: { not: null },
+        lastLng: { not: null },
+        rides: {
+          none: {
+            status: { in: ['accepted', 'arrived', 'started'] }
+          }
+        }
+      }
+    });
+
+    return driversCount;
   }
 
   /**
