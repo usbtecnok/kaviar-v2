@@ -33,8 +33,8 @@ router.get('/resolve', async (req: Request, res: Response) => {
       });
     }
 
-    // Build query with hierarchical priority: COMUNIDADE > BAIRRO
-    // Order by: 1) comunidade first (id prefix), 2) smallest area (most specific)
+    // Build query with hierarchical priority: COMUNIDADE > BAIRRO/NEIGHBORHOOD
+    // Order by: 1) comunidade first, 2) bairro/neighborhood, 3) smallest area (most specific)
     let whereClause = 'WHERE geom IS NOT NULL AND is_active = true';
     if (type) {
       whereClause += ` AND id LIKE '${type}-%'`;
@@ -46,7 +46,11 @@ router.get('/resolve', async (req: Request, res: Response) => {
       ${Prisma.raw(whereClause)}
         AND ST_Covers(geom, ST_SetSRID(ST_Point(${longitude}, ${latitude}), 4326))
       ORDER BY 
-        CASE WHEN id LIKE 'comunidade-%' THEN 1 ELSE 2 END,
+        CASE 
+          WHEN id LIKE 'comunidade-%' THEN 1 
+          WHEN id LIKE 'bairro-%' OR id LIKE 'neighborhood-%' THEN 2 
+          ELSE 3 
+        END,
         ST_Area(geom::geography) ASC
       LIMIT 1
     `;
