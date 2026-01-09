@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { GeoResolveService } from '../services/geo-resolve';
 
 const router = Router();
-const prisma = new PrismaClient();
+const geoResolveService = new GeoResolveService();
 
 /**
  * GET /api/geo/resolve
  * Resolve geographic coordinates to community area using PostGIS
- * Priority: COMUNIDADE > BAIRRO (smaller/more specific areas first)
+ * Priority: COMUNIDADE > BAIRRO/NEIGHBORHOOD > others (hierarchical)
  * Query params: lat, lon, type (optional)
  */
 router.get('/resolve', async (req: Request, res: Response) => {
@@ -33,38 +33,17 @@ router.get('/resolve', async (req: Request, res: Response) => {
       });
     }
 
-    // Build query with hierarchical priority: COMUNIDADE > BAIRRO/NEIGHBORHOOD
-    // Order by: 1) comunidade first, 2) bairro/neighborhood, 3) smallest area (most specific)
-    let whereClause = 'WHERE geom IS NOT NULL AND is_active = true';
-    if (type) {
-      whereClause += ` AND id LIKE '${type}-%'`;
-    }
+    // Use centralized geo resolve service
+    const result = await geoResolveService.resolveCoordinates(
+      latitude, 
+      longitude, 
+      type as string
+    );
 
-    const result = await prisma.$queryRaw`
-      SELECT id, name, description, is_active
-      FROM communities 
-      ${Prisma.raw(whereClause)}
-        AND ST_Covers(geom, ST_SetSRID(ST_Point(${longitude}, ${latitude}), 4326))
-      ORDER BY 
-        CASE 
-          WHEN id LIKE 'comunidade-%' THEN 1 
-          WHEN id LIKE 'bairro-%' OR id LIKE 'neighborhood-%' THEN 2 
-          ELSE 3 
-        END,
-        ST_Area(geom::geography) ASC
-      LIMIT 1
-    `;
-
-    if (Array.isArray(result) && result.length > 0) {
-      const area = result[0] as any;
+    if (result.match) {
       return res.json({
         match: true,
-        area: {
-          id: area.id,
-          name: area.name,
-          description: area.description,
-          active: area.is_active
-        }
+        area: result.area
       });
     } else {
       return res.json({

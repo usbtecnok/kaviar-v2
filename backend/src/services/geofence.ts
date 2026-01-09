@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { config } from '../config';
 import { RideConfirmationService } from './ride-confirmation';
+import { GeoResolveService } from './geo-resolve';
 
 export interface GeofenceValidationResult {
   isWithinFence: boolean;
@@ -34,6 +35,7 @@ export interface RideGeofenceCheck {
 
 export class GeofenceService {
   private confirmationService = new RideConfirmationService();
+  private geoResolveService = new GeoResolveService();
   
   /**
    * Check if geofence is enabled
@@ -268,7 +270,7 @@ export class GeofenceService {
 
   /**
    * Main geofence check for community ride requests
-   * Single source of truth for all geofence logic
+   * Uses centralized geo resolve service for consistency
    */
   async checkCommunityRideGeofence(
     passengerId: string,
@@ -289,13 +291,8 @@ export class GeofenceService {
       };
     }
 
-    // Get passenger's community
-    const passenger = await prisma.passenger.findUnique({
-      where: { id: passengerId },
-      select: { communityId: true, lastLat: true, lastLng: true }
-    });
-
-    if (!passenger || !passenger.communityId) {
+    // Coordinates are required when geofence is enabled
+    if (!passengerLat || !passengerLng) {
       return {
         canCreateCommunityRide: false,
         requiresOutOfFenceConfirmation: false,
@@ -305,15 +302,18 @@ export class GeofenceService {
           driversOutOfFence: 0,
           fallbackAvailable: false
         },
-        blockReason: 'Passageiro não possui comunidade atribuída'
+        blockReason: 'Coordenadas do passageiro são obrigatórias'
       };
     }
 
-    // Use provided coordinates (required when geofence is enabled)
-    const lat = passengerLat;
-    const lng = passengerLng;
+    // Use centralized geo resolve service (same as /api/geo/resolve)
+    const geofenceResult = await this.geoResolveService.resolveCoordinates(
+      passengerLat, 
+      passengerLng
+    );
 
-    if (!lat || !lng) {
+    // If passenger is outside any geofence area, block ride
+    if (!geofenceResult.match) {
       return {
         canCreateCommunityRide: false,
         requiresOutOfFenceConfirmation: false,
@@ -323,29 +323,54 @@ export class GeofenceService {
           driversOutOfFence: 0,
           fallbackAvailable: false
         },
-        blockReason: 'Coordenadas do passageiro são obrigatórias para corridas comunidade'
+        blockReason: 'Fora da área atendida'
       };
     }
 
-    // Validate passenger is within geofence
-    let passengerGeofence;
-    try {
-      passengerGeofence = await this.validateGeofence(passenger.communityId, lat, lng);
-    } catch (error) {
+    // Get available drivers info
+    const driversInfo = await this.getAvailableDriversInArea(geofenceResult.area!.id);
+
+    // If there are drivers in the same area, allow ride
+    if (driversInfo.driversInFence > 0) {
       return {
-        canCreateCommunityRide: false,
+        canCreateCommunityRide: true,
         requiresOutOfFenceConfirmation: false,
         geofenceInfo: {
-          passengerWithinFence: false,
-          driversInFence: 0,
-          driversOutOfFence: 0,
-          fallbackAvailable: false
-        },
-        blockReason: 'Comunidade não possui geofence configurada'
+          passengerWithinFence: true,
+          driversInFence: driversInfo.driversInFence,
+          driversOutOfFence: driversInfo.driversOutOfFence,
+          fallbackAvailable: driversInfo.driversOutOfFence > 0
+        }
       };
     }
 
-    // If passenger is outside fence, block community ride
+    // No drivers in area - check if fallback is available
+    if (driversInfo.driversOutOfFence > 0) {
+      return {
+        canCreateCommunityRide: false,
+        requiresOutOfFenceConfirmation: true,
+        geofenceInfo: {
+          passengerWithinFence: true,
+          driversInFence: 0,
+          driversOutOfFence: driversInfo.driversOutOfFence,
+          fallbackAvailable: true
+        }
+      };
+    }
+
+    // No drivers available anywhere
+    return {
+      canCreateCommunityRide: false,
+      requiresOutOfFenceConfirmation: false,
+      geofenceInfo: {
+        passengerWithinFence: true,
+        driversInFence: 0,
+        driversOutOfFence: 0,
+        fallbackAvailable: false
+      },
+      blockReason: 'Nenhum motorista disponível no momento'
+    };
+  }
     if (!passengerGeofence.isWithinFence) {
       return {
         canCreateCommunityRide: false,
@@ -416,5 +441,63 @@ export class GeofenceService {
         lastLocationUpdatedAt: new Date()
       }
     });
+  }
+
+  /**
+   * Get available drivers in and out of specific area
+   */
+  private async getAvailableDriversInArea(areaId: string): Promise<AvailableDriversResult> {
+    // Get all available drivers with location
+    const drivers = await prisma.driver.findMany({
+      where: {
+        status: 'approved',
+        lastLat: { not: null },
+        lastLng: { not: null },
+        lastLocationUpdatedAt: {
+          gte: new Date(Date.now() - 30 * 60 * 1000) // Last 30 minutes
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        lastLat: true,
+        lastLng: true
+      }
+    });
+
+    let driversInFence = 0;
+    let driversOutOfFence = 0;
+    const availableDrivers = [];
+
+    for (const driver of drivers) {
+      if (!driver.lastLat || !driver.lastLng) continue;
+
+      // Check if driver is in the same area as passenger
+      const driverArea = await this.geoResolveService.resolveCoordinates(
+        driver.lastLat,
+        driver.lastLng
+      );
+
+      const isWithinFence = driverArea.match && driverArea.area?.id === areaId;
+
+      if (isWithinFence) {
+        driversInFence++;
+      } else {
+        driversOutOfFence++;
+      }
+
+      availableDrivers.push({
+        id: driver.id,
+        name: driver.name,
+        distance: 0, // Could calculate actual distance if needed
+        isWithinFence
+      });
+    }
+
+    return {
+      driversInFence,
+      driversOutOfFence,
+      availableDrivers
+    };
   }
 }
