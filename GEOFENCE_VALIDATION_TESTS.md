@@ -31,21 +31,21 @@ curl -X POST https://kaviar-v2.onrender.com/api/governance/ride/request \
 ### Test Inside Service Area - Copacabana (Should Allow)
 
 ```bash
-# Test with Copacabana coordinates
+# Test with Copacabana coordinates (correct)
 curl -X POST https://kaviar-v2.onrender.com/api/governance/ride/request \
   -H "Content-Type: application/json" \
   -d '{
     "passengerId": "test-passenger", 
-    "passengerLat": -22.9868,
-    "passengerLng": -43.2050,
+    "passengerLat": -22.9711,
+    "passengerLng": -43.1822,
     "pickup": {
-      "lat": -22.9868,
-      "lng": -43.2050,
+      "lat": -22.9711,
+      "lng": -43.1822,
       "address": "Copacabana"
     },
     "dropoff": {
-      "lat": -22.9870,
-      "lng": -43.2055,
+      "lat": -22.9715,
+      "lng": -43.1825,
       "address": "Copacabana Beach"
     }
   }'
@@ -56,26 +56,41 @@ curl -X POST https://kaviar-v2.onrender.com/api/governance/ride/request \
 ### Test Inside Service Area - Ipanema (Should Allow)
 
 ```bash
-# Test with Ipanema coordinates  
+# Test with Ipanema coordinates (correct)
 curl -X POST https://kaviar-v2.onrender.com/api/governance/ride/request \
   -H "Content-Type: application/json" \
   -d '{
     "passengerId": "test-passenger",
-    "passengerLat": -22.9838,
-    "passengerLng": -43.2096,
+    "passengerLat": -22.9846,
+    "passengerLng": -43.1980,
     "pickup": {
-      "lat": -22.9838,
-      "lng": -43.2096,
+      "lat": -22.9846,
+      "lng": -43.1980,
       "address": "Ipanema"
     },
     "dropoff": {
-      "lat": -22.9840,
-      "lng": -43.2100,
+      "lat": -22.9850,
+      "lng": -43.1985,
       "address": "Ipanema Beach"
     }
   }'
 
 # Expected response: HTTP 200/201 (ride created)
+```
+
+## Quick Geofence Validation
+
+Test the geofence resolve endpoint directly:
+
+```bash
+# Copacabana (should match)
+curl "https://kaviar-v2.onrender.com/api/geo/resolve?lat=-22.9711&lon=-43.1822"
+
+# Ipanema (should match)  
+curl "https://kaviar-v2.onrender.com/api/geo/resolve?lat=-22.9846&lon=-43.1980"
+
+# Outside area (should not match)
+curl "https://kaviar-v2.onrender.com/api/geo/resolve?lat=-22.0000&lon=-43.0000"
 ```
 
 ## Frontend Tests
