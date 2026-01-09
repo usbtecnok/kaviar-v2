@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { GeoResolveService } from '../services/geo-resolve';
 
 const router = Router();
-const prisma = new PrismaClient();
+const geoResolveService = new GeoResolveService();
 
 /**
  * GET /api/geo/resolve
  * Resolve geographic coordinates to community area using PostGIS
+ * Priority: COMUNIDADE > BAIRRO/NEIGHBORHOOD > others (hierarchical)
  * Query params: lat, lon, type (optional)
  */
 router.get('/resolve', async (req: Request, res: Response) => {
@@ -32,35 +33,17 @@ router.get('/resolve', async (req: Request, res: Response) => {
       });
     }
 
-    // Build query with optional type filter
-    let whereClause = 'WHERE geom IS NOT NULL AND is_active = true';
-    if (type) {
-      // Note: assuming there's a type field, adjust as needed
-      whereClause += ` AND name ILIKE '%${type}%'`;
-    }
+    // Use centralized geo resolve service
+    const result = await geoResolveService.resolveCoordinates(
+      latitude, 
+      longitude, 
+      type as string
+    );
 
-    // PostGIS query: ST_Covers includes boundary points
-    // Order by area (smallest first) in case of overlapping polygons
-    const result = await prisma.$queryRaw`
-      SELECT id, name, description, is_active
-      FROM communities 
-      WHERE geom IS NOT NULL 
-        AND is_active = true
-        AND ST_Covers(geom, ST_SetSRID(ST_Point(${longitude}, ${latitude}), 4326))
-      ORDER BY ST_Area(geom::geography) ASC
-      LIMIT 1
-    `;
-
-    if (Array.isArray(result) && result.length > 0) {
-      const area = result[0] as any;
+    if (result.match) {
       return res.json({
         match: true,
-        area: {
-          id: area.id,
-          name: area.name,
-          description: area.description,
-          active: area.is_active
-        }
+        area: result.area
       });
     } else {
       return res.json({
