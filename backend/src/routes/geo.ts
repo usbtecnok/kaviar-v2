@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 /**
  * GET /api/geo/resolve
  * Resolve geographic coordinates to community area using PostGIS
+ * Priority: COMUNIDADE > BAIRRO (smaller/more specific areas first)
  * Query params: lat, lon, type (optional)
  */
 router.get('/resolve', async (req: Request, res: Response) => {
@@ -32,22 +33,21 @@ router.get('/resolve', async (req: Request, res: Response) => {
       });
     }
 
-    // Build query with optional type filter
+    // Build query with hierarchical priority: COMUNIDADE > BAIRRO
+    // Order by: 1) comunidade first (id prefix), 2) smallest area (most specific)
     let whereClause = 'WHERE geom IS NOT NULL AND is_active = true';
     if (type) {
-      // Note: assuming there's a type field, adjust as needed
-      whereClause += ` AND name ILIKE '%${type}%'`;
+      whereClause += ` AND id LIKE '${type}-%'`;
     }
 
-    // PostGIS query: ST_Covers includes boundary points
-    // Order by area (smallest first) in case of overlapping polygons
     const result = await prisma.$queryRaw`
       SELECT id, name, description, is_active
       FROM communities 
-      WHERE geom IS NOT NULL 
-        AND is_active = true
+      ${Prisma.raw(whereClause)}
         AND ST_Covers(geom, ST_SetSRID(ST_Point(${longitude}, ${latitude}), 4326))
-      ORDER BY ST_Area(geom::geography) ASC
+      ORDER BY 
+        CASE WHEN id LIKE 'comunidade-%' THEN 1 ELSE 2 END,
+        ST_Area(geom::geography) ASC
       LIMIT 1
     `;
 
