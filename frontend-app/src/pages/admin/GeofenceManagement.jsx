@@ -122,6 +122,8 @@ export default function GeofenceManagement() {
       if (response.ok) {
         const data = await response.json();
         setMapDialog({ open: true, community, geofence: data.data });
+      } else if (response.status === 404) {
+        setMapDialog({ open: true, community, geofence: null });
       } else {
         setError('Erro ao carregar dados do geofence');
       }
@@ -315,23 +317,21 @@ export default function GeofenceManagement() {
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      startIcon={<Visibility />}
+                      onClick={() => openMapDialog(community)}
+                    >
+                      Mapa
+                    </Button>
                     {community.geofenceData && (
-                      <>
-                        <Button
-                          size="small"
-                          startIcon={<Visibility />}
-                          onClick={() => openMapDialog(community)}
-                        >
-                          Mapa
-                        </Button>
-                        <Button
-                          size="small"
-                          startIcon={<Edit />}
-                          onClick={() => openEditDialog(community)}
-                        >
-                          Editar
-                        </Button>
-                      </>
+                      <Button
+                        size="small"
+                        startIcon={<Edit />}
+                        onClick={() => openEditDialog(community)}
+                      >
+                        Editar
+                      </Button>
                     )}
                   </Box>
                 </TableCell>
@@ -347,18 +347,74 @@ export default function GeofenceManagement() {
           Mapa: {mapDialog.community?.name}
         </DialogTitle>
         <DialogContent>
-          {mapDialog.geofence && (
+          {mapDialog.geofence ? (
             <Box>
               <Typography variant="body2" sx={{ mb: 2 }}>
-                Centro: {mapDialog.geofence.centerLat}, {mapDialog.geofence.centerLng}
+                <strong>Centro:</strong> {mapDialog.geofence.centerLat}, {mapDialog.geofence.centerLng}
+                <br />
+                <strong>Confiança:</strong> {mapDialog.geofence.confidence}
+                <br />
+                <strong>Verificado:</strong> {mapDialog.geofence.isVerified ? 'Sim' : 'Não'}
+                <br />
+                <strong>Fonte:</strong> {mapDialog.geofence.source}
               </Typography>
-              <Box sx={{ height: 400, width: '100%' }}>
-                {/* Aqui seria o componente de mapa */}
-                <Typography variant="body2" color="text.secondary">
-                  Mapa seria renderizado aqui com o GeoJSON
-                </Typography>
-              </Box>
+              
+              {mapDialog.geofence.geometry ? (
+                <Box>
+                  <Typography variant="body2" color="success.main" sx={{ mb: 1 }}>
+                    ✅ Geometria disponível ({mapDialog.geofence.geometry.type})
+                  </Typography>
+                  <Box sx={{ height: 400, width: '100%', bgcolor: 'grey.100', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <GeofenceMap
+                      communities={[{
+                        id: mapDialog.community.id,
+                        name: mapDialog.community.name,
+                        centerLat: parseFloat(mapDialog.geofence.centerLat),
+                        centerLng: parseFloat(mapDialog.geofence.centerLng),
+                        geofence: JSON.stringify(mapDialog.geofence.geometry)
+                      }]}
+                      selectedCommunity={{
+                        id: mapDialog.community.id,
+                        name: mapDialog.community.name,
+                        centerLat: parseFloat(mapDialog.geofence.centerLat),
+                        centerLng: parseFloat(mapDialog.geofence.centerLng),
+                        geofence: JSON.stringify(mapDialog.geofence.geometry)
+                      }}
+                      showGeofenceValidation={false}
+                      editMode={false}
+                    />
+                  </Box>
+                </Box>
+              ) : (
+                <Box>
+                  <Alert severity="warning" sx={{ mb: 2 }}>
+                    ⚠️ Sem geometria disponível. Mostrando apenas ponto central.
+                  </Alert>
+                  <Box sx={{ height: 400, width: '100%', bgcolor: 'grey.100', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <GeofenceMap
+                      communities={[{
+                        id: mapDialog.community.id,
+                        name: mapDialog.community.name,
+                        centerLat: parseFloat(mapDialog.geofence.centerLat),
+                        centerLng: parseFloat(mapDialog.geofence.centerLng)
+                      }]}
+                      selectedCommunity={{
+                        id: mapDialog.community.id,
+                        name: mapDialog.community.name,
+                        centerLat: parseFloat(mapDialog.geofence.centerLat),
+                        centerLng: parseFloat(mapDialog.geofence.centerLng)
+                      }}
+                      showGeofenceValidation={false}
+                      editMode={false}
+                    />
+                  </Box>
+                </Box>
+              )}
             </Box>
+          ) : (
+            <Alert severity="error">
+              ❌ Nenhum dado de geofence encontrado para esta comunidade.
+            </Alert>
           )}
         </DialogContent>
         <DialogActions>
