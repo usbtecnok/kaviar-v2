@@ -20,33 +20,42 @@ config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '../..');
-const evidenceDir = join(projectRoot, 'audit/ui_map_evidence');
 
-// Test cases to capture
+// Create execution folder with date and build hash
+const today = new Date().toISOString().split('T')[0];
+const buildHash = 'b73db6a'; // Will be updated from git
+const executionFolder = `${today}__build-${buildHash}`;
+const evidenceDir = join(projectRoot, 'audit/ui_map_evidence', executionFolder);
+
+// Test cases with proper naming
 const TEST_CASES = [
   {
     name: 'Botafogo',
+    slug: 'botafogo',
     id: 'cmk6ux02j0011qqr398od1msm',
-    filename: 'Botafogo_polygon_render.png',
-    expectedType: 'Polygon'
+    expectedType: 'Polygon',
+    order: '01'
   },
   {
     name: 'Tijuca', 
+    slug: 'tijuca',
     id: 'cmk6ux8fk001rqqr371kc4ple',
-    filename: 'Tijuca_polygon_render.png',
-    expectedType: 'Polygon'
+    expectedType: 'Polygon',
+    order: '02'
   },
   {
     name: 'Glória',
+    slug: 'gloria',
     id: 'cmk6uwq9u0007qqr3pxqr64ce', 
-    filename: 'Gloria_polygon_render.png',
-    expectedType: 'Polygon'
+    expectedType: 'Polygon',
+    order: '03'
   },
   {
     name: 'Morro da Providência',
+    slug: 'morro_da_providencia',
     id: 'cmk6uwnvh0001qqr377ziza29',
-    filename: 'Providencia_sem_dados.png',
-    expectedType: 'SEM_DADOS'
+    expectedType: 'SEM_DADOS',
+    order: '04'
   }
 ];
 
@@ -84,10 +93,21 @@ async function captureMapEvidence() {
     await page.goto(`${ADMIN_URL}/admin/login`);
     await page.waitForLoadState('networkidle');
 
-    // Login
-    await page.fill('input[type="email"], input[name="email"]', ADMIN_EMAIL);
-    await page.fill('input[type="password"], input[name="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"], button:has-text("Login"), button:has-text("Entrar")');
+    // Wait for login form to be visible
+    await page.waitForSelector('form, input[type="email"], input[type="password"]', { timeout: 10000 });
+    
+    // Fill email field with correct selector
+    await page.fill('input[type="email"]', ADMIN_EMAIL);
+    console.log('✅ Email filled');
+    
+    // Fill password field with correct selector  
+    await page.fill('input[type="password"]', ADMIN_PASSWORD);
+    console.log('✅ Password filled');
+
+    // Submit form
+    await page.click('button:has-text("Entrar")');
+    console.log('✅ Login button clicked');
+    
     await page.waitForLoadState('networkidle');
 
     // Confirm login by URL or admin element (timeout 10s)
@@ -102,7 +122,7 @@ async function captureMapEvidence() {
       console.error('❌ Login failed - saving debug screenshot');
       
       // Save debug screenshot
-      const debugLoginPath = join(evidenceDir, 'DEBUG_LOGIN_FAILED.png');
+      const debugLoginPath = join(evidenceDir, `DEBUG_00_login__step-login__err-timeout__build-${buildHash}.png`);
       await page.screenshot({ path: debugLoginPath, fullPage: true });
       
       // Generate error report
@@ -116,7 +136,7 @@ async function captureMapEvidence() {
 
 - **Erro**: Não foi possível acessar área administrativa
 - **Credenciais**: Verificar ADMIN_EMAIL e ADMIN_PASSWORD no .env
-- **Debug Screenshot**: DEBUG_LOGIN_FAILED.png
+- **Debug Screenshot**: DEBUG_00_login__step-login__err-timeout__build-${buildHash}.png
 - **URL atual**: ${page.url()}
 
 ## 🔧 Próximos Passos
@@ -133,7 +153,7 @@ async function captureMapEvidence() {
       writeFileSync(reportPath, errorReport);
       
       console.log('📄 Error report saved: audit/ui_map_evidence_report.md');
-      console.log('🐛 Debug screenshot: audit/ui_map_evidence/DEBUG_LOGIN_FAILED.png');
+      console.log(`🐛 Debug screenshot: audit/ui_map_evidence/${executionFolder}/DEBUG_00_login__step-login__err-timeout__build-${buildHash}.png`);
       
       await browser.close();
       return;
@@ -190,46 +210,46 @@ async function captureMapEvidence() {
       return;
     }
 
-    // Process each test case
+    // Process each test case with proper modal control
     for (const testCase of TEST_CASES) {
-      console.log(`📸 Capturing: ${testCase.name}...`);
+      console.log(`📸 Capturing: ${testCase.name} (${testCase.order})...`);
       
       try {
-        // Use search/filter if available to make row visible
+        // Close any existing modal/backdrop before starting
+        try {
+          const existingModal = page.locator('[role="dialog"], .MuiBackdrop-root');
+          if (await existingModal.count() > 0) {
+            console.log(`  🔄 Closing existing modal...`);
+            await page.keyboard.press('Escape');
+            await page.waitForFunction(() => 
+              document.querySelectorAll('[role="dialog"], .MuiBackdrop-root').length === 0,
+              { timeout: 5000 }
+            );
+          }
+        } catch (e) {
+          // No existing modal, continue
+        }
+
+        // Use search/filter if available
         try {
           const searchInput = page.locator('input[placeholder*="Pesquisar"], input[placeholder*="Buscar"], input[type="search"]').first();
           if (await searchInput.isVisible({ timeout: 2000 })) {
             await searchInput.fill(testCase.name);
-            await page.waitForTimeout(1000); // Wait for filter
+            await page.waitForTimeout(1000);
             console.log(`  ✅ Filtered by: ${testCase.name}`);
           }
         } catch (e) {
           console.log(`  ⚠️ No search filter found, proceeding...`);
         }
 
-        // Find the table row containing the community name
-        const communityRow = page.locator(`tr:has-text("${testCase.name}")`).first();
+        // Find the table row containing the community name (scoped)
+        const communityRow = page.locator('tr', { hasText: testCase.name }).first();
         await communityRow.waitFor({ timeout: 10000 });
         console.log(`  ✅ Found row for: ${testCase.name}`);
 
-        // Find map button within the same row (flexible selectors)
-        let mapButton;
-        try {
-          // Try different button selectors
-          mapButton = communityRow.locator('button:has-text("Mapa")').first();
-          if (!(await mapButton.isVisible({ timeout: 1000 }))) {
-            mapButton = communityRow.locator('button:has-text("Ver no mapa")').first();
-          }
-          if (!(await mapButton.isVisible({ timeout: 1000 }))) {
-            mapButton = communityRow.locator('button[aria-label*="mapa" i]').first();
-          }
-          if (!(await mapButton.isVisible({ timeout: 1000 }))) {
-            mapButton = communityRow.locator('button[title*="mapa" i]').first();
-          }
-        } catch (e) {
-          mapButton = communityRow.locator('button').first(); // Fallback to any button
-        }
-        
+        // Find map button within the same row (scoped)
+        const mapButton = communityRow.locator('button:has-text("Mapa")').first();
+        await mapButton.scrollIntoViewIfNeeded();
         await mapButton.waitFor({ timeout: 5000 });
         console.log(`  ✅ Found map button for: ${testCase.name}`);
         
@@ -238,7 +258,7 @@ async function captureMapEvidence() {
         console.log(`  ✅ Clicked map button for: ${testCase.name}`);
 
         // Wait for modal to appear (20s timeout)
-        await page.waitForSelector('.MuiDialog-root, [role="dialog"]', { timeout: 20000 });
+        await page.waitForSelector('[role="dialog"]', { timeout: 20000 });
         console.log(`  ✅ Modal opened for: ${testCase.name}`);
         
         // Wait for map container (20s timeout)
@@ -269,37 +289,22 @@ async function captureMapEvidence() {
           }
         }
 
-        // Extract build info if available
-        try {
-          const buildInfo = await page.textContent('[data-testid="build-info"], .build-info');
-          if (buildInfo && buildHash === 'unknown') {
-            const hashMatch = buildInfo.match(/Build:\s*([a-f0-9]+)/i);
-            if (hashMatch) buildHash = hashMatch[1];
-          }
-        } catch (e) {
-          // Build info not found, continue
-        }
-
-        // Extract provider info
-        try {
-          const providerInfo = await page.textContent('[data-testid="map-provider"], .map-provider');
-          if (providerInfo && provider === 'unknown') {
-            provider = providerInfo.includes('Leaflet') ? 'Leaflet/OSM' : 'Google Maps';
-          }
-        } catch (e) {
-          // Provider info not found, assume Leaflet
-          provider = 'Leaflet/OSM';
-        }
-
-        // Capture screenshot
-        const screenshotPath = join(evidenceDir, testCase.filename);
+        // Get API status for filename
+        const apiStatus = testCase.expectedType === 'Polygon' ? '200-polygon' : '404-sem_dados';
+        const expectedSlug = testCase.expectedType === 'Polygon' ? 'polygon' : 'sem_dados';
+        
+        // Generate final screenshot filename
+        const finalFilename = `FINAL_${testCase.order}_${testCase.slug}__expected-${expectedSlug}__api-${apiStatus}__build-${buildHash}.png`;
+        
+        // Capture final screenshot
+        const screenshotPath = join(evidenceDir, finalFilename);
         await page.screenshot({ 
           path: screenshotPath,
           fullPage: false,
           clip: { x: 0, y: 0, width: 1200, height: 800 }
         });
 
-        console.log(`  📸 Screenshot saved: ${testCase.filename}`);
+        console.log(`  📸 Final screenshot saved: ${finalFilename}`);
 
         // Check if map rendered properly
         const hasMapContent = await page.locator('.leaflet-container').isVisible();
@@ -311,9 +316,12 @@ async function captureMapEvidence() {
         
         results.push({
           name: testCase.name,
+          slug: testCase.slug,
+          order: testCase.order,
           id: testCase.id,
-          filename: testCase.filename,
+          filename: finalFilename,
           expectedType: testCase.expectedType,
+          apiStatus: apiStatus,
           hasMapContent,
           hasPolygon: polygonDetected,
           status
@@ -321,9 +329,28 @@ async function captureMapEvidence() {
 
         console.log(`  ✅ ${testCase.name}: Map Content=${hasMapContent ? '✅' : '❌'}, Polygon=${polygonDetected ? '✅' : '❌'}, Status=${status}`);
 
-        // Close modal
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(1000);
+        // Close modal properly
+        try {
+          // Try close button first
+          const closeButton = page.locator('[role="dialog"] button[aria-label*="close" i], [role="dialog"] .MuiIconButton-root').first();
+          if (await closeButton.isVisible({ timeout: 2000 })) {
+            await closeButton.click();
+          } else {
+            // Fallback to Escape
+            await page.keyboard.press('Escape');
+          }
+          
+          // Wait for modal to disappear
+          await page.waitForFunction(() => 
+            document.querySelectorAll('[role="dialog"]').length === 0,
+            { timeout: 15000 }
+          );
+          console.log(`  ✅ Modal closed for ${testCase.name}`);
+        } catch (e) {
+          console.log(`  ⚠️ Modal close timeout for ${testCase.name}, forcing escape`);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(2000);
+        }
 
         // Clear search if used
         try {
@@ -339,41 +366,56 @@ async function captureMapEvidence() {
       } catch (error) {
         console.error(`  ❌ Error capturing ${testCase.name}:`, error.message);
         
-        // Save debug screenshot for row/button not found
+        // Determine error step
+        let errorStep = 'unknown';
+        if (error.message.includes('tr')) errorStep = 'row_button';
+        else if (error.message.includes('dialog')) errorStep = 'modal_open';
+        else if (error.message.includes('leaflet-container')) errorStep = 'map_container';
+        else if (error.message.includes('tile')) errorStep = 'tiles';
+        else if (error.message.includes('path')) errorStep = 'polygon';
+        
+        // Save debug screenshot
         try {
-          const debugScreenshotPath = join(evidenceDir, `DEBUG_ROW_OR_BUTTON_${testCase.name.replace(/\s+/g, '_')}.png`);
+          const debugFilename = `DEBUG_${testCase.order}_${testCase.slug}__step-${errorStep}__err-timeout__build-${buildHash}.png`;
+          const debugScreenshotPath = join(evidenceDir, debugFilename);
           await page.screenshot({ 
             path: debugScreenshotPath,
             fullPage: true
           });
-          console.log(`  🐛 Debug screenshot saved: DEBUG_ROW_OR_BUTTON_${testCase.name.replace(/\s+/g, '_')}.png`);
+          console.log(`  🐛 Debug screenshot saved: ${debugFilename}`);
 
           results.push({
             name: testCase.name,
+            slug: testCase.slug,
+            order: testCase.order,
             id: testCase.id,
-            filename: testCase.filename,
+            filename: `FINAL_${testCase.order}_${testCase.slug}__expected-error__api-unknown__build-${buildHash}.png`,
             expectedType: testCase.expectedType,
+            apiStatus: 'unknown',
             hasMapContent: false,
             hasPolygon: false,
-            status: 'ERROR_ROW_BUTTON',
+            status: 'ERROR_' + errorStep.toUpperCase(),
             error: error.message,
-            debugScreenshot: `DEBUG_ROW_OR_BUTTON_${testCase.name.replace(/\s+/g, '_')}.png`
+            debugScreenshot: debugFilename
           });
         } catch (debugError) {
           console.error(`  🐛 Debug capture failed:`, debugError.message);
           results.push({
             name: testCase.name,
+            slug: testCase.slug,
+            order: testCase.order,
             id: testCase.id,
-            filename: testCase.filename,
+            filename: `FINAL_${testCase.order}_${testCase.slug}__expected-error__api-unknown__build-${buildHash}.png`,
             expectedType: testCase.expectedType,
+            apiStatus: 'unknown',
             hasMapContent: false,
             hasPolygon: false,
-            status: 'ERROR_ROW_BUTTON',
+            status: 'ERROR_' + errorStep.toUpperCase(),
             error: error.message
           });
         }
 
-        // Continue with next test case (don't abort)
+        // Continue with next test case
         console.log(`  ⏭️ Continuing with next test case...`);
       }
     }
