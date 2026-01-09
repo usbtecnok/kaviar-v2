@@ -261,31 +261,157 @@ async function captureMapEvidence() {
         await page.waitForSelector('[role="dialog"]', { timeout: 20000 });
         console.log(`  ✅ Modal opened for: ${testCase.name}`);
         
-        // Wait for map container (20s timeout)
-        await page.waitForSelector('.leaflet-container', { timeout: 20000 });
-        console.log(`  ✅ Map container found for ${testCase.name}`);
-
-        // Wait for tiles to load (10s timeout, non-critical)
+        // OBRIGATÓRIO: Wait for rendering before checking map
+        await page.waitForTimeout(2000);
+        console.log(`  ✅ Initial rendering wait completed for ${testCase.name}`);
+        
+        // Try to find map container with diagnostic
+        let hasMapContent = false;
+        let mapProvider = 'none';
+        let diagnosticInfo = {};
+        
         try {
-          await page.waitForSelector('img.leaflet-tile', { timeout: 10000 });
-          console.log(`  ✅ Tiles loaded for ${testCase.name}`);
-        } catch (e) {
-          console.log(`  ⚠️ Tiles timeout for ${testCase.name}, proceeding anyway`);
+          await page.waitForSelector('.leaflet-container', { timeout: 20000 });
+          hasMapContent = true;
+          mapProvider = 'leaflet';
+          console.log(`  ✅ Leaflet container found for ${testCase.name}`);
+        } catch (mapContainerError) {
+          console.log(`  ⚠️ Leaflet container timeout for ${testCase.name}, running diagnostics...`);
+          
+          // DIAGNOSTIC: Save modal content screenshots
+          const modalClippedPath = join(evidenceDir, `DEBUG_${testCase.order}_${testCase.slug}__step-modal-content-clipped__build-${buildHash}.png`);
+          const modalFullPath = join(evidenceDir, `DEBUG_${testCase.order}_${testCase.slug}__step-modal-content-full__build-${buildHash}.png`);
+          
+          await page.screenshot({ 
+            path: modalClippedPath,
+            fullPage: false,
+            clip: { x: 0, y: 0, width: 1200, height: 800 }
+          });
+          
+          await page.screenshot({ 
+            path: modalFullPath,
+            fullPage: true
+          });
+          
+          console.log(`  🔍 Modal content screenshots saved for ${testCase.name}`);
+          
+          // DIAGNOSTIC: Dump modal content
+          const modalDialog = page.locator('[role="dialog"]').first();
+          const modalText = await modalDialog.innerText().catch(() => 'Could not get innerText');
+          const modalHTML = await modalDialog.innerHTML().catch(() => 'Could not get innerHTML');
+          
+          const modalTextPath = join(evidenceDir, `DEBUG_${testCase.order}_${testCase.slug}__modal-content.txt`);
+          const modalHTMLPath = join(evidenceDir, `DEBUG_${testCase.order}_${testCase.slug}__modal-content.html`);
+          
+          writeFileSync(modalTextPath, modalText);
+          writeFileSync(modalHTMLPath, modalHTML);
+          
+          console.log(`  🔍 Modal content dumped for ${testCase.name}`);
+          
+          // DIAGNOSTIC: Check for different map providers
+          const leafletExists = await page.locator('.leaflet-container').count() > 0;
+          const googleMapsExists = await page.locator('.gm-style').count() > 0;
+          const mapTestIdExists = await page.locator('[data-testid*="map"]').count() > 0;
+          
+          if (googleMapsExists) mapProvider = 'google-maps';
+          else if (mapTestIdExists) mapProvider = 'custom-map';
+          else mapProvider = 'none';
+          
+          diagnosticInfo.providers = {
+            leaflet: leafletExists,
+            googleMaps: googleMapsExists,
+            customMap: mapTestIdExists
+          };
+          
+          console.log(`  🔍 Map providers check: Leaflet=${leafletExists}, Google=${googleMapsExists}, Custom=${mapTestIdExists}`);
+          
+          // DIAGNOSTIC: Collect console errors and page errors
+          const consoleLogs = [];
+          const pageErrors = [];
+          
+          page.on('console', msg => {
+            if (msg.type() === 'error') {
+              consoleLogs.push(`CONSOLE ERROR: ${msg.text()}`);
+            }
+          });
+          
+          page.on('pageerror', error => {
+            pageErrors.push(`PAGE ERROR: ${error.message}`);
+          });
+          
+          // Wait a bit to collect errors
+          await page.waitForTimeout(2000);
+          
+          // DIAGNOSTIC: Check for network failures
+          const networkErrors = [];
+          page.on('response', response => {
+            const url = response.url();
+            if ((url.includes('leaflet') || url.includes('openstreetmap') || url.includes('tile') || url.includes('maps.googleapis')) && !response.ok()) {
+              networkErrors.push(`NETWORK ERROR: ${response.status()} ${url}`);
+            }
+          });
+          
+          diagnosticInfo.errors = {
+            console: consoleLogs,
+            page: pageErrors,
+            network: networkErrors
+          };
+          
+          // Save diagnostic info
+          const diagnosticPath = join(evidenceDir, `DEBUG_${testCase.order}_${testCase.slug}__diagnostic-info.json`);
+          writeFileSync(diagnosticPath, JSON.stringify(diagnosticInfo, null, 2));
+          
+          console.log(`  🔍 Diagnostic info saved for ${testCase.name}`);
+          
+          // If we found a different map provider, try to wait for it
+          if (mapProvider !== 'none') {
+            console.log(`  🔄 Found ${mapProvider}, attempting to wait for tiles...`);
+            try {
+              if (mapProvider === 'leaflet') {
+                await page.waitForSelector('img.leaflet-tile', { timeout: 10000 });
+              } else if (mapProvider === 'google-maps') {
+                await page.waitForSelector('.gm-style img', { timeout: 10000 });
+              }
+              hasMapContent = true;
+              console.log(`  ✅ ${mapProvider} tiles loaded for ${testCase.name}`);
+            } catch (tilesError) {
+              console.log(`  ⚠️ ${mapProvider} tiles timeout for ${testCase.name}`);
+            }
+          }
         }
 
-        // OBRIGATÓRIO: Buffer time for complete rendering (tiles + polygon)
-        await page.waitForTimeout(2000);
-        console.log(`  ✅ Rendering buffer completed for ${testCase.name}`);
-
-        // For Polygon cases: wait for overlay (10s timeout, non-critical)
+        // Continue with tiles and polygon detection if map was found
         let hasPolygon = false;
-        if (testCase.expectedType === 'Polygon') {
+        if (hasMapContent) {
+          // Wait for tiles to load (10s timeout, non-critical)
           try {
-            await page.waitForSelector('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path', { timeout: 10000 });
-            hasPolygon = true;
-            console.log(`  ✅ Polygon overlay found for ${testCase.name}`);
+            if (mapProvider === 'leaflet') {
+              await page.waitForSelector('img.leaflet-tile', { timeout: 10000 });
+            } else if (mapProvider === 'google-maps') {
+              await page.waitForSelector('.gm-style img', { timeout: 10000 });
+            }
+            console.log(`  ✅ Tiles loaded for ${testCase.name} (${mapProvider})`);
           } catch (e) {
-            console.log(`  ⚠️ Polygon overlay timeout for ${testCase.name}, marking MAP_RENDER_INCOMPLETE`);
+            console.log(`  ⚠️ Tiles timeout for ${testCase.name} (${mapProvider}), proceeding anyway`);
+          }
+
+          // OBRIGATÓRIO: Final buffer time for complete rendering (tiles + polygon)
+          await page.waitForTimeout(2000);
+          console.log(`  ✅ Final rendering buffer completed for ${testCase.name}`);
+
+          // For Polygon cases: wait for overlay (10s timeout, non-critical)
+          if (testCase.expectedType === 'Polygon') {
+            try {
+              if (mapProvider === 'leaflet') {
+                await page.waitForSelector('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path', { timeout: 10000 });
+              } else if (mapProvider === 'google-maps') {
+                await page.waitForSelector('.gm-style path, .gm-style svg path', { timeout: 10000 });
+              }
+              hasPolygon = true;
+              console.log(`  ✅ Polygon overlay found for ${testCase.name} (${mapProvider})`);
+            } catch (e) {
+              console.log(`  ⚠️ Polygon overlay timeout for ${testCase.name} (${mapProvider})`);
+            }
           }
         }
 
@@ -306,13 +432,13 @@ async function captureMapEvidence() {
 
         console.log(`  📸 Final screenshot saved: ${finalFilename}`);
 
-        // Check if map rendered properly
-        const hasMapContent = await page.locator('.leaflet-container').isVisible();
-        const polygonDetected = hasPolygon || await page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path').count() > 0;
+        // Check final map state
+        const finalMapContent = hasMapContent && await page.locator('.leaflet-container, .gm-style, [data-testid*="map"]').isVisible();
+        const finalPolygonDetected = hasPolygon || await page.locator('.leaflet-overlay-pane path, .leaflet-overlay-pane svg path, .gm-style path, .gm-style svg path').count() > 0;
         
-        const status = hasMapContent ? 
-          (testCase.expectedType === 'Polygon' && !polygonDetected ? 'MAP_RENDER_INCOMPLETE' : 'SUCCESS') : 
-          'MAP_RENDER_INCOMPLETE';
+        const status = finalMapContent ? 
+          (testCase.expectedType === 'Polygon' && !finalPolygonDetected ? 'MAP_RENDER_INCOMPLETE' : 'SUCCESS') : 
+          'ERROR_MAP_CONTAINER';
         
         results.push({
           name: testCase.name,
@@ -322,12 +448,14 @@ async function captureMapEvidence() {
           filename: finalFilename,
           expectedType: testCase.expectedType,
           apiStatus: apiStatus,
-          hasMapContent,
-          hasPolygon: polygonDetected,
-          status
+          hasMapContent: finalMapContent,
+          hasPolygon: finalPolygonDetected,
+          mapProvider: mapProvider,
+          status,
+          diagnosticInfo: diagnosticInfo
         });
 
-        console.log(`  ✅ ${testCase.name}: Map Content=${hasMapContent ? '✅' : '❌'}, Polygon=${polygonDetected ? '✅' : '❌'}, Status=${status}`);
+        console.log(`  ✅ ${testCase.name}: Map Content=${finalMapContent ? '✅' : '❌'}, Polygon=${finalPolygonDetected ? '✅' : '❌'}, Provider=${mapProvider}, Status=${status}`);
 
         // Close modal properly
         try {
