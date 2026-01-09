@@ -208,8 +208,32 @@ model Community {
   guides        TouristGuide[]
   statusHistory CommunityStatusHistory[]
   elderlyContracts ElderlyContract[]
+  geofenceData  CommunityGeofence?
 
   @@map("communities")
+}
+
+model CommunityGeofence {
+  id          String   @id @default(cuid())
+  communityId String   @unique @map("community_id")
+  centerLat   Decimal  @map("center_lat") @db.Decimal(10, 8)
+  centerLng   Decimal  @map("center_lng") @db.Decimal(11, 8)
+  minLat      Decimal? @map("min_lat") @db.Decimal(10, 8)
+  minLng      Decimal? @map("min_lng") @db.Decimal(11, 8)
+  maxLat      Decimal? @map("max_lat") @db.Decimal(10, 8)
+  maxLng      Decimal? @map("max_lng") @db.Decimal(11, 8)
+  geojson     String?  @map("geojson") @db.Text
+  source      String
+  sourceRef   String?  @map("source_ref")
+  confidence  String   // HIGH, MED, LOW
+  isVerified  Boolean  @default(false) @map("is_verified")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@map("community_geofences")
 }
 
 model UserConsent {

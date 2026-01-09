@@ -371,7 +371,8 @@ export class GeofenceService {
       blockReason: 'Nenhum motorista disponível no momento'
     };
   }
-    if (!passengerGeofence.isWithinFence) {
+  
+  if (!passengerGeofence.isWithinFence) {
       return {
         canCreateCommunityRide: false,
         requiresOutOfFenceConfirmation: false,

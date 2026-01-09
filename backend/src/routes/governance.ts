@@ -16,11 +16,89 @@ router.get('/communities', async (req, res) => {
   try {
     const communities = await prisma.community.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, description: true }
+      select: { 
+        id: true, 
+        name: true, 
+        description: true,
+        centerLat: true,
+        centerLng: true
+      },
+      include: {
+        geofenceData: {
+          select: {
+            centerLat: true,
+            centerLng: true,
+            minLat: true,
+            minLng: true,
+            maxLat: true,
+            maxLng: true,
+            confidence: true,
+            isVerified: true
+          }
+        }
+      }
     });
-    res.json({ success: true, data: communities });
+
+    // Merge geofence data with community data
+    const enrichedCommunities = communities.map(community => ({
+      id: community.id,
+      name: community.name,
+      description: community.description,
+      centerLat: community.geofenceData?.centerLat || community.centerLat,
+      centerLng: community.geofenceData?.centerLng || community.centerLng,
+      bbox: community.geofenceData ? {
+        minLat: community.geofenceData.minLat,
+        minLng: community.geofenceData.minLng,
+        maxLat: community.geofenceData.maxLat,
+        maxLng: community.geofenceData.maxLng
+      } : null
+    }));
+
+    res.json({ success: true, data: enrichedCommunities });
   } catch (error: unknown) {
     const message = error instanceof Error ? error instanceof Error ? error.message : String(error) : String(error);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+// Obter geofence de uma comunidade específica
+router.get('/communities/:id/geofence', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const geofence = await prisma.communityGeofence.findUnique({
+      where: { communityId: id },
+      select: {
+        geojson: true,
+        centerLat: true,
+        centerLng: true,
+        confidence: true,
+        isVerified: true,
+        source: true,
+        updatedAt: true
+      }
+    });
+
+    if (!geofence) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Geofence não encontrado para esta comunidade' 
+      });
+    }
+
+    const response = {
+      centerLat: geofence.centerLat,
+      centerLng: geofence.centerLng,
+      geometry: geofence.geojson ? JSON.parse(geofence.geojson) : null,
+      confidence: geofence.confidence,
+      isVerified: geofence.isVerified,
+      source: geofence.source,
+      updatedAt: geofence.updatedAt
+    };
+
+    res.json({ success: true, data: response });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
     res.status(500).json({ success: false, error: message });
   }
 });
