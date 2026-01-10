@@ -6,8 +6,17 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
-// Piloto obrigatório - apenas estes 3 primeiro
+// Piloto obrigatório - apenas estes primeiro
 const PILOT_NEIGHBORHOODS = ['Botafogo', 'Tijuca', 'Glória'];
+
+// IDs específicos sem geofence que devem ser incluídos no pipeline
+const MISSING_GEOFENCE_IDS = [
+  'cmk6uwnvh0001qqr377ziza29', // Morro da Providência
+  'cmk6ux6v6001mqqr33ulgsn00', // Chapéu Mangueira  
+  'cmk6ux6js001lqqr3di3r3xvd', // Morro da Babilônia
+  'cmk6ux0dx0012qqr3sx949css', // Morro da Urca
+  'cmk6ux7h3001oqqr3pjtmxcxo'  // Morro de Santa Marta
+];
 
 async function loadGeojsonData() {
   const geojsonPath = path.join(__dirname, '../../audit/rj_geofence_batch.geojson');
@@ -18,6 +27,13 @@ async function loadGeojsonData() {
 async function findCommunityByName(name) {
   return await prisma.community.findFirst({
     where: { name },
+    include: { geofenceData: true }
+  });
+}
+
+async function findCommunityById(id) {
+  return await prisma.community.findFirst({
+    where: { id },
     include: { geofenceData: true }
   });
 }
@@ -99,12 +115,34 @@ async function main() {
   const features = await loadGeojsonData();
   console.log(`📦 ${features.length} polígonos carregados do GeoJSON`);
   
-  // Filtrar apenas piloto
+  // Filtrar apenas piloto + IDs específicos sem geofence
   const pilotFeatures = features.filter(f => 
     PILOT_NEIGHBORHOODS.includes(f.properties.name)
   );
   
+  // Buscar features para IDs específicos sem geofence
+  const missingGeofenceFeatures = [];
+  for (const id of MISSING_GEOFENCE_IDS) {
+    try {
+      const community = await findCommunityById(id);
+      if (community) {
+        // Buscar no GeoJSON por nome da community
+        const feature = features.find(f => f.properties.name === community.name);
+        if (feature) {
+          missingGeofenceFeatures.push(feature);
+          console.log(`📍 [MISSING] Incluindo ${community.name} (${id}) no pipeline`);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Erro ao buscar community ${id}:`, error);
+    }
+  }
+  
+  const allFeatures = [...pilotFeatures, ...missingGeofenceFeatures];
+  
   console.log(`🎯 Piloto: ${pilotFeatures.length} bairros selecionados`);
+  console.log(`📍 IDs sem geofence: ${missingGeofenceFeatures.length} incluídos`);
+  console.log(`📊 Total a processar: ${allFeatures.length}`);
   
   const results = {
     processed: 0,
@@ -114,7 +152,7 @@ async function main() {
     details: []
   };
   
-  for (const feature of pilotFeatures) {
+  for (const feature of allFeatures) {
     const name = feature.properties.name;
     const geometry = feature.geometry;
     
