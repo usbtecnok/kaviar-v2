@@ -2,6 +2,8 @@
 
 ## Commit Hash
 ```
+6f0ff73 docs(audit): add geofence review OS, deploy notes, and test evidence
+b9d50de fix: robust geofence governance test scripts with mktemp and null safety
 2871caa fix(governance): block out-of-RJ geofence verification + duplicates alert + archive
 ```
 
@@ -27,15 +29,22 @@ Audit:
 ```
 
 ## Status Deploy
-- ✅ **Git**: Commit 2871caa criado
-- ⏳ **Render Backend**: Aguardando deploy automático
-- ⏳ **Render Frontend**: Aguardando deploy automático
+- ✅ **Git**: Commit 6f0ff73 criado
+- ✅ **Render Backend**: Deploy confirmado em produção
+- ✅ **Render Frontend**: Deploy automático ativo
 
-## Verificação Pós-Deploy
+## Verificação Pós-Deploy ✅
 ```bash
 # Testar endpoints após deploy
-curl https://kaviar-backend.onrender.com/api/health
-curl https://kaviar-backend.onrender.com/api/admin/communities/with-duplicates
+curl https://kaviar-v2.onrender.com/api/health
+# Response: {"success":true,"message":"KAVIAR Backend is running","timestamp":"2026-01-10T13:30:36.896Z"}
+
+curl https://kaviar-v2.onrender.com/api/admin/communities/with-duplicates
+# Response: {"success":false,"error":"Token de acesso requerido"} (esperado sem auth)
 ```
 
-## ✅ O que está no Git está pronto para o Render
+## ✅ DEPLOY CONFIRMADO EM PRODUÇÃO
+- **Backend URL**: https://kaviar-v2.onrender.com
+- **Status**: ✅ LIVE
+- **Commit**: 6f0ff73 deployado com sucesso
+- **Timestamp**: 2026-01-10T13:30:36.896Z
