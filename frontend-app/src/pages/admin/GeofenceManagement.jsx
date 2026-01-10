@@ -129,6 +129,7 @@ export default function GeofenceManagement() {
   const [verifiedFilter, setVerifiedFilter] = useState('');
   const [hasGeometryFilter, setHasGeometryFilter] = useState('');
   const [duplicateFilter, setDuplicateFilter] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   
   // Dialogs
   const [mapDialog, setMapDialog] = useState({ open: false, community: null, geofence: null });
@@ -154,13 +155,21 @@ export default function GeofenceManagement() {
   }, []);
 
   useEffect(() => {
+    fetchCommunities();
+  }, [showArchived]);
+
+  useEffect(() => {
     applyFilters();
   }, [communities, confidenceFilter, verifiedFilter, hasGeometryFilter, duplicateFilter]);
 
   const fetchCommunities = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/communities/with-duplicates`, {
+      const url = showArchived 
+        ? `${API_BASE_URL}/api/admin/communities/with-duplicates?includeArchived=1`
+        : `${API_BASE_URL}/api/admin/communities/with-duplicates`;
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -441,7 +450,17 @@ export default function GeofenceManagement() {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Typography variant="h6" gutterBottom>Filtros</Typography>
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={showArchived}
+                  onChange={(e) => setShowArchived(e.target.checked)}
+                />
+              }
+              label="Mostrar arquivados"
+            />
+            
             <FormControl sx={{ minWidth: 120 }}>
               <InputLabel>Confiança</InputLabel>
               <Select
@@ -539,12 +558,15 @@ export default function GeofenceManagement() {
               return (
               <TableRow key={community.id} sx={{ 
                 backgroundColor: isOutsideRJ ? '#ffebee' : 
-                                community.isDuplicate ? '#fff3e0' : 'inherit'
+                                community.isDuplicate ? '#fff3e0' : 
+                                !community.isActive ? '#f5f5f5' : 'inherit',
+                opacity: !community.isActive ? 0.7 : 1
               }}>
                 <TableCell>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {community.name}
                     {isOutsideRJ && <Warning color="error" fontSize="small" />}
+                    {!community.isActive && <Chip label="ARQUIVADO" color="default" size="small" />}
                   </Box>
                 </TableCell>
                 <TableCell>{getCommunityType(community.description)}</TableCell>

@@ -128,7 +128,14 @@ export const updateCommunityGeofence = async (req: Request, res: Response) => {
 
 export const getCommunitiesWithDuplicates = async (req: Request, res: Response) => {
   try {
+    const { includeArchived } = req.query;
+    
+    const whereClause = includeArchived === '1' || includeArchived === 'true' 
+      ? {} 
+      : { isActive: true };
+
     const communities = await prisma.community.findMany({
+      where: whereClause,
       include: {
         geofenceData: {
           select: {
