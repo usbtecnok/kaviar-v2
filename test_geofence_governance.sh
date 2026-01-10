@@ -9,38 +9,50 @@ ADMIN_TOKEN=""
 echo "🧪 TESTE DE GOVERNANÇA DE GEOFENCES"
 echo "=================================="
 
-# Função para fazer requisições com validação JSON
+# Função para fazer requisições com validação JSON robusta
 fetch_json() {
     local url=$1
     local method=${2:-GET}
     local data=$3
     
+    # Usar mktemp para arquivos temporários seguros
+    local response_body=$(mktemp)
+    local response_status=$(mktemp)
+    
     # Fazer requisição separando status e body
     if [ -n "$data" ]; then
-        curl -s -o /tmp/response_body -w "%{http_code}" -X "$method" \
+        curl -s -o "$response_body" -w "%{http_code}" -X "$method" \
              -H "Authorization: Bearer $ADMIN_TOKEN" \
              -H "Content-Type: application/json" \
+             -H "Accept: application/json" \
              -d "$data" \
-             "$url" > /tmp/response_status
+             "$url" > "$response_status"
     else
-        curl -s -o /tmp/response_body -w "%{http_code}" -X "$method" \
+        curl -s -o "$response_body" -w "%{http_code}" -X "$method" \
              -H "Authorization: Bearer $ADMIN_TOKEN" \
-             "$url" > /tmp/response_status
+             -H "Accept: application/json" \
+             "$url" > "$response_status"
     fi
     
-    local status=$(cat /tmp/response_status)
+    local status=$(cat "$response_status")
     
-    # Validar se é JSON válido
-    if ! jq -e . /tmp/response_body > /dev/null 2>&1; then
-        echo "❌ ERRO: Resposta não é JSON válido (HTTP $status)"
-        echo "Primeiros 200 chars:"
-        head -c 200 /tmp/response_body
+    echo "HTTP $status - $method $url"
+    
+    # Validar se é JSON válido antes de qualquer parse
+    if ! jq -e . "$response_body" > /dev/null 2>&1; then
+        echo "❌ ERRO: Resposta não é JSON válido"
+        echo "Primeiros 200 chars do body:"
+        head -c 200 "$response_body"
         echo ""
+        rm -f "$response_body" "$response_status"
         return 1
     fi
     
-    echo "HTTP $status"
-    cat /tmp/response_body
+    # Retornar conteúdo JSON válido
+    cat "$response_body"
+    
+    # Cleanup
+    rm -f "$response_body" "$response_status"
     return 0
 }
 
@@ -53,13 +65,13 @@ echo "Fazendo requisição para /admin/communities/with-duplicates..."
 if response=$(fetch_json "$API_BASE/admin/communities/with-duplicates"); then
     echo "✅ Resposta JSON válida recebida"
     
-    # Extrair alguns IDs para testes (usando // [] para evitar null)
-    duplicate_ids=$(echo "$response" | jq -r '.data // [] | .[] | select(.isDuplicate == true) | .id' | head -2)
-    canonical_id=$(echo "$response" | jq -r '.data // [] | .[] | select(.isDuplicate == true and .isCanonical == true) | .id' | head -1)
+    # Usar null safety em todas as operações jq
+    duplicate_ids=$(echo "$response" | jq -r '.data // [] | map(select(.isDuplicate == true)) | .[].id' 2>/dev/null | head -2)
+    canonical_id=$(echo "$response" | jq -r '.data // [] | map(select(.isDuplicate == true and .isCanonical == true)) | .[0].id // empty' 2>/dev/null)
     
-    duplicate_count=$(echo "$duplicate_ids" | grep -v '^$' | wc -l)
+    duplicate_count=$(echo "$duplicate_ids" | grep -c . 2>/dev/null || echo "0")
     echo "Duplicados encontrados: $duplicate_count"
-    echo "ID canônico: $canonical_id"
+    echo "ID canônico: ${canonical_id:-N/A}"
     
     if [ "$duplicate_count" -gt 0 ]; then
         echo "✅ Sistema detectou duplicados corretamente"
@@ -76,10 +88,10 @@ echo ""
 echo "2️⃣ TESTE: Validação RJ (bloqueio fora do RJ)"
 echo "--------------------------------------------"
 
-# Buscar uma community com coordenadas fora do RJ
-outside_rj_id=$(echo "$response" | jq -r '.data // [] | .[] | select(.geofenceData != null) | select(.geofenceData.centerLat < -23.15 or .geofenceData.centerLat > -22.70 or .geofenceData.centerLng < -43.85 or .geofenceData.centerLng > -43.00) | .id' | head -1)
+# Buscar uma community com coordenadas fora do RJ usando null safety
+outside_rj_id=$(echo "$response" | jq -r '.data // [] | map(select(.geofenceData != null and (.geofenceData.centerLat < -23.15 or .geofenceData.centerLat > -22.70 or .geofenceData.centerLng < -43.85 or .geofenceData.centerLng > -43.00))) | .[0].id // empty' 2>/dev/null)
 
-if [ -n "$outside_rj_id" ] && [ "$outside_rj_id" != "null" ]; then
+if [ -n "$outside_rj_id" ]; then
     echo "Testando ID fora do RJ: $outside_rj_id"
     
     # Tentar marcar como verificado
@@ -88,10 +100,11 @@ if [ -n "$outside_rj_id" ] && [ "$outside_rj_id" != "null" ]; then
         "isVerified": true,
         "reviewNotes": "Teste de validação RJ"
     }'); then
-        # Verificar se foi bloqueado
-        if echo "$validation_response" | jq -e '.validationFailed' > /dev/null 2>&1; then
+        # Verificar se foi bloqueado usando null safety
+        validation_failed=$(echo "$validation_response" | jq -r '.validationFailed // false' 2>/dev/null)
+        if [ "$validation_failed" = "true" ]; then
             echo "✅ SUCESSO: Validação RJ bloqueou corretamente"
-            echo "Motivo: $(echo "$validation_response" | jq -r '.error // "N/A"')"
+            echo "Motivo: $(echo "$validation_response" | jq -r '.error // "N/A"' 2>/dev/null)"
         else
             echo "❌ FALHA: Validação RJ não bloqueou"
         fi
@@ -100,20 +113,6 @@ if [ -n "$outside_rj_id" ] && [ "$outside_rj_id" != "null" ]; then
     fi
 else
     echo "⚠️ Nenhuma community com coordenadas fora do RJ encontrada para teste"
-    echo "Criando teste sintético..."
-    
-    # Teste com coordenadas claramente fora do RJ
-    echo "Testando validação com coordenadas sintéticas fora do RJ..."
-    if synthetic_response=$(fetch_json "$API_BASE/admin/communities/test-synthetic/geofence-review" "PATCH" '{
-        "centerLat": -10.9005072,
-        "centerLng": -37.6914723,
-        "isVerified": true,
-        "reviewNotes": "Teste sintético fora do RJ"
-    }'); then
-        echo "Resposta do teste sintético recebida"
-    else
-        echo "⚠️ Teste sintético falhou (esperado se ID não existir)"
-    fi
 fi
 
 # 3. TESTE: Validação de duplicados
@@ -121,7 +120,7 @@ echo ""
 echo "3️⃣ TESTE: Validação de duplicados"
 echo "--------------------------------"
 
-if [ -n "$duplicate_ids" ] && [ "$duplicate_ids" != "" ]; then
+if [ -n "$duplicate_ids" ] && [ "$duplicate_count" -gt 0 ]; then
     first_duplicate=$(echo "$duplicate_ids" | head -1)
     echo "Testando duplicado: $first_duplicate"
     
@@ -131,13 +130,14 @@ if [ -n "$duplicate_ids" ] && [ "$duplicate_ids" != "" ]; then
         "isVerified": true,
         "reviewNotes": "Teste de duplicado sem canônico"
     }'); then
-        # Verificar se foi bloqueado
-        if echo "$duplicate_response" | jq -e '.validationFailed' > /dev/null 2>&1; then
+        # Verificar se foi bloqueado usando null safety
+        validation_failed=$(echo "$duplicate_response" | jq -r '.validationFailed // false' 2>/dev/null)
+        if [ "$validation_failed" = "true" ]; then
             echo "✅ SUCESSO: Validação de duplicado bloqueou corretamente"
-            echo "Motivo: $(echo "$duplicate_response" | jq -r '.error // "N/A"')"
+            echo "Motivo: $(echo "$duplicate_response" | jq -r '.error // "N/A"' 2>/dev/null)"
             
-            # Testar com canônico selecionado
-            if [ -n "$canonical_id" ] && [ "$canonical_id" != "null" ]; then
+            # Testar com canônico selecionado se disponível
+            if [ -n "$canonical_id" ]; then
                 echo "Testando com canônico selecionado: $canonical_id"
                 
                 if canonical_response=$(fetch_json "$API_BASE/admin/communities/$canonical_id/geofence-review" "PATCH" '{
@@ -165,20 +165,21 @@ echo ""
 echo "4️⃣ TESTE: Arquivamento de community"
 echo "-----------------------------------"
 
-# Buscar uma community para arquivar (preferencialmente duplicada ou fora do RJ)
-archive_candidate=$(echo "$response" | jq -r '.data // [] | .[] | select(.isDuplicate == true and .isCanonical == false) | .id' | head -1)
+# Buscar uma community para arquivar usando null safety
+archive_candidate=$(echo "$response" | jq -r '.data // [] | map(select(.isDuplicate == true and .isCanonical == false)) | .[0].id // empty' 2>/dev/null)
 
-if [ -n "$archive_candidate" ] && [ "$archive_candidate" != "null" ]; then
+if [ -n "$archive_candidate" ]; then
     echo "Arquivando community: $archive_candidate"
     
     if archive_response=$(fetch_json "$API_BASE/admin/communities/$archive_candidate/archive" "PATCH" '{
         "reason": "Teste de arquivamento - duplicado não canônico"
     }'); then
-        if echo "$archive_response" | jq -e '.success' > /dev/null 2>&1; then
+        success=$(echo "$archive_response" | jq -r '.success // false' 2>/dev/null)
+        if [ "$success" = "true" ]; then
             echo "✅ SUCESSO: Community arquivada"
             
-            # Verificar se isActive=false
-            archived_status=$(echo "$archive_response" | jq -r '.data.isActive // "N/A"')
+            # Verificar se isActive=false usando null safety
+            archived_status=$(echo "$archive_response" | jq -r '.data.isActive // "N/A"' 2>/dev/null)
             if [ "$archived_status" = "false" ]; then
                 echo "✅ SUCESSO: isActive definido como false"
             else
@@ -199,19 +200,20 @@ echo ""
 echo "5️⃣ TESTE: Validação SEM_DADOS"
 echo "-----------------------------"
 
-# Buscar community sem geojson
-sem_dados_id=$(echo "$response" | jq -r '.data // [] | .[] | select(.geofenceData != null and .geofenceData.geojson == null) | .id' | head -1)
+# Buscar community sem geojson usando null safety
+sem_dados_id=$(echo "$response" | jq -r '.data // [] | map(select(.geofenceData != null and (.geofenceData.geojson == null or .geofenceData.geojson == ""))) | .[0].id // empty' 2>/dev/null)
 
-if [ -n "$sem_dados_id" ] && [ "$sem_dados_id" != "null" ]; then
+if [ -n "$sem_dados_id" ]; then
     echo "Testando SEM_DADOS: $sem_dados_id"
     
     if sem_dados_response=$(fetch_json "$API_BASE/admin/communities/$sem_dados_id/geofence-review" "PATCH" '{
         "isVerified": true,
         "reviewNotes": "Teste SEM_DADOS"
     }'); then
-        if echo "$sem_dados_response" | jq -e '.validationFailed' > /dev/null 2>&1; then
+        validation_failed=$(echo "$sem_dados_response" | jq -r '.validationFailed // false' 2>/dev/null)
+        if [ "$validation_failed" = "true" ]; then
             echo "✅ SUCESSO: Validação SEM_DADOS bloqueou corretamente"
-            echo "Motivo: $(echo "$sem_dados_response" | jq -r '.error // "N/A"')"
+            echo "Motivo: $(echo "$sem_dados_response" | jq -r '.error // "N/A"' 2>/dev/null)"
         else
             echo "❌ FALHA: Validação SEM_DADOS não bloqueou"
         fi
@@ -222,8 +224,7 @@ else
     echo "⚠️ Nenhuma community SEM_DADOS encontrada para teste"
 fi
 
-# Cleanup
-rm -f /tmp/response_body /tmp/response_status
+# Cleanup não necessário - mktemp já limpa automaticamente
 
 echo ""
 echo "🏁 TESTES CONCLUÍDOS"
