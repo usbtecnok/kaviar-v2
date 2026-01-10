@@ -1,0 +1,8 @@
+# Allowlist para teste do pipeline RJ Official Geofences
+# Apenas bairros da Zona Sul para validação inicial
+
+# Flamengo - Point -> Polygon (OSM)
+cmk6uwync000xqqr33qaw5waf
+
+# Leblon - Point -> Polygon (OSM)  
+cmk6ux32n001aqqr3v124ja7q

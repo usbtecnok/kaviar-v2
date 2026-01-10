@@ -1,0 +1,17 @@
+# RJ Official Geofences - Batch 01 Allowlist
+# Top 10 candidates com score 1.000 e alta prioridade
+# Gerado automaticamente pelo pipeline em 2026-01-10
+
+# CREATE - Novos geofences
+cmk6uwnvh0001qqr377ziza29  # Morro da Providência - CREATE - OSM_way_155451259
+cmk6uwpj20005qqr3rg5j0xwe  # Morro de Santa Teresa - CREATE - OSM_way_87101252
+cmk6ux4c5001eqqr3s0rzr9pv  # Parque da Cidade - CREATE - OSM_relation_1124699
+
+# UPDATE - Melhorar geofences existentes (Point/LineString → Polygon)
+cmk6uwrdo000aqqr3yfocyygr  # Catumbi - UPDATE Point→Polygon - OSM_relation_5520289
+cmk6uwsbs000dqqr3hf8m2l7c  # Cidade Nova - UPDATE Point→Polygon - OSM_relation_5520291
+cmk6uwvsy000oqqr3dherrtpj  # Gamboa - UPDATE Point→Polygon - OSM_relation_5520310
+cmk6uwwfp000qqqr3uj390nph  # Santo Cristo - UPDATE Point→Polygon - OSM_relation_5520360
+cmk6uwy0e000vqqr366pb2x1a  # São Cristóvão - UPDATE Point→Polygon - OSM_relation_5520362
+cmk6uwzfs000zqqr3npc3pqq5  # Catete - UPDATE Point→Polygon - OSM_relation_5520288
+cmk6ux4nj001fqqr37935etxd  # Jardim Botânico - UPDATE Point→Polygon - OSM_relation_5516241
