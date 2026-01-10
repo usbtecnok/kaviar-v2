@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-01-09T22:58:07.869Z",
+  "endpoint": "/api/admin/communities",
+  "status": 200,
+  "success": true,
+  "totalCommunities": 97,
+  "targetCommunities": {
+    "Botafogo": {
+      "found": true,
+      "actualId": "cmk6ux02j0011qqr398od1msm",
+      "expectedId": "cmk6ux02j0011qqr398od1msm",
+      "isCorrect": true
+    },
+    "Tijuca": {
+      "found": true,
+      "actualId": "cmk6ux8fk001rqqr371kc4ple",
+      "expectedId": "cmk6ux8fk001rqqr371kc4ple",
+      "isCorrect": true
+    },
+    "Glória": {
+      "found": true,
+      "actualId": "cmk6uwq9u0007qqr3pxqr64ce",
+      "expectedId": "cmk6uwq9u0007qqr3pxqr64ce",
+      "isCorrect": true
+    }
+  }
+}

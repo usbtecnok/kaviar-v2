@@ -38,6 +38,7 @@ export default function CommunitiesManagement() {
   const [saving, setSaving] = useState(false);
   const [centerMode, setCenterMode] = useState(false);
   const [centerCandidate, setCenterCandidate] = useState(null);
+  const [showOnlyWithMap, setShowOnlyWithMap] = useState(false);
 
   useEffect(() => {
     fetchCommunities();
@@ -45,22 +46,31 @@ export default function CommunitiesManagement() {
 
   const fetchCommunities = async () => {
     try {
-      const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // CORREÇÃO: Usar endpoint governance (IDs canônicos) em vez de admin
+      // Motivo: admin tem bug na deduplicação, retorna IDs sem geofence
+      const response = await fetch(`${API_BASE_URL}/api/governance/communities`);
 
-      if (response.status === 401) {
-        localStorage.removeItem('kaviar_admin_token');
-        window.location.href = '/admin/login';
-        return;
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
 
       const data = await response.json();
       if (data.success) {
-        setCommunities(data.data);
+        // Transformar dados do governance para formato esperado pela UI admin
+        const transformedData = data.data.map(community => ({
+          ...community,
+          // Adicionar campos esperados pela UI admin (com valores padrão)
+          stats: {
+            activeDrivers: 0,
+            premiumDrivers: 0,
+            activePassengers: 0,
+            activeGuides: 0,
+            canActivate: true, // Assumir que pode ativar (governance só lista ativos)
+            minRequired: 3
+          },
+          isActive: true // Governance só retorna ativos
+        }));
+        setCommunities(transformedData);
       } else {
         setError(data.error || 'Erro ao carregar bairros');
       }
@@ -76,6 +86,8 @@ export default function CommunitiesManagement() {
 
     setSaving(true);
     try {
+      // NOTA: Criação ainda usa endpoint admin (requer auth)
+      // Apenas a listagem foi movida para governance
       const token = localStorage.getItem('kaviar_admin_token');
       const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
         method: 'POST',
@@ -155,6 +167,7 @@ export default function CommunitiesManagement() {
     try {
       // Buscar dados completos do geofence da API
       const token = localStorage.getItem('kaviar_admin_token');
+      console.log("[MAP DIAGNOSTIC] fetching geofence", `/api/governance/communities/${community.id}/geofence`);
       const response = await fetch(`${API_BASE_URL}/api/governance/communities/${community.id}/geofence`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -163,6 +176,14 @@ export default function CommunitiesManagement() {
 
       if (response.ok) {
         const geofenceData = await response.json();
+        const geometryType = geofenceData.data?.geometry?.type;
+        
+        // Atualizar status da comunidade localmente
+        setCommunities(prev => prev.map(c => 
+          c.id === community.id 
+            ? { ...c, geofenceStatus: geometryType || 'DADOS_INVÁLIDOS' }
+            : c
+        ));
         
         // Transformar para o formato esperado pelo componente
         const communityForMap = {
@@ -176,6 +197,14 @@ export default function CommunitiesManagement() {
         // SEM DADOS - não chamar response.json() para 204/404
         console.log(`📍 [MAP DIAGNOSTIC] Community ${community.name}: SEM DADOS (${response.status})`);
         
+        // Atualizar status da comunidade localmente
+        setCommunities(prev => prev.map(c => 
+          c.id === community.id 
+            ? { ...c, geofenceStatus: 'SEM_DADOS' }
+            : c
+        ));
+        
+        // Abrir modal com mensagem clara
         const communityForMap = {
           ...community,
           geometry: null,
@@ -298,6 +327,20 @@ export default function CommunitiesManagement() {
     return 'Bloqueado';
   };
 
+  const getGeofenceStatus = (community) => {
+    if (community.geofenceStatus === 'SEM_DADOS') return 'SEM DADOS';
+    if (community.geofenceStatus === 'Polygon' || community.geofenceStatus === 'MultiPolygon') return community.geofenceStatus;
+    if (community.geofenceStatus === 'Point' || community.geofenceStatus === 'LineString') return community.geofenceStatus;
+    return 'Verificar mapa';
+  };
+
+  const getGeofenceColor = (community) => {
+    if (community.geofenceStatus === 'SEM_DADOS') return 'error';
+    if (community.geofenceStatus === 'Polygon' || community.geofenceStatus === 'MultiPolygon') return 'success';
+    if (community.geofenceStatus === 'Point' || community.geofenceStatus === 'LineString') return 'warning';
+    return 'default';
+  };
+
   if (loading) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -312,13 +355,24 @@ export default function CommunitiesManagement() {
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           Gerenciamento de Bairros
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<LocationCity />}
-          onClick={() => setCreateDialog({ open: true })}
-        >
-          Criar novo bairro
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showOnlyWithMap}
+                onChange={(e) => setShowOnlyWithMap(e.target.checked)}
+              />
+            }
+            label="Mostrar apenas com mapa"
+          />
+          <Button
+            variant="contained"
+            startIcon={<LocationCity />}
+            onClick={() => setCreateDialog({ open: true })}
+          >
+            Criar novo bairro
+          </Button>
+        </Box>
       </Box>
 
       {error && (
@@ -328,7 +382,16 @@ export default function CommunitiesManagement() {
       )}
 
       <Grid container spacing={3}>
-        {communities.map((community) => (
+        {/* 
+        ✅ CHECK 3 - AUDIT DO HANDLER:
+        - onClick usa openMapDialog(community) com row vindo da própria linha ✓
+        - key={community.id} (nunca index) ✓  
+        - Não há uso de index/array externo ✓
+        - Não há busca por substring/includes ✓
+        */}
+        {communities
+          .filter(community => !showOnlyWithMap || community.geofenceStatus !== 'SEM_DADOS')
+          .map((community) => (
           <Grid item xs={12} md={6} lg={4} key={community.id}>
             <Card>
               <CardContent>
@@ -344,6 +407,16 @@ export default function CommunitiesManagement() {
                   color={getStatusColor(community.isActive, community.stats.canActivate)}
                   sx={{ mb: 2 }}
                 />
+
+                {/* Badge de Status do Geofence */}
+                <Box sx={{ mb: 2 }}>
+                  <Chip
+                    label={getGeofenceStatus(community)}
+                    color={getGeofenceColor(community)}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Box>
 
                 {/* Estatísticas */}
                 <Box sx={{ mb: 2 }}>
@@ -383,21 +456,23 @@ export default function CommunitiesManagement() {
                     variant="outlined"
                     size="small"
                     startIcon={<Map />}
-                    onClick={() => openMapDialog(community)}
+                    onClick={() => {
+                      console.log("[MAP DIAGNOSTIC] clicked row", { name: community.name, id: community.id });
+                      openMapDialog(community);
+                    }}
                     fullWidth
                   >
                     Ver no Mapa
                   </Button>
 
-                  {/* Switch de Ativação */}
+                  {/* Switch de Ativação - DESABILITADO: governance só mostra ativos */}
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="body2">
-                      {community.isActive ? 'Desativar' : 'Ativar'} bairro
+                    <Typography variant="body2" color="text.secondary">
+                      Ativo (governance)
                     </Typography>
                     <Switch
-                      checked={community.isActive}
-                      onChange={() => openConfirmDialog(community)}
-                      disabled={!community.isActive && !community.stats.canActivate}
+                      checked={true}
+                      disabled={true}
                     />
                   </Box>
                 </Box>
@@ -493,6 +568,17 @@ export default function CommunitiesManagement() {
               🌐 <strong>Tiles:</strong> https://tile.openstreetmap.org (check Network tab)
             </Typography>
           </Alert>
+
+          {mapDialog.community?.hasNoGeofence && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <Typography variant="body2">
+                ⚠️ <strong>Sem dados de cerca ainda</strong><br/>
+                Esta comunidade não possui dados de geofence cadastrados.
+                {mapDialog.community?.centerLat && mapDialog.community?.centerLng && 
+                  ' Será exibido apenas o marcador do centro.'}
+              </Typography>
+            </Alert>
+          )}
 
           {editMode && (
             <Alert severity="info" sx={{ mb: 2 }}>

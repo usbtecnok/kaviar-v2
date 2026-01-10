@@ -1,0 +1,12 @@
+{
+  "providers": {
+    "leaflet": false,
+    "googleMaps": false,
+    "customMap": false
+  },
+  "errors": {
+    "console": [],
+    "page": [],
+    "network": []
+  }
+}
