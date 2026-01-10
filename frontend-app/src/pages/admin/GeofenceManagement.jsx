@@ -24,11 +24,17 @@ import {
   DialogActions,
   TextField,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemButton,
+  Divider
 } from '@mui/material';
-import { Map, Visibility, Edit, CheckCircle } from '@mui/icons-material';
+import { Map, Visibility, Edit, CheckCircle, Archive, Warning } from '@mui/icons-material';
 import * as turf from '@turf/turf';
 import GeofenceMap from '../../components/maps/GeofenceMap';
+import { isLikelyInRioCity, fmtLatLng, canVerifyGeofence, geometryQuality } from '../../utils/geofence-governance';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -122,17 +128,25 @@ export default function GeofenceManagement() {
   const [confidenceFilter, setConfidenceFilter] = useState('');
   const [verifiedFilter, setVerifiedFilter] = useState('');
   const [hasGeometryFilter, setHasGeometryFilter] = useState('');
+  const [duplicateFilter, setDuplicateFilter] = useState('');
   
   // Dialogs
   const [mapDialog, setMapDialog] = useState({ open: false, community: null, geofence: null });
   const [editDialog, setEditDialog] = useState({ open: false, community: null, geofence: null });
+  const [duplicateDialog, setDuplicateDialog] = useState({ open: false, duplicates: [], selectedCanonical: null });
+  const [archiveDialog, setArchiveDialog] = useState({ open: false, community: null });
   
   // Form data
   const [editForm, setEditForm] = useState({
     centerLat: '',
     centerLng: '',
     isVerified: false,
-    reviewNotes: ''
+    reviewNotes: '',
+    selectedCanonicalId: null
+  });
+
+  const [archiveForm, setArchiveForm] = useState({
+    reason: ''
   });
 
   useEffect(() => {
@@ -141,12 +155,12 @@ export default function GeofenceManagement() {
 
   useEffect(() => {
     applyFilters();
-  }, [communities, confidenceFilter, verifiedFilter, hasGeometryFilter]);
+  }, [communities, confidenceFilter, verifiedFilter, hasGeometryFilter, duplicateFilter]);
 
   const fetchCommunities = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/communities`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities/with-duplicates`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -188,16 +202,38 @@ export default function GeofenceManagement() {
       filtered = filtered.filter(c => hasGeometry ? c.geofenceData?.geojson : !c.geofenceData?.geojson);
     }
 
-    // Ordenação padrão: pendentes primeiro, depois LOW, depois MED, depois HIGH
+    if (duplicateFilter !== '') {
+      const showDuplicates = duplicateFilter === 'true';
+      filtered = filtered.filter(c => showDuplicates ? c.isDuplicate : !c.isDuplicate);
+    }
+
+    // Ordenação: duplicados primeiro, depois pendentes, depois por confidence
     filtered.sort((a, b) => {
+      // Prioridade 1: Duplicados primeiro
+      if (a.isDuplicate && !b.isDuplicate) return -1;
+      if (!a.isDuplicate && b.isDuplicate) return 1;
+      
+      // Prioridade 2: Coordenadas fora do RJ
+      const aOutsideRJ = a.geofenceData && !isLikelyInRioCity(
+        parseFloat(a.geofenceData.centerLat), 
+        parseFloat(a.geofenceData.centerLng)
+      );
+      const bOutsideRJ = b.geofenceData && !isLikelyInRioCity(
+        parseFloat(b.geofenceData.centerLat), 
+        parseFloat(b.geofenceData.centerLng)
+      );
+      
+      if (aOutsideRJ && !bOutsideRJ) return -1;
+      if (!aOutsideRJ && bOutsideRJ) return 1;
+      
+      // Prioridade 3: Pendentes (sem geofence) 
       const aHasGeofence = !!a.geofenceData;
       const bHasGeofence = !!b.geofenceData;
       
-      // Pendentes (sem geofence) primeiro
       if (!aHasGeofence && bHasGeofence) return -1;
       if (aHasGeofence && !bHasGeofence) return 1;
       
-      // Se ambos têm geofence, ordenar por confidence
+      // Prioridade 4: Por confidence (LOW primeiro)
       if (aHasGeofence && bHasGeofence) {
         const confidenceOrder = { 'LOW': 0, 'MED': 1, 'HIGH': 2 };
         const aOrder = confidenceOrder[a.geofenceData.confidence] || 3;
@@ -206,7 +242,7 @@ export default function GeofenceManagement() {
         if (aOrder !== bOrder) return aOrder - bOrder;
       }
       
-      // Ordenação secundária por nome
+      // Ordenação final por nome
       return a.name.localeCompare(b.name);
     });
 
@@ -241,7 +277,8 @@ export default function GeofenceManagement() {
       centerLat: geofence?.centerLat || '',
       centerLng: geofence?.centerLng || '',
       isVerified: geofence?.isVerified || false,
-      reviewNotes: geofence?.reviewNotes || ''
+      reviewNotes: geofence?.reviewNotes || '',
+      selectedCanonicalId: community.isDuplicate ? community.canonicalId : null
     });
     setEditDialog({ open: true, community, geofence });
   };
@@ -249,18 +286,25 @@ export default function GeofenceManagement() {
   const handleSaveEdit = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
+      const requestBody = {
+        centerLat: parseFloat(editForm.centerLat),
+        centerLng: parseFloat(editForm.centerLng),
+        isVerified: editForm.isVerified,
+        reviewNotes: editForm.reviewNotes
+      };
+
+      // Se é duplicado e está tentando verificar, incluir canonical ID
+      if (editDialog.community.isDuplicate && editForm.isVerified) {
+        requestBody.selectedCanonicalId = editForm.selectedCanonicalId;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/admin/communities/${editDialog.community.id}/geofence-review`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          centerLat: parseFloat(editForm.centerLat),
-          centerLng: parseFloat(editForm.centerLng),
-          isVerified: editForm.isVerified,
-          reviewNotes: editForm.reviewNotes
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
@@ -269,10 +313,51 @@ export default function GeofenceManagement() {
         fetchCommunities(); // Recarregar dados
         setError('');
       } else {
+        if (data.validationFailed && data.duplicates) {
+          // Mostrar dialog de duplicados
+          setDuplicateDialog({
+            open: true,
+            duplicates: [editDialog.community, ...data.duplicates],
+            selectedCanonical: editForm.selectedCanonicalId
+          });
+        }
         setError(data.error || 'Erro ao salvar alterações');
       }
     } catch (error) {
       setError('Erro ao salvar');
+    }
+  };
+
+  const handleSelectCanonical = (canonicalId) => {
+    setEditForm({ ...editForm, selectedCanonicalId: canonicalId });
+    setDuplicateDialog({ open: false, duplicates: [], selectedCanonical: null });
+  };
+
+  const handleArchive = async () => {
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/communities/${archiveDialog.community.id}/archive`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reason: archiveForm.reason
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setArchiveDialog({ open: false, community: null });
+        setArchiveForm({ reason: '' });
+        fetchCommunities(); // Recarregar dados
+        setError('');
+      } else {
+        setError(data.error || 'Erro ao arquivar');
+      }
+    } catch (error) {
+      setError('Erro ao arquivar');
     }
   };
 
@@ -396,6 +481,19 @@ export default function GeofenceManagement() {
                 <MenuItem value="false">Sem GeoJSON</MenuItem>
               </Select>
             </FormControl>
+
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel>Duplicados</InputLabel>
+              <Select
+                value={duplicateFilter}
+                onChange={(e) => setDuplicateFilter(e.target.value)}
+                label="Duplicados"
+              >
+                <MenuItem value="">Todos</MenuItem>
+                <MenuItem value="true">Apenas Duplicados</MenuItem>
+                <MenuItem value="false">Sem Duplicados</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
         </CardContent>
       </Card>
@@ -407,10 +505,10 @@ export default function GeofenceManagement() {
             <TableRow>
               <TableCell>Nome</TableCell>
               <TableCell>Tipo</TableCell>
-              <TableCell>Bairro Pai</TableCell>
+              <TableCell>Duplicado</TableCell>
+              <TableCell>Validação RJ</TableCell>
               <TableCell>Confiança</TableCell>
               <TableCell>GeoJSON</TableCell>
-              <TableCell>Pendente</TableCell>
               <TableCell>Verificado</TableCell>
               <TableCell>Atualizado</TableCell>
               <TableCell>Ações</TableCell>
@@ -422,11 +520,66 @@ export default function GeofenceManagement() {
                                community.geofenceData.confidence === 'LOW' || 
                                !community.geofenceData.isVerified;
               
+              const isOutsideRJ = community.geofenceData && !isLikelyInRioCity(
+                parseFloat(community.geofenceData.centerLat), 
+                parseFloat(community.geofenceData.centerLng)
+              );
+
+              // Verificar se pode ser verificado
+              const canVerify = community.geofenceData ? canVerifyGeofence({
+                isDuplicateName: community.isDuplicate,
+                hasSelectedCanonical: !community.isDuplicate || community.isCanonical,
+                centerLat: parseFloat(community.geofenceData.centerLat),
+                centerLng: parseFloat(community.geofenceData.centerLng),
+                geometryType: community.geofenceData.geojson ? 
+                  JSON.parse(community.geofenceData.geojson).type : null,
+                geofenceStatus: community.geofenceData.geojson ? 200 : 404
+              }) : { ok: false, reason: 'Sem dados' };
+              
               return (
-              <TableRow key={community.id}>
-                <TableCell>{community.name}</TableCell>
+              <TableRow key={community.id} sx={{ 
+                backgroundColor: isOutsideRJ ? '#ffebee' : 
+                                community.isDuplicate ? '#fff3e0' : 'inherit'
+              }}>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {community.name}
+                    {isOutsideRJ && <Warning color="error" fontSize="small" />}
+                  </Box>
+                </TableCell>
                 <TableCell>{getCommunityType(community.description)}</TableCell>
-                <TableCell>{getParentNeighborhood(community.description)}</TableCell>
+                <TableCell>
+                  {community.isDuplicate ? (
+                    <Box>
+                      <Chip 
+                        label={`DUPLICADO (${community.duplicateCount})`} 
+                        color="warning" 
+                        size="small" 
+                      />
+                      {community.isCanonical && (
+                        <Chip 
+                          label="CANÔNICO" 
+                          color="success" 
+                          size="small" 
+                          sx={{ ml: 0.5 }}
+                        />
+                      )}
+                    </Box>
+                  ) : (
+                    <Chip label="ÚNICO" color="default" size="small" />
+                  )}
+                </TableCell>
+                <TableCell>
+                  {community.geofenceData ? (
+                    isOutsideRJ ? (
+                      <Chip label="FORA DO RJ" color="error" size="small" />
+                    ) : (
+                      <Chip label="OK" color="success" size="small" />
+                    )
+                  ) : (
+                    <Chip label="N/A" color="default" size="small" />
+                  )}
+                </TableCell>
                 <TableCell>
                   {community.geofenceData ? (
                     <Chip 
@@ -442,18 +595,16 @@ export default function GeofenceManagement() {
                   {community.geofenceData?.geojson ? 'Sim' : 'Não'}
                 </TableCell>
                 <TableCell>
-                  {isPending ? (
-                    <Chip label="Sim" color="warning" size="small" />
-                  ) : (
-                    <Chip label="Não" color="success" size="small" />
-                  )}
-                </TableCell>
-                <TableCell>
-                  {community.geofenceData?.isVerified ? (
-                    <Chip label="Verificado" color="success" size="small" />
-                  ) : (
-                    <Chip label="Pendente" color="warning" size="small" />
-                  )}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {community.geofenceData?.isVerified ? (
+                      <Chip label="Verificado" color="success" size="small" />
+                    ) : (
+                      <Chip label="Pendente" color="warning" size="small" />
+                    )}
+                    {!canVerify.ok && (
+                      <Warning color="error" fontSize="small" title={canVerify.reason} />
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell>
                   {community.geofenceData?.updatedAt ? 
@@ -462,7 +613,7 @@ export default function GeofenceManagement() {
                   }
                 </TableCell>
                 <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     <Button
                       size="small"
                       startIcon={<Visibility />}
@@ -477,6 +628,16 @@ export default function GeofenceManagement() {
                         onClick={() => openEditDialog(community)}
                       >
                         Editar
+                      </Button>
+                    )}
+                    {(isOutsideRJ || (community.isDuplicate && !community.isCanonical)) && (
+                      <Button
+                        size="small"
+                        startIcon={<Archive />}
+                        color="warning"
+                        onClick={() => setArchiveDialog({ open: true, community })}
+                      >
+                        Arquivar
                       </Button>
                     )}
                   </Box>
@@ -616,43 +777,69 @@ export default function GeofenceManagement() {
       <Dialog open={editDialog.open} onClose={() => setEditDialog({ open: false, community: null, geofence: null })} maxWidth="sm" fullWidth>
         <DialogTitle>
           Editar Geofence: {editDialog.community?.name}
+          {editDialog.community?.isDuplicate && (
+            <Chip 
+              label={`DUPLICADO (${editDialog.community.duplicateCount})`} 
+              color="warning" 
+              size="small" 
+              sx={{ ml: 1 }}
+            />
+          )}
         </DialogTitle>
         <DialogContent>
-          {/* Indicadores de Validação Geométrica */}
+          {/* Alertas de Validação */}
           {editDialog.geofence && (() => {
-            const validation = validateGeometry(editDialog.geofence);
+            const lat = parseFloat(editForm.centerLat || editDialog.geofence.centerLat);
+            const lng = parseFloat(editForm.centerLng || editDialog.geofence.centerLng);
+            const isOutsideRJ = !isLikelyInRioCity(lat, lng);
+            
+            let geometryType = null;
+            if (editDialog.geofence.geojson) {
+              try {
+                const geojson = JSON.parse(editDialog.geofence.geojson);
+                geometryType = geojson.type;
+              } catch (e) {}
+            }
+
+            const canVerify = canVerifyGeofence({
+              isDuplicateName: editDialog.community.isDuplicate,
+              hasSelectedCanonical: !editDialog.community.isDuplicate || 
+                                   editForm.selectedCanonicalId === editDialog.community.id,
+              centerLat: lat,
+              centerLng: lng,
+              geometryType,
+              geofenceStatus: editDialog.geofence.geojson ? 200 : 404
+            });
+
             return (
               <Box sx={{ mb: 2 }}>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-                  <Chip 
-                    label={`Cerca: ${validation.hasFence}`}
-                    color={validation.hasFence === 'Sim' ? 'success' : 'default'}
-                    size="small"
-                  />
-                  <Chip 
-                    label={`Centro dentro: ${validation.centerInside}`}
-                    color={validation.centerInside === 'Sim' ? 'success' : 
-                           validation.centerInside === 'Não' ? 'error' : 'default'}
-                    size="small"
-                  />
-                  <Chip 
-                    label={`Tamanho: ${validation.areaSize}`}
-                    color="info"
-                    size="small"
-                  />
-                </Box>
-                
-                {/* Alerta se centro estiver fora do polígono */}
-                {validation.centerInside === 'Não' && (
-                  <Alert severity="warning" sx={{ mb: 1 }}>
-                    ⚠️ Centro fora do polígono. Ajuste as coordenadas abaixo.
+                {isOutsideRJ && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    ⚠️ Coordenadas fora do RJ ({fmtLatLng(lat, lng)}). 
+                    Este registro está incorreto/duplicado. Não verifique. Arquive ou corrija antes.
                   </Alert>
                 )}
                 
-                {/* Alerta se local estiver fora do RJ */}
-                {validation.isOutsideRJ && (
+                {editDialog.community.isDuplicate && (
                   <Alert severity="warning" sx={{ mb: 1 }}>
-                    ⚠️ Local fora do RJ — revisar / refetch
+                    🚧 Nome duplicado detectado. 
+                    {editDialog.community.isCanonical ? 
+                      'Este é o ID canônico sugerido.' : 
+                      'Escolha o ID canônico antes de verificar.'
+                    }
+                  </Alert>
+                )}
+
+                {geometryQuality(geometryType) === 0 && (
+                  <Alert severity="info" sx={{ mb: 1 }}>
+                    ℹ️ Sem dados de cerca (SEM_DADOS). 
+                    Para aparecer Polygon no mapa: buscar polígono → salvar geofence → UI renderiza Polygon.
+                  </Alert>
+                )}
+
+                {!canVerify.ok && editForm.isVerified && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    ❌ Não é possível verificar: {canVerify.reason}
                   </Alert>
                 )}
               </Box>
@@ -689,6 +876,32 @@ export default function GeofenceManagement() {
                 <Switch
                   checked={editForm.isVerified}
                   onChange={(e) => setEditForm({ ...editForm, isVerified: e.target.checked })}
+                  disabled={(() => {
+                    if (!editDialog.geofence) return true;
+                    
+                    const lat = parseFloat(editForm.centerLat || editDialog.geofence.centerLat);
+                    const lng = parseFloat(editForm.centerLng || editDialog.geofence.centerLng);
+                    
+                    let geometryType = null;
+                    if (editDialog.geofence.geojson) {
+                      try {
+                        const geojson = JSON.parse(editDialog.geofence.geojson);
+                        geometryType = geojson.type;
+                      } catch (e) {}
+                    }
+
+                    const canVerify = canVerifyGeofence({
+                      isDuplicateName: editDialog.community.isDuplicate,
+                      hasSelectedCanonical: !editDialog.community.isDuplicate || 
+                                           editForm.selectedCanonicalId === editDialog.community.id,
+                      centerLat: lat,
+                      centerLng: lng,
+                      geometryType,
+                      geofenceStatus: editDialog.geofence.geojson ? 200 : 404
+                    });
+
+                    return !canVerify.ok;
+                  })()}
                 />
               }
               label="Marcar como Verificado"
@@ -701,6 +914,91 @@ export default function GeofenceManagement() {
           </Button>
           <Button onClick={handleSaveEdit} variant="contained">
             Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Seleção de Canônico */}
+      <Dialog open={duplicateDialog.open} onClose={() => setDuplicateDialog({ open: false, duplicates: [], selectedCanonical: null })} maxWidth="md" fullWidth>
+        <DialogTitle>
+          Selecionar ID Canônico
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Nome duplicado detectado. Selecione o ID canônico (preferência: Polygon/MultiPolygon) antes de verificar.
+          </Alert>
+          
+          <List>
+            {duplicateDialog.duplicates.map((duplicate, index) => (
+              <React.Fragment key={duplicate.id}>
+                <ListItemButton 
+                  onClick={() => handleSelectCanonical(duplicate.id)}
+                  selected={duplicate.id === duplicateDialog.selectedCanonical}
+                >
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body1">
+                          {duplicate.name} (ID: {duplicate.id})
+                        </Typography>
+                        {duplicate.isCanonical && (
+                          <Chip label="SUGERIDO" color="success" size="small" />
+                        )}
+                      </Box>
+                    }
+                    secondary={
+                      <Box>
+                        <Typography variant="body2">
+                          Centro: {fmtLatLng(duplicate.centerLat, duplicate.centerLng)}
+                        </Typography>
+                        <Typography variant="body2">
+                          Status: {duplicate.geofenceData ? 
+                            `${duplicate.geofenceData.confidence} - ${duplicate.geofenceData.geojson ? 'Com GeoJSON' : 'Sem GeoJSON'}` : 
+                            'SEM_DADOS'
+                          }
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                </ListItemButton>
+                {index < duplicateDialog.duplicates.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDuplicateDialog({ open: false, duplicates: [], selectedCanonical: null })}>
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Arquivamento */}
+      <Dialog open={archiveDialog.open} onClose={() => setArchiveDialog({ open: false, community: null })} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Arquivar Comunidade: {archiveDialog.community?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Esta ação irá desativar a comunidade (isActive=false) sem deletar os dados.
+          </Alert>
+          
+          <TextField
+            label="Motivo do Arquivamento"
+            multiline
+            rows={3}
+            value={archiveForm.reason}
+            onChange={(e) => setArchiveForm({ reason: e.target.value })}
+            fullWidth
+            placeholder="Ex: Coordenadas fora do RJ, duplicado de ID xyz, etc."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setArchiveDialog({ open: false, community: null })}>
+            Cancelar
+          </Button>
+          <Button onClick={handleArchive} variant="contained" color="warning">
+            Arquivar
           </Button>
         </DialogActions>
       </Dialog>

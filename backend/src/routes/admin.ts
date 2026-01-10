@@ -5,8 +5,9 @@ import { DashboardController } from '../modules/admin/dashboard-controller';
 import { DriverAdminController } from '../modules/admin/driver-admin-controller';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { prisma } from '../config/database';
-import { updateCommunityGeofence } from '../controllers/geofence';
+import { updateCommunityGeofence, getCommunitiesWithDuplicates, archiveCommunity } from '../controllers/geofence';
 import { createCommunity } from '../controllers/community';
+import { canVerifyGeofence } from '../utils/geofence-governance';
 
 const router = Router();
 const adminController = new AdminController();
@@ -40,6 +41,8 @@ router.get('/passengers', adminController.getPassengers);
 
 // Community geofence management
 router.patch('/communities/:id/geofence', updateCommunityGeofence);
+router.get('/communities/with-duplicates', getCommunitiesWithDuplicates);
+router.patch('/communities/:id/archive', archiveCommunity);
 
 // Geofence admin review endpoint
 router.patch('/communities/:id/geofence-review', async (req, res) => {
@@ -54,9 +57,10 @@ router.patch('/communities/:id/geofence-review', async (req, res) => {
       maxLng?: number;
       isVerified?: boolean;
       reviewNotes?: string;
+      selectedCanonicalId?: string; // Para casos de duplicados
     };
     
-    const { centerLat, centerLng, minLat, minLng, maxLat, maxLng, isVerified, reviewNotes } = body;
+    const { centerLat, centerLng, minLat, minLng, maxLat, maxLng, isVerified, reviewNotes, selectedCanonicalId } = body;
     
     // Validar dados de entrada
     if (centerLat && (isNaN(centerLat) || centerLat < -90 || centerLat > 90)) {
@@ -69,7 +73,10 @@ router.patch('/communities/:id/geofence-review', async (req, res) => {
     
     // Verificar se comunidade existe
     const community = await prisma.community.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        geofenceData: true
+      }
     });
     
     if (!community) {
@@ -83,6 +90,60 @@ router.patch('/communities/:id/geofence-review', async (req, res) => {
     
     if (!existingGeofence) {
       return res.status(404).json({ success: false, error: 'Geofence não encontrado' });
+    }
+
+    // Se tentando marcar como verificado, aplicar validações de governança
+    if (isVerified === true) {
+      const lat = centerLat ?? parseFloat(String(existingGeofence.centerLat));
+      const lng = centerLng ?? parseFloat(String(existingGeofence.centerLng));
+      
+      // Verificar duplicados por nome
+      const duplicates = await prisma.community.findMany({
+        where: {
+          name: {
+            equals: community.name,
+            mode: 'insensitive'
+          },
+          id: { not: id }
+        }
+      });
+
+      const isDuplicateName = duplicates.length > 0;
+      const hasSelectedCanonical = selectedCanonicalId ? selectedCanonicalId === id : false;
+      
+      // Determinar tipo de geometria
+      let geometryType = null;
+      if (existingGeofence.geojson) {
+        try {
+          const geojson = JSON.parse(existingGeofence.geojson);
+          geometryType = geojson.type;
+        } catch (e) {
+          // Ignorar erro de parsing
+        }
+      }
+
+      const validationResult = canVerifyGeofence({
+        isDuplicateName,
+        hasSelectedCanonical,
+        centerLat: lat,
+        centerLng: lng,
+        geometryType,
+        geofenceStatus: existingGeofence.geojson ? 200 : 404
+      });
+
+      if (!validationResult.ok) {
+        return res.status(400).json({ 
+          success: false, 
+          error: validationResult.reason,
+          validationFailed: true,
+          duplicates: isDuplicateName ? duplicates.map(d => ({
+            id: d.id,
+            name: d.name,
+            centerLat: d.centerLat,
+            centerLng: d.centerLng
+          })) : []
+        });
+      }
     }
     
     // Preparar dados para atualização
