@@ -1,35 +1,26 @@
 # RJ Geofence Pipeline - Apply Report
 
-**Timestamp:** 2026-01-10T03:50:54.815Z  
+**Timestamp:** 2026-01-11T02:05:43.976Z  
 **Mode:** apply  
-**Target IDs:** 29
+**Target IDs:** 5
 
 ## 📊 Summary
 
 - **Processed:** 0
 - **Created:** 0
 - **Updated:** 0
-- **Skipped:** 8
+- **Skipped:** 0
 - **Failed:** 0
-- **No Polygon:** 21
+- **No Polygon:** 5
 
 ## ✅ Successful Applications
 
-- **Morro da Providência** (cmk6uwnvh0001qqr377ziza29) - SKIP - N/A
-- **Morro de Santa Teresa** (cmk6uwpj20005qqr3rg5j0xwe) - SKIP - N/A
-- **Parque da Cidade** (cmk6ux4c5001eqqr3s0rzr9pv) - SKIP - N/A
-- **Cruzada São Sebastião** (cmk6ux5x1001jqqr3ux2pdk13) - SKIP - N/A
-- **Chapéu Mangueira** (cmk6ux6v6001mqqr33ulgsn00) - SKIP - N/A
-- **Rio das Pedras** (cmk6w2yvf0001x7mt4gre2vpg) - SKIP - N/A
-- **Tijuquinha** (cmk6w2zi60003x7mt4ee3j5iw) - SKIP - N/A
-- **Vila Valqueire** (cmk6w31k50008x7mtkc0akzm7) - SKIP - N/A
+
 
 ## 🔍 Validation Commands
 
 ```bash
-curl -s https://kaviar-v2.onrender.com/api/governance/communities/cmk6uwnvh0001qqr377ziza29/geofence | jq -r '.data.geometry.type'  # Morro da Providência
-curl -s https://kaviar-v2.onrender.com/api/governance/communities/cmk6uwpj20005qqr3rg5j0xwe/geofence | jq -r '.data.geometry.type'  # Morro de Santa Teresa
-curl -s https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux4c5001eqqr3s0rzr9pv/geofence | jq -r '.data.geometry.type'  # Parque da Cidade
+
 ```
 
 ---
