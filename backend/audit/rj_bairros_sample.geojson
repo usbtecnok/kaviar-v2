@@ -1,0 +1,125 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Bangu",
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.4654, -22.8791], [-43.4600, -22.8791], [-43.4600, -22.8750], [-43.4654, -22.8750], [-43.4654, -22.8791]]]
+      }
+    },
+    {
+      "type": "Feature", 
+      "properties": {
+        "nome": "Realengo",
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.4350, -22.8850], [-43.4300, -22.8850], [-43.4300, -22.8800], [-43.4350, -22.8800], [-43.4350, -22.8850]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Campo Grande", 
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.5500, -22.9000], [-43.5450, -22.9000], [-43.5450, -22.8950], [-43.5500, -22.8950], [-43.5500, -22.9000]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Santa Cruz",
+        "zona": "Zona Oeste", 
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.6800, -22.9200], [-43.6750, -22.9200], [-43.6750, -22.9150], [-43.6800, -22.9150], [-43.6800, -22.9200]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Sepetiba",
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon", 
+        "coordinates": [[[-43.7000, -22.9700], [-43.6950, -22.9700], [-43.6950, -22.9650], [-43.7000, -22.9650], [-43.7000, -22.9700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Guaratiba",
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.6200, -23.0500], [-43.6150, -23.0500], [-43.6150, -23.0450], [-43.6200, -23.0450], [-43.6200, -23.0500]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Paciência",
+        "zona": "Zona Oeste", 
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.6100, -22.8600], [-43.6050, -22.8600], [-43.6050, -22.8550], [-43.6100, -22.8550], [-43.6100, -22.8600]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Cosmos",
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.6000, -22.9100], [-43.5950, -22.9100], [-43.5950, -22.9050], [-43.6000, -22.9050], [-43.6000, -22.9100]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Santíssimo",
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.4800, -22.8900], [-43.4750, -22.8900], [-43.4750, -22.8850], [-43.4800, -22.8850], [-43.4800, -22.8900]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Senador Camará",
+        "zona": "Zona Oeste",
+        "ap": "AP5"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.4900, -22.8700], [-43.4850, -22.8700], [-43.4850, -22.8650], [-43.4900, -22.8650], [-43.4900, -22.8700]]]
+      }
+    }
+  ]
+}
