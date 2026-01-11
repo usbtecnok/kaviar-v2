@@ -114,7 +114,9 @@ async function main() {
   }
 
   // Get GeoJSON file path
-  const geojsonPath = geojsonArg?.split('=')[1] || process.env.RJ_NEIGHBORHOODS_GEOJSON_PATH;
+  const geojsonPath = geojsonArg?.split('=')[1] || 
+                     args.find(arg => arg.includes('.geojson') && !arg.startsWith('--')) ||
+                     process.env.RJ_NEIGHBORHOODS_GEOJSON_PATH;
   
   if (!geojsonPath) {
     console.log('❌ GeoJSON file required: --geojson /path/to/file.geojson ou RJ_NEIGHBORHOODS_GEOJSON_PATH env var');
