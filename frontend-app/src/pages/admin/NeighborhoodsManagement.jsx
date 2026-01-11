@@ -98,6 +98,12 @@ export default function NeighborhoodsManagement() {
   };
 
   const handleNeighborhoodSelect = (neighborhood) => {
+    console.log('🔍 [DEBUG] Neighborhood selecionado:', {
+      id: neighborhood.id,
+      name: neighborhood.name,
+      hasGeofence: !!neighborhood.geofence,
+      geofenceType: neighborhood.geofence?.type
+    });
     setSelectedNeighborhood(neighborhood);
   };
 

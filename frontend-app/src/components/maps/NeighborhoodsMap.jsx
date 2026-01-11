@@ -71,6 +71,13 @@ const NeighborhoodsMap = ({
   useEffect(() => {
     if (!isLoaded || !showCommunitiesLayer || !communities.length) return;
 
+    // Limpar camadas anteriores de communities
+    mapInstanceRef.current.eachLayer((layer) => {
+      if (layer.options && layer.options.isCommunity) {
+        mapInstanceRef.current.removeLayer(layer);
+      }
+    });
+
     communities.forEach(community => {
       if (community.geofence?.coordinates) {
         try {
@@ -79,7 +86,8 @@ const NeighborhoodsMap = ({
             color: '#2196F3',
             fillColor: '#2196F3',
             fillOpacity: 0.2,
-            weight: 2
+            weight: 2,
+            isCommunity: true
           }).addTo(mapInstanceRef.current)
             .bindPopup(`<b>Community:</b> ${community.name}`);
         } catch (err) {
@@ -93,23 +101,38 @@ const NeighborhoodsMap = ({
   useEffect(() => {
     if (!isLoaded || !showNeighborhoodsLayer || !neighborhoods.length) return;
 
+    // Limpar camadas anteriores
+    mapInstanceRef.current.eachLayer((layer) => {
+      if (layer.options && layer.options.isNeighborhood) {
+        mapInstanceRef.current.removeLayer(layer);
+      }
+    });
+
     neighborhoods.forEach(neighborhood => {
       if (neighborhood.geofence?.coordinates) {
         try {
           const coords = neighborhood.geofence.coordinates[0].map(coord => [coord[1], coord[0]]);
-          window.L.polygon(coords, {
-            color: '#4CAF50',
-            fillColor: '#4CAF50',
-            fillOpacity: 0.3,
-            weight: 2
+          const isSelected = selectedNeighborhood?.id === neighborhood.id;
+          
+          const polygon = window.L.polygon(coords, {
+            color: isSelected ? '#FF5722' : '#4CAF50',
+            fillColor: isSelected ? '#FF5722' : '#4CAF50',
+            fillOpacity: isSelected ? 0.6 : 0.3,
+            weight: isSelected ? 3 : 2,
+            isNeighborhood: true
           }).addTo(mapInstanceRef.current)
             .bindPopup(`<b>Bairro:</b> ${neighborhood.name}<br><b>Zona:</b> ${neighborhood.zone}`);
+          
+          // Se selecionado, fazer zoom para o bairro
+          if (isSelected) {
+            mapInstanceRef.current.fitBounds(polygon.getBounds(), { padding: [20, 20] });
+          }
         } catch (err) {
           console.warn('Erro ao renderizar neighborhood:', neighborhood.name, err);
         }
       }
     });
-  }, [isLoaded, showNeighborhoodsLayer, neighborhoods]);
+  }, [isLoaded, showNeighborhoodsLayer, neighborhoods, selectedNeighborhood]);
 
   if (error) {
     return (
