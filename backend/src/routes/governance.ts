@@ -246,4 +246,100 @@ router.put('/passenger/:id/location', rideController.updatePassengerLocation);
 router.post('/ratings', ratingController.createRating);
 router.get('/ratings/summary/:type/:id', ratingController.getRatingSummary);
 
+// Neighborhoods (Bairros) endpoints
+router.get('/neighborhoods', async (req, res) => {
+  try {
+    const neighborhoods = await prisma.neighborhood.findMany({
+      where: { isActive: true },
+      include: {
+        geofenceData: {
+          select: {
+            geofenceType: true,
+            area: true,
+            perimeter: true,
+            source: true
+          }
+        }
+      }
+    });
+
+    // Merge geofence data with neighborhood data
+    const enrichedNeighborhoods = neighborhoods.map(neighborhood => ({
+      id: neighborhood.id,
+      name: neighborhood.name,
+      description: neighborhood.description,
+      zone: neighborhood.zone,
+      administrativeRegion: neighborhood.administrativeRegion,
+      centerLat: neighborhood.centerLat,
+      centerLng: neighborhood.centerLng,
+      isVerified: neighborhood.isVerified,
+      geofenceType: neighborhood.geofenceData?.geofenceType || null,
+      createdAt: neighborhood.createdAt
+    }));
+
+    res.json({ success: true, data: enrichedNeighborhoods });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+// Get specific neighborhood
+router.get('/neighborhoods/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const neighborhood = await prisma.neighborhood.findUnique({
+      where: { id },
+      include: {
+        geofenceData: true
+      }
+    });
+
+    if (!neighborhood) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Bairro não encontrado' 
+      });
+    }
+
+    res.json({ success: true, data: neighborhood });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+// Get neighborhood geofence
+router.get('/neighborhoods/:id/geofence', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const geofence = await prisma.neighborhoodGeofence.findUnique({
+      where: { neighborhoodId: id },
+      select: {
+        geofenceType: true,
+        coordinates: true,
+        source: true,
+        sourceUrl: true,
+        area: true,
+        perimeter: true,
+        updatedAt: true
+      }
+    });
+
+    if (!geofence) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Geofence não encontrado para este bairro' 
+      });
+    }
+
+    res.json({ success: true, data: geofence });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
 export { router as governanceRoutes };
