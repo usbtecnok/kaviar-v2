@@ -1,0 +1,185 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Barra da Tijuca",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3676, -23.0196], [-43.2976, -23.0196], [-43.2976, -22.9791], [-43.3676, -22.9791], [-43.3676, -23.0196]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Jacarepaguá",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3876, -22.9796], [-43.3176, -22.9796], [-43.3176, -22.9391], [-43.3876, -22.9391], [-43.3876, -22.9796]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Recreio dos Bandeirantes",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.4676, -23.0396], [-43.3976, -23.0396], [-43.3976, -22.9991], [-43.4676, -22.9991], [-43.4676, -23.0396]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Vargem Grande",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.4200, -23.0100], [-43.3800, -23.0100], [-43.3800, -22.9700], [-43.4200, -22.9700], [-43.4200, -23.0100]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Vargem Pequena",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.4100, -22.9900], [-43.3700, -22.9900], [-43.3700, -22.9500], [-43.4100, -22.9500], [-43.4100, -22.9900]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Itanhangá",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3500, -22.9800], [-43.3200, -22.9800], [-43.3200, -22.9500], [-43.3500, -22.9500], [-43.3500, -22.9800]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Camorim",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3600, -22.9600], [-43.3300, -22.9600], [-43.3300, -22.9300], [-43.3600, -22.9300], [-43.3600, -22.9600]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Cidade de Deus",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3700, -22.9400], [-43.3400, -22.9400], [-43.3400, -22.9100], [-43.3700, -22.9100], [-43.3700, -22.9400]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Curicica",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3800, -22.9200], [-43.3500, -22.9200], [-43.3500, -22.8900], [-43.3800, -22.8900], [-43.3800, -22.9200]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Taquara",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3900, -22.9000], [-43.3600, -22.9000], [-43.3600, -22.8700], [-43.3900, -22.8700], [-43.3900, -22.9000]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Freguesia (Jacarepaguá)",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3400, -22.9300], [-43.3100, -22.9300], [-43.3100, -22.9000], [-43.3400, -22.9000], [-43.3400, -22.9300]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Pechincha",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3300, -22.9100], [-43.3000, -22.9100], [-43.3000, -22.8800], [-43.3300, -22.8800], [-43.3300, -22.9100]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Tanque",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3200, -22.8900], [-43.2900, -22.8900], [-43.2900, -22.8600], [-43.3200, -22.8600], [-43.3200, -22.8900]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Praça Seca",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3100, -22.8700], [-43.2800, -22.8700], [-43.2800, -22.8400], [-43.3100, -22.8400], [-43.3100, -22.8700]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Anil",
+        "zona": "Zona Oeste",
+        "ap": "AP4"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-43.3000, -22.8500], [-43.2700, -22.8500], [-43.2700, -22.8200], [-43.3000, -22.8200], [-43.3000, -22.8500]]]
+      }
+    }
+  ]
+}

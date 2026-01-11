@@ -1,6 +1,6 @@
 # RJ Geofence Pipeline - Apply Report
 
-**Timestamp:** 2026-01-11T02:05:43.976Z  
+**Timestamp:** 2026-01-11T12:11:00.564Z  
 **Mode:** apply  
 **Target IDs:** 5
 
@@ -9,18 +9,24 @@
 - **Processed:** 0
 - **Created:** 0
 - **Updated:** 0
-- **Skipped:** 0
+- **Skipped:** 5
 - **Failed:** 0
-- **No Polygon:** 5
+- **No Polygon:** 0
 
 ## ✅ Successful Applications
 
-
+- **Morro do Cantagalo** (cmk6ux2fv0018qqr3alvmstok) - SKIP - N/A
+- **Morro do Borel** (cmk6ux8rf001sqqr38hes7gqf) - SKIP - N/A
+- **Morro da Formiga** (cmk6ux92t001tqqr3sb1ceg2i) - SKIP - N/A
+- **Andaraí** (cmk6uxbud0021qqr38v4pkba1) - SKIP - N/A
+- **Morro do Andaraí** (cmk6uxc5q0022qqr38edtr7ix) - SKIP - N/A
 
 ## 🔍 Validation Commands
 
 ```bash
-
+curl -s https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux2fv0018qqr3alvmstok/geofence | jq -r '.data.geometry.type'  # Morro do Cantagalo
+curl -s https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux8rf001sqqr38hes7gqf/geofence | jq -r '.data.geometry.type'  # Morro do Borel
+curl -s https://kaviar-v2.onrender.com/api/governance/communities/cmk6ux92t001tqqr3sb1ceg2i/geofence | jq -r '.data.geometry.type'  # Morro da Formiga
 ```
 
 ---

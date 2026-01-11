@@ -1,0 +1,8 @@
+# RJ Neighborhoods Allowlist - AP5 (Zona Oeste)
+# Generated for testing purposes
+
+Bangu
+Realengo
+Campo Grande
+Santa Cruz
+Sepetiba
