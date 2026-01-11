@@ -1,10 +1,11 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import DomainHeader from "../common/DomainHeader";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
+import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
 import DriversManagement from "../../pages/admin/DriversManagement";
 import PassengersManagement from "../../pages/admin/PassengersManagement";
 import GuidesManagement from "../../pages/admin/GuidesManagement";
@@ -308,9 +309,26 @@ function AdminHome() {
                   Bairros
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Gestão de bairros e ativação
+                  Gestão de communities e ativação
                 </Typography>
                 <Button variant="contained" color="info" href="/admin/communities">
+                  Acessar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Map sx={{ fontSize: 40, color: 'success.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Bairros
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Gestão de neighborhoods (bairros)
+                </Typography>
+                <Button variant="contained" color="success" href="/admin/neighborhoods">
                   Acessar
                 </Button>
               </CardContent>
@@ -489,6 +507,15 @@ export default function AdminApp() {
           <Container maxWidth="lg" sx={{ mt: 2 }}>
             <AdminHeader />
             <CommunitiesManagement />
+          </Container>
+        </ProtectedAdminRoute>
+      } />
+      
+      <Route path="/neighborhoods" element={
+        <ProtectedAdminRoute>
+          <Container maxWidth="lg" sx={{ mt: 2 }}>
+            <AdminHeader />
+            <NeighborhoodsManagement />
           </Container>
         </ProtectedAdminRoute>
       } />

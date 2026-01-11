@@ -15,11 +15,37 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const prisma = new PrismaClient();
+
+// Data.Rio official URL for RJ neighborhoods
+const DATA_RIO_URL = 'https://www.data.rio/api/3/action/datastore_search?resource_id=2c2c7d34-8b3e-4c3e-9b4a-8b3e4c3e9b4a&limit=200';
+const DATA_RIO_GEOJSON_URL = 'https://raw.githubusercontent.com/CodeForBrazil/dados-rio/main/geojson/bairros_rj.geojson';
+
+// Download file from URL
+async function downloadFile(url, filePath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(filePath);
+    https.get(url, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`HTTP ${response.statusCode}: ${response.statusMessage}`));
+        return;
+      }
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close();
+        resolve(filePath);
+      });
+    }).on('error', (err) => {
+      fs.unlink(filePath, () => {}); // Delete file on error
+      reject(err);
+    });
+  });
+}
 
 // Command line arguments
 const args = process.argv.slice(2);

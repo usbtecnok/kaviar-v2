@@ -43,6 +43,13 @@ export const API_ROUTES = {
   ANALYTICS: {
     COMMUNITIES: '/api/admin/communities',
     METRICS: '/api/admin/dashboard/metrics',
+  },
+  
+  // Neighborhoods (Bairros)
+  NEIGHBORHOODS: {
+    LIST: '/api/governance/neighborhoods',
+    DETAIL: (id) => `/api/governance/neighborhoods/${id}`,
+    GEOFENCE: (id) => `/api/governance/neighborhoods/${id}/geofence`,
   }
 };
 
