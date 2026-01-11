@@ -72,7 +72,7 @@ export default function CommunitiesManagement() {
         }));
         setCommunities(transformedData);
       } else {
-        setError(data.error || 'Erro ao carregar bairros');
+        setError(data.error || 'Erro ao carregar comunidades');
       }
     } catch (error) {
       setError('Erro de conexão');
@@ -125,7 +125,7 @@ export default function CommunitiesManagement() {
           }
         }, 500);
       } else {
-        setError(data.message || 'Erro ao criar bairro');
+        setError(data.message || 'Erro ao criar comunidade');
       }
     } catch (error) {
       setError('Erro de conexão');
@@ -156,7 +156,7 @@ export default function CommunitiesManagement() {
         fetchCommunities(); // Recarregar lista
         setConfirmDialog({ open: false, community: null });
       } else {
-        setError(data.error || 'Erro ao alterar status do bairro');
+        setError(data.error || 'Erro ao alterar status da comunidade');
       }
     } catch (error) {
       setError('Erro de conexão');
@@ -344,7 +344,7 @@ export default function CommunitiesManagement() {
   if (loading) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography>Carregando bairros...</Typography>
+        <Typography>Carregando comunidades...</Typography>
       </Box>
     );
   }
@@ -353,7 +353,7 @@ export default function CommunitiesManagement() {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-          Gerenciamento de Bairros
+          Gerenciamento de Comunidades
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <FormControlLabel
@@ -370,7 +370,7 @@ export default function CommunitiesManagement() {
             startIcon={<LocationCity />}
             onClick={() => setCreateDialog({ open: true })}
           >
-            Criar novo bairro
+            Criar nova comunidade
           </Button>
         </Box>
       </Box>
@@ -379,6 +379,18 @@ export default function CommunitiesManagement() {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
+      )}
+
+      {communities.length === 0 && !loading && (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <LocationCity sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Nenhuma comunidade cadastrada
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            As comunidades aparecerão aqui quando forem importadas no sistema.
+          </Typography>
+        </Box>
       )}
 
       <Grid container spacing={3}>
@@ -492,17 +504,17 @@ export default function CommunitiesManagement() {
         </DialogTitle>
         <DialogContent>
           <Typography>
-            Tem certeza que deseja {confirmDialog.community?.isActive ? 'desativar' : 'ativar'} o bairro{' '}
+            Tem certeza que deseja {confirmDialog.community?.isActive ? 'desativar' : 'ativar'} a comunidade{' '}
             <strong>{confirmDialog.community?.name}</strong>?
           </Typography>
           {confirmDialog.community && !confirmDialog.community.isActive && (
             <Alert severity="info" sx={{ mt: 2 }}>
-              Este bairro será ativado e ficará disponível para operação.
+              Esta comunidade será ativada e ficará disponível para operação.
             </Alert>
           )}
           {confirmDialog.community?.isActive && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              Este bairro será desativado e não receberá novas corridas.
+              Esta comunidade será desativada e não receberá novas corridas.
             </Alert>
           )}
         </DialogContent>
@@ -531,7 +543,7 @@ export default function CommunitiesManagement() {
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Map sx={{ mr: 1 }} />
-              Mapa do Bairro: {mapDialog.community?.name}
+              Mapa da Comunidade: {mapDialog.community?.name}
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <FormControlLabel
@@ -591,7 +603,7 @@ export default function CommunitiesManagement() {
           {centerMode && (
             <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="body2">
-                📍 Modo centro ativo. Clique no mapa para definir o centro do bairro.
+                📍 Modo centro ativo. Clique no mapa para definir o centro da comunidade.
               </Typography>
             </Alert>
           )}
@@ -664,12 +676,12 @@ export default function CommunitiesManagement() {
 
       {/* Create Community Dialog */}
       <Dialog open={createDialog.open} onClose={() => setCreateDialog({ open: false })} maxWidth="sm" fullWidth>
-        <DialogTitle>Criar Novo Bairro</DialogTitle>
+        <DialogTitle>Criar Nova Comunidade</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Nome do Bairro"
+            label="Nome da Comunidade"
             fullWidth
             variant="outlined"
             value={newCommunity.name}
