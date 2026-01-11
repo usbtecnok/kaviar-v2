@@ -9,7 +9,6 @@ import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
 import DriversManagement from "../../pages/admin/DriversManagement";
 import PassengersManagement from "../../pages/admin/PassengersManagement";
 import GuidesManagement from "../../pages/admin/GuidesManagement";
-import CommunityManagement from "../../pages/admin/CommunityManagement";
 import GeofenceManagement from "../../pages/admin/GeofenceManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
 import DriverApproval from "../../pages/admin/DriverApproval";
@@ -447,21 +446,6 @@ function AdminHome() {
   );
 }
 
-function AdminCommunitiesWrapper() {
-  return (
-    <Container maxWidth="lg" sx={{ mt: 2 }}>
-      <AdminHeader />
-      <DomainHeader 
-        domain="admin" 
-        title="Gestão de Comunidades"
-        breadcrumbs={["Comunidades"]}
-        backUrl="/admin"
-      />
-      <CommunityManagement />
-    </Container>
-  );
-}
-
 function AdminMetricsWrapper() {
   return (
     <Container maxWidth="lg" sx={{ mt: 2 }}>
@@ -622,6 +606,9 @@ export default function AdminApp() {
           <AdminElderlyWrapper />
         </ProtectedAdminRoute>
       } />
+      
+      {/* Redirects para rotas antigas */}
+      <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
     </Routes>
   );
 }
