@@ -506,3 +506,43 @@ model ElderlyContract {
 
   @@map("elderly_contracts")
 }
+
+// NEIGHBORHOODS - Administrative districts (bairros)
+model Neighborhood {
+  id                    String   @id @default(cuid())
+  name                  String   @unique
+  description           String?
+  zone                  String?  // "Zona Norte", "Zona Sul", "Zona Oeste", "Centro"
+  administrativeRegion  String?  @map("administrative_region") // "AP1", "AP2", "AP3", "AP4", "AP5"
+  isActive              Boolean  @default(true) @map("is_active")
+  centerLat             Decimal? @map("center_lat") @db.Decimal(10, 8)
+  centerLng             Decimal? @map("center_lng") @db.Decimal(11, 8)
+  isVerified            Boolean  @default(false) @map("is_verified")
+  verifiedAt            DateTime? @map("verified_at")
+  verifiedBy            String?  @map("verified_by")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  geofenceData          NeighborhoodGeofence?
+
+  @@map("neighborhoods")
+}
+
+model NeighborhoodGeofence {
+  id              String      @id @default(cuid())
+  neighborhoodId  String      @unique @map("neighborhood_id")
+  geofenceType    String      @map("geofence_type") // "Polygon", "MultiPolygon", "Circle"
+  coordinates     Json        // GeoJSON coordinates
+  source          String?     // "IPP_DATA_RIO", "OSM_relation_123", "MANUAL"
+  sourceUrl       String?     @map("source_url")
+  area            Decimal?    @db.Decimal(15, 6) // Area in square meters
+  perimeter       Decimal?    @db.Decimal(15, 6) // Perimeter in meters
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  neighborhood    Neighborhood @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
+
+  @@map("neighborhood_geofences")
+}
