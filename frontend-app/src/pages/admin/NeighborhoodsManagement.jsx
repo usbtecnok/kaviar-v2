@@ -112,7 +112,7 @@ export default function NeighborhoodsManagement() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Gestão de Bairros (Neighborhoods)
+        Gestão de Bairros
       </Typography>
 
       {error && (

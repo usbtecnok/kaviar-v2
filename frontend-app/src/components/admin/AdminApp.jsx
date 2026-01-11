@@ -154,7 +154,7 @@ function AdminHome() {
                   {stats.totalCommunities || 0}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Bairros
+                  Comunidades
                 </Typography>
               </CardContent>
             </Card>
@@ -306,10 +306,10 @@ function AdminHome() {
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <LocationCity sx={{ fontSize: 40, color: 'info.main', mb: 2 }} />
                 <Typography variant="h6" gutterBottom>
-                  Bairros
+                  Comunidades
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Gestão de communities e ativação
+                  Gestão de comunidades e ativação
                 </Typography>
                 <Button variant="contained" color="info" href="/admin/communities">
                   Acessar
@@ -326,7 +326,7 @@ function AdminHome() {
                   Bairros
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Gestão de neighborhoods (bairros)
+                  Gestão de bairros administrativos
                 </Typography>
                 <Button variant="contained" color="success" href="/admin/neighborhoods">
                   Acessar
