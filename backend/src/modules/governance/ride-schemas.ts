@@ -2,14 +2,14 @@ import { z } from 'zod';
 
 // Ride request schema
 export const rideRequestSchema = z.object({
-  passengerId: z.string().cuid(),
+  passengerId: z.string().cuid().optional(), // Mantido opcional para compatibilidade
   origin: z.string().min(1, 'Origem é obrigatória'),
   destination: z.string().min(1, 'Destino é obrigatório'),
   type: z.enum(['normal', 'combo', 'comunidade', 'TOURISM']),
-  price: z.number().positive('Preço deve ser positivo'),
+  price: z.number().positive('Preço deve ser positivo').optional(),
   acceptOutOfFence: z.boolean().optional(),
-  passengerLat: z.number().min(-90).max(90).optional(),
-  passengerLng: z.number().min(-180).max(180).optional(),
+  originLat: z.number().min(-90).max(90).optional(), // Opcional para compatibilidade
+  originLng: z.number().min(-180).max(180).optional(), // Opcional para compatibilidade
   confirmationToken: z.string().optional() // For idempotent out-of-fence confirmation
 }).refine((data) => {
   // If type is 'comunidade' and geofence is enabled, coordinates are required

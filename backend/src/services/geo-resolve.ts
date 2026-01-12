@@ -4,12 +4,11 @@ const prisma = new PrismaClient();
 
 export interface GeoResolveResult {
   match: boolean;
-  area?: {
+  resolvedArea?: {
     id: string;
     name: string;
-    description: string;
-    active: boolean;
-  };
+    type: 'neighborhood';
+  } | null;
 }
 
 /**
@@ -23,33 +22,23 @@ export class GeoResolveService {
    * Priority: COMUNIDADE > BAIRRO/NEIGHBORHOOD > others
    * Tiebreaker: smallest area (most specific)
    */
-  async resolveCoordinates(lat: number, lon: number, type?: string): Promise<GeoResolveResult> {
+  async resolveCoordinates(lat: number, lon: number): Promise<GeoResolveResult> {
     try {
       // Validate coordinate ranges
       if (isNaN(lat) || isNaN(lon) || 
           lat < -90 || lat > 90 || 
           lon < -180 || lon > 180) {
-        return { match: false };
-      }
-
-      // Build query with hierarchical priority
-      let whereClause = 'WHERE geom IS NOT NULL AND is_active = true';
-      if (type) {
-        whereClause += ` AND id LIKE '${type}-%'`;
+        return { match: false, resolvedArea: null };
       }
 
       const result = await prisma.$queryRaw`
-        SELECT id, name, description, is_active
-        FROM communities 
-        ${Prisma.raw(whereClause)}
-          AND ST_Covers(geom, ST_SetSRID(ST_Point(${lon}, ${lat}), 4326))
-        ORDER BY 
-          CASE 
-            WHEN id LIKE 'comunidade-%' THEN 1 
-            WHEN id LIKE 'bairro-%' OR id LIKE 'neighborhood-%' THEN 2 
-            ELSE 3 
-          END,
-          ST_Area(geom::geography) ASC
+        SELECT n.id, n.name
+        FROM neighborhood_geofences ng
+        JOIN neighborhoods n ON ng.neighborhood_id = n.id
+        WHERE n.is_active = true
+          AND ng.geom IS NOT NULL
+          AND ST_Covers(ng.geom, ST_SetSRID(ST_Point(${lon}, ${lat}), 4326))
+        ORDER BY ST_Area(ng.geom::geography) ASC
         LIMIT 1
       `;
 
@@ -57,19 +46,18 @@ export class GeoResolveService {
         const area = result[0] as any;
         return {
           match: true,
-          area: {
+          resolvedArea: {
             id: area.id,
             name: area.name,
-            description: area.description,
-            active: area.is_active
+            type: 'neighborhood'
           }
         };
       }
 
-      return { match: false };
+      return { match: false, resolvedArea: null };
     } catch (error) {
       console.error('Geo resolve error:', error);
-      return { match: false };
+      return { match: false, resolvedArea: null };
     }
   }
 
