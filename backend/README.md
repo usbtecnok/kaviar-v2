@@ -24,7 +24,7 @@ npm install
    DATABASE_URL=REDACTED
    
    # Optional: Pooler (runtime)
-   DATABASE_URL_POOLER="postgresql://USER:PASSWORD@ep-xxxx-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+   DATABASE_URL_POOLER="postgresql://<HOST>/<DB>?sslmode=require"
    ```
 
 #### Opção 2: Supabase PostgreSQL (Alternativa)
@@ -35,7 +35,7 @@ Siga as instruções detalhadas em: `SUPABASE_SETUP.md`
 1. Obter DATABASE_PASSWORD e PROJECT_ID do Supabase
 2. Configurar DATABASE_URL no formato:
    ```
-   postgresql://postgres:<PASSWORD>@db.<PROJECT_ID>.supabase.co:5432/postgres
+   postgresql://<HOST>:5432/<DB>?sslmode=require
    ```
 
 **📋 Importante: Conexões Direct vs Pooler**
