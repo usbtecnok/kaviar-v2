@@ -10,9 +10,14 @@ export interface OperationalContext {
   operationalProfile: OperationalProfile;
 }
 
+export interface DriverQuery {
+  where: any;
+  orderBy?: any[];
+}
+
 /**
- * Operational service - resolves HOW rides operate (not WHERE)
- * Reads from immutable ride anchors, never geography
+ * Operational service - canonical operational profiles
+ * Defines HOW rides operate (not WHERE)
  */
 export class OperationalService {
   
@@ -49,51 +54,106 @@ export class OperationalService {
   }
   
   /**
-   * Apply operational filters to driver selection
-   * Community does NOT redefine territory, only filters/prioritizes
+   * Apply canonical operational rules to driver dispatch
+   * Profile NEVER changes geography, NEVER recreates Ride
    */
-  applyOperationalFilters(
-    baseDriverQuery: any,
+  applyDispatchRules(
+    baseDriverQuery: DriverQuery,
     context: OperationalContext
-  ): any {
+  ): DriverQuery {
     
     switch (context.operationalProfile) {
-      case 'PRIORITY':
-        // Prioritize local drivers (implementation depends on driver model)
-        return {
-          ...baseDriverQuery,
-          orderBy: [
-            // Add priority logic here if needed
-            { created_at: 'desc' }
-          ]
-        };
+      case 'NORMAL':
+        // Dispatch padrão - comportamento base do sistema
+        return this.dispatchStandard(baseDriverQuery);
         
       case 'RESTRICTED':
-        // Apply allowlist/extra criteria
-        return {
-          ...baseDriverQuery,
-          where: {
-            ...baseDriverQuery.where,
-            // Add restriction logic here if needed
-            is_premium: true
-          }
-        };
+        // Dispatch filtrado - exige aprovação e flag operacional
+        return this.dispatchFilteredDrivers(baseDriverQuery);
+        
+      case 'PRIORITY':
+        // Dispatch em 2 fases - locais primeiro, fallback geral
+        return this.dispatchLocalFirstThenFallback(baseDriverQuery);
         
       case 'PRIVATE':
-        // Only linked drivers (would need driver-community relation)
-        return {
-          ...baseDriverQuery,
-          where: {
-            ...baseDriverQuery.where,
-            // Add private logic here if needed
-            status: 'verified'
-          }
-        };
+        // Dispatch exclusivo - apenas vinculados, pode falhar
+        return this.dispatchExclusiveOrFail(baseDriverQuery);
         
-      case 'NORMAL':
       default:
-        // No changes to base query
-        return baseDriverQuery;
+        return this.dispatchStandard(baseDriverQuery);
     }
+  }
+  
+  /**
+   * NORMAL: Comportamento base do sistema
+   */
+  private dispatchStandard(query: DriverQuery): DriverQuery {
+    return {
+      where: {
+        ...query.where,
+        status: 'active'
+      },
+      orderBy: [
+        { created_at: 'desc' }
+      ]
+    };
+  }
+  
+  /**
+   * RESTRICTED: Exige motorista aprovado com flag operacional
+   */
+  private dispatchFilteredDrivers(query: DriverQuery): DriverQuery {
+    return {
+      where: {
+        ...query.where,
+        status: 'active',
+        is_approved: true,
+        // can_operate_restricted: true // Would need this field
+      },
+      orderBy: [
+        { created_at: 'desc' }
+      ]
+    };
+  }
+  
+  /**
+   * PRIORITY: Motoristas locais primeiro, fallback para pool geral
+   */
+  private dispatchLocalFirstThenFallback(query: DriverQuery): DriverQuery {
+    return {
+      where: {
+        ...query.where,
+        status: 'active'
+      },
+      orderBy: [
+        // Priority logic would need driver-community relation
+        { is_premium: 'desc' }, // Placeholder for local priority
+        { created_at: 'desc' }
+      ]
+    };
+  }
+  
+  /**
+   * PRIVATE: Apenas motoristas vinculados, único que pode falhar
+   */
+  private dispatchExclusiveOrFail(query: DriverQuery): DriverQuery {
+    return {
+      where: {
+        ...query.where,
+        status: 'active',
+        // is_linked_to_community: true // Would need this relation
+        is_premium: true // Placeholder for exclusive access
+      },
+      orderBy: [
+        { created_at: 'desc' }
+      ]
+    };
+  }
+  
+  /**
+   * Check if operational profile can fail during dispatch
+   */
+  canFailOperationally(profile: OperationalProfile): boolean {
+    return profile === 'PRIVATE';
   }
 }

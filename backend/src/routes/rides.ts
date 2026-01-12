@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { CommunityService } from '../services/community';
 import { RideService } from '../services/ride';
+import { DispatchService } from '../services/dispatch';
 
 const router = Router();
 const communityService = new CommunityService();
 const rideService = new RideService();
+const dispatchService = new DispatchService();
 
 /**
  * POST /api/rides/resolve-location
@@ -115,6 +117,30 @@ router.get('/:id/operational-context', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Get operational context error:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * POST /api/rides/:id/dispatch
+ * Dispatch drivers based on canonical operational profiles
+ */
+router.post('/:id/dispatch', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await dispatchService.dispatchDrivers(id);
+    
+    if (!result.success) {
+      await dispatchService.updateRideStatus(id, result);
+    }
+    
+    return res.json(result);
+
+  } catch (error) {
+    console.error('Dispatch drivers error:', error);
     return res.status(500).json({
       error: error instanceof Error ? error.message : 'Internal server error'
     });
