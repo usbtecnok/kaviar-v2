@@ -30,7 +30,7 @@ export class RatingService {
 
     try {
       // Check for existing rating (idempotency)
-      const existingRating = await prisma.rating.findUnique({
+      const existingRating = await prisma.ratings.findUnique({
         where: {
           rideId_userId: {
             rideId: data.rideId,
@@ -47,7 +47,7 @@ export class RatingService {
             id: existingRating.id,
             score: existingRating.score,
             comment: existingRating.comment,
-            createdAt: existingRating.createdAt
+            created_at: existingRating.created_at
           }
         };
       }
@@ -87,7 +87,7 @@ export class RatingService {
           id: result.id,
           score: result.score,
           comment: result.comment,
-          createdAt: result.createdAt
+          created_at: result.created_at
         }
       };
 
@@ -106,20 +106,20 @@ export class RatingService {
     }
 
     // Get stats
-    const stats = await prisma.ratingStats.findUnique({
+    const stats = await prisma.rating_stats.findUnique({
       where: { userId }
     });
 
     // Get recent ratings (last 10)
-    const recentRatings = await prisma.rating.findMany({
+    const recentRatings = await prisma.ratings.findMany({
       where: { ratedId: userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       take: 10,
       select: {
         id: true,
         score: true,
         comment: true,
-        createdAt: true
+        created_at: true
       }
     });
 
@@ -129,13 +129,13 @@ export class RatingService {
         userType: userType,
         averageRating: parseFloat(stats.averageRating.toString()),
         totalRatings: stats.totalRatings,
-        updatedAt: stats.updatedAt
+        updated_at: stats.updated_at
       } : null,
       recentRatings: recentRatings.map(r => ({
         id: r.id,
         score: r.score,
         comment: r.comment || undefined,
-        createdAt: r.createdAt
+        created_at: r.created_at
       }))
     };
   }
@@ -144,9 +144,9 @@ export class RatingService {
    * Validate rating window
    */
   private async validateRatingWindow(rideId: string): Promise<{ isValid: boolean; error?: string }> {
-    const ride = await prisma.ride.findUnique({
+    const ride = await prisma.rides.findUnique({
       where: { id: rideId },
-      select: { status: true, updatedAt: true }
+      select: { status: true, updated_at: true }
     });
 
     if (!ride) {
@@ -159,7 +159,7 @@ export class RatingService {
 
     // Check window expiration
     const windowMs = config.rating.windowDays * 24 * 60 * 60 * 1000;
-    const expiresAt = new Date(ride.updatedAt.getTime() + windowMs);
+    const expiresAt = new Date(ride.updated_at.getTime() + windowMs);
     
     if (new Date() > expiresAt) {
       return { isValid: false, error: 'RATING_WINDOW_EXPIRED' };
@@ -189,14 +189,14 @@ export class RatingService {
       update: {
         averageRating,
         totalRatings,
-        updatedAt: new Date()
+        updated_at: new Date()
       },
       create: {
         userId,
         userType,
         averageRating,
         totalRatings,
-        updatedAt: new Date()
+        updated_at: new Date()
       }
     });
   }

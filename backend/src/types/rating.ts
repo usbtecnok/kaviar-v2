@@ -22,14 +22,14 @@ export interface RatingStats {
   userType: UserType;
   averageRating: number;
   totalRatings: number;
-  updatedAt: Date;
+  updated_at: Date;
 }
 
 export interface RatingResponse {
   id: string;
   score: number;
   comment?: string;
-  createdAt: Date;
+  created_at: Date;
 }
 
 export interface RatingSummary {

@@ -14,16 +14,16 @@ export class DashboardService {
       todayRides
     ] = await Promise.all([
       // Total de motoristas
-      prisma.driver.count(),
+      prisma.drivers.count(),
       
       // Total de passageiros
-      prisma.passenger.count(),
+      prisma.passengers.count(),
       
       // Total de corridas
-      prisma.ride.count(),
+      prisma.rides.count(),
       
       // Corridas ativas (em andamento)
-      prisma.ride.count({
+      prisma.rides.count({
         where: {
           status: {
             in: ['requested', 'driver_assigned', 'in_progress']
@@ -32,30 +32,30 @@ export class DashboardService {
       }),
       
       // Corridas finalizadas
-      prisma.ride.count({
+      prisma.rides.count({
         where: { status: 'completed' }
       }),
       
       // Motoristas pendentes de aprovação
-      prisma.driver.count({
+      prisma.drivers.count({
         where: { status: 'pending' }
       }),
       
       // Motoristas aprovados
-      prisma.driver.count({
+      prisma.drivers.count({
         where: { status: 'approved' }
       }),
       
       // Receita total (corridas completadas)
-      prisma.ride.aggregate({
+      prisma.rides.aggregate({
         where: { status: 'completed' },
         _sum: { price: true }
       }),
       
       // Corridas de hoje
-      prisma.ride.count({
+      prisma.rides.count({
         where: {
-          createdAt: {
+          created_at: {
             gte: new Date(new Date().setHours(0, 0, 0, 0))
           }
         }
@@ -87,14 +87,14 @@ export class DashboardService {
   }
 
   async getRecentRides(limit = 10) {
-    return prisma.ride.findMany({
+    return prisma.rides.findMany({
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       include: {
-        driver: {
+        drivers: {
           select: { id: true, name: true, email: true }
         },
-        passenger: {
+        passengers: {
           select: { id: true, name: true, email: true }
         }
       }
@@ -103,23 +103,20 @@ export class DashboardService {
 
   async getDriversOverview() {
     const [byStatus, recentDrivers] = await Promise.all([
-      prisma.driver.groupBy({
+      prisma.drivers.groupBy({
         by: ['status'],
         _count: { status: true }
       }),
       
-      prisma.driver.findMany({
+      prisma.drivers.findMany({
         take: 5,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         select: {
           id: true,
           name: true,
           email: true,
           status: true,
-          createdAt: true,
-          _count: {
-            select: { rides: true }
-          }
+          created_at: true
         }
       })
     ]);

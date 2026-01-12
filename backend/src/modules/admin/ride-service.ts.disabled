@@ -70,13 +70,13 @@ export class RideAdminService {
     }
     
     if (dateFrom || dateTo) {
-      where.createdAt = {};
-      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
-      if (dateTo) where.createdAt.lte = new Date(dateTo);
+      where.created_at = {};
+      if (dateFrom) where.created_at.gte = new Date(dateFrom);
+      if (dateTo) where.created_at.lte = new Date(dateTo);
     }
 
     const [rides, total] = await Promise.all([
-      prisma.ride.findMany({
+      prisma.rides.findMany({
         where,
         skip,
         take: limit,
@@ -100,7 +100,7 @@ export class RideAdminService {
           },
         },
       }),
-      prisma.ride.count({ where }),
+      prisma.rides.count({ where }),
     ]);
 
     return {
@@ -116,7 +116,7 @@ export class RideAdminService {
 
   // Get ride details
   async getRideById(id: string) {
-    const ride = await prisma.ride.findUnique({
+    const ride = await prisma.rides.findUnique({
       where: { id },
       include: {
         driver: {
@@ -136,10 +136,10 @@ export class RideAdminService {
           },
         },
         statusHistory: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { created_at: 'asc' },
         },
         adminActions: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
         },
       },
     });
@@ -157,7 +157,7 @@ export class RideAdminService {
       // Get current ride state within transaction for consistency
       const ride = await tx.ride.findUnique({
         where: { id: rideId },
-        select: { status: true, price: true, updatedAt: true }
+        select: { status: true, price: true, updated_at: true }
       });
 
       if (!ride) {
@@ -183,7 +183,7 @@ export class RideAdminService {
         where: { 
           id: rideId,
           status: ride.status, // Ensure status hasn't changed since we read it
-          updatedAt: ride.updatedAt // Optimistic locking
+          updated_at: ride.updated_at // Optimistic locking
         },
         data: updateData,
       });
@@ -228,7 +228,7 @@ export class RideAdminService {
       // Get current ride state within transaction
       const ride = await tx.ride.findUnique({
         where: { id: rideId },
-        select: { status: true, updatedAt: true }
+        select: { status: true, updated_at: true }
       });
 
       if (!ride) {
@@ -244,7 +244,7 @@ export class RideAdminService {
         where: { 
           id: rideId,
           status: ride.status, // Ensure status hasn't changed
-          updatedAt: ride.updatedAt // Optimistic locking
+          updated_at: ride.updated_at // Optimistic locking
         },
         data: {
           status: 'cancelled_by_admin',
@@ -286,7 +286,7 @@ export class RideAdminService {
 
   // Force complete ride (SUPER_ADMIN only)
   async forceCompleteRide(rideId: string, data: ForceCompleteRideData, adminId: string) {
-    const ride = await prisma.ride.findUnique({
+    const ride = await prisma.rides.findUnique({
       where: { id: rideId },
       select: { status: true, price: true }
     });
@@ -357,17 +357,17 @@ export class RideAdminService {
     if (action) where.action = action;
     
     if (dateFrom || dateTo) {
-      where.createdAt = {};
-      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
-      if (dateTo) where.createdAt.lte = new Date(dateTo);
+      where.created_at = {};
+      if (dateFrom) where.created_at.gte = new Date(dateFrom);
+      if (dateTo) where.created_at.lte = new Date(dateTo);
     }
 
     const [logs, total] = await Promise.all([
-      prisma.rideAdminAction.findMany({
+      prisma.ride_admin_actions.findMany({
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         include: {
           ride: {
             select: {
@@ -378,13 +378,13 @@ export class RideAdminService {
           },
         },
       }),
-      prisma.rideAdminAction.count({ where }),
+      prisma.ride_admin_actions.count({ where }),
     ]);
 
     // Get admin details for each log
     const logsWithAdminDetails = await Promise.all(
       logs.map(async (log) => {
-        const admin = await prisma.admin.findUnique({
+        const admin = await prisma.admins.findUnique({
           where: { id: log.adminId },
           select: {
             name: true,

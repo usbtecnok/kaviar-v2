@@ -9,7 +9,7 @@ export class AuthService {
     const { email, password } = data;
 
     // Find admin with role
-    const admin = await prisma.admin.findUnique({
+    const admin = await prisma.admins.findUnique({
       where: { email },
       include: { role: true },
     });

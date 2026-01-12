@@ -6,38 +6,38 @@ const prisma = new PrismaClient();
 async function createDefaultAdmin() {
   try {
     // Check if SUPER_ADMIN role exists
-    let superAdminRole = await prisma.role.findUnique({
+    let superAdminRole = await prisma.roles.findUnique({
       where: { name: 'SUPER_ADMIN' }
     });
 
     if (!superAdminRole) {
-      superAdminRole = await prisma.role.create({
+      superAdminRole = await prisma.roles.create({
         data: { name: 'SUPER_ADMIN' }
       });
       console.log('✅ Role SUPER_ADMIN criada');
     }
 
     // Check if OPERATOR role exists
-    let operatorRole = await prisma.role.findUnique({
+    let operatorRole = await prisma.roles.findUnique({
       where: { name: 'OPERATOR' }
     });
 
     if (!operatorRole) {
-      operatorRole = await prisma.role.create({
+      operatorRole = await prisma.roles.create({
         data: { name: 'OPERATOR' }
       });
       console.log('✅ Role OPERATOR criada');
     }
 
     // Check if default admin exists
-    const existingAdmin = await prisma.admin.findUnique({
+    const existingAdmin = await prisma.admins.findUnique({
       where: { email: 'admin@kaviar.com' }
     });
 
     if (!existingAdmin) {
       const hashedPassword = await bcrypt.hash('admin123', 12);
       
-      await prisma.admin.create({
+      await prisma.admins.create({
         data: {
           name: 'Admin Kaviar',
           email: 'admin@kaviar.com',

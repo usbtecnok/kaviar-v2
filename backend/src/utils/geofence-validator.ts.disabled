@@ -20,7 +20,7 @@ export const validateLocationInCommunity = async (
 ): Promise<GeofenceValidationResult> => {
   try {
     // Buscar comunidade com geofence
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id: communityId },
       select: { 
         id: true, 

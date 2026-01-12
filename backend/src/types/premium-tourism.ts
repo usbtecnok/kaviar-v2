@@ -31,7 +31,7 @@ export interface TourPackageResponse {
   locations: string[];
   estimatedDurationMinutes: number;
   isActive: boolean;
-  createdAt: Date;
+  created_at: Date;
 }
 
 export interface TourBookingResponse {
@@ -42,7 +42,7 @@ export interface TourBookingResponse {
   pickupLocation: string;
   dropoffLocation?: string;
   status: TourBookingStatus;
-  createdAt: Date;
+  created_at: Date;
 }
 
 export interface PremiumDriverAvailability {

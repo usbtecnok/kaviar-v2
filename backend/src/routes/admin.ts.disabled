@@ -5,9 +5,9 @@ import { DashboardController } from '../modules/admin/dashboard-controller';
 import { DriverAdminController } from '../modules/admin/driver-admin-controller';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { prisma } from '../config/database';
-import { updateCommunityGeofence, getCommunitiesWithDuplicates, archiveCommunity } from '../controllers/geofence';
-import { createCommunity } from '../controllers/community';
-import { canVerifyGeofence } from '../utils/geofence-governance';
+// import { updateCommunityGeofence, getCommunitiesWithDuplicates, archiveCommunity } from '../controllers/geofence';
+// import { createCommunity } from '../controllers/community';
+// import { canVerifyGeofence } from '../utils/geofence-governance';
 
 const router = Router();
 const adminController = new AdminController();
@@ -72,7 +72,7 @@ router.patch('/communities/:id/geofence-review', async (req, res) => {
     }
     
     // Verificar se comunidade existe
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id },
       include: {
         geofenceData: true
@@ -84,7 +84,7 @@ router.patch('/communities/:id/geofence-review', async (req, res) => {
     }
     
     // Verificar se geofence existe
-    const existingGeofence = await prisma.communityGeofence.findUnique({
+    const existingGeofence = await prisma.community_geofences.findUnique({
       where: { communityId: id }
     });
     
@@ -98,7 +98,7 @@ router.patch('/communities/:id/geofence-review', async (req, res) => {
       const lng = centerLng ?? parseFloat(String(existingGeofence.centerLng));
       
       // Verificar duplicados por nome
-      const duplicates = await prisma.community.findMany({
+      const duplicates = await prisma.communities.findMany({
         where: {
           name: {
             equals: community.name,
@@ -159,7 +159,7 @@ router.patch('/communities/:id/geofence-review', async (req, res) => {
     if (reviewNotes !== undefined) updateData.reviewNotes = reviewNotes;
     
     // Atualizar geofence
-    const updatedGeofence = await prisma.communityGeofence.update({
+    const updatedGeofence = await prisma.community_geofences.update({
       where: { communityId: id },
       data: updateData
     });

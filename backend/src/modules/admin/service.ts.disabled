@@ -1,6 +1,6 @@
 import { prisma } from '../../config/database';
 import { DriversQuery, PassengersQuery, RidesQuery, SuspendDriverData, CancelRideData, ReassignRideData, ForceCompleteRideData } from './schemas';
-import { CommunityActivationService } from '../../services/community-activation';
+// import { CommunityActivationService } from '../../services/community-activation';
 import { DriverVerificationService } from '../../services/driver-verification';
 import { DriverEnforcementService } from '../../services/driver-enforcement';
 import { config } from '../../config';
@@ -39,13 +39,13 @@ export class AdminService {
     }
     
     if (dateFrom || dateTo) {
-      where.createdAt = {};
-      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
-      if (dateTo) where.createdAt.lte = new Date(dateTo);
+      where.created_at = {};
+      if (dateFrom) where.created_at.gte = new Date(dateFrom);
+      if (dateTo) where.created_at.lte = new Date(dateTo);
     }
 
     const [drivers, total] = await Promise.all([
-      prisma.driver.findMany({
+      prisma.drivers.findMany({
         where,
         skip,
         take: limit,
@@ -59,13 +59,13 @@ export class AdminService {
           suspensionReason: true,
           suspendedAt: true,
           lastActiveAt: true,
-          createdAt: true,
+          created_at: true,
           _count: {
             select: { rides: true },
           },
         },
       }),
-      prisma.driver.count({ where }),
+      prisma.drivers.count({ where }),
     ]);
 
     return {
@@ -92,7 +92,7 @@ export class AdminService {
 
   // Legacy approval behavior (no gates)
   private async approveDriverLegacy(driverId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, status: true, communityId: true }
     });
@@ -105,7 +105,7 @@ export class AdminService {
       throw new Error('Apenas motoristas pendentes podem ser aprovados');
     }
 
-    const updatedDriver = await prisma.driver.update({
+    const updatedDriver = await prisma.drivers.update({
       where: { id: driverId },
       data: { 
         status: 'approved',
@@ -136,7 +136,7 @@ export class AdminService {
       throw error;
     }
 
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, status: true, communityId: true }
     });
@@ -221,7 +221,7 @@ export class AdminService {
 
   // Suspender motorista (enhanced with audit)
   async suspendDriver(driverId: string, data: SuspendDriverData, adminId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, status: true, communityId: true }
     });
@@ -251,7 +251,7 @@ export class AdminService {
 
   // Reativar motorista (enhanced with audit)
   async reactivateDriver(driverId: string, adminId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, status: true, communityId: true }
     });
@@ -280,7 +280,7 @@ export class AdminService {
 
   // Ban driver
   async banDriver(driverId: string, reason: string, adminId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, bannedAt: true, communityId: true }
     });
@@ -305,7 +305,7 @@ export class AdminService {
 
   // Unban driver
   async unbanDriver(driverId: string, adminId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, bannedAt: true }
     });
@@ -323,7 +323,7 @@ export class AdminService {
 
   // Soft delete driver
   async softDeleteDriver(driverId: string, adminId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, deletedAt: true, communityId: true }
     });
@@ -348,7 +348,7 @@ export class AdminService {
 
   // Restore driver
   async restoreDriver(driverId: string, adminId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { id: true, deletedAt: true }
     });
@@ -371,17 +371,17 @@ export class AdminService {
 
   // Get driver details
   async getDriverById(driverId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       include: {
         rides: {
           take: 10,
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
           select: {
             id: true,
             status: true,
             price: true,
-            createdAt: true,
+            created_at: true,
             passenger: {
               select: { name: true }
             }
@@ -409,7 +409,7 @@ export class AdminService {
     }
 
     // Check basic status
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { status: true }
     });
@@ -423,22 +423,22 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const [passengers, total] = await Promise.all([
-      prisma.passenger.findMany({
+      prisma.passengers.findMany({
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         select: {
           id: true,
           name: true,
           email: true,
           phone: true,
-          createdAt: true,
+          created_at: true,
           _count: {
             select: { rides: true },
           },
         },
       }),
-      prisma.passenger.count(),
+      prisma.passengers.count(),
     ]);
 
     return {
@@ -486,13 +486,13 @@ export class AdminService {
     }
     
     if (dateFrom || dateTo) {
-      where.createdAt = {};
-      if (dateFrom) where.createdAt.gte = new Date(dateFrom);
-      if (dateTo) where.createdAt.lte = new Date(dateTo);
+      where.created_at = {};
+      if (dateFrom) where.created_at.gte = new Date(dateFrom);
+      if (dateTo) where.created_at.lte = new Date(dateTo);
     }
 
     const [rides, total] = await Promise.all([
-      prisma.ride.findMany({
+      prisma.rides.findMany({
         where,
         skip,
         take: limit,
@@ -516,7 +516,7 @@ export class AdminService {
           },
         },
       }),
-      prisma.ride.count({ where }),
+      prisma.rides.count({ where }),
     ]);
 
     return {
@@ -532,7 +532,7 @@ export class AdminService {
 
   // Ride details
   async getRideById(id: string) {
-    const ride = await prisma.ride.findUnique({
+    const ride = await prisma.rides.findUnique({
       where: { id },
       include: {
         driver: {
@@ -552,10 +552,10 @@ export class AdminService {
           },
         },
         statusHistory: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { created_at: 'asc' },
         },
         adminActions: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
         },
       },
     });
@@ -569,7 +569,7 @@ export class AdminService {
 
   // Cancel ride administratively
   async cancelRide(rideId: string, data: CancelRideData, adminId: string) {
-    const ride = await prisma.ride.findUnique({
+    const ride = await prisma.rides.findUnique({
       where: { id: rideId },
       select: { status: true }
     });
@@ -618,7 +618,7 @@ export class AdminService {
 
   // Reassign driver
   async reassignDriver(rideId: string, data: ReassignRideData, adminId: string) {
-    const ride = await prisma.ride.findUnique({
+    const ride = await prisma.rides.findUnique({
       where: { id: rideId },
       select: { status: true, driverId: true }
     });
@@ -632,7 +632,7 @@ export class AdminService {
     }
 
     // Check if new driver exists and is approved
-    const newDriver = await prisma.driver.findUnique({
+    const newDriver = await prisma.drivers.findUnique({
       where: { id: data.newDriverId },
       select: { status: true }
     });
@@ -680,7 +680,7 @@ export class AdminService {
 
   // Force complete ride
   async forceCompleteRide(rideId: string, data: ForceCompleteRideData, adminId: string) {
-    const ride = await prisma.ride.findUnique({
+    const ride = await prisma.rides.findUnique({
       where: { id: rideId },
       select: { status: true }
     });

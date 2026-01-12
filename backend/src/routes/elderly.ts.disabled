@@ -70,7 +70,7 @@ router.get('/contracts', async (req, res) => {
     const skip = (query.page - 1) * query.pageSize;
     
     const [contracts, total] = await Promise.all([
-      prisma.elderlyContract.findMany({
+      prisma.elderly_contracts.findMany({
         where,
         skip,
         take: query.pageSize,
@@ -103,9 +103,9 @@ router.get('/contracts', async (req, res) => {
             }
           }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { created_at: 'desc' }
       }),
-      prisma.elderlyContract.count({ where })
+      prisma.elderly_contracts.count({ where })
     ]);
 
     // Sanitizar dados sensíveis para listagem
@@ -155,7 +155,7 @@ router.post('/contracts', async (req, res) => {
     const adminId = (req as any).admin?.id;
 
     // Validar se passenger existe
-    const passenger = await prisma.passenger.findUnique({
+    const passenger = await prisma.passengers.findUnique({
       where: { id: data.passengerId }
     });
 
@@ -167,7 +167,7 @@ router.post('/contracts', async (req, res) => {
     }
 
     // Validar se community existe
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id: data.communityId }
     });
 
@@ -180,7 +180,7 @@ router.post('/contracts', async (req, res) => {
 
     // Validar responsible se fornecido
     if (data.responsibleId) {
-      const responsible = await prisma.passenger.findUnique({
+      const responsible = await prisma.passengers.findUnique({
         where: { id: data.responsibleId }
       });
 
@@ -193,13 +193,13 @@ router.post('/contracts', async (req, res) => {
     }
 
     // Verificar se já existe perfil elderly para este passenger
-    let elderlyProfile = await prisma.elderlyProfile.findUnique({
+    let elderlyProfile = await prisma.elderly_profiles.findUnique({
       where: { passengerId: data.passengerId }
     });
 
     // Criar perfil se não existir
     if (!elderlyProfile && data.elderlyProfile) {
-      elderlyProfile = await prisma.elderlyProfile.create({
+      elderlyProfile = await prisma.elderly_profiles.create({
         data: {
           passengerId: data.passengerId,
           ...data.elderlyProfile
@@ -215,7 +215,7 @@ router.post('/contracts', async (req, res) => {
     }
 
     // Criar contrato
-    const contract = await prisma.elderlyContract.create({
+    const contract = await prisma.elderly_contracts.create({
       data: {
         elderlyProfileId: elderlyProfile.id,
         responsibleId: data.responsibleId,
@@ -284,7 +284,7 @@ router.patch('/contracts/:id/status', async (req, res) => {
     const adminId = (req as any).admin?.id;
 
     // Buscar contrato atual
-    const currentContract = await prisma.elderlyContract.findUnique({
+    const currentContract = await prisma.elderly_contracts.findUnique({
       where: { id },
       include: {
         elderlyProfile: {
@@ -307,7 +307,7 @@ router.patch('/contracts/:id/status', async (req, res) => {
     const oldStatus = currentContract.status;
 
     // Atualizar status
-    const updatedContract = await prisma.elderlyContract.update({
+    const updatedContract = await prisma.elderly_contracts.update({
       where: { id },
       data: { 
         status,
@@ -371,14 +371,14 @@ router.get('/dashboard', async (req, res) => {
   try {
     // Contadores globais
     const [totalContracts, activeContracts, inactiveContracts, cancelledContracts] = await Promise.all([
-      prisma.elderlyContract.count(),
-      prisma.elderlyContract.count({ where: { status: 'ACTIVE' } }),
-      prisma.elderlyContract.count({ where: { status: 'INACTIVE' } }),
-      prisma.elderlyContract.count({ where: { status: 'CANCELLED' } })
+      prisma.elderly_contracts.count(),
+      prisma.elderly_contracts.count({ where: { status: 'ACTIVE' } }),
+      prisma.elderly_contracts.count({ where: { status: 'INACTIVE' } }),
+      prisma.elderly_contracts.count({ where: { status: 'CANCELLED' } })
     ]);
 
     // Contadores por bairro
-    const contractsByCommunity = await prisma.elderlyContract.groupBy({
+    const contractsByCommunity = await prisma.elderly_contracts.groupBy({
       by: ['communityId', 'status'],
       _count: {
         id: true
@@ -390,7 +390,7 @@ router.get('/dashboard', async (req, res) => {
 
     // Buscar nomes dos bairros
     const communityIds = [...new Set(contractsByCommunity.map(item => item.communityId))];
-    const communities = await prisma.community.findMany({
+    const communities = await prisma.communities.findMany({
       where: { id: { in: communityIds } },
       select: { id: true, name: true }
     });

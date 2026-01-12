@@ -14,7 +14,7 @@ const ratingController = new RatingController();
 // Listar comunidades ativas
 router.get('/communities', async (req, res) => {
   try {
-    const communities = await prisma.community.findMany({
+    const communities = await prisma.communities.findMany({
       where: { isActive: true },
       include: {
         geofenceData: {
@@ -59,7 +59,7 @@ router.get('/communities/:id/geofence', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const geofence = await prisma.communityGeofence.findUnique({
+    const geofence = await prisma.community_geofences.findUnique({
       where: { communityId: id },
       select: {
         geojson: true,
@@ -68,7 +68,7 @@ router.get('/communities/:id/geofence', async (req, res) => {
         confidence: true,
         isVerified: true,
         source: true,
-        updatedAt: true
+        updated_at: true
       }
     });
 
@@ -86,7 +86,7 @@ router.get('/communities/:id/geofence', async (req, res) => {
       confidence: geofence.confidence,
       isVerified: geofence.isVerified,
       source: geofence.source,
-      updatedAt: geofence.updatedAt
+      updated_at: geofence.updated_at
     };
 
     res.json({ success: true, data: response });
@@ -106,7 +106,7 @@ router.post('/passenger', async (req, res) => {
   try {
     const { name, email, phone, communityId } = req.body;
     
-    const passenger = await prisma.passenger.create({
+    const passenger = await prisma.passengers.create({
       data: {
         name,
         email,
@@ -128,7 +128,7 @@ router.post('/consent', async (req, res) => {
   try {
     const { passengerId, consentType, accepted, ipAddress } = req.body;
     
-    const consent = await prisma.userConsent.upsert({
+    const consent = await prisma.user_consents.upsert({
       where: {
         passengerId_consentType: { passengerId, consentType }
       },
@@ -157,7 +157,7 @@ router.post('/driver', async (req, res) => {
   try {
     const { name, email, phone, communityId, documentCpf, documentRg, documentCnh, vehiclePlate, vehicleModel } = req.body;
 
-    const driver = await prisma.driver.create({
+    const driver = await prisma.drivers.create({
       data: {
         name,
         email,
@@ -191,7 +191,7 @@ router.put('/driver/:id/documents', async (req, res) => {
     const { id } = req.params;
     const { documentCpf, documentRg, documentCnh, vehiclePlate, vehicleModel, communityId } = req.body;
     
-    const driver = await prisma.driver.update({
+    const driver = await prisma.drivers.update({
       where: { id },
       data: {
         documentCpf,
@@ -214,7 +214,7 @@ router.post('/guide', async (req, res) => {
   try {
     const { name, email, phone, communityId, isBilingual, languages, alsoDriver, driverId } = req.body;
     
-    const guide = await prisma.touristGuide.create({
+    const guide = await prisma.tourist_guides.create({
       data: {
         name,
         email,
@@ -249,7 +249,7 @@ router.get('/ratings/summary/:type/:id', ratingController.getRatingSummary);
 // Neighborhoods (Bairros) endpoints
 router.get('/neighborhoods', async (req, res) => {
   try {
-    const neighborhoods = await prisma.neighborhood.findMany({
+    const neighborhoods = await prisma.neighborhoods.findMany({
       where: { isActive: true },
       include: {
         geofenceData: {
@@ -274,7 +274,7 @@ router.get('/neighborhoods', async (req, res) => {
       centerLng: neighborhood.centerLng,
       isVerified: neighborhood.isVerified,
       geofenceType: neighborhood.geofenceData?.geofenceType || null,
-      createdAt: neighborhood.createdAt
+      created_at: neighborhood.created_at
     }));
 
     res.json({ success: true, data: enrichedNeighborhoods });
@@ -289,7 +289,7 @@ router.get('/neighborhoods/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const neighborhood = await prisma.neighborhood.findUnique({
+    const neighborhood = await prisma.neighborhoods.findUnique({
       where: { id },
       include: {
         geofenceData: true
@@ -315,7 +315,7 @@ router.get('/neighborhoods/:id/geofence', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const geofence = await prisma.neighborhoodGeofence.findUnique({
+    const geofence = await prisma.neighborhood_geofences.findUnique({
       where: { neighborhoodId: id },
       select: {
         geofenceType: true,
@@ -324,7 +324,7 @@ router.get('/neighborhoods/:id/geofence', async (req, res) => {
         sourceUrl: true,
         area: true,
         perimeter: true,
-        updatedAt: true
+        updated_at: true
       }
     });
 

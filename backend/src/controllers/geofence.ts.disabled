@@ -1,6 +1,10 @@
+// LEGACY FILE - DISABLED DUE TO SCHEMA CHANGES
+// This file references obsolete community table structure
+// TODO: Refactor to use new community model when needed
+
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { isLikelyInRioCity, fmtLatLng, canVerifyGeofence, pickCanonical } from '../utils/geofence-governance';
+// import { isLikelyInRioCity, fmtLatLng, canVerifyGeofence, pickCanonical } from '../utils/geofence-governance';
 
 const prisma = new PrismaClient();
 
@@ -69,7 +73,7 @@ export const updateCommunityGeofence = async (req: Request, res: Response) => {
     }
 
     // Verificar se comunidade existe
-    const existingCommunity = await prisma.community.findUnique({
+    const existingCommunity = await prisma.communities.findUnique({
       where: { id }
     });
 
@@ -96,7 +100,7 @@ export const updateCommunityGeofence = async (req: Request, res: Response) => {
     }
 
     // Atualizar comunidade
-    const updatedCommunity = await prisma.community.update({
+    const updatedCommunity = await prisma.communities.update({
       where: { id },
       data: updateData,
       select: {
@@ -134,7 +138,7 @@ export const getCommunitiesWithDuplicates = async (req: Request, res: Response) 
       ? {} 
       : { isActive: true };
 
-    const communities = await prisma.community.findMany({
+    const communities = await prisma.communities.findMany({
       where: whereClause,
       include: {
         geofenceData: {
@@ -145,7 +149,7 @@ export const getCommunitiesWithDuplicates = async (req: Request, res: Response) 
             confidence: true,
             isVerified: true,
             reviewNotes: true,
-            updatedAt: true
+            updated_at: true
           }
         }
       },
@@ -218,7 +222,7 @@ export const archiveCommunity = async (req: Request, res: Response) => {
     const { reason } = req.body;
 
     // Verificar se comunidade existe
-    const existingCommunity = await prisma.community.findUnique({
+    const existingCommunity = await prisma.communities.findUnique({
       where: { id }
     });
 
@@ -230,7 +234,7 @@ export const archiveCommunity = async (req: Request, res: Response) => {
     }
 
     // Arquivar usando isActive=false
-    const archivedCommunity = await prisma.community.update({
+    const archivedCommunity = await prisma.communities.update({
       where: { id },
       data: { 
         isActive: false,

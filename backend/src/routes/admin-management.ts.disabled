@@ -21,14 +21,14 @@ router.get('/dashboard', async (req, res) => {
       pendingGuides,
       activeCommunities
     ] = await Promise.all([
-      prisma.driver.count(),
-      prisma.passenger.count(),
-      prisma.community.count(),
-      prisma.touristGuide.count(),
-      prisma.driver.count({ where: { status: 'pending' } }),
-      prisma.passenger.count({ where: { status: 'pending' } }),
-      prisma.touristGuide.count({ where: { status: 'pending' } }),
-      prisma.community.count({ where: { isActive: true } })
+      prisma.drivers.count(),
+      prisma.passengers.count(),
+      prisma.communities.count(),
+      prisma.tourist_guides.count(),
+      prisma.drivers.count({ where: { status: 'pending' } }),
+      prisma.passengers.count({ where: { status: 'pending' } }),
+      prisma.tourist_guides.count({ where: { status: 'pending' } }),
+      prisma.communities.count({ where: { isActive: true } })
     ]);
 
     res.json({
@@ -60,7 +60,7 @@ router.get('/dashboard', async (req, res) => {
 // Communities (Bairros) Management
 router.get('/communities', async (req, res) => {
   try {
-    const communities = await prisma.community.findMany({
+    const communities = await prisma.communities.findMany({
       include: {
         drivers: {
           select: {
@@ -93,7 +93,7 @@ router.get('/communities', async (req, res) => {
             confidence: true,
             isVerified: true,
             reviewNotes: true,
-            updatedAt: true
+            updated_at: true
           }
         }
       },
@@ -185,7 +185,7 @@ router.post('/communities', async (req, res) => {
     const { name, isActive } = createSchema.parse(req.body);
 
     // Check for duplicate (case-insensitive)
-    const existing = await prisma.community.findFirst({
+    const existing = await prisma.communities.findFirst({
       where: {
         name: {
           equals: name,
@@ -202,7 +202,7 @@ router.post('/communities', async (req, res) => {
     }
 
     // Create community
-    const community = await prisma.community.create({
+    const community = await prisma.communities.create({
       data: {
         name: name.trim(),
         isActive: isActive ?? true
@@ -235,7 +235,7 @@ router.patch('/communities/:id/toggle', async (req, res) => {
   try {
     const { id } = req.params;
     
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id },
       include: {
         drivers: {
@@ -262,7 +262,7 @@ router.patch('/communities/:id/toggle', async (req, res) => {
       });
     }
 
-    const updatedCommunity = await prisma.community.update({
+    const updatedCommunity = await prisma.communities.update({
       where: { id },
       data: { 
         isActive: !community.isActive,
@@ -290,14 +290,14 @@ router.get('/drivers', async (req, res) => {
     
     const where = status ? { status: status as string } : {};
     
-    const drivers = await prisma.driver.findMany({
+    const drivers = await prisma.drivers.findMany({
       where,
       include: {
         community: {
           select: { id: true, name: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     res.json({
@@ -329,7 +329,7 @@ router.patch('/drivers/:id/status', async (req, res) => {
       updateData.suspendedAt = new Date();
     }
 
-    const driver = await prisma.driver.update({
+    const driver = await prisma.drivers.update({
       where: { id },
       data: updateData
     });
@@ -354,14 +354,14 @@ router.get('/passengers', async (req, res) => {
     
     const where = status ? { status: status as string } : {};
     
-    const passengers = await prisma.passenger.findMany({
+    const passengers = await prisma.passengers.findMany({
       where,
       include: {
         community: {
           select: { id: true, name: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     res.json({
@@ -385,7 +385,7 @@ router.patch('/passengers/:id/status', async (req, res) => {
       status: z.enum(['approved', 'rejected', 'suspended'])
     }).parse(req.body);
 
-    const passenger = await prisma.passenger.update({
+    const passenger = await prisma.passengers.update({
       where: { id },
       data: { status }
     });
@@ -410,14 +410,14 @@ router.get('/guides', async (req, res) => {
     
     const where = status ? { status: status as string } : {};
     
-    const guides = await prisma.touristGuide.findMany({
+    const guides = await prisma.tourist_guides.findMany({
       where,
       include: {
         community: {
           select: { id: true, name: true }
         }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     res.json({
@@ -441,7 +441,7 @@ router.patch('/guides/:id/status', async (req, res) => {
       status: z.enum(['approved', 'rejected', 'suspended'])
     }).parse(req.body);
 
-    const guide = await prisma.touristGuide.update({
+    const guide = await prisma.tourist_guides.update({
       where: { id },
       data: { status }
     });

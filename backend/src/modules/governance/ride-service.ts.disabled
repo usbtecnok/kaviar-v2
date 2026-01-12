@@ -1,5 +1,5 @@
 import { prisma } from '../../config/database';
-import { GeofenceService } from '../../services/geofence';
+// import { GeofenceService } from '../../services/geofence';
 import { DiamondService } from '../../services/diamond';
 import { config } from '../../config';
 
@@ -97,7 +97,7 @@ export class RideService {
    * Create legacy ride (no geofence validation)
    */
   private async createRideLegacy(data: RideRequestData) {
-    const ride = await prisma.ride.create({
+    const ride = await prisma.rides.create({
       data: {
         passengerId: data.passengerId,
         origin: data.origin,
@@ -115,7 +115,7 @@ export class RideService {
    * Create community ride (within fence)
    */
   private async createCommunityRide(data: RideRequestData, geofenceInfo: any) {
-    const ride = await prisma.ride.create({
+    const ride = await prisma.rides.create({
       data: {
         passengerId: data.passengerId,
         origin: data.origin,
@@ -129,7 +129,7 @@ export class RideService {
     });
 
     // Initialize diamond for community rides
-    const passenger = await prisma.passenger.findUnique({
+    const passenger = await prisma.passengers.findUnique({
       where: { id: data.passengerId },
       select: { communityId: true }
     });
@@ -143,7 +143,7 @@ export class RideService {
    * Create fallback ride (out of fence, converted to normal)
    */
   private async createFallbackRide(data: RideRequestData, geofenceInfo: any) {
-    return prisma.ride.create({
+    return prisma.rides.create({
       data: {
         passengerId: data.passengerId,
         origin: data.origin,
@@ -164,7 +164,7 @@ export class RideService {
    */
   async createOutOfFenceRide(rideData: any): Promise<any> {
     // Create ride without geofence restrictions
-    const ride = await prisma.ride.create({
+    const ride = await prisma.rides.create({
       data: {
         passengerId: rideData.passengerId,
         origin: rideData.origin,

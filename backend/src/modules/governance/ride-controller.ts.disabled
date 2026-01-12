@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { RideService } from './ride-service';
-import { GeofenceService } from '../../services/geofence';
+// import { GeofenceService } from '../../services/geofence';
 import { DiamondService } from '../../services/diamond';
 import { GeoResolveService } from '../../services/geo-resolve';
 import { prisma } from '../../config/database';
@@ -22,10 +22,10 @@ export class RideController {
       const data = rideRequestSchema.parse(req.body);
       
       // Validar geofence obrigatório usando serviço centralizado
-      if (data.passengerLat && data.passengerLng) {
+      if (data.originLat && data.originLng) {
         const geofenceResult = await this.geoResolveService.resolveCoordinates(
-          data.passengerLat, 
-          data.passengerLng
+          data.originLat, 
+          data.originLng
         );
         
         if (!geofenceResult.match) {
@@ -36,7 +36,7 @@ export class RideController {
         }
         
         // Log da área resolvida para auditoria
-        console.log(`Ride request in area: ${geofenceResult.area?.name} (${geofenceResult.area?.id})`);
+        console.log(`Ride request in area: ${geofenceResult.resolvedArea?.name} (${geofenceResult.resolvedArea?.id})`);
       }
       
       // If confirmation token provided, process confirmed ride

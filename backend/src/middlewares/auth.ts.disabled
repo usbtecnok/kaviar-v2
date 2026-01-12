@@ -31,7 +31,7 @@ export const authenticateAdmin = async (
     const decoded = jwt.verify(token, config.jwtSecret) as any;
     
     // Verify admin still exists and is active
-    const admin = await prisma.admin.findUnique({
+    const admin = await prisma.admins.findUnique({
       where: { id: decoded.adminId },
       include: { role: true },
     });

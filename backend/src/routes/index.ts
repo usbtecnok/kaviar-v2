@@ -3,7 +3,7 @@ import { authRoutes } from './auth';
 import { adminRoutes } from './admin';
 import { governanceRoutes } from './governance';
 import geoRoutes from './geo';
-import adminGeofenceRoutes from './admin-geofence';
+// import adminGeofenceRoutes from './admin-geofence';
 
 const router = Router();
 

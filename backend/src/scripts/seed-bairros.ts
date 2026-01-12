@@ -18,12 +18,12 @@ async function seedBairros() {
   const createdBairros = [];
   
   for (const bairro of bairros) {
-    const existing = await prisma.community.findFirst({
+    const existing = await prisma.communities.findFirst({
       where: { name: bairro.name }
     });
 
     if (!existing) {
-      const created = await prisma.community.create({
+      const created = await prisma.communities.create({
         data: {
           name: bairro.name,
           description: bairro.description,
@@ -50,11 +50,11 @@ async function seedBairros() {
     for (let i = 1; i <= 5; i++) {
       const email = `motorista${i}.${bairro.name.toLowerCase().replace(' ', '')}@test.com`;
       
-      const existing = await prisma.driver.findUnique({ where: { email } });
+      const existing = await prisma.drivers.findUnique({ where: { email } });
       if (!existing) {
         const passwordHash = await bcrypt.hash('123456', 12);
         
-        await prisma.driver.create({
+        await prisma.drivers.create({
           data: {
             name: `Motorista ${i} - ${bairro.name}`,
             email,
@@ -76,11 +76,11 @@ async function seedBairros() {
     for (let i = 1; i <= 10; i++) {
       const email = `passageiro${i}.${bairro.name.toLowerCase().replace(' ', '')}@test.com`;
       
-      const existing = await prisma.passenger.findUnique({ where: { email } });
+      const existing = await prisma.passengers.findUnique({ where: { email } });
       if (!existing) {
         const passwordHash = await bcrypt.hash('123456', 12);
         
-        await prisma.passenger.create({
+        await prisma.passengers.create({
           data: {
             name: `Passageiro ${i} - ${bairro.name}`,
             email,
@@ -96,10 +96,10 @@ async function seedBairros() {
 
     // Criar 1 guia turístico
     const guideEmail = `guia.${bairro.name.toLowerCase().replace(' ', '')}@test.com`;
-    const existingGuide = await prisma.touristGuide.findUnique({ where: { email: guideEmail } });
+    const existingGuide = await prisma.tourist_guides.findUnique({ where: { email: guideEmail } });
     
     if (!existingGuide) {
-      await prisma.touristGuide.create({
+      await prisma.tourist_guides.create({
         data: {
           name: `Guia Turístico - ${bairro.name}`,
           email: guideEmail,
@@ -117,7 +117,7 @@ async function seedBairros() {
 
   // 3. Ativar bairros que atendem ao critério mínimo
   for (const bairro of createdBairros) {
-    const activeDrivers = await prisma.driver.count({
+    const activeDrivers = await prisma.drivers.count({
       where: {
         communityId: bairro.id,
         status: 'approved'
@@ -125,7 +125,7 @@ async function seedBairros() {
     });
 
     if (activeDrivers >= bairro.minActiveDrivers && !bairro.isActive) {
-      await prisma.community.update({
+      await prisma.communities.update({
         where: { id: bairro.id },
         data: { 
           isActive: true,

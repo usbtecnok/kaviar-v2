@@ -24,7 +24,7 @@ export class DriverEnforcementService {
       return { isBlocked: false };
     }
 
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: {
         deletedAt: true,
@@ -198,9 +198,9 @@ export class DriverEnforcementService {
    * Get enforcement history for a driver
    */
   async getEnforcementHistory(driverId: string) {
-    return prisma.driverEnforcementHistory.findMany({
+    return prisma.driver_enforcement_history.findMany({
       where: { driverId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       take: 50 // Last 50 actions
     });
   }

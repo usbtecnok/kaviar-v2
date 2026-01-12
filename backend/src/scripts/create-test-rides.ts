@@ -6,7 +6,7 @@ async function createTestData() {
   console.log('🧪 Criando dados de teste para corridas...');
 
   // Create test passengers
-  const passenger1 = await prisma.passenger.upsert({
+  const passenger1 = await prisma.passengers.upsert({
     where: { email: 'joao@test.com' },
     update: {},
     create: {
@@ -16,7 +16,7 @@ async function createTestData() {
     },
   });
 
-  const passenger2 = await prisma.passenger.upsert({
+  const passenger2 = await prisma.passengers.upsert({
     where: { email: 'maria@test.com' },
     update: {},
     create: {
@@ -27,7 +27,7 @@ async function createTestData() {
   });
 
   // Create test drivers
-  const driver1 = await prisma.driver.upsert({
+  const driver1 = await prisma.drivers.upsert({
     where: { email: 'carlos@driver.com' },
     update: {},
     create: {
@@ -38,7 +38,7 @@ async function createTestData() {
     },
   });
 
-  const driver2 = await prisma.driver.upsert({
+  const driver2 = await prisma.drivers.upsert({
     where: { email: 'ana@driver.com' },
     update: {},
     create: {
@@ -98,12 +98,12 @@ async function createTestData() {
   ];
 
   for (const rideData of rides) {
-    const ride = await prisma.ride.create({
+    const ride = await prisma.rides.create({
       data: rideData,
     });
 
     // Create status history
-    await prisma.rideStatusHistory.create({
+    await prisma.ride_status_history.create({
       data: {
         rideId: ride.id,
         status: rideData.status,

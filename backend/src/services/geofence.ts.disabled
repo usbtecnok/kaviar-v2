@@ -110,7 +110,7 @@ export class GeofenceService {
     const locationValidityMs = config.geofence.locationValidityMinutes * 60 * 1000;
     const locationValidityTime = new Date(Date.now() - locationValidityMs);
 
-    const count = await prisma.driver.count({
+    const count = await prisma.drivers.count({
       where: {
         status: 'approved',
         suspendedAt: null,
@@ -160,7 +160,7 @@ export class GeofenceService {
     lat: number, 
     lng: number
   ): Promise<GeofenceValidationResult> {
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id: communityId },
       select: { 
         centerLat: true, 
@@ -199,7 +199,7 @@ export class GeofenceService {
    * Available = approved + not suspended + not occupied + recent location (<= 5 min)
    */
   async findAvailableDrivers(communityId: string): Promise<AvailableDriversResult> {
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id: communityId },
       select: { 
         centerLat: true, 
@@ -221,7 +221,7 @@ export class GeofenceService {
     const locationValidityTime = new Date(Date.now() - locationValidityMs);
     
     // Find available drivers with recent location
-    const drivers = await prisma.driver.findMany({
+    const drivers = await prisma.drivers.findMany({
       where: {
         communityId,
         status: 'approved',
@@ -320,8 +320,8 @@ export class GeofenceService {
     );
 
     // CAMADA A: Polygon existente (lógica atual)
-    if (geofenceResult.match && geofenceResult.area) {
-      const driversInfo = await this.getAvailableDriversInArea(geofenceResult.area.id);
+    if (geofenceResult.match && geofenceResult.resolvedArea) {
+      const driversInfo = await this.getAvailableDriversInArea(geofenceResult.resolvedArea.id);
       
       if (driversInfo.driversInFence > 0) {
         return {
@@ -337,7 +337,7 @@ export class GeofenceService {
       }
 
       // Sem motoristas na cerca - verificar se é bairro sensível
-      const communityName = geofenceResult.area.name;
+      const communityName = geofenceResult.resolvedArea.name;
       if (isSensitiveNeighborhood(communityName)) {
         // Bairros sensíveis: nunca Camada C automática, sempre opt-in
         return {
@@ -425,7 +425,7 @@ export class GeofenceService {
     const locationValidityTime = new Date(Date.now() - locationValidityMs);
     
     // Buscar motoristas disponíveis em raio pequeno (800m)
-    const drivers = await prisma.driver.findMany({
+    const drivers = await prisma.drivers.findMany({
       where: {
         status: 'approved',
         suspendedAt: null,
@@ -469,7 +469,7 @@ export class GeofenceService {
     const locationValidityTime = new Date(Date.now() - locationValidityMs);
 
     // Buscar communities dos vizinhos permitidos
-    const neighborCommunities = await prisma.community.findMany({
+    const neighborCommunities = await prisma.communities.findMany({
       where: {
         name: { in: allowedNeighbors },
         isActive: true
@@ -482,7 +482,7 @@ export class GeofenceService {
     const neighborIds = neighborCommunities.map(c => c.id);
 
     // Contar motoristas disponíveis nos bairros vizinhos
-    const driversCount = await prisma.driver.count({
+    const driversCount = await prisma.drivers.count({
       where: {
         communityId: { in: neighborIds },
         status: 'approved',
@@ -505,7 +505,7 @@ export class GeofenceService {
    * Update driver location
    */
   async updateDriverLocation(driverId: string, lat: number, lng: number): Promise<void> {
-    await prisma.driver.update({
+    await prisma.drivers.update({
       where: { id: driverId },
       data: {
         lastLat: lat,
@@ -519,7 +519,7 @@ export class GeofenceService {
    * Update passenger location
    */
   async updatePassengerLocation(passengerId: string, lat: number, lng: number): Promise<void> {
-    await prisma.passenger.update({
+    await prisma.passengers.update({
       where: { id: passengerId },
       data: {
         lastLat: lat,
@@ -534,7 +534,7 @@ export class GeofenceService {
    */
   private async getAvailableDriversInArea(areaId: string): Promise<AvailableDriversResult> {
     // Get all available drivers with location
-    const drivers = await prisma.driver.findMany({
+    const drivers = await prisma.drivers.findMany({
       where: {
         status: 'approved',
         lastLat: { not: null },
@@ -564,7 +564,7 @@ export class GeofenceService {
         Number(driver.lastLng)
       );
 
-      const isWithinFence = driverArea.match && driverArea.area?.id === areaId;
+      const isWithinFence = driverArea.match && driverArea.resolvedArea?.id === areaId;
 
       if (isWithinFence) {
         driversInFence++;

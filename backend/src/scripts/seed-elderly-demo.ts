@@ -9,11 +9,11 @@ async function seedElderlyDemo() {
   try {
     // 1. Criar admin se não existir
     const adminEmail = 'admin@kaviar.com';
-    let admin = await prisma.admin.findUnique({ where: { email: adminEmail } });
+    let admin = await prisma.admins.findUnique({ where: { email: adminEmail } });
     
     if (!admin) {
       const hashedPassword = await bcrypt.hash('admin123', 10);
-      admin = await prisma.admin.create({
+      admin = await prisma.admins.create({
         data: {
           email: adminEmail,
           name: 'Admin KAVIAR',
@@ -25,7 +25,7 @@ async function seedElderlyDemo() {
     }
 
     // 2. Buscar bairros existentes
-    const communities = await prisma.community.findMany({
+    const communities = await prisma.communities.findMany({
       take: 3,
       where: { isActive: true }
     });
@@ -70,7 +70,7 @@ async function seedElderlyDemo() {
     for (const elderly of elderlyData) {
       // Criar ou buscar passageiro
       const hashedPassword = await bcrypt.hash('elderly123', 10);
-      const passenger = await prisma.passenger.upsert({
+      const passenger = await prisma.passengers.upsert({
         where: { email: elderly.email },
         update: {},
         create: {
@@ -84,7 +84,7 @@ async function seedElderlyDemo() {
       });
 
       // Criar ou buscar perfil elderly
-      const elderlyProfile = await prisma.elderlyProfile.upsert({
+      const elderlyProfile = await prisma.elderly_profiles.upsert({
         where: { passengerId: passenger.id },
         update: {
           careLevel: elderly.careLevel as any,
@@ -132,7 +132,7 @@ async function seedElderlyDemo() {
     ];
 
     for (const contractData of contracts) {
-      const contract = await prisma.elderlyContract.create({
+      const contract = await prisma.elderly_contracts.create({
         data: contractData as any
       });
       console.log(`✅ Contrato criado: ${contract.status} (${contract.id})`);
@@ -140,9 +140,9 @@ async function seedElderlyDemo() {
 
     // 5. Estatísticas finais
     const stats = {
-      elderlyProfiles: await prisma.elderlyProfile.count(),
-      activeContracts: await prisma.elderlyContract.count({ where: { status: 'ACTIVE' } }),
-      totalContracts: await prisma.elderlyContract.count(),
+      elderlyProfiles: await prisma.elderly_profiles.count(),
+      activeContracts: await prisma.elderly_contracts.count({ where: { status: 'ACTIVE' } }),
+      totalContracts: await prisma.elderly_contracts.count(),
       communities: communities.length
     };
 

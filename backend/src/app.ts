@@ -7,19 +7,19 @@ import { handleFeatureDisabledError, handleStatusTransitionError } from './middl
 
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
-import { adminRoutes } from './routes/admin';
-import { adminManagementRoutes } from './routes/admin-management';
-import { elderlyRoutes } from './routes/elderly';
-import { governanceRoutes } from './routes/governance';
-import { userAuthRoutes } from './routes/user-auth';
-import { passwordResetRoutes } from './routes/password-reset';
+// import { adminRoutes } from './routes/admin'; // DISABLED - legacy
+// import { adminManagementRoutes } from './routes/admin-management'; // DISABLED - legacy
+// import { elderlyRoutes } from './routes/elderly'; // DISABLED - legacy
+// import { governanceRoutes } from './routes/governance'; // DISABLED - legacy
+// import { userAuthRoutes } from './routes/user-auth'; // DISABLED - legacy
+// import { passwordResetRoutes } from './routes/password-reset'; // DISABLED - legacy
 
 // Feature-based routes
 import { integrationsRoutes } from './routes/integrations';
 import { premiumTourismRoutes } from './routes/premium-tourism';
 import { legacyRoutes } from './routes/legacy';
 import geoRoutes from './routes/geo';
-import adminGeofenceRoutes from './routes/admin-geofence';
+// import adminGeofenceRoutes from './routes/admin-geofence';
 import ridesRoutes from './routes/rides';
 
 const app = express();
@@ -61,8 +61,8 @@ app.get('/api/health', (req, res) => {
 
 // Core routes (always enabled)
 app.use('/api/admin/auth', authRoutes);
-app.use('/api/auth', userAuthRoutes);
-app.use('/api/auth', passwordResetRoutes);
+// app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
+// app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
 
 // Feature-based route mounting with logging
 console.log('🚀 Mounting routes based on feature flags:');
@@ -92,18 +92,18 @@ if (config.legacy.enableLegacy) {
 }
 
 // Core admin/governance routes (filtered by feature flags internally)
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin', adminManagementRoutes);
-app.use('/api/admin/elderly', elderlyRoutes);
-app.use('/api/governance', governanceRoutes);
+// app.use('/api/admin', adminRoutes); // DISABLED - legacy
+// app.use('/api/admin', adminManagementRoutes); // DISABLED - legacy
+// app.use('/api/admin/elderly', elderlyRoutes); // DISABLED - legacy
+// app.use('/api/governance', governanceRoutes); // DISABLED - legacy
 
 // Geo routes
 app.use('/api/geo', geoRoutes);
-app.use('/api/admin/geofence', adminGeofenceRoutes);
+// app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);
-console.log('✅ Geo: /api/geo/*, /api/admin/geofence/*, /api/rides/*');
+console.log('✅ Geo: /api/geo/*, /api/rides/*');
 
-console.log('✅ Core: /api/admin/*, /api/governance/* (filtered internally)');
+console.log('✅ Core: Pricing & Rides enabled, legacy routes disabled');
 
 // Feature disabled handler for disabled routes
 app.use((req, res, next) => {

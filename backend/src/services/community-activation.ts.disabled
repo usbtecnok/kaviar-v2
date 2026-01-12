@@ -7,7 +7,7 @@ export class CommunityActivationService {
    * Active = status='approved' AND isActive=true AND suspendedAt IS NULL (future-proof)
    */
   async countActiveDrivers(communityId: string): Promise<number> {
-    return prisma.driver.count({
+    return prisma.drivers.count({
       where: {
         communityId,
         status: 'approved',
@@ -101,7 +101,7 @@ export class CommunityActivationService {
    * Evaluate all communities (for batch processing)
    */
   async evaluateAllCommunities(): Promise<void> {
-    const communities = await prisma.community.findMany({
+    const communities = await prisma.communities.findMany({
       where: { autoActivation: true },
       select: { id: true }
     });
@@ -116,7 +116,7 @@ export class CommunityActivationService {
    * Protects against "liga/desliga" during operation
    */
   async canAcceptNewRides(communityId: string): Promise<boolean> {
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id: communityId },
       select: { isActive: true }
     });
@@ -128,11 +128,11 @@ export class CommunityActivationService {
    * Get community activation status with metrics
    */
   async getCommunityStatus(communityId: string) {
-    const community = await prisma.community.findUnique({
+    const community = await prisma.communities.findUnique({
       where: { id: communityId },
       include: {
         statusHistory: {
-          orderBy: { createdAt: 'desc' },
+          orderBy: { created_at: 'desc' },
           take: 5
         }
       }

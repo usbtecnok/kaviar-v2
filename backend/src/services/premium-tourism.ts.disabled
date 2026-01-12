@@ -35,7 +35,7 @@ export class PremiumTourismService {
       throw new FeatureDisabledError();
     }
 
-    const tourPackage = await prisma.tourPackage.create({
+    const tourPackage = await prisma.tour_packages.create({
       data: {
         title: data.title,
         description: data.description,
@@ -65,17 +65,17 @@ export class PremiumTourismService {
     const skip = (page - 1) * limit;
 
     const [packages, total] = await Promise.all([
-      prisma.tourPackage.findMany({
+      prisma.tour_packages.findMany({
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         include: {
           _count: {
             select: { bookings: true }
           }
         }
       }),
-      prisma.tourPackage.count()
+      prisma.tour_packages.count()
     ]);
 
     return {
@@ -95,9 +95,9 @@ export class PremiumTourismService {
       return [];
     }
 
-    const packages = await prisma.tourPackage.findMany({
+    const packages = await prisma.tour_packages.findMany({
       where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     });
 
     return packages.map(this.mapTourPackageResponse);
@@ -111,11 +111,11 @@ export class PremiumTourismService {
       throw new FeatureDisabledError();
     }
 
-    const tourPackage = await prisma.tourPackage.update({
+    const tourPackage = await prisma.tour_packages.update({
       where: { id },
       data: {
         ...data,
-        updatedAt: new Date()
+        updated_at: new Date()
       }
     });
 
@@ -133,7 +133,7 @@ export class PremiumTourismService {
       throw new FeatureDisabledError();
     }
 
-    await prisma.tourPackage.update({
+    await prisma.tour_packages.update({
       where: { id },
       data: { isActive: false }
     });
@@ -151,7 +151,7 @@ export class PremiumTourismService {
     }
 
     // Validate package exists and is active
-    const tourPackage = await prisma.tourPackage.findFirst({
+    const tourPackage = await prisma.tour_packages.findFirst({
       where: { id: data.tourPackageId, isActive: true }
     });
 
@@ -165,7 +165,7 @@ export class PremiumTourismService {
     // Check premium drivers availability
     const availability = await this.checkPremiumDriverAvailability();
 
-    const booking = await prisma.tourBooking.create({
+    const booking = await prisma.tour_bookings.create({
       data: {
         packageId: data.tourPackageId,
         passengerName: data.passengerName,
@@ -195,7 +195,7 @@ export class PremiumTourismService {
         scheduledDate: booking.scheduledDate,
         status: booking.status,
         totalPrice: booking.totalPrice,
-        createdAt: booking.createdAt
+        created_at: booking.created_at
       },
       premiumDriversAvailable: availability.available
     };
@@ -265,16 +265,16 @@ export class PremiumTourismService {
     const skip = (page - 1) * limit;
 
     const [bookings, total] = await Promise.all([
-      prisma.tourBooking.findMany({
+      prisma.tour_bookings.findMany({
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { created_at: 'desc' },
         include: {
           package: { select: { title: true } },
           passenger: { select: { name: true } }
         }
       }),
-      prisma.tourBooking.count()
+      prisma.tour_bookings.count()
     ]);
 
     return {
@@ -285,7 +285,7 @@ export class PremiumTourismService {
         scheduledAt: booking.scheduledAt,
         status: booking.status,
         pickupLocation: booking.pickupLocation,
-        createdAt: booking.createdAt
+        created_at: booking.created_at
       })),
       total
     };
@@ -299,7 +299,7 @@ export class PremiumTourismService {
 
     // Premium drivers: isPremium=true OR premiumOverride=true
     // + approved + not suspended + recent location
-    const availableCount = await prisma.driver.count({
+    const availableCount = await prisma.drivers.count({
       where: {
         OR: [
           { isPremium: true },
@@ -321,7 +321,7 @@ export class PremiumTourismService {
       }
     });
 
-    const totalPremium = await prisma.driver.count({
+    const totalPremium = await prisma.drivers.count({
       where: {
         OR: [
           { isPremium: true },
@@ -345,7 +345,7 @@ export class PremiumTourismService {
       return false;
     }
 
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { premiumOverride: true }
     });
@@ -354,7 +354,7 @@ export class PremiumTourismService {
 
     // Override always wins
     if (driver.premiumOverride) {
-      await prisma.driver.update({
+      await prisma.drivers.update({
         where: { id: driverId },
         data: { isPremium: true }
       });
@@ -362,7 +362,7 @@ export class PremiumTourismService {
     }
 
     // Check rating criteria
-    const stats = await prisma.ratingStats.findUnique({
+    const stats = await prisma.rating_stats.findUnique({
       where: { userId: driverId }
     });
 
@@ -370,7 +370,7 @@ export class PremiumTourismService {
       parseFloat(stats.averageRating.toString()) >= config.premiumTourism.minRatingPremium &&
       stats.totalRatings >= config.premiumTourism.minRatingsCountPremium;
 
-    await prisma.driver.update({
+    await prisma.drivers.update({
       where: { id: driverId },
       data: { isPremium: meetsRatingCriteria || false }
     });
@@ -402,7 +402,7 @@ export class PremiumTourismService {
       throw new FeatureDisabledError();
     }
 
-    const booking = await prisma.tourBooking.findUnique({
+    const booking = await prisma.tour_bookings.findUnique({
       where: { id: bookingId }
     });
 
@@ -413,7 +413,7 @@ export class PremiumTourismService {
     // Validate transition
     this.validateStatusTransition(booking.status as TourBookingStatus, newStatus);
 
-    const updatedBooking = await prisma.tourBooking.update({
+    const updatedBooking = await prisma.tour_bookings.update({
       where: { id: bookingId },
       data: { 
         status: newStatus,
@@ -441,7 +441,7 @@ export class PremiumTourismService {
       locations: Array.isArray(pkg.locations) ? pkg.locations : [],
       estimatedDurationMinutes: pkg.estimatedDurationMinutes,
       isActive: pkg.isActive,
-      createdAt: pkg.createdAt
+      created_at: pkg.created_at
     };
   }
 
@@ -457,7 +457,7 @@ export class PremiumTourismService {
       pickupLocation: booking.pickupLocation,
       dropoffLocation: booking.dropoffLocation,
       status: booking.status,
-      createdAt: booking.createdAt
+      created_at: booking.created_at
     };
   }
 }

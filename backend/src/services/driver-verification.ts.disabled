@@ -17,7 +17,7 @@ export class DriverVerificationService {
    */
   async evaluateEligibility(driverId: string): Promise<EligibilityResult> {
     // Get or create driver verification record
-    let verification = await prisma.driverVerification.findUnique({
+    let verification = await prisma.driver_verifications.findUnique({
       where: { driverId }
     });
 
@@ -26,7 +26,7 @@ export class DriverVerificationService {
     }
 
     // Check LGPD consent
-    const lgpdConsent = await prisma.consent.findUnique({
+    const lgpdConsent = await prisma.consents.findUnique({
       where: {
         subjectType_subjectId_type: {
           subjectType: 'DRIVER',
@@ -93,7 +93,7 @@ export class DriverVerificationService {
     const isEligible = missingRequirements.length === 0;
 
     // Update verification status
-    await prisma.driverVerification.update({
+    await prisma.driver_verifications.update({
       where: { driverId },
       data: {
         status: isEligible ? 'ELIGIBLE' : 'PENDING',
@@ -112,12 +112,12 @@ export class DriverVerificationService {
    * Create verification record for existing drivers (retrocompatibility)
    */
   async createVerificationRecord(driverId: string) {
-    const driver = await prisma.driver.findUnique({
+    const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { communityId: true }
     });
 
-    const verification = await prisma.driverVerification.create({
+    const verification = await prisma.driver_verifications.create({
       data: {
         driverId,
         communityId: driver?.communityId,
@@ -225,7 +225,7 @@ export class DriverVerificationService {
    * Record LGPD consent for driver
    */
   async recordConsent(driverId: string, consentType: string, accepted: boolean, ipAddress?: string, userAgent?: string) {
-    return prisma.consent.upsert({
+    return prisma.consents.upsert({
       where: {
         subjectType_subjectId_type: {
           subjectType: 'DRIVER',

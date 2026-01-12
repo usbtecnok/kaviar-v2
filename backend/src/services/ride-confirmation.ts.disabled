@@ -35,7 +35,7 @@ export class RideConfirmationService {
     await this.cleanupExpiredTokens(passengerId);
 
     // Create confirmation record
-    await prisma.rideConfirmation.create({
+    await prisma.ride_confirmations.create({
       data: {
         passengerId,
         confirmationToken,
@@ -61,7 +61,7 @@ export class RideConfirmationService {
     confirmationToken: string,
     passengerId: string
   ): Promise<ConfirmationValidationResult> {
-    const confirmation = await prisma.rideConfirmation.findUnique({
+    const confirmation = await prisma.ride_confirmations.findUnique({
       where: { confirmationToken },
       select: {
         id: true,
@@ -121,7 +121,7 @@ export class RideConfirmationService {
    * Mark token as used (idempotent)
    */
   async markTokenAsUsed(confirmationToken: string, rideId: string): Promise<void> {
-    await prisma.rideConfirmation.updateMany({
+    await prisma.ride_confirmations.updateMany({
       where: {
         confirmationToken,
         isUsed: false // Only update if not already used
@@ -138,7 +138,7 @@ export class RideConfirmationService {
    * Clean up expired tokens for a passenger
    */
   private async cleanupExpiredTokens(passengerId: string): Promise<void> {
-    await prisma.rideConfirmation.deleteMany({
+    await prisma.ride_confirmations.deleteMany({
       where: {
         passengerId,
         expiresAt: {
@@ -152,7 +152,7 @@ export class RideConfirmationService {
    * Get confirmation data by token
    */
   async getConfirmationData(confirmationToken: string): Promise<any> {
-    const confirmation = await prisma.rideConfirmation.findUnique({
+    const confirmation = await prisma.ride_confirmations.findUnique({
       where: { confirmationToken },
       select: { rideData: true, isUsed: true, expiresAt: true }
     });

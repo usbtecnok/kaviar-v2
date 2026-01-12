@@ -6,13 +6,13 @@ async function main() {
   console.log('🌱 Iniciando seed de ativação do sistema...');
 
   // 0. Criar admin se não existir
-  const adminRole = await prisma.role.upsert({
+  const adminRole = await prisma.roles.upsert({
     where: { name: 'SUPER_ADMIN' },
     update: {},
     create: { name: 'SUPER_ADMIN' }
   });
 
-  let admin = await prisma.admin.findFirst({
+  let admin = await prisma.admins.findFirst({
     where: { email: 'admin@kaviar.com' }
   });
 
@@ -20,7 +20,7 @@ async function main() {
     const bcrypt = await import('bcrypt');
     const hashedPassword = await bcrypt.hash('admin123', 10);
     
-    admin = await prisma.admin.create({
+    admin = await prisma.admins.create({
       data: {
         name: 'Admin Kaviar',
         email: 'admin@kaviar.com',
@@ -33,12 +33,12 @@ async function main() {
   console.log('✅ Admin criado/verificado');
 
   // 1. Verificar se comunidade Furnas já existe
-  let community = await prisma.community.findFirst({
+  let community = await prisma.communities.findFirst({
     where: { name: 'Furnas' }
   });
 
   if (!community) {
-    community = await prisma.community.create({
+    community = await prisma.communities.create({
       data: {
         name: 'Furnas',
         description: 'Comunidade de Furnas - Minas Gerais',
@@ -49,12 +49,12 @@ async function main() {
   console.log('✅ Comunidade Furnas criada/verificada');
 
   // 2. Verificar se passageiro fictício já existe
-  let passenger = await prisma.passenger.findFirst({
+  let passenger = await prisma.passengers.findFirst({
     where: { email: 'passageiro@furnas.com' }
   });
 
   if (!passenger) {
-    passenger = await prisma.passenger.create({
+    passenger = await prisma.passengers.create({
       data: {
         name: 'João Silva',
         email: 'passageiro@furnas.com',
@@ -67,7 +67,7 @@ async function main() {
   console.log('✅ Passageiro fictício criado/verificado');
 
   // 3. Criar consentimento LGPD para passageiro
-  await prisma.userConsent.upsert({
+  await prisma.user_consents.upsert({
     where: {
       passengerId_consentType: {
         passengerId: passenger.id,
@@ -86,12 +86,12 @@ async function main() {
   console.log('✅ Consentimento LGPD criado para passageiro');
 
   // 4. Verificar se motorista fictício já existe
-  let driver = await prisma.driver.findFirst({
+  let driver = await prisma.drivers.findFirst({
     where: { email: 'motorista@furnas.com' }
   });
 
   if (!driver) {
-    driver = await prisma.driver.create({
+    driver = await prisma.drivers.create({
       data: {
         name: 'Carlos Santos',
         email: 'motorista@furnas.com',
@@ -109,12 +109,12 @@ async function main() {
   console.log('✅ Motorista fictício criado/verificado');
 
   // 5. Verificar se guia turístico fictício já existe
-  let guide = await prisma.touristGuide.findFirst({
+  let guide = await prisma.tourist_guides.findFirst({
     where: { email: 'guia@furnas.com' }
   });
 
   if (!guide) {
-    guide = await prisma.touristGuide.create({
+    guide = await prisma.tourist_guides.create({
       data: {
         name: 'Maria Oliveira',
         email: 'guia@furnas.com',
