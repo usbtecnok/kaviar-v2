@@ -97,14 +97,35 @@ export default function NeighborhoodsManagement() {
     }
   };
 
-  const handleNeighborhoodSelect = (neighborhood) => {
+  const handleNeighborhoodSelect = async (neighborhood) => {
     console.log('🔍 [DEBUG] Neighborhood selecionado:', {
       id: neighborhood.id,
       name: neighborhood.name,
       hasGeofence: !!neighborhood.geofence,
-      geofenceType: neighborhood.geofence?.type
+      geofenceType: neighborhood.geofence?.geofenceType
     });
-    setSelectedNeighborhood(neighborhood);
+    
+    // Fetch individual do geofence para garantir dados atualizados
+    try {
+      console.log(`🌐 [API] Buscando geofence para ${neighborhood.name} (${neighborhood.id})`);
+      const geofenceResponse = await api.get(`/api/governance/neighborhoods/${neighborhood.id}/geofence`);
+      
+      const updatedNeighborhood = {
+        ...neighborhood,
+        geofence: geofenceResponse.data.data
+      };
+      
+      console.log('✅ [API] Geofence carregado:', {
+        success: geofenceResponse.data.success,
+        geofenceType: geofenceResponse.data.data?.geofenceType,
+        hasCoordinates: !!geofenceResponse.data.data?.coordinates
+      });
+      
+      setSelectedNeighborhood(updatedNeighborhood);
+    } catch (err) {
+      console.error(`❌ [API] Erro ao carregar geofence para ${neighborhood.name}:`, err);
+      setSelectedNeighborhood(neighborhood);
+    }
   };
 
   if (loading) {
@@ -188,7 +209,7 @@ export default function NeighborhoodsManagement() {
               <Typography variant="body2" color="text.secondary">
                 <strong>Zona:</strong> {selectedNeighborhood.zone}<br />
                 <strong>AP:</strong> {selectedNeighborhood.administrativeRegion}<br />
-                <strong>Verificado:</strong> {selectedNeighborhood.isVerified ? 'Sim' : 'Não'}<br />
+                <strong>Verificado:</strong> N/A<br />
                 <strong>Fonte:</strong> {selectedNeighborhood.source}
               </Typography>
             </Paper>

@@ -111,8 +111,26 @@ const NeighborhoodsMap = ({
     neighborhoods.forEach(neighborhood => {
       if (neighborhood.geofence?.coordinates) {
         try {
-          const coords = neighborhood.geofence.coordinates[0].map(coord => [coord[1], coord[0]]);
+          // Parse robusto de coordinates
+          let coordinates;
+          if (typeof neighborhood.geofence.coordinates === 'string') {
+            coordinates = JSON.parse(neighborhood.geofence.coordinates);
+          } else if (neighborhood.geofence.coordinates.type === 'Polygon') {
+            // É um objeto GeoJSON completo
+            coordinates = neighborhood.geofence.coordinates.coordinates;
+          } else {
+            // É array direto
+            coordinates = neighborhood.geofence.coordinates;
+          }
+          
+          const coords = coordinates[0].map(coord => [coord[1], coord[0]]);
           const isSelected = selectedNeighborhood?.id === neighborhood.id;
+          
+          console.log(`🗺️ [MAP] Renderizando ${neighborhood.name}:`, {
+            isSelected,
+            coordsLength: coords.length,
+            geofenceType: neighborhood.geofence.geofenceType
+          });
           
           const polygon = window.L.polygon(coords, {
             color: isSelected ? '#FF5722' : '#4CAF50',
@@ -125,10 +143,11 @@ const NeighborhoodsMap = ({
           
           // Se selecionado, fazer zoom para o bairro
           if (isSelected) {
+            console.log(`🎯 [MAP] Fazendo zoom para ${neighborhood.name}`);
             mapInstanceRef.current.fitBounds(polygon.getBounds(), { padding: [20, 20] });
           }
         } catch (err) {
-          console.warn('Erro ao renderizar neighborhood:', neighborhood.name, err);
+          console.error(`❌ [MAP] Erro ao renderizar neighborhood ${neighborhood.name}:`, err);
         }
       }
     });
