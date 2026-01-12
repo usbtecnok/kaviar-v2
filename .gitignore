@@ -58,3 +58,6 @@ dist
 **/dist
 build
 **/build
+
+# local pipeline reports
+backend/audit/
