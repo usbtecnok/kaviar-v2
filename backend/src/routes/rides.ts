@@ -1,15 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { CommunityService } from '../services/community';
+import { RideService } from '../services/ride';
 
 const router = Router();
 const communityService = new CommunityService();
+const rideService = new RideService();
 
 /**
  * POST /api/rides/resolve-location
  * Canonical algorithm for ride location resolution
- * 1. Resolve lat/lng → neighborhood (always required)
- * 2. If communityId provided → validate it belongs to neighborhood
- * 3. Return both neighborhood and optional community
  */
 router.post('/resolve-location', async (req: Request, res: Response) => {
   try {
@@ -55,6 +54,53 @@ router.post('/resolve-location', async (req: Request, res: Response) => {
     console.error('Ride location resolve error:', error);
     return res.status(500).json({
       error: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * POST /api/rides
+ * Create ride with canonical geographic anchors
+ */
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const { 
+      passengerId, 
+      origin, 
+      destination, 
+      originLat, 
+      originLng, 
+      communityId,
+      type,
+      paymentMethod 
+    } = req.body;
+
+    if (!passengerId || !origin || !destination || !originLat || !originLng) {
+      return res.status(400).json({
+        error: 'Missing required fields: passengerId, origin, destination, originLat, originLng'
+      });
+    }
+
+    const rideId = await rideService.createRide({
+      passengerId,
+      origin,
+      destination,
+      originLat: parseFloat(originLat),
+      originLng: parseFloat(originLng),
+      communityId,
+      type,
+      paymentMethod
+    });
+
+    return res.json({
+      success: true,
+      rideId
+    });
+
+  } catch (error) {
+    console.error('Create ride error:', error);
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
