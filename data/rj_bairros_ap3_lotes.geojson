@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Inhaúma",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2800, -22.8900],
+          [-43.2600, -22.8900],
+          [-43.2600, -22.8800],
+          [-43.2800, -22.8800],
+          [-43.2800, -22.8900]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Abolição",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2900, -22.8800],
+          [-43.2700, -22.8800],
+          [-43.2700, -22.8700],
+          [-43.2900, -22.8700],
+          [-43.2900, -22.8800]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Pilares",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.3000, -22.8850],
+          [-43.2800, -22.8850],
+          [-43.2800, -22.8750],
+          [-43.3000, -22.8750],
+          [-43.3000, -22.8850]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Tomás Coelho",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.3100, -22.8750],
+          [-43.2900, -22.8750],
+          [-43.2900, -22.8650],
+          [-43.3100, -22.8650],
+          [-43.3100, -22.8750]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Vaz Lobo",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.3200, -22.8800],
+          [-43.3000, -22.8800],
+          [-43.3000, -22.8700],
+          [-43.3200, -22.8700],
+          [-43.3200, -22.8800]
+        ]]
+      }
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Tijuca",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2400, -22.9300],
+          [-43.2200, -22.9300],
+          [-43.2200, -22.9200],
+          [-43.2400, -22.9200],
+          [-43.2400, -22.9300]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Vila Isabel",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2500, -22.9150],
+          [-43.2300, -22.9150],
+          [-43.2300, -22.9050],
+          [-43.2500, -22.9050],
+          [-43.2500, -22.9150]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Grajaú",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2600, -22.9250],
+          [-43.2400, -22.9250],
+          [-43.2400, -22.9150],
+          [-43.2600, -22.9150],
+          [-43.2600, -22.9250]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Andaraí",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2550, -22.9350],
+          [-43.2350, -22.9350],
+          [-43.2350, -22.9250],
+          [-43.2550, -22.9250],
+          [-43.2550, -22.9350]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Maracanã",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2300, -22.9120],
+          [-43.2100, -22.9120],
+          [-43.2100, -22.9020],
+          [-43.2300, -22.9020],
+          [-43.2300, -22.9120]
+        ]]
+      }
+    }
+  ]
+}

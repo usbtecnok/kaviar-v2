@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Centro",
+        "zona": "Centro",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.1850, -22.9000],
+          [-43.1650, -22.9000],
+          [-43.1650, -22.8900],
+          [-43.1850, -22.8900],
+          [-43.1850, -22.9000]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Santa Teresa",
+        "zona": "Centro",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.1950, -22.9100],
+          [-43.1750, -22.9100],
+          [-43.1750, -22.9000],
+          [-43.1950, -22.9000],
+          [-43.1950, -22.9100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Lapa",
+        "zona": "Centro",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.1900, -22.9150],
+          [-43.1700, -22.9150],
+          [-43.1700, -22.9050],
+          [-43.1900, -22.9050],
+          [-43.1900, -22.9150]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Catumbi",
+        "zona": "Centro",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.1800, -22.9200],
+          [-43.1600, -22.9200],
+          [-43.1600, -22.9100],
+          [-43.1800, -22.9100],
+          [-43.1800, -22.9200]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Rio Comprido",
+        "zona": "Centro",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2000, -22.9250],
+          [-43.1800, -22.9250],
+          [-43.1800, -22.9150],
+          [-43.2000, -22.9150],
+          [-43.2000, -22.9250]
+        ]]
+      }
+    }
+  ]
+}

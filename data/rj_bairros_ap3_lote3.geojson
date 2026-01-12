@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "São Cristóvão",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2250, -22.9050],
+          [-43.2050, -22.9050],
+          [-43.2050, -22.8950],
+          [-43.2250, -22.8950],
+          [-43.2250, -22.9050]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Benfica",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2350, -22.8950],
+          [-43.2150, -22.8950],
+          [-43.2150, -22.8850],
+          [-43.2350, -22.8850],
+          [-43.2350, -22.8950]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Mangueira",
+        "zona": "Zona Norte",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2400, -22.9000],
+          [-43.2200, -22.9000],
+          [-43.2200, -22.8900],
+          [-43.2400, -22.8900],
+          [-43.2400, -22.9000]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Cidade Nova",
+        "zona": "Centro",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2100, -22.9100],
+          [-43.1900, -22.9100],
+          [-43.1900, -22.9000],
+          [-43.2100, -22.9000],
+          [-43.2100, -22.9100]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "nome": "Estácio",
+        "zona": "Centro",
+        "ap": "AP3"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [-43.2050, -22.9150],
+          [-43.1850, -22.9150],
+          [-43.1850, -22.9050],
+          [-43.2050, -22.9050],
+          [-43.2050, -22.9150]
+        ]]
+      }
+    }
+  ]
+}
