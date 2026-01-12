@@ -51,10 +51,26 @@ async function downloadFile(url, filePath) {
 const args = process.argv.slice(2);
 const isDryRun = args.includes('--dry-run');
 const isApply = args.includes('--apply');
-const idsArg = args.find(arg => arg.startsWith('--ids='));
-const allowlistArg = args.find(arg => arg.startsWith('--allowlist='));
+const allArg = args.includes('--all');
+const codbairroArg = args.find(a => a.startsWith('--codbairro='));
+const namesArg = args.find(a => a.startsWith('--names='));
+const allowlistArg = args.find(a => a.startsWith('--allowlist='));
+const idsArg = args.find(a => a.startsWith('--ids='));
 const geojsonArg = args.find(arg => arg.startsWith('--geojson='));
-const namesArg = args.find(arg => arg.startsWith('--names='));
+
+// Helper functions
+function abort(msg) {
+  console.log(`❌ ${msg}`);
+  process.exit(1);
+}
+
+function parseCsvNumbers(csv) {
+  return csv.split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(n => Number(n))
+    .filter(n => Number.isFinite(n));
+}
 
 // Normalize neighborhood name for matching
 function normalizeName(name) {
@@ -109,9 +125,13 @@ function loadNeighborhoodsFromGeoJSON(filePath) {
     const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
     const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
 
+    const codbairroRaw = props.CODBAIRRO ?? props.codBairro ?? props.codbairro ?? props.COD_BAIRRO;
+    const codbairro = codbairroRaw != null ? Number(codbairroRaw) : null;
+
     neighborhoods.push({
       name: name.trim(),
       normalizedName: normalizeName(name),
+      codbairro,
       description: `Bairro ${name} - Rio de Janeiro`,
       zone: props.zona || props.zone || 'Rio de Janeiro',
       administrativeRegion: props.ap || props.AP || 'RJ',
@@ -139,6 +159,12 @@ async function main() {
     process.exit(1);
   }
 
+  // Require selector (safe-by-default)
+  const hasSelector = !!(idsArg || codbairroArg || namesArg || allowlistArg || allArg);
+  if (!hasSelector) {
+    abort('Informe um seletor: --codbairro, --names, --allowlist, --ids ou use --all');
+  }
+
   // Get GeoJSON file path
   const geojsonPath = geojsonArg?.split('=')[1] || 
                      args.find(arg => arg.includes('.geojson') && !arg.startsWith('--')) ||
@@ -146,11 +172,6 @@ async function main() {
   
   if (!geojsonPath) {
     console.log('❌ GeoJSON file required: --geojson /path/to/file.geojson ou RJ_NEIGHBORHOODS_GEOJSON_PATH env var');
-    process.exit(1);
-  }
-
-  if (isApply && !idsArg && !allowlistArg && !namesArg) {
-    console.log('❌ --apply requer --ids, --names ou --allowlist');
     process.exit(1);
   }
 
@@ -166,42 +187,122 @@ async function main() {
 
   console.log(`📊 ${allNeighborhoods.length} bairros carregados do GeoJSON`);
 
-  let targetNeighborhoods = [];
-  
-  if (idsArg) {
-    const ids = idsArg.split('=')[1].split(',');
-    targetNeighborhoods = allNeighborhoods.filter((_, index) => ids.includes(index.toString()));
+  // Construct targets
+  let targetNeighborhoods = allNeighborhoods;
+
+  // CODBAIRRO has priority (safer)
+  if (codbairroArg) {
+    const wanted = new Set(parseCsvNumbers(codbairroArg.split('=')[1]));
+    if (wanted.size === 0) abort('--codbairro inválido');
+
+    const found = allNeighborhoods.filter(n => wanted.has(n.codbairro));
+
+    // Validate exact set match
+    if (found.length !== wanted.size) {
+      const foundSet = new Set(found.map(n => n.codbairro));
+      const missing = [...wanted].filter(x => !foundSet.has(x));
+      abort(`CODBAIRRO não encontrado no GeoJSON: ${missing.join(', ')}`);
+    }
+    targetNeighborhoods = found;
   } else if (namesArg) {
-    const targetNames = namesArg.split('=')[1].split(',').map(name => name.trim());
-    const normalizedTargets = targetNames.map(normalizeName);
-    
-    targetNeighborhoods = allNeighborhoods.filter(n => 
-      normalizedTargets.some(target => n.normalizedName.includes(target) || target.includes(n.normalizedName))
-    );
-    
-    console.log(`🎯 Buscando por: ${targetNames.join(', ')}`);
-    console.log(`📍 Encontrados: ${targetNeighborhoods.map(n => n.name).join(', ')}`);
-    
+    const wantedNames = namesArg.split('=')[1].split(',').map(s => s.trim());
+    const wantedSet = new Set(wantedNames.map(normalizeName));
+
+    // Map normalized -> list
+    const map = new Map();
+    for (const n of allNeighborhoods) {
+      const key = n.normalizedName;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(n);
+    }
+
+    const found = [];
+    for (const wn of wantedSet) {
+      const matches = map.get(wn) || [];
+      if (matches.length === 0) abort(`Nome não encontrado: "${wn}"`);
+      if (matches.length > 1) abort(`Nome ambíguo: "${wn}" (encontrados: ${matches.map(m => m.name).join(', ')})`);
+      
+      // Check for substring ambiguity (e.g., "rocha" matches both "rocha" and "rocha miranda")
+      const allMatches = [];
+      for (const [key, values] of map.entries()) {
+        if (key.includes(wn) || wn.includes(key)) {
+          allMatches.push(...values);
+        }
+      }
+      if (allMatches.length > 1) {
+        abort(`Nome ambíguo: "${wn}" (encontrados: ${allMatches.map(m => m.name).join(', ')})`);
+      }
+      
+      found.push(matches[0]);
+    }
+
+    // Validate exact set match
+    if (found.length !== wantedSet.size) abort('Mismatch de nomes');
+    targetNeighborhoods = found;
   } else if (allowlistArg) {
     const allowlistPath = allowlistArg.split('=')[1];
     if (fs.existsSync(allowlistPath)) {
       const allowlistContent = fs.readFileSync(allowlistPath, 'utf8');
-      const allowedNames = allowlistContent
+      const allowedItems = allowlistContent
         .split('\n')
         .filter(line => line.trim() && !line.startsWith('#'))
         .map(line => line.trim());
       
-      const normalizedAllowed = allowedNames.map(normalizeName);
-      targetNeighborhoods = allNeighborhoods.filter(n => 
-        normalizedAllowed.some(target => n.normalizedName.includes(target) || target.includes(n.normalizedName))
-      );
+      // Detect if CODBAIRRO list (all numbers) or names
+      const isCodbairroList = allowedItems.length > 0 && allowedItems.every(item => /^\d+$/.test(item));
+      
+      if (isCodbairroList) {
+        const wanted = new Set(allowedItems.map(Number));
+        const found = allNeighborhoods.filter(n => wanted.has(n.codbairro));
+        
+        if (found.length !== wanted.size) {
+          const foundSet = new Set(found.map(n => n.codbairro));
+          const missing = [...wanted].filter(x => !foundSet.has(x));
+          abort(`CODBAIRRO não encontrado no allowlist: ${missing.join(', ')}`);
+        }
+        targetNeighborhoods = found;
+      } else {
+        // Process as names with same validation
+        const wantedSet = new Set(allowedItems.map(normalizeName));
+        
+        const map = new Map();
+        for (const n of allNeighborhoods) {
+          const key = n.normalizedName;
+          if (!map.has(key)) map.set(key, []);
+          map.get(key).push(n);
+        }
+
+        const found = [];
+        for (const wn of wantedSet) {
+          const matches = map.get(wn) || [];
+          if (matches.length === 0) abort(`Nome não encontrado no allowlist: "${wn}"`);
+          if (matches.length > 1) abort(`Nome ambíguo no allowlist: "${wn}" (encontrados: ${matches.map(m => m.name).join(', ')})`);
+          
+          // Check for substring ambiguity
+          const allMatches = [];
+          for (const [key, values] of map.entries()) {
+            if (key.includes(wn) || wn.includes(key)) {
+              allMatches.push(...values);
+            }
+          }
+          if (allMatches.length > 1) {
+            abort(`Nome ambíguo no allowlist: "${wn}" (encontrados: ${allMatches.map(m => m.name).join(', ')})`);
+          }
+          
+          found.push(matches[0]);
+        }
+        
+        if (found.length !== wantedSet.size) abort('Mismatch de nomes no allowlist');
+        targetNeighborhoods = found;
+      }
     } else {
-      console.log(`❌ Allowlist file not found: ${allowlistPath}`);
-      process.exit(1);
+      abort(`Allowlist file not found: ${allowlistPath}`);
     }
-  } else {
-    targetNeighborhoods = allNeighborhoods;
+  } else if (idsArg) {
+    const ids = idsArg.split('=')[1].split(',');
+    targetNeighborhoods = allNeighborhoods.filter((_, index) => ids.includes(index.toString()));
   }
+  // else: allArg is true, use all neighborhoods
 
   console.log(`🧪 MODO ${isDryRun ? 'DRY-RUN' : 'APPLY'} - Processando ${targetNeighborhoods.length} bairros...`);
   console.log('');
