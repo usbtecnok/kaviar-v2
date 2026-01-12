@@ -1,4 +1,6 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+import { point } from '@turf/helpers';
 
 const prisma = new PrismaClient();
 
@@ -31,27 +33,26 @@ export class GeoResolveService {
         return { match: false, resolvedArea: null };
       }
 
-      const result = await prisma.$queryRaw`
-        SELECT n.id, n.name
+      const rows = await prisma.$queryRaw`
+        SELECT ng.coordinates, n.id, n.name
         FROM neighborhood_geofences ng
-        JOIN neighborhoods n ON ng.neighborhood_id = n.id
+        JOIN neighborhoods n ON n.id = ng.neighborhood_id
         WHERE n.is_active = true
-          AND ng.geom IS NOT NULL
-          AND ST_Covers(ng.geom, ST_SetSRID(ST_Point(${lon}, ${lat}), 4326))
-        ORDER BY ST_Area(ng.geom::geography) ASC
-        LIMIT 1
       `;
 
-      if (Array.isArray(result) && result.length > 0) {
-        const area = result[0] as any;
-        return {
-          match: true,
-          resolvedArea: {
-            id: area.id,
-            name: area.name,
-            type: 'neighborhood'
-          }
-        };
+      const pt = point([lon, lat]);
+
+      for (const row of rows as any[]) {
+        if (row.coordinates && booleanPointInPolygon(pt, row.coordinates)) {
+          return {
+            match: true,
+            resolvedArea: {
+              id: row.id,
+              name: row.name,
+              type: 'neighborhood'
+            }
+          };
+        }
       }
 
       return { match: false, resolvedArea: null };

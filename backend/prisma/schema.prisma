@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,9 +7,437 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TourPackageType {
-  TOUR
-  AIRPORT_TRANSFER
+model admins {
+  id            String   @id
+  name          String
+  email         String   @unique
+  password_hash String
+  is_active     Boolean  @default(true)
+  role_id       String
+  created_at    DateTime @default(now())
+  updated_at    DateTime
+  roles         roles    @relation(fields: [role_id], references: [id])
+}
+
+model communities {
+  id                       String                     @id
+  name                     String
+  description              String?
+  is_active                Boolean                    @default(true)
+  center_lat               Decimal?                   @db.Decimal(10, 8)
+  center_lng               Decimal?                   @db.Decimal(11, 8)
+  radius_meters            Int?
+  geofence                 String?
+  min_active_drivers       Int                        @default(3)
+  deactivation_threshold   Int                        @default(1)
+  auto_activation          Boolean                    @default(false)
+  last_evaluated_at        DateTime?
+  created_at               DateTime                   @default(now())
+  updated_at               DateTime
+  community_geofences      community_geofences?
+  community_status_history community_status_history[]
+  drivers                  drivers[]
+  elderly_contracts        elderly_contracts[]
+  passengers               passengers[]
+  tourist_guides           tourist_guides[]
+}
+
+model community_geofences {
+  id           String      @id
+  community_id String      @unique
+  center_lat   Decimal     @db.Decimal(10, 8)
+  center_lng   Decimal     @db.Decimal(11, 8)
+  min_lat      Decimal?    @db.Decimal(10, 8)
+  min_lng      Decimal?    @db.Decimal(11, 8)
+  max_lat      Decimal?    @db.Decimal(10, 8)
+  max_lng      Decimal?    @db.Decimal(11, 8)
+  geojson      String?
+  source       String
+  source_ref   String?
+  confidence   String
+  is_verified  Boolean     @default(false)
+  review_notes String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime
+  communities  communities @relation(fields: [community_id], references: [id], onDelete: Cascade)
+}
+
+model community_status_history {
+  id             String      @id
+  community_id   String
+  status         String
+  from_is_active Boolean?
+  to_is_active   Boolean?
+  driver_count   Int?
+  changed_by     String?
+  reason         String?
+  created_at     DateTime    @default(now())
+  communities    communities @relation(fields: [community_id], references: [id])
+}
+
+model consents {
+  id           String    @id
+  user_id      String
+  subject_type String?
+  subject_id   String?
+  type         String
+  consent_type String?
+  accepted     Boolean   @default(false)
+  accepted_at  DateTime?
+  ip_address   String?
+  user_agent   String?
+  created_at   DateTime  @default(now())
+
+  @@unique([subject_type, subject_id, type], map: "consent_subject_type_subject_id_type_key")
+  @@unique([user_id, type], map: "consent_user_id_type_key")
+}
+
+model diamond_audit_logs {
+  id                 String   @id
+  ride_id            String
+  driver_id          String?
+  action             String
+  reason             String?
+  bonus_amount       Decimal? @db.Decimal(10, 2)
+  diamond_state_from String?
+  diamond_state_to   String?
+  details            Json?
+  created_at         DateTime @default(now())
+}
+
+model driver_documents {
+  id                   String    @id
+  driver_id            String
+  type                 String
+  document_url         String    @default("")
+  file_url             String?
+  status               String    @default("pending")
+  submitted_at         DateTime?
+  verified_at          DateTime?
+  verified_by_admin_id String?
+  rejected_at          DateTime?
+  rejected_by_admin_id String?
+  reject_reason        String?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime
+}
+
+model driver_enforcement_history {
+  id         String   @id
+  driver_id  String
+  action     String
+  reason     String?
+  metadata   Json?
+  admin_id   String
+  created_at DateTime @default(now())
+}
+
+model driver_verifications {
+  id                     String    @id
+  driver_id              String    @unique
+  community_id           String?
+  status                 String    @default("pending")
+  verified_at            DateTime?
+  approved_at            DateTime?
+  approved_by_admin_id   String?
+  eligibility_checked_at DateTime?
+  created_at             DateTime  @default(now())
+  updated_at             DateTime
+}
+
+model drivers {
+  id                       String       @id
+  name                     String
+  email                    String       @unique
+  password_hash            String?
+  phone                    String?
+  status                   String       @default("pending")
+  suspension_reason        String?
+  suspended_at             DateTime?
+  suspended_by             String?
+  last_active_at           DateTime?
+  community_id             String?
+  document_cpf             String?
+  document_rg              String?
+  document_cnh             String?
+  vehicle_plate            String?
+  vehicle_model            String?
+  banned_at                DateTime?
+  banned_reason            String?
+  banned_by                String?
+  deleted_at               DateTime?
+  deleted_by               String?
+  last_location_updated_at DateTime?
+  last_lat                 Decimal?     @db.Decimal(10, 8)
+  last_lng                 Decimal?     @db.Decimal(11, 8)
+  is_premium               Boolean      @default(false)
+  premium_override         Boolean?
+  created_at               DateTime     @default(now())
+  updated_at               DateTime
+  communities              communities? @relation(fields: [community_id], references: [id])
+  rides                    rides[]
+}
+
+model elderly_contracts {
+  id                 String           @id
+  elderly_profile_id String
+  responsible_id     String?
+  community_id       String
+  status             String           @default("ACTIVE")
+  service_type       String           @default("ACOMPANHAMENTO_ATIVO")
+  starts_at          DateTime
+  ends_at            DateTime?
+  notes              String?
+  created_at         DateTime         @default(now())
+  updated_at         DateTime
+  communities        communities      @relation(fields: [community_id], references: [id])
+  elderly_profiles   elderly_profiles @relation(fields: [elderly_profile_id], references: [id], onDelete: Cascade)
+  passengers         passengers?      @relation(fields: [responsible_id], references: [id])
+}
+
+model elderly_profiles {
+  id                String              @id
+  passenger_id      String              @unique
+  emergency_contact String?
+  emergency_phone   String?
+  medical_notes     String?
+  careLevel         String              @default("basic")
+  created_at        DateTime            @default(now())
+  updated_at        DateTime
+  elderly_contracts elderly_contracts[]
+  passengers        passengers          @relation(fields: [passenger_id], references: [id], onDelete: Cascade)
+}
+
+model neighborhood_geofences {
+  id              String        @id
+  neighborhood_id String        @unique
+  geofence_type   String
+  coordinates     Json
+  source          String?
+  source_url      String?
+  area            Decimal?      @db.Decimal(15, 6)
+  perimeter       Decimal?      @db.Decimal(15, 6)
+  created_at      DateTime      @default(now())
+  updated_at      DateTime
+  neighborhoods   neighborhoods @relation(fields: [neighborhood_id], references: [id], onDelete: Cascade)
+}
+
+model neighborhoods {
+  id                     String                  @id
+  name                   String                  @unique
+  description            String?
+  zone                   String?
+  administrative_region  String?
+  is_active              Boolean                 @default(true)
+  center_lat             Decimal?                @db.Decimal(10, 8)
+  center_lng             Decimal?                @db.Decimal(11, 8)
+  is_verified            Boolean                 @default(false)
+  verified_at            DateTime?
+  verified_by            String?
+  created_at             DateTime                @default(now())
+  updated_at             DateTime
+  neighborhood_geofences neighborhood_geofences?
+}
+
+model passengers {
+  id                       String               @id
+  name                     String
+  email                    String               @unique
+  password_hash            String?
+  phone                    String?
+  community_id             String?
+  status                   String               @default("pending")
+  last_lat                 Decimal?             @db.Decimal(10, 8)
+  last_lng                 Decimal?             @db.Decimal(11, 8)
+  last_location_updated_at DateTime?
+  created_at               DateTime             @default(now())
+  updated_at               DateTime
+  elderly_contracts        elderly_contracts[]
+  elderly_profiles         elderly_profiles?
+  communities              communities?         @relation(fields: [community_id], references: [id])
+  ride_confirmations       ride_confirmations[]
+  rides                    rides[]
+  tour_bookings            tour_bookings[]
+  user_consents            user_consents[]
+}
+
+model rating_stats {
+  id             String   @id
+  entity_type    String
+  entity_id      String
+  user_id        String?  @unique
+  average_rating Decimal  @db.Decimal(3, 2)
+  total_ratings  Int
+  rating_sum     Int
+  updated_at     DateTime
+  last_updated   DateTime
+
+  @@unique([entity_type, entity_id])
+}
+
+model ratings {
+  id          String   @id
+  entity_type String
+  entity_id   String
+  user_id     String
+  ride_id     String?
+  rated_id    String?
+  rater_id    String?
+  rater_type  String?
+  rating      Int
+  score       Int      @default(0)
+  comment     String?
+  created_at  DateTime @default(now())
+
+  @@unique([ride_id, user_id], map: "rating_ride_id_user_id_key")
+}
+
+model ride_admin_actions {
+  id         String   @id
+  ride_id    String
+  admin_id   String
+  action     String
+  reason     String?
+  old_value  String?
+  new_value  String?
+  created_at DateTime @default(now())
+  rides      rides    @relation(fields: [ride_id], references: [id])
+}
+
+model ride_confirmations {
+  id                 String     @id
+  passenger_id       String
+  confirmation_token String     @unique
+  ride_data          Json
+  expires_at         DateTime
+  is_used            Boolean    @default(false)
+  used_at            DateTime?
+  created_ride_id    String?
+  created_at         DateTime   @default(now())
+  passengers         passengers @relation(fields: [passenger_id], references: [id])
+}
+
+model ride_status_history {
+  id         String   @id
+  ride_id    String
+  status     String
+  created_at DateTime @default(now())
+  rides      rides    @relation(fields: [ride_id], references: [id])
+}
+
+model rides {
+  id                          String                @id
+  driver_id                   String?
+  passenger_id                String
+  origin                      String
+  destination                 String
+  type                        String                @default("normal")
+  status                      String                @default("requested")
+  price                       Decimal               @db.Decimal(10, 2)
+  platform_fee                Decimal?              @db.Decimal(10, 2)
+  driver_amount               Decimal?              @db.Decimal(10, 2)
+  payment_method              String?               @default("credit_card")
+  cancel_reason               String?
+  cancelled_by                String?
+  cancelled_at                DateTime?
+  forced_completed_by         String?
+  forced_completed_at         DateTime?
+  fallback_out_of_fence       Boolean?              @default(false)
+  fallback_reason             String?
+  drivers_in_fence_count      Int?
+  passenger_confirmed_at      DateTime?
+  is_diamond_eligible         Boolean?              @default(false)
+  diamond_state               String?
+  diamond_candidate_driver_id String?
+  diamond_lost_at             DateTime?
+  diamond_lost_reason         String?
+  bonus_amount                Decimal?              @db.Decimal(10, 2)
+  bonus_applied_at            DateTime?
+  created_at                  DateTime              @default(now())
+  updated_at                  DateTime
+  ride_admin_actions          ride_admin_actions[]
+  ride_status_history         ride_status_history[]
+  drivers                     drivers?              @relation(fields: [driver_id], references: [id])
+  passengers                  passengers            @relation(fields: [passenger_id], references: [id])
+}
+
+model roles {
+  id         String   @id
+  name       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime
+  admins     admins[]
+}
+
+model tour_bookings {
+  id                String            @id
+  package_id        String
+  passenger_id      String?
+  status            TourBookingStatus @default(REQUESTED)
+  scheduled_date    DateTime?
+  scheduled_at      DateTime?
+  pickup_location   String?
+  dropoff_location  String?
+  passenger_name    String?
+  passenger_email   String?
+  passenger_phone   String?
+  passenger_count   Int               @default(1)
+  special_requests  String?
+  emergency_contact String?
+  emergency_phone   String?
+  total_price       Decimal           @default(0) @db.Decimal(10, 2)
+  ride_id           String?
+  confirmed_by      String?
+  confirmed_at      DateTime?
+  created_at        DateTime          @default(now())
+  updated_at        DateTime
+  tour_packages     tour_packages     @relation(fields: [package_id], references: [id])
+  passengers        passengers?       @relation(fields: [passenger_id], references: [id])
+}
+
+model tour_packages {
+  id                         String          @id
+  title                      String
+  description                String
+  type                       TourPackageType
+  partner_name               String
+  base_price                 Decimal         @db.Decimal(10, 2)
+  locations                  String[]
+  estimated_duration_minutes Int
+  is_active                  Boolean         @default(true)
+  created_by                 String?
+  created_at                 DateTime        @default(now())
+  updated_at                 DateTime
+  tour_bookings              tour_bookings[]
+}
+
+model tourist_guides {
+  id           String      @id
+  name         String
+  email        String      @unique
+  phone        String?
+  community_id String
+  status       String      @default("pending")
+  is_bilingual Boolean     @default(false)
+  languages    String[]
+  also_driver  Boolean     @default(false)
+  driver_id    String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime
+  communities  communities @relation(fields: [community_id], references: [id])
+}
+
+model user_consents {
+  id           String     @id
+  passenger_id String
+  consent_type String
+  accepted     Boolean    @default(false)
+  accepted_at  DateTime?
+  ip_address   String?
+  created_at   DateTime   @default(now())
+  passengers   passengers @relation(fields: [passenger_id], references: [id])
+
+  @@unique([passenger_id, consent_type])
 }
 
 enum TourBookingStatus {
@@ -22,527 +447,7 @@ enum TourBookingStatus {
   COMPLETED
 }
 
-model Role {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  admins Admin[]
-
-  @@map("roles")
-}
-
-model Admin {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  isActive     Boolean  @default(true) @map("is_active")
-  roleId       String   @map("role_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  role Role @relation(fields: [roleId], references: [id])
-
-  @@map("admins")
-}
-
-model Driver {
-  id                        String    @id @default(cuid())
-  name                      String
-  email                     String    @unique
-  passwordHash              String?   @map("password_hash") // Nullable para transição segura
-  phone                     String?
-  status                    String    @default("pending") // pending, approved, suspended, rejected
-  suspensionReason          String?   @map("suspension_reason")
-  suspendedAt               DateTime? @map("suspended_at")
-  suspendedBy               String?   @map("suspended_by") // Admin ID who suspended
-  lastActiveAt              DateTime? @map("last_active_at")
-  // Campos complementares FASE 8
-  communityId               String?   @map("community_id")
-  documentCpf               String?   @map("document_cpf")
-  documentRg                String?   @map("document_rg")
-  documentCnh               String?   @map("document_cnh")
-  vehiclePlate              String?   @map("vehicle_plate")
-  vehicleModel              String?   @map("vehicle_model")
-  // Campos adicionais
-  bannedAt                  DateTime? @map("banned_at")
-  bannedReason              String?   @map("banned_reason")
-  bannedBy                  String?   @map("banned_by")
-  deletedAt                 DateTime? @map("deleted_at")
-  deletedBy                 String?   @map("deleted_by")
-  lastLocationUpdatedAt     DateTime? @map("last_location_updated_at")
-  lastLat                   Decimal?  @map("last_lat") @db.Decimal(10, 8)
-  lastLng                   Decimal?  @map("last_lng") @db.Decimal(11, 8)
-  isPremium                 Boolean   @default(false) @map("is_premium")
-  premiumOverride           Boolean?  @map("premium_override")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-  updatedAt                 DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  rides     Ride[]
-  community Community? @relation(fields: [communityId], references: [id])
-
-  @@map("drivers")
-}
-
-model Passenger {
-  id                        String   @id @default(cuid())
-  name                      String
-  email                     String   @unique
-  passwordHash              String?  @map("password_hash") // Nullable para transição segura
-  phone                     String?
-  // Campos complementares FASE 8
-  communityId               String?  @map("community_id")
-  status                    String   @default("pending") // pending, approved, suspended
-  lastLat                   Decimal? @map("last_lat") @db.Decimal(10, 8)
-  lastLng                   Decimal? @map("last_lng") @db.Decimal(11, 8)
-  lastLocationUpdatedAt     DateTime? @map("last_location_updated_at")
-  createdAt                 DateTime @default(now()) @map("created_at")
-  updatedAt                 DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  rides     Ride[]
-  community Community? @relation(fields: [communityId], references: [id])
-  consents  UserConsent[]
-  rideConfirmations RideConfirmation[]
-  tourBookings TourBooking[]
-  elderlyProfile ElderlyProfile?
-  elderlyContracts ElderlyContract[] @relation("ResponsiblePassenger")
-
-  @@map("passengers")
-}
-
-model Ride {
-  id                        String    @id @default(cuid())
-  driverId                  String?   @map("driver_id")
-  passengerId               String    @map("passenger_id")
-  origin                    String
-  destination               String
-  type                      String    @default("normal") // normal, combo, comunidade
-  status                    String    @default("requested") // requested, accepted, arrived, started, completed, paid, cancelled_by_user, cancelled_by_driver, cancelled_by_admin
-  price                     Decimal   @db.Decimal(10, 2)
-  platformFee               Decimal?  @db.Decimal(10, 2) @map("platform_fee")
-  driverAmount              Decimal?  @db.Decimal(10, 2) @map("driver_amount")
-  paymentMethod             String?   @map("payment_method") @default("credit_card")
-  cancelReason              String?   @map("cancel_reason")
-  cancelledBy               String?   @map("cancelled_by") // Admin ID who cancelled
-  cancelledAt               DateTime? @map("cancelled_at")
-  forcedCompletedBy         String?   @map("forced_completed_by") // Admin ID who forced completion
-  forcedCompletedAt         DateTime? @map("forced_completed_at")
-  fallbackOutOfFence        Boolean?  @default(false) @map("fallback_out_of_fence")
-  fallbackReason            String?   @map("fallback_reason")
-  driversInFenceCount       Int?      @map("drivers_in_fence_count")
-  passengerConfirmedAt      DateTime? @map("passenger_confirmed_at")
-  isDiamondEligible         Boolean?  @default(false) @map("is_diamond_eligible")
-  diamondState              String?   @map("diamond_state")
-  diamondCandidateDriverId  String?   @map("diamond_candidate_driver_id")
-  diamondLostAt             DateTime? @map("diamond_lost_at")
-  diamondLostReason         String?   @map("diamond_lost_reason")
-  bonusAmount               Decimal?  @map("bonus_amount") @db.Decimal(10, 2)
-  bonusAppliedAt            DateTime? @map("bonus_applied_at")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-  updatedAt                 DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  driver         Driver?            @relation(fields: [driverId], references: [id])
-  passenger      Passenger          @relation(fields: [passengerId], references: [id])
-  statusHistory  RideStatusHistory[]
-  adminActions   RideAdminAction[]
-
-  @@map("rides")
-}
-
-model RideAdminAction {
-  id        String   @id @default(cuid())
-  rideId    String   @map("ride_id")
-  adminId   String   @map("admin_id")
-  action    String   // cancel, reassign_driver, force_complete
-  reason    String?
-  oldValue  String?  @map("old_value") // For reassignment: old driver ID
-  newValue  String?  @map("new_value") // For reassignment: new driver ID
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  ride Ride @relation(fields: [rideId], references: [id])
-
-  @@map("ride_admin_actions")
-}
-
-model RideStatusHistory {
-  id        String   @id @default(cuid())
-  rideId    String   @map("ride_id")
-  status    String
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  ride Ride @relation(fields: [rideId], references: [id])
-
-  @@map("ride_status_history")
-}
-
-// FASE 8 - Novos modelos complementares
-
-model Community {
-  id                    String   @id @default(cuid())
-  name                  String
-  description           String?
-  isActive              Boolean  @default(true) @map("is_active")
-  centerLat             Decimal? @map("center_lat") @db.Decimal(10, 8)
-  centerLng             Decimal? @map("center_lng") @db.Decimal(11, 8)
-  radiusMeters          Int?     @map("radius_meters")
-  geofence              String?  @map("geofence") // JSON polygon data
-  minActiveDrivers      Int      @default(3) @map("min_active_drivers")
-  deactivationThreshold Int      @default(1) @map("deactivation_threshold")
-  autoActivation        Boolean  @default(false) @map("auto_activation")
-  lastEvaluatedAt       DateTime? @map("last_evaluated_at")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  drivers       Driver[]
-  passengers    Passenger[]
-  guides        TouristGuide[]
-  statusHistory CommunityStatusHistory[]
-  elderlyContracts ElderlyContract[]
-  geofenceData  CommunityGeofence?
-
-  @@map("communities")
-}
-
-model CommunityGeofence {
-  id          String   @id @default(cuid())
-  communityId String   @unique @map("community_id")
-  centerLat   Decimal  @map("center_lat") @db.Decimal(10, 8)
-  centerLng   Decimal  @map("center_lng") @db.Decimal(11, 8)
-  minLat      Decimal? @map("min_lat") @db.Decimal(10, 8)
-  minLng      Decimal? @map("min_lng") @db.Decimal(11, 8)
-  maxLat      Decimal? @map("max_lat") @db.Decimal(10, 8)
-  maxLng      Decimal? @map("max_lng") @db.Decimal(11, 8)
-  geojson     String?  @map("geojson") @db.Text
-  source      String
-  sourceRef   String?  @map("source_ref")
-  confidence  String   // HIGH, MED, LOW
-  isVerified  Boolean  @default(false) @map("is_verified")
-  reviewNotes String?  @map("review_notes") @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-
-  @@map("community_geofences")
-}
-
-model UserConsent {
-  id           String   @id @default(cuid())
-  passengerId  String   @map("passenger_id")
-  consentType  String   @map("consent_type") // lgpd, terms, privacy
-  accepted     Boolean  @default(false)
-  acceptedAt   DateTime? @map("accepted_at")
-  ipAddress    String?  @map("ip_address")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  // Relations
-  passenger Passenger @relation(fields: [passengerId], references: [id])
-
-  @@unique([passengerId, consentType])
-  @@map("user_consents")
-}
-
-model TouristGuide {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  phone        String?
-  communityId  String   @map("community_id")
-  status       String   @default("pending") // pending, approved, suspended, rejected
-  isBilingual  Boolean  @default(false) @map("is_bilingual")
-  languages    String[] // Array de idiomas
-  alsoDriver   Boolean  @default(false) @map("also_driver") // Atua também como motorista
-  driverId     String?  @map("driver_id") // Se também for motorista
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  community Community @relation(fields: [communityId], references: [id])
-
-  @@map("tourist_guides")
-}
-
-model RideConfirmation {
-  id                String   @id @default(cuid())
-  passengerId       String   @map("passenger_id")
-  confirmationToken String   @unique @map("confirmation_token")
-  rideData          Json     @map("ride_data")
-  expiresAt         DateTime @map("expires_at")
-  isUsed            Boolean  @default(false) @map("is_used")
-  usedAt            DateTime? @map("used_at")
-  createdRideId     String?  @map("created_ride_id")
-  createdAt         DateTime @default(now()) @map("created_at")
-  passenger         Passenger @relation(fields: [passengerId], references: [id])
-
-  @@map("ride_confirmations")
-}
-
-model TourPackage {
-  id                        String        @id @default(cuid())
-  title                     String
-  description               String
-  type                      TourPackageType // TOUR, AIRPORT_TRANSFER
-  partnerName               String        @map("partner_name")
-  basePrice                 Decimal       @map("base_price") @db.Decimal(10, 2)
-  locations                 String[]
-  estimatedDurationMinutes  Int           @map("estimated_duration_minutes")
-  isActive                  Boolean       @default(true) @map("is_active")
-  createdBy                 String?       @map("created_by")
-  createdAt                 DateTime      @default(now()) @map("created_at")
-  updatedAt                 DateTime      @updatedAt @map("updated_at")
-  bookings                  TourBooking[]
-
-  @@map("tour_packages")
-}
-
-model TourBooking {
-  id              String    @id @default(cuid())
-  packageId       String    @map("package_id")
-  passengerId     String?   @map("passenger_id") // Opcional para bookings públicos
-  status          TourBookingStatus @default(REQUESTED) // REQUESTED, CONFIRMED, CANCELLED, COMPLETED
-  scheduledDate   DateTime? @map("scheduled_date") // Data desejada pelo cliente
-  scheduledAt     DateTime? @map("scheduled_at") // Data/hora confirmada
-  pickupLocation  String?   @map("pickup_location")
-  dropoffLocation String?   @map("dropoff_location")
-  
-  // Dados do passageiro (para bookings públicos)
-  passengerName   String?   @map("passenger_name")
-  passengerEmail  String?   @map("passenger_email")
-  passengerPhone  String?   @map("passenger_phone")
-  passengerCount  Int       @default(1) @map("passenger_count")
-  
-  // Dados adicionais
-  specialRequests String?   @map("special_requests")
-  emergencyContact String?  @map("emergency_contact")
-  emergencyPhone  String?   @map("emergency_phone")
-  
-  totalPrice      Decimal   @default(0) @map("total_price") @db.Decimal(10, 2)
-  rideId          String?   @map("ride_id")
-  confirmedBy     String?   @map("confirmed_by")
-  confirmedAt     DateTime? @map("confirmed_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  
-  package         TourPackage @relation(fields: [packageId], references: [id])
-  passenger       Passenger?  @relation(fields: [passengerId], references: [id])
-
-  @@map("tour_bookings")
-}
-
-model RatingStats {
-  id              String   @id @default(cuid())
-  entityType      String   @map("entity_type") // driver, guide, package
-  entityId        String   @map("entity_id")
-  userId          String?  @map("user_id") // For compatibility
-  averageRating   Decimal  @map("average_rating") @db.Decimal(3, 2)
-  totalRatings    Int      @map("total_ratings")
-  ratingSum       Int      @map("rating_sum")
-  updatedAt       DateTime @map("updated_at") @updatedAt
-  lastUpdated     DateTime @map("last_updated") @updatedAt
-
-  @@unique([entityType, entityId])
-  @@unique([userId], map: "rating_stats_user_id_key")
-  @@map("rating_stats")
-}
-
-model DriverVerification {
-  id                    String   @id @default(cuid())
-  driverId              String   @map("driver_id")
-  communityId           String?  @map("community_id")
-  status                String   @default("pending")
-  verifiedAt            DateTime? @map("verified_at")
-  approvedAt            DateTime? @map("approved_at")
-  approvedByAdminId     String?  @map("approved_by_admin_id")
-  eligibilityCheckedAt  DateTime? @map("eligibility_checked_at")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  @@unique([driverId])
-  @@map("driver_verifications")
-}
-
-model DriverDocument {
-  id                    String   @id @default(cuid())
-  driverId              String   @map("driver_id")
-  type                  String   // cpf, rg, cnh
-  documentUrl           String   @default("") @map("document_url")
-  fileUrl               String?  @map("file_url")
-  status                String   @default("pending")
-  submittedAt           DateTime? @map("submitted_at")
-  verifiedAt            DateTime? @map("verified_at")
-  verifiedByAdminId     String?  @map("verified_by_admin_id")
-  rejectedAt            DateTime? @map("rejected_at")
-  rejectedByAdminId     String?  @map("rejected_by_admin_id")
-  rejectReason          String?  @map("reject_reason")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  @@map("driver_documents")
-}
-
-model DriverEnforcementHistory {
-  id          String   @id @default(cuid())
-  driverId    String   @map("driver_id")
-  action      String   // ban, unban, delete, restore
-  reason      String?
-  metadata    Json?
-  adminId     String   @map("admin_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@map("driver_enforcement_history")
-}
-
-model CommunityStatusHistory {
-  id          String    @id @default(cuid())
-  communityId String    @map("community_id")
-  status      String
-  fromIsActive Boolean? @map("from_is_active")
-  toIsActive  Boolean?  @map("to_is_active")
-  driverCount Int?      @map("driver_count")
-  changedBy   String?   @map("changed_by")
-  reason      String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  community   Community @relation(fields: [communityId], references: [id])
-
-  @@map("community_status_history")
-}
-
-model DiamondAuditLog {
-  id              String   @id @default(cuid())
-  rideId          String   @map("ride_id")
-  driverId        String?  @map("driver_id")
-  action          String
-  reason          String?
-  bonusAmount     Decimal? @map("bonus_amount") @db.Decimal(10, 2)
-  diamondStateFrom String? @map("diamond_state_from")
-  diamondStateTo  String?  @map("diamond_state_to")
-  details         Json?
-  createdAt       DateTime @default(now()) @map("created_at")
-
-  @@map("diamond_audit_logs")
-}
-
-model Rating {
-  id          String   @id @default(cuid())
-  entityType  String   @map("entity_type")
-  entityId    String   @map("entity_id")
-  userId      String   @map("user_id")
-  rideId      String?  @map("ride_id")
-  ratedId     String?  @map("rated_id")
-  raterId     String?  @map("rater_id")
-  raterType   String?  @map("rater_type")
-  rating      Int
-  score       Int      @default(0) // For compatibility, maps to rating
-  comment     String?
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@unique([rideId, userId], map: "rating_ride_id_user_id_key")
-  @@map("ratings")
-}
-
-model Consent {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  subjectType String?  @map("subject_type")
-  subjectId   String?  @map("subject_id")
-  type        String
-  consentType String?  @map("consent_type")
-  accepted    Boolean  @default(false)
-  acceptedAt  DateTime? @map("accepted_at")
-  ipAddress   String?  @map("ip_address")
-  userAgent   String?  @map("user_agent")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@unique([userId, type], map: "consent_user_id_type_key")
-  @@unique([subjectType, subjectId, type], map: "consent_subject_type_subject_id_type_key")
-  @@map("consents")
-}
-
-model ElderlyProfile {
-  id               String   @id @default(cuid())
-  passengerId      String   @unique @map("passenger_id")
-  emergencyContact String?  @map("emergency_contact")
-  emergencyPhone   String?  @map("emergency_phone")
-  medicalNotes     String?  @map("medical_notes")
-  careLevel        String   @default("basic") // basic, intensive, medical
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  passenger Passenger @relation(fields: [passengerId], references: [id], onDelete: Cascade)
-  contracts ElderlyContract[]
-
-  @@map("elderly_profiles")
-}
-
-model ElderlyContract {
-  id               String    @id @default(cuid())
-  elderlyProfileId String    @map("elderly_profile_id")
-  responsibleId    String?   @map("responsible_id")
-  communityId      String    @map("community_id")
-  status           String    @default("ACTIVE") // ACTIVE, INACTIVE, CANCELLED
-  serviceType      String    @default("ACOMPANHAMENTO_ATIVO") @map("service_type")
-  startsAt         DateTime  @map("starts_at")
-  endsAt           DateTime? @map("ends_at")
-  notes            String?
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  elderlyProfile ElderlyProfile @relation(fields: [elderlyProfileId], references: [id], onDelete: Cascade)
-  responsible    Passenger?     @relation("ResponsiblePassenger", fields: [responsibleId], references: [id])
-  community      Community      @relation(fields: [communityId], references: [id])
-
-  @@map("elderly_contracts")
-}
-
-// NEIGHBORHOODS - Administrative districts (bairros)
-model Neighborhood {
-  id                    String   @id @default(cuid())
-  name                  String   @unique
-  description           String?
-  zone                  String?  // "Zona Norte", "Zona Sul", "Zona Oeste", "Centro"
-  administrativeRegion  String?  @map("administrative_region") // "AP1", "AP2", "AP3", "AP4", "AP5"
-  isActive              Boolean  @default(true) @map("is_active")
-  centerLat             Decimal? @map("center_lat") @db.Decimal(10, 8)
-  centerLng             Decimal? @map("center_lng") @db.Decimal(11, 8)
-  isVerified            Boolean  @default(false) @map("is_verified")
-  verifiedAt            DateTime? @map("verified_at")
-  verifiedBy            String?  @map("verified_by")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  geofenceData          NeighborhoodGeofence?
-
-  @@map("neighborhoods")
-}
-
-model NeighborhoodGeofence {
-  id              String      @id @default(cuid())
-  neighborhoodId  String      @unique @map("neighborhood_id")
-  geofenceType    String      @map("geofence_type") // "Polygon", "MultiPolygon", "Circle"
-  coordinates     Json        // GeoJSON coordinates
-  source          String?     // "IPP_DATA_RIO", "OSM_relation_123", "MANUAL"
-  sourceUrl       String?     @map("source_url")
-  area            Decimal?    @db.Decimal(15, 6) // Area in square meters
-  perimeter       Decimal?    @db.Decimal(15, 6) // Perimeter in meters
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
-
-  // Relations
-  neighborhood    Neighborhood @relation(fields: [neighborhoodId], references: [id], onDelete: Cascade)
-
-  @@map("neighborhood_geofences")
+enum TourPackageType {
+  TOUR
+  AIRPORT_TRANSFER
 }

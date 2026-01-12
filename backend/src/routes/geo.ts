@@ -36,18 +36,18 @@ router.get('/resolve', async (req: Request, res: Response) => {
     // Use centralized geo resolve service
     const result = await geoResolveService.resolveCoordinates(
       latitude, 
-      longitude, 
-      type as string
+      longitude
     );
 
     if (result.match) {
       return res.json({
         match: true,
-        area: result.area
+        resolvedArea: result.resolvedArea
       });
     } else {
       return res.json({
-        match: false
+        match: false,
+        resolvedArea: null
       });
     }
 
