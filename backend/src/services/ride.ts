@@ -1,14 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { CommunityService } from './community';
+import { OperationalService } from './operational';
 
 const prisma = new PrismaClient();
 
 export interface CreateRideRequest {
+  pickup: { lat: number; lng: number };
+  dropoff: { lat: number; lng: number };
   passengerId: string;
-  origin: string;
-  destination: string;
-  originLat: number;
-  originLng: number;
   communityId?: string;
   type?: string;
   paymentMethod?: string;
@@ -20,23 +19,24 @@ export interface RideGeographicAnchor {
 }
 
 /**
- * Ride service with canonical geographic resolution
- * Ensures immutable geographic anchors (neighborhood + optional community)
+ * Ride service with canonical flow for favela rides
+ * Implements the complete canonical flow: geo-resolve → validate → create → dispatch
  */
 export class RideService {
   private communityService = new CommunityService();
+  private operationalService = new OperationalService();
 
   /**
-   * Create ride with canonical geographic resolution
-   * 1. Resolve lat/lng → neighborhoodId (always required)
-   * 2. Validate communityId if provided
-   * 3. Persist with immutable geographic anchors
+   * Canonical ride creation flow
+   * 1. Geo-resolve pickup → neighborhood (definitive)
+   * 2. Validate community if provided (optional)
+   * 3. Create ride with immutable anchors
    */
   async createRide(request: CreateRideRequest): Promise<string> {
-    // Step 1: Resolve geographic anchors BEFORE creation
+    // Step 1: Geo-resolve (único e definitivo)
     const geoAnchor = await this.resolveGeographicAnchor(
-      request.originLat,
-      request.originLng,
+      request.pickup.lat,
+      request.pickup.lng,
       request.communityId
     );
 
@@ -49,10 +49,10 @@ export class RideService {
       data: {
         id: this.generateRideId(),
         passenger_id: request.passengerId,
-        neighborhood_id: geoAnchor.neighborhoodId, // OBRIGATÓRIO
-        community_id: geoAnchor.communityId,       // OPCIONAL
-        origin: request.origin,
-        destination: request.destination,
+        neighborhood_id: geoAnchor.neighborhoodId, // sempre
+        community_id: geoAnchor.communityId,       // se válida
+        origin: `${request.pickup.lat},${request.pickup.lng}`,
+        destination: `${request.dropoff.lat},${request.dropoff.lng}`,
         type: request.type || 'normal',
         payment_method: request.paymentMethod || 'credit_card',
         price: 0, // Will be calculated later
@@ -64,8 +64,29 @@ export class RideService {
   }
 
   /**
-   * Canonical geographic resolution
-   * Returns immutable anchors for ride persistence
+   * Get operational context from ride (reads immutable anchors)
+   */
+  async getRideOperationalContext(rideId: string) {
+    const ride = await prisma.rides.findUnique({
+      where: { id: rideId },
+      select: {
+        neighborhood_id: true,
+        community_id: true
+      }
+    });
+
+    if (!ride) {
+      throw new Error('Ride not found');
+    }
+
+    return this.operationalService.resolveOperationalContext(
+      ride.neighborhood_id,
+      ride.community_id
+    );
+  }
+
+  /**
+   * Canonical geographic resolution (before CREATE only)
    */
   private async resolveGeographicAnchor(
     lat: number,
