@@ -20,6 +20,7 @@ import { premiumTourismRoutes } from './routes/premium-tourism';
 import { legacyRoutes } from './routes/legacy';
 import geoRoutes from './routes/geo';
 import adminGeofenceRoutes from './routes/admin-geofence';
+import ridesRoutes from './routes/rides';
 
 const app = express();
 
@@ -99,7 +100,8 @@ app.use('/api/governance', governanceRoutes);
 // Geo routes
 app.use('/api/geo', geoRoutes);
 app.use('/api/admin/geofence', adminGeofenceRoutes);
-console.log('✅ Geo: /api/geo/*, /api/admin/geofence/*');
+app.use('/api/rides', ridesRoutes);
+console.log('✅ Geo: /api/geo/*, /api/admin/geofence/*, /api/rides/*');
 
 console.log('✅ Core: /api/admin/*, /api/governance/* (filtered internally)');
 
