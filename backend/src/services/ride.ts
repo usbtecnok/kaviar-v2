@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { CommunityService } from './community';
 import { OperationalService } from './operational';
 import { PricingService } from './pricing';
+import { IncentiveService } from './incentive';
 
 const prisma = new PrismaClient();
 
@@ -27,13 +28,15 @@ export class RideService {
   private communityService = new CommunityService();
   private operationalService = new OperationalService();
   private pricingService = new PricingService();
+  private incentiveService = new IncentiveService();
 
   /**
-   * Canonical ride creation flow with pricing
+   * Canonical ride creation flow with pricing and incentives
    * 1. Geo-resolve pickup → neighborhood (definitive)
    * 2. Validate community if provided (optional)
    * 3. Create ride with immutable anchors
    * 4. Calculate and persist pricing
+   * 5. Apply incentives after pricing
    */
   async createRide(request: CreateRideRequest): Promise<string> {
     // Step 1: Geo-resolve (único e definitivo)
@@ -64,8 +67,11 @@ export class RideService {
       }
     });
 
-    // Step 3: Calculate and persist pricing (between Create → Dispatch)
+    // Step 3: Calculate and persist pricing (between Create → Incentives)
     await this.pricingService.calculateAndPersist(ride.id);
+
+    // Step 4: Apply incentives after pricing (between Pricing → Dispatch)
+    await this.incentiveService.applyAfterPricing(ride.id);
 
     return ride.id;
   }

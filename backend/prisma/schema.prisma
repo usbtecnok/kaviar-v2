@@ -130,6 +130,7 @@ model drivers {
   created_at               DateTime     @default(now())
   updated_at               DateTime
   rides                    rides[]
+  driver_incentives        driver_incentives[]
 }
 
 model elderly_contracts {
@@ -313,6 +314,7 @@ model rides {
   ride_admin_actions          ride_admin_actions[]
   ride_status_history         ride_status_history[]
   ride_pricing                ride_pricing?
+  driver_incentives           driver_incentives[]
   drivers                     drivers?              @relation(fields: [driver_id], references: [id])
   passengers                  passengers            @relation(fields: [passenger_id], references: [id])
   neighborhoods               neighborhoods         @relation(fields: [neighborhood_id], references: [id])
@@ -331,6 +333,21 @@ model pricing_tables {
   created_at      DateTime @default(now())
   updated_at      DateTime
   neighborhoods   neighborhoods @relation(fields: [neighborhood_id], references: [id])
+}
+
+model driver_incentives {
+  id                  String   @id
+  ride_id             String
+  driver_id           String
+  community_id        String?
+  operational_profile String
+  incentive_type      String   // PRIORITY_BONUS | PRIVATE_POOL | ACTIVATION
+  value               Decimal  @db.Decimal(10, 2)
+  currency            String   @default("BRL")
+  applied_at          DateTime @default(now())
+  created_at          DateTime @default(now())
+  rides               rides    @relation(fields: [ride_id], references: [id])
+  drivers             drivers  @relation(fields: [driver_id], references: [id])
 }
 
 model ride_pricing {
