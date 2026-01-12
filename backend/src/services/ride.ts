@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { CommunityService } from './community';
 import { OperationalService } from './operational';
+import { PricingService } from './pricing';
 
 const prisma = new PrismaClient();
 
@@ -25,12 +26,14 @@ export interface RideGeographicAnchor {
 export class RideService {
   private communityService = new CommunityService();
   private operationalService = new OperationalService();
+  private pricingService = new PricingService();
 
   /**
-   * Canonical ride creation flow
+   * Canonical ride creation flow with pricing
    * 1. Geo-resolve pickup → neighborhood (definitive)
    * 2. Validate community if provided (optional)
    * 3. Create ride with immutable anchors
+   * 4. Calculate and persist pricing
    */
   async createRide(request: CreateRideRequest): Promise<string> {
     // Step 1: Geo-resolve (único e definitivo)
@@ -55,10 +58,14 @@ export class RideService {
         destination: `${request.dropoff.lat},${request.dropoff.lng}`,
         type: request.type || 'normal',
         payment_method: request.paymentMethod || 'credit_card',
-        price: 0, // Will be calculated later
-        status: 'requested'
+        price: 0, // Will be calculated next
+        status: 'requested',
+        updated_at: new Date()
       }
     });
+
+    // Step 3: Calculate and persist pricing (between Create → Dispatch)
+    await this.pricingService.calculateAndPersist(ride.id);
 
     return ride.id;
   }

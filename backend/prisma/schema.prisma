@@ -191,6 +191,7 @@ model neighborhoods {
   neighborhood_geofences neighborhood_geofences?
   communities            communities[]
   rides                  rides[]
+  pricing_tables         pricing_tables[]
 }
 
 model passengers {
@@ -311,10 +312,42 @@ model rides {
   updated_at                  DateTime
   ride_admin_actions          ride_admin_actions[]
   ride_status_history         ride_status_history[]
+  ride_pricing                ride_pricing?
   drivers                     drivers?              @relation(fields: [driver_id], references: [id])
   passengers                  passengers            @relation(fields: [passenger_id], references: [id])
   neighborhoods               neighborhoods         @relation(fields: [neighborhood_id], references: [id])
   communities                 communities?          @relation(fields: [community_id], references: [id])
+}
+
+model pricing_tables {
+  id              String   @id
+  neighborhood_id String
+  base_fare       Decimal  @db.Decimal(10, 2)
+  per_km          Decimal  @db.Decimal(10, 2)
+  per_min         Decimal  @db.Decimal(10, 2)
+  minimum_fare    Decimal  @db.Decimal(10, 2)
+  is_active       Boolean  @default(true)
+  version         String
+  created_at      DateTime @default(now())
+  updated_at      DateTime
+  neighborhoods   neighborhoods @relation(fields: [neighborhood_id], references: [id])
+}
+
+model ride_pricing {
+  id              String   @id
+  ride_id         String   @unique
+  pricing_version String
+  neighborhood_id String
+  community_id    String?
+  base_fare       Decimal  @db.Decimal(10, 2)
+  distance_km     Decimal  @db.Decimal(8, 3)
+  duration_min    Int
+  modifiers       String?  // JSON
+  final_fare      Decimal  @db.Decimal(10, 2)
+  driver_payout   Decimal  @db.Decimal(10, 2)
+  platform_fee    Decimal  @db.Decimal(10, 2)
+  created_at      DateTime @default(now())
+  rides           rides    @relation(fields: [ride_id], references: [id])
 }
 
 model roles {
