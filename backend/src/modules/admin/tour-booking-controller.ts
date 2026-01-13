@@ -73,7 +73,7 @@ export class TourBookingController {
     try {
       const { id } = tourPackageParamsSchema.parse(req.params);
       const { status } = updateTourBookingStatusSchema.parse(req.body);
-      const adminId = req.user?.id || 'admin'; // Get from auth middleware
+      const adminId = (req as any).admin?.id || 'admin'; // Get from auth middleware
       
       const booking = await this.premiumTourismService.updateTourBookingStatus(id, status, adminId);
 

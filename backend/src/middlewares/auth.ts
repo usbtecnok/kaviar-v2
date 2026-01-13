@@ -33,10 +33,10 @@ export const authenticateAdmin = async (
     // Verify admin still exists and is active
     const admin = await prisma.admins.findUnique({
       where: { id: decoded.adminId },
-      include: { role: true },
+      include: { roles: true },
     });
 
-    if (!admin || !admin.isActive) {
+    if (!admin || !admin.is_active) {
       return res.status(401).json({
         success: false,
         error: 'Token inválido',
@@ -46,7 +46,7 @@ export const authenticateAdmin = async (
     req.admin = {
       id: admin.id,
       email: admin.email,
-      role: admin.role.name,
+      role: admin.roles?.name || 'admin',
     };
 
     next();

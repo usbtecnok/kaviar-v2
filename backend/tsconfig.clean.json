@@ -1,29 +1,23 @@
 {
-  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
   "exclude": [
     "node_modules",
     "dist",
-    "src/controllers/community.ts",
-    "src/controllers/geofence.ts", 
-    "src/services/community-activation.ts",
-    "src/services/diamond.ts",
-    "src/services/driver-enforcement.ts",
-    "src/services/driver-verification.ts",
-    "src/services/geofence.ts",
-    "src/services/premium-tourism.ts",
-    "src/services/rating.ts",
-    "src/services/ride-confirmation.ts",
-    "src/utils/geofence-validator.ts",
-    "src/routes/admin-geofence.ts",
-    "src/routes/admin-management.ts",
-    "src/routes/admin.ts",
-    "src/routes/elderly.ts",
-    "src/routes/governance.ts",
-    "src/routes/password-reset.ts",
-    "src/routes/user-auth.ts",
-    "src/scripts/**/*",
-    "src/modules/admin/**/*",
-    "src/modules/auth/**/*",
-    "src/modules/governance/**/*"
+    "src/scripts",
+    "src/services/premium-tourism.ts"
   ]
 }

@@ -41,7 +41,7 @@ router.post('/passenger', async (req, res) => {
       data: {
         id: randomUUID(),
         name: data.name,
-        email: data.email,
+        email: data.email || '',
         phone: data.phone,
         password_hash: hashedPassword,
         status: 'ACTIVE', // Passengers are immediately active

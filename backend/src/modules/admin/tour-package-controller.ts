@@ -15,7 +15,7 @@ export class TourPackageController {
   createTourPackage = async (req: Request, res: Response) => {
     try {
       const data = createTourPackageSchema.parse(req.body);
-      const adminId = req.user?.id || 'admin'; // TODO: Get from auth middleware
+      const adminId = (req as any).admin?.id || 'admin'; // TODO: Get from auth middleware
       
       const tourPackage = await this.premiumTourismService.createTourPackage({
         ...data,
@@ -108,7 +108,7 @@ export class TourPackageController {
     try {
       const { id } = tourPackageParamsSchema.parse(req.params);
       const data = updateTourPackageSchema.parse(req.body);
-      const adminId = req.user?.id || 'admin'; // TODO: Get from auth middleware
+      const adminId = (req as any).admin?.id || 'admin'; // TODO: Get from auth middleware
       
       const tourPackage = await this.premiumTourismService.updateTourPackage(id, {
         ...data,
@@ -132,7 +132,7 @@ export class TourPackageController {
   deactivateTourPackage = async (req: Request, res: Response) => {
     try {
       const { id } = tourPackageParamsSchema.parse(req.params);
-      const adminId = req.user?.id || 'admin'; // TODO: Get from auth middleware
+      const adminId = (req as any).admin?.id || 'admin'; // TODO: Get from auth middleware
       
       await this.premiumTourismService.deactivateTourPackage(id, adminId);
 

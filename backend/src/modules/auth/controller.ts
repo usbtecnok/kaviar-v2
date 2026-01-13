@@ -11,7 +11,7 @@ export class AuthController {
       const validatedData = loginSchema.parse(req.body);
 
       // Authenticate admin
-      const result = await this.authService.login(validatedData);
+      const result = await this.authService.login(validatedData.email, validatedData.password);
 
       res.json({
         success: true,

@@ -3,17 +3,18 @@
   "version": "1.0.0",
   "description": "KAVIAR Backend - Sistema de Corridas Comunitárias",
   "main": "dist/server.js",
-  "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:validate": "tsx scripts/validate-db.ts"
-  },
+"scripts": {
+  "dev": "tsx watch src/server.ts",
+  "build": "tsc -p tsconfig.build.json",
+  "start": "node dist/server.js",
+  "db:generate": "prisma generate",
+  "db:migrate": "prisma migrate dev",
+  "db:deploy": "prisma migrate deploy",
+  "db:studio": "prisma studio",
+  "db:seed": "tsx prisma/seed.ts",
+  "db:validate": "tsx scripts/validate-db.ts"
+},
+
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
