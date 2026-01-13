@@ -23,6 +23,7 @@ import geoRoutes from './routes/geo';
 import ridesRoutes from './routes/rides';
 import { governanceRoutes } from './routes/governance';
 import { passengerAuthRoutes } from './routes/passenger-auth';
+import { driverAuthRoutes } from './routes/driver-auth';
 
 const app = express();
 
@@ -105,6 +106,7 @@ app.use('/api/geo', geoRoutes);
 app.use('/api/rides', ridesRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/auth', passengerAuthRoutes);
+app.use('/api/auth', driverAuthRoutes);
 console.log('✅ Geo: /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
 
 console.log('✅ Core: Pricing & Rides enabled, legacy routes disabled');
