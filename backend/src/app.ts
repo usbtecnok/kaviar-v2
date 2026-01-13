@@ -21,6 +21,8 @@ import { legacyRoutes } from './routes/legacy';
 import geoRoutes from './routes/geo';
 // import adminGeofenceRoutes from './routes/admin-geofence';
 import ridesRoutes from './routes/rides';
+import { governanceRoutes } from './routes/governance';
+import { passengerAuthRoutes } from './routes/passenger-auth';
 
 const app = express();
 
@@ -101,7 +103,9 @@ if (config.legacy.enableLegacy) {
 app.use('/api/geo', geoRoutes);
 // app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);
-console.log('✅ Geo: /api/geo/*, /api/rides/*');
+app.use('/api/governance', governanceRoutes);
+app.use('/api/auth', passengerAuthRoutes);
+console.log('✅ Geo: /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
 
 console.log('✅ Core: Pricing & Rides enabled, legacy routes disabled');
 
