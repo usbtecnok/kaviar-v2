@@ -19,7 +19,7 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle } from '@mui/icons-material';
 import api from '../../api';
 
@@ -28,6 +28,16 @@ const steps = ['Dados Pessoais', 'Comunidade', 'LGPD', 'Finalização'];
 export default function CompleteOnboarding() {
   const [activeStep, setActiveStep] = useState(0);
   const [userType, setUserType] = useState('passenger'); // passenger, driver, guide
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Pré-selecionar tipo baseado na URL
+  useEffect(() => {
+    const typeFromUrl = searchParams.get('type');
+    if (typeFromUrl && ['passenger', 'driver', 'guide'].includes(typeFromUrl)) {
+      setUserType(typeFromUrl);
+    }
+  }, [searchParams]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -49,7 +59,6 @@ export default function CompleteOnboarding() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadCommunities();

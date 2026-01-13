@@ -34,6 +34,15 @@ export default function Login() {
                 >
                   Entrar como Passageiro
                 </Button>
+                
+                <Button
+                  component={RouterLink}
+                  to="/cadastro?type=passageiro"
+                  variant="outlined"
+                  fullWidth
+                >
+                  Cadastrar Passageiro
+                </Button>
               </Stack>
             </CardContent>
           </Card>
