@@ -1,8 +1,10 @@
 import React from 'react';
 import { Container, Grid, Card, CardContent, Typography, Button, Stack } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 
 export default function Login() {
+  const navigate = useNavigate();
+
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>
       <Typography variant="h4" fontWeight={800} gutterBottom>
@@ -27,8 +29,7 @@ export default function Login() {
 
               <Stack spacing={1}>
                 <Button
-                  component={RouterLink}
-                  to="/login"
+                  onClick={() => navigate('/login')}
                   variant="contained"
                   fullWidth
                 >
