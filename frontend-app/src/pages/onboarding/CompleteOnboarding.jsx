@@ -101,8 +101,8 @@ export default function CompleteOnboarding() {
     setError('');
     // Validação mínima por tipo (evita 500 no backend)
     if (userType === 'passenger') {
-      if (!clean.name || !clean.phone || !clean.communityId) {
-        setError('Preencha nome, telefone e comunidade.');
+      if (!clean.name || !clean.phone) {
+        setError('Preencha nome e telefone.');
         setLoading(false);
         return;
       }
@@ -138,7 +138,7 @@ export default function CompleteOnboarding() {
           name: clean.name,
           email: clean.email,
           phone: clean.phone,
-          communityId: clean.communityId
+          communityId: clean.communityId || null
         });
         userId = response.data.data.id;
 
@@ -149,6 +149,26 @@ export default function CompleteOnboarding() {
           accepted: lgpdAccepted,
           ipAddress: 'onboarding'
         });
+
+        // Login automático após cadastro
+        try {
+          const loginResponse = await api.post('/api/auth/passenger/login', {
+            email: clean.email,
+            phone: clean.phone
+          });
+          
+          if (loginResponse.data.success) {
+            localStorage.setItem('token', loginResponse.data.token);
+            localStorage.setItem('user', JSON.stringify(loginResponse.data.user));
+            
+            // Redirect para área do passageiro
+            setTimeout(() => {
+              navigate('/passageiro/home');
+            }, 2000);
+          }
+        } catch (loginError) {
+          console.error('Erro no login automático:', loginError);
+        }
       } else if (userType === 'driver') {
         // Criar driver e enviar documentos
         console.log('[DEBUG] driver payload:', {
@@ -205,7 +225,10 @@ export default function CompleteOnboarding() {
               Cadastro Realizado!
             </Typography>
             <Typography variant="body1" sx={{ mb: 4 }}>
-              Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.
+              {userType === 'passenger' 
+                ? 'Redirecionando para sua área...' 
+                : 'Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.'
+              }
             </Typography>
             <Button
               variant="contained"
@@ -338,12 +361,13 @@ export default function CompleteOnboarding() {
         );
       case 1:
         return (
-          <FormControl fullWidth required>
-            <InputLabel>Comunidade</InputLabel>
+          <FormControl fullWidth>
+            <InputLabel>Comunidade (Opcional)</InputLabel>
             <Select
               value={clean.communityId}
               onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
             >
+              <MenuItem value="">Nenhuma</MenuItem>
               {communities.map(community => (
                 <MenuItem key={community.id} value={community.id}>
                   {community.name}

@@ -7,6 +7,9 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Verificar token real do localStorage
+  const token = localStorage.getItem('token');
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -15,12 +18,17 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     );
   }
 
-  if (!user) {
+  // Exigir token JWT real - sem token = sem acesso
+  if (!token || token.trim() === '') {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!user || !user.user_type) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.user_type)) {
-    return <Navigate to="/access-denied" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;

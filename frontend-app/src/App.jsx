@@ -9,6 +9,7 @@ import PremiumTourism from "./pages/PremiumTourism";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
 
@@ -243,7 +244,14 @@ export default function App() {
           <Route path="/cadastro" element={<CompleteOnboarding />} />
 
           {/* Apps */}
-          <Route path="/passageiro/*" element={<PassengerApp />} />
+          <Route
+            path="/passageiro/*"
+            element={
+              <ProtectedRoute allowedRoles={['PASSENGER']}>
+                <PassengerApp />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/motorista/*" element={<DriverApp />} />
           <Route path="/admin/*" element={<AdminApp />} />
 
