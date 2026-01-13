@@ -18,21 +18,20 @@ export interface RatingData {
 }
 
 export interface RatingStats {
-  userId: string;
-  userType: UserType;
   averageRating: number;
   totalRatings: number;
-  updated_at: Date;
+  ratingDistribution: { [key: number]: number };
 }
 
 export interface RatingResponse {
-  id: string;
-  score: number;
+  rating: number;
   comment?: string;
-  created_at: Date;
+  createdAt: Date;
 }
 
 export interface RatingSummary {
-  stats: RatingStats | null;
+  entityId: string;
+  entityType: UserType;
+  stats: RatingStats;
   recentRatings: RatingResponse[];
 }

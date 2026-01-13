@@ -1,0 +1,264 @@
+import { Request, Response } from 'express';
+import { prisma } from '../../config/database';
+import { z } from 'zod';
+
+const approveDriverSchema = z.object({
+  id: z.string()
+});
+
+const approveGuideSchema = z.object({
+  id: z.string()
+});
+
+export class ApprovalController {
+  
+  // PUT /api/admin/drivers/:id/approve
+  approveDriver = async (req: Request, res: Response) => {
+    try {
+      const { id } = approveDriverSchema.parse(req.params);
+      
+      // Find driver
+      const driver = await prisma.drivers.findUnique({ where: { id } });
+      if (!driver) {
+        return res.status(404).json({
+          success: false,
+          error: 'Motorista não encontrado'
+        });
+      }
+
+      // Update status to approved
+      const updatedDriver = await prisma.drivers.update({
+        where: { id },
+        data: {
+          status: 'approved',
+          updated_at: new Date()
+        }
+      });
+
+      res.json({
+        success: true,
+        data: {
+          id: updatedDriver.id,
+          name: updatedDriver.name,
+          email: updatedDriver.email,
+          status: updatedDriver.status
+        },
+        message: 'Motorista aprovado com sucesso'
+      });
+    } catch (error) {
+      console.error('Error approving driver:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao aprovar motorista'
+      });
+    }
+  };
+
+  // PUT /api/admin/drivers/:id/reject
+  rejectDriver = async (req: Request, res: Response) => {
+    try {
+      const { id } = approveDriverSchema.parse(req.params);
+      
+      // Find driver
+      const driver = await prisma.drivers.findUnique({ where: { id } });
+      if (!driver) {
+        return res.status(404).json({
+          success: false,
+          error: 'Motorista não encontrado'
+        });
+      }
+
+      // Update status to rejected
+      const updatedDriver = await prisma.drivers.update({
+        where: { id },
+        data: {
+          status: 'rejected',
+          updated_at: new Date()
+        }
+      });
+
+      res.json({
+        success: true,
+        data: {
+          id: updatedDriver.id,
+          name: updatedDriver.name,
+          email: updatedDriver.email,
+          status: updatedDriver.status
+        },
+        message: 'Motorista rejeitado'
+      });
+    } catch (error) {
+      console.error('Error rejecting driver:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao rejeitar motorista'
+      });
+    }
+  };
+
+  // PUT /api/admin/guides/:id/approve
+  approveGuide = async (req: Request, res: Response) => {
+    try {
+      const { id } = approveGuideSchema.parse(req.params);
+      
+      // Find guide
+      const guide = await prisma.tourist_guides.findUnique({ where: { id } });
+      if (!guide) {
+        return res.status(404).json({
+          success: false,
+          error: 'Guia turístico não encontrado'
+        });
+      }
+
+      // Update status to approved
+      const updatedGuide = await prisma.tourist_guides.update({
+        where: { id },
+        data: {
+          status: 'approved',
+          updated_at: new Date()
+        }
+      });
+
+      res.json({
+        success: true,
+        data: {
+          id: updatedGuide.id,
+          name: updatedGuide.name,
+          email: updatedGuide.email,
+          status: updatedGuide.status
+        },
+        message: 'Guia turístico aprovado com sucesso'
+      });
+    } catch (error) {
+      console.error('Error approving guide:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao aprovar guia turístico'
+      });
+    }
+  };
+
+  // PUT /api/admin/guides/:id/reject
+  rejectGuide = async (req: Request, res: Response) => {
+    try {
+      const { id } = approveGuideSchema.parse(req.params);
+      
+      // Find guide
+      const guide = await prisma.tourist_guides.findUnique({ where: { id } });
+      if (!guide) {
+        return res.status(404).json({
+          success: false,
+          error: 'Guia turístico não encontrado'
+        });
+      }
+
+      // Update status to rejected
+      const updatedGuide = await prisma.tourist_guides.update({
+        where: { id },
+        data: {
+          status: 'rejected',
+          updated_at: new Date()
+        }
+      });
+
+      res.json({
+        success: true,
+        data: {
+          id: updatedGuide.id,
+          name: updatedGuide.name,
+          email: updatedGuide.email,
+          status: updatedGuide.status
+        },
+        message: 'Guia turístico rejeitado'
+      });
+    } catch (error) {
+      console.error('Error rejecting guide:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao rejeitar guia turístico'
+      });
+    }
+  };
+
+  // GET /api/admin/drivers - List drivers for approval
+  getDrivers = async (req: Request, res: Response) => {
+    try {
+      const { status } = req.query;
+      
+      const where: any = {};
+      if (status) {
+        where.status = status;
+      }
+
+      const drivers = await prisma.drivers.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          status: true,
+          document_cpf: true,
+          document_rg: true,
+          document_cnh: true,
+          vehicle_plate: true,
+          vehicle_model: true,
+          created_at: true,
+          updated_at: true
+        },
+        orderBy: { created_at: 'desc' }
+      });
+
+      res.json({
+        success: true,
+        data: drivers
+      });
+    } catch (error) {
+      console.error('Error getting drivers:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao buscar motoristas'
+      });
+    }
+  };
+
+  // GET /api/admin/guides - List guides for approval
+  getGuides = async (req: Request, res: Response) => {
+    try {
+      const { status } = req.query;
+      
+      const where: any = {};
+      if (status) {
+        where.status = status;
+      }
+
+      const guides = await prisma.tourist_guides.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          status: true,
+          is_bilingual: true,
+          languages: true,
+          also_driver: true,
+          created_at: true,
+          updated_at: true
+        },
+        orderBy: { created_at: 'desc' }
+      });
+
+      res.json({
+        success: true,
+        data: guides
+      });
+    } catch (error) {
+      console.error('Error getting guides:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao buscar guias turísticos'
+      });
+    }
+  };
+}

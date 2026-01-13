@@ -24,6 +24,9 @@ import ridesRoutes from './routes/rides';
 import { governanceRoutes } from './routes/governance';
 import { passengerAuthRoutes } from './routes/passenger-auth';
 import { driverAuthRoutes } from './routes/driver-auth';
+import { guideAuthRoutes } from './routes/guide-auth';
+import { adminApprovalRoutes } from './routes/admin-approval';
+import { ratingsRoutes } from './routes/ratings';
 
 const app = express();
 
@@ -64,6 +67,8 @@ app.get('/api/health', (req, res) => {
 
 // Core routes (always enabled)
 app.use('/api/admin/auth', authRoutes);
+app.use('/api/admin', adminApprovalRoutes);
+app.use('/api/ratings', ratingsRoutes);
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
 // app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
 
@@ -107,6 +112,7 @@ app.use('/api/rides', ridesRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/auth', passengerAuthRoutes);
 app.use('/api/auth', driverAuthRoutes);
+app.use('/api/auth', guideAuthRoutes);
 console.log('✅ Geo: /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
 
 console.log('✅ Core: Pricing & Rides enabled, legacy routes disabled');

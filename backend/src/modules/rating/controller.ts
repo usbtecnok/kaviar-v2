@@ -57,13 +57,13 @@ export class RatingController {
     }
   };
 
-  // GET /api/governance/ratings/summary/:type/:id
+  // GET /api/governance/ratings/driver/:driverId
   getRatingSummary = async (req: Request, res: Response) => {
     try {
-      const { type, id } = ratingSummaryParamsSchema.parse(req.params);
+      const { driverId } = req.params;
       
-      const userType = type === 'driver' ? UserType.DRIVER : UserType.PASSENGER;
-      const summary = await this.ratingService.getRatingSummary(id, userType);
+      const userType = UserType.DRIVER;
+      const summary = await this.ratingService.getRatingSummary(driverId, userType);
 
       res.json({
         success: true,

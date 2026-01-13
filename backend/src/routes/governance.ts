@@ -4,8 +4,10 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
+import { RatingController } from '../modules/rating/controller';
 
 const router = Router();
+const ratingController = new RatingController();
 
 // Schemas
 const passengerCreateSchema = z.object({
@@ -129,5 +131,139 @@ router.get('/communities', async (req, res) => {
     });
   }
 });
+
+// Driver registration schemas
+const driverCreateSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório'),
+  email: z.string().email('Email inválido'),
+  phone: z.string().min(1, 'Telefone é obrigatório'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  communityId: z.string().optional(),
+  documentCpf: z.string().min(1, 'CPF é obrigatório'),
+  documentRg: z.string().min(1, 'RG é obrigatório'),
+  documentCnh: z.string().min(1, 'CNH é obrigatório'),
+  vehiclePlate: z.string().min(1, 'Placa do veículo é obrigatória'),
+  vehicleModel: z.string().min(1, 'Modelo do veículo é obrigatório')
+});
+
+// Guide registration schemas
+const guideCreateSchema = z.object({
+  name: z.string().min(1, 'Nome é obrigatório'),
+  email: z.string().email('Email inválido'),
+  phone: z.string().min(1, 'Telefone é obrigatório'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  communityId: z.string().optional(),
+  isBilingual: z.boolean().default(false),
+  languages: z.array(z.string()).default([]),
+  alsoDriver: z.boolean().default(false)
+});
+
+// POST /api/governance/driver - Create driver
+router.post('/driver', async (req, res) => {
+  try {
+    const data = driverCreateSchema.parse(req.body);
+    
+    // Check if email already exists
+    const existingDriver = await prisma.drivers.findUnique({ where: { email: data.email } });
+    if (existingDriver) {
+      return res.status(409).json({ 
+        success: false, 
+        error: 'Email já cadastrado' 
+      });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    
+    // Create driver with pending status (needs approval)
+    const driver = await prisma.drivers.create({
+      data: {
+        id: randomUUID(),
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password_hash: hashedPassword,
+        status: 'pending', // Requires admin approval
+        document_cpf: data.documentCpf,
+        document_rg: data.documentRg,
+        document_cnh: data.documentCnh,
+        vehicle_plate: data.vehiclePlate,
+        vehicle_model: data.vehicleModel,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      data: { 
+        id: driver.id,
+        name: driver.name,
+        email: driver.email,
+        phone: driver.phone,
+        status: driver.status
+      }
+    });
+  } catch (error) {
+    console.error('Error creating driver:', error);
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao criar motorista'
+    });
+  }
+});
+
+// POST /api/governance/guide - Create tourist guide
+router.post('/guide', async (req, res) => {
+  try {
+    const data = guideCreateSchema.parse(req.body);
+    
+    // Check if email already exists
+    const existingGuide = await prisma.tourist_guides.findUnique({ where: { email: data.email } });
+    if (existingGuide) {
+      return res.status(409).json({ 
+        success: false, 
+        error: 'Email já cadastrado' 
+      });
+    }
+    
+    // Create guide with pending status (needs approval)
+    const guide = await prisma.tourist_guides.create({
+      data: {
+        id: randomUUID(),
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        status: 'pending', // Requires admin approval
+        is_bilingual: data.isBilingual,
+        languages: data.languages,
+        also_driver: data.alsoDriver,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    res.json({ 
+      success: true, 
+      data: { 
+        id: guide.id,
+        name: guide.name,
+        email: guide.email,
+        phone: guide.phone,
+        status: guide.status
+      }
+    });
+  } catch (error) {
+    console.error('Error creating guide:', error);
+    res.status(400).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao criar guia turístico'
+    });
+  }
+});
+
+// Rating endpoints
+router.post('/ratings', ratingController.createRating);
+router.get('/ratings/driver/:driverId', ratingController.getRatingSummary);
 
 export { router as governanceRoutes };

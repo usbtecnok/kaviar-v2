@@ -36,6 +36,23 @@ router.post('/passenger/login', async (req, res) => {
       });
     }
 
+    // Check LGPD consent
+    const lgpdConsent = await prisma.user_consents.findUnique({
+      where: {
+        passenger_id_consent_type: {
+          passenger_id: passenger.id,
+          consent_type: 'LGPD'
+        }
+      }
+    });
+
+    if (!lgpdConsent || !lgpdConsent.accepted) {
+      return res.status(401).json({
+        success: false,
+        error: 'É necessário aceitar os termos LGPD para continuar'
+      });
+    }
+
     // Verify password
     const isValidPassword = await bcrypt.compare(password, passenger.password_hash || '');
     if (!isValidPassword) {
