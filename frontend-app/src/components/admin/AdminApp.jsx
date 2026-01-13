@@ -1,8 +1,9 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
-import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert } from "@mui/material";
+import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress } from "@mui/material";
 import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
+import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
 import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
@@ -39,23 +40,31 @@ function AdminHeader() {
       alignItems: 'center', 
       mb: 3,
       p: 2,
-      bgcolor: 'background.paper',
+      bgcolor: '#1a1a1a',
       borderRadius: 1,
-      boxShadow: 1
+      border: '1px solid #FFD700',
+      boxShadow: '0 4px 8px rgba(255, 215, 0, 0.2)'
     }}>
       <Box>
-        <Typography variant="h6" color="error.main">
+        <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
           Admin: {admin?.name || 'Usuário'}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" sx={{ color: '#FFF' }}>
           {admin?.role || 'ADMIN'}
         </Typography>
       </Box>
       <Button 
         onClick={handleLogout} 
-        color="error"
         variant="outlined"
         size="small"
+        sx={{
+          borderColor: '#FFD700',
+          color: '#FFD700',
+          '&:hover': {
+            borderColor: '#FFC107',
+            bgcolor: 'rgba(255, 215, 0, 0.1)'
+          }
+        }}
       >
         Sair
       </Button>
@@ -74,21 +83,55 @@ function AdminHome() {
 
   const fetchDashboardData = async () => {
     try {
+      setLoading(true);
+      setError('');
+      
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setDashboardData(data.data);
-      } else {
-        setError(data.error || 'Erro ao carregar dashboard');
+      if (!token) {
+        throw new Error('Token não encontrado');
       }
+
+      // ✅ CORREÇÃO: Usar endpoints que existem no backend
+      const [driversResponse, guidesResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/drivers`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/api/admin/guides`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
+      if (driversResponse.status === 401 || guidesResponse.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        localStorage.removeItem('kaviar_admin_data');
+        window.location.href = '/admin/login';
+        return;
+      }
+
+      const driversData = await driversResponse.json();
+      const guidesData = await guidesResponse.json();
+
+      // Calcular estatísticas básicas
+      const drivers = driversData.success ? driversData.data : [];
+      const guides = guidesData.success ? guidesData.data : [];
+
+      const stats = {
+        totalDrivers: drivers.length,
+        totalGuides: guides.length,
+        totalPassengers: 0, // Placeholder
+        totalCommunities: 0 // Placeholder
+      };
+
+      const pending = {
+        drivers: drivers.filter(d => d.status === 'pending').length,
+        guides: guides.filter(g => g.status === 'pending').length,
+        passengers: 0 // Placeholder
+      };
+
+      setDashboardData({ stats, pending });
     } catch (error) {
-      setError('Erro de conexão');
+      console.error('Error fetching dashboard data:', error);
+      setError(error.message || 'Erro ao carregar dashboard');
     } finally {
       setLoading(false);
     }
@@ -96,22 +139,38 @@ function AdminHome() {
 
   const { stats = {}, pending = {} } = dashboardData || {};
 
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <AdminHeader />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress sx={{ color: '#FFD700', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: '#FFD700' }}>
+              Carregando painel administrativo...
+            </Typography>
+          </Box>
+        </Box>
+      </Container>
+    );
+  }
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 4, bgcolor: '#000', minHeight: '100vh' }}>
       <AdminHeader />
       
       <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <AdminPanelSettings sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
-        <Typography variant="h4" gutterBottom>
+        <AdminPanelSettings sx={{ fontSize: 48, color: '#FFD700', mb: 2 }} />
+        <Typography variant="h4" gutterBottom sx={{ color: '#FFD700', fontWeight: 'bold' }}>
           Dashboard Administrativo
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body1" sx={{ color: '#FFF' }}>
           Gestão completa do sistema KAVIAR
         </Typography>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3, bgcolor: '#1a1a1a', color: '#FFD700' }}>
           {error}
         </Alert>
       )}
@@ -120,52 +179,52 @@ function AdminHome() {
       {!loading && dashboardData && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
+            <Card sx={{ bgcolor: '#1a1a1a', border: '1px solid #FFD700' }}>
               <CardContent sx={{ textAlign: 'center' }}>
-                <People sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                <Typography variant="h4" color="primary.main">
+                <People sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
+                <Typography variant="h4" sx={{ color: '#FFD700' }}>
                   {stats.totalPassengers || 0}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: '#FFF' }}>
                   Passageiros
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
+            <Card sx={{ bgcolor: '#1a1a1a', border: '1px solid #FFD700' }}>
               <CardContent sx={{ textAlign: 'center' }}>
-                <DirectionsCar sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-                <Typography variant="h4" color="success.main">
+                <DirectionsCar sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
+                <Typography variant="h4" sx={{ color: '#FFD700' }}>
                   {stats.totalDrivers || 0}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: '#FFF' }}>
                   Motoristas
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
+            <Card sx={{ bgcolor: '#1a1a1a', border: '1px solid #FFD700' }}>
               <CardContent sx={{ textAlign: 'center' }}>
-                <LocationCity sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-                <Typography variant="h4" color="warning.main">
+                <LocationCity sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
+                <Typography variant="h4" sx={{ color: '#FFD700' }}>
                   {stats.totalCommunities || 0}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: '#FFF' }}>
                   Comunidades
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card>
+            <Card sx={{ bgcolor: '#1a1a1a', border: '1px solid #FFD700' }}>
               <CardContent sx={{ textAlign: 'center' }}>
-                <Tour sx={{ fontSize: 40, color: 'secondary.main', mb: 1 }} />
-                <Typography variant="h4" color="secondary.main">
+                <Tour sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
+                <Typography variant="h4" sx={{ color: '#FFD700' }}>
                   {stats.totalGuides || 0}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{ color: '#FFF' }}>
                   Guias
                 </Typography>
               </CardContent>
@@ -478,137 +537,141 @@ function AdminElderlyWrapper() {
 
 export default function AdminApp() {
   return (
-    <Routes>
-      <Route path="/login" element={<AdminLogin />} />
-      <Route path="/" element={
-        <ProtectedAdminRoute>
-          <AdminHome />
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
-      <Route path="/communities" element={
-        <ProtectedAdminRoute>
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <AdminHeader />
-            <CommunitiesManagement />
-          </Container>
-        </ProtectedAdminRoute>
-      } />
-      
-      <Route path="/neighborhoods" element={
-        <ProtectedAdminRoute>
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <AdminHeader />
-            <NeighborhoodsManagement />
-          </Container>
-        </ProtectedAdminRoute>
-      } />
-      
-      <Route path="/geofences" element={
-        <ProtectedAdminRoute>
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <AdminHeader />
-            <GeofenceManagement />
-          </Container>
-        </ProtectedAdminRoute>
-      } />
-      
-      <Route path="/drivers" element={
-        <ProtectedAdminRoute>
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <AdminHeader />
-            <DriversManagement />
-          </Container>
-        </ProtectedAdminRoute>
-      } />
-      
-      <Route path="/passengers" element={
-        <ProtectedAdminRoute>
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <AdminHeader />
-            <PassengersManagement />
-          </Container>
-        </ProtectedAdminRoute>
-      } />
-      
-      <Route path="/guides" element={
-        <ProtectedAdminRoute>
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <AdminHeader />
-            <GuidesManagement />
-          </Container>
-        </ProtectedAdminRoute>
-      } />
-      
-      <Route path="/elderly" element={
-        <ProtectedAdminRoute>
-          <Container maxWidth="lg" sx={{ mt: 2 }}>
-            <AdminHeader />
-            <Typography variant="h4" sx={{ p: 3 }}>
-              Acompanhamento Ativo - Em desenvolvimento
-            </Typography>
-          </Container>
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/metrics" element={
-        <ProtectedAdminRoute>
-          <AdminMetricsWrapper />
-        </ProtectedAdminRoute>
-      } />
-      
-      {/* Rotas de Corridas */}
-      <Route path="/rides" element={
-        <ProtectedAdminRoute>
-          <RideList />
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/rides/:id" element={
-        <ProtectedAdminRoute>
-          <RideDetail />
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/rides/audit" element={
-        <ProtectedAdminRoute>
-          <RideAudit />
-        </ProtectedAdminRoute>
-      } />
-      
-      {/* Rota de Aprovação de Motoristas */}
-      <Route path="/drivers/approval" element={
-        <ProtectedAdminRoute>
-          <DriverApproval />
-        </ProtectedAdminRoute>
-      } />
-      
-      {/* Rotas Premium Tourism */}
-      <Route path="/premium-tourism/packages" element={
-        <ProtectedAdminRoute>
-          <TourPackages />
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/premium-tourism/packages/new" element={
-        <ProtectedAdminRoute>
-          <TourPackageForm />
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/premium-tourism/packages/:id/edit" element={
-        <ProtectedAdminRoute>
-          <TourPackageForm />
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/premium-tourism/bookings" element={
-        <ProtectedAdminRoute>
-          <TourBookings />
-        </ProtectedAdminRoute>
-      } />
-      <Route path="/elderly" element={
-        <ProtectedAdminRoute>
-          <AdminElderlyWrapper />
-        </ProtectedAdminRoute>
-      } />
-      
-      {/* Redirects para rotas antigas */}
-      <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
-    </Routes>
+    <AdminErrorBoundary>
+      <Box sx={{ bgcolor: '#000', minHeight: '100vh', color: '#FFD700' }}>
+        <Routes>
+          <Route path="/login" element={<AdminLogin />} />
+          <Route path="/" element={
+            <ProtectedAdminRoute>
+              <AdminHome />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+          <Route path="/communities" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <CommunitiesManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/neighborhoods" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <NeighborhoodsManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/geofences" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <GeofenceManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/drivers" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <DriversManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/passengers" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <PassengersManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/guides" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <GuidesManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/elderly" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <Typography variant="h4" sx={{ p: 3 }}>
+                  Acompanhamento Ativo - Em desenvolvimento
+                </Typography>
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/metrics" element={
+            <ProtectedAdminRoute>
+              <AdminMetricsWrapper />
+            </ProtectedAdminRoute>
+          } />
+          
+          {/* Rotas de Corridas */}
+          <Route path="/rides" element={
+            <ProtectedAdminRoute>
+              <RideList />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/rides/:id" element={
+            <ProtectedAdminRoute>
+              <RideDetail />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/rides/audit" element={
+            <ProtectedAdminRoute>
+              <RideAudit />
+            </ProtectedAdminRoute>
+          } />
+          
+          {/* Rota de Aprovação de Motoristas */}
+          <Route path="/drivers/approval" element={
+            <ProtectedAdminRoute>
+              <DriverApproval />
+            </ProtectedAdminRoute>
+          } />
+          
+          {/* Rotas Premium Tourism */}
+          <Route path="/premium-tourism/packages" element={
+            <ProtectedAdminRoute>
+              <TourPackages />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/premium-tourism/packages/new" element={
+            <ProtectedAdminRoute>
+              <TourPackageForm />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/premium-tourism/packages/:id/edit" element={
+            <ProtectedAdminRoute>
+              <TourPackageForm />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/premium-tourism/bookings" element={
+            <ProtectedAdminRoute>
+              <TourBookings />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/elderly" element={
+            <ProtectedAdminRoute>
+              <AdminElderlyWrapper />
+            </ProtectedAdminRoute>
+          } />
+          
+          {/* Redirects para rotas antigas */}
+          <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
+        </Routes>
+      </Box>
+    </AdminErrorBoundary>
   );
 }
