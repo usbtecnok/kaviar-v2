@@ -28,7 +28,7 @@ export default function Login() {
               <Stack spacing={1}>
                 <Button
                   component={RouterLink}
-                  to="/passageiro"
+                  to="/login"
                   variant="contained"
                   fullWidth
                 >
