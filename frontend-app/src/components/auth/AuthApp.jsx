@@ -2,7 +2,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import { Container, Typography, Box, Button } from "@mui/material";
 import { Login as LoginIcon } from "@mui/icons-material";
 import DomainHeader from "../common/DomainHeader";
-import Login from "../../pages/Login";
+import LoginForm from "./LoginForm";
 import KaviarLogo from "../common/KaviarLogo";
 
 function AuthHome() {
@@ -50,7 +50,7 @@ function LoginWrapper() {
         breadcrumbs={["Login"]}
         backUrl="/login"
       />
-      <Login />
+      <LoginForm />
     </Container>
   );
 }
