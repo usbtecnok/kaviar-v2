@@ -42,6 +42,8 @@ export default function CompleteOnboarding() {
     name: '',
     email: '',
     phone: '',
+    password: '',
+    confirmPassword: '',
     communityId: '',
     // Driver specific
     documentCpf: '',
@@ -82,6 +84,8 @@ export default function CompleteOnboarding() {
     name: formData.name ?? '',
     email: formData.email ?? '',
     phone: formData.phone ?? '',
+    password: formData.password ?? '',
+    confirmPassword: formData.confirmPassword ?? '',
     communityId: formData.communityId ?? '',
     documentCpf: formData.documentCpf ?? '',
     documentRg: formData.documentRg ?? '',
@@ -110,8 +114,18 @@ export default function CompleteOnboarding() {
     setError('');
     // Validação mínima por tipo (evita 500 no backend)
     if (userType === 'passenger') {
-      if (!clean.name || !clean.phone) {
-        setError('Preencha nome e telefone.');
+      if (!clean.name || !clean.phone || !clean.password) {
+        setError('Preencha nome, telefone e senha.');
+        setLoading(false);
+        return;
+      }
+      if (clean.password.length < 6) {
+        setError('Senha deve ter pelo menos 6 caracteres.');
+        setLoading(false);
+        return;
+      }
+      if (clean.password !== clean.confirmPassword) {
+        setError('Senhas não coincidem.');
         setLoading(false);
         return;
       }
@@ -147,6 +161,7 @@ export default function CompleteOnboarding() {
           name: clean.name,
           email: clean.email,
           phone: clean.phone,
+          password: clean.password,
           communityId: clean.communityId || null
         });
         userId = response.data.data.id;
@@ -289,6 +304,29 @@ export default function CompleteOnboarding() {
               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               fullWidth
             />
+
+            {/* Campos de senha para passageiro */}
+            {userType === 'passenger' && (
+              <>
+                <TextField
+                  label="Senha"
+                  type="password"
+                  value={clean.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  required
+                  fullWidth
+                  helperText="Mínimo 6 caracteres"
+                />
+                <TextField
+                  label="Confirmar Senha"
+                  type="password"
+                  value={clean.confirmPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  required
+                  fullWidth
+                />
+              </>
+            )}
 
             {/* Campos específicos para motorista */}
             {userType === 'driver' && (

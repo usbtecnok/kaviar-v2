@@ -7,14 +7,13 @@ import {
   Alert,
   Typography
 } from '@mui/material';
-import { useAuth } from '../../auth/AuthContext';
+import api from '../../api';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -22,15 +21,21 @@ export default function LoginForm() {
     setLoading(true);
     setError('');
 
-    const result = await login(email, password, 'PASSENGER');
-    
-    if (result.success) {
-      // Save token with the key expected by ProtectedRoute
-      localStorage.setItem('token', localStorage.getItem('kaviar_token'));
-      localStorage.setItem('user', localStorage.getItem('kaviar_user'));
-      navigate('/passageiro/home');
-    } else {
-      setError(result.error || 'Erro no login');
+    try {
+      const response = await api.post('/api/auth/passenger/login', {
+        email,
+        password
+      });
+
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        navigate('/passageiro/home');
+      } else {
+        setError('Email ou senha incorretos');
+      }
+    } catch (error) {
+      setError(error.response?.data?.error || 'Erro no login');
     }
     
     setLoading(false);
