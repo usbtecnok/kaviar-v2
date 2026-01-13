@@ -8,11 +8,13 @@ async function startServer() {
     await prisma.$connect();
     console.log('✅ Database connected successfully');
 
+    const PORT = Number(process.env.PORT || 3003);
+
     // Start server
-    app.listen(config.port, () => {
-      console.log(`🚀 KAVIAR Backend running on port ${config.port}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 KAVIAR Backend running on port ${PORT}`);
       console.log(`📊 Environment: ${config.nodeEnv}`);
-      console.log(`🔗 Health check: http://localhost:${config.port}/api/health`);
+      console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

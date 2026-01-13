@@ -1,11 +1,10 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 const passengerLoginSchema = z.object({
   email: z.string().email('Email inválido'),

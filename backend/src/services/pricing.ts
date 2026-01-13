@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/database';
 
 export interface PricingModifier {
   type: 'PRIORITY_BONUS' | 'RESTRICTED_SURCHARGE' | 'PRIVATE_FIXED';

@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database';
 import { OperationalService, OperationalProfile } from './operational';
-
-const prisma = new PrismaClient();
 
 export interface DispatchResult {
   success: boolean;

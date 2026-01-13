@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database';
 import { CommunityService } from './community';
 import { OperationalService } from './operational';
 import { PricingService } from './pricing';
 import { IncentiveService } from './incentive';
-
-const prisma = new PrismaClient();
 
 export interface CreateRideRequest {
   pickup: { lat: number; lng: number };

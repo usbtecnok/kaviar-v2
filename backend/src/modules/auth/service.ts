@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../config/database';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 export class AuthService {
   async login(email: string, password: string) {

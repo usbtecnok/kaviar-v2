@@ -11,147 +11,67 @@ npm install
 
 ### 2. Configurar banco de dados
 
-#### Opção 1: Neon PostgreSQL (Recomendado)
-
 1. **Criar conta no Neon**: https://neon.tech
-2. **Criar projeto** e obter connection strings:
-   - **Direct**: Para migrations/DDL (ex: `ep-xxxx.us-east-1.aws.neon.tech`)
-   - **Pooler**: Para runtime/conexões (ex: `ep-xxxx-pooler.c-2.us-east-1.aws.neon.tech`)
-
+2. **Criar projeto** e obter connection string pooler
 3. **Configurar .env**:
    ```bash
-   # Direct connection (migrations)
-   DATABASE_URL=REDACTED
-   
-   # Optional: Pooler (runtime)
-   DATABASE_URL_POOLER="postgresql://<HOST>/<DB>?sslmode=require"
+   DATABASE_URL="postgresql://user:password@host-pooler.neon.tech/database?sslmode=require&connection_limit=2&pool_timeout=20&connect_timeout=10"
    ```
-
-#### Opção 2: Supabase PostgreSQL (Alternativa)
-
-Siga as instruções detalhadas em: `SUPABASE_SETUP.md`
-
-**Resumo rápido:**
-1. Obter DATABASE_PASSWORD e PROJECT_ID do Supabase
-2. Configurar DATABASE_URL no formato:
-   ```
-   postgresql://<HOST>:5432/<DB>?sslmode=require
-   ```
-
-**📋 Importante: Conexões Direct vs Pooler**
-- **Migrations/DDL**: Use sempre conexão **direct** (sem pooler)
-- **Runtime/App**: Pode usar **pooler** para melhor performance
-- **Desenvolvimento**: Direct é suficiente para ambos
 
 ### 3. Configurar variáveis de ambiente
+
 ```bash
 cp .env.example .env
-# Editar .env com suas configurações
+# Editar .env com suas credenciais
 ```
 
 ### 4. Executar migrações
 
-**IMPORTANTE: NÃO usar prisma migrate**
-
-1. **No Supabase Dashboard:**
-   - Vá em: `SQL Editor`
-   - Execute o arquivo: `supabase-schema.sql`
-
-2. **Sincronizar localmente:**
-   ```bash
-   npx prisma db pull
-   npm run db:generate
-   ```
-
-### 5. Popular banco com dados iniciais
 ```bash
-# Dados já incluídos no supabase-schema.sql
-# Ou execute separadamente:
-npm run db:seed
+npm run db:generate
+npm run db:migrate
 ```
 
-### 6. Iniciar servidor
+### 5. Iniciar servidor
+
 ```bash
-npm run dev
+# Desenvolvimento
+npm run dev:3003
+
+# Produção
+npm run build
+npm run start:3003
 ```
 
-## Endpoints Disponíveis
+## Scripts Disponíveis
 
-### Autenticação Admin
-- `POST /api/admin/auth/login` - Login de admin
-- `POST /api/admin/auth/logout` - Logout
-
-### Gestão de Motoristas (Requer Auth + Role)
-- `GET /api/admin/drivers` - Lista motoristas
-  - Query params: `page`, `limit`, `status`
-- `PUT /api/admin/drivers/:id/approve` - Aprovar motorista
-- `PUT /api/admin/drivers/:id/suspend` - Suspender motorista
-- `PUT /api/admin/drivers/:id/reactivate` - Reativar motorista
-
-### Dashboard Admin (Requer Auth + Role)
-- `GET /api/admin/dashboard/metrics` - Métricas gerais
-- `GET /api/admin/dashboard/recent-rides` - Corridas recentes
-- `GET /api/admin/dashboard/drivers-overview` - Overview de motoristas
-
-### Gestão de Passageiros (Requer Auth + Role)
-- `GET /api/admin/passengers` - Lista passageiros
-  - Query params: `page`, `limit`
-
-### Gestão de Corridas (Requer Auth + Role)
-- `GET /api/admin/rides` - Lista corridas
-  - Query params: `page`, `limit`, `status`
-- `GET /api/admin/rides/:id` - Detalhes de uma corrida
-
-### Health Check
-- `GET /api/health` - Status do servidor
-
-## Exemplo de Uso
-
-### 1. Login
-```bash
-curl -X POST http://localhost:3001/api/admin/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}'
-```
-
-### 2. Listar Motoristas (com token)
-```bash
-curl -X GET http://localhost:3001/api/admin/drivers \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-### 3. Listar Corridas por Status
-```bash
-curl -X GET "http://localhost:3001/api/admin/rides?status=completed&page=1&limit=5" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
-
-## Credenciais Padrão
-
-- **Email:** admin@kaviar.com
-- **Senha:** admin123
+- `npm run dev:3003` - Servidor desenvolvimento (porta 3003)
+- `npm run build` - Build para produção
+- `npm run start:3003` - Servidor produção (porta 3003)
+- `npm run kill:ports` - Matar processos nas portas 3001/3003
+- `npm run db:generate` - Gerar Prisma Client
+- `npm run db:migrate` - Executar migrações
+- `npm run db:studio` - Abrir Prisma Studio
 
 ## Estrutura do Projeto
 
 ```
 src/
-├── config/          # Configurações
-├── controllers/     # Controllers (futuros)
-├── middlewares/     # Middlewares
-├── modules/         # Módulos organizados
-│   ├── auth/        # Autenticação
-│   └── admin/       # Admin (futuro)
-├── routes/          # Rotas
-├── services/        # Services (futuros)
-└── utils/           # Utilitários (futuros)
+├── config/          # Configurações (database, env)
+├── routes/          # Rotas da API
+├── services/        # Lógica de negócio
+├── middlewares/     # Middlewares Express
+├── modules/         # Módulos organizados por feature
+└── utils/           # Utilitários
 ```
 
-## Scripts Disponíveis
+## API Endpoints
 
-- `npm run dev` - Desenvolvimento com hot reload
-- `npm run build` - Build para produção
-- `npm run start` - Iniciar produção
-- `npm run db:generate` - Gerar cliente Prisma
-- `npm run db:migrate` - Executar migrações
-- `npm run db:seed` - Popular banco
-- `npm run db:studio` - Interface visual do banco
+- `GET /api/health` - Health check
+- `POST /api/auth/passenger/login` - Login passageiro
+- `POST /api/auth/driver/login` - Login motorista
+- `POST /api/admin/auth/login` - Login admin
+
+## Variáveis de Ambiente
+
+Ver `.env.example` para lista completa de variáveis necessárias.

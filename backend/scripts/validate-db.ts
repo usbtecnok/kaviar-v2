@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function validateConnection() {
   try {
-    console.log('🔍 Testando conexão com Supabase...');
+    console.log('🔍 Testando conexão com Neon PostgreSQL...');
     
     // Test connection
     await prisma.$connect();
@@ -33,9 +33,8 @@ async function validateConnection() {
     console.error('❌ Erro de conexão:', error);
     console.log('\n🔧 Verifique:');
     console.log('1. DATABASE_URL está correto no .env');
-    console.log('2. DATABASE_PASSWORD está correto');
-    console.log('3. PROJECT_ID está correto');
-    console.log('4. Consulte SUPABASE_SETUP.md');
+    console.log('2. Credenciais Neon estão corretas');
+    console.log('3. Projeto Neon está ativo');
   } finally {
     await prisma.$disconnect();
   }

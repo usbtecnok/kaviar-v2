@@ -14,8 +14,8 @@ export const prisma = new PrismaClient({
       pool: {
         timeout: 60000,
         idleTimeout: 300000, // 5 minutos
-        maxConnections: 10,
-        minConnections: 2
+        maxConnections:2,
+        minConnections: 0
       }
     }
   }
