@@ -29,7 +29,8 @@ export default function Login() {
 
               <Stack spacing={1}>
                 <Button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/auth/form')}
+
                   variant="contained"
                   fullWidth
                 >
