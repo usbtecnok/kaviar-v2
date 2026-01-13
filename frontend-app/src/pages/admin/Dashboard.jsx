@@ -150,7 +150,7 @@ export default function AdminDashboard() {
       </Typography>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card sx={{ bgcolor: pending.drivers > 0 ? 'warning.light' : 'grey.100' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -175,32 +175,7 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card sx={{ bgcolor: pending.passengers > 0 ? 'warning.light' : 'grey.100' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PendingActions sx={{ mr: 1 }} />
-                <Typography variant="h6">Passageiros</Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {pending.passengers}
-              </Typography>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
-                Aguardando aprovação
-              </Typography>
-              <Button 
-                variant="contained" 
-                size="small"
-                disabled={pending.passengers === 0}
-                href="/admin/passengers?status=pending"
-              >
-                Revisar
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={6}>
           <Card sx={{ bgcolor: pending.guides > 0 ? 'warning.light' : 'grey.100' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>

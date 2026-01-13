@@ -28,7 +28,7 @@ export default function PassengersManagement() {
   const [passengers, setPassengers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [currentTab, setCurrentTab] = useState('pending');
+  const [currentTab, setCurrentTab] = useState('active');
   const [actionDialog, setActionDialog] = useState({ 
     open: false, 
     passenger: null, 
@@ -94,9 +94,7 @@ export default function PassengersManagement() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'approved': return 'success';
-      case 'pending': return 'warning';
-      case 'rejected': return 'error';
+      case 'ACTIVE': return 'success';
       case 'suspended': return 'error';
       default: return 'default';
     }
@@ -104,9 +102,7 @@ export default function PassengersManagement() {
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'approved': return 'Aprovado';
-      case 'pending': return 'Pendente';
-      case 'rejected': return 'Rejeitado';
+      case 'ACTIVE': return 'Ativo';
       case 'suspended': return 'Suspenso';
       default: return status;
     }
@@ -134,9 +130,7 @@ export default function PassengersManagement() {
       )}
 
       <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} sx={{ mb: 3 }}>
-        <Tab label="Pendentes" value="pending" />
-        <Tab label="Aprovados" value="approved" />
-        <Tab label="Rejeitados" value="rejected" />
+        <Tab label="Ativos" value="active" />
         <Tab label="Suspensos" value="suspended" />
         <Tab label="Todos" value="" />
       </Tabs>
@@ -171,69 +165,25 @@ export default function PassengersManagement() {
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    {passenger.status === 'pending' && (
-                      <>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => openActionDialog(passenger, 'approved')}
-                          title="Aprovar"
-                        >
-                          <CheckCircle />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => openActionDialog(passenger, 'rejected')}
-                          title="Rejeitar"
-                        >
-                          <Cancel />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="warning"
-                          onClick={() => openActionDialog(passenger, 'suspended')}
-                          title="Suspender"
-                        >
-                          <Block />
-                        </IconButton>
-                      </>
-                    )}
-                    {passenger.status === 'approved' && (
-                      <>
-                        <IconButton
-                          size="small"
-                          color="warning"
-                          onClick={() => openActionDialog(passenger, 'suspended')}
-                          title="Suspender"
-                        >
-                          <Block />
-                        </IconButton>
-                      </>
-                    )}
-                    {passenger.status === 'rejected' && (
-                      <>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => openActionDialog(passenger, 'approved')}
-                          title="Aprovar (reverter)"
-                        >
-                          <CheckCircle />
-                        </IconButton>
-                      </>
+                    {passenger.status === 'ACTIVE' && (
+                      <IconButton
+                        size="small"
+                        color="warning"
+                        onClick={() => openActionDialog(passenger, 'suspended')}
+                        title="Suspender"
+                      >
+                        <Block />
+                      </IconButton>
                     )}
                     {passenger.status === 'suspended' && (
-                      <>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => openActionDialog(passenger, 'approved')}
-                          title="Reativar"
-                        >
-                          <Restore />
-                        </IconButton>
-                      </>
+                      <IconButton
+                        size="small"
+                        color="success"
+                        onClick={() => openActionDialog(passenger, 'ACTIVE')}
+                        title="Reativar"
+                      >
+                        <Restore />
+                      </IconButton>
                     )}
                     <IconButton
                       size="small"
