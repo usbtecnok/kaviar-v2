@@ -10,11 +10,13 @@ import { adminApi } from '../../../services/adminApi';
 import { formatPrice, formatDuration, formatTourType } from '../../../utils/premiumTourismHelpers';
 import DomainHeader from '../../../components/common/DomainHeader';
 import PremiumTourismNav from '../../../components/admin/premium-tourism/PremiumTourismNav';
+import PermissionDenied from '../../../components/admin/PermissionDenied';
 
 export default function TourPackages() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -36,6 +38,10 @@ export default function TourPackages() {
       setTotal(data.total || 0);
       setError('');
     } catch (err) {
+      if (err.message && err.message.includes('403')) {
+        setPermissionDenied(true);
+        return;
+      }
       setError('Erro ao carregar pacotes turísticos');
       console.error('Error loading tour packages:', err);
     } finally {
@@ -60,6 +66,10 @@ export default function TourPackages() {
     setPage(1);
     loadPackages();
   };
+
+  if (permissionDenied) {
+    return <PermissionDenied message="Acesso ao Premium Tourism requer permissão de SUPER_ADMIN ou OPERATOR." />;
+  }
 
   if (loading && packages.length === 0) {
     return (

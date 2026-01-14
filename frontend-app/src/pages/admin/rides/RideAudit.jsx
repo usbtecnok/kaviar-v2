@@ -31,6 +31,7 @@ import {
   Edit,
   Search
 } from '@mui/icons-material';
+import PermissionDenied from '../../../components/admin/PermissionDenied';
 
 const actionIcons = {
   cancel: <Cancel color="error" />,
@@ -59,6 +60,7 @@ export default function RideAudit() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -93,6 +95,11 @@ export default function RideAudit() {
           'Content-Type': 'application/json'
         }
       });
+
+      if (response.status === 403) {
+        setPermissionDenied(true);
+        return;
+      }
 
       const data = await response.json();
       
@@ -130,6 +137,10 @@ export default function RideAudit() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  if (permissionDenied) {
+    return <PermissionDenied message="Acesso à auditoria requer permissão de SUPER_ADMIN ou OPERATOR." />;
+  }
 
   return (
     <Container maxWidth="xl" sx={{ mt: 2 }}>

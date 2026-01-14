@@ -35,9 +35,10 @@ export default function DriverApproval() {
 
   const loadDrivers = async () => {
     try {
-      const response = await adminApi.get('/api/admin/drivers');
-      if (response.data.success) {
-        setDrivers(response.data.data);
+      // ✅ CORREÇÃO: adminApi já adiciona /api/admin
+      const response = await adminApi.getDrivers();
+      if (response.success) {
+        setDrivers(response.data);
       }
     } catch (error) {
       setError('Erro ao carregar motoristas');
@@ -48,7 +49,8 @@ export default function DriverApproval() {
 
   const handleApprove = async (driverId) => {
     try {
-      await adminApi.put(`/drivers/${driverId}/approve`);
+      // ✅ CORREÇÃO: usar método específico do adminApi
+      await adminApi.approveDriver(driverId);
       loadDrivers(); // Recarregar lista
     } catch (error) {
       setError('Erro ao aprovar motorista');
@@ -57,9 +59,8 @@ export default function DriverApproval() {
 
   const handleSuspend = async (driverId) => {
     try {
-      await adminApi.put(`/drivers/${driverId}/suspend`, {
-        reason: 'Documentos inválidos'
-      });
+      // ✅ CORREÇÃO: usar método específico do adminApi
+      await adminApi.suspendDriver(driverId, 'Documentos inválidos');
       loadDrivers(); // Recarregar lista
     } catch (error) {
       setError('Erro ao reprovar motorista');

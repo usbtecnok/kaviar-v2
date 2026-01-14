@@ -45,11 +45,11 @@ export const API_ROUTES = {
     METRICS: '/api/admin/dashboard/metrics',
   },
   
-  // Neighborhoods (Bairros)
+  // Neighborhoods (Bairros) - ✅ CORREÇÃO: endpoint não existe, usar communities temporariamente
   NEIGHBORHOODS: {
-    LIST: '/api/governance/neighborhoods',
-    DETAIL: (id) => `/api/governance/neighborhoods/${id}`,
-    GEOFENCE: (id) => `/api/governance/neighborhoods/${id}/geofence`,
+    LIST: '/api/governance/communities', // Backend não tem /neighborhoods ativo
+    DETAIL: (id) => `/api/governance/communities/${id}`,
+    GEOFENCE: (id) => `/api/governance/communities/${id}/geofence`,
   }
 };
 

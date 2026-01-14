@@ -139,7 +139,10 @@ export default function NeighborhoodsManagement() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Gestão de Bairros
+        Gestão de Comunidades
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Nota: Endpoint de bairros não está ativo no backend. Exibindo comunidades.
       </Typography>
 
       {error && (
@@ -152,7 +155,7 @@ export default function NeighborhoodsManagement() {
         {/* Lista de Neighborhoods */}
         <Paper sx={{ width: 400, maxHeight: 600, overflow: 'auto' }}>
           <Typography variant="h6" sx={{ p: 2, borderBottom: '1px solid #ddd' }}>
-            Bairros ({neighborhoods.length})
+            Comunidades ({neighborhoods.length})
           </Typography>
           
           <List>
