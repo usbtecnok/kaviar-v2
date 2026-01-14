@@ -132,6 +132,31 @@ router.get('/communities', async (req, res) => {
   }
 });
 
+// GET /api/governance/neighborhoods - List neighborhoods (bairros)
+router.get('/neighborhoods', async (req, res) => {
+  try {
+    const neighborhoods = await prisma.neighborhoods.findMany({
+      select: {
+        id: true,
+        name: true,
+        zone: true
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    res.json({ 
+      success: true, 
+      data: neighborhoods 
+    });
+  } catch (error) {
+    console.error('Error fetching neighborhoods:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar bairros'
+    });
+  }
+});
+
 // Driver registration schemas
 const driverCreateSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),

@@ -61,3 +61,10 @@ build
 
 # local pipeline reports
 backend/audit/
+
+# editor junk
+*.swp
+*.swo
+*.swx
+*.bak
+*.bak.*
