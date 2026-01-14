@@ -87,4 +87,34 @@ router.get('/rides', async (req, res) => {
   }
 });
 
+// GET /api/admin/rides/:id
+router.get('/rides/:id', async (req, res) => {
+  try {
+    const ride = await prisma.rides.findUnique({
+      where: { id: req.params.id },
+      include: {
+        passengers: { select: { name: true, email: true, phone: true } },
+        drivers: { select: { name: true, email: true, phone: true } }
+      }
+    });
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        error: 'Corrida não encontrada'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: ride
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar corrida'
+    });
+  }
+});
+
 export { router as adminRoutes };

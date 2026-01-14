@@ -13,9 +13,8 @@ import {
   Chip,
   Grid
 } from '@mui/material';
-import NeighborhoodsMap from '../../components/maps/NeighborhoodsMap';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
 
 export default function NeighborhoodsManagement() {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -53,8 +52,9 @@ export default function NeighborhoodsManagement() {
       const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods/${neighborhood.id}/geofence`);
       const data = await response.json();
       
-      if (data.success && data.data.geometry) {
-        setGeofence(data.data.geometry);
+      if (data.success && data.data && data.data.coordinates) {
+        // Backend retorna data.coordinates (GeoJSON)
+        setGeofence(data.data.coordinates);
       }
     } catch (err) {
       console.error('Erro ao carregar geofence:', err);
@@ -133,7 +133,37 @@ export default function NeighborhoodsManagement() {
                   {selectedNeighborhood.name}
                 </Typography>
                 {geofence ? (
-                  <NeighborhoodsMap geofence={geofence} />
+                  <Box sx={{ height: 500, border: '1px solid #ddd', borderRadius: 1 }}>
+                    <iframe
+                      srcDoc={`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                          <style>body { margin: 0; } #map { height: 100vh; }</style>
+                        </head>
+                        <body>
+                          <div id="map"></div>
+                          <script>
+                            const map = L.map('map').setView([-22.9068, -43.1729], 11);
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                              attribution: '© OpenStreetMap'
+                            }).addTo(map);
+                            
+                            const geojson = ${JSON.stringify(geofence)};
+                            const layer = L.geoJSON(geojson, {
+                              style: { color: '#2196f3', weight: 2, fillOpacity: 0.2 }
+                            }).addTo(map);
+                            map.fitBounds(layer.getBounds());
+                          </script>
+                        </body>
+                        </html>
+                      `}
+                      style={{ width: '100%', height: '100%', border: 'none' }}
+                      title="Mapa do bairro"
+                    />
+                  </Box>
                 ) : (
                   <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
                     <CircularProgress />

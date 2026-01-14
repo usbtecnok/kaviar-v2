@@ -73,9 +73,26 @@ export default function RideDetail() {
     setLoading(true);
     setError('');
     
-    // Endpoint de detalhes de ride não existe no backend
-    setError('Detalhes de corrida não disponível. Endpoint em desenvolvimento.');
-    setLoading(false);
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setRide(data.data);
+      } else {
+        setError(data.error || 'Erro ao carregar detalhes da corrida');
+      }
+    } catch (error) {
+      setError('Erro de conexão com o servidor');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
