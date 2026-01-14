@@ -17,7 +17,6 @@ import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
 import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
 import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
 import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
-import PremiumTourismButton from "./PremiumTourismButton";
 import ElderlyManagement from "../../pages/admin/ElderlyManagement";
 import { useState, useEffect } from 'react';
 
@@ -132,7 +131,7 @@ function AdminHome() {
         totalDrivers: drivers.length,
         totalGuides: guides.length,
         totalPassengers: 0, // Endpoint não existe
-        totalCommunities: neighborhoods.length
+        totalNeighborhoods: neighborhoods.length
       };
 
       const pending = {
@@ -222,10 +221,10 @@ function AdminHome() {
               <CardContent sx={{ textAlign: 'center' }}>
                 <LocationCity sx={{ fontSize: 40, color: '#FFD700', mb: 1 }} />
                 <Typography variant="h4" sx={{ color: '#FFD700' }}>
-                  {stats.totalCommunities || 0}
+                  {stats.totalNeighborhoods || 0}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#FFF' }}>
-                  Comunidades
+                  Bairros
                 </Typography>
               </CardContent>
             </Card>
@@ -501,7 +500,13 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Pacotes e reservas turísticas
                 </Typography>
-                <PremiumTourismButton />
+                <Button 
+                  variant="contained" 
+                  color="secondary"
+                  href="/admin/premium-tourism/packages"
+                >
+                  Acessar
+                </Button>
               </CardContent>
             </Card>
           </Grid>

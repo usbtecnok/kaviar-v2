@@ -7,7 +7,7 @@ import { handleFeatureDisabledError, handleStatusTransitionError } from './middl
 
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
-// import { adminRoutes } from './routes/admin'; // DISABLED - legacy
+import { adminRoutes } from './routes/admin';
 // import { adminManagementRoutes } from './routes/admin-management'; // DISABLED - legacy
 // import { elderlyRoutes } from './routes/elderly'; // DISABLED - legacy
 // import { governanceRoutes } from './routes/governance'; // DISABLED - legacy
@@ -67,6 +67,7 @@ app.get('/api/health', (req, res) => {
 
 // Core routes (always enabled)
 app.use('/api/admin/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminApprovalRoutes);
 app.use('/api/ratings', ratingsRoutes);
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
