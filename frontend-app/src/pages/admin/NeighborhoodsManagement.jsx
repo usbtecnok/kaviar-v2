@@ -4,11 +4,11 @@ export default function NeighborhoodsManagement() {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Gestão de Geofences
+        Gestão de Bairros
       </Typography>
       
       <Alert severity="info" sx={{ mt: 2 }}>
-        Funcionalidade em desenvolvimento. Endpoints de geofence não disponíveis no backend.
+        Funcionalidade em desenvolvimento. Listagem e edição de bairros será implementada em breve.
       </Alert>
     </Box>
   );

@@ -212,7 +212,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/communities"
+            href="/admin/neighborhoods"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
