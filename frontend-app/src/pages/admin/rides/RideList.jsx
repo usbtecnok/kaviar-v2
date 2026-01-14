@@ -89,14 +89,21 @@ export default function RideList() {
         }
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        localStorage.removeItem('kaviar_admin_data');
+        window.location.href = '/admin/login';
+        return;
+      }
+
       const data = await response.json();
       
       if (data.success) {
-        setRides(data.data);
+        setRides(data.data || []);
         setPagination(prev => ({
           ...prev,
-          total: data.pagination.total,
-          totalPages: data.pagination.totalPages
+          total: data.pagination?.total || 0,
+          totalPages: data.pagination?.totalPages || 0
         }));
       } else {
         setError(data.error || 'Erro ao carregar corridas');

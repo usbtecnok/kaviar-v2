@@ -96,6 +96,13 @@ export default function RideAudit() {
         }
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        localStorage.removeItem('kaviar_admin_data');
+        window.location.href = '/admin/login';
+        return;
+      }
+
       if (response.status === 403) {
         setPermissionDenied(true);
         return;
@@ -104,8 +111,8 @@ export default function RideAudit() {
       const data = await response.json();
       
       if (data.success) {
-        setAuditLogs(data.data);
-        setPagination(prev => ({ ...prev, ...data.pagination }));
+        setAuditLogs(data.data || []);
+        setPagination(prev => ({ ...prev, ...(data.pagination || {}) }));
       } else {
         setError(data.error || 'Erro ao carregar logs de auditoria');
       }
