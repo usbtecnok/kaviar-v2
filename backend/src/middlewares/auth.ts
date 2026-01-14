@@ -41,7 +41,10 @@ export async function authenticateAdmin(req: Request, res: Response, next: NextF
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }
 
-    const admin = await prisma.admins.findUnique({ where: { id: adminId } });
+    const admin = await prisma.admins.findUnique({ 
+      where: { id: adminId },
+      include: { roles: true }
+    });
     if (!admin) {
       return res.status(401).json({ success: false, error: 'Token inválido' });
     }
@@ -70,22 +73,11 @@ export function requireRole(allowedRoles: string[]) {
         return res.status(401).json({ success: false, error: 'Token inválido' });
       }
 
-      // Pode ser nome direto (ex: 'SUPER_ADMIN') ou um ID de role (FK)
-      const directRole = admin.role;
+      // Admin carregado com include: { roles: true }
+      const roleName = admin.roles?.name;
 
-      // 1) Se já for nome e bater, libera
-      if (typeof directRole === 'string' && allowedRoles.includes(directRole)) {
+      if (roleName && allowedRoles.includes(roleName)) {
         return next();
-      }
-
-      // 2) Se role for ID, tenta resolver em roles
-      if (typeof directRole === 'string') {
-        const roleRow = await prisma.roles.findUnique({ where: { id: directRole } });
-        const roleName = roleRow?.name;
-
-        if (roleName && allowedRoles.includes(roleName)) {
-          return next();
-        }
       }
 
       return res.status(403).json({ success: false, error: 'Acesso negado' });
