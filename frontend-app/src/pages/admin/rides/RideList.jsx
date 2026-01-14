@@ -71,9 +71,41 @@ export default function RideList() {
     setLoading(true);
     setError('');
     
-    // Endpoint de listagem de rides não existe no backend
-    setError('Listagem de corridas não disponível. Endpoint em desenvolvimento.');
-    setLoading(false);
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const queryParams = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        ...(filters.status && { status: filters.status }),
+        ...(filters.type && { type: filters.type }),
+        ...(filters.dateFrom && { dateFrom: filters.dateFrom }),
+        ...(filters.dateTo && { dateTo: filters.dateTo }),
+        ...(filters.search && { search: filters.search })
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides?${queryParams}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setRides(data.data);
+        setPagination(prev => ({
+          ...prev,
+          total: data.pagination.total,
+          totalPages: data.pagination.totalPages
+        }));
+      } else {
+        setError(data.error || 'Erro ao carregar corridas');
+      }
+    } catch (error) {
+      setError('Erro de conexão com o servidor');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

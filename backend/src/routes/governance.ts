@@ -291,4 +291,49 @@ router.post('/guide', async (req, res) => {
 router.post('/ratings', ratingController.createRating);
 router.get('/ratings/driver/:driverId', ratingController.getRatingSummary);
 
+// Admin geofence endpoints (compatibility)
+router.get('/admin/communities/with-duplicates', async (req, res) => {
+  try {
+    const communities = await prisma.communities.findMany({
+      select: {
+        id: true,
+        name: true,
+        is_active: true
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    res.json({ success: true, data: communities });
+  } catch (error) {
+    console.error('Error fetching communities:', error);
+    res.status(500).json({ success: false, error: 'Erro ao buscar comunidades' });
+  }
+});
+
+
+// Neighborhood geofence endpoint
+router.get('/neighborhoods/:id/geofence', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const geofence = await prisma.neighborhood_geofences.findFirst({
+      where: { neighborhood_id: id },
+      select: {
+        id: true,
+        neighborhood_id: true,
+        geofence_type: true,
+        coordinates: true,
+        source: true,
+        source_url: true,
+        area: true,
+      },
+    });
+
+    return res.json({ success: true, data: geofence ?? null });
+  } catch (error) {
+    console.error('[governance] neighborhoods/:id/geofence error:', error);
+    return res.status(500).json({ success: false, error: 'Erro ao buscar geofence' });
+  }
+});
+
 export { router as governanceRoutes };

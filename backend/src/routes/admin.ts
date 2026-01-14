@@ -49,4 +49,42 @@ router.get('/passengers', async (req, res) => {
   }
 });
 
+// GET /api/admin/rides
+router.get('/rides', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const skip = (page - 1) * limit;
+
+    const [rides, total] = await Promise.all([
+      prisma.rides.findMany({
+        take: limit,
+        skip,
+        orderBy: { created_at: 'desc' },
+        include: {
+          passengers: { select: { name: true, email: true } },
+          drivers: { select: { name: true } }
+        }
+      }),
+      prisma.rides.count()
+    ]);
+
+    res.json({
+      success: true,
+      data: rides,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar corridas'
+    });
+  }
+});
+
 export { router as adminRoutes };
