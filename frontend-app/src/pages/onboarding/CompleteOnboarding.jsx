@@ -114,8 +114,8 @@ export default function CompleteOnboarding() {
     setError('');
     // Validação mínima por tipo (evita 500 no backend)
     if (userType === 'passenger') {
-      if (!clean.name || !clean.phone || !clean.password) {
-        setError('Preencha nome, telefone e senha.');
+      if (!clean.name || !clean.email || !clean.phone || !clean.password) {
+        setError('Preencha nome, email, telefone e senha.');
         setLoading(false);
         return;
       }
@@ -233,7 +233,13 @@ export default function CompleteOnboarding() {
 
       setCompleted(true);
     } catch (error) {
-      setError(error.response?.data?.error || 'Erro ao cadastrar');
+      const errorMessage = error.response?.data?.error || 'Erro ao cadastrar';
+      // Traduzir erros comuns do backend
+      if (errorMessage.includes('Email') || errorMessage.includes('email')) {
+        setError('Email é obrigatório e deve ser válido.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -297,6 +303,7 @@ export default function CompleteOnboarding() {
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               required
               fullWidth
+              helperText="Email é obrigatório"
             />
             <TextField
               label="Telefone"
