@@ -12,7 +12,7 @@ const ratingController = new RatingController();
 // Schemas
 const passengerCreateSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
-  email: z.string().email('Email inválido').optional(),
+  email: z.string().trim().email('Email inválido').min(1, 'Email é obrigatório'),
   phone: z.string().min(1, 'Telefone é obrigatório'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres')
 });
@@ -42,7 +42,7 @@ router.post('/passenger', async (req, res) => {
       data: {
         id: randomUUID(),
         name: data.name,
-        email: data.email || '',
+        email: data.email,
         phone: data.phone,
         password_hash: hashedPassword,
         status: 'ACTIVE', // Passengers are immediately active
