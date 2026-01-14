@@ -75,6 +75,12 @@ export default function RideDetail() {
     
     try {
       const token = localStorage.getItem('kaviar_admin_token');
+      
+      if (!token) {
+        window.location.href = '/admin/login';
+        return;
+      }
+      
       const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`

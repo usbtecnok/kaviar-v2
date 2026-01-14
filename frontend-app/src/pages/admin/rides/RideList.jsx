@@ -73,6 +73,14 @@ export default function RideList() {
     
     try {
       const token = localStorage.getItem('kaviar_admin_token');
+      
+      if (!token) {
+        localStorage.removeItem('kaviar_admin_token');
+        localStorage.removeItem('kaviar_admin_data');
+        window.location.href = '/admin/login';
+        return;
+      }
+      
       const queryParams = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),

@@ -47,7 +47,6 @@ function LoginWrapper() {
       <DomainHeader 
         domain="login" 
         title="Formulário de Login"
-        breadcrumbs={["Login"]}
         backUrl="/login"
       />
       <LoginForm />

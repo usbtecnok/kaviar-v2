@@ -83,6 +83,12 @@ export default function RideAudit() {
     
     try {
       const token = localStorage.getItem('kaviar_admin_token');
+      
+      if (!token) {
+        window.location.href = '/admin/login';
+        return;
+      }
+      
       const queryParams = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),

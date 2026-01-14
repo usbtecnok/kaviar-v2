@@ -28,8 +28,8 @@ export default function LoginForm() {
       });
 
       if (response.data.success) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('kaviar_token', response.data.token);
+        localStorage.setItem('kaviar_user', JSON.stringify(response.data.user));
         navigate('/passageiro/home');
       } else {
         setError('Email ou senha incorretos');

@@ -182,8 +182,8 @@ export default function CompleteOnboarding() {
           });
           
           if (loginResponse.data.success) {
-            localStorage.setItem('token', loginResponse.data.token);
-            localStorage.setItem('user', JSON.stringify(loginResponse.data.user));
+            localStorage.setItem('kaviar_token', loginResponse.data.token);
+            localStorage.setItem('kaviar_user', JSON.stringify(loginResponse.data.user));
             
             // Redirect para área do passageiro
             setTimeout(() => {

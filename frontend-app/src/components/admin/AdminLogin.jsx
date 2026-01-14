@@ -31,7 +31,6 @@ export default function AdminLogin() {
       const data = await response.json();
 
       if (data.success) {
-        // ✅ CORREÇÃO: Token vem em data.data.token, user em data.data.user
         localStorage.setItem('kaviar_admin_token', data.data.token);
         localStorage.setItem('kaviar_admin_data', JSON.stringify(data.data.user));
         navigate(from, { replace: true });
