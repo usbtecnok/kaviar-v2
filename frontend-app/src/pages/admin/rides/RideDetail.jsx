@@ -73,27 +73,9 @@ export default function RideDetail() {
     setLoading(true);
     setError('');
     
-    try {
-      const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setRide(data.data);
-      } else {
-        setError(data.error || 'Erro ao carregar corrida');
-      }
-    } catch (err) {
-      setError('Erro de conexão');
-    } finally {
-      setLoading(false);
-    }
+    // Endpoint de detalhes de ride não existe no backend
+    setError('Detalhes de corrida não disponível. Endpoint em desenvolvimento.');
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -106,7 +88,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/cancel`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -137,7 +119,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/force-complete`, {
+      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/force-complete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -168,7 +150,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

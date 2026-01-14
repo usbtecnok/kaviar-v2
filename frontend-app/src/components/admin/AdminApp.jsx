@@ -91,41 +91,54 @@ function AdminHome() {
         throw new Error('Token não encontrado');
       }
 
-      // ✅ CORREÇÃO: Usar endpoints que existem no backend
-      const [driversResponse, guidesResponse] = await Promise.all([
+      // Buscar dados do dashboard
+      const [driversResponse, guidesResponse, neighborhoodsResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/api/admin/drivers`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch(`${API_BASE_URL}/api/admin/guides`, {
           headers: { 'Authorization': `Bearer ${token}` }
-        })
+        }),
+        fetch(`${API_BASE_URL}/api/governance/neighborhoods`)
       ]);
 
+      // Só remover token se 401 com erro de token inválido
       if (driversResponse.status === 401 || guidesResponse.status === 401) {
-        localStorage.removeItem('kaviar_admin_token');
-        localStorage.removeItem('kaviar_admin_data');
-        window.location.href = '/admin/login';
-        return;
+        try {
+          const errorData = await driversResponse.json();
+          if (errorData.error && errorData.error.includes('Token inválido')) {
+            localStorage.removeItem('kaviar_admin_token');
+            localStorage.removeItem('kaviar_admin_data');
+            window.location.href = '/admin/login';
+            return;
+          }
+        } catch (e) {
+          // Erro de parsing
+        }
+        
+        throw new Error(`Erro de conexão: ${driversResponse.status}`);
       }
 
       const driversData = await driversResponse.json();
       const guidesData = await guidesResponse.json();
+      const neighborhoodsData = await neighborhoodsResponse.json();
 
-      // Calcular estatísticas básicas
+      // Calcular estatísticas
       const drivers = driversData.success ? driversData.data : [];
       const guides = guidesData.success ? guidesData.data : [];
+      const neighborhoods = neighborhoodsData.success ? neighborhoodsData.data : [];
 
       const stats = {
         totalDrivers: drivers.length,
         totalGuides: guides.length,
-        totalPassengers: 0, // Placeholder
-        totalCommunities: 0 // Placeholder
+        totalPassengers: 0, // Endpoint não existe
+        totalCommunities: neighborhoods.length
       };
 
       const pending = {
         drivers: drivers.filter(d => d.status === 'pending').length,
         guides: guides.filter(g => g.status === 'pending').length,
-        passengers: 0 // Placeholder
+        passengers: 0
       };
 
       setDashboardData({ stats, pending });

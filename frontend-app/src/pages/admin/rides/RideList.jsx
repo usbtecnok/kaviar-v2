@@ -71,34 +71,9 @@ export default function RideList() {
     setLoading(true);
     setError('');
     
-    try {
-      const token = localStorage.getItem('kaviar_admin_token');
-      const queryParams = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v))
-      });
-
-      const response = await fetch(`${API_BASE_URL}/api/admin/rides?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setRides(data.data);
-        setPagination(prev => ({ ...prev, ...data.pagination }));
-      } else {
-        setError(data.error || 'Erro ao carregar corridas');
-      }
-    } catch (err) {
-      setError('Erro de conexão');
-    } finally {
-      setLoading(false);
-    }
+    // Endpoint de listagem de rides não existe no backend
+    setError('Listagem de corridas não disponível. Endpoint em desenvolvimento.');
+    setLoading(false);
   };
 
   useEffect(() => {
