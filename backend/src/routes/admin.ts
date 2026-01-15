@@ -59,12 +59,7 @@ router.get('/rides', async (req, res) => {
     const [rides, total] = await Promise.all([
       prisma.rides.findMany({
         take: limit,
-        skip,
-        orderBy: { created_at: 'desc' },
-        include: {
-          passengers: { select: { name: true, email: true } },
-          drivers: { select: { name: true } }
-        }
+        skip
       }),
       prisma.rides.count()
     ]);
@@ -80,6 +75,7 @@ router.get('/rides', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Rides error:', error);
     res.status(500).json({
       success: false,
       error: 'Erro ao buscar corridas'
