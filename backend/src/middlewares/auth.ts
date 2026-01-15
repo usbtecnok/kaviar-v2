@@ -7,6 +7,12 @@ const prisma = new PrismaClient();
 // Mantém compatibilidade: tenta ADMIN_JWT_SECRET e depois JWT_SECRET.
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
 
+// Whitelist de emails autorizados
+const ALLOWED_ADMIN_EMAILS = [
+  'suporte@usbtecnok.com.br',
+  'financeiro@usbtecnok.com.br'
+];
+
 function getBearerToken(req: Request): string | null {
   const header = (req.headers.authorization || (req.headers as any).Authorization) as string | undefined;
   if (!header || typeof header !== 'string') return null;
@@ -47,6 +53,11 @@ export async function authenticateAdmin(req: Request, res: Response, next: NextF
     });
     if (!admin) {
       return res.status(401).json({ success: false, error: 'Token inválido' });
+    }
+
+    // Whitelist check
+    if (!ALLOWED_ADMIN_EMAILS.includes(admin.email.toLowerCase())) {
+      return res.status(403).json({ success: false, error: 'Acesso não autorizado' });
     }
 
     (req as any).admin = admin;

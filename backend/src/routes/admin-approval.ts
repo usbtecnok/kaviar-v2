@@ -18,8 +18,8 @@ router.get('/guides', approvalController.getGuides);
 router.put('/guides/:id/approve', approvalController.approveGuide);
 router.put('/guides/:id/reject', approvalController.rejectGuide);
 
-// Audit route (requires SUPER_ADMIN or OPERATOR)
-router.get('/rides/audit', requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req, res) => {
+// Audit route
+router.get('/rides/audit', async (req, res) => {
   res.json({
     success: true,
     data: [],
