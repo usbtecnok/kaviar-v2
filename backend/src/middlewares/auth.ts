@@ -1,8 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/database';
 
 // Mantém compatibilidade: tenta ADMIN_JWT_SECRET e depois JWT_SECRET.
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;

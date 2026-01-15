@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ApprovalController } from '../modules/admin/approval-controller';
-import { authenticateAdmin, requireRole } from '../middlewares/auth';
+import { authenticateAdmin } from '../middlewares/auth';
+import { prisma } from '../config/database';
 
 const router = Router();
 const approvalController = new ApprovalController();
@@ -12,6 +13,16 @@ router.use(authenticateAdmin);
 router.get('/drivers', approvalController.getDrivers);
 router.put('/drivers/:id/approve', approvalController.approveDriver);
 router.put('/drivers/:id/reject', approvalController.rejectDriver);
+router.delete('/drivers/:id', async (req, res) => {
+  try {
+    await prisma.drivers.delete({
+      where: { id: req.params.id }
+    });
+    res.json({ success: true, message: 'Driver deleted' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to delete driver' });
+  }
+});
 
 // Guide approval routes  
 router.get('/guides', approvalController.getGuides);
@@ -33,6 +44,26 @@ router.get('/rides/audit', async (req, res) => {
       prisma.ride_audit_logs.count()
     ]);
 
+    res.json({
+      success: true,
+      data: audits,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(200).json({
+      success: false,
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      error: 'Audit logs not available',
+      code: 'AUDIT_UNAVAILABLE'
+    });
+  }
+});
     res.json({
       success: true,
       data: audits,

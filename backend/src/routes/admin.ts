@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin } from '../middlewares/auth';
+import { prisma } from '../config/database';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.use(authenticateAdmin);
 
@@ -75,9 +74,8 @@ router.get('/rides', async (req, res) => {
       }
     });
   } catch (error) {
-    // Schema mismatch - return empty for now
-    res.json({
-      success: true,
+    res.status(200).json({
+      success: false,
       data: [],
       pagination: {
         page: 1,
@@ -85,7 +83,8 @@ router.get('/rides', async (req, res) => {
         total: 0,
         totalPages: 0
       },
-      message: 'Rides endpoint - schema update pending'
+      error: 'Erro ao buscar corridas',
+      code: 'RIDES_QUERY_FAILED'
     });
   }
 });
