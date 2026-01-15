@@ -17,17 +17,22 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid
+  Grid,
+  Snackbar,
+  CircularProgress
 } from '@mui/material';
-import { CheckCircle, Cancel, Visibility } from '@mui/icons-material';
+import { CheckCircle, Cancel, Visibility, Delete } from '@mui/icons-material';
 import { adminApi } from '../../services/adminApi';
 
 export default function DriverApproval() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, action: null, driverId: null });
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     loadDrivers();
@@ -49,22 +54,68 @@ export default function DriverApproval() {
 
   const handleApprove = async (driverId) => {
     try {
-      // ✅ CORREÇÃO: usar método específico do adminApi
+      setActionLoading(driverId);
       await adminApi.approveDriver(driverId);
-      loadDrivers(); // Recarregar lista
+      setToast({ open: true, message: 'Motorista aprovado com sucesso', severity: 'success' });
+      loadDrivers();
     } catch (error) {
-      setError('Erro ao aprovar motorista');
+      setToast({ open: true, message: 'Erro ao aprovar motorista', severity: 'error' });
+    } finally {
+      setActionLoading(null);
+      setConfirmDialog({ open: false, action: null, driverId: null });
+    }
+  };
+
+  const handleReject = async (driverId) => {
+    try {
+      setActionLoading(driverId);
+      await adminApi.rejectDriver(driverId);
+      setToast({ open: true, message: 'Motorista rejeitado', severity: 'info' });
+      loadDrivers();
+    } catch (error) {
+      setToast({ open: true, message: 'Erro ao rejeitar motorista', severity: 'error' });
+    } finally {
+      setActionLoading(null);
+      setConfirmDialog({ open: false, action: null, driverId: null });
+    }
+  };
+
+  const handleDelete = async (driverId) => {
+    try {
+      setActionLoading(driverId);
+      await adminApi.deleteDriver(driverId);
+      setToast({ open: true, message: 'Motorista excluído', severity: 'success' });
+      loadDrivers();
+    } catch (error) {
+      setToast({ open: true, message: 'Erro ao excluir motorista', severity: 'error' });
+    } finally {
+      setActionLoading(null);
+      setConfirmDialog({ open: false, action: null, driverId: null });
     }
   };
 
   const handleSuspend = async (driverId) => {
     try {
-      // ✅ CORREÇÃO: usar método específico do adminApi
+      setActionLoading(driverId);
       await adminApi.suspendDriver(driverId, 'Documentos inválidos');
-      loadDrivers(); // Recarregar lista
+      setToast({ open: true, message: 'Motorista suspenso', severity: 'warning' });
+      loadDrivers();
     } catch (error) {
-      setError('Erro ao reprovar motorista');
+      setToast({ open: true, message: 'Erro ao suspender motorista', severity: 'error' });
+    } finally {
+      setActionLoading(null);
     }
+  };
+
+  const openConfirmDialog = (action, driverId) => {
+    setConfirmDialog({ open: true, action, driverId });
+  };
+
+  const executeAction = () => {
+    const { action, driverId } = confirmDialog;
+    if (action === 'approve') handleApprove(driverId);
+    else if (action === 'reject') handleReject(driverId);
+    else if (action === 'delete') handleDelete(driverId);
   };
 
   const openDetails = (driver) => {
@@ -138,6 +189,7 @@ export default function DriverApproval() {
                       size="small"
                       startIcon={<Visibility />}
                       onClick={() => openDetails(driver)}
+                      disabled={actionLoading === driver.id}
                     >
                       Ver
                     </Button>
@@ -146,21 +198,32 @@ export default function DriverApproval() {
                         <Button
                           size="small"
                           color="success"
-                          startIcon={<CheckCircle />}
-                          onClick={() => handleApprove(driver.id)}
+                          startIcon={actionLoading === driver.id ? <CircularProgress size={16} /> : <CheckCircle />}
+                          onClick={() => openConfirmDialog('approve', driver.id)}
+                          disabled={actionLoading === driver.id}
                         >
                           Aprovar
                         </Button>
                         <Button
                           size="small"
                           color="error"
-                          startIcon={<Cancel />}
-                          onClick={() => handleSuspend(driver.id)}
+                          startIcon={actionLoading === driver.id ? <CircularProgress size={16} /> : <Cancel />}
+                          onClick={() => openConfirmDialog('reject', driver.id)}
+                          disabled={actionLoading === driver.id}
                         >
-                          Reprovar
+                          Rejeitar
                         </Button>
                       </>
                     )}
+                    <Button
+                      size="small"
+                      color="error"
+                      startIcon={actionLoading === driver.id ? <CircularProgress size={16} /> : <Delete />}
+                      onClick={() => openConfirmDialog('delete', driver.id)}
+                      disabled={actionLoading === driver.id}
+                    >
+                      Excluir
+                    </Button>
                   </Box>
                 </TableCell>
               </TableRow>
@@ -213,6 +276,42 @@ export default function DriverApproval() {
           <Button onClick={() => setDetailsOpen(false)}>Fechar</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog de Confirmação */}
+      <Dialog open={confirmDialog.open} onClose={() => setConfirmDialog({ open: false, action: null, driverId: null })}>
+        <DialogTitle>Confirmar Ação</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {confirmDialog.action === 'approve' && 'Deseja aprovar este motorista?'}
+            {confirmDialog.action === 'reject' && 'Deseja rejeitar este motorista?'}
+            {confirmDialog.action === 'delete' && 'Deseja excluir este motorista? Esta ação não pode ser desfeita.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialog({ open: false, action: null, driverId: null })}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={executeAction} 
+            color={confirmDialog.action === 'delete' ? 'error' : 'primary'}
+            disabled={actionLoading !== null}
+          >
+            {actionLoading !== null ? <CircularProgress size={20} /> : 'Confirmar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Toast */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

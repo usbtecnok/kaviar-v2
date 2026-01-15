@@ -92,6 +92,14 @@ class AdminApiService {
     return this.put(`/api/admin/drivers/${id}/approve`);
   }
 
+  async rejectDriver(id) {
+    return this.put(`/api/admin/drivers/${id}/reject`);
+  }
+
+  async deleteDriver(id) {
+    return this.delete(`/api/admin/drivers/${id}`);
+  }
+
   async suspendDriver(id, reason) {
     return this.put(`/api/admin/drivers/${id}/suspend`, { reason });
   }
