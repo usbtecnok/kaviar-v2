@@ -73,20 +73,22 @@ router.get('/rides', async (req, res) => {
         totalPages: Math.ceil(total / limit)
       }
     });
-  } catch (error) {
-    res.status(200).json({
-      success: false,
-      data: [],
-      pagination: {
-        page: 1,
-        limit: 10,
-        total: 0,
-        totalPages: 0
-      },
-      error: 'Erro ao buscar corridas',
-      code: 'RIDES_QUERY_FAILED'
-    });
-  }
+} catch (error) {
+  console.error('Rides error:', error);
+  return res.status(200).json({
+    success: false,
+    data: [],
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0
+    },
+    error: 'Erro ao buscar corridas',
+    code: 'RIDES_QUERY_FAILED'
+  });
+}
+
 });
 
 // GET /api/admin/rides/:id
