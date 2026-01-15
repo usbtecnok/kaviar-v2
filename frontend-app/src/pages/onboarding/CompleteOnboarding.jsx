@@ -416,7 +416,9 @@ export default function CompleteOnboarding() {
       case 1:
         return (
           <FormControl fullWidth>
-            <InputLabel>Comunidade (Opcional)</InputLabel>
+            <InputLabel>
+              {userType === 'passenger' ? 'Comunidade (Opcional)' : 'Comunidade'}
+            </InputLabel>
             <Select
               value={clean.communityId}
               onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
