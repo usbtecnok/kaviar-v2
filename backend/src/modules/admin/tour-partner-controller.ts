@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { 
   createTourPartnerSchema, 
@@ -17,6 +18,8 @@ export class TourPartnerController {
       
       const partner = await prisma.tour_partners.create({
         data: {
+          id: crypto.randomUUID(),
+          updated_at: new Date(),
           name: data.name,
           contact_name: data.contactName || null,
           phone: data.phone || null,

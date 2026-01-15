@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { updateTourSettingsSchema } from './tour-schemas';
 
@@ -14,6 +15,8 @@ export class TourSettingsController {
       if (!settings) {
         settings = await prisma.tour_settings.create({
           data: {
+            id: crypto.randomUUID(),
+            updated_at: new Date(),
             support_whatsapp: null,
             default_partner_id: null,
             terms_url: null,
@@ -45,6 +48,8 @@ export class TourSettingsController {
         // Create if not exists
         settings = await prisma.tour_settings.create({
           data: {
+            id: crypto.randomUUID(),
+            updated_at: new Date(),
             support_whatsapp: data.supportWhatsapp || null,
             default_partner_id: data.defaultPartnerId || null,
             terms_url: data.termsUrl || null,
