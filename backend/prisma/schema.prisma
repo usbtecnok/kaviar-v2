@@ -417,6 +417,27 @@ model tour_packages {
   tour_bookings              tour_bookings[]
 }
 
+model tour_partners {
+  id           String   @id @default(uuid())
+  name         String
+  contact_name String?
+  phone        String?
+  email        String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+}
+
+model tour_settings {
+  id                 String   @id @default(uuid())
+  support_whatsapp   String?
+  default_partner_id String?
+  terms_url          String?
+  is_active          Boolean  @default(true)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+}
+
 model tourist_guides {
   id           String      @id
   name         String
