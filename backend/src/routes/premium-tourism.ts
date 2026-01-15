@@ -18,7 +18,7 @@ router.use(requirePremiumTourismEnabled);
 // Admin routes (require authentication)
 const adminRouter = Router();
 adminRouter.use(authenticateAdmin);
-adminRouter.use(requireRole(['SUPER_ADMIN', 'OPERATOR']));
+// adminRouter.use(requireRole(['SUPER_ADMIN', 'OPERATOR']));
 
 // Tour Packages (Admin)
 adminRouter.post('/tour-packages', tourPackageController.createTourPackage);
