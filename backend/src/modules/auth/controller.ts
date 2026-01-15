@@ -15,6 +15,7 @@ export class AuthController {
 
       res.json({
         success: true,
+        token: result.token, // Root level for compatibility
         data: result,
       });
     } catch (error) {
