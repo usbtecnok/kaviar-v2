@@ -31,17 +31,39 @@ router.put('/guides/:id/reject', approvalController.rejectGuide);
 
 // Audit route
 router.get('/rides/audit', async (req, res) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 20;
-  
-  // Audit logs not implemented yet
-  res.status(200).json({
-    success: false,
-    data: [],
-    pagination: { page, limit, total: 0, totalPages: 0 },
-    error: 'Audit logs not available',
-    code: 'AUDIT_UNAVAILABLE'
-  });
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
+
+    const [audits, total] = await Promise.all([
+      prisma.ride_admin_actions.findMany({
+        take: limit,
+        skip,
+        orderBy: { created_at: 'desc' }
+      }),
+      prisma.ride_admin_actions.count()
+    ]);
+
+    res.json({
+      success: true,
+      data: audits,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(200).json({
+      success: false,
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+      error: 'Audit logs not available',
+      code: 'AUDIT_UNAVAILABLE'
+    });
+  }
 });
 
 export { router as adminApprovalRoutes };

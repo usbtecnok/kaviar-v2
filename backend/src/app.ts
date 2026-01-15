@@ -67,8 +67,8 @@ app.get('/api/health', (req, res) => {
 
 // Core routes (always enabled)
 app.use('/api/admin/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminApprovalRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/ratings', ratingsRoutes);
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
 // app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
