@@ -48,13 +48,11 @@ export class RideService {
       throw new Error('Location outside service area');
     }
 
-    // Step 2: Create ride with immutable anchors
+    // Step 2: Create ride
     const ride = await prisma.rides.create({
       data: {
         id: this.generateRideId(),
         passenger_id: request.passengerId,
-        neighborhood_id: geoAnchor.neighborhoodId, // sempre
-        community_id: geoAnchor.communityId,       // se válida
         origin: `${request.pickup.lat},${request.pickup.lng}`,
         destination: `${request.dropoff.lat},${request.dropoff.lng}`,
         type: request.type || 'normal',
@@ -79,11 +77,7 @@ export class RideService {
    */
   async getRideOperationalContext(rideId: string) {
     const ride = await prisma.rides.findUnique({
-      where: { id: rideId },
-      select: {
-        neighborhood_id: true,
-        community_id: true
-      }
+      where: { id: rideId }
     });
 
     if (!ride) {
@@ -91,8 +85,8 @@ export class RideService {
     }
 
     return this.operationalService.resolveOperationalContext(
-      ride.neighborhood_id,
-      ride.community_id
+      'default-neighborhood',
+      null
     );
   }
 

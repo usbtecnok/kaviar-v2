@@ -1,19 +1,19 @@
+import crypto from "node:crypto";
 import { prisma } from '../../config/database';
-import { DiamondService } from '../../services/diamond';
 import { RidesQuery, CancelRideData, ReassignRideData, ForceCompleteRideData, UpdateStatusData, AuditQuery } from './schemas';
 
 export class RideAdminService {
-  private diamondService = new DiamondService();
+// //   private diamondService = new DiamondService();
 
   // Calculate financial breakdown
   private calculateFinancials(price: number) {
     const grossValue = price;
-    const platformFee = grossValue * 0.15; // 15% platform fee
-    const driverAmount = grossValue - platformFee;
+    const platform_fee = grossValue * 0.15; // 15% platform fee
+    const driver_amount = grossValue - platform_fee;
     
     return {
-      platformFee: Number(platformFee.toFixed(2)),
-      driverAmount: Number(driverAmount.toFixed(2))
+      platform_fee: Number(platform_fee.toFixed(2)),
+      driver_amount: Number(driver_amount.toFixed(2))
     };
   }
 
@@ -41,7 +41,7 @@ export class RideAdminService {
       limit = 10, 
       status, 
       type,
-      driverId, 
+      driver_id, 
       passengerId, 
       search, 
       dateFrom, 
@@ -57,13 +57,13 @@ export class RideAdminService {
     
     if (status) where.status = status;
     if (type) where.type = type;
-    if (driverId) where.driverId = driverId;
-    if (passengerId) where.passengerId = passengerId;
+    if (driver_id) where.driver_id = driver_id;
+    if (passengerId) where.passenger_id = passengerId;
     
     if (search) {
       where.OR = [
-        { driver: { name: { contains: search, mode: 'insensitive' } } },
-        { passenger: { name: { contains: search, mode: 'insensitive' } } },
+        { drivers: { name: { contains: search, mode: 'insensitive' } } },
+        { passengers: { name: { contains: search, mode: 'insensitive' } } },
         { origin: { contains: search, mode: 'insensitive' } },
         { destination: { contains: search, mode: 'insensitive' } },
       ];
@@ -82,7 +82,7 @@ export class RideAdminService {
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         include: {
-          driver: {
+          drivers: {
             select: {
               id: true,
               name: true,
@@ -90,7 +90,7 @@ export class RideAdminService {
               phone: true,
             },
           },
-          passenger: {
+          passengers: {
             select: {
               id: true,
               name: true,
@@ -119,7 +119,7 @@ export class RideAdminService {
     const ride = await prisma.rides.findUnique({
       where: { id },
       include: {
-        driver: {
+        drivers: {
           select: {
             id: true,
             name: true,
@@ -127,7 +127,7 @@ export class RideAdminService {
             phone: true,
           },
         },
-        passenger: {
+        passengers: {
           select: {
             id: true,
             name: true,
@@ -135,10 +135,10 @@ export class RideAdminService {
             phone: true,
           },
         },
-        statusHistory: {
+        ride_status_history: {
           orderBy: { created_at: 'asc' },
         },
-        adminActions: {
+        ride_admin_actions: {
           orderBy: { created_at: 'desc' },
         },
       },
@@ -152,10 +152,12 @@ export class RideAdminService {
   }
 
   // Update ride status (atomic with concurrency protection)
-  async updateRideStatus(rideId: string, data: UpdateStatusData, adminId: string) {
+  async updateRideStatus(rideId: string, data: UpdateStatusData, admin_id: string) {
     return prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const ride_id = rideId;
       // Get current ride state within transaction for consistency
-      const ride = await tx.ride.findUnique({
+      const ride = await tx.rides.findUnique({
         where: { id: rideId },
         select: { status: true, price: true, updated_at: true }
       });
@@ -174,14 +176,14 @@ export class RideAdminService {
       
       if (data.status === 'completed') {
         const financials = this.calculateFinancials(Number(ride.price));
-        updateData.platformFee = financials.platformFee;
-        updateData.driverAmount = financials.driverAmount;
+        updateData.platform_fee = financials.platform_fee;
+        updateData.driver_amount = financials.driver_amount;
       }
 
       // Atomic update with optimistic locking check
-      const updatedRide = await tx.ride.updateMany({
+      const updatedRide = await tx.rides.updateMany({
         where: { 
-          id: rideId,
+          id: ride_id,
           status: ride.status, // Ensure status hasn't changed since we read it
           updated_at: ride.updated_at // Optimistic locking
         },
@@ -194,27 +196,31 @@ export class RideAdminService {
       }
 
       // Get updated ride for return
-      const finalRide = await tx.ride.findUnique({
-        where: { id: rideId }
+      const finalRide = await tx.rides.findUnique({
+        where: { id: ride_id }
       });
 
       // Add status history
-      await tx.rideStatusHistory.create({
+      await tx.ride_status_history.create({
         data: {
-          rideId,
+          id: crypto.randomUUID(),
+          ride_id,
           status: data.status,
+          created_at: now,
         },
       });
 
       // Log admin action
-      await tx.rideAdminAction.create({
+      await tx.ride_admin_actions.create({
         data: {
-          rideId,
-          adminId,
+          id: crypto.randomUUID(),
+          ride_id,
+          admin_id,
           action: 'status_update',
           reason: data.reason,
-          oldValue: ride.status,
-          newValue: data.status,
+          old_value: ride.status,
+          new_value: data.status,
+          created_at: now,
         },
       });
 
@@ -223,11 +229,12 @@ export class RideAdminService {
   }
 
   // Cancel ride administratively (atomic with concurrency protection)
-  async cancelRide(rideId: string, data: CancelRideData, adminId: string) {
+  async cancelRide(ride_id: string, data: CancelRideData, admin_id: string) {
     return prisma.$transaction(async (tx) => {
+      const now = new Date();
       // Get current ride state within transaction
-      const ride = await tx.ride.findUnique({
-        where: { id: rideId },
+      const ride = await tx.rides.findUnique({
+        where: { id: ride_id },
         select: { status: true, updated_at: true }
       });
 
@@ -240,17 +247,17 @@ export class RideAdminService {
       }
 
       // Atomic update with optimistic locking
-      const updatedRideCount = await tx.ride.updateMany({
+      const updatedRideCount = await tx.rides.updateMany({
         where: { 
-          id: rideId,
+          id: ride_id,
           status: ride.status, // Ensure status hasn't changed
           updated_at: ride.updated_at // Optimistic locking
         },
         data: {
           status: 'cancelled_by_admin',
-          cancelReason: data.reason,
-          cancelledBy: adminId,
-          cancelledAt: new Date(),
+          cancel_reason: data.reason,
+          cancelled_by: admin_id,
+          cancelled_at: new Date(),
         },
       });
 
@@ -260,21 +267,23 @@ export class RideAdminService {
       }
 
       // Get updated ride for return
-      const updatedRide = await tx.ride.findUnique({
-        where: { id: rideId }
+      const updatedRide = await tx.rides.findUnique({
+        where: { id: ride_id }
       });
 
-      await tx.rideStatusHistory.create({
+      await tx.ride_status_history.create({
         data: {
-          rideId,
+          id: `${ride_id}-status-${Date.now()}`,
+          ride_id,
           status: 'cancelled_by_admin',
         },
       });
 
-      await tx.rideAdminAction.create({
+      await tx.ride_admin_actions.create({
         data: {
-          rideId,
-          adminId,
+          id: `${ride_id}-action-${Date.now()}`,
+          ride_id,
+          admin_id,
           action: 'cancel',
           reason: data.reason,
         },
@@ -285,9 +294,9 @@ export class RideAdminService {
   }
 
   // Force complete ride (SUPER_ADMIN only)
-  async forceCompleteRide(rideId: string, data: ForceCompleteRideData, adminId: string) {
+  async forceCompleteRide(ride_id: string, data: ForceCompleteRideData, admin_id: string) {
     const ride = await prisma.rides.findUnique({
-      where: { id: rideId },
+      where: { id: ride_id },
       select: { status: true, price: true }
     });
 
@@ -300,37 +309,40 @@ export class RideAdminService {
     }
 
     return prisma.$transaction(async (tx) => {
+      const now = new Date();
       const financials = this.calculateFinancials(Number(ride.price));
       
-      const updatedRide = await tx.ride.update({
-        where: { id: rideId },
+      const updatedRide = await tx.rides.update({
+        where: { id: ride_id },
         data: {
           status: 'completed',
-          platformFee: financials.platformFee,
-          driverAmount: financials.driverAmount,
-          forcedCompletedBy: adminId,
-          forcedCompletedAt: new Date(),
+          platform_fee: financials.platform_fee,
+          driver_amount: financials.driver_amount,
+          forced_completed_by: admin_id,
+          forced_completed_at: new Date(),
         },
       });
 
-      await tx.rideStatusHistory.create({
+      await tx.ride_status_history.create({
         data: {
-          rideId,
+          id: `${ride_id}-status-${Date.now()}`,
+          ride_id,
           status: 'completed',
         },
       });
 
-      await tx.rideAdminAction.create({
+      await tx.ride_admin_actions.create({
         data: {
-          rideId,
-          adminId,
+          id: `${ride_id}-action-${Date.now()}`,
+          ride_id,
+          admin_id,
           action: 'force_complete',
           reason: data.reason,
         },
       });
 
       // Handle diamond completion
-      await this.diamondService.handleRideComplete(rideId, updatedRide.driverId || undefined);
+//       await this.diamondService.handleRideComplete(ride_id, updatedRide.driver_id || undefined);
 
       return updatedRide;
     });
@@ -338,8 +350,7 @@ export class RideAdminService {
 
   // Get audit logs
   async getAuditLogs(query: AuditQuery) {
-    const { 
-      page = 1, 
+    const { page = 1, 
       limit = 20, 
       rideId, 
       adminId, 
@@ -353,7 +364,7 @@ export class RideAdminService {
     const where: any = {};
     
     if (rideId) where.rideId = rideId;
-    if (adminId) where.adminId = adminId;
+    if (adminId) where.admin_id = adminId;
     if (action) where.action = action;
     
     if (dateFrom || dateTo) {
@@ -369,7 +380,7 @@ export class RideAdminService {
         take: limit,
         orderBy: { created_at: 'desc' },
         include: {
-          ride: {
+          rides: {
             select: {
               id: true,
               origin: true,
@@ -385,10 +396,10 @@ export class RideAdminService {
     const logsWithAdminDetails = await Promise.all(
       logs.map(async (log) => {
         const admin = await prisma.admins.findUnique({
-          where: { id: log.adminId },
+          where: { id: log.admin_id },
           select: {
             name: true,
-            role: {
+            roles: {
               select: { name: true }
             }
           }
@@ -397,7 +408,7 @@ export class RideAdminService {
         return {
           ...log,
           adminName: admin?.name || 'Admin Desconhecido',
-          adminRole: admin?.role?.name || 'ADMIN',
+          adminRole: admin?.roles?.name || 'ADMIN',
         };
       })
     );

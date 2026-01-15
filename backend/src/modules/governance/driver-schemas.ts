@@ -13,7 +13,7 @@ export const driverConsentSchema = z.object({
 export const documentSubmissionSchema = z.object({
   documents: z.array(z.object({
     type: z.enum(['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK']),
-    fileUrl: z.string().url()
+    file_url: z.string().url()
   })),
   communityId: z.string().cuid().optional()
 });

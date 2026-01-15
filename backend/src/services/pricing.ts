@@ -27,12 +27,11 @@ export class PricingService {
    * Called between Create → Dispatch without altering flow
    */
   async calculateAndPersist(rideId: string): Promise<PricingCalculation> {
-    // Get ride with immutable anchors
+    // Get ride
     const ride = await prisma.rides.findUnique({
       where: { id: rideId },
       select: {
-        neighborhood_id: true,
-        community_id: true,
+        id: true,
         origin: true,
         destination: true
       }
@@ -42,8 +41,8 @@ export class PricingService {
       throw new Error('Ride not found');
     }
 
-    // Get pricing table for neighborhood
-    const pricingTable = await this.getPricingTable(ride.neighborhood_id);
+    // Get pricing table (default)
+    const pricingTable = await this.getPricingTable('default');
     
     // Calculate base pricing
     const { distanceKm, durationMin } = await this.estimateRideMetrics(
@@ -53,14 +52,14 @@ export class PricingService {
 
     const baseFare = parseFloat(pricingTable.base_fare.toString());
     const perKm = parseFloat(pricingTable.per_km.toString());
-    const perMin = parseFloat(pricingTable.per_min.toString());
+    const perMin = parseFloat(pricingTable.per_minute.toString());
     const minimumFare = parseFloat(pricingTable.minimum_fare.toString());
 
     let calculatedFare = baseFare + (distanceKm * perKm) + (durationMin * perMin);
     calculatedFare = Math.max(calculatedFare, minimumFare);
 
     // Apply community modifiers if applicable
-    const modifiers = await this.getModifiers(ride.community_id, calculatedFare);
+    const modifiers = await this.getModifiers(null, calculatedFare);
     const finalFare = this.applyModifiers(calculatedFare, modifiers);
 
     // Calculate payouts (driver gets ~85%, platform ~15%)
@@ -85,21 +84,27 @@ export class PricingService {
 
   /**
    * Get active pricing table for neighborhood
+   * TODO: pricing_tables model removed - using hardcoded defaults
    */
   private async getPricingTable(neighborhoodId: string) {
-    const pricingTable = await prisma.pricing_tables.findFirst({
-      where: {
-        neighborhood_id: neighborhoodId,
-        is_active: true
-      },
-      orderBy: { created_at: 'desc' }
-    });
+    // Return default pricing since pricing_tables model was removed
+    return {
+      id: 'default',
+      version: '1.0',
+      base_fare: 5.0,
+      per_km: 2.5,
+      per_minute: 0.5,
+      minimum_fare: 10.0
+    };
 
-    if (!pricingTable) {
-      throw new Error(`No active pricing table for neighborhood: ${neighborhoodId}`);
-    }
-
-    return pricingTable;
+    return {
+      id: 'default',
+      version: '1.0',
+      base_fare: 5.0,
+      per_km: 2.5,
+      per_minute: 0.5,
+      minimum_fare: 10.0
+    };
   }
 
   /**
@@ -123,7 +128,7 @@ export class PricingService {
 
     const modifiers: PricingModifier[] = [];
 
-    switch (community.operational_profile) {
+    switch (community.description) {
       case 'PRIORITY':
         // Light discount for passenger OR bonus for driver
         modifiers.push({
@@ -180,13 +185,14 @@ export class PricingService {
     pricingTable: any,
     calculation: PricingCalculation
   ): Promise<void> {
+    // ride_pricing model removed - skip persistence
+    return;
+    /*
     await prisma.ride_pricing.create({
       data: {
         id: `pricing_${rideId}`,
         ride_id: rideId,
         pricing_version: pricingTable.version,
-        neighborhood_id: ride.neighborhood_id,
-        community_id: ride.community_id,
         base_fare: calculation.baseFare,
         distance_km: calculation.distanceKm,
         duration_min: calculation.durationMin,
@@ -196,6 +202,7 @@ export class PricingService {
         platform_fee: calculation.platformFee
       }
     });
+    */
 
     // Update ride with final price
     await prisma.rides.update({

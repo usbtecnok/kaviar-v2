@@ -15,30 +15,30 @@ export class DriverVerificationService {
   /**
    * Evaluate driver eligibility for approval
    */
-  async evaluateEligibility(driverId: string): Promise<EligibilityResult> {
+  async evaluateEligibility(driver_id: string): Promise<EligibilityResult> {
     // Get or create driver verification record
     let verification = await prisma.driver_verifications.findUnique({
-      where: { driverId }
+      where: { driver_id }
     });
 
     if (!verification) {
-      verification = await this.createVerificationRecord(driverId);
+      verification = await this.createVerificationRecord(driver_id);
     }
 
     // Check LGPD consent
     const lgpdConsent = await prisma.consents.findUnique({
       where: {
-        subjectType_subjectId_type: {
-          subjectType: 'DRIVER',
-          subjectId: driverId,
+        subject_type_subject_id_type: {
+          subject_type: 'DRIVER',
+          subject_id: driver_id,
           type: 'lgpd'
         }
       }
     });
 
     // Get all documents
-    const documents = await prisma.driverDocument.findMany({
-      where: { driverId }
+    const documents = await prisma.driver_documents.findMany({
+      where: { driver_id }
     });
 
     // Required document types
@@ -60,7 +60,7 @@ export class DriverVerificationService {
     }
 
     // Check community assignment
-    if (!verification.communityId) {
+    if (!verification.community_id) {
       missingRequirements.push('COMMUNITY_ASSIGNMENT');
       checklist.communityAssigned.status = 'MISSING';
     } else {
@@ -85,7 +85,7 @@ export class DriverVerificationService {
         checklist.documents[docType] = {
           status: doc.status,
           required: true,
-          verifiedAt: doc.verifiedAt?.toISOString()
+          verifiedAt: doc.verified_at?.toISOString()
         };
       }
     }
@@ -94,10 +94,10 @@ export class DriverVerificationService {
 
     // Update verification status
     await prisma.driver_verifications.update({
-      where: { driverId },
+      where: { driver_id },
       data: {
         status: isEligible ? 'ELIGIBLE' : 'PENDING',
-        eligibilityCheckedAt: new Date()
+        eligibility_checked_at: new Date()
       }
     });
 
@@ -111,17 +111,19 @@ export class DriverVerificationService {
   /**
    * Create verification record for existing drivers (retrocompatibility)
    */
-  async createVerificationRecord(driverId: string) {
+  async createVerificationRecord(driver_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { communityId: true }
+      where: { id: driver_id },
+      select: { community_id: true }
     });
 
     const verification = await prisma.driver_verifications.create({
       data: {
-        driverId,
-        communityId: driver?.communityId,
-        status: 'PENDING'
+        id: `verification_${driver_id}`,
+        driver_id,
+        community_id: driver?.community_id,
+        status: 'PENDING',
+        updated_at: new Date()
       }
     });
 
@@ -129,11 +131,13 @@ export class DriverVerificationService {
     const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK'];
     
     for (const docType of requiredDocs) {
-      await prisma.driverDocument.create({
+      await prisma.driver_documents.create({
         data: {
-          driverId,
+          id: `doc_${driver_id}_${docType}_${Date.now()}`,
+          driver_id,
           type: docType,
-          status: 'MISSING'
+          status: 'MISSING',
+          updated_at: new Date()
         }
       });
     }
@@ -144,47 +148,51 @@ export class DriverVerificationService {
   /**
    * Submit driver documents
    */
-  async submitDocuments(driverId: string, documents: Array<{ type: string; fileUrl: string }>, communityId?: string) {
+  async submitDocuments(driver_id: string, documents: Array<{ type: string; file_url: string }>, community_id?: string) {
     return prisma.$transaction(async (tx) => {
       // Update community if provided
-      if (communityId) {
-        await tx.driverVerification.upsert({
-          where: { driverId },
-          update: { communityId },
+      if (community_id) {
+        await tx.driver_verifications.upsert({
+          where: { driver_id },
+          update: { community_id, updated_at: new Date() },
           create: {
-            driverId,
-            communityId,
-            status: 'PENDING'
+            id: `verification_${driver_id}`,
+            driver_id,
+            community_id,
+            status: 'PENDING',
+            updated_at: new Date()
           }
         });
       }
 
       // Update documents
       for (const doc of documents) {
-        const existingDoc = await tx.driverDocument.findFirst({
+        const existingDoc = await tx.driver_documents.findFirst({
           where: {
-            driverId,
+            driver_id,
             type: doc.type
           }
         });
 
         if (existingDoc) {
-          await tx.driverDocument.update({
+          await tx.driver_documents.update({
             where: { id: existingDoc.id },
             data: {
-              fileUrl: doc.fileUrl,
+              file_url: doc.file_url,
               status: 'SUBMITTED',
-              submittedAt: new Date()
+              submitted_at: new Date()
             }
           });
         } else {
-          await tx.driverDocument.create({
+          await tx.driver_documents.create({
             data: {
-              driverId,
+              id: `doc_${driver_id}_${doc.type}_${Date.now()}`,
+              driver_id,
               type: doc.type,
-              fileUrl: doc.fileUrl,
+              file_url: doc.file_url,
               status: 'SUBMITTED',
-              submittedAt: new Date()
+              submitted_at: new Date(),
+              updated_at: new Date()
             }
           });
         }
@@ -195,13 +203,13 @@ export class DriverVerificationService {
   /**
    * Verify a document (admin action)
    */
-  async verifyDocument(driverId: string, documentId: string, adminId: string) {
-    return prisma.driverDocument.update({
-      where: { id: documentId, driverId },
+  async verifyDocument(driver_id: string, documentId: string, admin_id: string) {
+    return prisma.driver_documents.update({
+      where: { id: documentId, driver_id },
       data: {
         status: 'VERIFIED',
-        verifiedAt: new Date(),
-        verifiedByAdminId: adminId
+        verified_at: new Date(),
+        verified_by_admin_id: admin_id
       }
     });
   }
@@ -209,14 +217,14 @@ export class DriverVerificationService {
   /**
    * Reject a document (admin action)
    */
-  async rejectDocument(driverId: string, documentId: string, adminId: string, reason: string) {
-    return prisma.driverDocument.update({
-      where: { id: documentId, driverId },
+  async rejectDocument(driver_id: string, documentId: string, admin_id: string, reason: string) {
+    return prisma.driver_documents.update({
+      where: { id: documentId, driver_id },
       data: {
         status: 'REJECTED',
-        rejectedAt: new Date(),
-        rejectedByAdminId: adminId,
-        rejectReason: reason
+        rejected_at: new Date(),
+        rejected_by_admin_id: admin_id,
+        reject_reason: reason
       }
     });
   }
@@ -224,30 +232,31 @@ export class DriverVerificationService {
   /**
    * Record LGPD consent for driver
    */
-  async recordConsent(driverId: string, consentType: string, accepted: boolean, ipAddress?: string, userAgent?: string) {
+  async recordConsent(driver_id: string, consentType: string, accepted: boolean, ipAddress?: string, userAgent?: string) {
     return prisma.consents.upsert({
       where: {
-        subjectType_subjectId_type: {
-          subjectType: 'DRIVER',
-          subjectId: driverId,
+        subject_type_subject_id_type: {
+          subject_type: 'DRIVER',
+          subject_id: driver_id,
           type: consentType
         }
       },
       update: {
         accepted,
-        acceptedAt: accepted ? new Date() : null,
-        ipAddress,
-        userAgent
+        accepted_at: accepted ? new Date() : null,
+        ip_address: ipAddress,
+        user_agent: userAgent
       },
       create: {
-        userId: driverId,
-        subjectType: 'DRIVER',
-        subjectId: driverId,
+        id: `consent_${driver_id}_${consentType}_${Date.now()}`,
+        user_id: driver_id,
+        subject_type: 'DRIVER',
+        subject_id: driver_id,
         type: consentType,
         accepted,
-        acceptedAt: accepted ? new Date() : null,
-        ipAddress,
-        userAgent
+        accepted_at: accepted ? new Date() : null,
+        ip_address: ipAddress,
+        user_agent: userAgent
       }
     });
   }

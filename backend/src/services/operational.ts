@@ -40,7 +40,7 @@ export class OperationalService {
       });
       
       if (community) {
-        operationalProfile = community.operational_profile as OperationalProfile;
+        operationalProfile = community.description as OperationalProfile;
       }
     }
     

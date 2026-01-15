@@ -6,9 +6,9 @@ export interface DriverStatusCheck {
   blockReason?: 'DELETED' | 'BANNED' | 'SUSPENDED';
   message?: string;
   details?: {
-    deletedAt?: string;
-    bannedAt?: string;
-    suspendedAt?: string;
+    deleted_at?: string;
+    banned_at?: string;
+    suspended_at?: string;
     reason?: string;
   };
 }
@@ -18,23 +18,23 @@ export class DriverEnforcementService {
   /**
    * Check if driver is blocked from operations
    */
-  async checkDriverStatus(driverId: string): Promise<DriverStatusCheck> {
+  async checkDriverStatus(driver_id: string): Promise<DriverStatusCheck> {
     // Skip enforcement if gates are disabled
     if (!config.driverEnforcement.enableEnforcementGates) {
       return { isBlocked: false };
     }
 
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
+      where: { id: driver_id },
       select: {
-        deletedAt: true,
-        deletedBy: true,
-        bannedAt: true,
-        bannedBy: true,
-        bannedReason: true,
-        suspendedAt: true,
-        suspendedBy: true,
-        suspensionReason: true
+        deleted_at: true,
+        deleted_by: true,
+        banned_at: true,
+        banned_by: true,
+        banned_reason: true,
+        suspended_at: true,
+        suspended_by: true,
+        suspension_reason: true
       }
     });
 
@@ -47,37 +47,37 @@ export class DriverEnforcementService {
     }
 
     // Check in order of severity: deleted > banned > suspended
-    if (driver.deletedAt) {
+    if (driver.deleted_at) {
       return {
         isBlocked: true,
         blockReason: 'DELETED',
         message: 'Conta removida do sistema',
         details: {
-          deletedAt: driver.deletedAt.toISOString()
+          deleted_at: driver.deleted_at.toISOString()
         }
       };
     }
 
-    if (driver.bannedAt) {
+    if (driver.banned_at) {
       return {
         isBlocked: true,
         blockReason: 'BANNED',
         message: 'Motorista banido permanentemente',
         details: {
-          bannedAt: driver.bannedAt.toISOString(),
-          reason: driver.bannedReason || 'Não especificado'
+          banned_at: driver.banned_at.toISOString(),
+          reason: driver.banned_reason || 'Não especificado'
         }
       };
     }
 
-    if (driver.suspendedAt) {
+    if (driver.suspended_at) {
       return {
         isBlocked: true,
         blockReason: 'SUSPENDED',
         message: 'Motorista temporariamente suspenso',
         details: {
-          suspendedAt: driver.suspendedAt.toISOString(),
-          reason: driver.suspensionReason || 'Não especificado'
+          suspended_at: driver.suspended_at.toISOString(),
+          reason: driver.suspension_reason || 'Não especificado'
         }
       };
     }
@@ -88,21 +88,22 @@ export class DriverEnforcementService {
   /**
    * Ban a driver
    */
-  async banDriver(driverId: string, reason: string, adminId: string) {
+  async banDriver(driver_id: string, reason: string, admin_id: string) {
     return prisma.$transaction(async (tx) => {
-      const updatedDriver = await tx.driver.update({
-        where: { id: driverId },
+      const updatedDriver = await tx.drivers.update({
+        where: { id: driver_id },
         data: {
-          bannedAt: new Date(),
-          bannedBy: adminId,
-          bannedReason: reason
+          banned_at: new Date(),
+          banned_by: admin_id,
+          banned_reason: reason
         }
       });
 
-      await tx.driverEnforcementHistory.create({
+      await tx.driver_enforcement_history.create({
         data: {
-          driverId,
-          adminId,
+          id: `enforcement_${driver_id}_${Date.now()}`,
+          driver_id,
+          admin_id,
           action: 'BAN',
           reason,
           metadata: {
@@ -118,21 +119,22 @@ export class DriverEnforcementService {
   /**
    * Unban a driver
    */
-  async unbanDriver(driverId: string, adminId: string) {
+  async unbanDriver(driver_id: string, admin_id: string) {
     return prisma.$transaction(async (tx) => {
-      const updatedDriver = await tx.driver.update({
-        where: { id: driverId },
+      const updatedDriver = await tx.drivers.update({
+        where: { id: driver_id },
         data: {
-          bannedAt: null,
-          bannedBy: null,
-          bannedReason: null
+          banned_at: null,
+          banned_by: null,
+          banned_reason: null
         }
       });
 
-      await tx.driverEnforcementHistory.create({
+      await tx.driver_enforcement_history.create({
         data: {
-          driverId,
-          adminId,
+          id: `enforcement_${driver_id}_${Date.now()}`,
+          driver_id,
+          admin_id,
           action: 'UNBAN',
           reason: 'Banimento removido por admin'
         }
@@ -145,20 +147,21 @@ export class DriverEnforcementService {
   /**
    * Soft delete a driver
    */
-  async softDeleteDriver(driverId: string, adminId: string) {
+  async softDeleteDriver(driver_id: string, admin_id: string) {
     return prisma.$transaction(async (tx) => {
-      const updatedDriver = await tx.driver.update({
-        where: { id: driverId },
+      const updatedDriver = await tx.drivers.update({
+        where: { id: driver_id },
         data: {
-          deletedAt: new Date(),
-          deletedBy: adminId
+          deleted_at: new Date(),
+          deleted_by: admin_id
         }
       });
 
-      await tx.driverEnforcementHistory.create({
+      await tx.driver_enforcement_history.create({
         data: {
-          driverId,
-          adminId,
+          id: `enforcement_${driver_id}_${Date.now()}`,
+          driver_id,
+          admin_id,
           action: 'SOFT_DELETE',
           reason: 'Conta removida do sistema'
         }
@@ -171,20 +174,21 @@ export class DriverEnforcementService {
   /**
    * Restore a soft deleted driver
    */
-  async restoreDriver(driverId: string, adminId: string) {
+  async restoreDriver(driver_id: string, admin_id: string) {
     return prisma.$transaction(async (tx) => {
-      const updatedDriver = await tx.driver.update({
-        where: { id: driverId },
+      const updatedDriver = await tx.drivers.update({
+        where: { id: driver_id },
         data: {
-          deletedAt: null,
-          deletedBy: null
+          deleted_at: null,
+          deleted_by: null
         }
       });
 
-      await tx.driverEnforcementHistory.create({
+      await tx.driver_enforcement_history.create({
         data: {
-          driverId,
-          adminId,
+          id: `enforcement_${driver_id}_${Date.now()}`,
+          driver_id,
+          admin_id,
           action: 'RESTORE',
           reason: 'Conta restaurada por admin'
         }
@@ -197,9 +201,9 @@ export class DriverEnforcementService {
   /**
    * Get enforcement history for a driver
    */
-  async getEnforcementHistory(driverId: string) {
+  async getEnforcementHistory(driver_id: string) {
     return prisma.driver_enforcement_history.findMany({
-      where: { driverId },
+      where: { driver_id },
       orderBy: { created_at: 'desc' },
       take: 50 // Last 50 actions
     });
@@ -208,22 +212,23 @@ export class DriverEnforcementService {
   /**
    * Enhanced suspend with audit trail
    */
-  async suspendDriverWithAudit(driverId: string, reason: string, adminId: string) {
+  async suspendDriverWithAudit(driver_id: string, reason: string, admin_id: string) {
     return prisma.$transaction(async (tx) => {
-      const updatedDriver = await tx.driver.update({
-        where: { id: driverId },
+      const updatedDriver = await tx.drivers.update({
+        where: { id: driver_id },
         data: {
           status: 'suspended',
-          suspensionReason: reason,
-          suspendedAt: new Date(),
-          suspendedBy: adminId
+          suspension_reason: reason,
+          suspended_at: new Date(),
+          suspended_by: admin_id
         }
       });
 
-      await tx.driverEnforcementHistory.create({
+      await tx.driver_enforcement_history.create({
         data: {
-          driverId,
-          adminId,
+          id: `enforcement_${driver_id}_${Date.now()}`,
+          driver_id,
+          admin_id,
           action: 'SUSPEND',
           reason
         }
@@ -236,22 +241,23 @@ export class DriverEnforcementService {
   /**
    * Enhanced reactivate with audit trail
    */
-  async reactivateDriverWithAudit(driverId: string, adminId: string) {
+  async reactivateDriverWithAudit(driver_id: string, admin_id: string) {
     return prisma.$transaction(async (tx) => {
-      const updatedDriver = await tx.driver.update({
-        where: { id: driverId },
+      const updatedDriver = await tx.drivers.update({
+        where: { id: driver_id },
         data: {
           status: 'approved',
-          suspensionReason: null,
-          suspendedAt: null,
-          suspendedBy: null
+          suspension_reason: null,
+          suspended_at: null,
+          suspended_by: null
         }
       });
 
-      await tx.driverEnforcementHistory.create({
+      await tx.driver_enforcement_history.create({
         data: {
-          driverId,
-          adminId,
+          id: `enforcement_${driver_id}_${Date.now()}`,
+          driver_id,
+          admin_id,
           action: 'REACTIVATE',
           reason: 'Suspensão removida por admin'
         }
