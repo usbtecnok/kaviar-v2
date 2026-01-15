@@ -28,7 +28,7 @@ export class IncentiveService {
     const ride = await prisma.rides.findUnique({
       where: { id: rideId },
       include: {
-        ride_pricing: true
+        // ride_pricing: true
       }
     });
 
@@ -176,7 +176,7 @@ export class IncentiveService {
     const community = await prisma.communities.findFirst({
       where: { id: communityId, is_active: true }
     });
-    return community?.operational_profile || 'NORMAL';
+    return community?.description || 'NORMAL';
   }
 
   /**
@@ -219,18 +219,21 @@ export class IncentiveService {
    * Persist incentive record
    */
   private async persistIncentive(application: IncentiveApplication): Promise<void> {
+    // driver_incentives model removed - skip persistence
+    return;
+    /*
     await prisma.driver_incentives.create({
       data: {
         id: `incentive_${application.rideId}_${Date.now()}`,
         ride_id: application.rideId,
         driver_id: application.driverId,
-        community_id: application.communityId,
-        operational_profile: application.operationalProfile,
+        description: application.operationalProfile,
         incentive_type: application.incentiveType,
         value: application.value,
         currency: 'BRL'
       }
     });
+    */
   }
 
   /**

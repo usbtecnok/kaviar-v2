@@ -259,6 +259,7 @@ router.post('/guide', async (req, res) => {
         name: data.name,
         email: data.email,
         phone: data.phone,
+        community_id: data.communityId || 'default-community', // TODO: get from request
         status: 'pending', // Requires admin approval
         is_bilingual: data.isBilingual,
         languages: data.languages,

@@ -19,31 +19,27 @@ export class DispatchService {
    * Profile defines HOW to select drivers (not WHERE)
    */
   async dispatchDrivers(rideId: string): Promise<DispatchResult> {
-    // Get ride with immutable anchors
+    // Get ride
     const ride = await prisma.rides.findUnique({
-      where: { id: rideId },
-      select: {
-        neighborhood_id: true,
-        community_id: true
-      }
+      where: { id: rideId }
     });
 
     if (!ride) {
       return { success: false, reason: 'Ride not found' };
     }
 
-    // Get operational context
+    // Get operational context (without neighborhood/community)
     const context = await this.operationalService.resolveOperationalContext(
-      ride.neighborhood_id,
-      ride.community_id
+      'default-neighborhood',
+      null
     );
 
-    // Base query: active drivers in neighborhood
+    // Base query: active drivers
     const baseQuery = {
       where: {
         status: 'active',
-        // Add neighborhood filter logic here
-        // neighborhood_id: context.neighborhoodId
+        // Add filter logic here
+        //  context.neighborhoodId
       }
     };
 

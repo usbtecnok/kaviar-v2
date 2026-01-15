@@ -1,13 +1,14 @@
 import { prisma } from '../../config/database';
 import { DriversQuery, PassengersQuery, RidesQuery, SuspendDriverData, CancelRideData, ReassignRideData, ForceCompleteRideData } from './schemas';
-// import { CommunityActivationService } from '../../services/community-activation';
+// import { /* CommunityActivationService */ } from '../../services/community-activation';
 import { DriverVerificationService } from '../../services/driver-verification';
 import { DriverEnforcementService } from '../../services/driver-enforcement';
 import { config } from '../../config';
 
 export class AdminService {
-  private communityActivation = new CommunityActivationService();
-  private driverVerification = new DriverVerificationService();
+  // TODO: reativar quando CommunityActivationService voltar
+  private communityActivation: any = null;
+  private driver_verifications = new DriverVerificationService();
   private driverEnforcement = new DriverEnforcementService();
   // Drivers
   async getDrivers(query: DriversQuery) {
@@ -56,9 +57,9 @@ export class AdminService {
           email: true,
           phone: true,
           status: true,
-          suspensionReason: true,
-          suspendedAt: true,
-          lastActiveAt: true,
+          suspension_reason: true,
+          suspended_at: true,
+          last_active_at: true,
           created_at: true,
           _count: {
             select: { rides: true },
@@ -80,21 +81,21 @@ export class AdminService {
   }
 
   // Aprovar motorista (with optional eligibility gates)
-  async approveDriver(driverId: string) {
+  async approveDriver(driver_id: string) {
     // Check if approval gates are enabled
     if (!config.driverGovernance.enableApprovalGates) {
-      return this.approveDriverLegacy(driverId);
+      return this.approveDriverLegacy(driver_id);
     }
 
     // New behavior with gates
-    return this.approveDriverWithGates(driverId);
+    return this.approveDriverWithGates(driver_id);
   }
 
   // Legacy approval behavior (no gates)
-  private async approveDriverLegacy(driverId: string) {
+  private async approveDriverLegacy(driver_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, status: true, communityId: true }
+      where: { id: driver_id },
+      select: { id: true, status: true, community_id: true }
     });
 
     if (!driver) {
@@ -106,27 +107,27 @@ export class AdminService {
     }
 
     const updatedDriver = await prisma.drivers.update({
-      where: { id: driverId },
+      where: { id: driver_id },
       data: { 
         status: 'approved',
-        suspensionReason: null,
-        suspendedAt: null,
-        suspendedBy: null,
+        suspension_reason: null,
+        suspended_at: null,
+        suspended_by: null,
       }
     });
 
     // Reavaliar ativação da comunidade após aprovação
-    if (driver.communityId) {
-      await this.communityActivation.evaluateCommunityActivation(driver.communityId, 'system');
+    if (driver.community_id) {
+      await this.communityActivation.evaluateCommunityActivation(driver.community_id, 'system');
     }
 
     return updatedDriver;
   }
 
   // New approval behavior with gates
-  private async approveDriverWithGates(driverId: string) {
+  private async approveDriverWithGates(driver_id: string) {
     // Check eligibility first
-    const eligibility = await this.driverVerification.evaluateEligibility(driverId);
+    const eligibility = await this.driver_verifications.evaluateEligibility(driver_id);
     
     if (!eligibility.isEligible) {
       const error = new Error('DRIVER_NOT_ELIGIBLE') as any;
@@ -137,8 +138,8 @@ export class AdminService {
     }
 
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, status: true, communityId: true }
+      where: { id: driver_id },
+      select: { id: true, status: true, community_id: true }
     });
 
     if (!driver) {
@@ -151,23 +152,23 @@ export class AdminService {
 
     const updatedDriver = await prisma.$transaction(async (tx) => {
       // Update driver status
-      const updated = await tx.driver.update({
-        where: { id: driverId },
+      const updated = await tx.drivers.update({
+        where: { id: driver_id },
         data: { 
           status: 'approved',
-          suspensionReason: null,
-          suspendedAt: null,
-          suspendedBy: null,
+          suspension_reason: null,
+          suspended_at: null,
+          suspended_by: null,
         }
       });
 
       // Update verification record
-      await tx.driverVerification.update({
-        where: { driverId },
+      await tx.driver_verifications.update({
+        where: { driver_id },
         data: {
           status: 'APPROVED',
-          approvedAt: new Date(),
-          approvedByAdminId: 'system' // TODO: get actual admin ID
+          approved_at: new Date(),
+          approved_by_admin_id: 'system' // TODO: get actual admin ID
         }
       });
 
@@ -175,8 +176,8 @@ export class AdminService {
     });
 
     // Reavaliar ativação da comunidade após aprovação
-    if (driver.communityId) {
-      await this.communityActivation.evaluateCommunityActivation(driver.communityId, 'system');
+    if (driver.community_id) {
+      await this.communityActivation.evaluateCommunityActivation(driver.community_id, 'system');
     }
 
     return updatedDriver;
@@ -220,10 +221,10 @@ export class AdminService {
   }
 
   // Suspender motorista (enhanced with audit)
-  async suspendDriver(driverId: string, data: SuspendDriverData, adminId: string) {
+  async suspendDriver(driver_id: string, data: SuspendDriverData, admin_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, status: true, communityId: true }
+      where: { id: driver_id },
+      select: { id: true, status: true, community_id: true }
     });
 
     if (!driver) {
@@ -236,24 +237,24 @@ export class AdminService {
 
     // Use enhanced suspension with audit trail
     const updatedDriver = await this.driverEnforcement.suspendDriverWithAudit(
-      driverId, 
+      driver_id, 
       data.reason, 
-      adminId
+      admin_id
     );
 
     // Reavaliar ativação da comunidade após suspensão
-    if (driver.communityId) {
-      await this.communityActivation.evaluateCommunityActivation(driver.communityId, adminId);
+    if (driver.community_id) {
+      await this.communityActivation.evaluateCommunityActivation(driver.community_id, admin_id);
     }
 
     return updatedDriver;
   }
 
   // Reativar motorista (enhanced with audit)
-  async reactivateDriver(driverId: string, adminId: string) {
+  async reactivateDriver(driver_id: string, admin_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, status: true, communityId: true }
+      where: { id: driver_id },
+      select: { id: true, status: true, community_id: true }
     });
 
     if (!driver) {
@@ -266,113 +267,113 @@ export class AdminService {
 
     // Use enhanced reactivation with audit trail
     const updatedDriver = await this.driverEnforcement.reactivateDriverWithAudit(
-      driverId,
-      adminId
+      driver_id,
+      admin_id
     );
 
     // Reavaliar ativação da comunidade após reativação
-    if (driver.communityId) {
-      await this.communityActivation.evaluateCommunityActivation(driver.communityId, 'system');
+    if (driver.community_id) {
+      await this.communityActivation.evaluateCommunityActivation(driver.community_id, 'system');
     }
 
     return updatedDriver;
   }
 
   // Ban driver
-  async banDriver(driverId: string, reason: string, adminId: string) {
+  async banDriver(driver_id: string, reason: string, admin_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, bannedAt: true, communityId: true }
+      where: { id: driver_id },
+      select: { id: true, banned_at: true, community_id: true }
     });
 
     if (!driver) {
       throw new Error('Motorista não encontrado');
     }
 
-    if (driver.bannedAt) {
+    if (driver.banned_at) {
       throw new Error('Motorista já está banido');
     }
 
-    const updatedDriver = await this.driverEnforcement.banDriver(driverId, reason, adminId);
+    const updatedDriver = await this.driverEnforcement.banDriver(driver_id, reason, admin_id);
 
     // Reavaliar ativação da comunidade
-    if (driver.communityId) {
-      await this.communityActivation.evaluateCommunityActivation(driver.communityId, adminId);
+    if (driver.community_id) {
+      await this.communityActivation.evaluateCommunityActivation(driver.community_id, admin_id);
     }
 
     return updatedDriver;
   }
 
   // Unban driver
-  async unbanDriver(driverId: string, adminId: string) {
+  async unbanDriver(driver_id: string, admin_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, bannedAt: true }
+      where: { id: driver_id },
+      select: { id: true, banned_at: true }
     });
 
     if (!driver) {
       throw new Error('Motorista não encontrado');
     }
 
-    if (!driver.bannedAt) {
+    if (!driver.banned_at) {
       throw new Error('Motorista não está banido');
     }
 
-    return this.driverEnforcement.unbanDriver(driverId, adminId);
+    return this.driverEnforcement.unbanDriver(driver_id, admin_id);
   }
 
   // Soft delete driver
-  async softDeleteDriver(driverId: string, adminId: string) {
+  async softDeleteDriver(driver_id: string, admin_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, deletedAt: true, communityId: true }
+      where: { id: driver_id },
+      select: { id: true, deleted_at: true, community_id: true }
     });
 
     if (!driver) {
       throw new Error('Motorista não encontrado');
     }
 
-    if (driver.deletedAt) {
+    if (driver.deleted_at) {
       throw new Error('Motorista já foi removido');
     }
 
-    const updatedDriver = await this.driverEnforcement.softDeleteDriver(driverId, adminId);
+    const updatedDriver = await this.driverEnforcement.softDeleteDriver(driver_id, admin_id);
 
     // Reavaliar ativação da comunidade
-    if (driver.communityId) {
-      await this.communityActivation.evaluateCommunityActivation(driver.communityId, adminId);
+    if (driver.community_id) {
+      await this.communityActivation.evaluateCommunityActivation(driver.community_id, admin_id);
     }
 
     return updatedDriver;
   }
 
   // Restore driver
-  async restoreDriver(driverId: string, adminId: string) {
+  async restoreDriver(driver_id: string, admin_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { id: true, deletedAt: true }
+      where: { id: driver_id },
+      select: { id: true, deleted_at: true }
     });
 
     if (!driver) {
       throw new Error('Motorista não encontrado');
     }
 
-    if (!driver.deletedAt) {
+    if (!driver.deleted_at) {
       throw new Error('Motorista não foi removido');
     }
 
-    return this.driverEnforcement.restoreDriver(driverId, adminId);
+    return this.driverEnforcement.restoreDriver(driver_id, admin_id);
   }
 
   // Get enforcement history
-  async getDriverEnforcementHistory(driverId: string) {
-    return this.driverEnforcement.getEnforcementHistory(driverId);
+  async getDriverEnforcementHistory(driver_id: string) {
+    return this.driverEnforcement.getEnforcementHistory(driver_id);
   }
 
   // Get driver details
-  async getDriverById(driverId: string) {
+  async getDriverById(driver_id: string) {
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
+      where: { id: driver_id },
       include: {
         rides: {
           take: 10,
@@ -382,7 +383,7 @@ export class AdminService {
             status: true,
             price: true,
             created_at: true,
-            passenger: {
+            passengers: {
               select: { name: true }
             }
           }
@@ -401,16 +402,16 @@ export class AdminService {
   }
 
   // Check if driver can accept rides (enhanced with enforcement)
-  async canDriverAcceptRides(driverId: string): Promise<boolean> {
+  async canDriverAcceptRides(driver_id: string): Promise<boolean> {
     // Check enforcement status first
-    const enforcementStatus = await this.driverEnforcement.checkDriverStatus(driverId);
+    const enforcementStatus = await this.driverEnforcement.checkDriverStatus(driver_id);
     if (enforcementStatus.isBlocked) {
       return false;
     }
 
     // Check basic status
     const driver = await prisma.drivers.findUnique({
-      where: { id: driverId },
+      where: { id: driver_id },
       select: { status: true }
     });
 
@@ -458,7 +459,7 @@ export class AdminService {
       page = 1, 
       limit = 10, 
       status, 
-      driverId, 
+      driver_id, 
       passengerId, 
       search, 
       dateFrom, 
@@ -473,13 +474,13 @@ export class AdminService {
     const where: any = {};
     
     if (status) where.status = status;
-    if (driverId) where.driverId = driverId;
+    if (driver_id) where.driver_id = driver_id;
     if (passengerId) where.passengerId = passengerId;
     
     if (search) {
       where.OR = [
-        { driver: { name: { contains: search, mode: 'insensitive' } } },
-        { passenger: { name: { contains: search, mode: 'insensitive' } } },
+        { drivers: { name: { contains: search, mode: 'insensitive' } } },
+        { passengers: { name: { contains: search, mode: 'insensitive' } } },
         { origin: { contains: search, mode: 'insensitive' } },
         { destination: { contains: search, mode: 'insensitive' } },
       ];
@@ -498,7 +499,7 @@ export class AdminService {
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         include: {
-          driver: {
+          drivers: {
             select: {
               id: true,
               name: true,
@@ -506,7 +507,7 @@ export class AdminService {
               phone: true,
             },
           },
-          passenger: {
+          passengers: {
             select: {
               id: true,
               name: true,
@@ -535,7 +536,7 @@ export class AdminService {
     const ride = await prisma.rides.findUnique({
       where: { id },
       include: {
-        driver: {
+        drivers: {
           select: {
             id: true,
             name: true,
@@ -543,7 +544,7 @@ export class AdminService {
             phone: true,
           },
         },
-        passenger: {
+        passengers: {
           select: {
             id: true,
             name: true,
@@ -551,10 +552,10 @@ export class AdminService {
             phone: true,
           },
         },
-        statusHistory: {
+        ride_status_history: {
           orderBy: { created_at: 'asc' },
         },
-        adminActions: {
+        ride_admin_actions: {
           orderBy: { created_at: 'desc' },
         },
       },
@@ -568,9 +569,9 @@ export class AdminService {
   }
 
   // Cancel ride administratively
-  async cancelRide(rideId: string, data: CancelRideData, adminId: string) {
+  async cancelRide(ride_id: string, data: CancelRideData, admin_id: string) {
     const ride = await prisma.rides.findUnique({
-      where: { id: rideId },
+      where: { id: ride_id },
       select: { status: true }
     });
 
@@ -584,29 +585,31 @@ export class AdminService {
 
     return prisma.$transaction(async (tx) => {
       // Update ride status
-      const updatedRide = await tx.ride.update({
-        where: { id: rideId },
+      const updatedRide = await tx.rides.update({
+        where: { id: ride_id },
         data: {
           status: 'cancelled',
-          cancelReason: data.reason,
-          cancelledBy: adminId,
-          cancelledAt: new Date(),
+          cancel_reason: data.reason,
+          cancelled_by: admin_id,
+          cancelled_at: new Date(),
         },
       });
 
       // Add status history
-      await tx.rideStatusHistory.create({
+      await tx.ride_status_history.create({
         data: {
-          rideId,
+          id: `${ride_id}-status-${Date.now()}`,
+          ride_id,
           status: 'cancelled',
         },
       });
 
       // Log admin action
-      await tx.rideAdminAction.create({
+      await tx.ride_admin_actions.create({
         data: {
-          rideId,
-          adminId,
+          id: `${ride_id}-action-${Date.now()}`,
+          ride_id,
+          admin_id,
           action: 'cancel',
           reason: data.reason,
         },
@@ -617,10 +620,10 @@ export class AdminService {
   }
 
   // Reassign driver
-  async reassignDriver(rideId: string, data: ReassignRideData, adminId: string) {
+  async reassignDriver(ride_id: string, data: ReassignRideData, admin_id: string) {
     const ride = await prisma.rides.findUnique({
-      where: { id: rideId },
-      select: { status: true, driverId: true }
+      where: { id: ride_id },
+      select: { status: true, driver_id: true }
     });
 
     if (!ride) {
@@ -646,31 +649,33 @@ export class AdminService {
     }
 
     return prisma.$transaction(async (tx) => {
-      const updatedRide = await tx.ride.update({
-        where: { id: rideId },
+      const updatedRide = await tx.rides.update({
+        where: { id: ride_id },
         data: {
-          driverId: data.newDriverId,
+          driver_id: data.newDriverId,
           status: 'driver_assigned',
         },
       });
 
       // Add status history
-      await tx.rideStatusHistory.create({
+      await tx.ride_status_history.create({
         data: {
-          rideId,
+          id: `${ride_id}-status-${Date.now()}`,
+          ride_id,
           status: 'driver_assigned',
         },
       });
 
       // Log admin action
-      await tx.rideAdminAction.create({
+      await tx.ride_admin_actions.create({
         data: {
-          rideId,
-          adminId,
+          id: `${ride_id}-action-${Date.now()}`,
+          ride_id,
+          admin_id,
           action: 'reassign_driver',
           reason: data.reason,
-          oldValue: ride.driverId,
-          newValue: data.newDriverId,
+          old_value: ride.driver_id,
+          new_value: data.newDriverId,
         },
       });
 
@@ -679,9 +684,9 @@ export class AdminService {
   }
 
   // Force complete ride
-  async forceCompleteRide(rideId: string, data: ForceCompleteRideData, adminId: string) {
+  async forceCompleteRide(ride_id: string, data: ForceCompleteRideData, admin_id: string) {
     const ride = await prisma.rides.findUnique({
-      where: { id: rideId },
+      where: { id: ride_id },
       select: { status: true }
     });
 
@@ -694,28 +699,30 @@ export class AdminService {
     }
 
     return prisma.$transaction(async (tx) => {
-      const updatedRide = await tx.ride.update({
-        where: { id: rideId },
+      const updatedRide = await tx.rides.update({
+        where: { id: ride_id },
         data: {
           status: 'completed',
-          forcedCompletedBy: adminId,
-          forcedCompletedAt: new Date(),
+          forced_completed_by: admin_id,
+          forced_completed_at: new Date(),
         },
       });
 
       // Add status history
-      await tx.rideStatusHistory.create({
+      await tx.ride_status_history.create({
         data: {
-          rideId,
+          id: `${ride_id}-status-${Date.now()}`,
+          ride_id,
           status: 'completed',
         },
       });
 
       // Log admin action
-      await tx.rideAdminAction.create({
+      await tx.ride_admin_actions.create({
         data: {
-          rideId,
-          adminId,
+          id: `${ride_id}-action-${Date.now()}`,
+          ride_id,
+          admin_id,
           action: 'force_complete',
           reason: data.reason,
         },

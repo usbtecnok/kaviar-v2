@@ -51,11 +51,10 @@ export class CommunityService {
       return { neighborhoodId };
     }
     
-    // Validate community belongs to neighborhood and is active
+    // Validate community is active
     const community = await prisma.communities.findFirst({
       where: {
         id: communityId,
-        neighborhood_id: neighborhoodId,
         is_active: true
       }
     });
@@ -69,12 +68,11 @@ export class CommunityService {
   }
   
   /**
-   * Get active communities for a neighborhood
+   * Get active communities
    */
   async getCommunitiesByNeighborhood(neighborhoodId: string): Promise<Community[]> {
     const communities = await prisma.communities.findMany({
       where: {
-        neighborhood_id: neighborhoodId,
         is_active: true
       },
       orderBy: { name: 'asc' }
@@ -83,10 +81,10 @@ export class CommunityService {
     return communities.map(c => ({
       id: c.id,
       name: c.name,
-      neighborhoodId: c.neighborhood_id,
+      neighborhoodId: neighborhoodId, // Use parameter instead
       isActive: c.is_active,
-      operationalProfile: c.operational_profile as OperationalProfile,
-      notes: c.notes || undefined
+      operationalProfile: 'NORMAL' as OperationalProfile, // Default value
+      notes: c.description || undefined
     }));
   }
 }

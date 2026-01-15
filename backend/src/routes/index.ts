@@ -23,7 +23,7 @@ router.use('/admin/auth', authRoutes);
 router.use('/admin', adminRoutes);
 
 // Admin geofence routes
-router.use('/admin/geofence', adminGeofenceRoutes);
+// router.use('/admin/geofence', adminGeofenceRoutes); // Commented out - route not available
 
 // Governance routes
 router.use('/governance', governanceRoutes);
