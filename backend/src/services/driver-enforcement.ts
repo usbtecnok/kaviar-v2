@@ -94,15 +94,16 @@ export class DriverEnforcementService {
         where: { id: driver_id },
         data: {
           banned_at: new Date(),
-          banned_by: adminId,
+          banned_by: admin_id,
           banned_reason: reason
         }
       });
 
       await tx.driver_enforcement_history.create({
         data: {
+          id: `enforcement_${driver_id}_${Date.now()}`,
           driver_id,
-          adminId,
+          admin_id,
           action: 'BAN',
           reason,
           metadata: {
@@ -131,8 +132,9 @@ export class DriverEnforcementService {
 
       await tx.driver_enforcement_history.create({
         data: {
+          id: `enforcement_${driver_id}_${Date.now()}`,
           driver_id,
-          adminId,
+          admin_id,
           action: 'UNBAN',
           reason: 'Banimento removido por admin'
         }
@@ -151,14 +153,15 @@ export class DriverEnforcementService {
         where: { id: driver_id },
         data: {
           deleted_at: new Date(),
-          deleted_by: adminId
+          deleted_by: admin_id
         }
       });
 
       await tx.driver_enforcement_history.create({
         data: {
+          id: `enforcement_${driver_id}_${Date.now()}`,
           driver_id,
-          adminId,
+          admin_id,
           action: 'SOFT_DELETE',
           reason: 'Conta removida do sistema'
         }
@@ -183,8 +186,9 @@ export class DriverEnforcementService {
 
       await tx.driver_enforcement_history.create({
         data: {
+          id: `enforcement_${driver_id}_${Date.now()}`,
           driver_id,
-          adminId,
+          admin_id,
           action: 'RESTORE',
           reason: 'Conta restaurada por admin'
         }
@@ -216,14 +220,15 @@ export class DriverEnforcementService {
           status: 'suspended',
           suspension_reason: reason,
           suspended_at: new Date(),
-          suspended_by: adminId
+          suspended_by: admin_id
         }
       });
 
       await tx.driver_enforcement_history.create({
         data: {
+          id: `enforcement_${driver_id}_${Date.now()}`,
           driver_id,
-          adminId,
+          admin_id,
           action: 'SUSPEND',
           reason
         }
@@ -250,8 +255,9 @@ export class DriverEnforcementService {
 
       await tx.driver_enforcement_history.create({
         data: {
+          id: `enforcement_${driver_id}_${Date.now()}`,
           driver_id,
-          adminId,
+          admin_id,
           action: 'REACTIVATE',
           reason: 'Suspensão removida por admin'
         }

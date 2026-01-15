@@ -85,7 +85,7 @@ export class DriverVerificationService {
         checklist.documents[docType] = {
           status: doc.status,
           required: true,
-          verified_at: doc.verifiedAt?.toISOString()
+          verifiedAt: doc.verified_at?.toISOString()
         };
       }
     }
@@ -119,9 +119,11 @@ export class DriverVerificationService {
 
     const verification = await prisma.driver_verifications.create({
       data: {
+        id: `verification_${driver_id}`,
         driver_id,
         community_id: driver?.community_id,
-        status: 'PENDING'
+        status: 'PENDING',
+        updated_at: new Date()
       }
     });
 
@@ -131,9 +133,11 @@ export class DriverVerificationService {
     for (const docType of requiredDocs) {
       await prisma.driver_documents.create({
         data: {
+          id: `doc_${driver_id}_${docType}_${Date.now()}`,
           driver_id,
           type: docType,
-          status: 'MISSING'
+          status: 'MISSING',
+          updated_at: new Date()
         }
       });
     }
@@ -144,17 +148,19 @@ export class DriverVerificationService {
   /**
    * Submit driver documents
    */
-  async submitDocuments(driver_id: string, documents: Array<{ type: string; fileUrl: string }>, community_id?: string) {
+  async submitDocuments(driver_id: string, documents: Array<{ type: string; file_url: string }>, community_id?: string) {
     return prisma.$transaction(async (tx) => {
       // Update community if provided
       if (community_id) {
         await tx.driver_verifications.upsert({
           where: { driver_id },
-          update: { community_id },
+          update: { community_id, updated_at: new Date() },
           create: {
+            id: `verification_${driver_id}`,
             driver_id,
             community_id,
-            status: 'PENDING'
+            status: 'PENDING',
+            updated_at: new Date()
           }
         });
       }
@@ -172,19 +178,21 @@ export class DriverVerificationService {
           await tx.driver_documents.update({
             where: { id: existingDoc.id },
             data: {
-              fileUrl: doc.fileUrl,
+              file_url: doc.file_url,
               status: 'SUBMITTED',
-              submittedAt: new Date()
+              submitted_at: new Date()
             }
           });
         } else {
           await tx.driver_documents.create({
             data: {
+              id: `doc_${driver_id}_${doc.type}_${Date.now()}`,
               driver_id,
               type: doc.type,
-              fileUrl: doc.fileUrl,
+              file_url: doc.file_url,
               status: 'SUBMITTED',
-              submittedAt: new Date()
+              submitted_at: new Date(),
+              updated_at: new Date()
             }
           });
         }
@@ -201,7 +209,7 @@ export class DriverVerificationService {
       data: {
         status: 'VERIFIED',
         verified_at: new Date(),
-        verifiedByAdminId: adminId
+        verified_by_admin_id: admin_id
       }
     });
   }
@@ -215,8 +223,8 @@ export class DriverVerificationService {
       data: {
         status: 'REJECTED',
         rejected_at: new Date(),
-        rejectedByAdminId: adminId,
-        rejectReason: reason
+        rejected_by_admin_id: admin_id,
+        reject_reason: reason
       }
     });
   }
@@ -236,18 +244,19 @@ export class DriverVerificationService {
       update: {
         accepted,
         accepted_at: accepted ? new Date() : null,
-        ipAddress,
-        userAgent
+        ip_address: ipAddress,
+        user_agent: userAgent
       },
       create: {
+        id: `consent_${driver_id}_${consentType}_${Date.now()}`,
         user_id: driver_id,
         subject_type: 'DRIVER',
         subject_id: driver_id,
         type: consentType,
         accepted,
         accepted_at: accepted ? new Date() : null,
-        ipAddress,
-        userAgent
+        ip_address: ipAddress,
+        user_agent: userAgent
       }
     });
   }

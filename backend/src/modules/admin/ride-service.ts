@@ -41,7 +41,7 @@ export class RideAdminService {
       limit = 10, 
       status, 
       type,
-      driverId, 
+      driver_id, 
       passengerId, 
       search, 
       dateFrom, 
@@ -57,8 +57,8 @@ export class RideAdminService {
     
     if (status) where.status = status;
     if (type) where.type = type;
-    if (driverId) where.driverId = driverId;
-    if (passengerId) where.passengerId = passengerId;
+    if (driver_id) where.driver_id = driver_id;
+    if (passengerId) where.passenger_id = passengerId;
     
     if (search) {
       where.OR = [

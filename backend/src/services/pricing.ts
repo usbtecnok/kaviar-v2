@@ -52,7 +52,7 @@ export class PricingService {
 
     const baseFare = parseFloat(pricingTable.base_fare.toString());
     const perKm = parseFloat(pricingTable.per_km.toString());
-    const perMin = parseFloat(pricingTable.per_min.toString());
+    const perMin = parseFloat(pricingTable.per_minute.toString());
     const minimumFare = parseFloat(pricingTable.minimum_fare.toString());
 
     let calculatedFare = baseFare + (distanceKm * perKm) + (durationMin * perMin);
@@ -84,21 +84,27 @@ export class PricingService {
 
   /**
    * Get active pricing table for neighborhood
+   * TODO: pricing_tables model removed - using hardcoded defaults
    */
   private async getPricingTable(neighborhoodId: string) {
-    const pricingTable = await prisma.pricing_tables.findFirst({
-      where: {
-         neighborhoodId,
-        is_active: true
-      },
-      orderBy: { created_at: 'desc' }
-    });
+    // Return default pricing since pricing_tables model was removed
+    return {
+      id: 'default',
+      version: '1.0',
+      base_fare: 5.0,
+      per_km: 2.5,
+      per_minute: 0.5,
+      minimum_fare: 10.0
+    };
 
-    if (!pricingTable) {
-      throw new Error(`No active pricing table for neighborhood: ${neighborhoodId}`);
-    }
-
-    return pricingTable;
+    return {
+      id: 'default',
+      version: '1.0',
+      base_fare: 5.0,
+      per_km: 2.5,
+      per_minute: 0.5,
+      minimum_fare: 10.0
+    };
   }
 
   /**
