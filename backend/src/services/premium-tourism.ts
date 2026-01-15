@@ -115,12 +115,22 @@ export class PremiumTourismService {
       throw new FeatureDisabledError();
     }
 
+    const prismaData: any = {
+      updated_at: new Date()
+    };
+
+    if (data.title !== undefined) prismaData.title = data.title;
+    if (data.description !== undefined) prismaData.description = data.description;
+    if (data.type !== undefined) prismaData.type = data.type;
+    if (data.partnerName !== undefined) prismaData.partner_name = data.partnerName;
+    if (data.basePrice !== undefined) prismaData.base_price = data.basePrice;
+    if (data.locations !== undefined) prismaData.locations = data.locations;
+    if (data.estimatedDurationMinutes !== undefined) prismaData.estimated_duration_minutes = data.estimatedDurationMinutes;
+    if (data.isActive !== undefined) prismaData.is_active = data.isActive;
+
     const tourPackage = await prisma.tour_packages.update({
       where: { id },
-      data: {
-        ...data,
-        updated_at: new Date()
-      }
+      data: prismaData
     });
 
     // Audit log
