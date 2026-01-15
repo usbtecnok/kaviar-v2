@@ -39,7 +39,8 @@ export default function TourPackageForm() {
   const loadPackage = async () => {
     try {
       setLoading(true);
-      const pkg = await adminApi.getTourPackage(id);
+      const response = await adminApi.getTourPackage(id);
+      const pkg = response.package || response.data || response;
       setFormData({
         title: pkg.title || '',
         description: pkg.description || '',
