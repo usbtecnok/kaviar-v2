@@ -17,6 +17,9 @@ import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
 import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
 import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
 import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
+import TourPartners from "../../pages/admin/premium-tourism/TourPartners";
+import TourReports from "../../pages/admin/premium-tourism/TourReports";
+import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ElderlyManagement from "../../pages/admin/ElderlyManagement";
 import { useState, useEffect } from 'react';
 
@@ -678,6 +681,21 @@ export default function AdminApp() {
           <Route path="/premium-tourism/bookings" element={
             <ProtectedAdminRoute>
               <TourBookings />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/premium-tourism/partners" element={
+            <ProtectedAdminRoute>
+              <TourPartners />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/premium-tourism/reports" element={
+            <ProtectedAdminRoute>
+              <TourReports />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/premium-tourism/settings" element={
+            <ProtectedAdminRoute>
+              <TourSettings />
             </ProtectedAdminRoute>
           } />
           <Route path="/elderly" element={

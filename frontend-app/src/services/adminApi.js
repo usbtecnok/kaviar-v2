@@ -163,6 +163,42 @@ class AdminApiService {
   async confirmTourBooking(id, adminId) {
     return this.post(`/api/admin/tour-bookings/${id}/confirm`, { adminId });
   }
+
+  // Premium Tourism - Tour Partners
+  async getTourPartners(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.get(`/api/admin/tour-partners${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getTourPartner(id) {
+    return this.get(`/api/admin/tour-partners/${id}`);
+  }
+
+  async createTourPartner(data) {
+    return this.post('/api/admin/tour-partners', data);
+  }
+
+  async updateTourPartner(id, data) {
+    return this.put(`/api/admin/tour-partners/${id}`, data);
+  }
+
+  async deactivateTourPartner(id) {
+    return this.request(`/api/admin/tour-partners/${id}/deactivate`, { method: 'PATCH' });
+  }
+
+  // Premium Tourism - Tour Reports
+  async getTourReportSummary() {
+    return this.get('/api/admin/tour-reports/summary');
+  }
+
+  // Premium Tourism - Tour Settings
+  async getTourSettings() {
+    return this.get('/api/admin/tour-settings');
+  }
+
+  async updateTourSettings(data) {
+    return this.put('/api/admin/tour-settings', data);
+  }
 }
 
 export const adminApi = new AdminApiService();
