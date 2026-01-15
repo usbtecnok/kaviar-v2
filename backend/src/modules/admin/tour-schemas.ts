@@ -16,11 +16,11 @@ export const createTourPackageSchema = z.object({
 export const updateTourPackageSchema = createTourPackageSchema.partial();
 
 export const tourPackageParamsSchema = z.object({
-  id: z.string().cuid()
+  id: z.string().uuid()
 });
 
 export const confirmTourBookingSchema = z.object({
-  adminId: z.string().cuid()
+  adminId: z.string().uuid()
 });
 
 export const updateTourBookingStatusSchema = z.object({
