@@ -20,16 +20,59 @@ model admins {
 }
 
 model communities {
-  id                  String   @id
-  name                String
-  neighborhood_id     String
-  is_active           Boolean  @default(true)
-  operational_profile String   @default("NORMAL") // NORMAL | RESTRICTED | PRIORITY | PRIVATE
-  notes               String?
-  created_at          DateTime @default(now())
-  updated_at          DateTime
-  neighborhoods       neighborhoods @relation(fields: [neighborhood_id], references: [id])
-  rides               rides[]
+  id                       String                     @id
+  name                     String
+  description              String?
+  is_active                Boolean                    @default(true)
+  center_lat               Decimal?                   @db.Decimal(10, 8)
+  center_lng               Decimal?                   @db.Decimal(11, 8)
+  radius_meters            Int?
+  geofence                 String?
+  min_active_drivers       Int                        @default(3)
+  deactivation_threshold   Int                        @default(1)
+  auto_activation          Boolean                    @default(false)
+  last_evaluated_at        DateTime?
+  created_at               DateTime                   @default(now())
+  updated_at               DateTime
+  community_geofences      community_geofences?
+  community_status_history community_status_history[]
+  drivers                  drivers[]
+  elderly_contracts        elderly_contracts[]
+  passengers               passengers[]
+  tourist_guides           tourist_guides[]
+}
+
+model community_geofences {
+  id           String      @id
+  community_id String      @unique
+  center_lat   Decimal     @db.Decimal(10, 8)
+  center_lng   Decimal     @db.Decimal(11, 8)
+  min_lat      Decimal?    @db.Decimal(10, 8)
+  min_lng      Decimal?    @db.Decimal(11, 8)
+  max_lat      Decimal?    @db.Decimal(10, 8)
+  max_lng      Decimal?    @db.Decimal(11, 8)
+  geojson      String?
+  source       String
+  source_ref   String?
+  confidence   String
+  is_verified  Boolean     @default(false)
+  review_notes String?
+  created_at   DateTime    @default(now())
+  updated_at   DateTime
+  communities  communities @relation(fields: [community_id], references: [id], onDelete: Cascade)
+}
+
+model community_status_history {
+  id             String      @id
+  community_id   String
+  status         String
+  from_is_active Boolean?
+  to_is_active   Boolean?
+  driver_count   Int?
+  changed_by     String?
+  reason         String?
+  created_at     DateTime    @default(now())
+  communities    communities @relation(fields: [community_id], references: [id])
 }
 
 model consents {
@@ -92,6 +135,7 @@ model driver_enforcement_history {
 model driver_verifications {
   id                     String    @id
   driver_id              String    @unique
+  community_id           String?
   status                 String    @default("pending")
   verified_at            DateTime?
   approved_at            DateTime?
@@ -112,6 +156,7 @@ model drivers {
   suspended_at             DateTime?
   suspended_by             String?
   last_active_at           DateTime?
+  community_id             String?
   document_cpf             String?
   document_rg              String?
   document_cnh             String?
@@ -129,14 +174,15 @@ model drivers {
   premium_override         Boolean?
   created_at               DateTime     @default(now())
   updated_at               DateTime
+  communities              communities? @relation(fields: [community_id], references: [id])
   rides                    rides[]
-  driver_incentives        driver_incentives[]
 }
 
 model elderly_contracts {
   id                 String           @id
   elderly_profile_id String
   responsible_id     String?
+  community_id       String
   status             String           @default("ACTIVE")
   service_type       String           @default("ACOMPANHAMENTO_ATIVO")
   starts_at          DateTime
@@ -144,6 +190,7 @@ model elderly_contracts {
   notes              String?
   created_at         DateTime         @default(now())
   updated_at         DateTime
+  communities        communities      @relation(fields: [community_id], references: [id])
   elderly_profiles   elderly_profiles @relation(fields: [elderly_profile_id], references: [id], onDelete: Cascade)
   passengers         passengers?      @relation(fields: [responsible_id], references: [id])
 }
@@ -190,9 +237,6 @@ model neighborhoods {
   created_at             DateTime                @default(now())
   updated_at             DateTime
   neighborhood_geofences neighborhood_geofences?
-  communities            communities[]
-  rides                  rides[]
-  pricing_tables         pricing_tables[]
 }
 
 model passengers {
@@ -201,6 +245,7 @@ model passengers {
   email                    String               @unique
   password_hash            String?
   phone                    String?
+  community_id             String?
   status                   String               @default("pending")
   last_lat                 Decimal?             @db.Decimal(10, 8)
   last_lng                 Decimal?             @db.Decimal(11, 8)
@@ -209,6 +254,7 @@ model passengers {
   updated_at               DateTime
   elderly_contracts        elderly_contracts[]
   elderly_profiles         elderly_profiles?
+  communities              communities?         @relation(fields: [community_id], references: [id])
   ride_confirmations       ride_confirmations[]
   rides                    rides[]
   tour_bookings            tour_bookings[]
@@ -283,8 +329,6 @@ model rides {
   id                          String                @id
   driver_id                   String?
   passenger_id                String
-  neighborhood_id             String                // OBRIGATÓRIO - âncora territorial
-  community_id                String?               // OPCIONAL - modificador operacional
   origin                      String
   destination                 String
   type                        String                @default("normal")
@@ -313,58 +357,8 @@ model rides {
   updated_at                  DateTime
   ride_admin_actions          ride_admin_actions[]
   ride_status_history         ride_status_history[]
-  ride_pricing                ride_pricing?
-  driver_incentives           driver_incentives[]
   drivers                     drivers?              @relation(fields: [driver_id], references: [id])
   passengers                  passengers            @relation(fields: [passenger_id], references: [id])
-  neighborhoods               neighborhoods         @relation(fields: [neighborhood_id], references: [id])
-  communities                 communities?          @relation(fields: [community_id], references: [id])
-}
-
-model pricing_tables {
-  id              String   @id
-  neighborhood_id String
-  base_fare       Decimal  @db.Decimal(10, 2)
-  per_km          Decimal  @db.Decimal(10, 2)
-  per_min         Decimal  @db.Decimal(10, 2)
-  minimum_fare    Decimal  @db.Decimal(10, 2)
-  is_active       Boolean  @default(true)
-  version         String
-  created_at      DateTime @default(now())
-  updated_at      DateTime
-  neighborhoods   neighborhoods @relation(fields: [neighborhood_id], references: [id])
-}
-
-model driver_incentives {
-  id                  String   @id
-  ride_id             String
-  driver_id           String
-  community_id        String?
-  operational_profile String
-  incentive_type      String   // PRIORITY_BONUS | PRIVATE_POOL | ACTIVATION
-  value               Decimal  @db.Decimal(10, 2)
-  currency            String   @default("BRL")
-  applied_at          DateTime @default(now())
-  created_at          DateTime @default(now())
-  rides               rides    @relation(fields: [ride_id], references: [id])
-  drivers             drivers  @relation(fields: [driver_id], references: [id])
-}
-
-model ride_pricing {
-  id              String   @id
-  ride_id         String   @unique
-  pricing_version String
-  neighborhood_id String
-  community_id    String?
-  base_fare       Decimal  @db.Decimal(10, 2)
-  distance_km     Decimal  @db.Decimal(8, 3)
-  duration_min    Int
-  modifiers       String?  // JSON
-  final_fare      Decimal  @db.Decimal(10, 2)
-  driver_payout   Decimal  @db.Decimal(10, 2)
-  platform_fee    Decimal  @db.Decimal(10, 2)
-  created_at      DateTime @default(now())
-  rides           rides    @relation(fields: [ride_id], references: [id])
 }
 
 model roles {
@@ -418,24 +412,24 @@ model tour_packages {
 }
 
 model tour_partners {
-  id           String   @id @default(uuid())
+  id           String   @id
   name         String
   contact_name String?
   phone        String?
   email        String?
   is_active    Boolean  @default(true)
   created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  updated_at   DateTime
 }
 
 model tour_settings {
-  id                 String   @id @default(uuid())
+  id                 String   @id
   support_whatsapp   String?
   default_partner_id String?
   terms_url          String?
   is_active          Boolean  @default(true)
   created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
+  updated_at         DateTime
 }
 
 model tourist_guides {
@@ -443,6 +437,7 @@ model tourist_guides {
   name         String
   email        String      @unique
   phone        String?
+  community_id String
   status       String      @default("pending")
   is_bilingual Boolean     @default(false)
   languages    String[]
@@ -450,6 +445,7 @@ model tourist_guides {
   driver_id    String?
   created_at   DateTime    @default(now())
   updated_at   DateTime
+  communities  communities @relation(fields: [community_id], references: [id])
 }
 
 model user_consents {
