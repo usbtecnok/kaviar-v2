@@ -11,6 +11,11 @@ const driverLoginSchema = z.object({
   password: z.string().min(1, 'Senha é obrigatória')
 });
 
+const driverSetPasswordSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres')
+});
+
 router.post('/driver/login', async (req, res) => {
   try {
     if (!process.env.JWT_SECRET) {
@@ -52,6 +57,32 @@ router.post('/driver/login', async (req, res) => {
       return res.status(400).json({ error: 'Dados inválidos' });
     }
     res.status(400).json({ error: 'Erro no login' });
+  }
+});
+
+router.post('/driver/set-password', async (req, res) => {
+  try {
+    const { email, password } = driverSetPasswordSchema.parse(req.body);
+
+    const driver = await prisma.drivers.findUnique({ where: { email } });
+
+    if (!driver) {
+      return res.status(404).json({ error: 'Motorista não encontrado' });
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+
+    await prisma.drivers.update({
+      where: { email },
+      data: { password_hash }
+    });
+
+    res.json({ success: true, message: 'Senha definida com sucesso' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    res.status(400).json({ error: 'Erro ao definir senha' });
   }
 });
 
