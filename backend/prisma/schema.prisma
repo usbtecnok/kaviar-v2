@@ -175,6 +175,11 @@ model drivers {
   certidao_nada_consta_url String?
   pix_key                  String?
   pix_key_type             String?
+  approved_at              DateTime?
+  approved_by              String?
+  rejected_at              DateTime?
+  rejected_by              String?
+  rejected_reason          String?
   created_at               DateTime          @default(now())
   updated_at               DateTime
   communities              communities?      @relation(fields: [community_id], references: [id])
