@@ -28,6 +28,7 @@ import { guideAuthRoutes } from './routes/guide-auth';
 import { adminApprovalRoutes } from './routes/admin-approval';
 import { ratingsRoutes } from './routes/ratings';
 import driversRoutes from './routes/drivers';
+import adminDriversRoutes from './routes/admin-drivers';
 
 const app = express();
 
@@ -70,6 +71,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin', adminApprovalRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminDriversRoutes);
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
