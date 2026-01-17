@@ -278,6 +278,13 @@ export default function CompleteOnboarding() {
   };
 
   if (completed) {
+    // Redirecionar motorista para definir senha
+    if (userType === 'driver') {
+      setTimeout(() => {
+        navigate('/motorista/definir-senha');
+      }, 2000);
+    }
+
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
         <Card>
@@ -289,16 +296,20 @@ export default function CompleteOnboarding() {
             <Typography variant="body1" sx={{ mb: 4 }}>
               {userType === 'passenger' 
                 ? 'Redirecionando para sua área...' 
+                : userType === 'driver'
+                ? 'Cadastro inicial concluído. Agora defina sua senha para acessar.'
                 : 'Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.'
               }
             </Typography>
-            <Button
-              variant="contained"
-              onClick={() => navigate('/')}
-              size="large"
-            >
-              Voltar ao Início
-            </Button>
+            {userType !== 'driver' && (
+              <Button
+                variant="contained"
+                onClick={() => navigate('/')}
+                size="large"
+              >
+                Voltar ao Início
+              </Button>
+            )}
           </CardContent>
         </Card>
       </Container>
@@ -390,7 +401,7 @@ export default function CompleteOnboarding() {
                     />
                   </Button>
                   <Typography variant="caption" color="text.secondary">
-                    * Apenas para visualização. Não será enviado nesta versão.
+                    * O envio da certidão "Nada Consta" será obrigatório para ativação final da conta.
                   </Typography>
                 </Box>
 
