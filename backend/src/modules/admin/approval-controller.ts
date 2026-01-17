@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/database';
 import { z } from 'zod';
+import twilio from 'twilio';
 
 const approveDriverSchema = z.object({
   id: z.string()
@@ -34,6 +35,22 @@ export class ApprovalController {
           updated_at: new Date()
         }
       });
+
+      // Send WhatsApp notification if phone exists and Twilio is configured
+      if (updatedDriver.phone && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+        try {
+          const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+          await twilioClient.messages.create({
+            from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14134759634',
+            to: `whatsapp:${updatedDriver.phone}`,
+            body: `Olá ${updatedDriver.name}! Sua conta foi aprovada no Kaviar. Você já pode começar a aceitar corridas.`
+          });
+          console.log(`✅ WhatsApp sent to ${updatedDriver.phone}`);
+        } catch (whatsappError) {
+          console.error('⚠️  WhatsApp notification failed:', whatsappError);
+          // Don't fail the approval if WhatsApp fails
+        }
+      }
 
       res.json({
         success: true,

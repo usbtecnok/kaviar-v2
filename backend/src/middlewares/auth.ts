@@ -95,3 +95,37 @@ export function requireRole(allowedRoles: string[]) {
     }
   };
 }
+
+export async function authenticateDriver(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!JWT_SECRET) {
+      return res.status(500).json({ success: false, error: 'JWT secret not configured' });
+    }
+
+    const token = getBearerToken(req);
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'Token ausente' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+
+    if (decoded.userType !== 'DRIVER') {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
+
+    const driver = await prisma.drivers.findUnique({ 
+      where: { id: decoded.userId }
+    });
+    
+    if (!driver) {
+      return res.status(401).json({ success: false, error: 'Token inválido' });
+    }
+
+    (req as any).driver = driver;
+    (req as any).userId = decoded.userId;
+
+    return next();
+  } catch (_err) {
+    return res.status(401).json({ success: false, error: 'Token inválido' });
+  }
+}

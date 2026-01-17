@@ -3,6 +3,8 @@ import { authRoutes } from './auth';
 import { adminRoutes } from './admin';
 import { governanceRoutes } from './governance';
 import geoRoutes from './geo';
+import driversRoutes from './drivers';
+import ridesRoutes from './rides';
 // import adminGeofenceRoutes from './admin-geofence';
 
 const router = Router();
@@ -30,5 +32,11 @@ router.use('/governance', governanceRoutes);
 
 // Geo routes
 router.use('/geo', geoRoutes);
+
+// Driver routes
+router.use('/drivers', driversRoutes);
+
+// Ride routes
+router.use('/rides', ridesRoutes);
 
 export { router as apiRoutes };

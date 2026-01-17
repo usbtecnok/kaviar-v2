@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { CommunityService } from '../services/community';
 import { RideService } from '../services/ride';
 import { DispatchService } from '../services/dispatch';
+import { authenticateDriver } from '../middlewares/auth';
 
 const router = Router();
 const communityService = new CommunityService();
@@ -143,6 +144,126 @@ router.post('/:id/dispatch', async (req: Request, res: Response) => {
     console.error('Dispatch drivers error:', error);
     return res.status(500).json({
       error: error instanceof Error ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * PUT /api/rides/:id/accept
+ * Driver accepts a ride
+ */
+router.put('/:id/accept', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const driverId = (req as any).userId;
+
+    // Check if ride exists
+    const ride = await prisma.rides.findUnique({
+      where: { id }
+    });
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        error: 'Corrida não encontrada'
+      });
+    }
+
+    // Check if ride is in REQUESTED status
+    if (ride.status !== 'requested') {
+      return res.status(400).json({
+        success: false,
+        error: `Corrida não pode ser aceita. Status atual: ${ride.status}`
+      });
+    }
+
+    // Update ride: associate driver and change status to accepted
+    const updatedRide = await prisma.rides.update({
+      where: { id },
+      data: {
+        driver_id: driverId,
+        status: 'accepted',
+        updated_at: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      ride: {
+        id: updatedRide.id,
+        status: updatedRide.status,
+        driver_id: updatedRide.driver_id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error accepting ride:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao aceitar corrida'
+    });
+  }
+});
+
+/**
+ * PUT /api/rides/:id/complete
+ * Driver completes a ride
+ */
+router.put('/:id/complete', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const driverId = (req as any).userId;
+
+    // Check if ride exists
+    const ride = await prisma.rides.findUnique({
+      where: { id }
+    });
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        error: 'Corrida não encontrada'
+      });
+    }
+
+    // Check if ride belongs to this driver
+    if (ride.driver_id !== driverId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Você não está associado a esta corrida'
+      });
+    }
+
+    // Check if ride is in ACCEPTED status
+    if (ride.status !== 'accepted') {
+      return res.status(400).json({
+        success: false,
+        error: `Corrida não pode ser finalizada. Status atual: ${ride.status}`
+      });
+    }
+
+    // Update ride: change status to completed
+    const updatedRide = await prisma.rides.update({
+      where: { id },
+      data: {
+        status: 'completed',
+        updated_at: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      ride: {
+        id: updatedRide.id,
+        status: updatedRide.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Error completing ride:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao finalizar corrida'
     });
   }
 });

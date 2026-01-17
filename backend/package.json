@@ -3,21 +3,20 @@
   "version": "1.0.0",
   "description": "KAVIAR Backend - Sistema de Corridas Comunitárias",
   "main": "dist/server.js",
-"scripts": {
-  "dev": "tsx watch src/server.ts",
-  "dev:3003": "PORT=3003 tsx watch src/server.ts",
-  "build": "tsc -p tsconfig.build.json",
-  "start": "node dist/server.js",
-  "start:3003": "PORT=3003 node dist/server.js",
-  "kill:ports": "pkill -f 'tsx.*server.ts' || pkill -f 'node.*server.js' || lsof -ti:3001,3003 | xargs -r kill -9 || true",
-  "db:generate": "prisma generate",
-  "db:migrate": "prisma migrate dev",
-  "db:deploy": "prisma migrate deploy",
-  "db:studio": "prisma studio",
-  "db:seed": "tsx prisma/seed.ts",
-  "db:validate": "tsx scripts/validate-db.ts"
-},
-
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "dev:3003": "PORT=3003 tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "start:3003": "PORT=3003 node dist/server.js",
+    "kill:ports": "pkill -f 'tsx.*server.ts' || pkill -f 'node.*server.js' || lsof -ti:3001,3003 | xargs -r kill -9 || true",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:validate": "tsx scripts/validate-db.ts"
+  },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
@@ -34,6 +33,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
+    "twilio": "^5.11.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {
