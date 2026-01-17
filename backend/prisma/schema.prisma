@@ -172,6 +172,9 @@ model drivers {
   last_lng                 Decimal?          @db.Decimal(11, 8)
   is_premium               Boolean           @default(false)
   premium_override         Boolean?
+  certidao_nada_consta_url String?
+  pix_key                  String?
+  pix_key_type             String?
   created_at               DateTime          @default(now())
   updated_at               DateTime
   communities              communities?      @relation(fields: [community_id], references: [id])

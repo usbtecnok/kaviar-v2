@@ -3,9 +3,47 @@ import { authenticateDriver } from '../middlewares/auth';
 import { prisma } from '../config/database';
 import { z } from 'zod';
 import { GeoResolveService } from '../services/geo-resolve';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const router = Router();
 const geoResolveService = new GeoResolveService();
+
+// Configurar multer para upload de arquivos
+const uploadDir = path.join(process.cwd(), 'uploads', 'certidoes');
+
+// Criar diretório se não existir
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const driverId = (req as any).userId;
+    const ext = path.extname(file.originalname);
+    cb(null, `${driverId}-${Date.now()}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /pdf|jpg|jpeg|png/;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const mimetype = allowedTypes.test(file.mimetype);
+    const extname = allowedTypes.test(ext);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error('Apenas arquivos PDF, JPG, JPEG ou PNG são permitidos'));
+  }
+});
 
 const completeProfileSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -107,6 +145,56 @@ router.post('/me/online', authenticateDriver, async (req: Request, res: Response
     res.status(500).json({
       success: false,
       error: 'Erro ao atualizar status'
+    });
+  }
+});
+
+// POST /api/drivers/me/documents
+router.post('/me/documents', authenticateDriver, upload.single('certidao'), async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).userId;
+    const { pix_key, pix_key_type } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Certidão Nada Consta é obrigatória'
+      });
+    }
+
+    if (!pix_key || !pix_key_type) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chave PIX é obrigatória'
+      });
+    }
+
+    // Salvar URL da certidão e dados PIX
+    const certidaoUrl = `/uploads/certidoes/${req.file.filename}`;
+
+    await prisma.drivers.update({
+      where: { id: driverId },
+      data: {
+        certidao_nada_consta_url: certidaoUrl,
+        pix_key: pix_key,
+        pix_key_type: pix_key_type,
+        updated_at: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Documentos enviados com sucesso',
+      data: {
+        certidao_url: certidaoUrl,
+        pix_key_type: pix_key_type
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading documents:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao enviar documentos'
     });
   }
 });
