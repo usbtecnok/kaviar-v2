@@ -132,8 +132,8 @@ export default function CompleteOnboarding() {
     }
 
     if (userType === 'driver') {
-      if (!clean.name || !clean.phone || !clean.communityId) {
-        setError('Preencha nome, telefone e comunidade.');
+      if (!clean.name || !clean.phone) {
+        setError('Preencha nome, telefone e permita o acesso à localização.');
         setLoading(false);
         return;
       }
@@ -195,22 +195,10 @@ export default function CompleteOnboarding() {
         }
       } else if (userType === 'driver') {
         // Criar driver e enviar documentos
-        console.log('[DEBUG] driver payload:', {
-          name: clean.name,
-          email: clean.email,
-          phone: clean.phone,
-          communityId: clean.communityId,
-          documentCpf: clean.documentCpf,
-          documentRg: clean.documentRg,
-          documentCnh: clean.documentCnh,
-          vehiclePlate: clean.vehiclePlate,
-          vehicleModel: clean.vehicleModel
-        });
         const response = await api.post('/api/governance/driver', {
           name: clean.name,
           email: clean.email,
           phone: clean.phone,
-          communityId: clean.communityId,
           documentCpf: clean.documentCpf,
           documentRg: clean.documentRg,
           documentCnh: clean.documentCnh,
@@ -416,9 +404,7 @@ export default function CompleteOnboarding() {
       case 1:
         return (
           <FormControl fullWidth>
-            <InputLabel>
-              {userType === 'passenger' ? 'Comunidade (Opcional)' : 'Comunidade'}
-            </InputLabel>
+            <InputLabel>Comunidade (Opcional)</InputLabel>
             <Select
               value={clean.communityId}
               onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
