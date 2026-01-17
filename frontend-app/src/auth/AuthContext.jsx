@@ -32,35 +32,19 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password, userType) => {
-    try {
-      // Usar endpoint de teste existente para validar conectividade
-      const testResponse = await api.get('/health');
-      
-      if (testResponse.data.status === 'OK') {
-        // Mock de login para demonstração - em produção usar endpoint real
-        const mockUser = {
-          id: `mock-${userType}-${Date.now()}`,
-          email: email,
-          user_type: userType,
-          community_id: 'mock-community-id'
-        };
-        
-        const mockToken = `mock-jwt-token-${userType}-${Date.now()}`;
-        
-        localStorage.setItem('kaviar_token', mockToken);
-        localStorage.setItem('kaviar_user', JSON.stringify(mockUser));
-        setUser(mockUser);
-        
+    const token = localStorage.getItem('kaviar_token');
+    const userData = localStorage.getItem('kaviar_user');
+    
+    if (token && userData) {
+      try {
+        setUser(JSON.parse(userData));
         return { success: true };
+      } catch (error) {
+        return { success: false, error: 'Erro ao processar dados de autenticação' };
       }
-      
-      return { success: false, error: 'Servidor não disponível' };
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Erro de conexão com servidor' 
-      };
     }
+    
+    return { success: false, error: 'Credenciais não encontradas' };
   };
 
   const logout = () => {
