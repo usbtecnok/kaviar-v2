@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   AppBar, 
   Toolbar, 
@@ -18,12 +18,41 @@ import {
 } from '@mui/icons-material';
 import KaviarLogo from './KaviarLogo';
 import { useAuth } from '../../auth/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Layout = ({ children, title }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [displayUser, setDisplayUser] = useState(null);
+
+  // Detectar área do motorista e usar token correto
+  useEffect(() => {
+    const isDriverArea = location.pathname.startsWith('/motorista');
+    
+    if (isDriverArea) {
+      // Área do motorista: usar kaviar_driver_token
+      const driverToken = localStorage.getItem('kaviar_driver_token');
+      if (driverToken) {
+        // Decodificar token JWT para pegar dados do motorista
+        try {
+          const payload = JSON.parse(atob(driverToken.split('.')[1]));
+          setDisplayUser({
+            email: payload.email || 'Motorista',
+            user_type: 'driver'
+          });
+        } catch (error) {
+          setDisplayUser({ email: 'Motorista', user_type: 'driver' });
+        }
+      } else {
+        setDisplayUser(null);
+      }
+    } else {
+      // Outras áreas: usar contexto normal
+      setDisplayUser(user);
+    }
+  }, [location.pathname, user]);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -34,13 +63,22 @@ const Layout = ({ children, title }) => {
   };
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    const isDriverArea = location.pathname.startsWith('/motorista');
+    
+    if (isDriverArea) {
+      // Logout do motorista
+      localStorage.removeItem('kaviar_driver_token');
+      navigate('/motorista/login');
+    } else {
+      // Logout normal
+      logout();
+      navigate('/login');
+    }
     handleClose();
   };
 
   const getUserTypeIcon = () => {
-    switch (user?.user_type) {
+    switch (displayUser?.user_type) {
       case 'admin': return <Dashboard />;
       case 'driver': return <DirectionsCar />;
       case 'passenger': return <Person />;
@@ -49,7 +87,7 @@ const Layout = ({ children, title }) => {
   };
 
   const getUserTypeLabel = () => {
-    switch (user?.user_type) {
+    switch (displayUser?.user_type) {
       case 'admin': return 'Admin';
       case 'driver': return 'Motorista';
       case 'passenger': return 'Passageiro';
@@ -68,10 +106,10 @@ const Layout = ({ children, title }) => {
             </Typography>
           </Box>
           
-          {user && (
+          {displayUser && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>
-                {user.email} ({getUserTypeLabel()})
+                {displayUser.email} ({getUserTypeLabel()})
               </Typography>
               
               <IconButton
