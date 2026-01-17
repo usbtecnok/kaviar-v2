@@ -46,8 +46,8 @@ const upload = multer({
 });
 
 const completeProfileSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
-  phone: z.string().min(1, 'Telefone é obrigatório'),
+  name: z.string().min(1, 'Nome é obrigatório').optional(),
+  phone: z.string().min(1, 'Telefone é obrigatório').optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   terms_accepted: z.literal(true, { errorMap: () => ({ message: 'Termos devem ser aceitos' }) }),
@@ -68,17 +68,21 @@ router.post('/me/complete-profile', authenticateDriver, async (req: Request, res
     const geoResult = await geoResolveService.resolveCoordinates(data.latitude, data.longitude);
     console.log('[complete-profile] Geo result:', geoResult);
 
-    // Update driver basic info and location (without community_id for now)
+    // Prepare update data - only include name/phone if provided
+    const updateData: any = {
+      last_lat: data.latitude,
+      last_lng: data.longitude,
+      last_location_updated_at: new Date(),
+      updated_at: new Date()
+    };
+
+    if (data.name) updateData.name = data.name;
+    if (data.phone) updateData.phone = data.phone;
+
+    // Update driver basic info and location
     await prisma.drivers.update({
       where: { id: driverId },
-      data: {
-        name: data.name,
-        phone: data.phone,
-        last_lat: data.latitude,
-        last_lng: data.longitude,
-        last_location_updated_at: new Date(),
-        updated_at: new Date()
-      }
+      data: updateData
     });
     console.log('[complete-profile] Driver updated');
 

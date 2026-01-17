@@ -13,6 +13,8 @@ import GuidesManagement from "../../pages/admin/GuidesManagement";
 import GeofenceManagement from "../../pages/admin/GeofenceManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
 import DriverApproval from "../../pages/admin/DriverApproval";
+import DriversList from "../../pages/admin/DriversList";
+import DriverDetail from "../../pages/admin/DriverDetail";
 import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
 import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
 import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
@@ -659,6 +661,18 @@ export default function AdminApp() {
           <Route path="/drivers/approval" element={
             <ProtectedAdminRoute>
               <DriverApproval />
+            </ProtectedAdminRoute>
+          } />
+          
+          {/* Rotas de Gestão de Motoristas */}
+          <Route path="/motoristas" element={
+            <ProtectedAdminRoute>
+              <DriversList />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/motoristas/:id" element={
+            <ProtectedAdminRoute>
+              <DriverDetail />
             </ProtectedAdminRoute>
           } />
           
