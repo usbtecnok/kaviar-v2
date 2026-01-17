@@ -51,6 +51,9 @@ export default function CompleteOnboarding() {
     documentCnh: '',
     vehiclePlate: '',
     vehicleModel: '',
+    certidaoNadaConsta: null, // UI only - not persisted
+    pixKey: '',
+    pixKeyType: 'CPF', // CPF, CNPJ, EMAIL, PHONE, RANDOM
     // Guide specific
     isBilingual: false,
     languages: [],
@@ -58,6 +61,7 @@ export default function CompleteOnboarding() {
   });
   const [communities, setCommunities] = useState([]);
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(false);
@@ -92,6 +96,9 @@ export default function CompleteOnboarding() {
     documentCnh: formData.documentCnh ?? '',
     vehiclePlate: formData.vehiclePlate ?? '',
     vehicleModel: formData.vehicleModel ?? '',
+    certidaoNadaConsta: formData.certidaoNadaConsta,
+    pixKey: formData.pixKey ?? '',
+    pixKeyType: formData.pixKeyType ?? 'CPF',
     isBilingual: !!formData.isBilingual,
     languages: formData.languages ?? [],
     alsoDriver: !!formData.alsoDriver,
@@ -137,8 +144,13 @@ export default function CompleteOnboarding() {
         setLoading(false);
         return;
       }
-      if (!clean.documentCpf || !clean.documentRg || !clean.documentCnh || !clean.vehiclePlate || !clean.vehicleModel) {
-        setError('Preencha CPF, RG, CNH e dados do veículo.');
+      if (!termsAccepted) {
+        setError('Você deve aceitar os Termos de Uso KAVIAR.');
+        setLoading(false);
+        return;
+      }
+      if (!lgpdAccepted) {
+        setError('Você deve aceitar a Política de Privacidade (LGPD).');
         setLoading(false);
         return;
       }
@@ -194,18 +206,50 @@ export default function CompleteOnboarding() {
           console.error('Erro no login automático:', loginError);
         }
       } else if (userType === 'driver') {
-        // Criar driver e enviar documentos
-        const response = await api.post('/api/governance/driver', {
-          name: clean.name,
-          email: clean.email,
-          phone: clean.phone,
-          documentCpf: clean.documentCpf,
-          documentRg: clean.documentRg,
-          documentCnh: clean.documentCnh,
-          vehiclePlate: clean.vehiclePlate,
-          vehicleModel: clean.vehicleModel
-        });
-        userId = response.data.data.id;
+        // Motorista deve estar autenticado e completar perfil
+        const token = localStorage.getItem('kaviar_driver_token');
+        if (!token) {
+          setError('Você precisa fazer login primeiro.');
+          setTimeout(() => navigate('/motorista/login'), 2000);
+          setLoading(false);
+          return;
+        }
+
+        // Capturar geolocalização
+        if (!navigator.geolocation) {
+          setError('Geolocalização não disponível no seu navegador.');
+          setLoading(false);
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              await api.post('/api/drivers/me/complete-profile', {
+                name: clean.name,
+                phone: clean.phone,
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                terms_accepted: true,
+                privacy_accepted: true,
+                terms_version: '2026-01'
+              }, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+
+              setCompleted(true);
+            } catch (error) {
+              const errorMessage = error.response?.data?.error || 'Erro ao completar perfil';
+              setError(errorMessage);
+              setLoading(false);
+            }
+          },
+          (error) => {
+            setError('Não foi possível obter sua localização. Permita o acesso nas configurações do navegador.');
+            setLoading(false);
+          }
+        );
+        return; // Aguardar callback de geolocalização
       } else if (userType === 'guide') {
         const response = await api.post('/api/governance/guide', {
           name: clean.name,
@@ -326,41 +370,52 @@ export default function CompleteOnboarding() {
             {/* Campos específicos para motorista */}
             {userType === 'driver' && (
               <>
-                <Typography variant="h6" sx={{ mt: 2 }}>Documentos</Typography>
+                <Typography variant="h6" sx={{ mt: 2 }}>Informações Adicionais</Typography>
+                
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    Certidão "Nada Consta" (Antecedentes Criminais)
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                  >
+                    {clean.certidaoNadaConsta ? clean.certidaoNadaConsta.name : 'Selecionar Arquivo (PDF ou Imagem)'}
+                    <input
+                      type="file"
+                      hidden
+                      accept=".pdf,image/*"
+                      onChange={(e) => setFormData(prev => ({ ...prev, certidaoNadaConsta: e.target.files[0] }))}
+                    />
+                  </Button>
+                  <Typography variant="caption" color="text.secondary">
+                    * Apenas para visualização. Não será enviado nesta versão.
+                  </Typography>
+                </Box>
+
+                <Typography variant="body2" sx={{ mb: 1, mt: 2 }}>
+                  Chave PIX para Recebimento
+                </Typography>
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <InputLabel>Tipo de Chave</InputLabel>
+                  <Select
+                    value={clean.pixKeyType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, pixKeyType: e.target.value }))}
+                  >
+                    <MenuItem value="CPF">CPF</MenuItem>
+                    <MenuItem value="CNPJ">CNPJ</MenuItem>
+                    <MenuItem value="EMAIL">E-mail</MenuItem>
+                    <MenuItem value="PHONE">Telefone</MenuItem>
+                    <MenuItem value="RANDOM">Chave Aleatória</MenuItem>
+                  </Select>
+                </FormControl>
                 <TextField
-                  label="CPF"
-                  value={clean.documentCpf}
-                  onChange={(e) => setFormData(prev => ({ ...prev, documentCpf: e.target.value }))}
-                  required
+                  label="Chave PIX"
+                  value={clean.pixKey}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pixKey: e.target.value }))}
                   fullWidth
-                />
-                <TextField
-                  label="RG"
-                  value={clean.documentRg}
-                  onChange={(e) => setFormData(prev => ({ ...prev, documentRg: e.target.value }))}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="CNH"
-                  value={clean.documentCnh}
-                  onChange={(e) => setFormData(prev => ({ ...prev, documentCnh: e.target.value }))}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="Placa do Veículo"
-                  value={clean.vehiclePlate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, vehiclePlate: e.target.value }))}
-                  required
-                  fullWidth
-                />
-                <TextField
-                  label="Modelo do Veículo"
-                  value={clean.vehicleModel}
-                  onChange={(e) => setFormData(prev => ({ ...prev, vehicleModel: e.target.value }))}
-                  required
-                  fullWidth
+                  helperText="* Apenas para visualização. Não será enviado nesta versão."
                 />
               </>
             )}
@@ -421,11 +476,45 @@ export default function CompleteOnboarding() {
       case 2:
         return (
           <Box>
-            <Typography variant="h6" gutterBottom>
-              Consentimento LGPD
+            {userType === 'driver' && (
+              <>
+                <Typography variant="h6" gutterBottom>
+                  Termos de Uso KAVIAR
+                </Typography>
+                <Paper sx={{ p: 2, mb: 3, maxHeight: 200, overflow: 'auto', bgcolor: 'grey.50' }}>
+                  <Typography variant="body2" paragraph>
+                    <strong>TERMOS DE USO KAVIAR - Versão 1 (Provisória)</strong>
+                  </Typography>
+                  <Typography variant="body2" paragraph>
+                    Ao utilizar a plataforma KAVIAR como motorista, você concorda em:
+                  </Typography>
+                  <Typography variant="body2" component="div">
+                    • Fornecer informações verdadeiras e atualizadas<br/>
+                    • Manter documentação válida e em dia<br/>
+                    • Respeitar as normas de trânsito e segurança<br/>
+                    • Tratar passageiros com respeito e profissionalismo<br/>
+                    • Permitir acesso à sua localização durante o uso do app<br/>
+                    • Cumprir com as políticas de cancelamento e pagamento
+                  </Typography>
+                </Paper>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                    />
+                  }
+                  label="Li e aceito os Termos de Uso KAVIAR"
+                  required
+                />
+              </>
+            )}
+            
+            <Typography variant="h6" gutterBottom sx={{ mt: userType === 'driver' ? 3 : 0 }}>
+              Política de Privacidade (LGPD)
             </Typography>
             <Typography variant="body2" sx={{ mb: 2 }}>
-              Para utilizar nossos serviços, precisamos do seu consentimento para processar seus dados pessoais.
+              Para utilizar nossos serviços, precisamos do seu consentimento para processar seus dados pessoais conforme a Lei Geral de Proteção de Dados.
             </Typography>
             <FormControlLabel
               control={
@@ -447,9 +536,20 @@ export default function CompleteOnboarding() {
             </Typography>
             <Typography>Tipo: {userType === 'passenger' ? 'Passageiro' : userType === 'driver' ? 'Motorista' : 'Guia Turístico'}</Typography>
             <Typography>Nome: {clean.name}</Typography>
-            <Typography>Email: {clean.email}</Typography>
+            {userType !== 'driver' && <Typography>Email: {clean.email}</Typography>}
             <Typography>Telefone: {clean.phone}</Typography>
-            <Typography>LGPD: {lgpdAccepted ? 'Aceito' : 'Não aceito'}</Typography>
+            {userType === 'driver' && (
+              <>
+                <Typography>Termos KAVIAR: {termsAccepted ? 'Aceito' : 'Não aceito'}</Typography>
+                <Typography>LGPD: {lgpdAccepted ? 'Aceito' : 'Não aceito'}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                  Sua localização será capturada ao finalizar
+                </Typography>
+              </>
+            )}
+            {userType !== 'driver' && (
+              <Typography>LGPD: {lgpdAccepted ? 'Aceito' : 'Não aceito'}</Typography>
+            )}
           </Box>
         );
       default:
@@ -490,7 +590,11 @@ export default function CompleteOnboarding() {
           <Button
             variant="contained"
             onClick={handleNext}
-            disabled={loading || (activeStep === 2 && !lgpdAccepted)}
+            disabled={
+              loading || 
+              (activeStep === 2 && userType === 'driver' && (!termsAccepted || !lgpdAccepted)) ||
+              (activeStep === 2 && userType !== 'driver' && !lgpdAccepted)
+            }
           >
             {activeStep === steps.length - 1 ? 'Finalizar' : 'Próximo'}
           </Button>
