@@ -36,8 +36,19 @@ export default function CompleteOnboarding() {
     const typeFromUrl = searchParams.get('type');
     if (typeFromUrl && ['passenger', 'driver', 'guide'].includes(typeFromUrl)) {
       setUserType(typeFromUrl);
+      
+      // Se for motorista, verificar se está autenticado
+      if (typeFromUrl === 'driver') {
+        const token = localStorage.getItem('kaviar_driver_token');
+        if (!token) {
+          setError('Você precisa fazer login primeiro para completar seu perfil.');
+          setTimeout(() => {
+            navigate('/motorista/login');
+          }, 2000);
+        }
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',

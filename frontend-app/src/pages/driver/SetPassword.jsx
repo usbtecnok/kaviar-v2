@@ -42,9 +42,36 @@ export default function DriverSetPassword() {
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        navigate('/motorista/login');
-      }, 2000);
+      
+      // Fazer login automático após definir senha
+      try {
+        const loginRes = await fetch(`${API_BASE_URL}/api/auth/driver/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const loginData = await loginRes.json();
+
+        if (loginRes.ok && loginData.token) {
+          localStorage.setItem('kaviar_driver_token', loginData.token);
+          
+          // Redirecionar para onboarding para completar perfil
+          setTimeout(() => {
+            navigate('/onboarding?type=driver');
+          }, 2000);
+        } else {
+          // Se login falhar, redirecionar para login manual
+          setTimeout(() => {
+            navigate('/motorista/login');
+          }, 2000);
+        }
+      } catch (error) {
+        // Em caso de erro, redirecionar para login manual
+        setTimeout(() => {
+          navigate('/motorista/login');
+        }, 2000);
+      }
     } catch (error) {
       setError('Erro ao conectar com o servidor.');
     }
@@ -62,7 +89,7 @@ export default function DriverSetPassword() {
 
         {success ? (
           <Alert severity="success">
-            Senha definida com sucesso! Redirecionando para login...
+            Senha definida com sucesso! Fazendo login e redirecionando para completar seu perfil...
           </Alert>
         ) : (
           <form onSubmit={handleSubmit}>

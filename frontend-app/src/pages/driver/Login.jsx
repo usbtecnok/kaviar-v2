@@ -34,6 +34,11 @@ export default function DriverLogin() {
     e.preventDefault();
     setMsg("");
 
+    if (!email || !password) {
+      setMsg("Preencha email e senha.");
+      return;
+    }
+
     const res = await fetch(`${API_BASE_URL}/api/auth/driver/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,7 +48,16 @@ export default function DriverLogin() {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      setMsg(data?.error || data?.message || "Erro no login do motorista.");
+      // Mensagens mais claras baseadas no erro
+      const errorMsg = data?.error || data?.message || "";
+      
+      if (errorMsg.includes("Credenciais inválidas") || errorMsg.includes("password")) {
+        setMsg("Email ou senha incorretos. Se é seu primeiro acesso, clique em 'Primeiro acesso / Definir senha'.");
+      } else if (errorMsg.includes("não encontrado") || errorMsg.includes("not found")) {
+        setMsg("Motorista não cadastrado. Entre em contato com o suporte.");
+      } else {
+        setMsg(errorMsg || "Erro no login. Verifique seus dados.");
+      }
       return;
     }
 
