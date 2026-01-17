@@ -144,6 +144,11 @@ export default function CompleteOnboarding() {
         setLoading(false);
         return;
       }
+      if (!clean.certidaoNadaConsta) {
+        setError('É obrigatório enviar a Certidão Nada Consta para continuar.');
+        setLoading(false);
+        return;
+      }
       if (!termsAccepted) {
         setError('Você deve aceitar os Termos de Uso KAVIAR.');
         setLoading(false);
@@ -385,14 +390,15 @@ export default function CompleteOnboarding() {
                 
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" sx={{ mb: 1 }}>
-                    Certidão "Nada Consta" (Antecedentes Criminais)
+                    Certidão "Nada Consta" (Antecedentes Criminais) *
                   </Typography>
                   <Button
                     variant="outlined"
                     component="label"
                     fullWidth
+                    color={clean.certidaoNadaConsta ? 'success' : 'primary'}
                   >
-                    {clean.certidaoNadaConsta ? clean.certidaoNadaConsta.name : 'Selecionar Arquivo (PDF ou Imagem)'}
+                    {clean.certidaoNadaConsta ? `✓ ${clean.certidaoNadaConsta.name}` : 'Selecionar Arquivo (PDF ou Imagem)'}
                     <input
                       type="file"
                       hidden
@@ -400,8 +406,8 @@ export default function CompleteOnboarding() {
                       onChange={(e) => setFormData(prev => ({ ...prev, certidaoNadaConsta: e.target.files[0] }))}
                     />
                   </Button>
-                  <Typography variant="caption" color="text.secondary">
-                    * O envio da certidão "Nada Consta" será obrigatório para ativação final da conta.
+                  <Typography variant="caption" color="error">
+                    * Obrigatório para ativação da conta
                   </Typography>
                 </Box>
 
