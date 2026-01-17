@@ -26,7 +26,7 @@ router.post('/driver/login', async (req, res) => {
 
     const driver = await prisma.drivers.findUnique({ where: { email } });
 
-    if (!driver || !['approved', 'online', 'active'].includes(driver.status) || !driver.password_hash) {
+    if (!driver || !['approved', 'online', 'active', 'pending'].includes(driver.status) || !driver.password_hash) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
