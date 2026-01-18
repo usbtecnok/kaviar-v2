@@ -493,3 +493,32 @@ model driver_consents {
   updated_at          DateTime @updatedAt
   drivers             drivers  @relation(fields: [driver_id], references: [id], onDelete: Cascade)
 }
+
+model driver_compliance_documents {
+  id                      String    @id @default(uuid())
+  driver_id               String
+  type                    String    @default("criminal_record")
+  file_url                String
+  status                  String    @default("pending")
+  valid_from              DateTime?
+  valid_until             DateTime?
+  approved_by             String?
+  approved_at             DateTime?
+  rejected_by             String?
+  rejected_at             DateTime?
+  rejection_reason        String?
+  is_current              Boolean   @default(false)
+  lgpd_consent_accepted   Boolean   @default(false)
+  lgpd_consent_ip         String?
+  lgpd_consent_at         DateTime?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+  drivers                 drivers   @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+
+  @@index([driver_id])
+  @@index([status])
+  @@index([is_current])
+  @@index([valid_until])
+  @@map("driver_compliance_documents")
+}
+
