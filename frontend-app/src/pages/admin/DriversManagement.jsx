@@ -22,10 +22,12 @@ import {
   IconButton
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function DriversManagement() {
+  const navigate = useNavigate();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -243,6 +245,7 @@ export default function DriversManagement() {
                       size="small"
                       color="info"
                       title="Ver detalhes"
+                      onClick={() => navigate(`/admin/drivers/${driver.id}`)}
                     >
                       <Visibility />
                     </IconButton>

@@ -606,6 +606,15 @@ export default function AdminApp() {
             </ProtectedAdminRoute>
           } />
           
+          <Route path="/drivers/:id" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <DriverDetail />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
           <Route path="/passengers" element={
             <ProtectedAdminRoute>
               <Container maxWidth="lg" sx={{ mt: 2 }}>
