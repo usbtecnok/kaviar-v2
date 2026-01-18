@@ -8,6 +8,7 @@ import {
   Typography
 } from '@mui/material';
 import api from '../../api';
+import { useAuth } from '../../auth/AuthContext';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -15,6 +16,7 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,6 +32,7 @@ export default function LoginForm() {
       if (response.data.success) {
         localStorage.setItem('kaviar_token', response.data.token);
         localStorage.setItem('kaviar_user', JSON.stringify(response.data.user));
+        setUser(response.data.user);
         navigate('/passageiro/home');
       } else {
         setError('Email ou senha incorretos');

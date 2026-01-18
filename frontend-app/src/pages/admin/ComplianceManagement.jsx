@@ -17,344 +17,381 @@ import {
   DialogActions,
   TextField,
   Alert,
-  Tabs,
-  Tab,
-  IconButton,
-  List,
-  ListItem,
-  ListItemText
+  Card,
+  CardContent,
+  Grid,
+  IconButton
 } from '@mui/material';
 import { CheckCircle, Cancel, Visibility, History } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
 
 export default function ComplianceManagement() {
-  const [currentTab, setCurrentTab] = useState('pending');
+  const [metrics, setMetrics] = useState({ pending: 0, expiring: 0, blocked: 0 });
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [actionDialog, setActionDialog] = useState({ open: false, action: null, document: null, reason: '' });
-  const [historyDialog, setHistoryDialog] = useState({ open: false, driverId: null, documents: [] });
+  const [historyDialog, setHistoryDialog] = useState({ open: false, driverId: null, driverName: '', documents: [] });
 
   useEffect(() => {
-    loadDocuments();
-  }, [currentTab]);
+    loadMetrics();
+    loadPendingDocuments();
+  }, []);
 
-  const loadDocuments = async () => {
+  const loadMetrics = async () => {
     try {
-      setLoading(true);
       const token = localStorage.getItem('kaviar_admin_token');
-      const endpoint = currentTab === 'pending' 
-        ? '/api/admin/compliance/documents/pending'
-        : '/api/admin/compliance/documents/expiring';
-
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/compliance/metrics`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      const data = await response.json();
-      if (data.success) {
-        setDocuments(data.data);
-      } else {
-        setError(data.error || 'Erro ao carregar documentos');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setMetrics(data.data);
       }
-    } catch (error) {
-      setError('Erro de conexão');
+    } catch (err) {
+      console.error('Error loading metrics:', err);
+    }
+  };
+
+  const loadPendingDocuments = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/compliance/documents/pending`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) throw new Error('Erro ao carregar documentos');
+      
+      const data = await response.json();
+      setDocuments(data.data || []);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApprove = async () => {
+  const loadDriverHistory = async (driverId, driverName) => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/compliance/documents/${actionDialog.document.id}/approve`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
+      const response = await fetch(`${API_BASE_URL}/api/admin/compliance/drivers/${driverId}/documents`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) throw new Error('Erro ao carregar histórico');
+      
       const data = await response.json();
-      if (data.success) {
-        setSuccess('Documento aprovado com sucesso');
-        setActionDialog({ open: false, action: null, document: null, reason: '' });
-        loadDocuments();
-      } else {
-        setError(data.error || 'Erro ao aprovar documento');
-      }
-    } catch (error) {
-      setError('Erro de conexão');
+      setHistoryDialog({ open: true, driverId, driverName, documents: data.data || [] });
+    } catch (err) {
+      setError(err.message);
     }
   };
 
-  const handleReject = async () => {
-    if (!actionDialog.reason || actionDialog.reason.trim().length < 10) {
+  const handleAction = (action, document) => {
+    setActionDialog({ open: true, action, document, reason: '' });
+  };
+
+  const confirmAction = async () => {
+    const { action, document, reason } = actionDialog;
+    
+    if (action === 'reject' && (!reason || reason.length < 10)) {
       setError('Motivo da rejeição deve ter pelo menos 10 caracteres');
       return;
     }
 
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/compliance/documents/${actionDialog.document.id}/reject`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ reason: actionDialog.reason })
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setSuccess('Documento rejeitado');
-        setActionDialog({ open: false, action: null, document: null, reason: '' });
-        loadDocuments();
-      } else {
-        setError(data.error || 'Erro ao rejeitar documento');
-      }
-    } catch (error) {
-      setError('Erro de conexão');
+      const endpoint = action === 'approve'
+        ? `/api/admin/compliance/documents/${document.id}/approve`
+        : `/api/admin/compliance/documents/${document.id}/reject`;
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: action === 'reject' ? JSON.stringify({ reason }) : undefined
+      });
+      
+      if (!response.ok) throw new Error(`Erro ao ${action === 'approve' ? 'aprovar' : 'rejeitar'} documento`);
+      
+      setSuccess(`Documento ${action === 'approve' ? 'aprovado' : 'rejeitado'} com sucesso`);
+      setActionDialog({ open: false, action: null, document: null, reason: '' });
+      loadPendingDocuments();
+      loadMetrics();
+    } catch (err) {
+      setError(err.message);
     }
   };
 
-  const loadDriverHistory = async (driverId) => {
-    try {
-      const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/compliance/drivers/${driverId}/documents`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setHistoryDialog({ open: true, driverId, documents: data.data });
-      }
-    } catch (error) {
-      setError('Erro ao carregar histórico');
-    }
+  const formatDate = (date) => {
+    return new Date(date).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'approved': return 'success';
-      case 'pending': return 'warning';
       case 'rejected': return 'error';
+      case 'pending': return 'warning';
       default: return 'default';
     }
   };
 
-  const getDaysUntilExpiration = (validUntil) => {
-    if (!validUntil) return null;
-    const now = new Date();
-    const expiration = new Date(validUntil);
-    const days = Math.ceil((expiration.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return days;
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'approved': return 'Aprovado';
+      case 'rejected': return 'Rejeitado';
+      case 'pending': return 'Pendente';
+      default: return status;
+    }
   };
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
-        Gestão de Compliance - Antecedentes Criminais
+      <Typography variant="h4" gutterBottom>
+        Gestão de Compliance
       </Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
-      <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} sx={{ mb: 3 }}>
-        <Tab label="Pendentes de Aprovação" value="pending" />
-        <Tab label="Vencendo em Breve" value="expiring" />
-      </Tabs>
+      {/* Métricas */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Pendentes
+              </Typography>
+              <Typography variant="h3">
+                {metrics.pending}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Vencendo (7 dias)
+              </Typography>
+              <Typography variant="h3">
+                {metrics.expiring}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography color="textSecondary" gutterBottom>
+                Bloqueados
+              </Typography>
+              <Typography variant="h3" color="error">
+                {metrics.blocked}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Motorista</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Data Envio</TableCell>
-              {currentTab === 'expiring' && <TableCell>Vencimento</TableCell>}
-              <TableCell>Ações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {documents.map((doc) => (
-              <TableRow key={doc.id}>
-                <TableCell>{doc.drivers?.name || 'N/A'}</TableCell>
-                <TableCell>{doc.drivers?.email || 'N/A'}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={doc.status === 'approved' ? 'Aprovado' : doc.status === 'pending' ? 'Pendente' : 'Rejeitado'}
-                    color={getStatusColor(doc.status)}
-                    size="small"
-                  />
-                  {doc.is_current && <Chip label="Vigente" color="primary" size="small" sx={{ ml: 1 }} />}
-                </TableCell>
-                <TableCell>{new Date(doc.created_at).toLocaleDateString('pt-BR')}</TableCell>
-                {currentTab === 'expiring' && (
-                  <TableCell>
-                    {doc.valid_until ? (
-                      <Box>
-                        <Typography variant="body2">
-                          {new Date(doc.valid_until).toLocaleDateString('pt-BR')}
-                        </Typography>
-                        <Typography variant="caption" color="error">
-                          {getDaysUntilExpiration(doc.valid_until)} dias restantes
-                        </Typography>
-                      </Box>
-                    ) : 'N/A'}
-                  </TableCell>
-                )}
-                <TableCell>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    {doc.status === 'pending' && (
-                      <>
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => setActionDialog({ open: true, action: 'approve', document: doc, reason: '' })}
-                          title="Aprovar"
-                        >
-                          <CheckCircle />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => setActionDialog({ open: true, action: 'reject', document: doc, reason: '' })}
-                          title="Rejeitar"
-                        >
-                          <Cancel />
-                        </IconButton>
-                      </>
-                    )}
-                    <IconButton
-                      size="small"
-                      color="info"
-                      onClick={() => window.open(doc.file_url, '_blank')}
-                      title="Ver documento"
-                    >
-                      <Visibility />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="default"
-                      onClick={() => loadDriverHistory(doc.driver_id)}
-                      title="Ver histórico"
-                    >
-                      <History />
-                    </IconButton>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {documents.length === 0 && !loading && (
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography color="text.secondary">
-            Nenhum documento encontrado nesta categoria.
+      {/* Lista de Documentos Pendentes */}
+      <Paper>
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6">
+            Documentos Pendentes de Aprovação
           </Typography>
         </Box>
-      )}
 
-      {/* Dialog de Ação */}
-      <Dialog open={actionDialog.open} onClose={() => setActionDialog({ open: false, action: null, document: null, reason: '' })} maxWidth="sm" fullWidth>
+        {loading ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography>Carregando...</Typography>
+          </Box>
+        ) : documents.length === 0 ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography color="textSecondary">
+              Nenhum documento pendente
+            </Typography>
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Motorista</TableCell>
+                  <TableCell>Enviado em</TableCell>
+                  <TableCell>Tipo</TableCell>
+                  <TableCell>Arquivo</TableCell>
+                  <TableCell align="right">Ações</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {documents.map((doc) => (
+                  <TableRow key={doc.id}>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2" fontWeight="bold">
+                          {doc.drivers?.name || 'N/A'}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => loadDriverHistory(doc.driver_id, doc.drivers?.name)}
+                          title="Ver histórico"
+                        >
+                          <History fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                    <TableCell>{formatDate(doc.created_at)}</TableCell>
+                    <TableCell>Antecedentes Criminais</TableCell>
+                    <TableCell>
+                      {doc.file_url ? (
+                        <Button
+                          size="small"
+                          startIcon={<Visibility />}
+                          href={doc.file_url}
+                          target="_blank"
+                        >
+                          Ver PDF
+                        </Button>
+                      ) : (
+                        <Typography variant="body2" color="textSecondary">
+                          Sem arquivo
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        startIcon={<CheckCircle />}
+                        onClick={() => handleAction('approve', doc)}
+                        sx={{ mr: 1 }}
+                      >
+                        Aprovar
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={<Cancel />}
+                        onClick={() => handleAction('reject', doc)}
+                      >
+                        Rejeitar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
+
+      {/* Dialog de Aprovação/Rejeição */}
+      <Dialog open={actionDialog.open} onClose={() => setActionDialog({ ...actionDialog, open: false })}>
         <DialogTitle>
           {actionDialog.action === 'approve' ? 'Aprovar Documento' : 'Rejeitar Documento'}
         </DialogTitle>
         <DialogContent>
-          <Typography sx={{ mb: 2 }}>
-            Motorista: <strong>{actionDialog.document?.drivers?.name}</strong>
-          </Typography>
-
-          {actionDialog.action === 'reject' && (
+          {actionDialog.action === 'approve' ? (
+            <Typography>
+              Confirma a aprovação do documento de <strong>{actionDialog.document?.drivers?.name}</strong>?
+              <br /><br />
+              O documento será válido por 12 meses.
+            </Typography>
+          ) : (
             <TextField
               fullWidth
-              label="Motivo da Rejeição"
               multiline
               rows={4}
+              label="Motivo da Rejeição"
               value={actionDialog.reason}
-              onChange={(e) => setActionDialog(prev => ({ ...prev, reason: e.target.value }))}
-              required
+              onChange={(e) => setActionDialog({ ...actionDialog, reason: e.target.value })}
               helperText="Mínimo 10 caracteres"
+              sx={{ mt: 2 }}
             />
-          )}
-
-          {actionDialog.action === 'approve' && (
-            <Alert severity="info">
-              Ao aprovar, o documento será válido por 12 meses e se tornará o documento vigente do motorista.
-            </Alert>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setActionDialog({ open: false, action: null, document: null, reason: '' })}>
+          <Button onClick={() => setActionDialog({ ...actionDialog, open: false })}>
             Cancelar
           </Button>
           <Button
-            onClick={actionDialog.action === 'approve' ? handleApprove : handleReject}
+            onClick={confirmAction}
             variant="contained"
             color={actionDialog.action === 'approve' ? 'success' : 'error'}
           >
-            {actionDialog.action === 'approve' ? 'Aprovar' : 'Rejeitar'}
+            Confirmar
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog de Histórico */}
-      <Dialog open={historyDialog.open} onClose={() => setHistoryDialog({ open: false, driverId: null, documents: [] })} maxWidth="md" fullWidth>
-        <DialogTitle>Histórico de Documentos</DialogTitle>
+      <Dialog
+        open={historyDialog.open}
+        onClose={() => setHistoryDialog({ ...historyDialog, open: false })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Histórico de Compliance - {historyDialog.driverName}
+        </DialogTitle>
         <DialogContent>
-          <List>
-            {historyDialog.documents.map((doc) => (
-              <ListItem key={doc.id} divider>
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body1">
-                        {new Date(doc.created_at).toLocaleDateString('pt-BR')}
-                      </Typography>
-                      <Chip
-                        label={doc.status === 'approved' ? 'Aprovado' : doc.status === 'pending' ? 'Pendente' : 'Rejeitado'}
-                        color={getStatusColor(doc.status)}
-                        size="small"
-                      />
-                      {doc.is_current && <Chip label="Vigente" color="primary" size="small" />}
-                    </Box>
-                  }
-                  secondary={
-                    <Box>
-                      {doc.valid_from && doc.valid_until && (
-                        <Typography variant="caption" display="block">
-                          Válido de {new Date(doc.valid_from).toLocaleDateString('pt-BR')} até {new Date(doc.valid_until).toLocaleDateString('pt-BR')}
-                        </Typography>
-                      )}
-                      {doc.rejection_reason && (
-                        <Typography variant="caption" color="error" display="block">
-                          Motivo: {doc.rejection_reason}
-                        </Typography>
-                      )}
-                    </Box>
-                  }
-                />
-              </ListItem>
-            ))}
-          </List>
+          {historyDialog.documents.length === 0 ? (
+            <Typography color="textSecondary">Nenhum documento encontrado</Typography>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Data</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Válido até</TableCell>
+                    <TableCell>Decisão por</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {historyDialog.documents.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell>{formatDate(doc.created_at)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={getStatusLabel(doc.status)}
+                          color={getStatusColor(doc.status)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {doc.valid_until ? new Date(doc.valid_until).toLocaleDateString('pt-BR') : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {doc.approved_by || doc.rejected_by || '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setHistoryDialog({ open: false, driverId: null, documents: [] })}>Fechar</Button>
+          <Button onClick={() => setHistoryDialog({ ...historyDialog, open: false })}>
+            Fechar
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

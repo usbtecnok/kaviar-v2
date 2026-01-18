@@ -9,6 +9,7 @@ import PremiumTourism from "./pages/PremiumTourism";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import SetPassword from "./pages/driver/SetPassword";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
@@ -236,6 +237,9 @@ export default function App() {
           {/* Reset de senha */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* First access motorista */}
+          <Route path="/motorista/definir-senha" element={<SetPassword />} />
 
           {/* Mantém o AuthApp (se ainda existir fluxo interno) */}
           <Route path="/auth/*" element={<AuthApp />} />

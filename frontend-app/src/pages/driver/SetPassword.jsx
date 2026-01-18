@@ -1,140 +1,134 @@
-import { useState } from 'react';
-import { Container, Paper, Typography, TextField, Button, Alert, Box } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { 
+  Container, 
+  Box, 
+  TextField, 
+  Button, 
+  Typography, 
+  Alert,
+  Paper
+} from '@mui/material';
 import api from '../../api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://kaviar-v2.onrender.com';
-
-export default function DriverSetPassword() {
+export default function SetPassword() {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     if (password.length < 6) {
-      setError('A senha deve ter no mínimo 6 caracteres.');
+      setError('Senha deve ter no mínimo 6 caracteres');
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
+      setError('As senhas não coincidem');
       return;
     }
 
+    setLoading(true);
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/driver/set-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const response = await api.post('/api/auth/driver/set-password', {
+        email,
+        password
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data?.error || 'Erro ao definir senha.');
-        return;
-      }
-
-      setSuccess(true);
-      
-      // Fazer login automático após definir senha
-      try {
-        const loginRes = await fetch(`${API_BASE_URL}/api/auth/driver/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-
-        const loginData = await loginRes.json();
-
-        if (loginRes.ok && loginData.token) {
-          localStorage.setItem('kaviar_driver_token', loginData.token);
-          
-          // Salvar dados do motorista
-          if (loginData.driver) {
-            localStorage.setItem('kaviar_driver_data', JSON.stringify(loginData.driver));
-          }
-          
-          // Redirecionar para onboarding para completar perfil
-          setTimeout(() => {
-            navigate('/onboarding?type=driver');
-          }, 2000);
-        } else {
-          // Se login falhar, redirecionar para login manual
-          setTimeout(() => {
-            navigate('/motorista/login');
-          }, 2000);
-        }
-      } catch (error) {
-        // Em caso de erro, redirecionar para login manual
+      if (response.data.success) {
+        setSuccess(true);
         setTimeout(() => {
           navigate('/motorista/login');
         }, 2000);
       }
     } catch (error) {
-      setError('Erro ao conectar com o servidor.');
+      setError(error.response?.data?.error || 'Erro ao definir senha');
     }
+
+    setLoading(false);
   };
 
   return (
-    <Container maxWidth="xs" sx={{ py: 6 }}>
-      <Paper sx={{ p: 4 }}>
-        <Typography variant="h5" fontWeight={800} gutterBottom align="center">
+    <Container maxWidth="sm" sx={{ py: 8 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" fontWeight={700} gutterBottom>
           Definir Senha
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }} align="center">
-          Cadastro inicial concluído. Agora defina sua senha para acessar.
+        
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Crie sua senha para acessar o sistema como motorista
         </Typography>
 
-        {success ? (
-          <Alert severity="success">
-            Senha definida com sucesso! Fazendo login e redirecionando para completar seu perfil...
+        {success && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            Senha definida com sucesso! Redirecionando para login...
           </Alert>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                fullWidth
-              />
-              <TextField
-                label="Nova Senha"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                fullWidth
-                helperText="Mínimo 6 caracteres"
-              />
-              <TextField
-                label="Confirmar Senha"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                fullWidth
-              />
-              
-              {error && (
-                <Alert severity="error">{error}</Alert>
-              )}
-
-              <Button type="submit" variant="contained" size="large" fullWidth>
-                Definir Senha
-              </Button>
-            </Box>
-          </form>
         )}
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={!!searchParams.get('email')}
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Senha"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            helperText="Mínimo 6 caracteres"
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Confirmar Senha"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            sx={{ mb: 3 }}
+          />
+
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            disabled={loading || success}
+            sx={{ py: 1.5 }}
+          >
+            {loading ? 'Definindo...' : 'Definir Senha'}
+          </Button>
+        </Box>
       </Paper>
     </Container>
   );
