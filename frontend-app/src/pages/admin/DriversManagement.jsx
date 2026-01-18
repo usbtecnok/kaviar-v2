@@ -69,13 +69,23 @@ export default function DriversManagement() {
       const { driver, action, reason } = actionDialog;
       const token = localStorage.getItem('kaviar_admin_token');
       
-      const body = { status: action };
-      if (action === 'suspended' && reason) {
-        body.reason = reason;
+      let endpoint = '';
+      let method = 'POST';
+      let body = {};
+
+      // Mapear ações para endpoints reais do backend
+      if (action === 'approved') {
+        endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/approve`;
+      } else if (action === 'rejected') {
+        endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/reject`;
+        body = { reason: reason || 'Rejeitado pelo administrador' };
+      } else {
+        setError('Ação não suportada');
+        return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/drivers/${driver.id}/status`, {
-        method: 'PATCH',
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -144,7 +154,6 @@ export default function DriversManagement() {
         <Tab label="Pendentes" value="pending" />
         <Tab label="Aprovados" value="approved" />
         <Tab label="Rejeitados" value="rejected" />
-        <Tab label="Suspensos" value="suspended" />
         <Tab label="Todos" value="" />
       </Tabs>
 
@@ -203,26 +212,6 @@ export default function DriversManagement() {
                           title="Rejeitar"
                         >
                           <Cancel />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="warning"
-                          onClick={() => openActionDialog(driver, 'suspended')}
-                          title="Suspender"
-                        >
-                          <Block />
-                        </IconButton>
-                      </>
-                    )}
-                    {driver.status === 'approved' && (
-                      <>
-                        <IconButton
-                          size="small"
-                          color="warning"
-                          onClick={() => openActionDialog(driver, 'suspended')}
-                          title="Suspender"
-                        >
-                          <Block />
                         </IconButton>
                       </>
                     )}
@@ -289,10 +278,10 @@ export default function DriversManagement() {
             <strong>{actionDialog.driver?.name}</strong>?
           </Typography>
           
-          {actionDialog.action === 'suspended' && (
+          {actionDialog.action === 'rejected' && (
             <TextField
               fullWidth
-              label="Motivo da suspensão"
+              label="Motivo da rejeição"
               multiline
               rows={3}
               value={actionDialog.reason}
