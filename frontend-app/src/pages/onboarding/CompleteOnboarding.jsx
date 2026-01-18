@@ -68,7 +68,10 @@ export default function CompleteOnboarding() {
     // Guide specific
     isBilingual: false,
     languages: [],
-    alsoDriver: false
+    alsoDriver: false,
+    // Family bonus
+    familyProfile: 'individual', // individual | familiar
+    familyBonusAccepted: false
   });
   const [communities, setCommunities] = useState([]);
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
@@ -113,6 +116,8 @@ export default function CompleteOnboarding() {
     isBilingual: !!formData.isBilingual,
     languages: formData.languages ?? [],
     alsoDriver: !!formData.alsoDriver,
+    familyProfile: formData.familyProfile ?? 'individual',
+    familyBonusAccepted: !!formData.familyBonusAccepted,
   };
 
   const handleNext = () => {
@@ -252,6 +257,19 @@ export default function CompleteOnboarding() {
               }, {
                 headers: { Authorization: `Bearer ${token}` }
               });
+
+              // Salvar perfil familiar no localStorage
+              if (clean.familyBonusAccepted) {
+                const bonusPercent = clean.familyProfile === 'familiar' ? 100 : 50;
+                const driverData = JSON.parse(localStorage.getItem('kaviar_driver_data') || '{}');
+                const driverId = driverData.id;
+                
+                if (driverId) {
+                  localStorage.setItem(`kaviar_driver_${driverId}_family_profile`, clean.familyProfile);
+                  localStorage.setItem(`kaviar_driver_${driverId}_family_bonus_percent`, bonusPercent.toString());
+                  localStorage.setItem(`kaviar_driver_${driverId}_family_accepted_at`, new Date().toISOString());
+                }
+              }
 
               setCompleted(true);
             } catch (error) {
@@ -444,6 +462,49 @@ export default function CompleteOnboarding() {
                   onChange={(e) => setFormData(prev => ({ ...prev, pixKey: e.target.value }))}
                   fullWidth
                   helperText="* Apenas para visualização. Não será enviado nesta versão."
+                />
+
+                <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
+                  Bônus Familiar KAVIAR
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  Selecione seu perfil para receber crédito mensal de abatimento em taxas:
+                </Typography>
+                <FormControl component="fieldset" sx={{ mb: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={clean.familyProfile === 'individual'}
+                          onChange={() => setFormData(prev => ({ ...prev, familyProfile: 'individual' }))}
+                        />
+                      }
+                      label="Perfil Individual (R$ 50/mês)"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={clean.familyProfile === 'familiar'}
+                          onChange={() => setFormData(prev => ({ ...prev, familyProfile: 'familiar' }))}
+                        />
+                      }
+                      label="Perfil Familiar (R$ 100/mês)"
+                    />
+                  </Box>
+                </FormControl>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={clean.familyBonusAccepted}
+                      onChange={(e) => setFormData(prev => ({ ...prev, familyBonusAccepted: e.target.checked }))}
+                      required
+                    />
+                  }
+                  label={
+                    <Typography variant="caption">
+                      Declaro, sob minha responsabilidade, que o perfil familiar selecionado corresponde à minha situação atual, ciente de que a KAVIAR poderá revisar ou cancelar o benefício em caso de inconsistência.
+                    </Typography>
+                  }
                 />
               </>
             )}

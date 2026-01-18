@@ -18,6 +18,7 @@ import WarningAmber from '@mui/icons-material/WarningAmber';
 import PowerSettingsNew from '@mui/icons-material/PowerSettingsNew';
 import Layout from '../../components/common/Layout';
 import DriverRideCard from '../../components/common/DriverRideCard';
+import FamilyBonusCard from '../../components/driver/FamilyBonusCard';
 import { useDriver } from '../../context/DriverContext';
 
 const DriverHome = () => {
@@ -157,6 +158,9 @@ const DriverHome = () => {
 
       {/* Card de status da corrida */}
       <DriverRideCard />
+
+      {/* Bônus Familiar */}
+      <FamilyBonusCard />
 
       {/* Resumo Rápido */}
       <Grid container spacing={3} sx={{ mb: 3 }}>

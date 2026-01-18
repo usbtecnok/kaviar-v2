@@ -185,6 +185,59 @@ export default function AdminDriverDetail() {
               <Typography variant="body1">{driver.rejected_reason}</Typography>
             </Grid>
           )}
+
+          <Grid item xs={12}>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Bônus Familiar</Typography>
+            {(() => {
+              const familyProfile = localStorage.getItem(`kaviar_driver_${driver.id}_family_profile`);
+              const bonusPercent = localStorage.getItem(`kaviar_driver_${driver.id}_family_bonus_percent`);
+              const acceptedAt = localStorage.getItem(`kaviar_driver_${driver.id}_family_accepted_at`);
+
+              if (!acceptedAt) {
+                return (
+                  <Typography variant="body2" color="text.secondary">
+                    Não declarado
+                  </Typography>
+                );
+              }
+
+              const bonusAmount = (100 * parseInt(bonusPercent || '50')) / 100;
+
+              return (
+                <Box sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1 }}>
+                  <Grid container spacing={1}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Perfil:</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Chip 
+                        label={familyProfile === 'familiar' ? 'Familiar' : 'Individual'} 
+                        color={familyProfile === 'familiar' ? 'success' : 'info'}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Percentual:</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2">{bonusPercent}%</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" color="text.secondary">Crédito mensal:</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="bold">R$ {bonusAmount.toFixed(2)}</Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="caption" color="text.secondary">
+                        Declarado em: {new Date(acceptedAt).toLocaleDateString('pt-BR')}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              );
+            })()}
+          </Grid>
         </Grid>
 
         {driver.status === 'pending' && (
