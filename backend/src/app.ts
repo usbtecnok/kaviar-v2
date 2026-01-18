@@ -68,12 +68,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // Core routes (always enabled)
+console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin', adminApprovalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes);
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
+console.log('✅ Core routes mounted: /api/admin/*, /api/drivers/*, /api/ratings/*');
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
 // app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
 
