@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ApprovalController } from '../modules/admin/approval-controller';
 import { authenticateAdmin } from '../middlewares/auth';
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
 const approvalController = new ApprovalController();

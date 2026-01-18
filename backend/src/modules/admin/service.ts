@@ -1,4 +1,4 @@
-import { prisma } from '../../config/database';
+import { prisma } from '../../lib/prisma';
 import { DriversQuery, PassengersQuery, RidesQuery, SuspendDriverData, CancelRideData, ReassignRideData, ForceCompleteRideData } from './schemas';
 // import { /* CommunityActivationService */ } from '../../services/community-activation';
 import { DriverVerificationService } from '../../services/driver-verification';

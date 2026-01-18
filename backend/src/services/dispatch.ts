@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { OperationalService, OperationalProfile } from './operational';
 
 export interface DispatchResult {

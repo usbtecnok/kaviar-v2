@@ -38,19 +38,19 @@ adminRouter.get('/tour-bookings', tourBookingController.getAllTourBookings);
 adminRouter.post('/tour-bookings/:id/confirm', tourBookingController.confirmTourBooking);
 adminRouter.patch('/tour-bookings/:id/status', tourBookingController.updateTourBookingStatus);
 
-// Tour Partners (Admin)
-adminRouter.post('/tour-partners', tourPartnerController.createTourPartner);
-adminRouter.get('/tour-partners', tourPartnerController.getAllTourPartners);
-adminRouter.get('/tour-partners/:id', tourPartnerController.getTourPartner);
-adminRouter.put('/tour-partners/:id', tourPartnerController.updateTourPartner);
-adminRouter.patch('/tour-partners/:id/deactivate', tourPartnerController.deactivateTourPartner);
+// Tour Partners (Admin) - TEMPORARILY DISABLED DUE TO CONTROLLER ISSUES
+// adminRouter.post('/tour-partners', tourPartnerController.createTourPartner);
+// adminRouter.get('/tour-partners', tourPartnerController.getAllTourPartners);
+// adminRouter.get('/tour-partners/:id', tourPartnerController.getTourPartner);
+// adminRouter.put('/tour-partners/:id', tourPartnerController.updateTourPartner);
+// adminRouter.patch('/tour-partners/:id/deactivate', tourPartnerController.deactivateTourPartner);
 
-// Tour Reports (Admin)
-adminRouter.get('/tour-reports/summary', tourReportController.getSummary);
+// Tour Reports (Admin) - TEMPORARILY DISABLED DUE TO CONTROLLER ISSUES
+// adminRouter.get('/tour-reports/summary', tourReportController.getSummary);
 
-// Tour Settings (Admin)
-adminRouter.get('/tour-settings', tourSettingsController.getTourSettings);
-adminRouter.put('/tour-settings', tourSettingsController.updateTourSettings);
+// Tour Settings (Admin) - TEMPORARILY DISABLED DUE TO CONTROLLER ISSUES
+// adminRouter.get('/tour-settings', tourSettingsController.getTourSettings);
+// adminRouter.put('/tour-settings', tourSettingsController.updateTourSettings);
 
 // Governance routes (public API)
 const governanceRouter = Router();

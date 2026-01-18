@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';

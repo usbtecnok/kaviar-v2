@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { CommunityService } from './community';
 import { OperationalService } from './operational';
 import { PricingService } from './pricing';

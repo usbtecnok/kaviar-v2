@@ -3,7 +3,7 @@ import { CommunityService } from '../services/community';
 import { RideService } from '../services/ride';
 import { DispatchService } from '../services/dispatch';
 import { authenticateDriver } from '../middlewares/auth';
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
 const communityService = new CommunityService();

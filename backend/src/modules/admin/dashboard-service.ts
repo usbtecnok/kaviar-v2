@@ -1,4 +1,4 @@
-import { prisma } from '../../config/database';
+import { prisma } from '../../lib/prisma';
 
 export class DashboardService {
   async getMetrics() {

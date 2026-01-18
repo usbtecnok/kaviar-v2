@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 
 export interface PricingModifier {
   type: 'PRIORITY_BONUS' | 'RESTRICTED_SURCHARGE' | 'PRIVATE_FIXED';

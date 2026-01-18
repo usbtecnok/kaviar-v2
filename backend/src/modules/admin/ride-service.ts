@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { prisma } from '../../config/database';
+import { prisma } from '../../lib/prisma';
 import { RidesQuery, CancelRideData, ReassignRideData, ForceCompleteRideData, UpdateStatusData, AuditQuery } from './schemas';
 
 export class RideAdminService {

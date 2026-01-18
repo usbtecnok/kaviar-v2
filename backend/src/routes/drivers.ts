@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { authenticateDriver } from '../middlewares/auth';
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { GeoResolveService } from '../services/geo-resolve';
 import multer from 'multer';

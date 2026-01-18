@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 async function createTestData() {
   console.log('🧪 Criando dados de teste para corridas...');

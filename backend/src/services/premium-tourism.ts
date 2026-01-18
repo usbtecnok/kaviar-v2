@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { config } from '../config';
 import { FeatureDisabledError } from '../errors/FeatureDisabledError';
 import { CreateTourBookingData } from '../modules/governance/tour-schemas';

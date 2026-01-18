@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 
 export type IncentiveType = 'PRIORITY_BONUS' | 'PRIVATE_POOL' | 'ACTIVATION';
 

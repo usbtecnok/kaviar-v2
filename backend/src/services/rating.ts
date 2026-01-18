@@ -1,4 +1,4 @@
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { config } from '../config';
 import { RatingData, RatingStats, RatingSummary, RaterType, UserType } from '../types/rating';
 import { randomUUID } from 'crypto';
