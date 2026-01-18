@@ -16,14 +16,20 @@ import HourglassEmpty from '@mui/icons-material/HourglassEmpty';
 import { Link } from 'react-router-dom';
 
 export default function DriverStatus() {
-  const [driverStatus, setDriverStatus] = useState('pending'); // Simular - vem do contexto real
+  const [driverStatus, setDriverStatus] = useState('pending');
   const [documentsSubmitted, setDocumentsSubmitted] = useState(false);
 
-  // Simular verificação de status (implementar com API real)
   useEffect(() => {
-    // Verificar status do motorista logado
-    // setDriverStatus(currentDriver.status);
-    // setDocumentsSubmitted(!!currentDriver.documentCpf);
+    const driverData = localStorage.getItem("kaviar_driver_data");
+    if (driverData) {
+      try {
+        const driver = JSON.parse(driverData);
+        setDriverStatus(driver.status || 'pending');
+        setDocumentsSubmitted(!!driver.certidao_nada_consta_url);
+      } catch (error) {
+        console.error('Error parsing driver data:', error);
+      }
+    }
   }, []);
 
   const renderStatusContent = () => {

@@ -68,6 +68,11 @@ export default function DriverLogin() {
     }
 
     localStorage.setItem("kaviar_driver_token", token);
+    
+    // Salvar dados do motorista retornados no login
+    if (data?.driver) {
+      localStorage.setItem("kaviar_driver_data", JSON.stringify(data.driver));
+    }
 
     const from = location.state?.from?.pathname;
     navigate(from || "/motorista/status", { replace: true });

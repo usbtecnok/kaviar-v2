@@ -94,19 +94,6 @@ export default function DriverApproval() {
     }
   };
 
-  const handleSuspend = async (driverId) => {
-    try {
-      setActionLoading(driverId);
-      await adminApi.suspendDriver(driverId, 'Documentos inválidos');
-      setToast({ open: true, message: 'Motorista suspenso', severity: 'warning' });
-      loadDrivers();
-    } catch (error) {
-      setToast({ open: true, message: 'Erro ao suspender motorista', severity: 'error' });
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
   const openConfirmDialog = (action, driverId) => {
     setConfirmDialog({ open: true, action, driverId });
   };

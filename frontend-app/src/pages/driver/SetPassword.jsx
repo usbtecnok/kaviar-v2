@@ -56,6 +56,11 @@ export default function DriverSetPassword() {
         if (loginRes.ok && loginData.token) {
           localStorage.setItem('kaviar_driver_token', loginData.token);
           
+          // Salvar dados do motorista
+          if (loginData.driver) {
+            localStorage.setItem('kaviar_driver_data', JSON.stringify(loginData.driver));
+          }
+          
           // Redirecionar para onboarding para completar perfil
           setTimeout(() => {
             navigate('/onboarding?type=driver');

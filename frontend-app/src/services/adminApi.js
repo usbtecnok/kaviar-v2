@@ -100,14 +100,6 @@ class AdminApiService {
     return this.delete(`/api/admin/drivers/${id}`);
   }
 
-  async suspendDriver(id, reason) {
-    return this.put(`/api/admin/drivers/${id}/suspend`, { reason });
-  }
-
-  async reactivateDriver(id) {
-    return this.put(`/api/admin/drivers/${id}/reactivate`);
-  }
-
   async getRides(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     return this.get(`/api/admin/rides${queryString ? `?${queryString}` : ''}`);
