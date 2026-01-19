@@ -162,12 +162,14 @@ const RideStatusCard = ({ showActions = true }) => {
                   <Typography variant="body2" fontWeight={500}>
                     {currentRide.driver.rating}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    • {currentRide.driver.car}
-                  </Typography>
                 </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  🚗 {currentRide.driver.vehicleModel || currentRide.driver.car}
+                  {currentRide.driver.vehicleColor ? ` ${currentRide.driver.vehicleColor}` : ''}
+                  {' — Placa '}{currentRide.driver.vehiclePlate || currentRide.driver.plate}
+                </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                  {currentRide.driver.plate} • Chega em {currentRide.driver.eta}
+                  Chega em {currentRide.driver.eta}
                 </Typography>
               </Box>
               {showActions && rideStatus !== 'completed' && (
