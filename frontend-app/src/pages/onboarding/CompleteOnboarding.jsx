@@ -299,12 +299,16 @@ export default function CompleteOnboarding() {
 
       setCompleted(true);
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Erro ao cadastrar';
-      // Traduzir erros comuns do backend
-      if (errorMessage.includes('Email') || errorMessage.includes('email')) {
-        setError('Email é obrigatório e deve ser válido.');
+      const apiError = error.response?.data;
+
+      if (Array.isArray(apiError?.error)) {
+        setError(
+          apiError.error.map(e => e.message).join('\n')
+        );
+      } else if (typeof apiError?.message === 'string') {
+        setError(apiError.message);
       } else {
-        setError(errorMessage);
+        setError('Erro ao finalizar cadastro. Verifique os dados informados.');
       }
     } finally {
       setLoading(false);
@@ -709,7 +713,9 @@ export default function CompleteOnboarding() {
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+            {error.split('\n').map((msg, i) => (
+              <div key={i}>• {msg}</div>
+            ))}
           </Alert>
         )}
 
