@@ -35,17 +35,19 @@ router.post('/driver/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
-    // VALIDAÇÃO DE APROVAÇÃO (apenas no login)
-    if (driver.status === 'pending') {
-      return res.status(403).json({ error: 'Cadastro em análise' });
-    }
-
-    if (!['approved', 'online', 'active'].includes(driver.status)) {
+    // ✅ MODO KAVIAR: Autenticação permite pending, autorização restringe funcionalidades
+    // Apenas bloqueia rejected/suspended
+    if (['rejected', 'suspended'].includes(driver.status)) {
       return res.status(403).json({ error: 'Conta suspensa ou rejeitada' });
     }
 
     const token = jwt.sign(
-      { userId: driver.id, userType: 'DRIVER', email: driver.email },
+      { 
+        userId: driver.id, 
+        userType: 'DRIVER', 
+        email: driver.email,
+        status: driver.status // ✅ JWT carrega status
+      },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -58,7 +60,8 @@ router.post('/driver/login', async (req, res) => {
         email: driver.email,
         phone: driver.phone,
         status: driver.status,
-        user_type: 'DRIVER'
+        user_type: 'DRIVER',
+        isPending: driver.status === 'pending' // ✅ Flag para frontend
       }
     });
   } catch (error) {

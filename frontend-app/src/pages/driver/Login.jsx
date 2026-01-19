@@ -31,9 +31,7 @@ export default function DriverLogin() {
     if (!res.ok) {
       const errorMsg = data?.error || data?.message || "";
       
-      if (res.status === 403 && errorMsg.includes("análise")) {
-        setMsg("Seu cadastro está em análise. Aguarde aprovação do administrador.");
-      } else if (res.status === 403) {
+      if (res.status === 403 && errorMsg.includes("suspensa")) {
         setMsg("Conta suspensa ou rejeitada. Entre em contato com o suporte.");
       } else if (errorMsg.includes("Credenciais inválidas")) {
         setMsg("Email ou senha incorretos.");

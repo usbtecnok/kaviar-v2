@@ -32,22 +32,36 @@ export default function DriverStatus() {
     }
   }, []);
 
+  // ✅ Banner de status pending
+  const isPending = driverStatus === 'pending';
+
   const renderStatusContent = () => {
     switch (driverStatus) {
       case 'pending':
-        if (!documentsSubmitted) {
-          return (
-            <Card sx={{ mb: 3 }}>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <WarningAmber sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
-                <Typography variant="h5" gutterBottom>
-                  Documentos Pendentes
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 3 }}>
-                  Você precisa enviar seus documentos para ser aprovado como motorista.
-                </Typography>
-                <Button
-                  variant="contained"
+        return (
+          <>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body1" fontWeight={600}>
+                Cadastro em Análise
+              </Typography>
+              <Typography variant="body2">
+                Seu cadastro está sendo analisado pela equipe Kaviar. 
+                Você será notificado quando for aprovado.
+              </Typography>
+            </Alert>
+            
+            {!documentsSubmitted && (
+              <Card sx={{ mb: 3 }}>
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <WarningAmber sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
+                  <Typography variant="h5" gutterBottom>
+                    Documentos Pendentes
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 3 }}>
+                    Você precisa enviar seus documentos para ser aprovado como motorista.
+                  </Typography>
+                  <Button
+                    variant="contained"
                   component={Link}
                   to="/motorista/documents"
                   size="large"
@@ -56,26 +70,9 @@ export default function DriverStatus() {
                 </Button>
               </CardContent>
             </Card>
-          );
-        } else {
-          return (
-            <Card sx={{ mb: 3 }}>
-              <CardContent sx={{ textAlign: 'center' }}>
-                <HourglassEmpty sx={{ fontSize: 48, color: 'info.main', mb: 2 }} />
-                <Typography variant="h5" gutterBottom>
-                  Aguardando Aprovação
-                </Typography>
-                <Typography variant="body1" sx={{ mb: 2 }}>
-                  Seus documentos foram enviados e estão sendo analisados.
-                </Typography>
-                <LinearProgress sx={{ mb: 2 }} />
-                <Typography variant="body2" color="text.secondary">
-                  Tempo médio de análise: 2-3 dias úteis
-                </Typography>
-              </CardContent>
-            </Card>
-          );
-        }
+            )}
+          </>
+        );
 
       case 'approved':
         return (

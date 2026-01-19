@@ -264,29 +264,24 @@ export default function CompleteOnboarding() {
             password: clean.password
           });
 
-          // Se login retornar 403 (pending), é esperado
-          if (loginResponse.status === 403) {
-            setCompleted(true);
-            setError('');
-            setLoading(false);
-            return;
-          }
-
           const token = loginResponse.data.token;
+          const user = loginResponse.data.user;
+          
           localStorage.setItem('kaviar_driver_token', token);
-          localStorage.setItem('kaviar_driver_data', JSON.stringify(loginResponse.data.user));
-        } catch (loginError) {
-          // Login falhou (403 pending é esperado)
-          if (loginError.response?.status === 403) {
-            setCompleted(true);
-            setError('');
-            setLoading(false);
-            return;
-          }
-          throw loginError;
-        }
+          localStorage.setItem('kaviar_driver_data', JSON.stringify(user));
 
-        setCompleted(true);
+          // ✅ Login bem-sucedido, redirecionar para área do motorista
+          setCompleted(true);
+          setTimeout(() => {
+            navigate('/motorista/status');
+          }, 2000);
+        } catch (loginError) {
+          // Se login falhar, mostrar erro
+          console.error('Erro no login automático:', loginError);
+          setError(loginError.response?.data?.error || 'Erro ao fazer login');
+          setLoading(false);
+          return;
+        }
       } else if (userType === 'guide') {
         const response = await api.post('/api/governance/guide', {
           name: clean.name,
