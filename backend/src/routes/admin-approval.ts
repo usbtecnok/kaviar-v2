@@ -11,6 +11,7 @@ router.use(authenticateAdmin);
 
 // Driver approval routes
 router.get('/drivers', approvalController.getDrivers);
+router.get('/drivers/metrics/by-neighborhood', approvalController.getDriversByNeighborhood);
 router.put('/drivers/:id/approve', approvalController.approveDriver);
 router.put('/drivers/:id/reject', approvalController.rejectDriver);
 router.delete('/drivers/:id', async (req, res) => {

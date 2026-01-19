@@ -19,7 +19,10 @@ import {
   Alert,
   Tabs,
   Tab,
-  IconButton
+  IconButton,
+  Grid,
+  Card,
+  CardContent
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +35,8 @@ export default function DriversManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentTab, setCurrentTab] = useState('approved');
+  const [neighborhoodMetrics, setNeighborhoodMetrics] = useState([]);
+  const [showMetrics, setShowMetrics] = useState(false);
   const [actionDialog, setActionDialog] = useState({ 
     open: false, 
     driver: null, 
@@ -64,6 +69,25 @@ export default function DriversManagement() {
       setError('Erro de conexão');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchNeighborhoodMetrics = async () => {
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/drivers/metrics/by-neighborhood`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setNeighborhoodMetrics(data.data);
+        setShowMetrics(true);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar métricas:', error);
     }
   };
 
@@ -155,12 +179,46 @@ export default function DriversManagement() {
         </Alert>
       )}
 
-      <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} sx={{ mb: 3 }}>
-        <Tab label="Aprovados" value="approved" />
-        <Tab label="Pendentes" value="pending" />
-        <Tab label="Rejeitados" value="rejected" />
-        <Tab label="Todos" value="" />
-      </Tabs>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
+          <Tab label="Aprovados" value="approved" />
+          <Tab label="Pendentes" value="pending" />
+          <Tab label="Rejeitados" value="rejected" />
+          <Tab label="Todos" value="" />
+        </Tabs>
+        
+        <Button 
+          variant="outlined" 
+          onClick={fetchNeighborhoodMetrics}
+          size="small"
+        >
+          {showMetrics ? 'Ocultar Métricas' : 'Ver Métricas por Bairro'}
+        </Button>
+      </Box>
+
+      {showMetrics && neighborhoodMetrics.length > 0 && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Motoristas por Bairro</Typography>
+          <Grid container spacing={2}>
+            {neighborhoodMetrics.map(metric => (
+              <Grid item xs={12} sm={6} md={4} key={metric.neighborhoodId}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {metric.name}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                      <Chip label={`Total: ${metric.total}`} size="small" />
+                      <Chip label={`Aprovados: ${metric.approved}`} size="small" color="success" />
+                      <Chip label={`Pendentes: ${metric.pending}`} size="small" color="warning" />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      )}
 
       <TableContainer component={Paper}>
         <Table>

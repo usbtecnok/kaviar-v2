@@ -23,7 +23,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle } from '@mui/icons-material';
 import api from '../../api';
 
-const steps = ['Dados Pessoais', 'Comunidade', 'LGPD', 'Finalização'];
+const steps = ['Dados Pessoais', 'Bairro e Comunidade', 'LGPD', 'Finalização'];
 
 export default function CompleteOnboarding() {
   const [activeStep, setActiveStep] = useState(0);
@@ -55,6 +55,7 @@ export default function CompleteOnboarding() {
     phone: '',
     password: '',
     confirmPassword: '',
+    neighborhoodId: '',
     communityId: '',
     // Driver specific
     documentCpf: '',
@@ -74,7 +75,9 @@ export default function CompleteOnboarding() {
     familyProfile: 'individual', // individual | familiar
     familyBonusAccepted: false
   });
+  const [neighborhoods, setNeighborhoods] = useState([]);
   const [communities, setCommunities] = useState([]);
+  const [filteredCommunities, setFilteredCommunities] = useState([]);
   const [lgpdAccepted, setLgpdAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -82,8 +85,20 @@ export default function CompleteOnboarding() {
   const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
+    loadNeighborhoods();
     loadCommunities();
   }, []);
+
+  const loadNeighborhoods = async () => {
+    try {
+      const response = await api.get('/api/governance/neighborhoods');
+      if (response.data.success) {
+        setNeighborhoods(response.data.data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar bairros:', error);
+    }
+  };
 
   const loadCommunities = async () => {
     try {
@@ -105,6 +120,7 @@ export default function CompleteOnboarding() {
     phone: formData.phone ?? '',
     password: formData.password ?? '',
     confirmPassword: formData.confirmPassword ?? '',
+    neighborhoodId: formData.neighborhoodId ?? '',
     communityId: formData.communityId ?? '',
     documentCpf: formData.documentCpf ?? '',
     documentRg: formData.documentRg ?? '',
@@ -240,6 +256,11 @@ export default function CompleteOnboarding() {
           setLoading(false);
           return;
         }
+        if (!clean.neighborhoodId) {
+          setError('Bairro é obrigatório.');
+          setLoading(false);
+          return;
+        }
 
         // 1. Criar motorista com senha
         const registerResponse = await api.post('/api/governance/driver', {
@@ -247,6 +268,8 @@ export default function CompleteOnboarding() {
           email: clean.email,
           phone: clean.phone,
           password: clean.password,
+          neighborhoodId: clean.neighborhoodId,
+          communityId: clean.communityId || undefined,
           documentCpf: clean.documentCpf || '',
           documentRg: clean.documentRg || '',
           documentCnh: clean.documentCnh || '',
@@ -581,20 +604,65 @@ export default function CompleteOnboarding() {
         );
       case 1:
         return (
-          <FormControl fullWidth>
-            <InputLabel>Comunidade (Opcional)</InputLabel>
-            <Select
-              value={clean.communityId}
-              onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
-            >
-              <MenuItem value="">Nenhuma</MenuItem>
-              {communities.map(community => (
-                <MenuItem key={community.id} value={community.id}>
-                  {community.name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box>
+            {userType === 'driver' && (
+              <>
+                <FormControl fullWidth sx={{ mb: 2 }} required>
+                  <InputLabel>Bairro *</InputLabel>
+                  <Select
+                    value={clean.neighborhoodId}
+                    onChange={(e) => {
+                      const neighborhoodId = e.target.value;
+                      setFormData(prev => ({ ...prev, neighborhoodId, communityId: '' }));
+                      // Filtrar comunidades do bairro selecionado (se houver lógica de vinculação)
+                      setFilteredCommunities(communities);
+                    }}
+                    required
+                  >
+                    <MenuItem value="">Selecione um bairro</MenuItem>
+                    {neighborhoods.map(neighborhood => (
+                      <MenuItem key={neighborhood.id} value={neighborhood.id}>
+                        {neighborhood.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth>
+                  <InputLabel>Comunidade (Opcional)</InputLabel>
+                  <Select
+                    value={clean.communityId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
+                    disabled={!clean.neighborhoodId}
+                  >
+                    <MenuItem value="">Nenhuma</MenuItem>
+                    {filteredCommunities.map(community => (
+                      <MenuItem key={community.id} value={community.id}>
+                        {community.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </>
+            )}
+
+            {(userType === 'passenger' || userType === 'guide') && (
+              <FormControl fullWidth>
+                <InputLabel>Comunidade (Opcional)</InputLabel>
+                <Select
+                  value={clean.communityId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
+                >
+                  <MenuItem value="">Nenhuma</MenuItem>
+                  {communities.map(community => (
+                    <MenuItem key={community.id} value={community.id}>
+                      {community.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+          </Box>
         );
       case 2:
         return (

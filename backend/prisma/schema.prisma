@@ -156,6 +156,7 @@ model drivers {
   suspended_at                DateTime?
   suspended_by                String?
   last_active_at              DateTime?
+  neighborhood_id             String?
   community_id                String?
   document_cpf                String?
   document_rg                 String?
@@ -184,6 +185,7 @@ model drivers {
   created_at                  DateTime                      @default(now())
   updated_at                  DateTime
   communities                 communities?                  @relation(fields: [community_id], references: [id])
+  neighborhoods               neighborhoods?                @relation(fields: [neighborhood_id], references: [id])
   rides                       rides[]
   driver_consents             driver_consents?
   driver_compliance_documents driver_compliance_documents[]
@@ -247,6 +249,7 @@ model neighborhoods {
   verified_by            String?
   created_at             DateTime                @default(now())
   updated_at             DateTime
+  drivers                drivers[]
   neighborhood_geofences neighborhood_geofences?
 }
 

@@ -220,6 +220,8 @@ export class ApprovalController {
           document_cnh: true,
           vehicle_plate: true,
           vehicle_model: true,
+          neighborhood_id: true,
+          community_id: true,
           created_at: true,
           updated_at: true,
           approved_at: true,
@@ -240,6 +242,8 @@ export class ApprovalController {
         documentCnh: d.document_cnh,
         vehiclePlate: d.vehicle_plate,
         vehicleModel: d.vehicle_model,
+        neighborhoodId: d.neighborhood_id,
+        communityId: d.community_id,
         createdAt: d.created_at?.toISOString(),
         updatedAt: d.updated_at?.toISOString(),
         approvedAt: d.approved_at?.toISOString() || null,
@@ -255,6 +259,65 @@ export class ApprovalController {
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Erro ao buscar motoristas'
+      });
+    }
+  };
+
+  // GET /api/admin/drivers/metrics/by-neighborhood
+  getDriversByNeighborhood = async (req: Request, res: Response) => {
+    try {
+      const drivers = await prisma.drivers.groupBy({
+        by: ['neighborhood_id', 'status'],
+        _count: true,
+        where: {
+          neighborhood_id: { not: null }
+        }
+      });
+
+      // Buscar nomes dos bairros
+      const neighborhoodIds = [...new Set(drivers.map(d => d.neighborhood_id).filter(Boolean))];
+      const neighborhoods = await prisma.neighborhoods.findMany({
+        where: { id: { in: neighborhoodIds as string[] } },
+        select: { id: true, name: true }
+      });
+
+      const neighborhoodMap = new Map(neighborhoods.map(n => [n.id, n.name]));
+
+      // Agrupar por bairro
+      const metrics = new Map<string, { neighborhoodId: string; name: string; total: number; approved: number; pending: number }>();
+
+      drivers.forEach(d => {
+        if (!d.neighborhood_id) return;
+        
+        if (!metrics.has(d.neighborhood_id)) {
+          metrics.set(d.neighborhood_id, {
+            neighborhoodId: d.neighborhood_id,
+            name: neighborhoodMap.get(d.neighborhood_id) || 'Desconhecido',
+            total: 0,
+            approved: 0,
+            pending: 0
+          });
+        }
+
+        const metric = metrics.get(d.neighborhood_id)!;
+        metric.total += d._count;
+        
+        if (d.status === 'approved') {
+          metric.approved += d._count;
+        } else if (d.status === 'pending') {
+          metric.pending += d._count;
+        }
+      });
+
+      res.json({
+        success: true,
+        data: Array.from(metrics.values()).sort((a, b) => b.total - a.total)
+      });
+    } catch (error) {
+      console.error('Error getting drivers by neighborhood:', error);
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao buscar métricas'
       });
     }
   };

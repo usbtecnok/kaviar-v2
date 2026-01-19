@@ -163,6 +163,7 @@ const driverCreateSchema = z.object({
   email: z.string().email('Email inválido'),
   phone: z.string().min(1, 'Telefone é obrigatório'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  neighborhoodId: z.string().min(1, 'Bairro é obrigatório'),
   communityId: z.string().optional(),
   documentCpf: z.string().optional(),
   documentRg: z.string().optional(),
@@ -209,7 +210,9 @@ router.post('/driver', async (req, res) => {
         email: data.email,
         phone: data.phone,
         password_hash: hashedPassword,
-        status: 'pending', // Aguardando aprovação
+        status: 'pending',
+        neighborhood_id: data.neighborhoodId,
+        community_id: data.communityId || null,
         document_cpf: data.documentCpf,
         document_rg: data.documentRg,
         document_cnh: data.documentCnh,
