@@ -26,13 +26,22 @@ router.post('/driver/login', async (req, res) => {
 
     const driver = await prisma.drivers.findUnique({ where: { email } });
 
-    if (!driver || !['approved', 'online', 'active', 'pending'].includes(driver.status) || !driver.password_hash) {
+    if (!driver || !driver.password_hash) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
     const isValid = await bcrypt.compare(password, driver.password_hash);
     if (!isValid) {
       return res.status(401).json({ error: 'Credenciais inválidas' });
+    }
+
+    // VALIDAÇÃO DE APROVAÇÃO (apenas no login)
+    if (driver.status === 'pending') {
+      return res.status(403).json({ error: 'Cadastro em análise' });
+    }
+
+    if (!['approved', 'online', 'active'].includes(driver.status)) {
+      return res.status(403).json({ error: 'Conta suspensa ou rejeitada' });
     }
 
     const token = jwt.sign(
@@ -67,7 +76,8 @@ router.post('/driver/set-password', async (req, res) => {
     const driver = await prisma.drivers.findUnique({ where: { email } });
 
     if (!driver) {
-      return res.status(404).json({ error: 'Motorista não encontrado' });
+      // Segurança: não revelar se email existe
+      return res.json({ success: true, message: 'Se o email existir, a senha será atualizada' });
     }
 
     const password_hash = await bcrypt.hash(password, 10);
@@ -77,12 +87,12 @@ router.post('/driver/set-password', async (req, res) => {
       data: { password_hash }
     });
 
-    res.json({ success: true, message: 'Senha definida com sucesso' });
+    res.json({ success: true, message: 'Senha atualizada com sucesso' });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
-    res.status(400).json({ error: 'Erro ao definir senha' });
+    res.status(400).json({ error: 'Erro ao atualizar senha' });
   }
 });
 

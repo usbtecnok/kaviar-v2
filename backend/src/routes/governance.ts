@@ -164,11 +164,11 @@ const driverCreateSchema = z.object({
   phone: z.string().min(1, 'Telefone é obrigatório'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   communityId: z.string().optional(),
-  documentCpf: z.string().min(1, 'CPF é obrigatório'),
-  documentRg: z.string().min(1, 'RG é obrigatório'),
-  documentCnh: z.string().min(1, 'CNH é obrigatório'),
-  vehiclePlate: z.string().min(1, 'Placa do veículo é obrigatória'),
-  vehicleModel: z.string().min(1, 'Modelo do veículo é obrigatório')
+  documentCpf: z.string().optional(),
+  documentRg: z.string().optional(),
+  documentCnh: z.string().optional(),
+  vehiclePlate: z.string().optional(),
+  vehicleModel: z.string().optional()
 });
 
 // Guide registration schemas
@@ -183,7 +183,7 @@ const guideCreateSchema = z.object({
   alsoDriver: z.boolean().default(false)
 });
 
-// POST /api/governance/driver - Create driver
+// POST /api/governance/driver - Create driver (CADASTRO INICIAL)
 router.post('/driver', async (req, res) => {
   try {
     const data = driverCreateSchema.parse(req.body);
@@ -200,7 +200,7 @@ router.post('/driver', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
-    // Create driver with pending status (needs approval)
+    // Create driver - CADASTRO INICIAL (sem validações de aprovação)
     const driver = await prisma.drivers.create({
       data: {
         id: randomUUID(),
@@ -208,7 +208,7 @@ router.post('/driver', async (req, res) => {
         email: data.email,
         phone: data.phone,
         password_hash: hashedPassword,
-        status: 'pending', // Requires admin approval
+        status: 'pending', // Aguardando aprovação
         document_cpf: data.documentCpf,
         document_rg: data.documentRg,
         document_cnh: data.documentCnh,
@@ -219,7 +219,7 @@ router.post('/driver', async (req, res) => {
       }
     });
 
-    res.json({ 
+    res.status(201).json({ 
       success: true, 
       data: { 
         id: driver.id,

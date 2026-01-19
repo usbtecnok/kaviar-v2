@@ -227,27 +227,64 @@ export default function CompleteOnboarding() {
           console.error('Erro no login automático:', loginError);
         }
       } else if (userType === 'driver') {
-        // Motorista deve estar autenticado e completar perfil
-        const token = localStorage.getItem('kaviar_driver_token');
-        if (!token) {
-          setError('Você precisa fazer login primeiro.');
-          setTimeout(() => navigate('/motorista/login'), 2000);
+        // CADASTRO INICIAL DO MOTORISTA (via /governance/driver)
+        if (!clean.password || clean.password.length < 6) {
+          setError('Senha deve ter pelo menos 6 caracteres.');
+          setLoading(false);
+          return;
+        }
+        if (clean.password !== clean.confirmPassword) {
+          setError('Senhas não coincidem.');
           setLoading(false);
           return;
         }
 
-        // Capturar geolocalização
-        if (!navigator.geolocation) {
-          setError('Geolocalização não disponível no seu navegador.');
-          setLoading(false);
-          return;
-        }
+        try {
+          // 1. Criar motorista com senha
+          const registerResponse = await api.post('/api/governance/driver', {
+            name: clean.name,
+            email: clean.email,
+            phone: clean.phone,
+            password: clean.password,
+            documentCpf: clean.documentCpf || '',
+            documentRg: clean.documentRg || '',
+            documentCnh: clean.documentCnh || '',
+            vehiclePlate: clean.vehiclePlate || '',
+            vehicleModel: clean.vehicleModel || ''
+          });
 
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            try {
-              await api.post('/api/drivers/me/complete-profile', {
-                name: clean.name,
+          userId = registerResponse.data.data.id;
+
+          // 2. Fazer login automático
+          const loginResponse = await api.post('/api/auth/driver/login', {
+            email: clean.email,
+            password: clean.password
+          });
+
+          // Se login retornar 403 (pending), é esperado
+          if (loginResponse.status === 403) {
+            setCompleted(true);
+            setError('');
+            setLoading(false);
+            return;
+          }
+
+          const token = loginResponse.data.token;
+          localStorage.setItem('kaviar_driver_token', token);
+          localStorage.setItem('kaviar_driver_data', JSON.stringify(loginResponse.data.user));
+
+          // 3. Completar perfil com geolocalização
+          if (!navigator.geolocation) {
+            setError('Geolocalização não disponível no seu navegador.');
+            setLoading(false);
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              try {
+                await api.post('/api/drivers/me/complete-profile', {
+                  name: clean.name,
                 phone: clean.phone,
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
@@ -389,8 +426,8 @@ export default function CompleteOnboarding() {
               fullWidth
             />
 
-            {/* Campos de senha para passageiro */}
-            {userType === 'passenger' && (
+            {/* Campos de senha para passageiro E motorista */}
+            {(userType === 'passenger' || userType === 'driver') && (
               <>
                 <TextField
                   label="Senha"
