@@ -17,6 +17,9 @@ const ratingController = new RatingController();
 // Criar rating (1-5 + comentário opcional)
 router.post('/', ratingController.createRating);
 
+// Buscar corrida pendente de avaliação
+router.get('/pending/:passengerId', ratingController.getPendingRating);
+
 // Resumo/estatísticas do motorista
 router.get('/driver/:driverId', ratingController.getRatingSummary);
 

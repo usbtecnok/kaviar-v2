@@ -25,6 +25,22 @@ export class RatingController {
           });
         }
 
+        if (result.error === 'RIDE_NOT_FOUND') {
+          return res.status(404).json({
+            success: false,
+            error: result.error,
+            message: 'Corrida não encontrada'
+          });
+        }
+
+        if (result.error === 'RIDE_NOT_COMPLETED') {
+          return res.status(400).json({
+            success: false,
+            error: result.error,
+            message: 'Corrida ainda não foi finalizada'
+          });
+        }
+
         if (result.error === 'RATING_WINDOW_EXPIRED') {
           return res.status(400).json({
             success: false,
@@ -74,6 +90,34 @@ export class RatingController {
       res.status(400).json({
         success: false,
         error: error instanceof Error ? error.message : 'Invalid request parameters'
+      });
+    }
+  };
+
+  // GET /api/ratings/pending/:passengerId
+  getPendingRating = async (req: Request, res: Response) => {
+    try {
+      const { passengerId } = req.params;
+      
+      const pendingRide = await this.ratingService.getPendingRatingRide(passengerId);
+
+      if (!pendingRide) {
+        return res.status(404).json({
+          success: false,
+          error: 'NO_PENDING_RATING',
+          message: 'Nenhuma corrida pendente de avaliação'
+        });
+      }
+
+      res.json({
+        success: true,
+        ride: pendingRide
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get pending rating'
       });
     }
   };

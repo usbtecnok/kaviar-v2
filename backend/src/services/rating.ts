@@ -20,8 +20,24 @@ export class RatingService {
     }
 
     try {
-      // Check for existing rating (idempotency)
+      // If rideId provided, validate ride exists and is completed
       if (data.rideId) {
+        const ride = await prisma.rides.findUnique({
+          where: { id: data.rideId }
+        });
+
+        if (!ride) {
+          return { success: false, error: 'RIDE_NOT_FOUND' };
+        }
+
+        if (ride.status !== 'completed') {
+          return { 
+            success: false, 
+            error: 'RIDE_NOT_COMPLETED'
+          };
+        }
+
+        // Check for existing rating (idempotency)
         const existingRating = await prisma.ratings.findUnique({
           where: {
             ride_id_user_id: {
@@ -168,6 +184,68 @@ export class RatingService {
         },
         recentRatings: []
       };
+    }
+  }
+
+  /**
+   * Get pending rating ride for passenger
+   * Returns the most recent completed ride without rating
+   */
+  async getPendingRatingRide(passengerId: string): Promise<any | null> {
+    try {
+      const ride = await prisma.rides.findFirst({
+        where: {
+          passenger_id: passengerId,
+          status: 'completed'
+        },
+        orderBy: {
+          updated_at: 'desc'
+        }
+      });
+
+      if (!ride) {
+        return null;
+      }
+
+      // Check if already rated
+      const existingRating = await prisma.ratings.findFirst({
+        where: {
+          ride_id: ride.id,
+          user_id: passengerId
+        }
+      });
+
+      if (existingRating) {
+        return null;
+      }
+
+      // Get driver info
+      const driver = ride.driver_id ? await prisma.drivers.findUnique({
+        where: { id: ride.driver_id },
+        select: {
+          id: true,
+          name: true,
+          phone: true
+        }
+      }) : null;
+
+      return {
+        id: ride.id,
+        origin: ride.origin,
+        destination: ride.destination,
+        price: ride.price,
+        status: ride.status,
+        completedAt: ride.updated_at,
+        driver: driver ? {
+          id: driver.id,
+          name: driver.name,
+          phone: driver.phone
+        } : null
+      };
+
+    } catch (error) {
+      console.error('Error getting pending rating ride:', error);
+      return null;
     }
   }
 
