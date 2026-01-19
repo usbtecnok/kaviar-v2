@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { authenticateAdmin } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
+import { RideAdminController } from '../modules/admin/ride-controller';
 
 const router = Router();
+const rideController = new RideAdminController();
 
 router.use(authenticateAdmin);
 
@@ -48,77 +50,22 @@ router.get('/passengers', async (req, res) => {
   }
 });
 
-// GET /api/admin/rides
-router.get('/rides', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const skip = (page - 1) * limit;
+// GET /api/admin/rides - Using RideAdminController with filters
+router.get('/rides', rideController.getRides);
 
-    const [rides, total] = await Promise.all([
-      prisma.rides.findMany({
-        take: limit,
-        skip
-      }),
-      prisma.rides.count()
-    ]);
+// GET /api/admin/rides/:id - Using RideAdminController
+router.get('/rides/:id', rideController.getRideById);
 
-    res.json({
-      success: true,
-      data: rides,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    });
-} catch (error) {
-  console.error('Rides error:', error);
-  return res.status(200).json({
-    success: false,
-    data: [],
-    pagination: {
-      page: 1,
-      limit: 10,
-      total: 0,
-      totalPages: 0
-    },
-    error: 'Erro ao buscar corridas',
-    code: 'RIDES_QUERY_FAILED'
-  });
-}
+// PATCH /api/admin/rides/:id/status
+router.patch('/rides/:id/status', rideController.updateRideStatus);
 
-});
+// POST /api/admin/rides/:id/cancel
+router.post('/rides/:id/cancel', rideController.cancelRide);
 
-// GET /api/admin/rides/:id
-router.get('/rides/:id', async (req, res) => {
-  try {
-    const ride = await prisma.rides.findUnique({
-      where: { id: req.params.id },
-      include: {
-        passengers: { select: { name: true, email: true, phone: true } },
-        drivers: { select: { name: true, email: true, phone: true } }
-      }
-    });
+// POST /api/admin/rides/:id/force-complete
+router.post('/rides/:id/force-complete', rideController.forceCompleteRide);
 
-    if (!ride) {
-      return res.status(404).json({
-        success: false,
-        error: 'Corrida não encontrada'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: ride
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao buscar corrida'
-    });
-  }
-});
+// GET /api/admin/rides/audit
+router.get('/rides/audit', rideController.getAuditLogs);
 
 export { router as adminRoutes };

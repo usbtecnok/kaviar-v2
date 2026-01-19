@@ -1,0 +1,24 @@
+# Crontab - Sistema de Compliance Kaviar
+# Bloqueio automático de motoristas com documentos vencidos
+
+# Executar diariamente às 00:00 UTC
+# Grace period: 7 dias após vencimento
+# Bloqueio: Dia 8+ após vencimento
+
+# Formato: minuto hora dia mês dia_da_semana comando
+0 0 * * * /home/goes/kaviar/backend/scripts/run-compliance-cron.sh
+
+# Logs:
+# - Diário: /home/goes/kaviar/backend/logs/compliance/compliance-cron-YYYYMMDD.log
+# - Erros: /home/goes/kaviar/backend/logs/compliance/compliance-cron-error.log
+# - Rotação: Mantém últimos 30 dias
+
+# Para instalar:
+# crontab -e
+# Adicionar a linha acima
+
+# Para verificar:
+# crontab -l
+
+# Para testar manualmente:
+# /home/goes/kaviar/backend/scripts/run-compliance-cron.sh

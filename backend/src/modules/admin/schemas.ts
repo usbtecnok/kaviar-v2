@@ -33,7 +33,7 @@ export const ridesQuerySchema = paginationSchema.extend({
   search: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
-  sortBy: z.enum(['createdAt', 'updatedAt', 'price', 'status']).optional().default('createdAt'),
+  sortBy: z.enum(['created_at', 'updated_at', 'price', 'status']).optional().default('created_at'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 

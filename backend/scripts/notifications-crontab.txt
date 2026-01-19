@@ -1,0 +1,23 @@
+# Crontab - Notificações de Compliance Kaviar
+# Envia avisos WhatsApp sobre documentos vencendo
+
+# Executar diariamente às 09:00 UTC (06:00 BRT)
+# Horário comercial para melhor recepção das mensagens
+
+# Formato: minuto hora dia mês dia_da_semana comando
+0 9 * * * /home/goes/kaviar/backend/scripts/run-compliance-notifications-cron.sh
+
+# Logs:
+# - Diário: /home/goes/kaviar/backend/logs/compliance/compliance-notifications-YYYYMMDD.log
+# - Erros: /home/goes/kaviar/backend/logs/compliance/compliance-notifications-error.log
+# - Rotação: Mantém últimos 30 dias
+
+# Para instalar:
+# crontab -e
+# Adicionar a linha acima
+
+# Para verificar:
+# crontab -l
+
+# Para testar manualmente:
+# /home/goes/kaviar/backend/scripts/run-compliance-notifications-cron.sh
