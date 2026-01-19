@@ -197,7 +197,7 @@ export class ApprovalController {
     }
   };
 
-  // GET /api/admin/drivers - List drivers for approval
+  // GET /api/admin/drivers - FONTE ÚNICA (Aprovação + Gerenciamento)
   getDrivers = async (req: Request, res: Response) => {
     try {
       const { status } = req.query;
@@ -221,14 +221,34 @@ export class ApprovalController {
           vehicle_plate: true,
           vehicle_model: true,
           created_at: true,
-          updated_at: true
+          updated_at: true,
+          approved_at: true,
+          rejected_at: true
         },
         orderBy: { created_at: 'desc' }
       });
 
+      // Normalize para frontend (camelCase + ISO dates)
+      const normalized = drivers.map(d => ({
+        id: d.id,
+        name: d.name,
+        email: d.email,
+        phone: d.phone,
+        status: d.status,
+        documentCpf: d.document_cpf,
+        documentRg: d.document_rg,
+        documentCnh: d.document_cnh,
+        vehiclePlate: d.vehicle_plate,
+        vehicleModel: d.vehicle_model,
+        createdAt: d.created_at?.toISOString(),
+        updatedAt: d.updated_at?.toISOString(),
+        approvedAt: d.approved_at?.toISOString() || null,
+        rejectedAt: d.rejected_at?.toISOString() || null
+      }));
+
       res.json({
         success: true,
-        data: drivers
+        data: normalized
       });
     } catch (error) {
       console.error('Error getting drivers:', error);

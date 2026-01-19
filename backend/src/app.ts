@@ -70,9 +70,9 @@ app.get('/api/health', (req, res) => {
 // Core routes (always enabled)
 console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
-app.use('/api/admin', adminApprovalRoutes);
+app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers
 app.use('/api/admin', adminRoutes);
-app.use('/api/admin', adminDriversRoutes);
+// ❌ REMOVIDO: adminDriversRoutes (duplicação)
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
 console.log('✅ Core routes mounted: /api/admin/*, /api/drivers/*, /api/ratings/*');

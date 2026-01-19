@@ -31,7 +31,7 @@ export default function DriversManagement() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [currentTab, setCurrentTab] = useState('pending');
+  const [currentTab, setCurrentTab] = useState('approved');
   const [actionDialog, setActionDialog] = useState({ 
     open: false, 
     driver: null, 
@@ -55,6 +55,7 @@ export default function DriversManagement() {
 
       const data = await response.json();
       if (data.success) {
+        // ✅ Backend entrega pronto
         setDrivers(data.data);
       } else {
         setError(data.error || 'Erro ao carregar motoristas');
@@ -72,22 +73,24 @@ export default function DriversManagement() {
       const token = localStorage.getItem('kaviar_admin_token');
       
       let endpoint = '';
-      let method = 'POST';
       let body = {};
 
-      // Mapear ações para endpoints reais do backend
+      // ✅ MODO KAVIAR: apenas muda status
       if (action === 'approved') {
         endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/approve`;
       } else if (action === 'rejected') {
         endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/reject`;
         body = { reason: reason || 'Rejeitado pelo administrador' };
+      } else if (action === 'suspended') {
+        endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/suspend`;
+        body = { reason: reason || 'Suspenso pelo administrador' };
       } else {
         setError('Ação não suportada');
         return;
       }
 
       const response = await fetch(endpoint, {
-        method,
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -153,8 +156,8 @@ export default function DriversManagement() {
       )}
 
       <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)} sx={{ mb: 3 }}>
-        <Tab label="Pendentes" value="pending" />
         <Tab label="Aprovados" value="approved" />
+        <Tab label="Pendentes" value="pending" />
         <Tab label="Rejeitados" value="rejected" />
         <Tab label="Todos" value="" />
       </Tabs>

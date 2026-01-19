@@ -40,9 +40,9 @@ export default function DriverApproval() {
 
   const loadDrivers = async () => {
     try {
-      // ✅ CORREÇÃO: adminApi já adiciona /api/admin
       const response = await adminApi.getDrivers();
       if (response.success) {
+        // ✅ Backend entrega pronto, frontend só renderiza
         setDrivers(response.data);
       }
     } catch (error) {
