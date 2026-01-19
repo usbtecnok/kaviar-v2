@@ -62,6 +62,7 @@ export default function CompleteOnboarding() {
     documentCnh: '',
     vehiclePlate: '',
     vehicleModel: '',
+    vehicleColor: '',
     certidaoNadaConsta: null, // UI only - not persisted
     pixKey: '',
     pixKeyType: 'CPF', // CPF, CNPJ, EMAIL, PHONE, RANDOM
@@ -110,6 +111,7 @@ export default function CompleteOnboarding() {
     documentCnh: formData.documentCnh ?? '',
     vehiclePlate: formData.vehiclePlate ?? '',
     vehicleModel: formData.vehicleModel ?? '',
+    vehicleColor: formData.vehicleColor ?? '',
     certidaoNadaConsta: formData.certidaoNadaConsta,
     pixKey: formData.pixKey ?? '',
     pixKeyType: formData.pixKeyType ?? 'CPF',
@@ -249,7 +251,8 @@ export default function CompleteOnboarding() {
           documentRg: clean.documentRg || '',
           documentCnh: clean.documentCnh || '',
           vehiclePlate: clean.vehiclePlate || '',
-          vehicleModel: clean.vehicleModel || ''
+          vehicleModel: clean.vehicleModel || '',
+          vehicleColor: clean.vehicleColor || ''
         });
 
         userId = registerResponse.data.data.id;
@@ -420,6 +423,38 @@ export default function CompleteOnboarding() {
             {userType === 'driver' && (
               <>
                 <Typography variant="h6" sx={{ mt: 2 }}>Informações Adicionais</Typography>
+                
+                <Typography variant="body2" sx={{ mb: 1, mt: 2 }}>
+                  Dados do Veículo
+                </Typography>
+                <TextField
+                  label="Modelo do Veículo"
+                  value={clean.vehicleModel}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vehicleModel: e.target.value }))}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                  placeholder="Ex: Honda Civic, Fiat Uno"
+                />
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Cor do Veículo</InputLabel>
+                  <Select
+                    value={clean.vehicleColor}
+                    onChange={(e) => setFormData(prev => ({ ...prev, vehicleColor: e.target.value }))}
+                  >
+                    <MenuItem value="">Selecione</MenuItem>
+                    <MenuItem value="Branco">Branco</MenuItem>
+                    <MenuItem value="Preto">Preto</MenuItem>
+                    <MenuItem value="Prata">Prata</MenuItem>
+                    <MenuItem value="Cinza">Cinza</MenuItem>
+                    <MenuItem value="Azul">Azul</MenuItem>
+                    <MenuItem value="Vermelho">Vermelho</MenuItem>
+                    <MenuItem value="Verde">Verde</MenuItem>
+                    <MenuItem value="Amarelo">Amarelo</MenuItem>
+                    <MenuItem value="Bege">Bege</MenuItem>
+                    <MenuItem value="Marrom">Marrom</MenuItem>
+                    <MenuItem value="Outro">Outro</MenuItem>
+                  </Select>
+                </FormControl>
                 
                 <Box sx={{ mb: 2 }}>
                   <Typography variant="body2" sx={{ mb: 1 }}>
