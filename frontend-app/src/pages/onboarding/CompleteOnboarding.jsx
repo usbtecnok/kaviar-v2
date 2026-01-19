@@ -239,23 +239,23 @@ export default function CompleteOnboarding() {
           return;
         }
 
+        // 1. Criar motorista com senha
+        const registerResponse = await api.post('/api/governance/driver', {
+          name: clean.name,
+          email: clean.email,
+          phone: clean.phone,
+          password: clean.password,
+          documentCpf: clean.documentCpf || '',
+          documentRg: clean.documentRg || '',
+          documentCnh: clean.documentCnh || '',
+          vehiclePlate: clean.vehiclePlate || '',
+          vehicleModel: clean.vehicleModel || ''
+        });
+
+        userId = registerResponse.data.data.id;
+
+        // 2. Fazer login automático
         try {
-          // 1. Criar motorista com senha
-          const registerResponse = await api.post('/api/governance/driver', {
-            name: clean.name,
-            email: clean.email,
-            phone: clean.phone,
-            password: clean.password,
-            documentCpf: clean.documentCpf || '',
-            documentRg: clean.documentRg || '',
-            documentCnh: clean.documentCnh || '',
-            vehiclePlate: clean.vehiclePlate || '',
-            vehicleModel: clean.vehicleModel || ''
-          });
-
-          userId = registerResponse.data.data.id;
-
-          // 2. Fazer login automático
           const loginResponse = await api.post('/api/auth/driver/login', {
             email: clean.email,
             password: clean.password
@@ -272,55 +272,18 @@ export default function CompleteOnboarding() {
           const token = loginResponse.data.token;
           localStorage.setItem('kaviar_driver_token', token);
           localStorage.setItem('kaviar_driver_data', JSON.stringify(loginResponse.data.user));
-
-          // 3. Completar perfil com geolocalização
-          if (!navigator.geolocation) {
-            setError('Geolocalização não disponível no seu navegador.');
+        } catch (loginError) {
+          // Login falhou (403 pending é esperado)
+          if (loginError.response?.status === 403) {
+            setCompleted(true);
+            setError('');
             setLoading(false);
             return;
           }
+          throw loginError;
+        }
 
-          navigator.geolocation.getCurrentPosition(
-            async (position) => {
-              try {
-                await api.post('/api/drivers/me/complete-profile', {
-                  name: clean.name,
-                phone: clean.phone,
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                terms_accepted: true,
-                privacy_accepted: true,
-                terms_version: '2026-01'
-              }, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
-
-              // Salvar perfil familiar no localStorage
-              if (clean.familyBonusAccepted) {
-                const bonusPercent = clean.familyProfile === 'familiar' ? 100 : 50;
-                const driverData = JSON.parse(localStorage.getItem('kaviar_driver_data') || '{}');
-                const driverId = driverData.id;
-                
-                if (driverId) {
-                  localStorage.setItem(`kaviar_driver_${driverId}_family_profile`, clean.familyProfile);
-                  localStorage.setItem(`kaviar_driver_${driverId}_family_bonus_percent`, bonusPercent.toString());
-                  localStorage.setItem(`kaviar_driver_${driverId}_family_accepted_at`, new Date().toISOString());
-                }
-              }
-
-              setCompleted(true);
-            } catch (error) {
-              const errorMessage = error.response?.data?.error || 'Erro ao completar perfil';
-              setError(errorMessage);
-              setLoading(false);
-            }
-          },
-          (error) => {
-            setError('Não foi possível obter sua localização. Permita o acesso nas configurações do navegador.');
-            setLoading(false);
-          }
-        );
-        return; // Aguardar callback de geolocalização
+        setCompleted(true);
       } else if (userType === 'guide') {
         const response = await api.post('/api/governance/guide', {
           name: clean.name,
