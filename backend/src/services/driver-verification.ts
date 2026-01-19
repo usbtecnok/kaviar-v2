@@ -25,6 +25,12 @@ export class DriverVerificationService {
       verification = await this.createVerificationRecord(driver_id);
     }
 
+    // Get driver data for vehicle validation
+    const driver = await prisma.drivers.findUnique({
+      where: { id: driver_id },
+      select: { vehicle_color: true }
+    });
+
     // Check LGPD consent
     const lgpdConsent = await prisma.consents.findUnique({
       where: {
@@ -65,6 +71,11 @@ export class DriverVerificationService {
       checklist.communityAssigned.status = 'MISSING';
     } else {
       checklist.communityAssigned.status = 'ASSIGNED';
+    }
+
+    // Check vehicle color (required for approval)
+    if (!driver?.vehicle_color) {
+      missingRequirements.push('VEHICLE_COLOR');
     }
 
     // Check required documents

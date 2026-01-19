@@ -146,45 +146,47 @@ model driver_verifications {
 }
 
 model drivers {
-  id                       String            @id
-  name                     String
-  email                    String            @unique
-  password_hash            String?
-  phone                    String?
-  status                   String            @default("pending")
-  suspension_reason        String?
-  suspended_at             DateTime?
-  suspended_by             String?
-  last_active_at           DateTime?
-  community_id             String?
-  document_cpf             String?
-  document_rg              String?
-  document_cnh             String?
-  vehicle_plate            String?
-  vehicle_model            String?
-  banned_at                DateTime?
-  banned_reason            String?
-  banned_by                String?
-  deleted_at               DateTime?
-  deleted_by               String?
-  last_location_updated_at DateTime?
-  last_lat                 Decimal?          @db.Decimal(10, 8)
-  last_lng                 Decimal?          @db.Decimal(11, 8)
-  is_premium               Boolean           @default(false)
-  premium_override         Boolean?
-  certidao_nada_consta_url String?
-  pix_key                  String?
-  pix_key_type             String?
-  approved_at              DateTime?
-  approved_by              String?
-  rejected_at              DateTime?
-  rejected_by              String?
-  rejected_reason          String?
-  created_at               DateTime          @default(now())
-  updated_at               DateTime
-  communities              communities?      @relation(fields: [community_id], references: [id])
-  rides                    rides[]
-  driver_consents          driver_consents?
+  id                          String                        @id
+  name                        String
+  email                       String                        @unique
+  password_hash               String?
+  phone                       String?
+  status                      String                        @default("pending")
+  suspension_reason           String?
+  suspended_at                DateTime?
+  suspended_by                String?
+  last_active_at              DateTime?
+  community_id                String?
+  document_cpf                String?
+  document_rg                 String?
+  document_cnh                String?
+  vehicle_plate               String?
+  vehicle_model               String?
+  vehicle_color               String?
+  banned_at                   DateTime?
+  banned_reason               String?
+  banned_by                   String?
+  deleted_at                  DateTime?
+  deleted_by                  String?
+  last_location_updated_at    DateTime?
+  last_lat                    Decimal?                      @db.Decimal(10, 8)
+  last_lng                    Decimal?                      @db.Decimal(11, 8)
+  is_premium                  Boolean                       @default(false)
+  premium_override            Boolean?
+  certidao_nada_consta_url    String?
+  pix_key                     String?
+  pix_key_type                String?
+  approved_at                 DateTime?
+  approved_by                 String?
+  rejected_at                 DateTime?
+  rejected_by                 String?
+  rejected_reason             String?
+  created_at                  DateTime                      @default(now())
+  updated_at                  DateTime
+  communities                 communities?                  @relation(fields: [community_id], references: [id])
+  rides                       rides[]
+  driver_consents             driver_consents?
+  driver_compliance_documents driver_compliance_documents[]
 }
 
 model elderly_contracts {
@@ -482,7 +484,6 @@ enum TourPackageType {
   AIRPORT_TRANSFER
 }
 
-
 model driver_consents {
   id                  String   @id @default(uuid())
   driver_id           String   @unique
@@ -495,25 +496,25 @@ model driver_consents {
 }
 
 model driver_compliance_documents {
-  id                      String    @id @default(uuid())
-  driver_id               String
-  type                    String    @default("criminal_record")
-  file_url                String
-  status                  String    @default("pending")
-  valid_from              DateTime?
-  valid_until             DateTime?
-  approved_by             String?
-  approved_at             DateTime?
-  rejected_by             String?
-  rejected_at             DateTime?
-  rejection_reason        String?
-  is_current              Boolean   @default(false)
-  lgpd_consent_accepted   Boolean   @default(false)
-  lgpd_consent_ip         String?
-  lgpd_consent_at         DateTime?
-  created_at              DateTime  @default(now())
-  updated_at              DateTime  @updatedAt
-  drivers                 drivers   @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+  id                    String    @id @default(uuid())
+  driver_id             String
+  type                  String    @default("criminal_record")
+  file_url              String
+  status                String    @default("pending")
+  valid_from            DateTime?
+  valid_until           DateTime?
+  approved_by           String?
+  approved_at           DateTime?
+  rejected_by           String?
+  rejected_at           DateTime?
+  rejection_reason      String?
+  is_current            Boolean   @default(false)
+  lgpd_consent_accepted Boolean   @default(false)
+  lgpd_consent_ip       String?
+  lgpd_consent_at       DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  drivers               drivers   @relation(fields: [driver_id], references: [id], onDelete: Cascade)
 
   @@index([driver_id])
   @@index([status])
@@ -521,4 +522,3 @@ model driver_compliance_documents {
   @@index([valid_until])
   @@map("driver_compliance_documents")
 }
-
