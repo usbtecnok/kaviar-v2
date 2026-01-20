@@ -14,8 +14,12 @@ const api = axios.create({
 // Interceptor de Request - Adiciona JWT automaticamente
 api.interceptors.request.use(
   (config) => {
-    // ✅ CORREÇÃO: Suportar admin e usuário comum
-    const token = localStorage.getItem('kaviar_admin_token') || localStorage.getItem('kaviar_token');
+    // ✅ Prioridade: driver > admin > genérico
+    const token = 
+      localStorage.getItem('kaviar_driver_token') || 
+      localStorage.getItem('kaviar_admin_token') || 
+      localStorage.getItem('kaviar_token');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,10 +33,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Detectar contexto (admin ou usuário comum)
+      // Detectar contexto (driver > admin > usuário comum)
+      const isDriver = localStorage.getItem('kaviar_driver_token');
       const isAdmin = localStorage.getItem('kaviar_admin_token');
       
-      if (isAdmin) {
+      if (isDriver) {
+        localStorage.removeItem('kaviar_driver_token');
+        localStorage.removeItem('kaviar_driver_data');
+        window.location.href = '/motorista/login';
+      } else if (isAdmin) {
         localStorage.removeItem('kaviar_admin_token');
         localStorage.removeItem('kaviar_admin_data');
         window.location.href = '/admin/login';
