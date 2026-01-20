@@ -32,6 +32,9 @@ import adminDriversRoutes from './routes/admin-drivers';
 
 const app = express();
 
+// ✅ Trust proxy (Render/production)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({

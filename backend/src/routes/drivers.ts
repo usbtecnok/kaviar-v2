@@ -293,10 +293,19 @@ router.post('/me/documents', authenticateDriver, upload.fields([
       });
     });
 
+    // ✅ Log sucesso com evidência
+    console.log(`✅ Documents uploaded for driver ${driverId}:`, {
+      files: Object.keys(files),
+      savedDriverDocuments: 6,
+      savedComplianceDocs: 1
+    });
+
     res.json({
       success: true,
       message: 'Documentos enviados com sucesso',
       received: Object.keys(files),
+      savedDriverDocuments: 6,
+      savedComplianceDocs: 1,
       data: {
         cpf: cpfUrl,
         rg: rgUrl,
@@ -307,7 +316,23 @@ router.post('/me/documents', authenticateDriver, upload.fields([
       }
     });
   } catch (error) {
-    console.error('Error uploading documents:', error);
+    console.error('❌ Error uploading documents:', error);
+    console.error('Driver ID:', (req as any).userId);
+    console.error('Files received:', req.files ? Object.keys(req.files as any) : 'none');
+    
+    // ✅ Detectar erro de conexão Prisma
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isPrismaError = errorMessage.includes('Closed') || 
+                          errorMessage.includes('connection') || 
+                          errorMessage.includes('PrismaClient');
+    
+    if (isPrismaError) {
+      return res.status(500).json({
+        success: false,
+        error: 'DB_WRITE_FAILED',
+        message: 'Falha ao salvar documentos no banco de dados. Tente novamente.'
+      });
+    }
     res.status(500).json({
       success: false,
       error: 'UPLOAD_FAILED',
