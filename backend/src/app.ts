@@ -81,7 +81,13 @@ app.use('/api/admin', adminDriversRoutes); // ✅ Driver details + documents
 app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
-console.log('✅ Core routes mounted: /api/admin/*, /api/drivers/*, /api/ratings/*, /api/compliance/*');
+console.log('✅ Core routes mounted:');
+console.log('   - /api/admin/auth/*');
+console.log('   - /api/admin/drivers/* (approval + details + documents)');
+console.log('   - /api/admin/compliance/* (documents pending/expiring/approve/reject)');
+console.log('   - /api/drivers/me/compliance/* (driver compliance)');
+console.log('   - /api/drivers/*');
+console.log('   - /api/ratings/*');
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
 // app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
 
