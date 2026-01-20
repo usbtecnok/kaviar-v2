@@ -56,8 +56,8 @@ export default function DriverDocuments() {
   const { user } = useAuth();
 
   useEffect(() => {
-    // Guard: verificar autenticação
-    const token = localStorage.getItem('kaviar_token');
+    // Guard: verificar autenticação (driver token)
+    const token = localStorage.getItem('kaviar_driver_token');
     if (!token) {
       navigate('/motorista/login');
       return;
