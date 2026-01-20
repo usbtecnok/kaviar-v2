@@ -23,6 +23,7 @@ export default function AdminDriverDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [driver, setDriver] = useState(null);
+  const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
@@ -31,6 +32,7 @@ export default function AdminDriverDetail() {
 
   useEffect(() => {
     loadDriver();
+    loadDocuments();
   }, [id]);
 
   const loadDriver = async () => {
@@ -43,6 +45,19 @@ export default function AdminDriverDetail() {
       setError('Erro ao carregar motorista');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDocuments = async () => {
+    try {
+      // Buscar documentos de driver_documents (validação)
+      const response = await api.get(`/api/admin/drivers/${id}/documents`);
+      if (response.data.success) {
+        setDocuments(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar documentos:', error);
+      // Não bloqueia a tela se documentos falharem
     }
   };
 
@@ -163,7 +178,41 @@ export default function AdminDriverDetail() {
             <Typography variant="body1">{driver.pix_key_type || 'Não informado'}</Typography>
           </Grid>
           <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary">Certidão "Nada Consta"</Typography>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Documentos</Typography>
+            {documents.length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {documents.map((doc) => (
+                  <Box key={doc.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ minWidth: 150, fontWeight: 600 }}>
+                      {doc.type}
+                    </Typography>
+                    <Chip 
+                      label={doc.status} 
+                      size="small" 
+                      color={doc.status === 'VERIFIED' ? 'success' : doc.status === 'SUBMITTED' ? 'warning' : 'default'}
+                    />
+                    {doc.file_url && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        href={doc.file_url}
+                        target="_blank"
+                      >
+                        Ver Documento
+                      </Button>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Nenhum documento enviado
+              </Typography>
+            )}
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" color="text.secondary">Certidão "Nada Consta" (Legacy)</Typography>
             {driver.certidao_nada_consta_url ? (
               <Button
                 variant="outlined"
