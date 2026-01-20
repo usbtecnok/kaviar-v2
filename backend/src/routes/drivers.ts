@@ -214,24 +214,83 @@ router.post('/me/documents', authenticateDriver, upload.fields([
     const backgroundCheckUrl = `/uploads/certidoes/${files.backgroundCheck[0].filename}`;
 
     // Extrair dados adicionais do body
-    const { pix_key, pix_key_type, vehiclePlate, vehicleModel, vehicleColor, communityId } = req.body;
+    const { pix_key, pix_key_type, vehiclePlate, vehicleModel, vehicleColor, communityId, lgpdAccepted, termsAccepted } = req.body;
 
-    // Atualizar driver no banco
-    const updateData: any = {
-      certidao_nada_consta_url: backgroundCheckUrl,
-      updated_at: new Date()
-    };
+    // Persistir documentos em transação
+    await prisma.$transaction(async (tx) => {
+      // 1. Atualizar driver (campos legacy)
+      const updateData: any = {
+        certidao_nada_consta_url: backgroundCheckUrl,
+        updated_at: new Date()
+      };
 
-    if (pix_key) updateData.pix_key = pix_key;
-    if (pix_key_type) updateData.pix_key_type = pix_key_type;
-    if (vehiclePlate) updateData.vehicle_plate = vehiclePlate;
-    if (vehicleModel) updateData.vehicle_model = vehicleModel;
-    if (vehicleColor) updateData.vehicle_color = vehicleColor;
-    if (communityId) updateData.community_id = communityId;
+      if (pix_key) updateData.pix_key = pix_key;
+      if (pix_key_type) updateData.pix_key_type = pix_key_type;
+      if (vehiclePlate) updateData.vehicle_plate = vehiclePlate;
+      if (vehicleModel) updateData.vehicle_model = vehicleModel;
+      if (vehicleColor) updateData.vehicle_color = vehicleColor;
+      if (communityId) updateData.community_id = communityId;
 
-    await prisma.drivers.update({
-      where: { id: driverId },
-      data: updateData
+      await tx.drivers.update({
+        where: { id: driverId },
+        data: updateData
+      });
+
+      // 2. Persistir em driver_documents (para validação de aprovação)
+      const docTypes = [
+        { type: 'CPF', url: cpfUrl },
+        { type: 'RG', url: rgUrl },
+        { type: 'CNH', url: cnhUrl },
+        { type: 'PROOF_OF_ADDRESS', url: proofOfAddressUrl },
+        { type: 'VEHICLE_PHOTO', url: vehiclePhotoUrls[0] }, // primeira foto
+        { type: 'BACKGROUND_CHECK', url: backgroundCheckUrl }
+      ];
+
+      for (const doc of docTypes) {
+        const existing = await tx.driver_documents.findFirst({
+          where: { driver_id: driverId, type: doc.type }
+        });
+
+        if (existing) {
+          await tx.driver_documents.update({
+            where: { id: existing.id },
+            data: {
+              file_url: doc.url,
+              status: 'SUBMITTED',
+              submitted_at: new Date(),
+              updated_at: new Date()
+            }
+          });
+        } else {
+          await tx.driver_documents.create({
+            data: {
+              id: `doc_${driverId}_${doc.type}_${Date.now()}`,
+              driver_id: driverId,
+              type: doc.type,
+              file_url: doc.url,
+              status: 'SUBMITTED',
+              submitted_at: new Date(),
+              updated_at: new Date()
+            }
+          });
+        }
+      }
+
+      // 3. Persistir BACKGROUND_CHECK em driver_compliance_documents (para Admin/Compliance)
+      await tx.driver_compliance_documents.create({
+        data: {
+          id: `compliance_${driverId}_${Date.now()}`,
+          driver_id: driverId,
+          type: 'criminal_record',
+          file_url: backgroundCheckUrl,
+          status: 'pending',
+          lgpd_consent_accepted: lgpdAccepted === 'true' || lgpdAccepted === true,
+          lgpd_consent_ip: (req as any).ip || req.headers['x-forwarded-for'] || 'unknown',
+          lgpd_consent_at: new Date(),
+          created_at: new Date(),
+          updated_at: new Date()
+        }
+      });
     });
 
     res.json({
