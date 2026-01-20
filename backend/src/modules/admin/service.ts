@@ -80,58 +80,20 @@ export class AdminService {
     };
   }
 
-  // Aprovar motorista (with optional eligibility gates)
+  // Aprovar motorista (validação obrigatória de compliance)
   async approveDriver(driver_id: string) {
-    // Check if approval gates are enabled
-    if (!config.driverGovernance.enableApprovalGates) {
-      return this.approveDriverLegacy(driver_id);
-    }
-
-    // New behavior with gates
     return this.approveDriverWithGates(driver_id);
   }
 
-  // Legacy approval behavior (no gates)
-  private async approveDriverLegacy(driver_id: string) {
-    const driver = await prisma.drivers.findUnique({
-      where: { id: driver_id },
-      select: { id: true, status: true, community_id: true }
-    });
-
-    if (!driver) {
-      throw new Error('Motorista não encontrado');
-    }
-
-    if (driver.status !== 'pending') {
-      throw new Error('Apenas motoristas pendentes podem ser aprovados');
-    }
-
-    const updatedDriver = await prisma.drivers.update({
-      where: { id: driver_id },
-      data: { 
-        status: 'approved',
-        suspension_reason: null,
-        suspended_at: null,
-        suspended_by: null,
-      }
-    });
-
-    // Reavaliar ativação da comunidade após aprovação
-    if (driver.community_id) {
-      await this.communityActivation.evaluateCommunityActivation(driver.community_id, 'system');
-    }
-
-    return updatedDriver;
-  }
-
-  // New approval behavior with gates
+  // Validação obrigatória com gates (compliance)
   private async approveDriverWithGates(driver_id: string) {
-    // Check eligibility first
+    // Validar elegibilidade obrigatoriamente
     const eligibility = await this.driver_verifications.evaluateEligibility(driver_id);
     
     if (!eligibility.isEligible) {
-      const error = new Error('DRIVER_NOT_ELIGIBLE') as any;
-      error.code = 'DRIVER_NOT_ELIGIBLE';
+      const error = new Error('DRIVER_INCOMPLETE') as any;
+      error.code = 'DRIVER_INCOMPLETE';
+      error.message = 'Motorista possui documentos obrigatórios pendentes';
       error.missingRequirements = eligibility.missingRequirements;
       error.details = this.formatMissingRequirementsDetails(eligibility.missingRequirements);
       throw error;
@@ -211,6 +173,9 @@ export class AdminService {
           break;
         case 'COMMUNITY_ASSIGNMENT':
           details.communityAssignment = 'Comunidade não atribuída';
+          break;
+        case 'VEHICLE_COLOR':
+          details.vehicleColor = 'Cor do veículo não informada';
           break;
         default:
           details[requirement.toLowerCase()] = `Requisito ${requirement} não atendido`;
