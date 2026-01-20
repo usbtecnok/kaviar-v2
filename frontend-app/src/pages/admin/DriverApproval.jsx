@@ -30,6 +30,7 @@ export default function DriverApproval() {
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
+  const [driverDocuments, setDriverDocuments] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, action: null, driverId: null });
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
@@ -105,9 +106,20 @@ export default function DriverApproval() {
     else if (action === 'delete') handleDelete(driverId);
   };
 
-  const openDetails = (driver) => {
+  const openDetails = async (driver) => {
     setSelectedDriver(driver);
     setDetailsOpen(true);
+    
+    // Buscar documentos reais
+    try {
+      const response = await adminApi.get(`/api/admin/drivers/${driver.id}/documents`);
+      if (response.data.success) {
+        setDriverDocuments(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar documentos:', error);
+      setDriverDocuments([]);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -247,9 +259,34 @@ export default function DriverApproval() {
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2">Documentos:</Typography>
-                <Typography>CPF: {selectedDriver.documentCpf || 'Não enviado'}</Typography>
-                <Typography>RG: {selectedDriver.documentRg || 'Não enviado'}</Typography>
-                <Typography>CNH: {selectedDriver.documentCnh || 'Não enviado'}</Typography>
+                {driverDocuments.length > 0 ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
+                    {driverDocuments.map((doc) => (
+                      <Box key={doc.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                        <Typography variant="body2" sx={{ minWidth: 150, fontWeight: 600 }}>
+                          {doc.type}
+                        </Typography>
+                        <Chip 
+                          label={doc.status} 
+                          size="small" 
+                          color={doc.status === 'VERIFIED' ? 'success' : doc.status === 'SUBMITTED' ? 'warning' : 'default'}
+                        />
+                        {doc.file_url && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            href={doc.file_url}
+                            target="_blank"
+                          >
+                            Ver
+                          </Button>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">Nenhum documento enviado</Typography>
+                )}
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2">Veículo:</Typography>
