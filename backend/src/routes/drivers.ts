@@ -153,52 +153,106 @@ router.post('/me/online', authenticateDriver, async (req: Request, res: Response
   }
 });
 
-// POST /api/drivers/me/documents
-router.post('/me/documents', authenticateDriver, upload.single('certidao'), async (req: Request, res: Response) => {
+// POST /api/drivers/me/documents (multi-file upload)
+router.post('/me/documents', authenticateDriver, upload.fields([
+  { name: 'cpf', maxCount: 1 },
+  { name: 'rg', maxCount: 1 },
+  { name: 'cnh', maxCount: 1 },
+  { name: 'proofOfAddress', maxCount: 1 },
+  { name: 'vehiclePhoto', maxCount: 5 },
+  { name: 'backgroundCheck', maxCount: 1 },
+  { name: 'certidao', maxCount: 1 } // alias temporário
+]), async (req: Request, res: Response) => {
   try {
-    const driverId = (req as any).userId;
-    const { pix_key, pix_key_type } = req.body;
-
-    if (!req.file) {
-      return res.status(400).json({
+    const driverId = (req as any).userId || (req as any).user?.id || (req as any).driver?.id;
+    
+    if (!driverId) {
+      return res.status(401).json({
         success: false,
-        error: 'Certidão Nada Consta é obrigatória'
+        error: 'UNAUTHORIZED',
+        message: 'Usuário não autenticado'
       });
     }
 
-    if (!pix_key || !pix_key_type) {
+    const files = req.files as Record<string, Express.Multer.File[]>;
+
+    // Alias temporário: certidao -> backgroundCheck
+    if ((!files?.backgroundCheck || files.backgroundCheck.length === 0) && files?.certidao?.length) {
+      files.backgroundCheck = files.certidao;
+    }
+
+    // Validar arquivos obrigatórios
+    const missing: string[] = [];
+    const requireOne = (key: string) => {
+      if (!files?.[key] || files[key].length === 0) {
+        missing.push(key);
+      }
+    };
+
+    requireOne('cpf');
+    requireOne('rg');
+    requireOne('cnh');
+    requireOne('proofOfAddress');
+    requireOne('vehiclePhoto');
+    requireOne('backgroundCheck');
+
+    if (missing.length > 0) {
       return res.status(400).json({
         success: false,
-        error: 'Chave PIX é obrigatória'
+        error: 'MISSING_FILES',
+        message: 'Documentos obrigatórios pendentes',
+        missingFiles: missing
       });
     }
 
-    // Salvar URL da certidão e dados PIX
-    const certidaoUrl = `/uploads/certidoes/${req.file.filename}`;
+    // Construir URLs dos arquivos
+    const cpfUrl = `/uploads/certidoes/${files.cpf[0].filename}`;
+    const rgUrl = `/uploads/certidoes/${files.rg[0].filename}`;
+    const cnhUrl = `/uploads/certidoes/${files.cnh[0].filename}`;
+    const proofOfAddressUrl = `/uploads/certidoes/${files.proofOfAddress[0].filename}`;
+    const vehiclePhotoUrls = files.vehiclePhoto.map(f => `/uploads/certidoes/${f.filename}`);
+    const backgroundCheckUrl = `/uploads/certidoes/${files.backgroundCheck[0].filename}`;
+
+    // Extrair dados adicionais do body
+    const { pix_key, pix_key_type, vehiclePlate, vehicleModel, vehicleColor, communityId } = req.body;
+
+    // Atualizar driver no banco
+    const updateData: any = {
+      certidao_nada_consta_url: backgroundCheckUrl,
+      updated_at: new Date()
+    };
+
+    if (pix_key) updateData.pix_key = pix_key;
+    if (pix_key_type) updateData.pix_key_type = pix_key_type;
+    if (vehiclePlate) updateData.vehicle_plate = vehiclePlate;
+    if (vehicleModel) updateData.vehicle_model = vehicleModel;
+    if (vehicleColor) updateData.vehicle_color = vehicleColor;
+    if (communityId) updateData.community_id = communityId;
 
     await prisma.drivers.update({
       where: { id: driverId },
-      data: {
-        certidao_nada_consta_url: certidaoUrl,
-        pix_key: pix_key,
-        pix_key_type: pix_key_type,
-        updated_at: new Date()
-      }
+      data: updateData
     });
 
     res.json({
       success: true,
       message: 'Documentos enviados com sucesso',
+      received: Object.keys(files),
       data: {
-        certidao_url: certidaoUrl,
-        pix_key_type: pix_key_type
+        cpf: cpfUrl,
+        rg: rgUrl,
+        cnh: cnhUrl,
+        proofOfAddress: proofOfAddressUrl,
+        vehiclePhotos: vehiclePhotoUrls,
+        backgroundCheck: backgroundCheckUrl
       }
     });
   } catch (error) {
     console.error('Error uploading documents:', error);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Erro ao enviar documentos'
+      error: 'UPLOAD_FAILED',
+      message: error instanceof Error ? error.message : 'Falha ao enviar documentos'
     });
   }
 });
