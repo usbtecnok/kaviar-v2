@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import path from 'path';
+import fs from 'fs';
 import { authenticateAdmin } from '../middlewares/auth';
 import { ApprovalController } from '../modules/admin/approval-controller';
 
@@ -228,6 +230,57 @@ router.post('/drivers/:id/reject', async (req: Request, res: Response) => {
       error: 'Erro ao rejeitar motorista'
     });
   }
+});
+
+// 🔍 DEBUG ENDPOINT (ADMIN ONLY, ENV GATED)
+// GET /api/admin/debug/uploads-check?file=<filename>
+router.get('/debug/uploads-check', async (req: Request, res: Response) => {
+  // Feature flag: só habilitar em produção com env var
+  if (process.env.ENABLE_UPLOADS_DEBUG !== 'true') {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const { file } = req.query;
+  
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  const uploadDir = path.join(process.cwd(), 'uploads', 'certidoes');
+  
+  const result = {
+    cwd: process.cwd(),
+    uploadsDir,
+    uploadDir,
+    uploadsDirExists: fs.existsSync(uploadsDir),
+    uploadDirExists: fs.existsSync(uploadDir),
+    fileExists: null as boolean | null,
+    filePath: null as string | null,
+    uploadsDirContents: [] as string[],
+    uploadDirContents: [] as string[]
+  };
+
+  // Listar conteúdo dos diretórios
+  if (result.uploadsDirExists) {
+    try {
+      result.uploadsDirContents = fs.readdirSync(uploadsDir);
+    } catch (e) {
+      result.uploadsDirContents = [`Error: ${e}`];
+    }
+  }
+
+  if (result.uploadDirExists) {
+    try {
+      result.uploadDirContents = fs.readdirSync(uploadDir);
+    } catch (e) {
+      result.uploadDirContents = [`Error: ${e}`];
+    }
+  }
+
+  // Verificar arquivo específico
+  if (file && typeof file === 'string') {
+    result.filePath = path.join(uploadDir, file);
+    result.fileExists = fs.existsSync(result.filePath);
+  }
+
+  res.json(result);
 });
 
 export default router;
