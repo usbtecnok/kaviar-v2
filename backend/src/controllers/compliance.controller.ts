@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { complianceService } from '../../services/compliance.service';
+import { complianceService } from '../services/compliance.service';
 import { z } from 'zod';
 
 const createDocumentSchema = z.object({

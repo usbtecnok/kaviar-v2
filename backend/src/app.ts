@@ -8,6 +8,7 @@ import { handleFeatureDisabledError, handleStatusTransitionError } from './middl
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
 import { adminRoutes } from './routes/admin';
+import complianceRoutes from './routes/compliance';
 // import { adminManagementRoutes } from './routes/admin-management'; // DISABLED - legacy
 // import { elderlyRoutes } from './routes/elderly'; // DISABLED - legacy
 // import { governanceRoutes } from './routes/governance'; // DISABLED - legacy
@@ -76,10 +77,11 @@ console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers
 app.use('/api/admin', adminRoutes);
-// ❌ REMOVIDO: adminDriversRoutes (duplicação)
+app.use('/api/admin', adminDriversRoutes); // ✅ Driver details + documents
+app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
-console.log('✅ Core routes mounted: /api/admin/*, /api/drivers/*, /api/ratings/*');
+console.log('✅ Core routes mounted: /api/admin/*, /api/drivers/*, /api/ratings/*, /api/compliance/*');
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
 // app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
 
