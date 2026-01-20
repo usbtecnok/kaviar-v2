@@ -55,10 +55,10 @@ export default function DriverStatus() {
                 <CardContent sx={{ textAlign: 'center' }}>
                   <WarningAmber sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
                   <Typography variant="h5" gutterBottom>
-                    Documentos Pendentes
+                    Informações Pendentes
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 3 }}>
-                    Você precisa enviar seus documentos para ser aprovado como motorista.
+                    Você precisa completar suas informações para ser aprovado como motorista.
                   </Typography>
                   <Button
                     variant="contained"
@@ -66,7 +66,7 @@ export default function DriverStatus() {
                   to="/motorista/documents"
                   size="large"
                 >
-                  Enviar Documentos
+                  Completar Informações
                 </Button>
               </CardContent>
             </Card>
@@ -151,7 +151,7 @@ export default function DriverStatus() {
         <Box component="ul" sx={{ pl: 2 }}>
           <li>
             <Typography variant="body2">
-              Envie todos os documentos solicitados
+              Complete todas as informações solicitadas
             </Typography>
           </li>
           <li>

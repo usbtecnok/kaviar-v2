@@ -66,7 +66,7 @@ export default function DriverDocuments() {
         }, 2000);
       }
     } catch (error) {
-      setError(error.response?.data?.error || 'Erro ao enviar documentos');
+      setError(error.response?.data?.error || 'Erro ao enviar informações');
     } finally {
       setLoading(false);
     }
@@ -78,10 +78,10 @@ export default function DriverDocuments() {
         <Card>
           <CardContent sx={{ textAlign: 'center', py: 4 }}>
             <Typography variant="h5" color="success.main" gutterBottom>
-              Documentos Enviados com Sucesso!
+              Informações Enviadas com Sucesso!
             </Typography>
             <Typography variant="body1">
-              Seus documentos foram enviados para análise. Você será notificado sobre o status da aprovação.
+              Suas informações foram enviadas para análise. Você será notificado sobre o status da aprovação.
             </Typography>
           </CardContent>
         </Card>
@@ -93,11 +93,11 @@ export default function DriverDocuments() {
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom align="center">
-          Envio de Documentos - Motorista
+          Informações para Aprovação
         </Typography>
         
         <Typography variant="body1" sx={{ mb: 4, textAlign: 'center' }}>
-          Para ser aprovado como motorista, envie seus documentos e informações do veículo.
+          Para ser aprovado como motorista, complete suas informações pessoais e do veículo.
         </Typography>
 
         {error && (

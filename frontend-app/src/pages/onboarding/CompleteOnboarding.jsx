@@ -36,17 +36,6 @@ export default function CompleteOnboarding() {
     const typeFromUrl = searchParams.get('type');
     if (typeFromUrl && ['passenger', 'driver', 'guide'].includes(typeFromUrl)) {
       setUserType(typeFromUrl);
-      
-      // Se for motorista, verificar se está autenticado
-      if (typeFromUrl === 'driver') {
-        const token = localStorage.getItem('kaviar_driver_token');
-        if (!token) {
-          setError('Você precisa fazer login primeiro para completar seu perfil.');
-          setTimeout(() => {
-            navigate('/motorista/login');
-          }, 2000);
-        }
-      }
     }
   }, [searchParams, navigate]);
   const [formData, setFormData] = useState({
@@ -337,13 +326,6 @@ export default function CompleteOnboarding() {
   };
 
   if (completed) {
-    // Redirecionar motorista para definir senha
-    if (userType === 'driver') {
-      setTimeout(() => {
-        navigate('/motorista/definir-senha');
-      }, 2000);
-    }
-
     return (
       <Container maxWidth="md" sx={{ mt: 4 }}>
         <Card>
@@ -356,19 +338,10 @@ export default function CompleteOnboarding() {
               {userType === 'passenger' 
                 ? 'Redirecionando para sua área...' 
                 : userType === 'driver'
-                ? 'Cadastro inicial concluído. Agora defina sua senha para acessar.'
+                ? 'Redirecionando para sua área...'
                 : 'Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.'
               }
             </Typography>
-            {userType !== 'driver' && (
-              <Button
-                variant="contained"
-                onClick={() => navigate('/')}
-                size="large"
-              >
-                Voltar ao Início
-              </Button>
-            )}
           </CardContent>
         </Card>
       </Container>

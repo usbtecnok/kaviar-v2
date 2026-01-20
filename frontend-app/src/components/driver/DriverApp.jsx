@@ -16,7 +16,7 @@ export default function DriverApp() {
   const location = useLocation();
 
   // libera a rota /motorista/login sem token (pra não entrar em loop)
-  if (!hasDriverToken() && location.pathname !== "/motorista/login" && location.pathname !== "/motorista/definir-senha") {
+  if (!hasDriverToken() && location.pathname !== "/motorista/login") {
     return (
       <Navigate
         to="/motorista/login"
