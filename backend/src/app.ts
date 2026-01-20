@@ -65,6 +65,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     message: 'KAVIAR Backend is running',
+    gitCommit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown',
     features,
     timestamp: new Date().toISOString(),
   });
