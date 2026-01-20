@@ -24,6 +24,8 @@ import {
 import { CheckCircle, Cancel, Visibility, Delete } from '@mui/icons-material';
 import { adminApi } from '../../services/adminApi';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 export default function DriverApproval() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -282,12 +284,13 @@ export default function DriverApproval() {
                           size="small" 
                           color={doc.status === 'VERIFIED' ? 'success' : doc.status === 'SUBMITTED' ? 'warning' : 'default'}
                         />
-                        {doc.file_url && (
+                        {(doc.file_url || doc.document_url) && (
                           <Button
                             variant="outlined"
                             size="small"
-                            href={doc.file_url}
+                            href={`${API_BASE_URL}${doc.file_url || doc.document_url}`}
                             target="_blank"
+                            rel="noopener noreferrer"
                           >
                             Ver
                           </Button>

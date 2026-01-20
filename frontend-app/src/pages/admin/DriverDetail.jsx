@@ -19,6 +19,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Cancel, ArrowBack } from '@mui/icons-material';
 import api from '../../api/index';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 export default function AdminDriverDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -191,12 +193,13 @@ export default function AdminDriverDetail() {
                       size="small" 
                       color={doc.status === 'VERIFIED' ? 'success' : doc.status === 'SUBMITTED' ? 'warning' : 'default'}
                     />
-                    {doc.file_url && (
+                    {(doc.file_url || doc.document_url) && (
                       <Button
                         variant="outlined"
                         size="small"
-                        href={doc.file_url}
+                        href={`${API_BASE_URL}${doc.file_url || doc.document_url}`}
                         target="_blank"
+                        rel="noopener noreferrer"
                       >
                         Ver Documento
                       </Button>
