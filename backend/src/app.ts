@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
 import { config } from './config';
 import { errorHandler, notFound } from './middlewares/error';
 import { handleFeatureDisabledError, handleStatusTransitionError } from './middlewares/premium-tourism-flag';
@@ -156,6 +157,11 @@ app.use((req, res, next) => {
   
   next();
 });
+
+// ✅ Serve uploaded files (must be BEFORE 404 handler)
+const uploadsDir = path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadsDir));
+console.log(`✅ Static files: /uploads -> ${uploadsDir}`);
 
 // Error handling
 app.use(notFound);
