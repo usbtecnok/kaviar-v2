@@ -2,8 +2,10 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { authenticateAdmin } from '../middlewares/auth';
+import { ApprovalController } from '../modules/admin/approval-controller';
 
 const router = Router();
+const approvalController = new ApprovalController();
 
 // Aplicar autenticação admin em todas as rotas
 router.use(authenticateAdmin);
@@ -153,53 +155,8 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/drivers/:id/approve
-router.post('/drivers/:id/approve', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const adminId = (req as any).userId; // ID do admin autenticado
-
-    const driver = await prisma.drivers.findUnique({ where: { id } });
-
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        error: 'Motorista não encontrado'
-      });
-    }
-
-    if (driver.status === 'approved') {
-      return res.status(400).json({
-        success: false,
-        error: 'Motorista já está aprovado'
-      });
-    }
-
-    await prisma.drivers.update({
-      where: { id },
-      data: {
-        status: 'approved',
-        approved_at: new Date(),
-        approved_by: adminId,
-        rejected_at: null,
-        rejected_by: null,
-        rejected_reason: null,
-        updated_at: new Date()
-      }
-    });
-
-    res.json({
-      success: true,
-      message: 'Motorista aprovado com sucesso'
-    });
-  } catch (error) {
-    console.error('Error approving driver:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao aprovar motorista'
-    });
-  }
-});
+// POST /api/admin/drivers/:id/approve (delegado ao ApprovalController)
+router.post('/drivers/:id/approve', approvalController.approveDriver);
 
 // POST /api/admin/drivers/:id/reject
 router.post('/drivers/:id/reject', async (req: Request, res: Response) => {

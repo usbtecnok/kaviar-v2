@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
 import { z } from 'zod';
-import twilio from 'twilio';
+import { AdminService } from './service';
 
 const approveDriverSchema = z.object({
   id: z.string()
@@ -18,55 +18,31 @@ export class ApprovalController {
     try {
       const { id } = approveDriverSchema.parse(req.params);
       
-      // Find driver
-      const driver = await prisma.drivers.findUnique({ where: { id } });
-      if (!driver) {
-        return res.status(404).json({
-          success: false,
-          error: 'Motorista não encontrado'
-        });
-      }
-
-      // Update status to approved
-      const updatedDriver = await prisma.drivers.update({
-        where: { id },
-        data: {
-          status: 'approved',
-          updated_at: new Date()
-        }
-      });
-
-      // Send WhatsApp notification if phone exists and Twilio is configured
-      if (updatedDriver.phone && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-        try {
-          const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-          await twilioClient.messages.create({
-            from: process.env.TWILIO_WHATSAPP_NUMBER || 'whatsapp:+14134759634',
-            to: `whatsapp:${updatedDriver.phone}`,
-            body: `Olá ${updatedDriver.name}! Sua conta foi aprovada no Kaviar. Você já pode começar a aceitar corridas.`
-          });
-          console.log(`✅ WhatsApp sent to ${updatedDriver.phone}`);
-        } catch (whatsappError) {
-          console.error('⚠️  WhatsApp notification failed:', whatsappError);
-          // Don't fail the approval if WhatsApp fails
-        }
-      }
+      const adminService = new AdminService();
+      const driver = await adminService.approveDriver(id);
 
       res.json({
         success: true,
-        data: {
-          id: updatedDriver.id,
-          name: updatedDriver.name,
-          email: updatedDriver.email,
-          status: updatedDriver.status
-        },
+        data: driver,
         message: 'Motorista aprovado com sucesso'
       });
-    } catch (error) {
-      console.error('Error approving driver:', error);
-      res.status(400).json({
+    } catch (err: any) {
+      const code = err?.code || err?.error || (typeof err?.message === 'string' ? err.message : null);
+
+      if (code === 'DRIVER_INCOMPLETE') {
+        return res.status(400).json({
+          success: false,
+          error: 'DRIVER_INCOMPLETE',
+          message: 'Motorista possui documentos obrigatórios pendentes',
+          missingRequirements: err?.missingRequirements || [],
+          details: err?.details || {}
+        });
+      }
+
+      return res.status(400).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Erro ao aprovar motorista'
+        error: code || 'BAD_REQUEST',
+        message: err?.message || 'Falha ao aprovar motorista'
       });
     }
   };
