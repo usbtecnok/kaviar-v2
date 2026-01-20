@@ -155,6 +155,29 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/drivers/:id/documents
+router.get('/drivers/:id/documents', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const documents = await prisma.driver_documents.findMany({
+      where: { driver_id: id },
+      orderBy: { created_at: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      data: documents
+    });
+  } catch (error) {
+    console.error('Error getting driver documents:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar documentos'
+    });
+  }
+});
+
 // POST /api/admin/drivers/:id/approve (delegado ao ApprovalController)
 router.post('/drivers/:id/approve', approvalController.approveDriver);
 
