@@ -3,6 +3,7 @@ import { authenticateDriver } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { GeoResolveService } from '../services/geo-resolve';
+import { getUploadsPaths } from '../config/uploads';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -10,22 +11,20 @@ import fs from 'fs';
 const router = Router();
 const geoResolveService = new GeoResolveService();
 
-// Configurar multer para upload de arquivos
-const uploadDir = path.join(process.cwd(), 'uploads', 'certidoes');
-
-// Criar diretório se não existir
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Configurar multer para upload de arquivos (usando path canônico)
+const { certidoesDir } = getUploadsPaths();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, certidoesDir);
   },
   filename: (req, file, cb) => {
     const driverId = (req as any).userId;
     const ext = path.extname(file.originalname);
-    cb(null, `${driverId}-${Date.now()}${ext}`);
+    const filename = `${driverId}-${Date.now()}${ext}`;
+    const fullPath = path.join(certidoesDir, filename);
+    console.log(`📄 Saving file: ${fullPath}`);
+    cb(null, filename);
   }
 });
 

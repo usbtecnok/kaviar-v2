@@ -180,8 +180,10 @@ router.get('/drivers/:id/documents', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/drivers/:id/approve (delegado ao ApprovalController)
+// POST/PUT /api/admin/drivers/:id/approve (delegado ao ApprovalController)
+// Aceita ambos métodos para compatibilidade frontend
 router.post('/drivers/:id/approve', approvalController.approveDriver);
+router.put('/drivers/:id/approve', approvalController.approveDriver);
 
 // POST /api/admin/drivers/:id/reject
 router.post('/drivers/:id/reject', async (req: Request, res: Response) => {
