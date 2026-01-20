@@ -93,45 +93,54 @@ export default function DriverDocuments() {
       return;
     }
 
+    // Validar arquivos obrigatórios
+    const requiredFiles = ['cpf', 'rg', 'cnh', 'proofOfAddress', 'vehiclePhoto', 'backgroundCheck'];
+    const missingFiles = requiredFiles.filter(key => !files[key]);
+    
+    if (missingFiles.length > 0) {
+      setError(`Documentos obrigatórios faltando: ${missingFiles.join(', ')}`);
+      setLoading(false);
+      return;
+    }
+
     try {
-      const driverId = user?.id || user?.userId || user?.driverId;
-      if (!driverId) {
-        setError('Erro ao identificar usuário. Faça login novamente.');
-        setLoading(false);
-        return;
+      // Criar FormData explícito
+      const fd = new FormData();
+
+      // Arquivos obrigatórios
+      fd.append('cpf', files.cpf);
+      fd.append('rg', files.rg);
+      fd.append('cnh', files.cnh);
+      fd.append('proofOfAddress', files.proofOfAddress);
+      fd.append('backgroundCheck', files.backgroundCheck);
+
+      // vehiclePhoto: pode ser FileList ou array
+      const vp = files.vehiclePhoto;
+      if (vp && typeof vp.length === 'number') {
+        for (let i = 0; i < vp.length; i++) {
+          fd.append('vehiclePhoto', vp[i]);
+        }
+      } else if (Array.isArray(vp)) {
+        vp.forEach((f) => fd.append('vehiclePhoto', f));
+      } else {
+        fd.append('vehiclePhoto', vp);
       }
 
-      // Criar FormData para multipart
-      const formDataToSend = new FormData();
-      
-      // Adicionar campos de texto
-      Object.keys(formData).forEach(key => {
-        if (formData[key]) {
-          formDataToSend.append(key, formData[key]);
+      // Campos auxiliares
+      if (formData.vehiclePlate) fd.append('vehiclePlate', formData.vehiclePlate);
+      if (formData.vehicleModel) fd.append('vehicleModel', formData.vehicleModel);
+      if (formData.communityId) fd.append('communityId', formData.communityId);
+
+      // Consentimentos
+      fd.append('lgpdAccepted', String(lgpdAccepted));
+      fd.append('termsAccepted', String(termsAccepted));
+
+      // Endpoint correto
+      const response = await api.post('/api/drivers/me/documents', fd, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
         }
       });
-
-      // Adicionar arquivos
-      Object.keys(files).forEach(key => {
-        if (files[key]) {
-          formDataToSend.append(key, files[key]);
-        }
-      });
-
-      // Adicionar consentimentos
-      formDataToSend.append('lgpdAccepted', lgpdAccepted);
-      formDataToSend.append('termsAccepted', termsAccepted);
-
-      // Endpoint de upload (ajustar conforme backend real)
-      const response = await api.put(
-        `/api/governance/driver/${driverId}/documents`, 
-        formDataToSend,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
       
       if (response.data.success) {
         setSuccess(true);
@@ -141,11 +150,18 @@ export default function DriverDocuments() {
       }
     } catch (error) {
       console.error('Erro ao enviar documentos:', error);
-      setError(
-        error.response?.data?.error || 
-        error.response?.data?.message ||
-        'Erro ao enviar informações. Verifique os arquivos e tente novamente.'
-      );
+      
+      // Tratar erro MISSING_FILES do backend
+      if (error.response?.data?.error === 'MISSING_FILES') {
+        const missing = error.response.data.missingFiles || [];
+        setError(`Documentos obrigatórios faltando: ${missing.join(', ')}`);
+      } else {
+        setError(
+          error.response?.data?.message || 
+          error.response?.data?.error ||
+          'Erro ao enviar informações. Verifique os arquivos e tente novamente.'
+        );
+      }
     } finally {
       setLoading(false);
     }
