@@ -13,9 +13,14 @@ import {
   Alert,
   Grid,
   Card,
-  CardContent
+  CardContent,
+  Checkbox,
+  FormControlLabel,
+  Link,
+  Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
 import api from '../../api';
 
 export default function DriverDocuments() {
@@ -28,10 +33,12 @@ export default function DriverDocuments() {
     communityId: ''
   });
   const [communities, setCommunities] = useState([]);
+  const [lgpdAccepted, setLgpdAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     loadCommunities();
@@ -53,9 +60,19 @@ export default function DriverDocuments() {
     setLoading(true);
     setError('');
 
+    if (!lgpdAccepted) {
+      setError('Você deve aceitar o Termo de Consentimento LGPD para continuar');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Assumindo que o ID do motorista vem do contexto de auth
-      const driverId = 'current-driver-id'; // Implementar com contexto real
+      const driverId = user?.id;
+      if (!driverId) {
+        setError('Usuário não autenticado');
+        setLoading(false);
+        return;
+      }
       
       const response = await api.put(`/api/governance/driver/${driverId}/documents`, formData);
       
@@ -108,6 +125,33 @@ export default function DriverDocuments() {
 
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Consentimento LGPD
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, mb: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={lgpdAccepted}
+                      onChange={(e) => setLgpdAccepted(e.target.checked)}
+                      required
+                    />
+                  }
+                  label={
+                    <Typography variant="body2">
+                      Li e aceito o{' '}
+                      <Link href="/lgpd" target="_blank" underline="hover">
+                        Termo de Consentimento LGPD
+                      </Link>
+                      {' '}e autorizo o tratamento dos meus dados pessoais
+                    </Typography>
+                  }
+                />
+              </Box>
+              <Divider sx={{ my: 3 }} />
+            </Grid>
+
             <Grid item xs={12} md={6}>
               <Typography variant="h6" gutterBottom>
                 Documentos Pessoais
@@ -156,12 +200,15 @@ export default function DriverDocuments() {
                   required
                   fullWidth
                 />
-                <FormControl fullWidth required>
-                  <InputLabel>Comunidade</InputLabel>
+                <FormControl fullWidth>
+                  <InputLabel>Comunidade (opcional)</InputLabel>
                   <Select
                     value={formData.communityId}
                     onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
                   >
+                    <MenuItem value="">
+                      <em>Nenhuma</em>
+                    </MenuItem>
                     {communities.map(community => (
                       <MenuItem key={community.id} value={community.id}>
                         {community.name}
@@ -178,7 +225,7 @@ export default function DriverDocuments() {
               type="submit"
               variant="contained"
               size="large"
-              disabled={loading}
+              disabled={loading || !lgpdAccepted}
               sx={{ px: 6 }}
             >
               {loading ? 'Enviando...' : 'Enviar Documentos'}
