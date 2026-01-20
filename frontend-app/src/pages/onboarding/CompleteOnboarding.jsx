@@ -23,7 +23,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle } from '@mui/icons-material';
 import api from '../../api';
 
-const steps = ['Dados Pessoais', 'Bairro e Comunidade', 'LGPD', 'Finalização'];
+const steps = ['Dados Pessoais', 'Bairro e Comunidade', 'Finalização'];
 
 export default function CompleteOnboarding() {
   const [activeStep, setActiveStep] = useState(0);
@@ -53,7 +53,6 @@ export default function CompleteOnboarding() {
     vehiclePlate: '',
     vehicleModel: '',
     vehicleColor: '',
-    certidaoNadaConsta: null, // UI only - not persisted
     pixKey: '',
     pixKeyType: 'CPF', // CPF, CNPJ, EMAIL, PHONE, RANDOM
     // Guide specific
@@ -67,8 +66,6 @@ export default function CompleteOnboarding() {
   const [neighborhoods, setNeighborhoods] = useState([]);
   const [communities, setCommunities] = useState([]);
   const [filteredCommunities, setFilteredCommunities] = useState([]);
-  const [lgpdAccepted, setLgpdAccepted] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(false);
@@ -117,7 +114,6 @@ export default function CompleteOnboarding() {
     vehiclePlate: formData.vehiclePlate ?? '',
     vehicleModel: formData.vehicleModel ?? '',
     vehicleColor: formData.vehicleColor ?? '',
-    certidaoNadaConsta: formData.certidaoNadaConsta,
     pixKey: formData.pixKey ?? '',
     pixKeyType: formData.pixKeyType ?? 'CPF',
     isBilingual: !!formData.isBilingual,
@@ -163,22 +159,12 @@ export default function CompleteOnboarding() {
 
     if (userType === 'driver') {
       if (!clean.name || !clean.phone) {
-        setError('Preencha nome, telefone e permita o acesso à localização.');
+        setError('Preencha nome e telefone.');
         setLoading(false);
         return;
       }
-      if (!clean.certidaoNadaConsta) {
-        setError('É obrigatório enviar a Certidão Nada Consta para continuar.');
-        setLoading(false);
-        return;
-      }
-      if (!termsAccepted) {
-        setError('Você deve aceitar os Termos de Uso KAVIAR.');
-        setLoading(false);
-        return;
-      }
-      if (!lgpdAccepted) {
-        setError('Você deve aceitar a Política de Privacidade (LGPD).');
+      if (!clean.neighborhoodId) {
+        setError('Selecione um bairro.');
         setLoading(false);
         return;
       }
@@ -446,29 +432,6 @@ export default function CompleteOnboarding() {
                     <MenuItem value="Outro">Outro</MenuItem>
                   </Select>
                 </FormControl>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    Certidão "Nada Consta" (Antecedentes Criminais) *
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    component="label"
-                    fullWidth
-                    color={clean.certidaoNadaConsta ? 'success' : 'primary'}
-                  >
-                    {clean.certidaoNadaConsta ? `✓ ${clean.certidaoNadaConsta.name}` : 'Selecionar Arquivo (PDF ou Imagem)'}
-                    <input
-                      type="file"
-                      hidden
-                      accept=".pdf,image/*"
-                      onChange={(e) => setFormData(prev => ({ ...prev, certidaoNadaConsta: e.target.files[0] }))}
-                    />
-                  </Button>
-                  <Typography variant="caption" color="error">
-                    * Obrigatório para ativação da conta
-                  </Typography>
-                </Box>
 
                 <Typography variant="body2" sx={{ mb: 1, mt: 2 }}>
                   Chave PIX para Recebimento
@@ -639,107 +602,6 @@ export default function CompleteOnboarding() {
         );
       case 2:
         return (
-          <Box>
-            {userType === 'driver' && (
-              <>
-                <Typography variant="h6" gutterBottom>
-                  Termos de Uso KAVIAR
-                </Typography>
-                <Paper sx={{ p: 2, mb: 3, maxHeight: 300, overflow: 'auto', bgcolor: 'grey.50' }}>
-                  <Typography variant="body2" paragraph>
-                    <strong>TERMOS DE USO KAVIAR – MOTORISTAS</strong>
-                  </Typography>
-                  <Typography variant="caption" display="block" gutterBottom>
-                    Versão: 2026-01 (Provisória) | Última atualização: Janeiro de 2026
-                  </Typography>
-                  
-                  <Typography variant="body2" paragraph sx={{ mt: 2 }}>
-                    Ao prosseguir com o cadastro e utilizar a plataforma KAVIAR, o motorista declara que leu, compreendeu e concorda integralmente com os termos abaixo.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>1. OBJETO DA PLATAFORMA</strong><br/>
-                    A KAVIAR é uma plataforma tecnológica que conecta passageiros a motoristas independentes para prestação de serviços de transporte privado, não estabelecendo vínculo empregatício entre as partes.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>2. REQUISITOS PARA MOTORISTAS</strong><br/>
-                    Para utilizar a plataforma como motorista, o usuário declara que possui capacidade civil plena, é legalmente habilitado para dirigir, possui documentação válida exigida por lei e fornece informações verdadeiras, completas e atualizadas.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>3. OBRIGAÇÕES DO MOTORISTA</strong><br/>
-                    O motorista se compromete a manter comportamento respeitoso com passageiros, cumprir as leis de trânsito e normas locais, não realizar atividades ilícitas, utilizar a plataforma de boa-fé, manter seus dados atualizados, não ceder sua conta a terceiros e responder civil e criminalmente por seus atos.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>4. GEOLOCALIZAÇÃO</strong><br/>
-                    Ao utilizar a KAVIAR, o motorista autoriza expressamente a coleta de sua localização geográfica em tempo real para correspondência de corridas, segurança operacional, auditoria e prevenção de fraudes. Sem a localização ativa, o serviço poderá ser limitado ou indisponível.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>5. PAGAMENTOS E CHAVE PIX</strong><br/>
-                    A KAVIAR poderá utilizar chave PIX informada para repasses financeiros. O motorista é responsável pela veracidade da chave informada. A KAVIAR não se responsabiliza por erros decorrentes de dados incorretos.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>6. CERTIDÃO "NADA CONSTA"</strong><br/>
-                    A KAVIAR poderá solicitar, a qualquer momento, certidões negativas criminais ("Nada Consta") e outros documentos de idoneidade. O envio poderá ser obrigatório para continuidade na plataforma.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>7. SUSPENSÃO E CANCELAMENTO</strong><br/>
-                    A KAVIAR poderá suspender ou encerrar o acesso do motorista, a qualquer tempo, em caso de violação destes termos, reclamações recorrentes, suspeita de fraude, atividades ilegais ou descumprimento de políticas internas.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>8. LIMITAÇÃO DE RESPONSABILIDADE</strong><br/>
-                    A KAVIAR não garante volume mínimo de corridas, não se responsabiliza por conflitos entre motorista e passageiro e atua como intermediadora tecnológica.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>9. ALTERAÇÕES DOS TERMOS</strong><br/>
-                    Estes termos podem ser atualizados a qualquer momento. O motorista será notificado e deverá aceitar a nova versão para continuar utilizando a plataforma.
-                  </Typography>
-
-                  <Typography variant="body2" paragraph>
-                    <strong>10. FORO</strong><br/>
-                    Fica eleito o foro da comarca de domicílio da KAVIAR, para dirimir quaisquer controvérsias decorrentes destes termos.
-                  </Typography>
-                </Paper>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={termsAccepted}
-                      onChange={(e) => setTermsAccepted(e.target.checked)}
-                    />
-                  }
-                  label="Li e aceito os Termos de Uso da KAVIAR"
-                  required
-                />
-              </>
-            )}
-            
-            <Typography variant="h6" gutterBottom sx={{ mt: userType === 'driver' ? 3 : 0 }}>
-              Política de Privacidade (LGPD)
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              Para utilizar nossos serviços, precisamos do seu consentimento para processar seus dados pessoais conforme a Lei Geral de Proteção de Dados.
-            </Typography>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={lgpdAccepted}
-                  onChange={(e) => setLgpdAccepted(e.target.checked)}
-                />
-              }
-              label="Li e concordo com a Política de Privacidade (LGPD)"
-              required
-            />
-          </Box>
-        );
-      case 3:
-        return (
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h6" gutterBottom>
               Revisão dos Dados
@@ -748,17 +610,14 @@ export default function CompleteOnboarding() {
             <Typography>Nome: {clean.name}</Typography>
             {userType !== 'driver' && <Typography>Email: {clean.email}</Typography>}
             <Typography>Telefone: {clean.phone}</Typography>
-            {userType === 'driver' && (
-              <>
-                <Typography>Termos KAVIAR: {termsAccepted ? 'Aceito' : 'Não aceito'}</Typography>
-                <Typography>LGPD: {lgpdAccepted ? 'Aceito' : 'Não aceito'}</Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                  Sua localização será capturada ao finalizar
-                </Typography>
-              </>
+            <Typography>Bairro: {neighborhoods.find(n => n.id === clean.neighborhoodId)?.name || 'Não selecionado'}</Typography>
+            {clean.communityId && (
+              <Typography>Comunidade: {communities.find(c => c.id === clean.communityId)?.name}</Typography>
             )}
-            {userType !== 'driver' && (
-              <Typography>LGPD: {lgpdAccepted ? 'Aceito' : 'Não aceito'}</Typography>
+            {userType === 'driver' && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                Após finalizar, você será direcionado para enviar documentos e aceitar os termos.
+              </Typography>
             )}
           </Box>
         );
@@ -802,11 +661,7 @@ export default function CompleteOnboarding() {
           <Button
             variant="contained"
             onClick={handleNext}
-            disabled={
-              loading || 
-              (activeStep === 2 && userType === 'driver' && (!termsAccepted || !lgpdAccepted)) ||
-              (activeStep === 2 && userType !== 'driver' && !lgpdAccepted)
-            }
+            disabled={loading}
           >
             {activeStep === steps.length - 1 ? 'Finalizar' : 'Próximo'}
           </Button>
