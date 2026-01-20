@@ -31,6 +31,7 @@ export default function DriverApproval() {
   const [error, setError] = useState('');
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [driverDocuments, setDriverDocuments] = useState([]);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, action: null, driverId: null });
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
@@ -109,16 +110,21 @@ export default function DriverApproval() {
   const openDetails = async (driver) => {
     setSelectedDriver(driver);
     setDetailsOpen(true);
+    setDriverDocuments([]);
+    setDocumentsLoading(true);
     
     // Buscar documentos reais
     try {
-      const response = await adminApi.get(`/api/admin/drivers/${driver.id}/documents`);
-      if (response.data.success) {
-        setDriverDocuments(response.data.data || []);
+      const response = await adminApi.getDriverDocuments(driver.id);
+      if (response.success) {
+        console.log('📄 Documentos carregados:', response.data);
+        setDriverDocuments(response.data || []);
       }
     } catch (error) {
-      console.error('Erro ao carregar documentos:', error);
+      console.error('❌ Erro ao carregar documentos:', error);
       setDriverDocuments([]);
+    } finally {
+      setDocumentsLoading(false);
     }
   };
 
@@ -259,7 +265,12 @@ export default function DriverApproval() {
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle2">Documentos:</Typography>
-                {driverDocuments.length > 0 ? (
+                {documentsLoading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                    <CircularProgress size={20} />
+                    <Typography variant="body2" color="text.secondary">Carregando documentos...</Typography>
+                  </Box>
+                ) : driverDocuments.length > 0 ? (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
                     {driverDocuments.map((doc) => (
                       <Box key={doc.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
@@ -285,7 +296,9 @@ export default function DriverApproval() {
                     ))}
                   </Box>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">Nenhum documento enviado</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Nenhum documento enviado
+                  </Typography>
                 )}
               </Grid>
               <Grid item xs={12}>

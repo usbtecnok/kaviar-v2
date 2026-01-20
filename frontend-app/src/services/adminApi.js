@@ -88,6 +88,10 @@ class AdminApiService {
     return this.get(`/api/admin/drivers/${id}`);
   }
 
+  async getDriverDocuments(id) {
+    return this.get(`/api/admin/drivers/${id}/documents`);
+  }
+
   async approveDriver(id) {
     return this.put(`/api/admin/drivers/${id}/approve`);
   }
