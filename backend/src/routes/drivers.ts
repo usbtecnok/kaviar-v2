@@ -297,6 +297,57 @@ router.post('/me/documents', authenticateDriver, upload.fields([
           }
         });
         console.log(`  ✓ Created driver_compliance_document`);
+
+        // 4. Sync LGPD consent to consents table (required by approval validation)
+        if (lgpdAccepted === 'true' || lgpdAccepted === true) {
+          await tx.consents.upsert({
+            where: {
+              subject_type_subject_id_type: {
+                subject_type: 'DRIVER',
+                subject_id: driverId,
+                type: 'lgpd'
+              }
+            },
+            update: {
+              accepted: true,
+              accepted_at: new Date(),
+              ip_address: (req as any).ip || req.headers['x-forwarded-for'] || 'unknown',
+              user_agent: req.headers['user-agent'] || 'unknown'
+            },
+            create: {
+              id: `consent_${driverId}_lgpd_${Date.now()}`,
+              user_id: driverId,
+              subject_type: 'DRIVER',
+              subject_id: driverId,
+              type: 'lgpd',
+              accepted: true,
+              accepted_at: new Date(),
+              ip_address: (req as any).ip || req.headers['x-forwarded-for'] || 'unknown',
+              user_agent: req.headers['user-agent'] || 'unknown'
+            }
+          });
+          console.log(`  ✓ Synced LGPD consent to consents table`);
+        }
+
+        // 5. Sync community to driver_verifications (required by approval validation)
+        if (communityId) {
+          await tx.driver_verifications.upsert({
+            where: { driver_id: driverId },
+            update: {
+              community_id: communityId,
+              updated_at: new Date()
+            },
+            create: {
+              id: `verification_${driverId}`,
+              driver_id: driverId,
+              community_id: communityId,
+              status: 'PENDING',
+              created_at: new Date(),
+              updated_at: new Date()
+            }
+          });
+          console.log(`  ✓ Synced community to driver_verifications`);
+        }
       });
     } catch (txError) {
       console.error('❌ Transaction failed:', txError);
