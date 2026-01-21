@@ -26,6 +26,29 @@ import { adminApi } from '../../services/adminApi';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+const normType = (t) => String(t || "").trim().toUpperCase();
+
+const statusRank = (s) => {
+  const v = String(s || "").toUpperCase();
+  if (v === "VERIFIED") return 3;
+  if (v === "SUBMITTED") return 2;
+  if (v === "MISSING") return 1;
+  return 0;
+};
+
+const uniqueByTypeBestStatus = (docs) => {
+  const map = new Map();
+  for (const d of docs || []) {
+    const type = normType(d.type || d.docType || d.documentType);
+    if (!type) continue;
+    const prev = map.get(type);
+    if (!prev || statusRank(d.status) > statusRank(prev.status)) {
+      map.set(type, d);
+    }
+  }
+  return Array.from(map.values());
+};
+
 export default function DriverApproval() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -275,7 +298,7 @@ export default function DriverApproval() {
                   </Box>
                 ) : driverDocuments.length > 0 ? (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 1 }}>
-                    {driverDocuments.map((doc) => (
+                    {uniqueByTypeBestStatus(driverDocuments).map((doc) => (
                       <Box key={doc.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
                         <Typography variant="body2" sx={{ minWidth: 150, fontWeight: 600 }}>
                           {doc.type}
