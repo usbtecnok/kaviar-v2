@@ -21,6 +21,14 @@ import api from '../../api/index';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+// Resolve document URL (handles absolute vs relative paths)
+const resolveDocUrl = (url) => {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url; // Already absolute
+  if (url.startsWith('/uploads/')) return `${API_BASE_URL}${url}`; // Relative path
+  return url;
+};
+
 export default function AdminDriverDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -220,7 +228,7 @@ export default function AdminDriverDetail() {
               <Button
                 variant="outlined"
                 size="small"
-                href={driver.certidao_nada_consta_url}
+                href={resolveDocUrl(driver.certidao_nada_consta_url)}
                 target="_blank"
                 sx={{ mt: 1 }}
               >
