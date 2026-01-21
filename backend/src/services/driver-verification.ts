@@ -148,19 +148,25 @@ export class DriverVerificationService {
       }
     });
 
-    // Create missing document records
+    // Create missing document records (idempotent)
     const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK'];
     
     for (const docType of requiredDocs) {
-      await prisma.driver_documents.create({
-        data: {
-          id: `doc_${driver_id}_${docType}_${Date.now()}`,
-          driver_id,
-          type: docType,
-          status: 'MISSING',
-          updated_at: new Date()
-        }
+      const existing = await prisma.driver_documents.findFirst({
+        where: { driver_id, type: docType }
       });
+
+      if (!existing) {
+        await prisma.driver_documents.create({
+          data: {
+            id: `doc_${driver_id}_${docType}_${Date.now()}`,
+            driver_id,
+            type: docType,
+            status: 'MISSING',
+            updated_at: new Date()
+          }
+        });
+      }
     }
 
     return verification;
