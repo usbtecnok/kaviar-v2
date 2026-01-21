@@ -386,38 +386,6 @@ export default function CompleteOnboarding() {
                 <Typography variant="h6" sx={{ mt: 2 }}>Informações Adicionais</Typography>
                 
                 <Typography variant="body2" sx={{ mb: 1, mt: 2 }}>
-                  Dados do Veículo
-                </Typography>
-                <TextField
-                  label="Modelo do Veículo"
-                  value={clean.vehicleModel}
-                  onChange={(e) => setFormData(prev => ({ ...prev, vehicleModel: e.target.value }))}
-                  fullWidth
-                  sx={{ mb: 2 }}
-                  placeholder="Ex: Honda Civic, Fiat Uno"
-                />
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel>Cor do Veículo</InputLabel>
-                  <Select
-                    value={clean.vehicleColor}
-                    onChange={(e) => setFormData(prev => ({ ...prev, vehicleColor: e.target.value }))}
-                  >
-                    <MenuItem value="">Selecione</MenuItem>
-                    <MenuItem value="Branco">Branco</MenuItem>
-                    <MenuItem value="Preto">Preto</MenuItem>
-                    <MenuItem value="Prata">Prata</MenuItem>
-                    <MenuItem value="Cinza">Cinza</MenuItem>
-                    <MenuItem value="Azul">Azul</MenuItem>
-                    <MenuItem value="Vermelho">Vermelho</MenuItem>
-                    <MenuItem value="Verde">Verde</MenuItem>
-                    <MenuItem value="Amarelo">Amarelo</MenuItem>
-                    <MenuItem value="Bege">Bege</MenuItem>
-                    <MenuItem value="Marrom">Marrom</MenuItem>
-                    <MenuItem value="Outro">Outro</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <Typography variant="body2" sx={{ mb: 1, mt: 2 }}>
                   Chave PIX para Recebimento
                 </Typography>
                 <FormControl fullWidth sx={{ mb: 1 }}>
