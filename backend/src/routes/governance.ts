@@ -198,6 +198,10 @@ router.post('/driver', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
+    // Log incoming data
+    console.log('[GOV] familyBonusAccepted incoming:', data.familyBonusAccepted);
+    console.log('[GOV] familyProfile incoming:', data.familyProfile);
+    
     // Create driver - CADASTRO INICIAL (sem validações de aprovação)
     const driver = await prisma.drivers.create({
       data: {
@@ -215,6 +219,9 @@ router.post('/driver', async (req, res) => {
         updated_at: new Date()
       }
     });
+
+    console.log('[GOV] persisted family_bonus_accepted:', driver.family_bonus_accepted);
+    console.log('[GOV] persisted family_bonus_profile:', driver.family_bonus_profile);
 
     res.status(201).json({ 
       success: true, 

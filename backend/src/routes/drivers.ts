@@ -215,6 +215,10 @@ router.post('/me/documents', authenticateDriver, upload.fields([
     // Extrair dados adicionais do body
     const { pix_key, pix_key_type, vehiclePlate, vehicleModel, vehicleColor, communityId, lgpdAccepted, termsAccepted } = req.body;
 
+    console.log('[DOCS] vehicleColor incoming:', vehicleColor);
+    console.log('[DOCS] vehiclePlate incoming:', vehiclePlate);
+    console.log('[DOCS] vehicleModel incoming:', vehicleModel);
+
     // Persistir documentos em transação
     let upsertedCount = 0;
     try {
@@ -236,7 +240,7 @@ router.post('/me/documents', authenticateDriver, upload.fields([
           where: { id: driverId },
           data: updateData
         });
-        console.log(`  ✓ Updated driver ${driverId}`);
+        console.log(`  ✓ Updated driver ${driverId} with vehicle_color:`, vehicleColor);
 
         // 2. Persistir em driver_documents (para validação de aprovação)
         const docTypes = [
