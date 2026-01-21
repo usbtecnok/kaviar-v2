@@ -86,8 +86,16 @@ export default function DriverApproval() {
       setToast({ open: true, message: 'Motorista aprovado com sucesso', severity: 'success' });
       loadDrivers();
     } catch (error) {
-      const errorMessage = error?.message || 'Erro ao aprovar motorista';
-      setToast({ open: true, message: errorMessage, severity: 'error' });
+      const data = error?.response?.data;
+      const msg =
+        (Array.isArray(data?.missingRequirements) && data.missingRequirements.length
+          ? `Pendências: ${data.missingRequirements.join(', ')}`
+          : null) ||
+        data?.message ||
+        data?.error ||
+        error?.message ||
+        'Erro ao aprovar motorista';
+      setToast({ open: true, message: msg, severity: 'error' });
     } finally {
       setActionLoading(null);
       setConfirmDialog({ open: false, action: null, driverId: null });

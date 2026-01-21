@@ -42,7 +42,9 @@ class AdminApiService {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro na requisição');
+        const error = new Error(data.message || data.error || 'Erro na requisição');
+        error.response = { data }; // Preserve full response data
+        throw error;
       }
 
       return data;

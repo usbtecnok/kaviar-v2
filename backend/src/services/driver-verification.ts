@@ -102,6 +102,18 @@ export class DriverVerificationService {
 
     const isEligible = missingRequirements.length === 0;
 
+    // 🔍 DEBUG LOG (development only)
+    if (process.env.ENABLE_DRIVER_APPROVAL_DEBUG === '1') {
+      console.log('[driver-approval] eligibility check', {
+        driverId: driver_id,
+        requiredDocTypes: requiredDocs,
+        foundDocs: documents.map(d => ({ type: d.type, status: d.status })),
+        missingRequirements,
+        isEligible,
+        vehicleColor: driver?.vehicle_color || 'MISSING'
+      });
+    }
+
     // Update verification status
     await prisma.driver_verifications.update({
       where: { driver_id },
