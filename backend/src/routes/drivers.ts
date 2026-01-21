@@ -249,6 +249,7 @@ router.post('/me/documents', authenticateDriver, upload.fields([
         ];
 
         for (const doc of docTypes) {
+<<<<<<< Updated upstream
           await tx.driver_documents.upsert({
             where: {
               driver_id_type: { driver_id: driverId, type: doc.type }
@@ -270,6 +271,60 @@ router.post('/me/documents', authenticateDriver, upload.fields([
             }
           });
           console.log(`  ✓ Upserted driver_document: ${doc.type}`);
+=======
+          try {
+            const existing = await tx.driver_documents.findFirst({
+              where: { driver_id: driverId, type: doc.type }
+            });
+
+            if (existing) {
+              await tx.driver_documents.update({
+                where: { id: existing.id },
+                data: {
+                  file_url: doc.url,
+                  status: 'SUBMITTED',
+                  submitted_at: new Date(),
+                  updated_at: new Date()
+                }
+              });
+              console.log(`  ✓ Updated driver_document: ${doc.type}`);
+            } else {
+              await tx.driver_documents.create({
+                data: {
+                  id: `doc_${driverId}_${doc.type}_${Date.now()}`,
+                  driver_id: driverId,
+                  type: doc.type,
+                  file_url: doc.url,
+                  status: 'SUBMITTED',
+                  submitted_at: new Date(),
+                  updated_at: new Date()
+                }
+              });
+              console.log(`  ✓ Created driver_document: ${doc.type}`);
+            }
+          } catch (error: any) {
+            if (error.code === 'P2002') {
+              // Race condition: update existing
+              const existing = await tx.driver_documents.findFirst({
+                where: { driver_id: driverId, type: doc.type }
+              });
+              if (existing) {
+                await tx.driver_documents.update({
+                  where: { id: existing.id },
+                  data: {
+                    file_url: doc.url,
+                    status: 'SUBMITTED',
+                    submitted_at: new Date(),
+                    updated_at: new Date()
+                  }
+                });
+                console.log(`  ✓ Updated driver_document (P2002): ${doc.type}`);
+              }
+            } else {
+              throw error;
+            }
+          }
+>>>>>>> Stashed changes
           upsertedCount++;
         }
 
