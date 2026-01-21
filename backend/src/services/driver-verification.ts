@@ -53,7 +53,7 @@ export class DriverVerificationService {
     const missingRequirements: string[] = [];
     const checklist: EligibilityResult['checklist'] = {
       lgpdConsent: { status: 'MISSING', required: true },
-      communityAssigned: { status: 'MISSING', required: true },
+      communityAssigned: { status: 'MISSING', required: false },
       documents: {}
     };
 
@@ -65,9 +65,8 @@ export class DriverVerificationService {
       checklist.lgpdConsent.status = 'VERIFIED';
     }
 
-    // Check community assignment
+    // Check community assignment (optional - can be assigned later)
     if (!verification.community_id) {
-      missingRequirements.push('COMMUNITY_ASSIGNMENT');
       checklist.communityAssigned.status = 'MISSING';
     } else {
       checklist.communityAssigned.status = 'ASSIGNED';
