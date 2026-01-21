@@ -249,35 +249,27 @@ router.post('/me/documents', authenticateDriver, upload.fields([
         ];
 
         for (const doc of docTypes) {
-          const existing = await tx.driver_documents.findFirst({
-            where: { driver_id: driverId, type: doc.type }
+          await tx.driver_documents.upsert({
+            where: {
+              driver_documents_driver_type_uniq: { driver_id: driverId, type: doc.type }
+            },
+            create: {
+              id: `doc_${driverId}_${doc.type}_${Date.now()}`,
+              driver_id: driverId,
+              type: doc.type,
+              file_url: doc.url,
+              status: 'SUBMITTED',
+              submitted_at: new Date(),
+              updated_at: new Date()
+            },
+            update: {
+              file_url: doc.url,
+              status: 'SUBMITTED',
+              submitted_at: new Date(),
+              updated_at: new Date()
+            }
           });
-
-          if (existing) {
-            await tx.driver_documents.update({
-              where: { id: existing.id },
-              data: {
-                file_url: doc.url,
-                status: 'SUBMITTED',
-                submitted_at: new Date(),
-                updated_at: new Date()
-              }
-            });
-            console.log(`  ✓ Updated driver_document: ${doc.type}`);
-          } else {
-            await tx.driver_documents.create({
-              data: {
-                id: `doc_${driverId}_${doc.type}_${Date.now()}`,
-                driver_id: driverId,
-                type: doc.type,
-                file_url: doc.url,
-                status: 'SUBMITTED',
-                submitted_at: new Date(),
-                updated_at: new Date()
-              }
-            });
-            console.log(`  ✓ Created driver_document: ${doc.type}`);
-          }
+          console.log(`  ✓ Upserted driver_document: ${doc.type}`);
           upsertedCount++;
         }
 

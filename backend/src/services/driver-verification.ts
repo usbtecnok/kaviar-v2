@@ -152,21 +152,21 @@ export class DriverVerificationService {
     const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK'];
     
     for (const docType of requiredDocs) {
-      const existing = await prisma.driver_documents.findFirst({
-        where: { driver_id, type: docType }
+      await prisma.driver_documents.upsert({
+        where: {
+          driver_documents_driver_type_uniq: { driver_id, type: docType }
+        },
+        create: {
+          id: `doc_${driver_id}_${docType}_${Date.now()}`,
+          driver_id,
+          type: docType,
+          status: 'MISSING',
+          updated_at: new Date()
+        },
+        update: {
+          updated_at: new Date()
+        }
       });
-
-      if (!existing) {
-        await prisma.driver_documents.create({
-          data: {
-            id: `doc_${driver_id}_${docType}_${Date.now()}`,
-            driver_id,
-            type: docType,
-            status: 'MISSING',
-            updated_at: new Date()
-          }
-        });
-      }
     }
 
     return verification;
@@ -201,28 +201,26 @@ export class DriverVerificationService {
           }
         });
 
-        if (existingDoc) {
-          await tx.driver_documents.update({
-            where: { id: existingDoc.id },
-            data: {
-              file_url: doc.file_url,
-              status: 'SUBMITTED',
-              submitted_at: new Date()
-            }
-          });
-        } else {
-          await tx.driver_documents.create({
-            data: {
-              id: `doc_${driver_id}_${doc.type}_${Date.now()}`,
-              driver_id,
-              type: doc.type,
-              file_url: doc.file_url,
-              status: 'SUBMITTED',
-              submitted_at: new Date(),
-              updated_at: new Date()
-            }
-          });
-        }
+        await tx.driver_documents.upsert({
+          where: {
+            driver_documents_driver_type_uniq: { driver_id, type: doc.type }
+          },
+          create: {
+            id: `doc_${driver_id}_${doc.type}_${Date.now()}`,
+            driver_id,
+            type: doc.type,
+            file_url: doc.file_url,
+            status: 'SUBMITTED',
+            submitted_at: new Date(),
+            updated_at: new Date()
+          },
+          update: {
+            file_url: doc.file_url,
+            status: 'SUBMITTED',
+            submitted_at: new Date(),
+            updated_at: new Date()
+          }
+        });
       }
     });
   }

@@ -120,6 +120,8 @@ model driver_documents {
   reject_reason        String?
   created_at           DateTime  @default(now())
   updated_at           DateTime
+
+  @@unique([driver_id, type], map: "driver_documents_driver_type_uniq")
 }
 
 model driver_enforcement_history {
