@@ -177,6 +177,8 @@ model drivers {
   certidao_nada_consta_url    String?
   pix_key                     String?
   pix_key_type                String?
+  family_bonus_accepted       Boolean?                      @default(false)
+  family_bonus_profile        String?
   approved_at                 DateTime?
   approved_by                 String?
   rejected_at                 DateTime?

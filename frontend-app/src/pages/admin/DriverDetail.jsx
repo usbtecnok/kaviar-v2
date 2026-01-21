@@ -249,11 +249,7 @@ export default function AdminDriverDetail() {
           <Grid item xs={12}>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Bônus Familiar</Typography>
             {(() => {
-              const familyProfile = localStorage.getItem(`kaviar_driver_${driver.id}_family_profile`);
-              const bonusPercent = localStorage.getItem(`kaviar_driver_${driver.id}_family_bonus_percent`);
-              const acceptedAt = localStorage.getItem(`kaviar_driver_${driver.id}_family_accepted_at`);
-
-              if (!acceptedAt) {
+              if (!driver.family_bonus_accepted) {
                 return (
                   <Typography variant="body2" color="text.secondary">
                     Não declarado
@@ -261,7 +257,9 @@ export default function AdminDriverDetail() {
                 );
               }
 
-              const bonusAmount = (100 * parseInt(bonusPercent || '50')) / 100;
+              const familyProfile = driver.family_bonus_profile || 'individual';
+              const bonusPercent = 50; // Default
+              const bonusAmount = (100 * bonusPercent) / 100;
 
               return (
                 <Box sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1 }}>

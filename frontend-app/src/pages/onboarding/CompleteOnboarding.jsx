@@ -250,7 +250,9 @@ export default function CompleteOnboarding() {
           documentCnh: clean.documentCnh || '',
           vehiclePlate: clean.vehiclePlate || '',
           vehicleModel: clean.vehicleModel || '',
-          vehicleColor: clean.vehicleColor || ''
+          vehicleColor: clean.vehicleColor || '',
+          familyBonusAccepted: clean.familyBonusAccepted,
+          familyProfile: clean.familyProfile
         });
 
         userId = registerResponse.data.data.id;

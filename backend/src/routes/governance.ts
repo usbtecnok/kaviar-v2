@@ -170,7 +170,9 @@ const driverCreateSchema = z.object({
   documentCnh: z.string().optional(),
   vehiclePlate: z.string().optional(),
   vehicleModel: z.string().optional(),
-  vehicleColor: z.string().optional()
+  vehicleColor: z.string().optional(),
+  familyBonusAccepted: z.boolean().optional(),
+  familyProfile: z.string().optional()
 });
 
 // Guide registration schemas
@@ -219,6 +221,8 @@ router.post('/driver', async (req, res) => {
         vehicle_plate: data.vehiclePlate,
         vehicle_model: data.vehicleModel,
         vehicle_color: data.vehicleColor,
+        family_bonus_accepted: data.familyBonusAccepted || false,
+        family_bonus_profile: data.familyProfile || 'individual',
         created_at: new Date(),
         updated_at: new Date()
       }

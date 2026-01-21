@@ -344,15 +344,13 @@ export default function DriverApproval() {
               <Grid item xs={12}>
                 <Typography variant="subtitle2" sx={{ mt: 2 }}>Bônus Familiar:</Typography>
                 {(() => {
-                  const familyProfile = localStorage.getItem(`kaviar_driver_${selectedDriver.id}_family_profile`);
-                  const bonusPercent = localStorage.getItem(`kaviar_driver_${selectedDriver.id}_family_bonus_percent`);
-                  const acceptedAt = localStorage.getItem(`kaviar_driver_${selectedDriver.id}_family_accepted_at`);
-
-                  if (!acceptedAt) {
+                  if (!selectedDriver.family_bonus_accepted) {
                     return <Typography variant="body2" color="text.secondary">Não declarado</Typography>;
                   }
 
-                  const bonusAmount = (100 * parseInt(bonusPercent || '50')) / 100;
+                  const familyProfile = selectedDriver.family_bonus_profile || 'individual';
+                  const bonusPercent = 50; // Default
+                  const bonusAmount = (100 * bonusPercent) / 100;
 
                   return (
                     <Box sx={{ bgcolor: 'grey.100', p: 1.5, borderRadius: 1, mt: 1 }}>
@@ -361,9 +359,6 @@ export default function DriverApproval() {
                       </Typography>
                       <Typography variant="body2">Percentual: {bonusPercent}%</Typography>
                       <Typography variant="body2">Crédito mensal: R$ {bonusAmount.toFixed(2)}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Declarado em: {new Date(acceptedAt).toLocaleDateString('pt-BR')}
-                      </Typography>
                     </Box>
                   );
                 })()}
