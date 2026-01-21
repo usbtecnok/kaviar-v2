@@ -34,6 +34,7 @@ export default function DriverDocuments() {
     documentCnh: '',
     vehiclePlate: '',
     vehicleModel: '',
+    vehicleColor: '',
     communityId: ''
   });
   const [files, setFiles] = useState({
@@ -129,6 +130,7 @@ export default function DriverDocuments() {
       // Campos auxiliares
       if (formData.vehiclePlate) fd.append('vehiclePlate', formData.vehiclePlate);
       if (formData.vehicleModel) fd.append('vehicleModel', formData.vehicleModel);
+      if (formData.vehicleColor) fd.append('vehicleColor', formData.vehicleColor);
       if (formData.communityId) fd.append('communityId', formData.communityId);
 
       // Consentimentos
@@ -306,6 +308,13 @@ export default function DriverDocuments() {
                   label="Modelo do Veículo"
                   value={formData.vehicleModel}
                   onChange={(e) => setFormData(prev => ({ ...prev, vehicleModel: e.target.value }))}
+                  required
+                  fullWidth
+                />
+                <TextField
+                  label="Cor do Veículo"
+                  value={formData.vehicleColor}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vehicleColor: e.target.value }))}
                   required
                   fullWidth
                 />
