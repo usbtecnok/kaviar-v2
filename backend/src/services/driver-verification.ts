@@ -148,11 +148,10 @@ export class DriverVerificationService {
       }
     });
 
-    // Create missing document records (idempotent with P2002 handling)
+    // Create missing document records (idempotent)
     const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK'];
     
     for (const docType of requiredDocs) {
-<<<<<<< Updated upstream
       await prisma.driver_documents.upsert({
         where: {
           driver_id_type: { driver_id, type: docType }
@@ -168,34 +167,6 @@ export class DriverVerificationService {
           updated_at: new Date()
         }
       });
-=======
-      try {
-        await prisma.driver_documents.create({
-          data: {
-            id: `doc_${driver_id}_${docType}_${Date.now()}`,
-            driver_id,
-            type: docType,
-            status: 'MISSING',
-            updated_at: new Date()
-          }
-        });
-      } catch (error: any) {
-        if (error.code === 'P2002') {
-          // Already exists, update timestamp
-          const existing = await prisma.driver_documents.findFirst({
-            where: { driver_id, type: docType }
-          });
-          if (existing) {
-            await prisma.driver_documents.update({
-              where: { id: existing.id },
-              data: { updated_at: new Date() }
-            });
-          }
-        } else {
-          throw error;
-        }
-      }
->>>>>>> Stashed changes
     }
 
     return verification;
@@ -221,14 +192,8 @@ export class DriverVerificationService {
         });
       }
 
-      // Update documents (idempotent with P2002 handling)
+      // Update documents (idempotent)
       for (const doc of documents) {
-        try {
-          const existingDoc = await tx.driver_documents.findFirst({
-            where: { driver_id, type: doc.type }
-          });
-
-<<<<<<< Updated upstream
         await tx.driver_documents.upsert({
           where: {
             driver_id_type: { driver_id, type: doc.type }
@@ -249,52 +214,6 @@ export class DriverVerificationService {
             updated_at: new Date()
           }
         });
-=======
-          if (existingDoc) {
-            await tx.driver_documents.update({
-              where: { id: existingDoc.id },
-              data: {
-                file_url: doc.file_url,
-                status: 'SUBMITTED',
-                submitted_at: new Date(),
-                updated_at: new Date()
-              }
-            });
-          } else {
-            await tx.driver_documents.create({
-              data: {
-                id: `doc_${driver_id}_${doc.type}_${Date.now()}`,
-                driver_id,
-                type: doc.type,
-                file_url: doc.file_url,
-                status: 'SUBMITTED',
-                submitted_at: new Date(),
-                updated_at: new Date()
-              }
-            });
-          }
-        } catch (error: any) {
-          if (error.code === 'P2002') {
-            // Race condition: doc was created between findFirst and create
-            const existing = await tx.driver_documents.findFirst({
-              where: { driver_id, type: doc.type }
-            });
-            if (existing) {
-              await tx.driver_documents.update({
-                where: { id: existing.id },
-                data: {
-                  file_url: doc.file_url,
-                  status: 'SUBMITTED',
-                  submitted_at: new Date(),
-                  updated_at: new Date()
-                }
-              });
-            }
-          } else {
-            throw error;
-          }
-        }
->>>>>>> Stashed changes
       }
     });
   }

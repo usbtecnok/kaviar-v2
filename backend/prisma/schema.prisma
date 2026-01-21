@@ -121,7 +121,6 @@ model driver_documents {
   created_at           DateTime  @default(now())
   updated_at           DateTime
 
-  @@unique([driver_id, type], map: "driver_documents_driver_type_uniq")
 @@unique([driver_id, type], name: "driver_id_type", map: "driver_documents_driver_type_uniq")
 
 }
