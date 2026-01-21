@@ -47,12 +47,6 @@ export default function CompleteOnboarding() {
     neighborhoodId: '',
     communityId: '',
     // Driver specific
-    documentCpf: '',
-    documentRg: '',
-    documentCnh: '',
-    vehiclePlate: '',
-    vehicleModel: '',
-    vehicleColor: '',
     pixKey: '',
     pixKeyType: 'CPF', // CPF, CNPJ, EMAIL, PHONE, RANDOM
     // Guide specific
@@ -108,12 +102,6 @@ export default function CompleteOnboarding() {
     confirmPassword: formData.confirmPassword ?? '',
     neighborhoodId: formData.neighborhoodId ?? '',
     communityId: formData.communityId ?? '',
-    documentCpf: formData.documentCpf ?? '',
-    documentRg: formData.documentRg ?? '',
-    documentCnh: formData.documentCnh ?? '',
-    vehiclePlate: formData.vehiclePlate ?? '',
-    vehicleModel: formData.vehicleModel ?? '',
-    vehicleColor: formData.vehicleColor ?? '',
     pixKey: formData.pixKey ?? '',
     pixKeyType: formData.pixKeyType ?? 'CPF',
     isBilingual: !!formData.isBilingual,
@@ -245,12 +233,6 @@ export default function CompleteOnboarding() {
           password: clean.password,
           neighborhoodId: clean.neighborhoodId,
           communityId: clean.communityId || undefined,
-          documentCpf: clean.documentCpf || '',
-          documentRg: clean.documentRg || '',
-          documentCnh: clean.documentCnh || '',
-          vehiclePlate: clean.vehiclePlate || '',
-          vehicleModel: clean.vehicleModel || '',
-          vehicleColor: clean.vehicleColor || '',
           familyBonusAccepted: clean.familyBonusAccepted,
           familyProfile: clean.familyProfile
         });
