@@ -82,11 +82,10 @@ export class DriverVerificationService {
     for (const docType of requiredDocs) {
       const doc = documents.find(d => d.type === docType);
       
-      // Special rule for BACKGROUND_CHECK in MVP: accept SUBMITTED status
-      const isBackgroundCheckValid = docType === 'BACKGROUND_CHECK' && 
-        doc && (doc.status === 'VERIFIED' || doc.status === 'SUBMITTED');
+      // MVP: accept SUBMITTED or VERIFIED as sufficient for approval
+      const isDocValid = doc && (doc.status === 'VERIFIED' || doc.status === 'SUBMITTED');
       
-      if (!doc || (doc.status !== 'VERIFIED' && !isBackgroundCheckValid)) {
+      if (!doc || !isDocValid) {
         missingRequirements.push(docType);
         checklist.documents[docType] = {
           status: doc?.status || 'MISSING',

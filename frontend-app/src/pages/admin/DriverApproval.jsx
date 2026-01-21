@@ -63,7 +63,8 @@ export default function DriverApproval() {
       setToast({ open: true, message: 'Motorista aprovado com sucesso', severity: 'success' });
       loadDrivers();
     } catch (error) {
-      setToast({ open: true, message: 'Erro ao aprovar motorista', severity: 'error' });
+      const errorMessage = error?.message || 'Erro ao aprovar motorista';
+      setToast({ open: true, message: errorMessage, severity: 'error' });
     } finally {
       setActionLoading(null);
       setConfirmDialog({ open: false, action: null, driverId: null });
