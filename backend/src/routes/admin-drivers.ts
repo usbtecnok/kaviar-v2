@@ -99,6 +99,11 @@ router.get('/drivers', async (req: Request, res: Response) => {
           pix_key: true,
           pix_key_type: true,
           neighborhood_id: true,
+          vehicle_color: true,
+          vehicle_model: true,
+          vehicle_plate: true,
+          family_bonus_accepted: true,
+          family_bonus_profile: true,
           neighborhoods: {
             select: {
               name: true

@@ -250,6 +250,24 @@ export default function AdminDriverDetail() {
           )}
 
           <Grid item xs={12}>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Veículo</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2" color="text.secondary">Placa</Typography>
+                <Typography variant="body1">{driver.vehicle_plate || 'Não informado'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2" color="text.secondary">Modelo</Typography>
+                <Typography variant="body1">{driver.vehicle_model || 'Não informado'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Typography variant="subtitle2" color="text.secondary">Cor</Typography>
+                <Typography variant="body1">{driver.vehicle_color || 'Não informado'}</Typography>
+              </Grid>
+            </Grid>
+          </Grid>
+
+          <Grid item xs={12}>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Bônus Familiar</Typography>
             {(() => {
               if (!driver.family_bonus_accepted) {
