@@ -251,7 +251,7 @@ router.post('/me/documents', authenticateDriver, upload.fields([
         for (const doc of docTypes) {
           await tx.driver_documents.upsert({
             where: {
-              driver_documents_driver_type_uniq: { driver_id: driverId, type: doc.type }
+              driver_id_type: { driver_id: driverId, type: doc.type }
             },
             create: {
               id: `doc_${driverId}_${doc.type}_${Date.now()}`,

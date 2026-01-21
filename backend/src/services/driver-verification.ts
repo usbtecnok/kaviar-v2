@@ -154,7 +154,7 @@ export class DriverVerificationService {
     for (const docType of requiredDocs) {
       await prisma.driver_documents.upsert({
         where: {
-          driver_documents_driver_type_uniq: { driver_id, type: docType }
+          driver_id_type: { driver_id, type: docType }
         },
         create: {
           id: `doc_${driver_id}_${docType}_${Date.now()}`,
@@ -203,7 +203,7 @@ export class DriverVerificationService {
 
         await tx.driver_documents.upsert({
           where: {
-            driver_documents_driver_type_uniq: { driver_id, type: doc.type }
+            driver_id_type: { driver_id, type: doc.type }
           },
           create: {
             id: `doc_${driver_id}_${doc.type}_${Date.now()}`,
