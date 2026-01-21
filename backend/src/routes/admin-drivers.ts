@@ -136,12 +136,13 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Buscar por id ou user_id (robustez)
+    // Buscar por id, email ou phone (robustez máxima)
     const driver = await prisma.drivers.findFirst({
       where: {
         OR: [
           { id },
-          { email: id } // fallback se passar email
+          { email: id },
+          { phone: id }
         ]
       },
       include: {
@@ -162,12 +163,18 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
     });
 
     if (!driver) {
-      console.error(`Driver not found with id/email: ${id}`);
+      console.error(`[Admin] Driver not found with param: ${id}`);
       return res.status(404).json({
         success: false,
         error: 'Motorista não encontrado'
       });
     }
+
+    // Log qual campo casou
+    let matchedBy = 'id';
+    if (driver.email === id) matchedBy = 'email';
+    else if (driver.phone === id) matchedBy = 'phone';
+    console.log(`[Admin] Driver found by ${matchedBy}: ${driver.id}`);
 
     res.json({
       success: true,
