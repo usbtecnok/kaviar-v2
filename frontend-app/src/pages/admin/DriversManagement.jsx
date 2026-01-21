@@ -238,7 +238,7 @@ export default function DriversManagement() {
               <TableRow key={driver.id}>
                 <TableCell>{driver.name}</TableCell>
                 <TableCell>{driver.email}</TableCell>
-                <TableCell>{driver.community?.name || 'Não definido'}</TableCell>
+                <TableCell>{driver.neighborhoods?.name || 'Não definido'}</TableCell>
                 <TableCell>
                   <Chip
                     label={getStatusText(driver.status)}

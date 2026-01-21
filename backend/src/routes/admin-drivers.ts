@@ -97,7 +97,13 @@ router.get('/drivers', async (req: Request, res: Response) => {
           created_at: true,
           certidao_nada_consta_url: true,
           pix_key: true,
-          pix_key_type: true
+          pix_key_type: true,
+          neighborhood_id: true,
+          neighborhoods: {
+            select: {
+              name: true
+            }
+          }
         },
         orderBy: { created_at: 'desc' },
         take: limit,
@@ -133,7 +139,19 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
     const driver = await prisma.drivers.findUnique({
       where: { id },
       include: {
-        driver_consents: true
+        driver_consents: true,
+        neighborhoods: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        communities: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
 
