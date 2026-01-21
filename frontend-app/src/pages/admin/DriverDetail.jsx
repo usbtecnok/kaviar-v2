@@ -50,9 +50,12 @@ export default function AdminDriverDetail() {
       const response = await api.get(`/api/admin/drivers/${id}`);
       if (response.data.success) {
         setDriver(response.data.data);
+      } else {
+        setError(response.data.error || 'Motorista não encontrado');
       }
     } catch (error) {
-      setError('Erro ao carregar motorista');
+      console.error('Erro ao carregar motorista:', error);
+      setError(error.response?.data?.error || 'Motorista não encontrado');
     } finally {
       setLoading(false);
     }
