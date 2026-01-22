@@ -137,6 +137,22 @@ export default function DriverDocuments() {
       fd.append('lgpdAccepted', String(lgpdAccepted));
       fd.append('termsAccepted', String(termsAccepted));
 
+      // Debug: logar FormData
+      console.log('[DOCS] FormData keys:', Array.from(fd.keys()));
+      console.log('[DOCS] Files check:', {
+        cpf: files.cpf?.name,
+        rg: files.rg?.name,
+        cnh: files.cnh?.name,
+        proofOfAddress: files.proofOfAddress?.name,
+        backgroundCheck: files.backgroundCheck?.name,
+        vehiclePhoto: Array.isArray(vp) ? vp.map(f => f.name) : vp?.name
+      });
+      console.log('[DOCS] Vehicle data:', {
+        plate: formData.vehiclePlate,
+        model: formData.vehicleModel,
+        color: formData.vehicleColor
+      });
+
       // Endpoint correto
       const response = await api.post('/api/drivers/me/documents', fd, {
         headers: {
@@ -151,17 +167,22 @@ export default function DriverDocuments() {
         }, 2000);
       }
     } catch (error) {
-      console.error('Erro ao enviar documentos:', error);
+      console.error('[DOCS] Erro ao enviar documentos:', error);
+      console.error('[DOCS] Error response:', error.response?.data);
+      console.error('[DOCS] Error status:', error.response?.status);
       
-      // Tratar erro MISSING_FILES do backend
-      if (error.response?.data?.error === 'MISSING_FILES') {
+      // Tratar erros específicos
+      if (error.response?.status === 413) {
+        setError('Arquivo muito grande. Tamanho máximo: 10MB por arquivo.');
+      } else if (error.response?.data?.error === 'MISSING_FILES') {
         const missing = error.response.data.missingFiles || [];
         setError(`Documentos obrigatórios faltando: ${missing.join(', ')}`);
       } else {
-        setError(
-          error.response?.data?.message || 
-          error.response?.data?.error ||
-          'Erro ao enviar informações. Verifique os arquivos e tente novamente.'
+        const errorMsg = error.response?.data?.message || 
+                        error.response?.data?.error ||
+                        'Erro ao enviar informações. Verifique os arquivos e tente novamente.';
+        setError(errorMsg);
+      }
         );
       }
     } finally {

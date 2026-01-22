@@ -165,6 +165,10 @@ router.post('/me/documents', authenticateDriver, upload.fields([
   try {
     const driverId = (req as any).userId || (req as any).user?.id || (req as any).driver?.id;
     
+    console.log('[UPLOAD] Driver ID:', driverId);
+    console.log('[UPLOAD] Files received:', req.files ? Object.keys(req.files) : 'NONE');
+    console.log('[UPLOAD] Body keys:', Object.keys(req.body));
+    
     if (!driverId) {
       return res.status(401).json({
         success: false,
@@ -174,6 +178,13 @@ router.post('/me/documents', authenticateDriver, upload.fields([
     }
 
     const files = req.files as Record<string, Express.Multer.File[]>;
+
+    // Log detalhado dos arquivos
+    if (files) {
+      Object.entries(files).forEach(([key, fileArray]) => {
+        console.log(`[UPLOAD] ${key}:`, fileArray.map(f => `${f.originalname} (${f.size} bytes)`));
+      });
+    }
 
     // Alias temporário: certidao -> backgroundCheck
     if ((!files?.backgroundCheck || files.backgroundCheck.length === 0) && files?.certidao?.length) {
