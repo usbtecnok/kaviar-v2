@@ -49,7 +49,16 @@ export default function AdminDriverDetail() {
     try {
       const response = await api.get(`/api/admin/drivers/${id}`);
       if (response.data.success) {
-        setDriver(response.data.data);
+        const driverData = response.data.data;
+        console.log('[Admin] Driver loaded:', {
+          id: driverData.id,
+          vehicle_color: driverData.vehicle_color,
+          vehicle_plate: driverData.vehicle_plate,
+          vehicle_model: driverData.vehicle_model,
+          family_bonus_accepted: driverData.family_bonus_accepted,
+          family_bonus_profile: driverData.family_bonus_profile
+        });
+        setDriver(driverData);
       } else {
         setError(response.data.error || 'Motorista não encontrado');
       }
@@ -270,7 +279,10 @@ export default function AdminDriverDetail() {
           <Grid item xs={12}>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Bônus Familiar</Typography>
             {(() => {
-              if (!driver.family_bonus_accepted) {
+              // Converter para boolean (pode vir como string do DB)
+              const isFamilyBonusAccepted = driver.family_bonus_accepted === true || driver.family_bonus_accepted === 't' || driver.family_bonus_accepted === 'true';
+              
+              if (!isFamilyBonusAccepted) {
                 return (
                   <Typography variant="body2" color="text.secondary">
                     Não declarado
