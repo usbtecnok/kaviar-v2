@@ -175,11 +175,14 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
       });
     }
 
-    // Log qual campo casou
+    // Log qual campo casou e valores críticos
     let matchedBy = 'id';
     if (driver.email === id) matchedBy = 'email';
     else if (driver.phone === id) matchedBy = 'phone';
     console.log(`[Admin] Driver found by ${matchedBy}: ${driver.id}`);
+    console.log(`[Admin] vehicle_color: ${driver.vehicle_color}`);
+    console.log(`[Admin] family_bonus_accepted: ${driver.family_bonus_accepted} (type: ${typeof driver.family_bonus_accepted})`);
+    console.log(`[Admin] family_bonus_profile: ${driver.family_bonus_profile}`);
 
     res.json({
       success: true,
