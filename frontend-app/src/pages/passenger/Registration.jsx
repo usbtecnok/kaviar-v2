@@ -28,6 +28,7 @@ export default function PassengerRegistration() {
     name: '',
     email: '',
     phone: '',
+    password: '',
     communityId: ''
   });
   const [communities, setCommunities] = useState([]);
@@ -119,6 +120,15 @@ export default function PassengerRegistration() {
               value={formData.phone}
               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
               fullWidth
+            />
+            <TextField
+              label="Senha"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              required
+              fullWidth
+              helperText="Mínimo 6 caracteres"
             />
           </Box>
         );
