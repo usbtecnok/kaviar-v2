@@ -14,7 +14,9 @@ const passengerCreateSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   email: z.string().trim().email('Email inválido').min(1, 'Email é obrigatório'),
   phone: z.string().min(1, 'Telefone é obrigatório'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres')
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  neighborhoodId: z.string().min(1, 'Bairro é obrigatório'),
+  communityId: z.string().optional()
 });
 
 const passengerLoginSchema = z.object({
@@ -45,7 +47,9 @@ router.post('/passenger', async (req, res) => {
         email: data.email,
         phone: data.phone,
         password_hash: hashedPassword,
-        status: 'ACTIVE', // Passengers are immediately active
+        neighborhood_id: data.neighborhoodId,
+        community_id: data.communityId || null,
+        status: 'ACTIVE',
         created_at: new Date(),
         updated_at: new Date()
       }

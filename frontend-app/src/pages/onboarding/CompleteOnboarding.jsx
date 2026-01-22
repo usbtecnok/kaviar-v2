@@ -63,6 +63,7 @@ export default function CompleteOnboarding() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [completed, setCompleted] = useState(false);
+  const [lgpdAccepted, setLgpdAccepted] = useState(false);
 
   useEffect(() => {
     loadNeighborhoods();
@@ -133,6 +134,11 @@ export default function CompleteOnboarding() {
         setLoading(false);
         return;
       }
+      if (!clean.neighborhoodId) {
+        setError('Selecione um bairro.');
+        setLoading(false);
+        return;
+      }
       if (clean.password.length < 6) {
         setError('Senha deve ter pelo menos 6 caracteres.');
         setLoading(false);
@@ -140,6 +146,11 @@ export default function CompleteOnboarding() {
       }
       if (clean.password !== clean.confirmPassword) {
         setError('Senhas não coincidem.');
+        setLoading(false);
+        return;
+      }
+      if (!lgpdAccepted) {
+        setError('Você deve aceitar os termos LGPD para continuar.');
         setLoading(false);
         return;
       }
@@ -176,6 +187,7 @@ export default function CompleteOnboarding() {
           email: clean.email,
           phone: clean.phone,
           password: clean.password,
+          neighborhoodId: clean.neighborhoodId,
           communityId: clean.communityId || null
         });
         userId = response.data.data.id;
@@ -192,7 +204,7 @@ export default function CompleteOnboarding() {
         try {
           const loginResponse = await api.post('/api/auth/passenger/login', {
             email: clean.email,
-            phone: clean.phone
+            password: clean.password
           });
           
           if (loginResponse.data.success) {
@@ -282,9 +294,9 @@ export default function CompleteOnboarding() {
       const apiError = error.response?.data;
 
       if (Array.isArray(apiError?.error)) {
-        setError(
-          apiError.error.map(e => e.message).join('\n')
-        );
+        setError(apiError.error.map(e => e.message).join('\n'));
+      } else if (typeof apiError?.error === 'string') {
+        setError(apiError.error);
       } else if (typeof apiError?.message === 'string') {
         setError(apiError.message);
       } else {
@@ -376,6 +388,37 @@ export default function CompleteOnboarding() {
                   onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                   required
                   fullWidth
+                />
+              </>
+            )}
+
+            {/* Bairro obrigatório para passageiro */}
+            {userType === 'passenger' && (
+              <>
+                <FormControl fullWidth required sx={{ mt: 2 }}>
+                  <InputLabel>Bairro *</InputLabel>
+                  <Select
+                    value={clean.neighborhoodId}
+                    onChange={(e) => setFormData(prev => ({ ...prev, neighborhoodId: e.target.value }))}
+                    required
+                  >
+                    <MenuItem value="">Selecione um bairro</MenuItem>
+                    {neighborhoods.map(neighborhood => (
+                      <MenuItem key={neighborhood.id} value={neighborhood.id}>
+                        {neighborhood.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  label="Comunidade (Opcional)"
+                  value={clean.communityId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
+                  fullWidth
+                  placeholder="Digite o nome da comunidade"
+                  helperText="Campo opcional - deixe em branco se não pertencer a nenhuma comunidade"
+                  sx={{ mt: 2 }}
                 />
               </>
             )}
@@ -502,7 +545,6 @@ export default function CompleteOnboarding() {
                     onChange={(e) => {
                       const neighborhoodId = e.target.value;
                       setFormData(prev => ({ ...prev, neighborhoodId, communityId: '' }));
-                      // Filtrar comunidades do bairro selecionado (se houver lógica de vinculação)
                       setFilteredCommunities(communities);
                     }}
                     required
@@ -534,40 +576,69 @@ export default function CompleteOnboarding() {
               </>
             )}
 
-            {(userType === 'passenger' || userType === 'guide') && (
-              <FormControl fullWidth>
-                <InputLabel>Comunidade (Opcional)</InputLabel>
-                <Select
-                  value={clean.communityId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
-                >
-                  <MenuItem value="">Nenhuma</MenuItem>
-                  {communities.map(community => (
-                    <MenuItem key={community.id} value={community.id}>
-                      {community.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            {userType === 'passenger' && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1" color="text.secondary">
+                  Seus dados de bairro e comunidade já foram preenchidos no passo anterior.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Clique em "Próximo" para revisar seus dados.
+                </Typography>
+              </Box>
+            )}
+
+            {userType === 'guide' && (
+              <TextField
+                label="Comunidade (Opcional)"
+                value={clean.communityId}
+                onChange={(e) => setFormData(prev => ({ ...prev, communityId: e.target.value }))}
+                fullWidth
+                placeholder="Digite o nome da comunidade"
+                helperText="Campo opcional - deixe em branco se não pertencer a nenhuma comunidade"
+              />
             )}
           </Box>
         );
       case 2:
         return (
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h6" gutterBottom>
+          <Box>
+            <Typography variant="h6" gutterBottom align="center">
               Revisão dos Dados
             </Typography>
-            <Typography>Tipo: {userType === 'passenger' ? 'Passageiro' : userType === 'driver' ? 'Motorista' : 'Guia Turístico'}</Typography>
-            <Typography>Nome: {clean.name}</Typography>
-            {userType !== 'driver' && <Typography>Email: {clean.email}</Typography>}
-            <Typography>Telefone: {clean.phone}</Typography>
-            <Typography>Bairro: {neighborhoods.find(n => n.id === clean.neighborhoodId)?.name || 'Não selecionado'}</Typography>
-            {clean.communityId && (
-              <Typography>Comunidade: {communities.find(c => c.id === clean.communityId)?.name}</Typography>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+              <Typography>Tipo: {userType === 'passenger' ? 'Passageiro' : userType === 'driver' ? 'Motorista' : 'Guia Turístico'}</Typography>
+              <Typography>Nome: {clean.name}</Typography>
+              {userType !== 'driver' && <Typography>Email: {clean.email}</Typography>}
+              <Typography>Telefone: {clean.phone}</Typography>
+              <Typography>Bairro: {neighborhoods.find(n => n.id === clean.neighborhoodId)?.name || 'Não selecionado'}</Typography>
+              {clean.communityId && (
+                <Typography>Comunidade: {clean.communityId}</Typography>
+              )}
+            </Box>
+
+            {userType === 'passenger' && (
+              <Box sx={{ mt: 4, p: 3, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="h6" gutterBottom>
+                  Consentimento LGPD
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 2 }}>
+                  Para utilizar nossos serviços, precisamos do seu consentimento para processar seus dados pessoais conforme a Lei Geral de Proteção de Dados (LGPD).
+                </Typography>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={lgpdAccepted}
+                      onChange={(e) => setLgpdAccepted(e.target.checked)}
+                      required
+                    />
+                  }
+                  label="Aceito o tratamento dos meus dados pessoais conforme a LGPD"
+                />
+              </Box>
             )}
+
             {userType === 'driver' && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block', textAlign: 'center' }}>
                 Após finalizar, você será direcionado para enviar documentos e aceitar os termos.
               </Typography>
             )}
@@ -613,7 +684,7 @@ export default function CompleteOnboarding() {
           <Button
             variant="contained"
             onClick={handleNext}
-            disabled={loading}
+            disabled={loading || (activeStep === steps.length - 1 && userType === 'passenger' && !lgpdAccepted)}
           >
             {activeStep === steps.length - 1 ? 'Finalizar' : 'Próximo'}
           </Button>
