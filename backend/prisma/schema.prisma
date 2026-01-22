@@ -255,6 +255,7 @@ model neighborhoods {
   created_at             DateTime                @default(now())
   updated_at             DateTime
   drivers                drivers[]
+  passengers             passengers[]
   neighborhood_geofences neighborhood_geofences?
 }
 
