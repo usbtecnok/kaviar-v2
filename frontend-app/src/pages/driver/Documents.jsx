@@ -183,8 +183,6 @@ export default function DriverDocuments() {
                         'Erro ao enviar informações. Verifique os arquivos e tente novamente.';
         setError(errorMsg);
       }
-        );
-      }
     } finally {
       setLoading(false);
     }
