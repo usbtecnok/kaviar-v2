@@ -39,6 +39,16 @@ router.post('/passenger', async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
+    // Validate communityId: only save if it's a valid UUID
+    const isValidUUID = (str: string) => {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(str);
+    };
+    
+    const communityId = data.communityId && isValidUUID(data.communityId) 
+      ? data.communityId 
+      : null;
+    
     // Create passenger with ACTIVE status (no approval needed)
     const passenger = await prisma.passengers.create({
       data: {
@@ -48,7 +58,7 @@ router.post('/passenger', async (req, res) => {
         phone: data.phone,
         password_hash: hashedPassword,
         neighborhood_id: data.neighborhoodId,
-        community_id: data.communityId || null,
+        community_id: communityId,
         status: 'ACTIVE',
         created_at: new Date(),
         updated_at: new Date()
