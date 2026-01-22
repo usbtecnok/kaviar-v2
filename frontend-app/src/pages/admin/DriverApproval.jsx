@@ -49,6 +49,41 @@ const uniqueByTypeBestStatus = (docs) => {
   return Array.from(map.values());
 };
 
+const getVehiclePlate = (d) => d?.vehicle_plate ?? d?.vehiclePlate ?? d?.vehicle?.plate ?? '-';
+const getVehicleModel = (d) => d?.vehicle_model ?? d?.vehicleModel ?? d?.vehicle?.model ?? '-';
+const getVehicleColor = (d) => d?.vehicle_color ?? d?.vehicleColor ?? d?.vehicle?.color ?? '-';
+
+const getFamilyBonusLabel = (d) => {
+  const accepted = d?.family_bonus_accepted ?? d?.familyBonusAccepted ?? d?.familyBonus?.accepted;
+  const profile = d?.family_bonus_profile ?? d?.familyBonusProfile ?? d?.familyBonus?.profile;
+
+  if (accepted === true) return "Aceito";
+  if (profile != null && profile !== "") {
+    if (typeof profile === "object") {
+      return profile.name || profile.label || profile.type || JSON.stringify(profile);
+    }
+    return String(profile);
+  }
+  if (accepted === false) return "Não";
+  return "-";
+};
+
+const renderFamilyBonus = (d) => {
+  const label = getFamilyBonusLabel(d);
+  if (label === "-") return "-";
+
+  const isAccepted = (d?.family_bonus_accepted ?? d?.familyBonusAccepted) === true;
+
+  return (
+    <Chip
+      size="small"
+      label={label}
+      color={isAccepted ? "success" : "default"}
+      variant={isAccepted ? "filled" : "outlined"}
+    />
+  );
+};
+
 export default function DriverApproval() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -204,6 +239,10 @@ export default function DriverApproval() {
               <TableCell>Email</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Data Cadastro</TableCell>
+              <TableCell>Placa</TableCell>
+              <TableCell>Modelo</TableCell>
+              <TableCell>Cor</TableCell>
+              <TableCell>Bônus Familiar</TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
@@ -222,6 +261,10 @@ export default function DriverApproval() {
                 <TableCell>
                   {new Date(driver.createdAt).toLocaleDateString('pt-BR')}
                 </TableCell>
+                <TableCell>{getVehiclePlate(driver)}</TableCell>
+                <TableCell>{getVehicleModel(driver)}</TableCell>
+                <TableCell>{getVehicleColor(driver)}</TableCell>
+                <TableCell>{renderFamilyBonus(driver)}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
