@@ -117,9 +117,29 @@ router.get('/drivers', async (req: Request, res: Response) => {
       prisma.drivers.count({ where })
     ]);
 
+    // Normalize para camelCase (frontend compatibility)
+    const normalized = drivers.map(d => ({
+      id: d.id,
+      name: d.name,
+      email: d.email,
+      phone: d.phone,
+      status: d.status,
+      createdAt: d.created_at?.toISOString(),
+      certidaoNadaConstaUrl: d.certidao_nada_consta_url,
+      pixKey: d.pix_key,
+      pixKeyType: d.pix_key_type,
+      neighborhoodId: d.neighborhood_id,
+      vehicleColor: d.vehicle_color,
+      vehicleModel: d.vehicle_model,
+      vehiclePlate: d.vehicle_plate,
+      familyBonusAccepted: d.family_bonus_accepted,
+      familyBonusProfile: d.family_bonus_profile,
+      neighborhoods: d.neighborhoods
+    }));
+
     res.json({
       success: true,
-      data: drivers,
+      data: normalized,
       pagination: {
         page,
         limit,
