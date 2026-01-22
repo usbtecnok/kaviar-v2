@@ -201,6 +201,11 @@ router.post('/driver', async (req, res) => {
     // Log incoming data
     console.log('[GOV] familyBonusAccepted incoming:', data.familyBonusAccepted);
     console.log('[GOV] familyProfile incoming:', data.familyProfile);
+    console.log('[GOV] Full payload:', JSON.stringify(data, null, 2));
+    
+    // Aceitar formato camelCase (já validado pelo schema)
+    const familyBonusAccepted = data.familyBonusAccepted ?? false;
+    const familyProfile = data.familyProfile ?? 'individual';
     
     // Create driver - CADASTRO INICIAL (sem validações de aprovação)
     const driver = await prisma.drivers.create({
@@ -213,8 +218,8 @@ router.post('/driver', async (req, res) => {
         status: 'pending',
         neighborhood_id: data.neighborhoodId,
         community_id: data.communityId || null,
-        family_bonus_accepted: data.familyBonusAccepted || false,
-        family_bonus_profile: data.familyProfile || 'individual',
+        family_bonus_accepted: familyBonusAccepted,
+        family_bonus_profile: familyProfile,
         created_at: new Date(),
         updated_at: new Date()
       }

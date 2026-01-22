@@ -212,12 +212,16 @@ router.post('/me/documents', authenticateDriver, upload.fields([
     const vehiclePhotoUrls = files.vehiclePhoto.map(f => `/uploads/certidoes/${f.filename}`);
     const backgroundCheckUrl = `/uploads/certidoes/${files.backgroundCheck[0].filename}`;
 
-    // Extrair dados adicionais do body
-    const { pix_key, pix_key_type, vehiclePlate, vehicleModel, vehicleColor, communityId, lgpdAccepted, termsAccepted } = req.body;
+    // Extrair dados adicionais do body (aceitar ambos formatos)
+    const vehicleColor = req.body.vehicleColor || req.body.vehicle_color;
+    const vehiclePlate = req.body.vehiclePlate || req.body.vehicle_plate;
+    const vehicleModel = req.body.vehicleModel || req.body.vehicle_model;
+    const { pix_key, pix_key_type, communityId, lgpdAccepted, termsAccepted } = req.body;
 
     console.log('[DOCS] vehicleColor incoming:', vehicleColor);
     console.log('[DOCS] vehiclePlate incoming:', vehiclePlate);
     console.log('[DOCS] vehicleModel incoming:', vehicleModel);
+    console.log('[DOCS] Full body keys:', Object.keys(req.body));
 
     // Persistir documentos em transação
     let upsertedCount = 0;
