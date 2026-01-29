@@ -11,7 +11,7 @@ async function startServer() {
       console.log(`🚀 KAVIAR Backend running on port ${PORT}`);
       console.log(`📊 Environment: ${config.nodeEnv}`);
       console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-      console.log(`🔗 Git Commit: ${process.env.RENDER_GIT_COMMIT || 'unknown'}`);
+      console.log(`🔗 Git Commit: ${process.env.GIT_COMMIT || process.env.RENDER_GIT_COMMIT || 'unknown'}`);
     });
 
     // Test database connection (non-blocking startup)

@@ -42,10 +42,12 @@ app.set('trust proxy', 1);
 app.use(helmet());
 app.use(cors({
   origin: [
+    'https://d29p7cirgjqbxl.cloudfront.net',
+    'http://kaviar-frontend-847895361928.s3-website.us-east-2.amazonaws.com',
     'https://kaviar-frontend.onrender.com',
-    'http://localhost:5173',  // Vite dev
-    'http://localhost:4173',  // Vite preview
-    'http://localhost:3000'   // Legacy (manter por enquanto)
+    'http://localhost:5173',
+    'http://localhost:4173',
+    'http://localhost:3000'
   ],
   credentials: true,
   allowedHeaders: ['Authorization', 'Content-Type'],
@@ -68,7 +70,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     success: true,
     message: 'KAVIAR Backend is running',
-    gitCommit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || 'unknown',
+    gitCommit: process.env.GIT_COMMIT || process.env.RENDER_GIT_COMMIT || 'unknown',
     features,
     timestamp: new Date().toISOString(),
   });
