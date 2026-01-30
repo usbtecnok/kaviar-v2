@@ -8,15 +8,16 @@ datasource db {
 }
 
 model admins {
-  id            String   @id
-  name          String
-  email         String   @unique
-  password_hash String
-  is_active     Boolean  @default(true)
-  role_id       String
-  created_at    DateTime @default(now())
-  updated_at    DateTime
-  roles         roles    @relation(fields: [role_id], references: [id])
+  id                    String    @id @default(uuid())
+  name                  String
+  email                 String    @unique
+  password              String
+  role                  String    @default("SUPER_ADMIN")
+  is_active             Boolean   @default(true)
+  must_change_password  Boolean   @default(true)
+  password_changed_at   DateTime?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
 }
 
 model communities {
@@ -388,7 +389,6 @@ model roles {
   name       String   @unique
   created_at DateTime @default(now())
   updated_at DateTime
-  admins     admins[]
 }
 
 model tour_bookings {

@@ -3,46 +3,10 @@ import { authenticateDriver } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import { GeoResolveService } from '../services/geo-resolve';
-import { getUploadsPaths } from '../config/uploads';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { uploadToS3 } from '../config/s3-upload';
 
 const router = Router();
 const geoResolveService = new GeoResolveService();
-
-// Configurar multer para upload de arquivos (usando path canônico)
-const { certidoesDir } = getUploadsPaths();
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, certidoesDir);
-  },
-  filename: (req, file, cb) => {
-    const driverId = (req as any).userId;
-    const ext = path.extname(file.originalname);
-    const filename = `${driverId}-${Date.now()}${ext}`;
-    const fullPath = path.join(certidoesDir, filename);
-    console.log(`📄 Saving file: ${fullPath}`);
-    cb(null, filename);
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /pdf|jpg|jpeg|png/;
-    const ext = path.extname(file.originalname).toLowerCase();
-    const mimetype = allowedTypes.test(file.mimetype);
-    const extname = allowedTypes.test(ext);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Apenas arquivos PDF, JPG, JPEG ou PNG são permitidos'));
-  }
-});
 
 const completeProfileSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').optional(),
@@ -153,7 +117,7 @@ router.post('/me/online', authenticateDriver, async (req: Request, res: Response
 });
 
 // POST /api/drivers/me/documents (multi-file upload)
-router.post('/me/documents', authenticateDriver, upload.fields([
+router.post('/me/documents', authenticateDriver, uploadToS3.fields([
   { name: 'cpf', maxCount: 1 },
   { name: 'rg', maxCount: 1 },
   { name: 'cnh', maxCount: 1 },
@@ -215,13 +179,13 @@ router.post('/me/documents', authenticateDriver, upload.fields([
       });
     }
 
-    // Construir URLs dos arquivos
-    const cpfUrl = `/uploads/certidoes/${files.cpf[0].filename}`;
-    const rgUrl = `/uploads/certidoes/${files.rg[0].filename}`;
-    const cnhUrl = `/uploads/certidoes/${files.cnh[0].filename}`;
-    const proofOfAddressUrl = `/uploads/certidoes/${files.proofOfAddress[0].filename}`;
-    const vehiclePhotoUrls = files.vehiclePhoto.map(f => `/uploads/certidoes/${f.filename}`);
-    const backgroundCheckUrl = `/uploads/certidoes/${files.backgroundCheck[0].filename}`;
+    // Construir URLs dos arquivos (S3 keys)
+    const cpfUrl = (files.cpf[0] as any).key;
+    const rgUrl = (files.rg[0] as any).key;
+    const cnhUrl = (files.cnh[0] as any).key;
+    const proofOfAddressUrl = (files.proofOfAddress[0] as any).key;
+    const vehiclePhotoUrls = files.vehiclePhoto.map((f: any) => f.key);
+    const backgroundCheckUrl = (files.backgroundCheck[0] as any).key;
 
     // Extrair dados adicionais do body (aceitar ambos formatos)
     const vehicleColor = req.body.vehicleColor || req.body.vehicle_color;

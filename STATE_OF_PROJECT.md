@@ -1,5 +1,5 @@
 # 📊 KAVIAR - STATE OF THE PROJECT
-**Data:** 2026-01-21 07:02 BRT  
+**Data:** 2026-01-29 08:15 BRT  
 **Repositório:** /home/goes/kaviar  
 **Branch:** main (sincronizado com origin)  
 **Último Commit:** `0224832 fix(driver-approval): add debug logging and improve error feedback`
@@ -19,11 +19,105 @@ Commits recentes:
 - f9de5ee fix(uploads): canonical path resolver + PUT/POST approve compat (404->200)
 ```
 
-### Backend (RODANDO ✅)
-- **Porta:** 3003 (local development)
-- **Status:** Backend ativo (tsx watch src/server.ts)
-- **Health Check:** `http://localhost:3003/api/health` → ✅ OK
-- **Database:** Neon PostgreSQL (production branch)
+### Infraestrutura
+
+#### 1️⃣ Repo/Deploy PaaS (✅ Confirmado)
+**Status:** Operacional (validado via HTTP 200)
+
+| Componente | URL/Host | Status |
+|------------|----------|--------|
+| Backend | `https://kaviar-v2.onrender.com` | ✅ HTTP 200 |
+| Frontend | `https://kaviar-frontend.onrender.com` | ✅ HTTP 200 |
+| Database | `ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech` | ✅ Conectado |
+| Deploy | Git push → branch main (auto-deploy) | ✅ Ativo |
+
+**Última validação:** 2026-01-28 21:23 BRT
+
+---
+
+#### 2️⃣ AWS Migration (✅ FASE 4B COMPLETA)
+**Status:** Backend operacional em ECS + ALB
+
+**Fases Concluídas:**
+
+| Fase | Componentes | Status |
+|------|-------------|--------|
+| 1 - VPC | VPC, Subnets, IGW, Route Tables | ✅ |
+| 2 - RDS | PostgreSQL 15.15 + PostGIS 3.4 | ✅ |
+| 3 - Storage | S3, ElastiCache Redis, SQS | ✅ |
+| 4A - Docker | Build + Push para ECR | ✅ |
+| 4B - ECS/ALB | Cluster, Service, ALB | ✅ **FIXED** |
+
+**Recursos AWS (us-east-2):**
+
+| Recurso | Identificador | Status |
+|---------|---------------|--------|
+| VPC | `vpc-0227695745b8467cb` | ✅ |
+| RDS | `kaviar-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com` | ✅ |
+| Redis | `kaviar-redis.pcbj2m.ng.0001.use2.cache.amazonaws.com` | ✅ |
+| S3 | `kaviar-uploads-1769655575` | ✅ |
+| ECR | `847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend` | ✅ |
+| ECS Cluster | `kaviar-cluster` | ✅ |
+| ECS Service | `kaviar-backend-service` (2 tasks) | ✅ |
+| ALB | `kaviar-alb-1494046292.us-east-2.elb.amazonaws.com` | ✅ HTTP 200 |
+| Target Group | 2 targets healthy | ✅ |
+
+**Validação Fase 4B:**
+```bash
+$ ./validate-fase4b.sh
+✅ FASE 4B OPERACIONAL
+   • 2 target(s) healthy
+   • ALB respondendo HTTP 200
+   • URL: http://kaviar-alb-1494046292.us-east-2.elb.amazonaws.com
+```
+
+**Correção Aplicada:** Security Group `kaviar-ecs-sg` configurado corretamente para permitir tráfego ALB → ECS:3001
+
+**Última validação:** 2026-01-29 08:15 BRT
+
+---
+
+#### 3️⃣ AWS - Próximas Fases
+```bash
+# 1. Validar endpoint ALB (se disponível)
+export ALB_DNS="<seu-alb-dns>.us-east-2.elb.amazonaws.com"
+curl -i "http://$ALB_DNS/api/health"
+
+# 2. Validar Render.com (PaaS)
+curl -i "https://kaviar-v2.onrender.com/api/health"
+```
+
+**Validação Completa (com AWS CLI):**
+```bash
+# Configurar credenciais
+aws configure
+
+# Executar script de validação (TEMP - não commitado)
+./validate-aws-infra.sh
+```
+
+**Última tentativa:** 2026-01-28 21:23 BRT
+- ❌ AWS CLI: Credenciais não configuradas
+- ⏸️ ALB_DNS: Variável de ambiente não definida
+- ℹ️ Evidências no repo: 0 arquivos AWS (IaC, configs, scripts)
+
+---
+
+#### 3️⃣ AWS (Confirmado via Endpoint)
+**Status:** Aguardando DNS do ALB para validação HTTP
+
+Quando disponível:
+```bash
+export ALB_DNS="<alb-dns>"
+curl -s "http://$ALB_DNS/api/health" | jq
+# Se retornar 200 + JSON válido → Confirmar como operacional
+```
+
+### Backend
+- **Porta Local:** 3003 (development)
+- **Status Local:** Backend ativo (tsx watch src/server.ts)
+- **Health Check Local:** `http://localhost:3003/api/health` → ✅ OK
+- **Database (Local):** Neon PostgreSQL (production branch, pooler mode)
 - **Features Ativas:**
   - ✅ Twilio WhatsApp (`ENABLE_TWILIO_WHATSAPP=true`)
   - ✅ Premium Tourism (`ENABLE_PREMIUM_TOURISM=true`)
@@ -461,3 +555,36 @@ psql "postgresql://neondb_owner:npg_2xbfMWRF6hrO@ep-wispy-thunder-ad850l5j-poole
 ---
 
 **Status Geral:** ✅ Backend funcional, ⚠️ Alguns bugs conhecidos, 🚧 Features em desenvolvimento
+
+
+**Próximas Fases AWS:**
+- [x] Fase 1: VPC + Networking ✅
+- [x] Fase 2: RDS PostgreSQL + PostGIS ✅
+- [x] Fase 3: S3 + Redis + SQS ✅
+- [x] Fase 4: Docker + ECR + ECS + ALB ✅
+- [ ] Fase 5: Frontend (S3 + CloudFront) 📝 Script pronto
+- [ ] Fase 6: HTTPS (ACM + ALB 443) 📝 Script pronto
+- [ ] Fase 7: DNS (Route53 + domínio customizado)
+- [ ] Fase 8: Monitoring (CloudWatch Dashboards + Alarms)
+
+**Scripts Disponíveis:**
+
+*Fase 4B (Backend):*
+- `./validate-fase4b.sh` - Validação rápida
+- `./fix-ecs-sg.sh` - Correção de Security Group
+- `RUNBOOK_FASE4B.md` - Troubleshooting completo
+- `FASE4B_CORRECAO.md` - Resumo executivo
+
+*Fase 5 (Frontend):*
+- `./aws-phase5-frontend.sh` - Deploy S3 + CloudFront
+- `./validate-phase5.sh` - Validação frontend
+
+*Fase 6 (HTTPS):*
+- `./aws-phase6-https.sh` - Certificado ACM + HTTPS
+- `./validate-phase6.sh` - Validação HTTPS
+
+*Cutover:*
+- `CUTOVER_CHECKLIST.md` - Checklist completo Render → AWS
+- `FASES_5_6_RESUMO.md` - Resumo executivo Fases 5 & 6
+
+---

@@ -399,16 +399,14 @@ export class RideAdminService {
           where: { id: log.admin_id },
           select: {
             name: true,
-            roles: {
-              select: { name: true }
-            }
+            role: true,
           }
         });
 
         return {
           ...log,
           adminName: admin?.name || 'Admin Desconhecido',
-          adminRole: admin?.roles?.name || 'ADMIN',
+          adminRole: admin?.role || 'ADMIN',
         };
       })
     );

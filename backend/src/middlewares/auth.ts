@@ -5,12 +5,6 @@ import { prisma } from '../lib/prisma';
 // Mantém compatibilidade: tenta ADMIN_JWT_SECRET e depois JWT_SECRET.
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
 
-// Whitelist de emails autorizados
-const ALLOWED_ADMIN_EMAILS = [
-  'suporte@usbtecnok.com.br',
-  'financeiro@usbtecnok.com.br'
-];
-
 function getBearerToken(req: Request): string | null {
   const header = (req.headers.authorization || (req.headers as any).Authorization) as string | undefined;
   if (!header || typeof header !== 'string') return null;
@@ -47,18 +41,19 @@ export async function authenticateAdmin(req: Request, res: Response, next: NextF
 
     const admin = await prisma.admins.findUnique({ 
       where: { id: adminId },
-      include: { roles: true }
     });
-    if (!admin) {
+    
+    if (!admin || !admin.is_active) {
       return res.status(401).json({ success: false, error: 'Token inválido' });
     }
 
-    // Whitelist check
-    if (!ALLOWED_ADMIN_EMAILS.includes(admin.email.toLowerCase())) {
-      return res.status(403).json({ success: false, error: 'Acesso não autorizado' });
-    }
-
-    (req as any).admin = admin;
+    // Adicionar role ao req.admin
+    (req as any).admin = {
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+      role: admin.role,
+    };
     (req as any).adminId = adminId;
 
     return next();
@@ -71,7 +66,7 @@ export async function authenticateAdmin(req: Request, res: Response, next: NextF
  * Middleware de autorização por papel (role)
  * Uso:
  *   adminRouter.use(authenticateAdmin);
- *   adminRouter.use(requireRole(['SUPER_ADMIN', 'OPERATOR']));
+ *   adminRouter.use(requireRole(['SUPER_ADMIN', 'ANGEL_VIEWER']));
  */
 export function requireRole(allowedRoles: string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -79,22 +74,34 @@ export function requireRole(allowedRoles: string[]) {
       const admin = (req as any).admin;
 
       if (!admin) {
-        return res.status(401).json({ success: false, error: 'Token inválido' });
+        return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
 
-      // Admin carregado com include: { roles: true }
-      const roleName = admin.roles?.name;
-
-      if (roleName && allowedRoles.includes(roleName)) {
+      if (allowedRoles.includes(admin.role)) {
         return next();
       }
 
-      return res.status(403).json({ success: false, error: 'Acesso negado' });
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Acesso negado. Permissão insuficiente.',
+        requiredRoles: allowedRoles,
+        userRole: admin.role,
+      });
     } catch (_err) {
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }
   };
 }
+
+/**
+ * Middleware para exigir SUPER_ADMIN
+ */
+export const requireSuperAdmin = requireRole(['SUPER_ADMIN']);
+
+/**
+ * Middleware para permitir leitura (SUPER_ADMIN ou ANGEL_VIEWER)
+ */
+export const allowReadAccess = requireRole(['SUPER_ADMIN', 'ANGEL_VIEWER']);
 
 export async function authenticateDriver(req: Request, res: Response, next: NextFunction) {
   try {

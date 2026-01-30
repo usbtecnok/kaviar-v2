@@ -5,7 +5,7 @@ import { TourPartnerController } from '../modules/admin/tour-partner-controller'
 import { TourReportController } from '../modules/admin/tour-report-controller';
 import { TourSettingsController } from '../modules/admin/tour-settings-controller';
 import { TourController } from '../modules/governance/tour-controller';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
 import { requirePremiumTourismEnabled } from '../middlewares/premium-tourism-flag';
 
 const router = Router();
@@ -24,19 +24,18 @@ router.use(requirePremiumTourismEnabled);
 // Admin routes (require authentication)
 const adminRouter = Router();
 adminRouter.use(authenticateAdmin);
-// adminRouter.use(requireRole(['SUPER_ADMIN', 'OPERATOR']));
 
 // Tour Packages (Admin)
-adminRouter.post('/tour-packages', tourPackageController.createTourPackage);
-adminRouter.get('/tour-packages', tourPackageController.getAllTourPackages);
-adminRouter.get('/tour-packages/:id', tourPackageController.getTourPackage);
-adminRouter.put('/tour-packages/:id', tourPackageController.updateTourPackage);
-adminRouter.patch('/tour-packages/:id/deactivate', tourPackageController.deactivateTourPackage);
+adminRouter.post('/tour-packages', requireSuperAdmin, tourPackageController.createTourPackage);
+adminRouter.get('/tour-packages', allowReadAccess, tourPackageController.getAllTourPackages);
+adminRouter.get('/tour-packages/:id', allowReadAccess, tourPackageController.getTourPackage);
+adminRouter.put('/tour-packages/:id', requireSuperAdmin, tourPackageController.updateTourPackage);
+adminRouter.patch('/tour-packages/:id/deactivate', requireSuperAdmin, tourPackageController.deactivateTourPackage);
 
 // Tour Bookings (Admin)
-adminRouter.get('/tour-bookings', tourBookingController.getAllTourBookings);
-adminRouter.post('/tour-bookings/:id/confirm', tourBookingController.confirmTourBooking);
-adminRouter.patch('/tour-bookings/:id/status', tourBookingController.updateTourBookingStatus);
+adminRouter.get('/tour-bookings', allowReadAccess, tourBookingController.getAllTourBookings);
+adminRouter.post('/tour-bookings/:id/confirm', requireSuperAdmin, tourBookingController.confirmTourBooking);
+adminRouter.patch('/tour-bookings/:id/status', requireSuperAdmin, tourBookingController.updateTourBookingStatus);
 
 // Tour Partners (Admin) - TEMPORARILY DISABLED DUE TO CONTROLLER ISSUES
 // adminRouter.post('/tour-partners', tourPartnerController.createTourPartner);

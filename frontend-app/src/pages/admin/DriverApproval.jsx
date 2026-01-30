@@ -28,6 +28,11 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 
 const normType = (t) => String(t || "").trim().toUpperCase();
 
+const isSuperAdmin = () => {
+  const data = localStorage.getItem('kaviar_admin_data');
+  return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
+};
+
 const statusRank = (s) => {
   const v = String(s || "").toUpperCase();
   if (v === "VERIFIED") return 3;
@@ -275,7 +280,7 @@ export default function DriverApproval() {
                     >
                       Ver
                     </Button>
-                    {driver.status === 'pending' && (
+                    {isSuperAdmin() && driver.status === 'pending' && (
                       <>
                         <Button
                           size="small"
@@ -297,15 +302,17 @@ export default function DriverApproval() {
                         </Button>
                       </>
                     )}
-                    <Button
-                      size="small"
-                      color="error"
-                      startIcon={actionLoading === driver.id ? <CircularProgress size={16} /> : <Delete />}
-                      onClick={() => openConfirmDialog('delete', driver.id)}
-                      disabled={actionLoading === driver.id}
-                    >
-                      Excluir
-                    </Button>
+                    {isSuperAdmin() && (
+                      <Button
+                        size="small"
+                        color="error"
+                        startIcon={actionLoading === driver.id ? <CircularProgress size={16} /> : <Delete />}
+                        onClick={() => openConfirmDialog('delete', driver.id)}
+                        disabled={actionLoading === driver.id}
+                      >
+                        Excluir
+                      </Button>
+                    )}
                   </Box>
                 </TableCell>
               </TableRow>

@@ -3,7 +3,7 @@ import { prisma } from '../lib/prisma';
 import { z } from 'zod';
 import path from 'path';
 import fs from 'fs';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
 import { ApprovalController } from '../modules/admin/approval-controller';
 
 const router = Router();
@@ -19,8 +19,7 @@ const createDriverSchema = z.object({
 });
 
 // POST /api/admin/drivers/create
-// TODO: Adicionar autenticação admin
-router.post('/drivers/create', async (req: Request, res: Response) => {
+router.post('/drivers/create', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const data = createDriverSchema.parse(req.body);
 
@@ -76,7 +75,7 @@ router.post('/drivers/create', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/drivers?status=pending
-router.get('/drivers', async (req: Request, res: Response) => {
+router.get('/drivers', allowReadAccess, async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string;
     const page = parseInt(req.query.page as string) || 1;
@@ -157,7 +156,7 @@ router.get('/drivers', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/drivers/:id
-router.get('/drivers/:id', async (req: Request, res: Response) => {
+router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -218,7 +217,7 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/drivers/:id/documents
-router.get('/drivers/:id/documents', async (req: Request, res: Response) => {
+router.get('/drivers/:id/documents', allowReadAccess, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -242,11 +241,11 @@ router.get('/drivers/:id/documents', async (req: Request, res: Response) => {
 
 // POST/PUT /api/admin/drivers/:id/approve (delegado ao ApprovalController)
 // Aceita ambos métodos para compatibilidade frontend
-router.post('/drivers/:id/approve', approvalController.approveDriver);
-router.put('/drivers/:id/approve', approvalController.approveDriver);
+router.post('/drivers/:id/approve', requireSuperAdmin, approvalController.approveDriver);
+router.put('/drivers/:id/approve', requireSuperAdmin, approvalController.approveDriver);
 
 // POST /api/admin/drivers/:id/reject
-router.post('/drivers/:id/reject', async (req: Request, res: Response) => {
+router.post('/drivers/:id/reject', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
@@ -296,7 +295,7 @@ router.post('/drivers/:id/reject', async (req: Request, res: Response) => {
 
 // 🔍 DEBUG ENDPOINT (ADMIN ONLY, ENV GATED)
 // GET /api/admin/debug/uploads-check?file=<filename>
-router.get('/debug/uploads-check', async (req: Request, res: Response) => {
+router.get('/debug/uploads-check', requireSuperAdmin, async (req: Request, res: Response) => {
   // Feature flag: só habilitar em produção com env var
   if (process.env.ENABLE_UPLOADS_DEBUG !== 'true') {
     return res.status(404).json({ error: 'Not found' });

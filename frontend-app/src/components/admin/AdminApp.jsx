@@ -22,7 +22,7 @@ import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
 import TourPartners from "../../pages/admin/premium-tourism/TourPartners";
 import TourReports from "../../pages/admin/premium-tourism/TourReports";
 import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
-import ElderlyManagement from "../../pages/admin/ElderlyManagement";
+import ChangePassword from "../../pages/admin/ChangePassword";
 import { useState, useEffect } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
@@ -30,6 +30,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001
 function AdminHeader() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
+  const isAngelViewer = admin?.role === 'ANGEL_VIEWER';
   
   const handleLogout = () => {
     localStorage.removeItem('kaviar_admin_token');
@@ -53,9 +54,22 @@ function AdminHeader() {
         <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
           Admin: {admin?.name || 'Usuário'}
         </Typography>
-        <Typography variant="body2" sx={{ color: '#FFF' }}>
-          {admin?.role || 'ADMIN'}
-        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Typography variant="body2" sx={{ color: '#FFF' }}>
+            {admin?.role || 'ADMIN'}
+          </Typography>
+          {isAngelViewer && (
+            <Chip 
+              label="👁️ Modo Leitura" 
+              size="small"
+              sx={{ 
+                bgcolor: '#FFA726', 
+                color: '#000',
+                fontWeight: 'bold'
+              }} 
+            />
+          )}
+        </Box>
       </Box>
       <Button 
         onClick={handleLogout} 
@@ -82,7 +96,24 @@ function AdminHome() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 403) {
+        const adminData = localStorage.getItem('kaviar_admin_data');
+        if (adminData) {
+          const admin = JSON.parse(adminData);
+          if (admin.role === 'ANGEL_VIEWER') {
+            alert('Sem permissão: você está em modo somente leitura');
+          }
+        }
+      }
+      return response;
+    };
+    
     fetchDashboardData();
+    
+    return () => { window.fetch = originalFetch; };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -564,6 +595,7 @@ export default function AdminApp() {
       <Box sx={{ bgcolor: '#000', minHeight: '100vh', color: '#FFD700' }}>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
+          <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/" element={
             <ProtectedAdminRoute>
               <AdminHome />

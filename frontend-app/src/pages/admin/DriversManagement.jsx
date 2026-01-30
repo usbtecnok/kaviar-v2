@@ -29,6 +29,11 @@ import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+const isSuperAdmin = () => {
+  const data = localStorage.getItem('kaviar_admin_data');
+  return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
+};
+
 export default function DriversManagement() {
   const navigate = useNavigate();
   const [drivers, setDrivers] = useState([]);
@@ -258,7 +263,7 @@ export default function DriversManagement() {
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    {driver.status === 'pending' && (
+                    {isSuperAdmin() && driver.status === 'pending' && (
                       <>
                         <IconButton
                           size="small"
@@ -278,7 +283,7 @@ export default function DriversManagement() {
                         </IconButton>
                       </>
                     )}
-                    {driver.status === 'rejected' && (
+                    {isSuperAdmin() && driver.status === 'rejected' && (
                       <>
                         <IconButton
                           size="small"
@@ -290,7 +295,7 @@ export default function DriversManagement() {
                         </IconButton>
                       </>
                     )}
-                    {driver.status === 'suspended' && (
+                    {isSuperAdmin() && driver.status === 'suspended' && (
                       <>
                         <IconButton
                           size="small"

@@ -21,3 +21,7 @@ logs/
 .DS_Store
 Thumbs.db
 uploads/
+rds-credentials.txt
+rds.env
+aws-resources.env
+*.log

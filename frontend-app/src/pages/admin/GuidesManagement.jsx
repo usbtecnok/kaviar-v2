@@ -24,6 +24,11 @@ import { CheckCircle, Cancel, Block, Language } from '@mui/icons-material';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+const isSuperAdmin = () => {
+  const data = localStorage.getItem('kaviar_admin_data');
+  return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
+};
+
 export default function GuidesManagement() {
   const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -190,7 +195,7 @@ export default function GuidesManagement() {
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>
-                    {guide.status === 'pending' && (
+                    {isSuperAdmin() && guide.status === 'pending' && (
                       <>
                         <IconButton
                           size="small"
@@ -210,7 +215,7 @@ export default function GuidesManagement() {
                         </IconButton>
                       </>
                     )}
-                    {guide.status === 'approved' && (
+                    {isSuperAdmin() && guide.status === 'approved' && (
                       <IconButton
                         size="small"
                         color="warning"

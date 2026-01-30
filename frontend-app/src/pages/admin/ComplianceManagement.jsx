@@ -26,6 +26,11 @@ import { CheckCircle, Cancel, Visibility, History } from '@mui/icons-material';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
 
+const isSuperAdmin = () => {
+  const data = localStorage.getItem('kaviar_admin_data');
+  return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
+};
+
 export default function ComplianceManagement() {
   const [metrics, setMetrics] = useState({ pending: 0, expiring: 0, blocked: 0 });
   const [documents, setDocuments] = useState([]);
@@ -273,25 +278,29 @@ export default function ComplianceManagement() {
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      <Button
-                        size="small"
-                        variant="contained"
-                        color="success"
-                        startIcon={<CheckCircle />}
-                        onClick={() => handleAction('approve', doc)}
-                        sx={{ mr: 1 }}
-                      >
-                        Aprovar
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<Cancel />}
-                        onClick={() => handleAction('reject', doc)}
-                      >
-                        Rejeitar
-                      </Button>
+                      {isSuperAdmin() && (
+                        <>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            color="success"
+                            startIcon={<CheckCircle />}
+                            onClick={() => handleAction('approve', doc)}
+                            sx={{ mr: 1 }}
+                          >
+                            Aprovar
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<Cancel />}
+                            onClick={() => handleAction('reject', doc)}
+                          >
+                            Rejeitar
+                          </Button>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

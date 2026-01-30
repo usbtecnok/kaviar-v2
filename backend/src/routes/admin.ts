@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
 import { RideAdminController } from '../modules/admin/ride-controller';
 
@@ -9,7 +9,7 @@ const rideController = new RideAdminController();
 router.use(authenticateAdmin);
 
 // GET /api/admin/passengers
-router.get('/passengers', async (req, res) => {
+router.get('/passengers', allowReadAccess, async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -51,21 +51,21 @@ router.get('/passengers', async (req, res) => {
 });
 
 // GET /api/admin/rides - Using RideAdminController with filters
-router.get('/rides', rideController.getRides);
+router.get('/rides', allowReadAccess, rideController.getRides);
 
 // GET /api/admin/rides/:id - Using RideAdminController
-router.get('/rides/:id', rideController.getRideById);
+router.get('/rides/:id', allowReadAccess, rideController.getRideById);
 
 // PATCH /api/admin/rides/:id/status
-router.patch('/rides/:id/status', rideController.updateRideStatus);
+router.patch('/rides/:id/status', requireSuperAdmin, rideController.updateRideStatus);
 
 // POST /api/admin/rides/:id/cancel
-router.post('/rides/:id/cancel', rideController.cancelRide);
+router.post('/rides/:id/cancel', requireSuperAdmin, rideController.cancelRide);
 
 // POST /api/admin/rides/:id/force-complete
-router.post('/rides/:id/force-complete', rideController.forceCompleteRide);
+router.post('/rides/:id/force-complete', requireSuperAdmin, rideController.forceCompleteRide);
 
 // GET /api/admin/rides/audit
-router.get('/rides/audit', rideController.getAuditLogs);
+router.get('/rides/audit', allowReadAccess, rideController.getAuditLogs);
 
 export { router as adminRoutes };

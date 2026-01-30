@@ -166,6 +166,43 @@ const { uploadsBaseDir } = getUploadsPaths();
 app.use('/uploads', express.static(uploadsBaseDir));
 console.log(`✅ Static files: /uploads -> ${uploadsBaseDir}`);
 
+// ✅ S3 presigned URL endpoint (fallback for files not found locally)
+import { getPresignedUrl, extractS3Key } from './config/s3-upload';
+
+app.get('/uploads/*', async (req, res, next) => {
+  try {
+    const key = req.path.replace('/uploads/', '');
+    
+    // Check if file exists in S3
+    const { S3Client, HeadObjectCommand } = require('@aws-sdk/client-s3');
+    const s3Client = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
+    
+    try {
+      await s3Client.send(new HeadObjectCommand({
+        Bucket: process.env.AWS_S3_BUCKET,
+        Key: key
+      }));
+      
+      // File exists in S3, generate presigned URL
+      const presignedUrl = await getPresignedUrl(key);
+      return res.redirect(presignedUrl);
+    } catch (s3Error: any) {
+      if (s3Error.name === 'NotFound') {
+        // File not in S3, return 404 with helpful message
+        return res.status(404).json({
+          success: false,
+          error: 'Arquivo não encontrado',
+          message: 'Este documento foi enviado antes da migração para S3 e não está mais disponível. Por favor, solicite ao motorista que faça upload novamente.',
+          key
+        });
+      }
+      throw s3Error;
+    }
+  } catch (error) {
+    next();
+  }
+});
+
 // Error handling
 app.use(notFound);
 app.use(handleFeatureDisabledError);

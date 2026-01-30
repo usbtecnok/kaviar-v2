@@ -68,3 +68,14 @@ backend/audit/
 *.swx
 *.bak
 *.bak.*
+validate-aws-infra.sh
+
+# AWS credentials and secrets (NEVER COMMIT)
+rds-credentials.txt
+rds.env
+aws-resources.env
+*.log
+**/rds-credentials.txt
+**/rds.env
+**/aws-resources.env
+**/*.log

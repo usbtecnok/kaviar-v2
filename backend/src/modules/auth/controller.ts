@@ -1,6 +1,12 @@
 import { Request, Response } from 'express';
 import { AuthService } from './service';
 import { loginSchema } from './schemas';
+import { z } from 'zod';
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
+  newPassword: z.string().min(8, 'Nova senha deve ter pelo menos 8 caracteres'),
+});
 
 export class AuthController {
   private authService = new AuthService();
@@ -22,6 +28,36 @@ export class AuthController {
       res.status(401).json({
         success: false,
         error: error instanceof Error ? error.message : 'Erro de autenticação',
+      });
+    }
+  };
+
+  changePassword = async (req: Request, res: Response) => {
+    try {
+      const validatedData = changePasswordSchema.parse(req.body);
+      const userId = (req as any).admin?.id;
+
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Não autenticado',
+        });
+      }
+
+      await this.authService.changePassword(
+        userId,
+        validatedData.currentPassword,
+        validatedData.newPassword
+      );
+
+      res.json({
+        success: true,
+        message: 'Senha alterada com sucesso',
+      });
+    } catch (error) {
+      res.status(400).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao alterar senha',
       });
     }
   };

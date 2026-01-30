@@ -33,7 +33,12 @@ export default function AdminLogin() {
       if (data.success) {
         localStorage.setItem('kaviar_admin_token', data.data.token);
         localStorage.setItem('kaviar_admin_data', JSON.stringify(data.data.user));
-        navigate(from, { replace: true });
+        
+        if (data.data.mustChangePassword) {
+          navigate('/admin/change-password', { replace: true });
+        } else {
+          navigate(from, { replace: true });
+        }
       } else {
         setError(data.error || 'Erro ao fazer login');
       }

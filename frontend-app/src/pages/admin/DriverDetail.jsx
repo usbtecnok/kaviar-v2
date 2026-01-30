@@ -21,12 +21,45 @@ import api from '../../api/index';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+const isSuperAdmin = () => {
+  const data = localStorage.getItem('kaviar_admin_data');
+  return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
+};
+
 // Resolve document URL (handles absolute vs relative paths)
 const resolveDocUrl = (url) => {
   if (!url) return url;
   if (/^https?:\/\//i.test(url)) return url; // Already absolute
   if (url.startsWith('/uploads/')) return `${API_BASE_URL}${url}`; // Relative path
+  if (url.startsWith('certidoes/')) return `${API_BASE_URL}/uploads/${url}`; // S3 key
   return url;
+};
+
+// Component for document image with fallback
+const DocumentImage = ({ url, alt }) => {
+  const [error, setError] = useState(false);
+  
+  if (error || !url) {
+    return (
+      <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 1, textAlign: 'center' }}>
+        <Typography variant="body2" color="warning.dark">
+          ⚠️ Documento não disponível
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Enviado antes da migração S3. Solicite novo upload.
+        </Typography>
+      </Box>
+    );
+  }
+  
+  return (
+    <img 
+      src={resolveDocUrl(url)} 
+      alt={alt}
+      onError={() => setError(true)}
+      style={{ maxWidth: '100%', height: 'auto', borderRadius: '4px' }}
+    />
+  );
 };
 
 export default function AdminDriverDetail() {
@@ -237,15 +270,9 @@ export default function AdminDriverDetail() {
           <Grid item xs={12}>
             <Typography variant="subtitle2" color="text.secondary">Certidão "Nada Consta" (Legacy)</Typography>
             {driver.certidao_nada_consta_url ? (
-              <Button
-                variant="outlined"
-                size="small"
-                href={resolveDocUrl(driver.certidao_nada_consta_url)}
-                target="_blank"
-                sx={{ mt: 1 }}
-              >
-                Visualizar Certidão
-              </Button>
+              <Box sx={{ mt: 1 }}>
+                <DocumentImage url={driver.certidao_nada_consta_url} alt="Certidão Nada Consta" />
+              </Box>
             ) : (
               <Typography variant="body2" color="text.secondary">Não enviado</Typography>
             )}
@@ -332,7 +359,7 @@ export default function AdminDriverDetail() {
           </Grid>
         </Grid>
 
-        {driver.status === 'pending' && (
+        {isSuperAdmin() && driver.status === 'pending' && (
           <Box display="flex" gap={2} mt={4}>
             <Button
               variant="contained"

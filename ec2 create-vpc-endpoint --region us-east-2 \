@@ -1,0 +1,55 @@
+{
+    "VpcEndpoint": {
+        "VpcEndpointId": "vpce-09d8c0a3ae7067e74",
+        "VpcEndpointType": "Interface",
+        "VpcId": "vpc-0227695745b8467cb",
+        "ServiceName": "com.amazonaws.us-east-2.ssmmessages",
+        "State": "pending",
+        "RouteTableIds": [],
+        "SubnetIds": [
+            "subnet-016a596f90b26c7e6",
+            "subnet-0f896fb2d985064e8"
+        ],
+        "Groups": [
+            {
+                "GroupId": "sg-03cc98a490fcdbcb6",
+                "GroupName": "kaviar-vpce-sg"
+            }
+        ],
+        "IpAddressType": "ipv4",
+        "DnsOptions": {
+            "DnsRecordIpType": "ipv4"
+        },
+        "PrivateDnsEnabled": true,
+        "RequesterManaged": false,
+        "NetworkInterfaceIds": [
+            "eni-0699390768ee79d56",
+            "eni-06c422e5dcce741a8"
+        ],
+        "DnsEntries": [
+            {
+                "DnsName": "vpce-09d8c0a3ae7067e74-obcdr940.ssmmessages.us-east-2.vpce.amazonaws.com",
+                "HostedZoneId": "ZC8PG0KIFKBRI"
+            },
+            {
+                "DnsName": "vpce-09d8c0a3ae7067e74-obcdr940-us-east-2b.ssmmessages.us-east-2.vpce.amazonaws.com",
+                "HostedZoneId": "ZC8PG0KIFKBRI"
+            },
+            {
+                "DnsName": "vpce-09d8c0a3ae7067e74-obcdr940-us-east-2a.ssmmessages.us-east-2.vpce.amazonaws.com",
+                "HostedZoneId": "ZC8PG0KIFKBRI"
+            },
+            {
+                "DnsName": "ssmmessages.us-east-2.amazonaws.com",
+                "HostedZoneId": "ZONEIDPENDING"
+            },
+            {
+                "DnsName": "ssmmessages.us-east-2.api.aws",
+                "HostedZoneId": "ZONEIDPENDING"
+            }
+        ],
+        "CreationTimestamp": "2026-01-29T02:18:14.753000+00:00",
+        "OwnerId": "847895361928",
+        "ServiceRegion": "us-east-2"
+    }
+}
