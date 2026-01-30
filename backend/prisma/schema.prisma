@@ -8,16 +8,17 @@ datasource db {
 }
 
 model admins {
-  id                    String    @id @default(uuid())
+  id                    String              @id @default(uuid())
   name                  String
-  email                 String    @unique
+  email                 String              @unique
   password              String
-  role                  String    @default("SUPER_ADMIN")
-  is_active             Boolean   @default(true)
-  must_change_password  Boolean   @default(true)
+  role                  String              @default("SUPER_ADMIN")
+  is_active             Boolean             @default(true)
+  must_change_password  Boolean             @default(true)
   password_changed_at   DateTime?
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @updatedAt
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @updatedAt
+  community_leaders     community_leaders[]
 }
 
 model communities {
@@ -41,6 +42,7 @@ model communities {
   elderly_contracts        elderly_contracts[]
   passengers               passengers[]
   tourist_guides           tourist_guides[]
+  community_leaders        community_leaders[]
 }
 
 model community_geofences {
@@ -243,7 +245,8 @@ model neighborhood_geofences {
 
 model neighborhoods {
   id                     String                  @id
-  name                   String                  @unique
+  name                   String
+  city                   String                  @default("Rio de Janeiro")
   description            String?
   zone                   String?
   administrative_region  String?
@@ -258,6 +261,34 @@ model neighborhoods {
   drivers                drivers[]
   passengers             passengers[]
   neighborhood_geofences neighborhood_geofences?
+  community_leaders      community_leaders[]
+
+  @@unique([name, city])
+  @@index([city])
+}
+
+model community_leaders {
+  id                   String         @id @default(uuid())
+  name                 String
+  email                String         @unique
+  phone                String?
+  neighborhood_id      String?
+  community_id         String?
+  leader_type          String
+  verification_status  String         @default("PENDING")
+  verification_notes   String?
+  verified_by          String?
+  verified_at          DateTime?
+  is_active            Boolean        @default(true)
+  created_at           DateTime       @default(now())
+  updated_at           DateTime       @updatedAt
+  neighborhood         neighborhoods? @relation(fields: [neighborhood_id], references: [id], onDelete: SetNull)
+  community            communities?   @relation(fields: [community_id], references: [id], onDelete: SetNull)
+  admin                admins?        @relation(fields: [verified_by], references: [id], onDelete: SetNull)
+
+  @@index([neighborhood_id])
+  @@index([community_id])
+  @@index([verification_status])
 }
 
 model passengers {

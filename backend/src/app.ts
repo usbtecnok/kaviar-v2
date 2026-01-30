@@ -32,6 +32,7 @@ import { adminApprovalRoutes } from './routes/admin-approval';
 import { ratingsRoutes } from './routes/ratings';
 import driversRoutes from './routes/drivers';
 import adminDriversRoutes from './routes/admin-drivers';
+import communityLeadersRoutes from './routes/community-leaders';
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes); // ✅ Driver details + documents
+app.use('/api/admin/community-leaders', communityLeadersRoutes); // ✅ Community leaders management
 app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);

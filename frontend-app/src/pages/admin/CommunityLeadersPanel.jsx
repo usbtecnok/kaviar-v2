@@ -25,61 +25,75 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon,
-  ToggleOn as ToggleOnIcon,
-  ToggleOff as ToggleOffIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
-
-const LEADER_ROLES = [
+const LEADER_TYPES = [
   { value: 'PRESIDENTE_ASSOCIACAO', label: 'Presidente de Associação' },
   { value: 'LIDER_RELIGIOSO', label: 'Líder Religioso' },
-  { value: 'COMERCIANTE_ESTABELECIDO', label: 'Comerciante Estabelecido' },
-  { value: 'CONSELHEIRO_COMUNITARIO', label: 'Conselheiro Comunitário' },
+  { value: 'COMERCIANTE_LOCAL', label: 'Comerciante Local' },
+  { value: 'AGENTE_SAUDE', label: 'Agente de Saúde' },
+  { value: 'EDUCADOR', label: 'Educador' },
+  { value: 'OUTRO', label: 'Outro' },
 ];
 
 export default function CommunityLeadersPanel() {
   const [leaders, setLeaders] = useState([]);
-  const [communities, setCommunities] = useState([]);
-  const [selectedCommunity, setSelectedCommunity] = useState('');
+  const [neighborhoods, setNeighborhoods] = useState([]);
+  const [selectedCity, setSelectedCity] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
   const [formData, setFormData] = useState({
-    userId: '',
-    communityId: '',
     name: '',
-    role: '',
-    validationWeight: 10,
+    email: '',
+    phone: '',
+    neighborhood_id: '',
+    leader_type: '',
   });
   
   useEffect(() => {
-    fetchCommunities();
+    fetchNeighborhoods();
+    fetchLeaders();
   }, []);
   
   useEffect(() => {
-    if (selectedCommunity) {
-      fetchLeaders(selectedCommunity);
+    if (selectedCity) {
+      fetchLeaders();
     }
-  }, [selectedCommunity]);
+  }, [selectedCity]);
   
-  const fetchCommunities = async () => {
+  const fetchNeighborhoods = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/geo/communities`);
-      setCommunities(response.data.communities || []);
+      const token = localStorage.getItem('adminToken');
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/admin/neighborhoods`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setNeighborhoods(response.data || []);
     } catch (err) {
-      console.error('Error fetching communities:', err);
+      console.error('Error fetching neighborhoods:', err);
     }
   };
   
-  const fetchLeaders = async (communityId) => {
+  const fetchLeaders = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/reputation/admin/leaders/${communityId}`);
-      setLeaders(response.data.leaders || []);
+      const token = localStorage.getItem('adminToken');
+      const params = selectedCity ? { city: selectedCity } : {};
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/admin/community-leaders`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params
+        }
+      );
+      setLeaders(response.data || []);
     } catch (err) {
       console.error('Error fetching leaders:', err);
       setError('Erro ao carregar líderes');
@@ -90,11 +104,11 @@ export default function CommunityLeadersPanel() {
   
   const handleOpenDialog = () => {
     setFormData({
-      userId: '',
-      communityId: selectedCommunity,
       name: '',
-      role: '',
-      validationWeight: 10,
+      email: '',
+      phone: '',
+      neighborhood_id: '',
+      leader_type: '',
     });
     setOpenDialog(true);
   };
@@ -109,11 +123,16 @@ export default function CommunityLeadersPanel() {
       setLoading(true);
       setError('');
       
-      await axios.post(`${API_BASE_URL}/reputation/admin/leaders`, formData);
+      const token = localStorage.getItem('adminToken');
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/admin/community-leaders`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
       setSuccess('Líder cadastrado com sucesso!');
       handleCloseDialog();
-      fetchLeaders(selectedCommunity);
+      fetchLeaders();
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -124,17 +143,24 @@ export default function CommunityLeadersPanel() {
     }
   };
   
-  const handleToggleStatus = async (leaderId) => {
+  const handleVerify = async (leaderId, status) => {
     try {
-      await axios.patch(`${API_BASE_URL}/reputation/admin/leaders/${leaderId}/toggle`);
-      fetchLeaders(selectedCommunity);
-      setSuccess('Status atualizado com sucesso!');
+      const token = localStorage.getItem('adminToken');
+      await axios.patch(
+        `${import.meta.env.VITE_API_URL}/api/admin/community-leaders/${leaderId}/verify`,
+        { status },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchLeaders();
+      setSuccess(`Líder ${status === 'VERIFIED' ? 'aprovado' : 'rejeitado'} com sucesso!`);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      console.error('Error toggling leader status:', err);
-      setError('Erro ao atualizar status');
+      console.error('Error verifying leader:', err);
+      setError('Erro ao verificar líder');
     }
   };
+
+  const cities = [...new Set(neighborhoods.map(n => n.city))];
   
   return (
     <Box sx={{ p: 3 }}>
@@ -145,7 +171,6 @@ export default function CommunityLeadersPanel() {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={handleOpenDialog}
-            disabled={!selectedCommunity}
           >
             Cadastrar Líder
           </Button>
@@ -155,71 +180,92 @@ export default function CommunityLeadersPanel() {
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         
         <FormControl fullWidth sx={{ mb: 3 }}>
-          <InputLabel>Selecione a Comunidade</InputLabel>
+          <InputLabel>Filtrar por Cidade</InputLabel>
           <Select
-            value={selectedCommunity}
-            onChange={(e) => setSelectedCommunity(e.target.value)}
-            label="Selecione a Comunidade"
+            value={selectedCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+            label="Filtrar por Cidade"
           >
-            {communities.map((community) => (
-              <MenuItem key={community.id} value={community.id}>
-                {community.name}
+            <MenuItem value="">Todas as Cidades</MenuItem>
+            {cities.map((city) => (
+              <MenuItem key={city} value={city}>
+                {city}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
         
-        {selectedCommunity && (
-          <TableContainer>
-            <Table>
-              <TableHead>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Nome</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Bairro</TableCell>
+                <TableCell>Cidade</TableCell>
+                <TableCell>Tipo</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {leaders.length === 0 ? (
                 <TableRow>
-                  <TableCell>Nome</TableCell>
-                  <TableCell>Cargo</TableCell>
-                  <TableCell>Peso de Validação</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Cadastrado em</TableCell>
-                  <TableCell>Ações</TableCell>
+                  <TableCell colSpan={7} align="center">
+                    {loading ? 'Carregando...' : 'Nenhum líder cadastrado'}
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {leaders.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      Nenhum líder cadastrado nesta comunidade
+              ) : (
+                leaders.map((leader) => (
+                  <TableRow key={leader.id}>
+                    <TableCell>{leader.name}</TableCell>
+                    <TableCell>{leader.email}</TableCell>
+                    <TableCell>{leader.neighborhood?.name || '-'}</TableCell>
+                    <TableCell>{leader.neighborhood?.city || '-'}</TableCell>
+                    <TableCell>
+                      {LEADER_TYPES.find(t => t.value === leader.leader_type)?.label || leader.leader_type}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={
+                          leader.verification_status === 'VERIFIED' ? 'Verificado' :
+                          leader.verification_status === 'REJECTED' ? 'Rejeitado' :
+                          'Pendente'
+                        }
+                        color={
+                          leader.verification_status === 'VERIFIED' ? 'success' :
+                          leader.verification_status === 'REJECTED' ? 'error' :
+                          'warning'
+                        }
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {leader.verification_status === 'PENDING' && (
+                        <>
+                          <IconButton
+                            onClick={() => handleVerify(leader.id, 'VERIFIED')}
+                            color="success"
+                            size="small"
+                          >
+                            <CheckIcon />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => handleVerify(leader.id, 'REJECTED')}
+                            color="error"
+                            size="small"
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
-                ) : (
-                  leaders.map((leader) => (
-                    <TableRow key={leader.id}>
-                      <TableCell>{leader.name}</TableCell>
-                      <TableCell>{leader.role}</TableCell>
-                      <TableCell>{leader.validation_weight}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={leader.is_active ? 'Ativo' : 'Inativo'}
-                          color={leader.is_active ? 'success' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {new Date(leader.created_at).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <IconButton
-                          onClick={() => handleToggleStatus(leader.id)}
-                          color={leader.is_active ? 'error' : 'success'}
-                        >
-                          {leader.is_active ? <ToggleOffIcon /> : <ToggleOnIcon />}
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
       
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
@@ -227,42 +273,54 @@ export default function CommunityLeadersPanel() {
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
             <TextField
-              label="ID do Usuário"
-              value={formData.userId}
-              onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-              required
-              fullWidth
-            />
-            <TextField
               label="Nome Completo"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
               fullWidth
             />
+            <TextField
+              label="Email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+              fullWidth
+            />
+            <TextField
+              label="Telefone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              fullWidth
+            />
             <FormControl fullWidth required>
-              <InputLabel>Cargo</InputLabel>
+              <InputLabel>Bairro</InputLabel>
               <Select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                label="Cargo"
+                value={formData.neighborhood_id}
+                onChange={(e) => setFormData({ ...formData, neighborhood_id: e.target.value })}
+                label="Bairro"
               >
-                {LEADER_ROLES.map((role) => (
-                  <MenuItem key={role.value} value={role.value}>
-                    {role.label}
+                {neighborhoods.map((n) => (
+                  <MenuItem key={n.id} value={n.id}>
+                    {n.name} - {n.city}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-            <TextField
-              label="Peso de Validação"
-              type="number"
-              value={formData.validationWeight}
-              onChange={(e) => setFormData({ ...formData, validationWeight: parseInt(e.target.value) })}
-              required
-              fullWidth
-              helperText="Peso padrão: 10 (equivale a 100 corridas)"
-            />
+            <FormControl fullWidth required>
+              <InputLabel>Tipo de Liderança</InputLabel>
+              <Select
+                value={formData.leader_type}
+                onChange={(e) => setFormData({ ...formData, leader_type: e.target.value })}
+                label="Tipo de Liderança"
+              >
+                {LEADER_TYPES.map((type) => (
+                  <MenuItem key={type.value} value={type.value}>
+                    {type.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>
@@ -270,7 +328,7 @@ export default function CommunityLeadersPanel() {
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={loading || !formData.userId || !formData.name || !formData.role}
+            disabled={loading || !formData.name || !formData.email || !formData.leader_type}
           >
             Cadastrar
           </Button>
