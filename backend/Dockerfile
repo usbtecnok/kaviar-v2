@@ -9,6 +9,9 @@ COPY prisma ./prisma/
 
 RUN npm ci
 
+# Gerar Prisma Client para linux-gnu (Debian)
+RUN npx prisma generate
+
 COPY . .
 
 RUN npm run build
@@ -23,6 +26,10 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 RUN npm ci --only=production && npm cache clean --force
+
+# Copiar Prisma Client gerado no builder
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/scripts ./scripts
