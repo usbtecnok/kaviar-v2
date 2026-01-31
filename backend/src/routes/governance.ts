@@ -153,7 +153,10 @@ router.get('/neighborhoods', async (req, res) => {
       select: {
         id: true,
         name: true,
-        zone: true
+        city: true,
+        zone: true,
+        area_type: true,
+        is_active: true
       },
       orderBy: { name: 'asc' }
     });
@@ -353,7 +356,52 @@ router.get('/neighborhoods/:id/geofence', async (req, res) => {
       },
     });
 
-    return res.json({ success: true, data: geofence ?? null });
+    // Se tem geofence oficial, retorna
+    if (geofence) {
+      return res.json({ success: true, data: geofence });
+    }
+
+    // Fallback: gerar círculo de 800m baseado no centro do bairro
+    const neighborhood = await prisma.neighborhoods.findUnique({
+      where: { id },
+      select: { name: true, city: true, center_lat: true, center_lng: true }
+    });
+
+    if (!neighborhood || !neighborhood.center_lat || !neighborhood.center_lng) {
+      return res.json({ success: true, data: null });
+    }
+
+    // Gerar círculo de 800m (aproximadamente 32 pontos)
+    const RADIUS_METERS = 800;
+    const EARTH_RADIUS = 6371000; // metros
+    const lat = Number(neighborhood.center_lat);
+    const lng = Number(neighborhood.center_lng);
+    const points = 32;
+    
+    const circleCoordinates: number[][] = [];
+    for (let i = 0; i <= points; i++) {
+      const angle = (i * 360 / points) * Math.PI / 180;
+      const dx = RADIUS_METERS * Math.cos(angle);
+      const dy = RADIUS_METERS * Math.sin(angle);
+      
+      const newLat = lat + (dy / EARTH_RADIUS) * (180 / Math.PI);
+      const newLng = lng + (dx / EARTH_RADIUS) * (180 / Math.PI) / Math.cos(lat * Math.PI / 180);
+      
+      circleCoordinates.push([newLng, newLat]);
+    }
+
+    const fallbackGeofence = {
+      id: `fallback-${id}`,
+      neighborhood_id: id,
+      geofence_type: 'FALLBACK_RADIUS',
+      coordinates: [circleCoordinates], // Polygon format
+      source: 'Generated (800m radius)',
+      source_url: null,
+      area: Math.PI * Math.pow(RADIUS_METERS / 1000, 2), // km²
+      isFallback: true
+    };
+
+    return res.json({ success: true, data: fallbackGeofence });
   } catch (error) {
     console.error('[governance] neighborhoods/:id/geofence error:', error);
     return res.status(500).json({ success: false, error: 'Erro ao buscar geofence' });
