@@ -7,9 +7,11 @@ RUN apt-get update -y && apt-get install -y openssl
 COPY package*.json ./
 COPY prisma ./prisma/
 
+# Limpar cache do Prisma e instalar dependências
 RUN npm ci
+RUN rm -rf node_modules/.prisma node_modules/@prisma/client
 
-# Gerar Prisma Client para linux-gnu (Debian)
+# Gerar Prisma Client para Debian (linux-gnu)
 RUN npx prisma generate
 
 COPY . .
@@ -25,11 +27,12 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --only=production && npm cache clean --force
+# Instalar apenas produção
+RUN npm ci --only=production
 
-# Copiar Prisma Client gerado no builder
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Limpar e regenerar Prisma Client no ambiente de produção
+RUN rm -rf node_modules/.prisma node_modules/@prisma/client
+RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/scripts ./scripts
