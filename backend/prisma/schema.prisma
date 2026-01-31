@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -8,17 +9,17 @@ datasource db {
 }
 
 model admins {
-  id                    String              @id @default(uuid())
-  name                  String
-  email                 String              @unique
-  password              String
-  role                  String              @default("SUPER_ADMIN")
-  is_active             Boolean             @default(true)
-  must_change_password  Boolean             @default(true)
-  password_changed_at   DateTime?
-  created_at            DateTime            @default(now())
-  updated_at            DateTime            @updatedAt
-  community_leaders     community_leaders[]
+  id                   String              @id @default(uuid())
+  name                 String
+  email                String              @unique
+  password             String
+  role                 String              @default("SUPER_ADMIN")
+  is_active            Boolean             @default(true)
+  must_change_password Boolean             @default(true)
+  password_changed_at  DateTime?
+  created_at           DateTime            @default(now())
+  updated_at           DateTime            @updatedAt
+  community_leaders    community_leaders[]
 }
 
 model communities {
@@ -37,12 +38,12 @@ model communities {
   created_at               DateTime                   @default(now())
   updated_at               DateTime
   community_geofences      community_geofences?
+  community_leaders        community_leaders[]
   community_status_history community_status_history[]
   drivers                  drivers[]
   elderly_contracts        elderly_contracts[]
   passengers               passengers[]
   tourist_guides           tourist_guides[]
-  community_leaders        community_leaders[]
 }
 
 model community_geofences {
@@ -124,8 +125,7 @@ model driver_documents {
   created_at           DateTime  @default(now())
   updated_at           DateTime
 
-@@unique([driver_id, type], name: "driver_id_type", map: "driver_documents_driver_type_uniq")
-
+  @@unique([driver_id, type], name: "driver_id_type", map: "driver_documents_driver_type_uniq")
 }
 
 model driver_enforcement_history {
@@ -192,11 +192,12 @@ model drivers {
   rejected_reason             String?
   created_at                  DateTime                      @default(now())
   updated_at                  DateTime
+  driver_compliance_documents driver_compliance_documents[]
+  driver_consents             driver_consents?
   communities                 communities?                  @relation(fields: [community_id], references: [id])
   neighborhoods               neighborhoods?                @relation(fields: [neighborhood_id], references: [id])
+  match_logs                  match_logs[]
   rides                       rides[]
-  driver_consents             driver_consents?
-  driver_compliance_documents driver_compliance_documents[]
 }
 
 model elderly_contracts {
@@ -230,17 +231,20 @@ model elderly_profiles {
 }
 
 model neighborhood_geofences {
-  id              String        @id
-  neighborhood_id String        @unique
+  id              String                   @id
+  neighborhood_id String                   @unique
   geofence_type   String
   coordinates     Json
   source          String?
   source_url      String?
-  area            Decimal?      @db.Decimal(15, 6)
-  perimeter       Decimal?      @db.Decimal(15, 6)
-  created_at      DateTime      @default(now())
+  area            Decimal?                 @db.Decimal(15, 6)
+  perimeter       Decimal?                 @db.Decimal(15, 6)
+  created_at      DateTime                 @default(now())
   updated_at      DateTime
-  neighborhoods   neighborhoods @relation(fields: [neighborhood_id], references: [id], onDelete: Cascade)
+  geom            Unsupported("geometry")?
+  neighborhoods   neighborhoods            @relation(fields: [neighborhood_id], references: [id], onDelete: Cascade)
+
+  @@index([geom], map: "idx_neighborhood_geofences_geom", type: Gist)
 }
 
 model neighborhoods {
@@ -258,33 +262,41 @@ model neighborhoods {
   verified_by            String?
   created_at             DateTime                @default(now())
   updated_at             DateTime
-  drivers                drivers[]
-  passengers             passengers[]
-  neighborhood_geofences neighborhood_geofences?
+  area_type              String?                 @default("BAIRRO_OFICIAL") @db.VarChar(50)
+  parent_neighborhood_id String?
+  population             Int?
+  area_km2               Decimal?                @db.Decimal(10, 2)
   community_leaders      community_leaders[]
+  drivers                drivers[]
+  match_logs             match_logs[]
+  neighborhood_geofences neighborhood_geofences?
+  passengers             passengers[]
 
   @@unique([name, city])
   @@index([city])
+  @@index([area_type], map: "idx_neighborhoods_area_type")
+  @@index([city, area_type], map: "idx_neighborhoods_city_type")
+  @@index([parent_neighborhood_id], map: "idx_neighborhoods_parent")
 }
 
 model community_leaders {
-  id                   String         @id @default(uuid())
-  name                 String
-  email                String         @unique
-  phone                String?
-  neighborhood_id      String?
-  community_id         String?
-  leader_type          String
-  verification_status  String         @default("PENDING")
-  verification_notes   String?
-  verified_by          String?
-  verified_at          DateTime?
-  is_active            Boolean        @default(true)
-  created_at           DateTime       @default(now())
-  updated_at           DateTime       @updatedAt
-  neighborhood         neighborhoods? @relation(fields: [neighborhood_id], references: [id], onDelete: SetNull)
-  community            communities?   @relation(fields: [community_id], references: [id], onDelete: SetNull)
-  admin                admins?        @relation(fields: [verified_by], references: [id], onDelete: SetNull)
+  id                  String         @id @default(uuid())
+  name                String
+  email               String         @unique
+  phone               String?
+  neighborhood_id     String?
+  community_id        String?
+  leader_type         String
+  verification_status String         @default("PENDING")
+  verification_notes  String?
+  verified_by         String?
+  verified_at         DateTime?
+  is_active           Boolean        @default(true)
+  created_at          DateTime       @default(now())
+  updated_at          DateTime       @updatedAt
+  community           communities?   @relation(fields: [community_id], references: [id])
+  neighborhood        neighborhoods? @relation(fields: [neighborhood_id], references: [id])
+  admin               admins?        @relation(fields: [verified_by], references: [id])
 
   @@index([neighborhood_id])
   @@index([community_id])
@@ -307,8 +319,9 @@ model passengers {
   updated_at               DateTime
   elderly_contracts        elderly_contracts[]
   elderly_profiles         elderly_profiles?
-  neighborhoods            neighborhoods?       @relation(fields: [neighborhood_id], references: [id])
+  match_logs               match_logs[]
   communities              communities?         @relation(fields: [community_id], references: [id])
+  neighborhoods            neighborhoods?       @relation(fields: [neighborhood_id], references: [id])
   ride_confirmations       ride_confirmations[]
   rides                    rides[]
   tour_bookings            tour_bookings[]
@@ -514,18 +527,6 @@ model user_consents {
   @@unique([passenger_id, consent_type])
 }
 
-enum TourBookingStatus {
-  REQUESTED
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}
-
-enum TourPackageType {
-  TOUR
-  AIRPORT_TRANSFER
-}
-
 model driver_consents {
   id                  String   @id @default(uuid())
   driver_id           String   @unique
@@ -563,4 +564,50 @@ model driver_compliance_documents {
   @@index([is_current])
   @@index([valid_until])
   @@map("driver_compliance_documents")
+}
+
+model match_logs {
+  id               String         @id @default(dbgenerated("(gen_random_uuid())::text"))
+  trip_id          String?
+  driver_id        String
+  passenger_id     String
+  match_type       String         @db.VarChar(20)
+  driver_base_lat  Decimal?       @db.Decimal(10, 8)
+  driver_base_lng  Decimal?       @db.Decimal(11, 8)
+  pickup_lat       Decimal?       @db.Decimal(10, 8)
+  pickup_lng       Decimal?       @db.Decimal(11, 8)
+  neighborhood_id  String?
+  platform_percent Decimal?       @db.Decimal(5, 2)
+  platform_fee_brl Decimal?       @db.Decimal(10, 2)
+  trip_value_brl   Decimal?       @db.Decimal(10, 2)
+  created_at       DateTime?      @default(now()) @db.Timestamp(6)
+  drivers          drivers        @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  neighborhoods    neighborhoods? @relation(fields: [neighborhood_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  passengers       passengers     @relation(fields: [passenger_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([created_at], map: "idx_match_logs_created")
+  @@index([driver_id], map: "idx_match_logs_driver")
+  @@index([trip_id], map: "idx_match_logs_trip")
+  @@index([match_type], map: "idx_match_logs_type")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
+
+enum TourBookingStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum TourPackageType {
+  TOUR
+  AIRPORT_TRANSFER
 }
