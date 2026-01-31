@@ -58,20 +58,45 @@ async function importGeoJSON(filePath, city, areaType) {
       
       if (existingGeofence) {
         // Atualizar
+        await prisma.neighborhood_geofences.update({
+          where: { id: existingGeofence.id },
+          data: {
+            geofence_type: areaType,
+            coordinates: feature.geometry.coordinates,
+            updated_at: new Date()
+          }
+        });
+        
+        // Atualizar geometria PostGIS
         await prisma.$executeRawUnsafe(`
           UPDATE neighborhood_geofences 
-          SET geom = ST_GeomFromText('${geomWKT}', 4326), 
-              updated_at = NOW()
-          WHERE neighborhood_id = '${existing.id}'
+          SET geom = ST_GeomFromText('${geomWKT}', 4326)
+          WHERE id = '${existingGeofence.id}'
         `);
+        
         console.log(`✓ Atualizado: ${name}`);
         updated++;
       } else {
         // Criar novo
+        const newGeofence = await prisma.neighborhood_geofences.create({
+          data: {
+            id: require('crypto').randomUUID(),
+            neighborhood_id: existing.id,
+            geofence_type: areaType,
+            coordinates: feature.geometry.coordinates,
+            source: 'GeoJSON Import',
+            created_at: new Date(),
+            updated_at: new Date()
+          }
+        });
+        
+        // Atualizar geometria PostGIS
         await prisma.$executeRawUnsafe(`
-          INSERT INTO neighborhood_geofences (id, neighborhood_id, geom, created_at, updated_at)
-          VALUES (gen_random_uuid(), '${existing.id}', ST_GeomFromText('${geomWKT}', 4326), NOW(), NOW())
+          UPDATE neighborhood_geofences 
+          SET geom = ST_GeomFromText('${geomWKT}', 4326)
+          WHERE id = '${newGeofence.id}'
         `);
+        
         console.log(`✓ Criado: ${name}`);
         imported++;
       }
@@ -123,27 +148,8 @@ async function main() {
   stats.skipped += rioResult.skipped;
   stats.errors += rioResult.errors;
 
-  // Importar favelas do Rio
-  const favelaResult = await importGeoJSON(
-    path.join(dataDir, 'rio_favelas.geojson'),
-    'Rio de Janeiro',
-    'FAVELA'
-  );
-  stats.imported += favelaResult.imported;
-  stats.updated += favelaResult.updated;
-  stats.skipped += favelaResult.skipped;
-  stats.errors += favelaResult.errors;
-
-  // Importar distritos de São Paulo
-  const spResult = await importGeoJSON(
-    path.join(dataDir, 'sp_distritos.geojson'),
-    'São Paulo',
-    'DISTRITO'
-  );
-  stats.imported += spResult.imported;
-  stats.updated += spResult.updated;
-  stats.skipped += spResult.skipped;
-  stats.errors += spResult.errors;
+  // Nota: Arquivo rio_favelas.geojson está corrompido, pulando
+  // Nota: São Paulo não tem geofences ainda, pulando
 
   // Estatísticas finais
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
