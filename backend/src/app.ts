@@ -1,16 +1,18 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import path from 'path';
 import { config } from './config';
 import { getUploadsPaths } from './config/uploads';
 import { errorHandler, notFound } from './middlewares/error';
 import { handleFeatureDisabledError, handleStatusTransitionError } from './middlewares/premium-tourism-flag';
+import { prisma } from './lib/prisma';
 
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
 import { adminRoutes } from './routes/admin';
 import complianceRoutes from './routes/compliance';
+import dashboardRoutes from './routes/dashboard';
+import matchRoutes from './routes/match';
 // import { adminManagementRoutes } from './routes/admin-management'; // DISABLED - legacy
 // import { elderlyRoutes } from './routes/elderly'; // DISABLED - legacy
 // import { governanceRoutes } from './routes/governance'; // DISABLED - legacy
@@ -33,46 +35,82 @@ import { ratingsRoutes } from './routes/ratings';
 import driversRoutes from './routes/drivers';
 import adminDriversRoutes from './routes/admin-drivers';
 import communityLeadersRoutes from './routes/community-leaders';
+import feeCalculationRoutes from './routes/fee-calculation';
+import driverDashboardRoutes from './routes/driver-dashboard';
+import notificationsRoutes from './routes/notifications';
+import passengerLocationsRoutes from './routes/passenger-locations';
+import neighborhoodStatsRoutes from './routes/neighborhood-stats';
 
 const app = express();
 
-// ✅ Trust proxy (Render/production)
+// ✅ Trust proxy (ALB)
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
-  origin: [
-    'https://d29p7cirgjqbxl.cloudfront.net',
-    'http://kaviar-frontend-847895361928.s3-website.us-east-2.amazonaws.com',
-    'https://kaviar-frontend.onrender.com',
-    'http://localhost:5173',
-    'http://localhost:4173',
-    'http://localhost:3000'
-  ],
-  credentials: true,
-  allowedHeaders: ['Authorization', 'Content-Type'],
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
-}));
-app.options("*", cors());
+// ✅ CORS - Manual headers BEFORE any middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    'https://app.kaviar.com.br',
+    'https://kaviar.com.br',
+    'http://localhost:5173'
+  ];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.setHeader('Access-Control-Max-Age', '600');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+  
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Core health check (always available)
-app.get('/api/health', (req, res) => {
-  const features = {
-    twilio_whatsapp: config.integrations.enableTwilioWhatsapp,
-    premium_tourism: config.premiumTourism.enablePremiumTourism,
-    legacy: config.legacy.enableLegacy
-  };
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'KAVIAR API' });
+});
 
-  res.json({
-    success: true,
-    message: 'KAVIAR Backend is running',
-    gitCommit: process.env.GIT_COMMIT || process.env.RENDER_GIT_COMMIT || 'unknown',
-    features,
+app.get('/api/health', async (req, res) => {
+  const startTime = Date.now();
+  const checks: any = { database: false, s3: false };
+
+  try {
+    // Database check
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = true;
+  } catch (e) {
+    checks.database = false;
+  }
+
+  // S3 check (basic - just verify env var exists)
+  checks.s3 = !!process.env.AWS_S3_BUCKET;
+
+  const responseTime = Date.now() - startTime;
+  const healthy = checks.database && checks.s3;
+
+  res.status(healthy ? 200 : 503).json({
+    success: healthy,
+    status: healthy ? 'healthy' : 'degraded',
+    message: 'KAVIAR Backend',
+    version: process.env.GIT_COMMIT || 'unknown',
+    uptime: process.uptime(),
+    responseTime,
+    checks,
+    features: {
+      twilio_whatsapp: config.integrations.enableTwilioWhatsapp,
+      premium_tourism: config.premiumTourism.enablePremiumTourism,
+      legacy: config.legacy.enableLegacy
+    },
     timestamp: new Date().toISOString(),
   });
 });
@@ -80,6 +118,8 @@ app.get('/api/health', (req, res) => {
 // Core routes (always enabled)
 console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
+app.use('/api/admin/dashboard', dashboardRoutes); // ✅ Dashboard overview
+app.use('/api/match', matchRoutes); // ✅ Territorial match system
 app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes); // ✅ Driver details + documents
@@ -87,13 +127,22 @@ app.use('/api/admin/community-leaders', communityLeadersRoutes); // ✅ Communit
 app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
+app.use('/api/drivers', driverDashboardRoutes); // ✅ Driver dashboard
+app.use('/api/drivers', notificationsRoutes); // ✅ Notifications
+app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
+app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
+app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
 console.log('✅ Core routes mounted:');
 console.log('   - /api/admin/auth/*');
+console.log('   - /api/admin/dashboard/* (overview)');
+console.log('   - /api/match/* (territorial match system)');
 console.log('   - /api/admin/drivers/* (approval + details + documents)');
 console.log('   - /api/admin/compliance/* (documents pending/expiring/approve/reject)');
 console.log('   - /api/drivers/me/compliance/* (driver compliance)');
 console.log('   - /api/drivers/*');
+console.log('   - /api/drivers/:id/dashboard (driver stats)');
 console.log('   - /api/ratings/*');
+console.log('   - /api/trips/* (fee calculation)');
 // app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
 // app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
 
