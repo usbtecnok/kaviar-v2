@@ -1,7 +1,12 @@
 import { Router } from 'express';
-import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin, allowReadAccess, requireRole } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
 import { RideAdminController } from '../modules/admin/ride-controller';
+import {
+  getVirtualFenceCenter,
+  updateVirtualFenceCenter,
+  deleteVirtualFenceCenter
+} from '../controllers/admin/virtualFenceCenter.controller';
 
 const router = Router();
 const rideController = new RideAdminController();
@@ -67,5 +72,17 @@ router.post('/rides/:id/force-complete', requireSuperAdmin, rideController.force
 
 // GET /api/admin/rides/audit
 router.get('/rides/audit', allowReadAccess, rideController.getAuditLogs);
+
+// Virtual Fence Center Management (SUPER_ADMIN and OPERATOR only)
+const requireOperatorOrSuperAdmin = requireRole(['SUPER_ADMIN', 'OPERATOR']);
+
+// GET /api/admin/drivers/:driverId/virtual-fence-center
+router.get('/drivers/:driverId/virtual-fence-center', allowReadAccess, getVirtualFenceCenter);
+
+// PUT /api/admin/drivers/:driverId/virtual-fence-center
+router.put('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmin, updateVirtualFenceCenter);
+
+// DELETE /api/admin/drivers/:driverId/virtual-fence-center
+router.delete('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmin, deleteVirtualFenceCenter);
 
 export { router as adminRoutes };
