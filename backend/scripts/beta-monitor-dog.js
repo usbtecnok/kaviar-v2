@@ -5,16 +5,79 @@
  */
 
 const { PrismaClient } = require('@prisma/client');
+const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
+
 const prisma = new PrismaClient();
+const snsClient = new SNSClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 const FEATURE_KEY = process.argv[2] || 'passenger_favorites_matching';
 const PHASE = process.argv[3] || 'phase1_beta';
 const CHECKPOINT_LABEL = process.argv[4] || `hourly-${new Date().toISOString().slice(0, 16)}`;
+const SNS_TOPIC_ARN = process.env.BETA_MONITOR_SNS_TOPIC_ARN;
 
 const BASELINE = {
   error_rate_5xx: 0.00,
   latency_p95: 100,
 };
+
+async function publishAlert(checkpoint, checkpointId) {
+  if (!SNS_TOPIC_ARN) {
+    console.log('[Beta Monitor Dog] SNS_TOPIC_ARN not set, skipping alert');
+    return;
+  }
+
+  if (checkpoint.status === 'PASS' || checkpoint.alerts.length === 0) {
+    return;
+  }
+
+  const criticalAlerts = checkpoint.alerts.filter(a => a.severity === 'FAIL');
+  const warningAlerts = checkpoint.alerts.filter(a => a.severity === 'WARN');
+
+  const subject = `[Beta Monitor] ${checkpoint.status} - ${FEATURE_KEY}`;
+  const message = `
+Beta Monitor Alert
+==================
+
+Feature: ${FEATURE_KEY}
+Phase: ${PHASE}
+Status: ${checkpoint.status}
+Checkpoint: ${CHECKPOINT_LABEL}
+Checkpoint ID: ${checkpointId}
+
+Critical Alerts (${criticalAlerts.length}):
+${criticalAlerts.map(a => `  - ${a.type}: ${a.message}`).join('\n') || '  None'}
+
+Warnings (${warningAlerts.length}):
+${warningAlerts.map(a => `  - ${a.type}: ${a.message}`).join('\n') || '  None'}
+
+Config:
+  enabled: ${checkpoint.config.enabled}
+  rollout: ${checkpoint.config.rollout_percentage}%
+  allowlist: ${checkpoint.config.allowlist_count}
+
+Metrics:
+  5xx rate: ${checkpoint.metrics.error_rate_5xx}%
+  Total requests: ${checkpoint.metrics.total_requests}
+
+Action Required:
+${checkpoint.status === 'FAIL' ? '⚠️  IMMEDIATE: Review and consider rollback' : '⚠️  MONITOR: Check logs and metrics'}
+
+Dashboard: https://app.kaviar.com.br/admin/beta-monitor
+`;
+
+  try {
+    const command = new PublishCommand({
+      TopicArn: SNS_TOPIC_ARN,
+      Subject: subject,
+      Message: message,
+    });
+
+    await snsClient.send(command);
+    console.log(`[Beta Monitor Dog] ALERT TRIGGERED: ${checkpoint.status} - ${criticalAlerts.length} critical, ${warningAlerts.length} warnings`);
+  } catch (error) {
+    console.error(`[Beta Monitor Dog] Failed to publish SNS alert:`, error.message);
+  }
+}
 
 async function main() {
   console.log(`[Beta Monitor Dog] Starting checkpoint: ${CHECKPOINT_LABEL}`);
@@ -146,7 +209,7 @@ async function main() {
     console.log(`Status: ${checkpoint.status}, Alerts: ${checkpoint.alerts.length}`);
 
     // 5. Save checkpoint
-    await prisma.beta_monitor_checkpoints.create({
+    const savedCheckpoint = await prisma.beta_monitor_checkpoints.create({
       data: {
         feature_key: FEATURE_KEY,
         phase: PHASE,
@@ -161,7 +224,10 @@ async function main() {
 
     console.log(`[Beta Monitor Dog] Checkpoint saved successfully`);
 
-    // 6. Exit code
+    // 6. Publish alert if needed
+    await publishAlert(checkpoint, savedCheckpoint.id);
+
+    // 7. Exit code
     if (checkpoint.status === 'FAIL') {
       console.error(`[Beta Monitor Dog] FAIL - Rollback triggers detected`);
       process.exit(2);
