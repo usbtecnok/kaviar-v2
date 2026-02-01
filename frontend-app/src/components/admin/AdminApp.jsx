@@ -7,6 +7,7 @@ import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
 import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
+import NeighborhoodsByCity from "../../pages/admin/NeighborhoodsByCity";
 import DriversManagement from "../../pages/admin/DriversManagement";
 import PassengersManagement from "../../pages/admin/PassengersManagement";
 import GuidesManagement from "../../pages/admin/GuidesManagement";
@@ -607,6 +608,15 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <CommunitiesManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/neighborhoods-by-city" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <NeighborhoodsByCity />
               </Container>
             </ProtectedAdminRoute>
           } />

@@ -1,43 +1,13 @@
-# Node modules
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Build outputs
-dist/
-build/
+node_modules
+dist
+.git
+.env*
 *.log
-
-# IDE
-.vscode/
-.idea/
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Git
-.git/
-.gitignore
-
-# Prisma
-prisma/migrations/
-
-# Uploads
-uploads/
-
-# AWS
-aws-resources.env
-rds-credentials.txt
-*.pem
-
-# Temp
-tmp/
-temp/
-*.tmp
+coverage
+.vscode
+.idea
+*.md
+.ebextensions
+.platform
+backend-deploy.zip

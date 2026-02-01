@@ -11,10 +11,14 @@ import {
   Alert,
   Paper,
   Chip,
-  Grid
+  Grid,
+  Button,
+  Breadcrumbs,
+  Link
 } from '@mui/material';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
+import { ArrowBack } from '@mui/icons-material';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { API_BASE_URL } from '../../config/api';
 
 export default function NeighborhoodsManagement() {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -22,6 +26,9 @@ export default function NeighborhoodsManagement() {
   const [error, setError] = useState('');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState(null);
   const [geofence, setGeofence] = useState(null);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const selectedCity = searchParams.get('city') || 'Rio de Janeiro';
 
   useEffect(() => {
     fetchNeighborhoods();
@@ -32,12 +39,16 @@ export default function NeighborhoodsManagement() {
       const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`);
       const data = await response.json();
       
+      console.log('Neighborhoods API response:', data);
+      
       if (data.success) {
-        setNeighborhoods(data.data);
+        const neighborhoodsData = data.data || [];
+        setNeighborhoods(neighborhoodsData);
       } else {
         setError(data.error || 'Erro ao carregar bairros');
       }
     } catch (err) {
+      console.error('Error fetching neighborhoods:', err);
       setError('Erro de conexão com o servidor');
     } finally {
       setLoading(false);
@@ -53,11 +64,14 @@ export default function NeighborhoodsManagement() {
       const data = await response.json();
       
       if (data.success && data.data && data.data.coordinates) {
-        // Backend retorna data.coordinates (GeoJSON)
         setGeofence(data.data.coordinates);
+      } else {
+        // Marcar como "sem geometria" para mostrar mensagem
+        setGeofence('NO_GEOMETRY');
       }
     } catch (err) {
       console.error('Erro ao carregar geofence:', err);
+      setGeofence('NO_GEOMETRY');
     }
   };
 
@@ -78,14 +92,59 @@ export default function NeighborhoodsManagement() {
     );
   }
 
+  const filteredNeighborhoods = neighborhoods.filter(n => n.city === selectedCity);
+  
+  console.log('🔍 Debug Neighborhoods:', {
+    total: neighborhoods.length,
+    selectedCity,
+    filtered: filteredNeighborhoods.length,
+    cities: [...new Set(neighborhoods.map(n => n.city))]
+  });
+
+  const getMatchType = (neighborhood) => {
+    if (neighborhood.area_type === 'FAVELA' || neighborhood.area_type === 'COMUNIDADE') {
+      return { label: 'Match Local 7%', color: 'success' };
+    } else if (neighborhood.area_type === 'BAIRRO_OFICIAL') {
+      return { label: 'Match Bairro 12%', color: 'primary' };
+    }
+    return { label: 'Externo 20%', color: 'warning' };
+  };
+
+  const cityCounts = neighborhoods.reduce((acc, n) => {
+    acc[n.city] = (acc[n.city] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <Box sx={{ p: 3 }}>
+      <Box sx={{ mb: 3 }}>
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => navigate('/admin/neighborhoods-by-city')}
+          sx={{ mb: 2 }}
+        >
+          Voltar para Cidades
+        </Button>
+        
+        <Breadcrumbs>
+          <Link 
+            underline="hover" 
+            color="inherit" 
+            onClick={() => navigate('/admin/neighborhoods-by-city')}
+            sx={{ cursor: 'pointer' }}
+          >
+            Cidades
+          </Link>
+          <Typography color="text.primary">{selectedCity}</Typography>
+        </Breadcrumbs>
+      </Box>
+
       <Typography variant="h4" gutterBottom>
-        Gestão de Bairros
+        🗺️ {selectedCity}
       </Typography>
       
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Total de bairros cadastrados: {neighborhoods.length}
+        {filteredNeighborhoods.length} bairros cadastrados
       </Typography>
 
       <Grid container spacing={3}>
@@ -95,44 +154,81 @@ export default function NeighborhoodsManagement() {
               <TableHead>
                 <TableRow>
                   <TableCell><strong>Nome</strong></TableCell>
-                  <TableCell><strong>Zona</strong></TableCell>
+                  <TableCell><strong>Match Territorial</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {neighborhoods.map((neighborhood) => (
-                  <TableRow 
-                    key={neighborhood.id} 
-                    hover
-                    onClick={() => handleSelectNeighborhood(neighborhood)}
-                    sx={{ 
-                      cursor: 'pointer',
-                      bgcolor: selectedNeighborhood?.id === neighborhood.id ? 'action.selected' : 'inherit'
-                    }}
-                  >
-                    <TableCell>{neighborhood.name}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={neighborhood.zone || 'N/A'} 
-                        size="small" 
-                        color="primary" 
-                        variant="outlined"
-                      />
+                {filteredNeighborhoods.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">
+                        Nenhum bairro encontrado para {selectedCity}
+                      </Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredNeighborhoods.map((neighborhood) => {
+                    const matchInfo = getMatchType(neighborhood);
+                    return (
+                    <TableRow 
+                      key={neighborhood.id} 
+                      hover
+                      onClick={() => handleSelectNeighborhood(neighborhood)}
+                      sx={{ 
+                        cursor: 'pointer',
+                        bgcolor: selectedNeighborhood?.id === neighborhood.id ? 'action.selected' : 'inherit'
+                      }}
+                    >
+                      <TableCell>{neighborhood.name}</TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={matchInfo.label} 
+                          size="small" 
+                          color={matchInfo.color}
+                        />
+                      </TableCell>
+                    </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </Paper>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2, height: 600 }}>
+          <Paper sx={{ p: 2, height: 600, display: 'flex', flexDirection: 'column' }}>
             {selectedNeighborhood ? (
               <>
                 <Typography variant="h6" gutterBottom>
                   {selectedNeighborhood.name}
                 </Typography>
-                {geofence ? (
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                  {selectedCity}
+                </Typography>
+                {geofence === 'NO_GEOMETRY' ? (
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    height: '100%',
+                    textAlign: 'center',
+                    p: 3
+                  }}>
+                    <Typography variant="h6" color="warning.main" gutterBottom>
+                      ⚠️ Geometria não cadastrada
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Este bairro ainda não possui polígono de geofencing cadastrado.
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {selectedCity === 'São Paulo' 
+                        ? 'Os bairros de São Paulo estão aguardando importação de dados oficiais.'
+                        : 'Entre em contato com o administrador para cadastrar a geometria.'}
+                    </Typography>
+                  </Box>
+                ) : geofence ? (
                   <Box sx={{ height: 500, border: '1px solid #ddd', borderRadius: 1 }}>
                     <iframe
                       srcDoc={`

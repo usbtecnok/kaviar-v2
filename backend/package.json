@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "dev:3003": "PORT=3003 tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
+    "postinstall": "prisma generate",
     "start": "node dist/server.js",
     "start:3003": "PORT=3003 node dist/server.js",
     "kill:ports": "pkill -f 'tsx.*server.ts' || pkill -f 'node.*server.js' || lsof -ti:3001,3003 | xargs -r kill -9 || true",

@@ -18,7 +18,7 @@ import {
   CheckCircle
 } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE_URL } from '../../config/api';
 
 export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -32,15 +32,15 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/admin/dashboard`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/dashboard/overview`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
       const data = await response.json();
-      if (data.success) {
-        setDashboardData(data.data);
+      if (response.ok) {
+        setDashboardData({ overview: data });
       } else {
         setError(data.error || 'Erro ao carregar dashboard');
       }
@@ -117,14 +117,33 @@ export default function AdminDashboard() {
                 {overview.communities}
               </Typography>
               <Typography color="text.secondary">
-                Bairros
+                Bairros Totais
               </Typography>
-              <Chip 
-                label={`${overview.activeCommunities} ativos`} 
-                size="small" 
-                color="success" 
-                sx={{ mt: 1 }}
-              />
+              <Box sx={{ mt: 1, display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {overview.neighborhoodsByCity && (
+                  <>
+                    {overview.neighborhoodsByCity['Rio de Janeiro'] && (
+                      <Chip 
+                        label={`Rio: ${overview.neighborhoodsByCity['Rio de Janeiro']}`} 
+                        size="small" 
+                        color="primary"
+                      />
+                    )}
+                    {overview.neighborhoodsByCity['São Paulo'] && (
+                      <Chip 
+                        label={`SP: ${overview.neighborhoodsByCity['São Paulo']}`} 
+                        size="small" 
+                        color="secondary"
+                      />
+                    )}
+                  </>
+                )}
+                <Chip 
+                  label={`${overview.activeCommunities} ativos`} 
+                  size="small" 
+                  color="success"
+                />
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -212,7 +231,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/neighborhoods"
+            href="/admin/neighborhoods-by-city"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
