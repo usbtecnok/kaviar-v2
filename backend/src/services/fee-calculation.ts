@@ -111,12 +111,15 @@ function calculateDistance(
 
 /**
  * Busca o centro geográfico do bairro base do motorista
+ * Prioridade: 1) Centroide da geofence, 2) Centro virtual do driver
  */
 async function getNeighborhoodCenter(
-  neighborhoodId: string
+  neighborhoodId: string,
+  driverId: string
 ): Promise<{ lat: number; lng: number } | null> {
   try {
-    const result = await prisma.$queryRaw<Array<{ lat: number; lng: number }>>`
+    // Prioridade 1: Centroide da geofence oficial
+    const geofenceCenter = await prisma.$queryRaw<Array<{ lat: number; lng: number }>>`
       SELECT 
         ST_Y(ST_Centroid(ng.geom)) as lat,
         ST_X(ST_Centroid(ng.geom)) as lng
@@ -125,7 +128,27 @@ async function getNeighborhoodCenter(
       LIMIT 1
     `;
     
-    return result[0] || null;
+    if (geofenceCenter[0]) {
+      return geofenceCenter[0];
+    }
+    
+    // Prioridade 2: Centro virtual do driver (para áreas sem geofence oficial)
+    const driver: any = await prisma.drivers.findUnique({
+      where: { id: driverId },
+      select: { 
+        virtual_fence_center_lat: true,
+        virtual_fence_center_lng: true
+      }
+    });
+    
+    if (driver?.virtual_fence_center_lat && driver?.virtual_fence_center_lng) {
+      return {
+        lat: driver.virtual_fence_center_lat,
+        lng: driver.virtual_fence_center_lng
+      };
+    }
+    
+    return null;
   } catch (error) {
     console.error('Erro ao buscar centro do bairro:', error);
     return null;
@@ -228,7 +251,7 @@ export async function calculateTripFee(
   // CASO 4: Fallback 800m - território virtual quando não há geofence oficial
   // Se não encontrou geofence oficial, verifica se está dentro do raio de 800m do centro do bairro
   if (!pickupNeighborhood && !dropoffNeighborhood) {
-    const neighborhoodCenter = await getNeighborhoodCenter(driverHomeNeighborhood.id);
+    const neighborhoodCenter = await getNeighborhoodCenter(driverHomeNeighborhood.id, driverId);
     
     if (neighborhoodCenter) {
       const pickupDistance = calculateDistance(

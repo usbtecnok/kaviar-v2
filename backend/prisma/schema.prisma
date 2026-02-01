@@ -178,6 +178,8 @@ model drivers {
   last_location_updated_at    DateTime?
   last_lat                    Decimal?                      @db.Decimal(10, 8)
   last_lng                    Decimal?                      @db.Decimal(11, 8)
+  virtual_fence_center_lat    Decimal?                      @db.Decimal(10, 8)
+  virtual_fence_center_lng    Decimal?                      @db.Decimal(11, 8)
   is_premium                  Boolean                       @default(false)
   premium_override            Boolean?
   certidao_nada_consta_url    String?
