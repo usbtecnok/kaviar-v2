@@ -299,21 +299,6 @@ async function main() {
   console.log(`   Destino: Próximo (${destinationSP.lat}, ${destinationSP.lng})`);
   console.log(`   Match Type: ${rideD.matchType} | Taxa: ${rideD.feePercentage}% | Ganho: R$ ${rideD.driverEarnings.toFixed(2)}`);
   console.log('');
-  
-  const rideD = await calculateTripFee(
-    driverSP.id,
-    originSP.lat,
-    originSP.lng,
-    destinationSP.lat,
-    destinationSP.lng,
-    fareAmount,
-    'São Paulo'
-  );
-  
-  console.log(`   Origem: Sé (${originSP.lat}, ${originSP.lng})`);
-  console.log(`   Destino: Próximo (${destinationSP.lat}, ${destinationSP.lng})`);
-  console.log(`   Match Type: ${rideD.matchType} | Taxa: ${rideD.feePercentage}% | Ganho: R$ ${rideD.driverEarnings.toFixed(2)}`);
-  console.log('');
 
   // ============================================================================
   // TABELA COMPARATIVA FINAL
