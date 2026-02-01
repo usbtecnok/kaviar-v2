@@ -19,7 +19,7 @@ login() {
 
 # 1. Login como SUPER_ADMIN
 echo "1️⃣ Login como SUPER_ADMIN (suporte@kaviar.com.br)..."
-TOKEN_SUPER=$(login "suporte@kaviar.com.br" "@#*Z4939ia4")
+TOKEN_SUPER=$(login "suporte@kaviar.com.br" "[senha_temporaria]")
 if [ "$TOKEN_SUPER" = "null" ] || [ -z "$TOKEN_SUPER" ]; then
   echo "❌ Falha no login SUPER_ADMIN"
   exit 1
