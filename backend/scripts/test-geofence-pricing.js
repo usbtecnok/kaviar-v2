@@ -249,31 +249,48 @@ async function main() {
   console.log('');
 
   // ============================================================================
-  // PASSO 7: CORRIDA D - FALLBACK 800M (São Paulo)
+  // PASSO 7: CORRIDA D - FALLBACK 800M (Teste Determinístico)
   // ============================================================================
-  console.log('🚗 CORRIDA D: FALLBACK 800M (São Paulo - Pinheiros)');
+  console.log('🚗 CORRIDA D: FALLBACK 800M (Teste Determinístico)');
   console.log('─────────────────────────────────────────────────────────────────────');
   
-  const pinheiros = await prisma.neighborhoods.findFirst({
-    where: { name: 'Pinheiros', city: 'São Paulo' }
+  // Criar bairro sem geofence para forçar fallback
+  const bairroVirtual = await prisma.neighborhoods.upsert({
+    where: { id: '00000000-0000-0000-0000-000000000001' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'Bairro Virtual Teste',
+      city: 'São Paulo',
+      state: 'SP',
+      created_at: new Date(),
+      updated_at: new Date()
+    }
   });
   
-  if (!pinheiros) {
-    console.log('❌ Bairro Pinheiros não encontrado');
-    return;
-  }
+  // Centro virtual: Praça da Sé, São Paulo
+  const virtualCenter = { lat: -23.5505, lng: -46.6333 };
   
-  const driverSP = await prisma.drivers.upsert({
-    where: { email: 'driver.test+sp@kaviar.com.br' },
-    update: { neighborhood_id: pinheiros.id, status: 'approved', approved_at: new Date() },
+  // Criar motorista com centro virtual
+  const driverVirtual = await prisma.drivers.upsert({
+    where: { email: 'driver.test+virtual@kaviar.com.br' },
+    update: { 
+      neighborhood_id: bairroVirtual.id,
+      virtual_fence_center_lat: virtualCenter.lat,
+      virtual_fence_center_lng: virtualCenter.lng,
+      status: 'approved',
+      approved_at: new Date()
+    },
     create: {
       id: require('crypto').randomUUID(),
-      email: 'driver.test+sp@kaviar.com.br',
-      name: 'Driver Test SP',
-      phone: '+5511999990003',
+      email: 'driver.test+virtual@kaviar.com.br',
+      name: 'Driver Virtual Test',
+      phone: '+5511999990004',
       password_hash: await require('bcrypt').hash('Test@2026', 10),
-      document_cpf: '00000000003',
-      neighborhood_id: pinheiros.id,
+      document_cpf: '00000000004',
+      neighborhood_id: bairroVirtual.id,
+      virtual_fence_center_lat: virtualCenter.lat,
+      virtual_fence_center_lng: virtualCenter.lng,
       status: 'approved',
       approved_at: new Date(),
       created_at: new Date(),
@@ -281,23 +298,40 @@ async function main() {
     }
   });
   
-  // Coordenadas próximas ao centro de Pinheiros (dentro de 800m mas fora da geofence oficial)
-  const originSP = { lat: -23.5630, lng: -46.6825 };
-  const destinationSP = { lat: -23.5640, lng: -46.6835 };
+  // Gerar coordenadas dentro de 800m (200m do centro)
+  // Offset aproximado: 0.002 graus ≈ 220m
+  const originVirtual = { 
+    lat: virtualCenter.lat + 0.001, 
+    lng: virtualCenter.lng + 0.001 
+  };
+  const destinationVirtual = { 
+    lat: virtualCenter.lat - 0.001, 
+    lng: virtualCenter.lng - 0.001 
+  };
   
   const rideD = await calculateTripFee(
-    driverSP.id,
-    originSP.lat,
-    originSP.lng,
-    destinationSP.lat,
-    destinationSP.lng,
+    driverVirtual.id,
+    originVirtual.lat,
+    originVirtual.lng,
+    destinationVirtual.lat,
+    destinationVirtual.lng,
     fareAmount,
     'São Paulo'
   );
   
-  console.log(`   Origem: Pinheiros (${originSP.lat}, ${originSP.lng})`);
-  console.log(`   Destino: Próximo (${destinationSP.lat}, ${destinationSP.lng})`);
+  console.log(`   Centro virtual: (${virtualCenter.lat}, ${virtualCenter.lng})`);
+  console.log(`   Origem: (${originVirtual.lat}, ${originVirtual.lng})`);
+  console.log(`   Destino: (${destinationVirtual.lat}, ${destinationVirtual.lng})`);
   console.log(`   Match Type: ${rideD.matchType} | Taxa: ${rideD.feePercentage}% | Ganho: R$ ${rideD.driverEarnings.toFixed(2)}`);
+  
+  // Validação determinística
+  if (rideD.matchType !== 'FALLBACK_800M') {
+    console.log(`   ❌ ERRO: Esperado FALLBACK_800M, recebido ${rideD.matchType}`);
+  } else if (rideD.feePercentage !== 12) {
+    console.log(`   ❌ ERRO: Esperado taxa 12%, recebido ${rideD.feePercentage}%`);
+  } else {
+    console.log(`   ✅ VALIDADO: FALLBACK_800M com taxa 12%`);
+  }
   console.log('');
 
   // ============================================================================
