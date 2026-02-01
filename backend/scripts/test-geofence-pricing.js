@@ -27,7 +27,6 @@ async function main() {
         name: 'Passenger Test Geofence',
         phone: '+5511999990001',
         status: 'active',
-        is_active: true,
         created_at: new Date(),
         updated_at: new Date()
       }
