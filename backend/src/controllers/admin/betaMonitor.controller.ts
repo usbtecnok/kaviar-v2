@@ -59,9 +59,24 @@ export class BetaMonitorController {
         });
       }
 
+      // Map database fields to API response
+      const response = {
+        id: checkpoint.id,
+        feature_key: checkpoint.feature_key,
+        phase: checkpoint.phase,
+        checkpoint_label: checkpoint.checkpoint_label,
+        created_at: checkpoint.created_at,
+        status: checkpoint.status,
+        metrics: checkpoint.metrics_json,
+        config: checkpoint.config_json,
+        determinism: checkpoint.determinism_json,
+        alerts: checkpoint.alerts_json,
+        notes: checkpoint.notes,
+      };
+
       res.json({
         success: true,
-        checkpoint,
+        checkpoint: response,
       });
     } catch (error) {
       res.status(500).json({
