@@ -549,6 +549,27 @@ function AdminHome() {
               </CardContent>
             </Card>
           </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Analytics sx={{ fontSize: 40, color: 'info.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Beta Monitor
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Checkpoints + logs + runbook
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  color="info"
+                  href="/admin/beta-monitor"
+                >
+                  Acessar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       </Box>
 
