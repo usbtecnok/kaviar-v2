@@ -158,7 +158,7 @@ async function main() {
     const expectedConfig = {
       enabled: true,
       rollout_percentage: 0,
-      allowlist_count: 10,
+      min_allowlist_count: 10, // Phase 1: allowlist can grow, but not shrink below baseline
     };
 
     if (flag.enabled !== expectedConfig.enabled) {
@@ -179,11 +179,12 @@ async function main() {
       checkpoint.status = 'WARN';
     }
 
-    if (allowlistCount !== expectedConfig.allowlist_count) {
+    // Phase 1 Beta: allowlist can grow (adding beta users), but not shrink below minimum
+    if (allowlistCount < expectedConfig.min_allowlist_count) {
       checkpoint.alerts.push({
         type: 'CONFIG_DRIFT',
         severity: 'WARN',
-        message: `allowlist=${allowlistCount}, expected=${expectedConfig.allowlist_count}`,
+        message: `allowlist=${allowlistCount} < min=${expectedConfig.min_allowlist_count}`,
       });
       checkpoint.status = 'WARN';
     }
