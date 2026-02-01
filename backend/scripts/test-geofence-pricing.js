@@ -276,8 +276,9 @@ async function main() {
     }
   });
   
+  // Coordenadas próximas ao centro da Aclimação (dentro de 800m)
   const originSP = { lat: -23.5707, lng: -46.6320 };
-  const destinationSP = { lat: -23.5750, lng: -46.6350 };
+  const destinationSP = { lat: -23.5730, lng: -46.6340 };
   
   const rideD = await calculateTripFee(
     driverSP.id,
