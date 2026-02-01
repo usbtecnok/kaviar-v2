@@ -262,7 +262,6 @@ async function main() {
       id: '00000000-0000-0000-0000-000000000001',
       name: 'Bairro Virtual Teste',
       city: 'São Paulo',
-      state: 'SP',
       created_at: new Date(),
       updated_at: new Date()
     }
