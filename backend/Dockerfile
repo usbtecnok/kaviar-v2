@@ -6,6 +6,7 @@ RUN apt-get update -y && apt-get install -y openssl
 
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY . .
 
 # Limpar cache do Prisma e instalar dependências
 RUN npm ci
@@ -13,8 +14,6 @@ RUN rm -rf node_modules/.prisma node_modules/@prisma/client
 
 # Gerar Prisma Client para Debian (linux-gnu)
 RUN npx prisma generate
-
-COPY . .
 
 RUN npm run build
 
@@ -37,6 +36,8 @@ RUN npx prisma generate
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data ./data
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/docs ./docs
 
 ENV NODE_ENV=production
 ENV PORT=3001
