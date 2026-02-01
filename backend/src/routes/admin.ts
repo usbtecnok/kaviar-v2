@@ -137,4 +137,7 @@ router.get('/beta-monitor/:featureKey/checkpoints/:id', allowReadAccess, betaMon
 // POST /api/admin/beta-monitor/:featureKey/run
 router.post('/beta-monitor/:featureKey/run', requireOperatorOrSuperAdmin, betaMonitor.runCheckpoint.bind(betaMonitor));
 
+// GET /api/admin/runbooks/:key
+router.get('/runbooks/:key', allowReadAccess, betaMonitor.getRunbook.bind(betaMonitor));
+
 export { router as adminRoutes };

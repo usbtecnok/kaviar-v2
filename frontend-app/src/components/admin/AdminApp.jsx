@@ -5,6 +5,8 @@ import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
+import FeatureFlags from "../../pages/admin/FeatureFlags";
+import BetaMonitor from "../../pages/admin/BetaMonitor";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
 import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
 import NeighborhoodsByCity from "../../pages/admin/NeighborhoodsByCity";
@@ -654,6 +656,22 @@ export default function AdminApp() {
                 <AdminHeader />
                 <DriverDetail />
               </Container>
+            </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/feature-flags" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <FeatureFlags />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/beta-monitor" element={
+            <ProtectedAdminRoute>
+              <AdminHeader />
+              <BetaMonitor />
             </ProtectedAdminRoute>
           } />
           

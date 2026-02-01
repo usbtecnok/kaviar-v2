@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
 import { spawn } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 
 export class BetaMonitorController {
   // GET /api/admin/beta-monitor/:featureKey/checkpoints
@@ -80,11 +81,12 @@ export class BetaMonitorController {
 
       console.log(`[Beta Monitor] Manual run triggered by admin ${admin.id} for ${featureKey}`);
 
-      // Spawn dog script
+      // Spawn dog script - use absolute path in container
       const scriptPath = path.join(__dirname, '../../scripts/beta-monitor-dog.js');
       const child = spawn('node', [scriptPath, featureKey, phase, label], {
         detached: false,
         stdio: 'pipe',
+        cwd: path.join(__dirname, '../..'),
       });
 
       let output = '';
@@ -92,16 +94,16 @@ export class BetaMonitorController {
 
       child.stdout.on('data', (data) => {
         output += data.toString();
+        console.log(`[Beta Monitor Dog] ${data.toString().trim()}`);
       });
 
       child.stderr.on('data', (data) => {
         errorOutput += data.toString();
+        console.error(`[Beta Monitor Dog Error] ${data.toString().trim()}`);
       });
 
       child.on('close', async (code) => {
         console.log(`[Beta Monitor] Dog script exited with code ${code}`);
-        
-        // Log audit
         console.log(`[Audit] Admin ${admin.email} (${admin.id}) ran beta monitor for ${featureKey}`);
       });
 
@@ -115,6 +117,54 @@ export class BetaMonitorController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Erro ao executar checkpoint',
+      });
+    }
+  }
+
+  // GET /api/admin/runbooks/:key
+  async getRunbook(req: Request, res: Response) {
+    try {
+      const { key } = req.params;
+      
+      // Map feature key to runbook filename
+      const runbookMap: Record<string, string> = {
+        'passenger_favorites_matching': 'RUNBOOK_PASSENGER_FAVORITES_MATCHING.md',
+      };
+
+      const filename = runbookMap[key];
+      if (!filename) {
+        return res.status(404).json({
+          success: false,
+          error: 'Runbook não encontrado',
+        });
+      }
+
+      const runbookPath = path.join(__dirname, '../../../docs/runbooks', filename);
+      
+      if (!fs.existsSync(runbookPath)) {
+        return res.status(404).json({
+          success: false,
+          error: 'Arquivo de runbook não encontrado',
+        });
+      }
+
+      const markdown = fs.readFileSync(runbookPath, 'utf8');
+
+      // Sanitize: ensure no tokens/credentials
+      const sanitized = markdown
+        .replace(/Bearer\s+[A-Za-z0-9\-._~+/]+=*/g, 'Bearer [REDACTED]')
+        .replace(/password["\s:=]+[^\s"]+/gi, 'password: [REDACTED]');
+
+      res.json({
+        success: true,
+        key,
+        title: `RUNBOOK - ${key.replace(/_/g, ' ').toUpperCase()}`,
+        markdown: sanitized,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Erro ao buscar runbook',
       });
     }
   }
