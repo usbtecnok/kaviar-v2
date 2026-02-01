@@ -180,6 +180,10 @@ model drivers {
   last_lng                    Decimal?                      @db.Decimal(11, 8)
   virtual_fence_center_lat    Decimal?                      @db.Decimal(10, 8)
   virtual_fence_center_lng    Decimal?                      @db.Decimal(11, 8)
+  secondary_base_lat          Decimal?                      @db.Decimal(10, 8)
+  secondary_base_lng          Decimal?                      @db.Decimal(11, 8)
+  secondary_base_label        String?
+  secondary_base_enabled      Boolean                       @default(false)
   is_premium                  Boolean                       @default(false)
   premium_override            Boolean?
   certidao_nada_consta_url    String?
@@ -306,28 +310,80 @@ model community_leaders {
 }
 
 model passengers {
-  id                       String               @id
-  name                     String
-  email                    String               @unique
-  password_hash            String?
-  phone                    String?
-  neighborhood_id          String?
-  community_id             String?
-  status                   String               @default("pending")
-  last_lat                 Decimal?             @db.Decimal(10, 8)
-  last_lng                 Decimal?             @db.Decimal(11, 8)
-  last_location_updated_at DateTime?
-  created_at               DateTime             @default(now())
-  updated_at               DateTime
-  elderly_contracts        elderly_contracts[]
-  elderly_profiles         elderly_profiles?
-  match_logs               match_logs[]
-  communities              communities?         @relation(fields: [community_id], references: [id])
-  neighborhoods            neighborhoods?       @relation(fields: [neighborhood_id], references: [id])
-  ride_confirmations       ride_confirmations[]
-  rides                    rides[]
-  tour_bookings            tour_bookings[]
-  user_consents            user_consents[]
+  id                          String                        @id
+  name                        String
+  email                       String                        @unique
+  password_hash               String?
+  phone                       String?
+  neighborhood_id             String?
+  community_id                String?
+  status                      String                        @default("pending")
+  last_lat                    Decimal?                      @db.Decimal(10, 8)
+  last_lng                    Decimal?                      @db.Decimal(11, 8)
+  last_location_updated_at    DateTime?
+  created_at                  DateTime                      @default(now())
+  updated_at                  DateTime
+  elderly_contracts           elderly_contracts[]
+  elderly_profiles            elderly_profiles?
+  match_logs                  match_logs[]
+  communities                 communities?                  @relation(fields: [community_id], references: [id])
+  neighborhoods               neighborhoods?                @relation(fields: [neighborhood_id], references: [id])
+  passenger_favorite_locations passenger_favorite_locations[]
+  ride_confirmations          ride_confirmations[]
+  rides                       rides[]
+  tour_bookings               tour_bookings[]
+  user_consents               user_consents[]
+}
+
+model passenger_favorite_locations {
+  id           String     @id @default(uuid())
+  passenger_id String
+  label        String
+  type         String     // HOME, WORK, OTHER
+  lat          Decimal    @db.Decimal(10, 8)
+  lng          Decimal    @db.Decimal(11, 8)
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  passengers   passengers @relation(fields: [passenger_id], references: [id], onDelete: Cascade)
+
+  @@index([passenger_id])
+}
+
+model feature_flags {
+  key                 String   @id @db.VarChar(100)
+  enabled             Boolean  @default(false)
+  rollout_percentage  Int      @default(0)
+  updated_by_admin_id String?
+  updated_at          DateTime @default(now())
+  created_at          DateTime @default(now())
+}
+
+model feature_flag_allowlist {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key                 String   @db.VarChar(100)
+  passenger_id        String
+  created_by_admin_id String?
+  created_at          DateTime @default(now())
+
+  @@unique([key, passenger_id])
+  @@index([key, passenger_id], map: "idx_feature_flag_allowlist_key_passenger")
+}
+
+model beta_monitor_checkpoints {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  feature_key       String
+  phase             String
+  checkpoint_label  String
+  created_at        DateTime @default(now())
+  status            String
+  metrics_json      Json?    @db.JsonB
+  config_json       Json?    @db.JsonB
+  determinism_json  Json?    @db.JsonB
+  alerts_json       Json?    @db.JsonB
+  notes             String?
+
+  @@index([feature_key, created_at(sort: Desc)], name: "idx_beta_monitor_feature_created")
+  @@index([phase, created_at(sort: Desc)], name: "idx_beta_monitor_phase_created")
 }
 
 model rating_stats {

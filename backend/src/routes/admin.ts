@@ -7,6 +7,10 @@ import {
   updateVirtualFenceCenter,
   deleteVirtualFenceCenter
 } from '../controllers/admin/virtualFenceCenter.controller';
+import * as passengerFavoritesController from '../controllers/admin/passengerFavorites.controller';
+import * as driverSecondaryBaseController from '../controllers/admin/driverSecondaryBase.controller';
+import * as featureFlagsController from '../controllers/admin/featureFlags.controller';
+import * as betaMonitorController from '../controllers/admin/betaMonitor.controller';
 
 const router = Router();
 const rideController = new RideAdminController();
@@ -84,5 +88,53 @@ router.put('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmi
 
 // DELETE /api/admin/drivers/:driverId/virtual-fence-center
 router.delete('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmin, deleteVirtualFenceCenter);
+
+// Passenger Favorite Locations Management
+// GET /api/admin/passengers/:passengerId/favorites
+router.get('/passengers/:passengerId/favorites', allowReadAccess, passengerFavoritesController.getFavorites);
+
+// PUT /api/admin/passengers/:passengerId/favorites
+router.put('/passengers/:passengerId/favorites', requireOperatorOrSuperAdmin, passengerFavoritesController.upsertFavorite);
+
+// DELETE /api/admin/passengers/:passengerId/favorites/:favoriteId
+router.delete('/passengers/:passengerId/favorites/:favoriteId', requireOperatorOrSuperAdmin, passengerFavoritesController.deleteFavorite);
+
+// Driver Secondary Base Management
+// GET /api/admin/drivers/:driverId/secondary-base
+router.get('/drivers/:driverId/secondary-base', allowReadAccess, driverSecondaryBaseController.getSecondaryBase);
+
+// PUT /api/admin/drivers/:driverId/secondary-base
+router.put('/drivers/:driverId/secondary-base', requireOperatorOrSuperAdmin, driverSecondaryBaseController.updateSecondaryBase);
+
+// DELETE /api/admin/drivers/:driverId/secondary-base
+router.delete('/drivers/:driverId/secondary-base', requireOperatorOrSuperAdmin, driverSecondaryBaseController.deleteSecondaryBase);
+
+// Feature Flags Management
+// GET /api/admin/feature-flags/:key
+router.get('/feature-flags/:key', allowReadAccess, featureFlagsController.getFeatureFlag);
+
+// PUT /api/admin/feature-flags/:key
+router.put('/feature-flags/:key', requireOperatorOrSuperAdmin, featureFlagsController.updateFeatureFlag);
+
+// GET /api/admin/feature-flags/:key/allowlist
+router.get('/feature-flags/:key/allowlist', allowReadAccess, featureFlagsController.getAllowlist);
+
+// POST /api/admin/feature-flags/:key/allowlist
+router.post('/feature-flags/:key/allowlist', requireOperatorOrSuperAdmin, featureFlagsController.addToAllowlist);
+
+// DELETE /api/admin/feature-flags/:key/allowlist/:passengerId
+router.delete('/feature-flags/:key/allowlist/:passengerId', requireOperatorOrSuperAdmin, featureFlagsController.removeFromAllowlist);
+
+// Beta Monitor routes
+const betaMonitor = new betaMonitorController.BetaMonitorController();
+
+// GET /api/admin/beta-monitor/:featureKey/checkpoints
+router.get('/beta-monitor/:featureKey/checkpoints', allowReadAccess, betaMonitor.getCheckpoints.bind(betaMonitor));
+
+// GET /api/admin/beta-monitor/:featureKey/checkpoints/:id
+router.get('/beta-monitor/:featureKey/checkpoints/:id', allowReadAccess, betaMonitor.getCheckpointDetail.bind(betaMonitor));
+
+// POST /api/admin/beta-monitor/:featureKey/run
+router.post('/beta-monitor/:featureKey/run', requireOperatorOrSuperAdmin, betaMonitor.runCheckpoint.bind(betaMonitor));
 
 export { router as adminRoutes };
