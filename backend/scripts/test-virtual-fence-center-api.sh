@@ -7,9 +7,11 @@ set -e
 
 API_URL="${API_URL:-https://api.kaviar.com.br}"
 SUPER_ADMIN_EMAIL="${SUPER_ADMIN_EMAIL:-suporte@kaviar.com.br}"
-SUPER_ADMIN_PASSWORD="${SUPER_ADMIN_PASSWORD:-Kaviar2026!}"
 ANGEL_EMAIL="${ANGEL_EMAIL:-angel01@kaviar.com.br}"
-ANGEL_PASSWORD="${ANGEL_PASSWORD:-Angel2026!}"
+
+# Require passwords from environment
+: "${SUPER_ADMIN_PASSWORD:?Error: SUPER_ADMIN_PASSWORD environment variable must be set}"
+: "${ANGEL_PASSWORD:?Error: ANGEL_PASSWORD environment variable must be set}"
 
 echo "🧪 Teste de Virtual Fence Center Admin API"
 echo "=========================================="

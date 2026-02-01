@@ -15,7 +15,13 @@ export const config = {
   
   admin: {
     defaultEmail: process.env.ADMIN_DEFAULT_EMAIL || 'admin@kaviar.com',
-    defaultPassword: process.env.ADMIN_DEFAULT_PASSWORD || 'admin123',
+    defaultPassword: process.env.ADMIN_DEFAULT_PASSWORD || (() => {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('ADMIN_DEFAULT_PASSWORD must be set in production');
+      }
+      console.warn('⚠️  WARNING: Using default admin password in development. Set ADMIN_DEFAULT_PASSWORD env var.');
+      return 'CHANGE_ME_IN_PRODUCTION';
+    })(),
   },
 
   rateLimit: {

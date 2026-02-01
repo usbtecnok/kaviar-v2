@@ -5,7 +5,9 @@
 
 BASE_URL="http://localhost:3000"
 EMAIL="test-driver-$(date +%s)@kaviar.com"
-PASSWORD="senha123"
+
+# Require password from environment
+: "${PASSWORD:?Error: PASSWORD environment variable must be set}"
 
 echo "🧪 TESTE: FLUXO DE CADASTRO DE MOTORISTA"
 echo "=========================================="

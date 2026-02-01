@@ -86,12 +86,16 @@ curl "http://geosampa.prefeitura.sp.gov.br/geoserver/geoportal/ows?service=WFS&v
 ### 2. Executar Migration
 ```bash
 cd backend
-PGPASSWORD='npg_2xbfMWRF6hrO' psql -h ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech -U neondb_owner -d neondb -f ../migration_geofencing.sql
+# Set PGPASSWORD environment variable before running
+export PGPASSWORD='[YOUR_DB_PASSWORD]'
+psql -h [YOUR_DB_HOST] -U [YOUR_DB_USER] -d [YOUR_DB_NAME] -f ../migration_geofencing.sql
 ```
 
 ### 3. Importar Dados
 ```bash
-DATABASE_URL="postgresql://neondb_owner:npg_2xbfMWRF6hrO@ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require" npx tsx src/scripts/import-geojson.ts
+# Set DATABASE_URL environment variable before running
+export DATABASE_URL="postgresql://[USER]:[PASSWORD]@[HOST]/[DATABASE]?sslmode=require"
+npx tsx src/scripts/import-geojson.ts
 ```
 
 ## 📊 Estrutura do Banco
