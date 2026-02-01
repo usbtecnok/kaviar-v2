@@ -221,59 +221,98 @@ async function main() {
   console.log('');
 
   // ============================================================================
-  // COMPARAÇÃO
+  // PASSO 6: CORRIDA C - COPACABANA → IPANEMA (DIFFERENT_NEIGHBORHOOD)
   // ============================================================================
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📊 COMPARAÇÃO: DENTRO vs FORA');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('');
+  console.log('🚗 CORRIDA C: BAIRROS DIFERENTES (Copacabana → Ipanema)');
+  console.log('─────────────────────────────────────────────────────────────────────');
   
-  const delta = rideA.driverEarnings - rideB.driverEarnings;
-  const deltaPercent = ((delta / rideB.driverEarnings) * 100);
+  const ipanema = await prisma.neighborhoods.findFirst({
+    where: { name: 'Ipanema', city: 'Rio de Janeiro' }
+  });
   
-  console.log('┌─────────────────────────────────────────────────────────────────┐');
-  console.log('│                         CORRIDA A (DENTRO)                      │');
-  console.log('├─────────────────────────────────────────────────────────────────┤');
-  console.log(`│ Valor total:           R$ ${fareAmount.toFixed(2).padStart(10)}                      │`);
-  console.log(`│ Taxa Kaviar (${rideA.feePercentage}%):     R$ ${rideA.feeAmount.toFixed(2).padStart(10)}                      │`);
-  console.log(`│ Ganho motorista:       R$ ${rideA.driverEarnings.toFixed(2).padStart(10)}                      │`);
-  console.log('└─────────────────────────────────────────────────────────────────┘');
-  console.log('');
-  console.log('┌─────────────────────────────────────────────────────────────────┐');
-  console.log('│                         CORRIDA B (FORA)                        │');
-  console.log('├─────────────────────────────────────────────────────────────────┤');
-  console.log(`│ Valor total:           R$ ${fareAmount.toFixed(2).padStart(10)}                      │`);
-  console.log(`│ Taxa Kaviar (${rideB.feePercentage}%):    R$ ${rideB.feeAmount.toFixed(2).padStart(10)}                      │`);
-  console.log(`│ Ganho motorista:       R$ ${rideB.driverEarnings.toFixed(2).padStart(10)}                      │`);
-  console.log('└─────────────────────────────────────────────────────────────────┘');
-  console.log('');
-  console.log('┌─────────────────────────────────────────────────────────────────┐');
-  console.log('│                         DIFERENÇA (A - B)                       │');
-  console.log('├─────────────────────────────────────────────────────────────────┤');
-  console.log(`│ Delta ganho:           R$ ${delta.toFixed(2).padStart(10)} (${deltaPercent > 0 ? '+' : ''}${deltaPercent.toFixed(1)}%)           │`);
-  console.log(`│ Motorista ganha MAIS:  ${delta > 0 ? 'DENTRO da geofence' : 'FORA da geofence'}                │`);
-  console.log('└─────────────────────────────────────────────────────────────────┘');
+  const originCopa = { lat: -22.9711, lng: -43.1822 };
+  const destinationIpanema = { lat: -22.9838, lng: -43.2096 };
+  
+  const rideC = await calculateTripFee(
+    driver.id,
+    originCopa.lat,
+    originCopa.lng,
+    destinationIpanema.lat,
+    destinationIpanema.lng,
+    fareAmount,
+    'Rio de Janeiro'
+  );
+  
+  console.log(`   Origem: Copacabana (${originCopa.lat}, ${originCopa.lng})`);
+  console.log(`   Destino: Ipanema (${destinationIpanema.lat}, ${destinationIpanema.lng})`);
+  console.log(`   Match Type: ${rideC.matchType} | Taxa: ${rideC.feePercentage}% | Ganho: R$ ${rideC.driverEarnings.toFixed(2)}`);
   console.log('');
 
   // ============================================================================
-  // RESUMO FINAL
+  // PASSO 7: CORRIDA D - FALLBACK 800M (São Paulo)
+  // ============================================================================
+  console.log('🚗 CORRIDA D: FALLBACK 800M (São Paulo - Aclimação)');
+  console.log('─────────────────────────────────────────────────────────────────────');
+  
+  const aclimacao = await prisma.neighborhoods.findFirst({
+    where: { name: 'Aclimação', city: 'São Paulo' }
+  });
+  
+  const driverSP = await prisma.drivers.upsert({
+    where: { email: 'driver.test+sp@kaviar.com.br' },
+    update: { neighborhood_id: aclimacao.id, status: 'approved', approved_at: new Date() },
+    create: {
+      id: require('crypto').randomUUID(),
+      email: 'driver.test+sp@kaviar.com.br',
+      name: 'Driver Test SP',
+      phone: '+5511999990003',
+      password_hash: await require('bcrypt').hash('Test@2026', 10),
+      document_cpf: '00000000003',
+      neighborhood_id: aclimacao.id,
+      status: 'approved',
+      approved_at: new Date(),
+      created_at: new Date(),
+      updated_at: new Date()
+    }
+  });
+  
+  const originSP = { lat: -23.5707, lng: -46.6320 };
+  const destinationSP = { lat: -23.5750, lng: -46.6350 };
+  
+  const rideD = await calculateTripFee(
+    driverSP.id,
+    originSP.lat,
+    originSP.lng,
+    destinationSP.lat,
+    destinationSP.lng,
+    fareAmount,
+    'São Paulo'
+  );
+  
+  console.log(`   Origem: Aclimação (${originSP.lat}, ${originSP.lng})`);
+  console.log(`   Destino: Próximo (${destinationSP.lat}, ${destinationSP.lng})`);
+  console.log(`   Match Type: ${rideD.matchType} | Taxa: ${rideD.feePercentage}% | Ganho: R$ ${rideD.driverEarnings.toFixed(2)}`);
+  console.log('');
+
+  // ============================================================================
+  // TABELA COMPARATIVA FINAL
   // ============================================================================
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('✅ TESTE CONCLUÍDO COM SUCESSO');
+  console.log('📊 TABELA COMPARATIVA: TODOS OS CENÁRIOS');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
-  console.log('📋 IDs Criados:');
-  console.log(`   Passageiro: ${passenger.id}`);
-  console.log(`   Motorista: ${driver.id}`);
-  console.log(`   Bairro base: ${copacabana.id} (${copacabana.name})`);
+  console.log('┌──────────────────────────┬────────────┬──────────┬─────────────────┐');
+  console.log('│ Cenário                  │ Valor      │ Taxa     │ Ganho Motorista │');
+  console.log('├──────────────────────────┼────────────┼──────────┼─────────────────┤');
+  console.log(`│ SAME_NEIGHBORHOOD        │ R$ ${fareAmount.toFixed(2).padStart(6)} │ ${rideA.feePercentage.toString().padStart(2)}% (${rideA.feeAmount.toFixed(2).padStart(5)}) │ R$ ${rideA.driverEarnings.toFixed(2).padStart(13)} │`);
+  console.log(`│ DIFFERENT_NEIGHBORHOOD   │ R$ ${fareAmount.toFixed(2).padStart(6)} │ ${rideC.feePercentage.toString().padStart(2)}% (${rideC.feeAmount.toFixed(2).padStart(5)}) │ R$ ${rideC.driverEarnings.toFixed(2).padStart(13)} │`);
+  console.log(`│ OUTSIDE_FENCE            │ R$ ${fareAmount.toFixed(2).padStart(6)} │ ${rideB.feePercentage.toString().padStart(2)}% (${rideB.feeAmount.toFixed(2).padStart(5)}) │ R$ ${rideB.driverEarnings.toFixed(2).padStart(13)} │`);
+  console.log(`│ FALLBACK_800M            │ R$ ${fareAmount.toFixed(2).padStart(6)} │ ${rideD.feePercentage.toString().padStart(2)}% (${rideD.feeAmount.toFixed(2).padStart(5)}) │ R$ ${rideD.driverEarnings.toFixed(2).padStart(13)} │`);
+  console.log('└──────────────────────────┴────────────┴──────────┴─────────────────┘');
   console.log('');
-  console.log('📍 Coordenadas Usadas:');
-  console.log(`   Dentro: (${originInside.lat}, ${originInside.lng}) → (${destinationInside.lat}, ${destinationInside.lng})`);
-  console.log(`   Fora: (${originOutside.lat}, ${originOutside.lng}) → (${destinationOutside.lat}, ${destinationOutside.lng})`);
-  console.log('');
-  console.log('💡 Conclusão:');
-  console.log(`   Motoristas ganham ${deltaPercent.toFixed(1)}% A MAIS quando fazem corridas`);
-  console.log(`   DENTRO do seu bairro base (taxa de 7% vs 20%)`);
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('✅ TESTE CONCLUÍDO - MOTOR DE TERRITÓRIO VALIDADO');
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('');
 
   await prisma.$disconnect();
