@@ -6,6 +6,7 @@ RUN apt-get update -y && apt-get install -y openssl
 
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY docs ./docs/
 COPY . .
 
 # Limpar cache do Prisma e instalar dependências
