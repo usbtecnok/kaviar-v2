@@ -251,16 +251,16 @@ async function main() {
   // ============================================================================
   // PASSO 7: CORRIDA D - FALLBACK 800M (São Paulo)
   // ============================================================================
-  console.log('🚗 CORRIDA D: FALLBACK 800M (São Paulo - Aclimação)');
+  console.log('🚗 CORRIDA D: FALLBACK 800M (São Paulo - Sé)');
   console.log('─────────────────────────────────────────────────────────────────────');
   
-  const aclimacao = await prisma.neighborhoods.findFirst({
-    where: { name: 'Aclimação', city: 'São Paulo' }
+  const se = await prisma.neighborhoods.findFirst({
+    where: { name: 'Sé', city: 'São Paulo' }
   });
   
   const driverSP = await prisma.drivers.upsert({
     where: { email: 'driver.test+sp@kaviar.com.br' },
-    update: { neighborhood_id: aclimacao.id, status: 'approved', approved_at: new Date() },
+    update: { neighborhood_id: se.id, status: 'approved', approved_at: new Date() },
     create: {
       id: require('crypto').randomUUID(),
       email: 'driver.test+sp@kaviar.com.br',
@@ -268,7 +268,7 @@ async function main() {
       phone: '+5511999990003',
       password_hash: await require('bcrypt').hash('Test@2026', 10),
       document_cpf: '00000000003',
-      neighborhood_id: aclimacao.id,
+      neighborhood_id: se.id,
       status: 'approved',
       approved_at: new Date(),
       created_at: new Date(),
@@ -276,9 +276,10 @@ async function main() {
     }
   });
   
-  // Coordenadas próximas ao centro da Aclimação (dentro de 800m)
-  const originSP = { lat: -23.5707, lng: -46.6320 };
-  const destinationSP = { lat: -23.5730, lng: -46.6340 };
+  // Coordenadas próximas ao centro da Sé (dentro de 800m mas fora da geofence oficial)
+  // Centro: -23.5477, -46.6314
+  const originSP = { lat: -23.5485, lng: -46.6320 };
+  const destinationSP = { lat: -23.5490, lng: -46.6325 };
   
   const rideD = await calculateTripFee(
     driverSP.id,
@@ -290,7 +291,7 @@ async function main() {
     'São Paulo'
   );
   
-  console.log(`   Origem: Aclimação (${originSP.lat}, ${originSP.lng})`);
+  console.log(`   Origem: Sé (${originSP.lat}, ${originSP.lng})`);
   console.log(`   Destino: Próximo (${destinationSP.lat}, ${destinationSP.lng})`);
   console.log(`   Match Type: ${rideD.matchType} | Taxa: ${rideD.feePercentage}% | Ganho: R$ ${rideD.driverEarnings.toFixed(2)}`);
   console.log('');
