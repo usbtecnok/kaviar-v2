@@ -39,6 +39,7 @@ import feeCalculationRoutes from './routes/fee-calculation';
 import driverDashboardRoutes from './routes/driver-dashboard';
 import notificationsRoutes from './routes/notifications';
 import passengerLocationsRoutes from './routes/passenger-locations';
+import passengerFavoritesRoutes from './routes/passenger-favorites';
 import neighborhoodStatsRoutes from './routes/neighborhood-stats';
 
 const app = express();
@@ -130,6 +131,7 @@ app.use('/api/drivers', driversRoutes);
 app.use('/api/drivers', driverDashboardRoutes); // ✅ Driver dashboard
 app.use('/api/drivers', notificationsRoutes); // ✅ Notifications
 app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
+app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (beta)
 app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
 app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
 console.log('✅ Core routes mounted:');
