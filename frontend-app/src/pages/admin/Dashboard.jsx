@@ -315,6 +315,24 @@ export default function AdminDashboard() {
             </Box>
           </Button>
         </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Button
+            variant="outlined"
+            fullWidth
+            sx={{ p: 2, textAlign: 'left' }}
+            href="/admin/beta-monitor"
+          >
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                Beta Monitor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Checkpoints + logs + runbook operacional
+              </Typography>
+            </Box>
+          </Button>
+        </Grid>
       </Grid>
     </Box>
   );
