@@ -186,6 +186,47 @@ grep -n "PassengerDetail" src/components/admin/AdminApp.jsx
 713:                <PassengerDetail />                              ✅
 ```
 
+### 5. Login Admin Funcionando ✅
+```bash
+curl -X POST https://api.kaviar.com.br/api/admin/auth/login \
+  -d '{"email":"suporte@kaviar.com.br","password":"\[senha_temporaria\]"}'
+```
+**Resultado:**
+```json
+{
+  "success": true,
+  "token": "[REDACTED_JWT]",
+  "data": {
+    "user": {
+      "id": "8b5d46f4-885d-42a7-b70e-a826b36c1306",
+      "email": "suporte@kaviar.com.br",
+      "role": "SUPER_ADMIN"
+    }
+  }
+}
+```
+
+### 6. Endpoints Admin Validados ✅
+
+**GET /api/admin/passengers/:id/favorites:**
+```json
+{
+  "success": true,
+  "favorites": [
+    {"id": "...", "label": "Favorito Beta 1", "type": "HOME", "lat": -23.551, "lng": -46.631}
+  ]
+}
+```
+
+**PUT /api/admin/drivers/:id/secondary-base:**
+```json
+{
+  "success": true,
+  "before": {"lat": null, "lng": null},
+  "after": {"lat": -23.5505, "lng": -46.6333, "label": "Base Teste", "enabled": true}
+}
+```
+
 ---
 
 ## 📊 ESTRUTURA FINAL
