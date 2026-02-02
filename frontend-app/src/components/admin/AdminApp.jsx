@@ -12,6 +12,7 @@ import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
 import NeighborhoodsByCity from "../../pages/admin/NeighborhoodsByCity";
 import DriversManagement from "../../pages/admin/DriversManagement";
 import PassengersManagement from "../../pages/admin/PassengersManagement";
+import PassengerDetail from "../../pages/admin/PassengerDetail";
 import GuidesManagement from "../../pages/admin/GuidesManagement";
 import GeofenceManagement from "../../pages/admin/GeofenceManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
@@ -701,6 +702,15 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <PassengersManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/passengers/:id" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <PassengerDetail />
               </Container>
             </ProtectedAdminRoute>
           } />

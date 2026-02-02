@@ -19,6 +19,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Cancel, ArrowBack } from '@mui/icons-material';
 import api from '../../api/index';
 import { VirtualFenceCenterCard } from '../../components/admin/VirtualFenceCenterCard';
+import { SecondaryBaseCard } from '../../components/admin/SecondaryBaseCard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -387,6 +388,11 @@ export default function AdminDriverDetail() {
       {/* Virtual Fence Center Card */}
       <Box sx={{ mt: 3 }}>
         <VirtualFenceCenterCard driverId={id} />
+      </Box>
+
+      {/* Secondary Base Card */}
+      <Box sx={{ mt: 3 }}>
+        <SecondaryBaseCard driverId={id} />
       </Box>
 
       {/* Dialog de rejeição */}

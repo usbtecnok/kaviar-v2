@@ -10,12 +10,16 @@ import {
   CircularProgress,
   Alert,
   Paper,
-  Chip
+  Chip,
+  IconButton
 } from '@mui/material';
+import { Visibility } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function PassengersManagement() {
+  const navigate = useNavigate();
   const [passengers, setPassengers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -82,6 +86,7 @@ export default function PassengersManagement() {
               <TableCell><strong>Email</strong></TableCell>
               <TableCell><strong>Telefone</strong></TableCell>
               <TableCell><strong>Status</strong></TableCell>
+              <TableCell><strong>Ações</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -96,6 +101,15 @@ export default function PassengersManagement() {
                     size="small" 
                     color={passenger.status === 'active' ? 'success' : 'default'}
                   />
+                </TableCell>
+                <TableCell>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => navigate(`/admin/passengers/${passenger.id}`)}
+                    title="Ver detalhes"
+                  >
+                    <Visibility />
+                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
