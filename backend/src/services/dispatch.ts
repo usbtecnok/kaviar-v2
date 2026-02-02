@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { OperationalService, OperationalProfile } from './operational';
+import { rankDriversByFavorites } from './favorites-matching.service';
 
 export interface DispatchResult {
   success: boolean;
@@ -52,9 +53,17 @@ export class DispatchService {
     // Execute dispatch
     const availableDrivers = await prisma.drivers.findMany(dispatchQuery);
 
+    // Apply favorites matching ranking
+    const [pickupLat, pickupLng] = ride.origin.split(',').map(Number);
+    const rankedDrivers = await rankDriversByFavorites(
+      availableDrivers,
+      ride.passenger_id,
+      { lat: pickupLat, lng: pickupLng }
+    );
+
     // Handle operational profile results
     return this.handleDispatchResult(
-      availableDrivers,
+      rankedDrivers,
       context.operationalProfile
     );
   }
