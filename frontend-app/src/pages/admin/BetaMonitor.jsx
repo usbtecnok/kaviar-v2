@@ -283,28 +283,28 @@ export default function BetaMonitor() {
               <Typography variant="subtitle2" gutterBottom>Config:</Typography>
               <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
                 <pre style={{ margin: 0, fontSize: '0.875rem' }}>
-                  {JSON.stringify(selectedCheckpoint.config_json, null, 2)}
+                  {JSON.stringify(selectedCheckpoint.config, null, 2)}
                 </pre>
               </Paper>
 
               <Typography variant="subtitle2" gutterBottom>Metrics:</Typography>
               <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
                 <pre style={{ margin: 0, fontSize: '0.875rem' }}>
-                  {JSON.stringify(selectedCheckpoint.metrics_json, null, 2)}
+                  {JSON.stringify(selectedCheckpoint.metrics, null, 2)}
                 </pre>
               </Paper>
 
               <Typography variant="subtitle2" gutterBottom>Determinism:</Typography>
               <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: '#f5f5f5' }}>
                 <pre style={{ margin: 0, fontSize: '0.875rem' }}>
-                  {JSON.stringify(selectedCheckpoint.determinism_json, null, 2)}
+                  {JSON.stringify(selectedCheckpoint.determinism, null, 2)}
                 </pre>
               </Paper>
 
               <Typography variant="subtitle2" gutterBottom>Alerts:</Typography>
               <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f5f5f5' }}>
                 <pre style={{ margin: 0, fontSize: '0.875rem' }}>
-                  {JSON.stringify(selectedCheckpoint.alerts_json, null, 2)}
+                  {JSON.stringify(selectedCheckpoint.alerts, null, 2)}
                 </pre>
               </Paper>
             </Box>

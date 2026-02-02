@@ -365,7 +365,7 @@ model feature_flag_allowlist {
   created_by_admin_id String?
   created_at          DateTime @default(now())
 
-  @@unique([key, passenger_id])
+  @@unique([key, passenger_id], map: "feature_flag_allowlist_key_passenger_id_key")
   @@index([key, passenger_id], map: "idx_feature_flag_allowlist_key_passenger")
 }
 

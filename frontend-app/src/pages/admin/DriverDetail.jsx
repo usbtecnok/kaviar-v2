@@ -18,6 +18,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Cancel, ArrowBack } from '@mui/icons-material';
 import api from '../../api/index';
+import { VirtualFenceCenterCard } from '../../components/admin/VirtualFenceCenterCard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -382,6 +383,11 @@ export default function AdminDriverDetail() {
           </Box>
         )}
       </Paper>
+
+      {/* Virtual Fence Center Card */}
+      <Box sx={{ mt: 3 }}>
+        <VirtualFenceCenterCard driverId={id} />
+      </Box>
 
       {/* Dialog de rejeição */}
       <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)}>

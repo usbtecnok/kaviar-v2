@@ -41,6 +41,10 @@ import notificationsRoutes from './routes/notifications';
 import passengerLocationsRoutes from './routes/passenger-locations';
 import passengerFavoritesRoutes from './routes/passenger-favorites';
 import neighborhoodStatsRoutes from './routes/neighborhood-stats';
+import { rolloutRoutes } from './routes/rollout-temp';
+import passengerProfileRoutes from './routes/passenger-profile';
+import driverEarningsRoutes from './routes/driver-earnings';
+import adminAuditRoutes from './routes/admin-audit';
 
 const app = express();
 
@@ -53,6 +57,7 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     'https://app.kaviar.com.br',
     'https://kaviar.com.br',
+    'https://www.kaviar.com.br',
     'http://localhost:5173'
   ];
   
@@ -131,9 +136,13 @@ app.use('/api/drivers', driversRoutes);
 app.use('/api/drivers', driverDashboardRoutes); // ✅ Driver dashboard
 app.use('/api/drivers', notificationsRoutes); // ✅ Notifications
 app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
+app.use('/api/passengers', passengerProfileRoutes); // ✅ Profile management
 app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (beta)
 app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
 app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
+app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
+app.use('/api/admin', adminAuditRoutes); // ✅ Audit logs
+app.use('/api/temp', rolloutRoutes); // 🔧 TEMPORARY - Phase 2 rollout
 console.log('✅ Core routes mounted:');
 console.log('   - /api/admin/auth/*');
 console.log('   - /api/admin/dashboard/* (overview)');
