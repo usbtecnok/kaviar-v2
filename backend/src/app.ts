@@ -47,6 +47,7 @@ import driverEarningsRoutes from './routes/driver-earnings';
 import adminAuditRoutes from './routes/admin-audit';
 import passengerRidesRoutes from './routes/passenger-rides';
 import driverAvailabilityRoutes from './routes/driver-availability';
+import adminDashboardMetricsRoutes from './routes/admin-dashboard-metrics';
 
 const app = express();
 
@@ -131,6 +132,7 @@ app.use('/api/match', matchRoutes); // ✅ Territorial match system
 app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes); // ✅ Driver details + documents
+app.use('/api/admin/dashboard', adminDashboardMetricsRoutes); // ✅ Real-time metrics
 app.use('/api/admin/community-leaders', communityLeadersRoutes); // ✅ Community leaders management
 app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
 app.use('/api/ratings', ratingsRoutes);
