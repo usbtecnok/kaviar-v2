@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DriverDetailsPage } from './pages/DriverDetailsPage';
+import { PassengerDetailsPage } from './pages/PassengerDetailsPage';
 import { LoginPage } from './pages/LoginPage';
 
 const theme = createTheme({
@@ -31,6 +32,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <DriverDetailsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/passengers/:passengerId"
+              element={
+                <PrivateRoute>
+                  <PassengerDetailsPage />
                 </PrivateRoute>
               }
             />

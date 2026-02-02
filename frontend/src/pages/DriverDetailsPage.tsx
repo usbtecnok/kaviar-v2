@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Paper, Typography, Box, CircularProgress, Divider } from '@mui/material';
 import { VirtualFenceCenterCard } from '../components/admin/VirtualFenceCenterCard';
+import { SecondaryBaseCard } from '../components/admin/SecondaryBaseCard';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Driver {
@@ -77,6 +78,10 @@ export const DriverDetailsPage: React.FC = () => {
       <Divider sx={{ my: 3 }} />
 
       <VirtualFenceCenterCard driverId={driver.id} />
+
+      <Box sx={{ mt: 3 }}>
+        <SecondaryBaseCard driverId={driver.id} />
+      </Box>
     </Container>
   );
 };
