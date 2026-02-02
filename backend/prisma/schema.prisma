@@ -184,6 +184,8 @@ model drivers {
   secondary_base_lng          Decimal?                      @db.Decimal(11, 8)
   secondary_base_label        String?
   secondary_base_enabled      Boolean                       @default(false)
+  available                   Boolean?                      @default(true)
+  available_updated_at        DateTime?
   is_premium                  Boolean                       @default(false)
   premium_override            Boolean?
   certidao_nada_consta_url    String?

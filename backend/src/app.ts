@@ -45,6 +45,8 @@ import { rolloutRoutes } from './routes/rollout-temp';
 import passengerProfileRoutes from './routes/passenger-profile';
 import driverEarningsRoutes from './routes/driver-earnings';
 import adminAuditRoutes from './routes/admin-audit';
+import passengerRidesRoutes from './routes/passenger-rides';
+import driverAvailabilityRoutes from './routes/driver-availability';
 
 const app = express();
 
@@ -141,6 +143,8 @@ app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (
 app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
 app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
 app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
+app.use('/api/drivers', driverAvailabilityRoutes); // ✅ Availability toggle
+app.use('/api/rides', passengerRidesRoutes); // ✅ Passenger ride actions
 app.use('/api/admin', adminAuditRoutes); // ✅ Audit logs
 app.use('/api/temp', rolloutRoutes); // 🔧 TEMPORARY - Phase 2 rollout
 console.log('✅ Core routes mounted:');
