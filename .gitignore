@@ -79,3 +79,4 @@ aws-resources.env
 **/rds.env
 **/aws-resources.env
 **/*.log
+docs/ADMIN_CREDENTIALS.md
