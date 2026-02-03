@@ -4,6 +4,9 @@
 **Estágio:** Pré-lançamento (produto funcional, validação técnica completa)  
 **Data:** 03 de Fevereiro de 2026
 
+**Veículo jurídico atual:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ 07.710.691/0001-66)  
+**Estrutura planejada:** Criação de SPE/empresa dedicada ao Kaviar após a rodada (definir com contador/advogado)
+
 ---
 
 ## 🎯 O Pedido
@@ -38,42 +41,54 @@
 3. **Governança comunitária** - Líderes locais como moderadores
 4. **Comissão justa** - 18% (vs 25% Uber) = mais para motorista
 
-**Status:** Produto funcional em AWS (backend + frontend web), mobile app 60% pronto.
+**Status:** Produto funcional em AWS (backend + frontend web), mobile MVP em desenvolvimento (escopo definido, entrega por marcos).
 
 ---
 
 ## 📊 Mercado (Metodologia)
 
-### TAM (Total Addressable Market)
-**Estimativa:** R$ 600-900 milhões/ano (Brasil)
+### TAM (Total Addressable Market) — Brasil
+**TAM (GMV - valor transacionado):** R$ 0,9–1,8 bi/ano (estimado)
 
-**Cálculo:**
+**Metodologia (cenário conservador):**
 ```
 População em comunidades: 13 milhões (IBGE 2022)
 × Penetração apps mobilidade: 5% (estimado, vs 25% geral)
 × Corridas/mês: 8 (2/semana)
 × Ticket médio: R$ 15
-× Take rate: 18%
-= R$ 14M/mês × 12 = R$ 168M/ano (conservador)
-
-Cenário otimista (10% penetração): R$ 336M/ano
+= 650.000 usuários × 8 corridas × R$ 15
+= R$ 78M/mês (GMV)
+= R$ 936M/ano (GMV)
 ```
+
+**Receita potencial da plataforma (take rate 18%):**
+- R$ 936M/ano × 18% = **R$ 168M/ano**
+
+**Cenário otimista (10% penetração):**
+- GMV: **R$ 1,87 bi/ano**
+- Receita potencial (18%): **R$ 336M/ano**
 
 **Fontes:**
 - População: IBGE Censo 2022 + DataFavela 2023
 - Penetração: Estimativa baseada em renda (R$ 1.500-3.000/mês)
-- Ticket/frequência: Benchmarks Uber/99 ajustados
+- Ticket/frequência: Benchmarks Uber/99 ajustados para distâncias menores
 
-### SAM (Serviceable Available Market)
-**Rio de Janeiro:** R$ 80-120 milhões/ano
-- 1,4 milhões habitantes em comunidades (22% da população)
-- Mesmo cálculo acima aplicado
+### SAM (Serviceable Available Market) — Rio de Janeiro
+**SAM (GMV):** R$ 120-240M/ano  
+**Receita potencial (18%):** R$ 22-43M/ano
 
-### SOM (Serviceable Obtainable Market - Ano 1)
-**10 comunidades piloto:** R$ 5-8 milhões/ano
-- 100.000 habitantes
+**Cálculo:**
+- 1,4 milhões habitantes em comunidades (22% da população RJ)
+- Mesma metodologia aplicada (5-10% penetração)
+
+### SOM (Serviceable Obtainable Market) — Ano 1
+**SOM (GMV):** R$ 7,2M/ano  
+**Receita potencial (18%):** R$ 1,3M/ano
+
+**Cálculo:**
+- 10 comunidades piloto (100.000 habitantes)
 - 5% penetração (5.000 usuários)
-- 40.000 corridas/mês
+- 40.000 corridas/mês × R$ 15 = R$ 600k/mês GMV
 
 ---
 

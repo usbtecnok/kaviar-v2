@@ -133,7 +133,7 @@ R$ 5-8M/ano
 ✅ AWS em produção ($120/mês)
 ✅ 12 usuários beta ativos
 
-⏳ Mobile app 60% pronto (2 meses)
+⏳ Mobile MVP em desenvolvimento (2 meses)
 ⏳ Piloto Rocinha (Mês 1-3)
 ```
 

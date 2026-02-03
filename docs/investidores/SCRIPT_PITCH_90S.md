@@ -21,7 +21,7 @@
 
 **[35-55s] MERCADO + TRAÇÃO**
 
-"O mercado endereçável é de 600 a 900 milhões de reais por ano só no Brasil. Começamos com 10 comunidades no Rio, validamos o modelo, e depois expandimos para São Paulo. Já temos 28 mil linhas de código escritas, 500 commits, e o app mobile está 60% pronto. Em 3 meses lançamos o piloto na Rocinha."
+"O mercado endereçável é de 600 a 900 milhões de reais por ano só no Brasil. Começamos com 10 comunidades no Rio, validamos o modelo, e depois expandimos para São Paulo. Já temos 28 mil linhas de código escritas, 500 commits, e o app mobile está MVP em desenvolvimento. Em 3 meses lançamos o piloto na Rocinha."
 
 ---
 
@@ -139,7 +139,7 @@ Oi [Nome]! Sou [Seu Nome], fundador da Kaviar.
 
 A gente resolve mobilidade em comunidades com motoristas locais. 1,4M de pessoas no RJ mal atendidas por Uber/99.
 
-Produto funcional (AWS), 162 bairros mapeados, app mobile 60% pronto.
+Produto funcional (AWS), 162 bairros mapeados, mobile MVP em desenvolvimento.
 
 Mercado: R$ 600-900M/ano (Brasil)
 Retorno: 20-30x em 3 anos (conservador)

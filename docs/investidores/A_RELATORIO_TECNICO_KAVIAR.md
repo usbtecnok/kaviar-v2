@@ -155,7 +155,7 @@ Stack Tecnológico:
 - **Core:** 95% completo
 - **Premium:** 80% completo
 - **Admin:** 90% completo
-- **Mobile App:** 60% completo (em desenvolvimento)
+- **Mobile App:** MVP em desenvolvimento (em desenvolvimento)
 
 ### Débito Técnico
 **Baixo/Médio** - Típico de startup em crescimento:
@@ -251,7 +251,7 @@ Stack Tecnológico:
 | Débito técnico | Baixo | Sprint de limpeza planejado |
 | Dependência AWS | Médio | Infraestrutura como código (IaC) |
 | Segurança | Alto | LGPD compliant, auditorias regulares |
-| Mobile app incompleto | Médio | 60% pronto, 2 meses para finalizar |
+| Mobile app incompleto | Médio | MVP em desenvolvimento, 2 meses para finalizar |
 
 ---
 

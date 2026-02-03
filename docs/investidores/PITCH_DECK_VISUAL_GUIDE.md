@@ -293,7 +293,7 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 │  ✅ AWS em produção ($120/mês)          │
 │  ✅ 12 usuários beta ativos             │
 │                                         │
-│  ⏳ Mobile app 60% pronto (2 meses)     │ ← Relógio #F59E0B
+│  ⏳ Mobile MVP em desenvolvimento (2 meses)     │ ← Relógio #F59E0B
 │  ⏳ Piloto Rocinha (Mês 1-3)            │
 │                                         │
 ├─────────────────────────────────────────┤

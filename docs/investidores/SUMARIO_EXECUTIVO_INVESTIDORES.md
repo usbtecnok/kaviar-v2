@@ -59,7 +59,7 @@ Plataforma de mobilidade **focada em comunidades**, com:
 - ✅ **Operacional em produção** (AWS)
 - ✅ Backend completo (TypeScript + PostgreSQL)
 - ✅ Frontend web funcional (React)
-- ⏳ Mobile app 60% pronto (2 meses para finalizar)
+- ⏳ Mobile MVP em desenvolvimento (2 meses para finalizar)
 - ✅ 162 bairros mapeados (Rio de Janeiro)
 - ✅ 12 usuários beta ativos
 

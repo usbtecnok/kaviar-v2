@@ -46,7 +46,7 @@ Frontend Web:
   
 Mobile:
   Framework: React Native + Expo
-  Estado: 60% completo
+  Estado: MVP em desenvolvimento
   Plataformas: iOS + Android
   
 Cloud (AWS):

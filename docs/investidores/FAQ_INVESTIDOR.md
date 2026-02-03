@@ -15,7 +15,7 @@
 - ✅ 28.000 linhas de código (TypeScript + React)
 - ✅ 500+ commits em 6 meses
 - ✅ 12 usuários beta (validação técnica)
-- ⏳ Mobile app 60% pronto (2 meses para finalizar)
+- ⏳ Mobile MVP em desenvolvimento (2 meses para finalizar)
 
 **Próximos 90 dias:**
 - Lançar piloto na Rocinha
