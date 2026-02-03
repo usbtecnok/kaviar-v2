@@ -47,7 +47,7 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 │         [CONTEÚDO PRINCIPAL]            │ ← Body (85% altura)
 │                                         │
 ├─────────────────────────────────────────┤
-│ USB Tecnologia | Fev 2026               │ ← Footer (10% altura)
+│ USB Tecnok Manutenção e Instalação de Computadores Ltda | Fev 2026               │ ← Footer (10% altura)
 └─────────────────────────────────────────┘
 ```
 
@@ -69,7 +69,7 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 │                                         │
 │     [Foto: Comunidade do Rio]          │ ← 400x300px, centralizada
 │                                         │
-│         USB Tecnologia                  │ ← 20pt, #1E293B
+│         USB Tecnok Manutenção e Instalação de Computadores Ltda                  │ ← 20pt, #1E293B
 │         Fevereiro 2026                  │ ← 18pt, #64748B
 │                                         │
 │    [Seu Nome] - Fundador                │ ← 18pt, #1E293B

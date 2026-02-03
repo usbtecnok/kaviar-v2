@@ -308,7 +308,7 @@ Arredondado: R$ 600-900M (incluindo crescimento)
 **Fundador:** [Seu Nome]
 - 20 anos de experiência em tecnologia
 - Full-stack developer (TypeScript, React, AWS)
-- Fundador da USB Tecnologia (2006)
+- Fundador da USB Tecnok Manutenção e Instalação de Computadores Ltda (2006)
 
 **Equipe técnica:** 1 pessoa (fundador)
 

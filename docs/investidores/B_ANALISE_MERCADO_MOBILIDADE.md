@@ -1,6 +1,6 @@
 # Análise de Mercado - Mobilidade Urbana em Comunidades
 **Data:** 03 de Fevereiro de 2026  
-**Empresa:** USB Tecnologia  
+**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda  
 **Produto:** Kaviar
 
 ---
@@ -470,5 +470,5 @@ O mercado de mobilidade em comunidades é **grande, crescente e mal atendido**. 
 ---
 
 **Preparado por:** Kiro (AWS AI Assistant)  
-**Para:** USB Tecnologia - Captação de Investimento  
+**Para:** USB Tecnok Manutenção e Instalação de Computadores Ltda - Captação de Investimento  
 **Fontes:** ABTM, IBGE, Pesquisas de mercado 2025-2026

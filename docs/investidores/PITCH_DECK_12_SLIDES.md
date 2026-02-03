@@ -1,5 +1,5 @@
 # Pitch Deck - Kaviar (12 Slides)
-**Empresa:** USB Tecnologia  
+**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda  
 **Produto:** Kaviar - Mobilidade para Comunidades  
 **Formato:** Texto slide a slide (converter para PowerPoint/Google Slides)
 
@@ -14,7 +14,7 @@
 KAVIAR
 Mobilidade Urbana para Comunidades
 
-USB Tecnologia
+USB Tecnok Manutenção e Instalação de Computadores Ltda
 Fevereiro 2026
 
 [Seu Nome] - Fundador
