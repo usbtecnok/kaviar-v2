@@ -77,6 +77,8 @@ export const demoData = {
   passenger: {
     nome: 'Demo Passageiro',
     email: 'demo.passageiro@kaviar.com',
+    telefone: '(21) 9****-****', // Oculto
+    cpf: '***.***.***-**', // Oculto
     favoritos: [
       { id: 1, label: 'Casa', endereco: 'Rua 1, Rocinha', lat: -22.9868, lng: -43.2482 },
       { id: 2, label: 'Trabalho', endereco: 'Av. Atlântica, Copacabana', lat: -22.9711, lng: -43.1822 },
@@ -94,9 +96,11 @@ export const demoData = {
         destino: 'Copacabana', 
         status: 'completed', 
         valor: 18.50,
-        data: '2026-02-01',
+        data: '2026-02-01T14:30:00Z',
         motorista: 'João Silva',
-        avaliacao: 5
+        avaliacao: 5,
+        duracao: '18 min',
+        distancia: '5.2 km'
       },
       { 
         id: 2, 
@@ -104,9 +108,11 @@ export const demoData = {
         destino: 'Ipanema', 
         status: 'completed', 
         valor: 22.00,
-        data: '2026-01-28',
+        data: '2026-01-28T10:15:00Z',
         motorista: 'Maria Santos',
-        avaliacao: 5
+        avaliacao: 5,
+        duracao: '22 min',
+        distancia: '6.8 km'
       },
       { 
         id: 3, 
@@ -114,9 +120,11 @@ export const demoData = {
         destino: 'Leblon', 
         status: 'completed', 
         valor: 25.50,
-        data: '2026-01-25',
+        data: '2026-01-25T16:45:00Z',
         motorista: 'Pedro Costa',
-        avaliacao: 4
+        avaliacao: 4,
+        duracao: '25 min',
+        distancia: '7.5 km'
       },
       { 
         id: 4, 
@@ -124,11 +132,15 @@ export const demoData = {
         destino: 'Barra da Tijuca', 
         status: 'cancelled', 
         valor: 0,
-        data: '2026-01-20',
+        data: '2026-01-20T09:00:00Z',
         motorista: null,
-        avaliacao: null
+        avaliacao: null,
+        motivoCancelamento: 'Motorista não encontrado'
       },
-    ]
+    ],
+    saldo: 0,
+    corridasRealizadas: 3,
+    avaliacaoMedia: 4.7,
   },
 
   // Driver (dados fictícios)

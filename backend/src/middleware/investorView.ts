@@ -12,6 +12,20 @@ const investorView = (req, res, next) => {
     return next(); // Não é investidor, permitir
   }
 
+  // Permitir endpoints de autenticação
+  const allowedAuthPaths = [
+    '/api/auth/login',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
+    '/api/admin/login',
+    '/api/admin/forgot-password',
+    '/api/admin/reset-password',
+  ];
+
+  if (allowedAuthPaths.some(path => req.path === path)) {
+    return next();
+  }
+
   // Bloquear métodos que modificam dados
   const blockedMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
   
@@ -29,13 +43,15 @@ const investorView = (req, res, next) => {
     '/api/admin/drivers/reject',
     '/api/admin/payments',
     '/api/admin/notifications',
-    '/api/admin/feature-flags', // Permitir GET, bloquear PUT/POST
-    '/api/admin/beta-monitor', // Permitir GET, bloquear POST
+    '/api/admin/exports',
+    '/api/admin/documents/download', // Bloquear download de documentos
+    '/api/passengers/documents', // PII
+    '/api/drivers/documents', // PII
   ];
 
   const isBlocked = blockedPaths.some(path => req.path.startsWith(path));
   
-  if (isBlocked && req.method !== 'GET') {
+  if (isBlocked) {
     return res.status(403).json({
       error: 'Forbidden',
       message: 'Endpoint não disponível para visualização de investidor',
@@ -45,6 +61,10 @@ const investorView = (req, res, next) => {
 
   // Adicionar flag no request para outros middlewares saberem
   req.isInvestorView = true;
+  
+  // Adicionar header na resposta
+  res.setHeader('X-Demo-Mode', 'true');
+  res.setHeader('X-Investor-View', 'true');
   
   next();
 };
