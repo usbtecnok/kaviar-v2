@@ -43,6 +43,13 @@ jobs:
             .taskDefinition |
             .containerDefinitions[0].image = $IMAGE |
             .containerDefinitions[0].environment += [{"name": "GIT_COMMIT", "value": $COMMIT}] |
+            .containerDefinitions[0].healthCheck = {
+              "command": ["CMD-SHELL", "node /app/healthcheck.js"],
+              "interval": 30,
+              "timeout": 5,
+              "retries": 3,
+              "startPeriod": 60
+            } |
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
           ')
           echo $NEW_TASK_DEF > task-def.json
