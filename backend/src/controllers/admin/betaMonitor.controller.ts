@@ -11,10 +11,14 @@ export class BetaMonitorController {
       const { featureKey } = req.params;
       const limit = parseInt(req.query.limit as string) || 50;
       const cursor = req.query.cursor as string;
+      const phase = req.query.phase as string;
 
       const where: any = { feature_key: featureKey };
       if (cursor) {
         where.created_at = { lt: new Date(cursor) };
+      }
+      if (phase) {
+        where.phase = phase;
       }
 
       const checkpoints = await prisma.beta_monitor_checkpoints.findMany({
@@ -91,14 +95,42 @@ export class BetaMonitorController {
     try {
       const { featureKey } = req.params;
       const admin = (req as any).admin;
-      const phase = req.body.phase || 'phase1_beta';
+      const phase = req.body.phase || 'phase2_rollout';
       const label = `manual-run-${new Date().toISOString().slice(0, 16)}`;
 
       console.log(`[Beta Monitor] Manual run triggered by admin ${admin.id} for ${featureKey}`);
 
+      // Get current config for fallback
+      const flag = await prisma.feature_flags.findUnique({
+        where: { key: featureKey },
+      });
+
+      if (!flag) {
+        return res.status(404).json({
+          success: false,
+          error: 'Feature flag não encontrada',
+        });
+      }
+
+      // Use provided values or fallback to current config
+      const expectedRollout = req.body.expectedRollout ?? flag.rollout_percentage;
+      const expectedEnabled = req.body.expectedEnabled ?? flag.enabled;
+
       // Spawn dog script - use absolute path in container
       const scriptPath = path.join(__dirname, '../../scripts/beta-monitor-dog.js');
-      const child = spawn('node', [scriptPath, featureKey, phase, label], {
+      const args = [
+        scriptPath,
+        featureKey,
+        phase,
+        label,
+        `--expected-rollout=${expectedRollout}`,
+      ];
+
+      if (expectedEnabled !== undefined) {
+        args.push(`--expected-enabled=${expectedEnabled}`);
+      }
+
+      const child = spawn('node', args, {
         detached: false,
         stdio: 'pipe',
         cwd: path.join(__dirname, '../..'),

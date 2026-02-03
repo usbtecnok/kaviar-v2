@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Beta Monitor Dog - Automated Feature Flag Monitoring
- * Usage: node beta-monitor-dog.js <featureKey> <phase> [checkpointLabel] [--expected-rollout=N]
+ * Usage: node beta-monitor-dog.js <featureKey> <phase> [checkpointLabel] [--expected-rollout=N] [--expected-enabled=true|false]
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -20,6 +20,12 @@ const expectedRolloutArg = process.argv.find(arg => arg.startsWith('--expected-r
 const EXPECTED_ROLLOUT = expectedRolloutArg 
   ? parseInt(expectedRolloutArg.split('=')[1]) 
   : (PHASE === 'phase2_rollout' ? 1 : 0);
+
+// Parse --expected-enabled flag
+const expectedEnabledArg = process.argv.find(arg => arg.startsWith('--expected-enabled='));
+const EXPECTED_ENABLED = expectedEnabledArg 
+  ? expectedEnabledArg.split('=')[1] === 'true'
+  : true;
 
 const BASELINE = {
   error_rate_5xx: 0.00,
@@ -162,7 +168,7 @@ async function main() {
 
     // 4. Detect triggers
     const expectedConfig = {
-      enabled: true,
+      enabled: EXPECTED_ENABLED,
       rollout_percentage: EXPECTED_ROLLOUT,
       min_allowlist_count: 10, // Phase 1: allowlist can grow, but not shrink below baseline
     };

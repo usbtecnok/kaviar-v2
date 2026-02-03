@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 
 const API_BASE = 'https://api.kaviar.com.br/api/admin';
 const FEATURE_KEY = 'passenger_favorites_matching';
+const DEFAULT_PHASE = 'phase2_rollout';
 
 export default function BetaMonitor() {
   const [checkpoints, setCheckpoints] = useState([]);
@@ -18,6 +19,7 @@ export default function BetaMonitor() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [featureConfig, setFeatureConfig] = useState(null);
 
   const token = localStorage.getItem('kaviar_admin_token');
   const adminData = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
@@ -26,11 +28,26 @@ export default function BetaMonitor() {
   useEffect(() => {
     loadCheckpoints();
     loadRunbook();
+    loadFeatureConfig();
   }, []);
+
+  const loadFeatureConfig = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/feature-flags/${FEATURE_KEY}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFeatureConfig(data.flag);
+      }
+    } catch (err) {
+      console.error('Error loading feature config:', err);
+    }
+  };
 
   const loadCheckpoints = async () => {
     try {
-      const res = await fetch(`${API_BASE}/beta-monitor/${FEATURE_KEY}/checkpoints?limit=20`, {
+      const res = await fetch(`${API_BASE}/beta-monitor/${FEATURE_KEY}/checkpoints?limit=20&phase=${DEFAULT_PHASE}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -67,13 +84,22 @@ export default function BetaMonitor() {
     setSuccess('');
 
     try {
+      const body = {
+        phase: DEFAULT_PHASE,
+      };
+
+      if (featureConfig) {
+        body.expectedRollout = featureConfig.rollout_percentage;
+        body.expectedEnabled = featureConfig.enabled;
+      }
+
       const res = await fetch(`${API_BASE}/beta-monitor/${FEATURE_KEY}/run`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ phase: 'phase1_beta' })
+        body: JSON.stringify(body)
       });
 
       const data = await res.json();
