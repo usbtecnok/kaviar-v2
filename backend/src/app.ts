@@ -61,6 +61,7 @@ app.use((req, res, next) => {
     'https://app.kaviar.com.br',
     'https://kaviar.com.br',
     'https://www.kaviar.com.br',
+    'https://d29p7cirgjqbxl.cloudfront.net',
     'http://localhost:5173'
   ];
   
