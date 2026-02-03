@@ -1,22 +1,17 @@
-# Sumário Executivo - Captação de Investimento
+# Sumário Executivo - Captação Investimento Anjo
 **Empresa:** USB Tecnologia (CNPJ: 07.710.691/0001-66)  
 **Produto:** Kaviar - Mobilidade Urbana para Comunidades  
+**Estágio:** Pré-lançamento (produto funcional, validação técnica completa)  
 **Data:** 03 de Fevereiro de 2026
 
 ---
 
-## 🎯 Oportunidade de Investimento
+## 🎯 O Pedido
 
-### Proposta
-**10 cotas de R$ 5.000** (total: R$ 50.000) para reativação da empresa e lançamento da plataforma Kaviar.
-
-**Uso dos Recursos:**
-- R$ 20.000: Regularização (Anatel, bancos, CNPJ)
-- R$ 15.000: Finalização do produto (mobile app, testes)
-- R$ 10.000: Marketing e lançamento piloto
-- R$ 5.000: Operações iniciais
-
-**Contrapartida:** 10% da empresa (1% por cota)
+**R$ 50.000** (10 cotas de R$ 5.000) para lançamento piloto  
+**Contrapartida:** 10% equity (1% por cota)  
+**Valuation pré-money:** R$ 450.000  
+**Uso:** Regularização (40%) + Produto (30%) + Go-to-market (30%)
 
 ---
 
