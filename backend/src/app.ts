@@ -127,6 +127,11 @@ app.get('/api/health', async (req, res) => {
 // Core routes (always enabled)
 console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
+
+// Demo Mode / Investor View Middleware (read-only)
+const investorView = require('./middleware/investorView');
+app.use('/api', investorView);
+
 app.use('/api/admin/dashboard', dashboardRoutes); // ✅ Dashboard overview
 app.use('/api/match', matchRoutes); // ✅ Territorial match system
 app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers

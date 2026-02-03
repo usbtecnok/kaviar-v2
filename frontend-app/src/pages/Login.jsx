@@ -1,9 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Container, Grid, Card, CardContent, Typography, Button, Stack } from '@mui/material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Detect demo mode
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('demo') === '1') {
+      sessionStorage.setItem('kaviar_demo_mode', 'true');
+    }
+  }, [location.search]);
 
   return (
     <Container maxWidth="md" sx={{ py: 6 }}>

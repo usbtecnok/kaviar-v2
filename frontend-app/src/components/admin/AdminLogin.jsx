@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 
@@ -12,6 +12,14 @@ export default function AdminLogin() {
   const location = useLocation();
   
   const from = location.state?.from?.pathname || '/admin';
+
+  // Detect demo mode
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    if (urlParams.get('demo') === '1') {
+      sessionStorage.setItem('kaviar_demo_mode', 'true');
+    }
+  }, [location.search]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
