@@ -39,10 +39,14 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data ./data
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/docs ./docs
+COPY healthcheck.js ./
 
 ENV NODE_ENV=production
 ENV PORT=3001
 
 EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node healthcheck.js
 
 CMD ["node", "dist/server.js"]
