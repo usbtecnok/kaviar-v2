@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Container,
   Paper,
@@ -24,7 +25,6 @@ import {
 import { CheckCircle, Cancel, Visibility, Delete } from '@mui/icons-material';
 import { adminApi } from '../../services/adminApi';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 const normType = (t) => String(t || "").trim().toUpperCase();
 

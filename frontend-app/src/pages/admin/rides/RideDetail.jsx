@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../../config/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -49,7 +50,6 @@ const statusColors = {
 };
 
 export default function RideDetail() {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
   
   const { id } = useParams();
   const navigate = useNavigate();

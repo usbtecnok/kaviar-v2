@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../../config/api';
 import {
   Container,
   Typography,
@@ -55,7 +56,6 @@ const actionLabels = {
 };
 
 export default function RideAudit() {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
   
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);

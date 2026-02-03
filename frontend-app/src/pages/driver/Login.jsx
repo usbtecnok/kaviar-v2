@@ -1,8 +1,8 @@
 import React, { useState } from "react";
+import { API_BASE_URL } from '../../config/api';
 import { Container, TextField, Button, Typography, Stack } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://kaviar-v2.onrender.com";
 
 export default function DriverLogin() {
   const [email, setEmail] = useState("");

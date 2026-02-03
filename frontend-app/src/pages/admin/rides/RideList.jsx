@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../../config/api';
 import { useNavigate } from 'react-router-dom';
 import { 
   Container, 
@@ -45,7 +46,6 @@ const rideTypes = {
 };
 
 export default function RideList() {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
   
   const navigate = useNavigate();
   const [rides, setRides] = useState([]);

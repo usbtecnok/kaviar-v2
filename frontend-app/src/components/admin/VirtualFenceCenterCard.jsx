@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import { Card, CardContent, CardHeader, Typography, TextField, Button, Box, Alert, CircularProgress } from '@mui/material';
 import { Room as MapPin, Delete as Trash2, OpenInNew as ExternalLink } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.kaviar.com.br';
 
 const useAuth = () => {
   const token = localStorage.getItem('kaviar_admin_token');

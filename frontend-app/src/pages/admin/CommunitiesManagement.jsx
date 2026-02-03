@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Box,
   Typography,
@@ -23,7 +24,6 @@ import WarningAmber from '@mui/icons-material/WarningAmber';
 import GeofenceMap from '../../components/maps/GeofenceMap';
 import LeafletGeofenceMap from '../../components/maps/LeafletGeofenceMap';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function CommunitiesManagement() {
   const [communities, setCommunities] = useState([]);

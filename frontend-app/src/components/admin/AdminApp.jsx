@@ -1,4 +1,5 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress } from "@mui/material";
 import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
@@ -29,7 +30,6 @@ import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ChangePassword from "../../pages/admin/ChangePassword";
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 function AdminHeader() {
   const adminData = localStorage.getItem('kaviar_admin_data');

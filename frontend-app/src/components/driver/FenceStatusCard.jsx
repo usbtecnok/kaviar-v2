@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Card,
   CardContent,
@@ -9,7 +10,6 @@ import {
 } from '@mui/material';
 import { Target, TrendingUp, AlertCircle } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://kaviar-backend-prod.us-east-1.elasticbeanstalk.com';
 
 export default function FenceStatusCard({ driverId }) {
   const [stats, setStats] = useState(null);

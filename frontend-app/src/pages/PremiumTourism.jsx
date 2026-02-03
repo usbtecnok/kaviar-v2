@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { 
   Container, Typography, Box, Card, CardContent, Button,
   Grid, Chip, TextField, MenuItem, Alert, CircularProgress
@@ -8,7 +9,6 @@ import { formatPrice, formatDuration, formatTourType } from '../utils/premiumTou
 import { checkPremiumTourismEnabled } from '../services/featureFlags';
 import BookingDialog from '../components/BookingDialog';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function PremiumTourism() {
   const [packages, setPackages] = useState([]);

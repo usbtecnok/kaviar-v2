@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import { 
   Box, 
   Typography, 
@@ -16,7 +17,6 @@ import {
 import { Visibility } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function PassengersManagement() {
   const navigate = useNavigate();

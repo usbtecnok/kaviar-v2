@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Container,
   Paper,
@@ -12,7 +13,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowBack } from '@mui/icons-material';
 import { PassengerFavoritesCard } from '../../components/admin/PassengerFavoritesCard';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function PassengerDetail() {
   const { id } = useParams();

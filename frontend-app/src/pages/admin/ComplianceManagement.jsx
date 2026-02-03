@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Box,
   Typography,
@@ -24,7 +25,6 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Visibility, History } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
 
 const isSuperAdmin = () => {
   const data = localStorage.getItem('kaviar_admin_data');

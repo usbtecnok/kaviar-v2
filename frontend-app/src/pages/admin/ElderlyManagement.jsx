@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Box,
   Typography,
@@ -38,7 +39,6 @@ import {
   Info
 } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function ElderlyManagement() {
   const [contracts, setContracts] = useState([]);

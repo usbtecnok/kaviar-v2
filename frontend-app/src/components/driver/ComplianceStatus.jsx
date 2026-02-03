@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Card,
   CardContent,
@@ -20,7 +21,6 @@ import {
 } from '@mui/material';
 import { Warning, CheckCircle, Upload, History } from '@mui/icons-material';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function ComplianceStatus() {
   const [status, setStatus] = useState(null);

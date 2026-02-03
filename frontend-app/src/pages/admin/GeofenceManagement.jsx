@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Box,
   Typography,
@@ -36,7 +37,6 @@ import * as turf from '@turf/turf';
 import GeofenceMap from '../../components/maps/GeofenceMap';
 import { isLikelyInRioCity, fmtLatLng, canVerifyGeofence, geometryQuality } from '../../utils/geofence-governance';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 // Funções de validação geométrica
 const validateGeometry = (geofence) => {

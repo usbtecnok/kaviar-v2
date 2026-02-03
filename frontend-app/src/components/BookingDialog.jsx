@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { 
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Button, Grid, Typography, Box, Alert,
@@ -7,7 +8,6 @@ import {
 import { Person, Event, Payment, CheckCircle } from '@mui/icons-material';
 import { formatPrice } from '../utils/premiumTourismHelpers';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export default function BookingDialog({ open, onClose, tourPackage }) {
   const [activeStep, setActiveStep] = useState(0);

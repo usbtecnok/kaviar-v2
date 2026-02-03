@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/api';
 import {
   Container,
   Paper,
@@ -21,7 +22,6 @@ import api from '../../api/index';
 import { VirtualFenceCenterCard } from '../../components/admin/VirtualFenceCenterCard';
 import { SecondaryBaseCard } from '../../components/admin/SecondaryBaseCard';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 const isSuperAdmin = () => {
   const data = localStorage.getItem('kaviar_admin_data');
