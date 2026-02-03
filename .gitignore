@@ -88,3 +88,4 @@ backend/scripts/create-super-admin*.js
 # one-off ops scripts (never commit)
 backend/create-admin-inline.js
 backend/scripts/create-super-admin*.js
+taskdef.json
