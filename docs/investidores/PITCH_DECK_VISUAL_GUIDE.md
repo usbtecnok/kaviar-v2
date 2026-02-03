@@ -212,7 +212,7 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 ### Layout
 ```
 ┌─────────────────────────────────────────┐
-│ R$ 600-900M de mercado não atendido     │ ← Título, 36pt, #2563EB
+│ GMV: R$ 0,9–1,8 bi/ano (endereçável)     │ ← Título, 36pt, #2563EB
 ├─────────────────────────────────────────┤
 │                                         │
 │  [Gráfico de Barras]                    │ ← 70% largura, centralizado

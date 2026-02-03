@@ -80,13 +80,13 @@ Fevereiro 2026
 
 **Visual:** Gráfico de barras (TAM/SAM/SOM)
 
-**Título:** R$ 600-900M de mercado não atendido
+**Título:** GMV: R$ 0,9–1,8 bi/ano (mercado endereçável)
 
 **Dados:**
 ```
 TAM (Brasil):
 13 milhões em comunidades
-R$ 600-900M/ano
+GMV: R$ 0,9–1,8 bi/ano (Brasil)
 
 SAM (Rio de Janeiro):
 1,4 milhões habitantes

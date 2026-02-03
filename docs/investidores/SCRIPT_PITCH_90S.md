@@ -141,7 +141,7 @@ A gente resolve mobilidade em comunidades com motoristas locais. 1,4M de pessoas
 
 Produto funcional (AWS), 162 bairros mapeados, mobile MVP em desenvolvimento.
 
-Mercado: R$ 600-900M/ano (Brasil)
+Mercado: GMV R$ 0,9–1,8 bi/ano (Brasil); receita potencial R$ 168–336M/ano (18%)
 Retorno: 20-30x em 3 anos (conservador)
 
 Captando R$ 50k (10 cotas × R$ 5k = 10% equity).

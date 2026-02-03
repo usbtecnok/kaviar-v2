@@ -146,7 +146,7 @@
 
 ## 3. Modelo de Negócio
 
-### Q7: Como vocês calcularam o TAM de R$ 600-900M?
+### Q7: Como vocês calcularam TAM (GMV) e a receita potencial (take rate 18%)??
 
 **R:** **Metodologia:**
 
@@ -177,7 +177,7 @@ Cenário otimista (10% penetração): R$ 336M/ano
 Cenário muito otimista (15% penetração): R$ 504M/ano
 
 Range: R$ 168M - R$ 504M
-Arredondado: R$ 600-900M (incluindo crescimento)
+GMV estimado: R$ 0,9–1,8 bi/ano; Receita potencial (18%): R$ 168–336M/ano
 ```
 
 **Nota:** Números a validar no piloto. Se penetração for 3%, TAM cai para R$ 100M (ainda grande).
