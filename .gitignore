@@ -91,3 +91,7 @@ backend/scripts/create-super-admin*.js
 taskdef.json
 taskdef.json
 INVESTORS_ACCESS.md
+
+# Investor credentials (confidential)
+INVESTORS_ACCESS.md
+INVESTORS_ACCESS_GENERATED.md
