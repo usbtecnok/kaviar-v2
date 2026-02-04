@@ -20,11 +20,9 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Auth routes (public)
-router.use('/admin/auth', authRoutes);
-
-// Password reset routes (public) - MUST be before /admin
-router.use('/admin/auth', passwordResetRoutes);
+// Auth routes (public) - NOT under /admin to avoid authenticateAdmin middleware
+router.use('/auth/admin', authRoutes);
+router.use('/auth/admin', passwordResetRoutes);
 
 // Admin routes (protected)
 router.use('/admin', adminRoutes);
