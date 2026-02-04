@@ -10,6 +10,7 @@
     "src/server.ts",
     "src/config/**/*",
     "src/routes/auth.ts",
+    "src/routes/password-reset.ts",
     "src/routes/passenger-auth.ts",
     "src/routes/rides.ts",
     "src/routes/geo.ts",

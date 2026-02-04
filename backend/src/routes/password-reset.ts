@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { config } from '../config';
 import { passwordResetRateLimit } from '../middlewares/auth-rate-limit';
 
@@ -139,21 +139,21 @@ router.post('/reset-password', async (req, res) => {
       case 'admin':
         updatedUser = await prisma.admins.update({
           where: { id: userId },
-          data: { passwordHash },
+          data: { password: passwordHash },
           select: { id: true, email: true, name: true }
         });
         break;
       case 'driver':
         updatedUser = await prisma.drivers.update({
           where: { id: userId },
-          data: { passwordHash },
+          data: { password_hash: passwordHash },
           select: { id: true, email: true, name: true }
         });
         break;
       case 'passenger':
         updatedUser = await prisma.passengers.update({
           where: { id: userId },
-          data: { passwordHash },
+          data: { password_hash: passwordHash },
           select: { id: true, email: true, name: true }
         });
         break;
