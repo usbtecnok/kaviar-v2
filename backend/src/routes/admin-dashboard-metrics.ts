@@ -26,11 +26,13 @@ router.get('/metrics', allowReadAccess, async (req: Request, res: Response) => {
         where: { created_at: { gte: today } }
       }),
       
-      // Drivers online
+      // Drivers online (usando last_active_at como proxy)
       prisma.drivers.count({
         where: { 
-          available: true,
-          status: 'approved'
+          status: 'approved',
+          last_active_at: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // últimas 24h
+          }
         }
       }),
       
