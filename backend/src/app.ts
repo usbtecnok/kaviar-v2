@@ -57,6 +57,7 @@ app.set('trust proxy', 1);
 // ✅ CORS - Manual headers BEFORE any middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
+  console.log(`🔍 CORS middleware: ${req.method} ${req.path} | Origin: ${origin}`);
 
   const allowedOrigins = new Set([
     'https://app.kaviar.com.br',
@@ -68,9 +69,13 @@ app.use((req, res, next) => {
 
   // ✅ evita cache/proxy devolver preflight errado sem ACAO
   res.header('Vary', 'Origin');
+  console.log(`📤 Set Vary: Origin`);
 
   if (origin && allowedOrigins.has(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
+    console.log(`✅ Set Access-Control-Allow-Origin: ${origin}`);
+  } else {
+    console.log(`❌ Origin not allowed: ${origin}`);
   }
 
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -79,6 +84,7 @@ app.use((req, res, next) => {
   res.header('Access-Control-Max-Age', '600');
 
   if (req.method === 'OPTIONS') {
+    console.log(`🔚 Responding to OPTIONS with 204`);
     return res.status(204).send('');
   }
 
