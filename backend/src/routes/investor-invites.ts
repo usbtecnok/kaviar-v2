@@ -3,7 +3,7 @@ import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 import { config } from '../config';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -20,14 +20,6 @@ const inviteRateLimit = rateLimit({
   max: 10,
   message: { success: false, error: 'Muitos convites enviados. Aguarde 1 minuto.' }
 });
-
-const requireSuperAdmin = (req: Request, res: Response, next: Function) => {
-  const user = (req as any).user;
-  if (!user || user.role !== 'SUPER_ADMIN') {
-    return res.status(403).json({ success: false, error: 'Acesso negado. Somente SUPER_ADMIN.' });
-  }
-  next();
-};
 
 const generateInviteToken = (userId: string, userType: string) => {
   return jwt.sign(
