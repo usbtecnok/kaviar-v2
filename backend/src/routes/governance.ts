@@ -372,7 +372,7 @@ router.get('/neighborhoods/:id/geofence', async (req, res) => {
     // Fallback: gerar círculo de 800m baseado no centro do bairro
     const neighborhood = await prisma.neighborhoods.findUnique({
       where: { id },
-      select: { name: true, city: true, center_lat: true, center_lng: true }
+      select: { name: true, // city: true, // HOTFIX: prod DB sem coluna city, center_lat: true, center_lng: true }
     });
 
     if (!neighborhood || !neighborhood.center_lat || !neighborhood.center_lng) {
