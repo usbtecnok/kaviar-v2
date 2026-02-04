@@ -69,6 +69,8 @@ export const config = {
   legacy: {
     enableLegacy: process.env.ENABLE_LEGACY === 'true', // Default false
   },
+
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
 
 // Validate required environment variables

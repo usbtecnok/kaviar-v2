@@ -29,6 +29,7 @@ import TourReports from "../../pages/admin/premium-tourism/TourReports";
 import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ChangePassword from "../../pages/admin/ChangePassword";
 import ForgotPassword from "../../pages/admin/ForgotPassword";
+import InvestorInvites from "../../pages/admin/InvestorInvites";
 import { useState, useEffect } from 'react';
 
 
@@ -97,6 +98,9 @@ function AdminHeader() {
 
 function AdminHome() {
   const [dashboardData, setDashboardData] = useState(null);
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const admin = adminData ? JSON.parse(adminData) : null;
+  const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -572,6 +576,29 @@ function AdminHome() {
               </CardContent>
             </Card>
           </Grid>
+
+          {isSuperAdmin && (
+            <Grid item xs={12} sm={6} md={4}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                  <PersonAdd sx={{ fontSize: 40, color: 'warning.main', mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    Convites Investidor/Anjo
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Enviar convites read-only
+                  </Typography>
+                  <Button 
+                    variant="contained" 
+                    color="warning"
+                    href="/admin/investor-invites"
+                  >
+                    Acessar
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
         </Grid>
       </Box>
 
@@ -623,6 +650,14 @@ export default function AdminApp() {
           <Route path="/login" element={<AdminLogin />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/change-password" element={<ChangePassword />} />
+          <Route path="/investor-invites" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <InvestorInvites />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
           <Route path="/" element={
             <ProtectedAdminRoute>
               <AdminHome />

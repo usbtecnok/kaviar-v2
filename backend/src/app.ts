@@ -141,6 +141,10 @@ console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin/auth', passwordResetRoutes);
 
+// Investor invites (SUPER_ADMIN only, before investorView middleware)
+import investorInvitesRoutes from './routes/investor-invites';
+app.use('/api/admin/investors', investorInvitesRoutes);
+
 // Demo Mode / Investor View Middleware (read-only)
 app.use('/api', investorView);
 
