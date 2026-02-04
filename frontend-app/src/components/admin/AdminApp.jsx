@@ -28,6 +28,7 @@ import TourPartners from "../../pages/admin/premium-tourism/TourPartners";
 import TourReports from "../../pages/admin/premium-tourism/TourReports";
 import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ChangePassword from "../../pages/admin/ChangePassword";
+import ForgotPassword from "../../pages/admin/ForgotPassword";
 import { useState, useEffect } from 'react';
 
 
@@ -620,6 +621,7 @@ export default function AdminApp() {
       <Box sx={{ bgcolor: '#000', minHeight: '100vh', color: '#FFD700' }}>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/" element={
             <ProtectedAdminRoute>

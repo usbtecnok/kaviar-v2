@@ -8,9 +8,9 @@ const investorView = (req: Request, res: Response, next: NextFunction) => {
     return next(); // Sem usuário, deixar outros middlewares tratarem
   }
 
-  // Verificar se é INVESTOR_VIEW
-  if (user.role !== 'INVESTOR_VIEW') {
-    return next(); // Não é investidor, permitir
+  // Verificar se é INVESTOR_VIEW ou ANGEL_VIEWER
+  if (user.role !== 'INVESTOR_VIEW' && user.role !== 'ANGEL_VIEWER') {
+    return next(); // Não é investidor/angel, permitir
   }
 
   // Permitir endpoints de autenticação

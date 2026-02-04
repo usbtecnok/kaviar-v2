@@ -132,7 +132,7 @@ export default function AdminLogin() {
 
       <div style={{ textAlign: 'center', marginTop: '20px' }}>
         <button
-          onClick={() => navigate('/forgot-password')}
+          onClick={() => navigate('/admin/forgot-password')}
           disabled={loading}
           style={{
             background: 'none',
