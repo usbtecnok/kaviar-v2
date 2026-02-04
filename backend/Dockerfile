@@ -1,5 +1,8 @@
 FROM node:20-slim AS builder
 
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=${GIT_COMMIT}
+
 WORKDIR /app
 
 RUN apt-get update -y && apt-get install -y openssl
@@ -19,6 +22,8 @@ RUN npx prisma generate
 RUN npm run build
 
 FROM node:20-slim
+
+ARG GIT_COMMIT=unknown
 
 WORKDIR /app
 
@@ -43,6 +48,7 @@ COPY healthcheck.js ./
 
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV GIT_COMMIT=${GIT_COMMIT}
 
 EXPOSE 3001
 
