@@ -30,7 +30,7 @@ jobs:
       - name: Build and Push
         run: |
           cd backend
-          docker build -t kaviar-backend:${{ github.sha }} .
+          docker build --build-arg GIT_COMMIT=${{ github.sha }} -t kaviar-backend:${{ github.sha }} .
           docker tag kaviar-backend:${{ github.sha }} 847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:latest
           docker tag kaviar-backend:${{ github.sha }} 847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:${{ github.sha }}
           docker push 847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:latest
