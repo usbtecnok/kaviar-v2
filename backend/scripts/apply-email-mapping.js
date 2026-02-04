@@ -18,14 +18,45 @@ const mappingContent = fs.readFileSync(MAPPING_FILE, 'utf8');
 const lines = mappingContent.split('\n').filter(l => l.trim() && !l.startsWith('#'));
 
 const mapping = {};
-lines.forEach(line => {
+const seenEmails = new Set();
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+let errors = [];
+
+lines.forEach((line, idx) => {
   const [oldEmail, newEmail] = line.split(',').map(s => s.trim());
-  if (oldEmail && newEmail && !newEmail.startsWith('<')) {
-    mapping[oldEmail] = newEmail;
+  
+  if (!oldEmail || !newEmail) return;
+  
+  // Validar placeholder não preenchido
+  if (newEmail.startsWith('<') && newEmail.endsWith('>')) {
+    errors.push(`Linha ${idx + 1}: placeholder não preenchido: ${newEmail}`);
+    return;
   }
+  
+  // Validar formato de email
+  if (!emailRegex.test(newEmail)) {
+    errors.push(`Linha ${idx + 1}: formato de email inválido: ${newEmail}`);
+    return;
+  }
+  
+  // Validar email duplicado
+  if (seenEmails.has(newEmail)) {
+    errors.push(`Linha ${idx + 1}: email duplicado: ${newEmail}`);
+    return;
+  }
+  
+  seenEmails.add(newEmail);
+  mapping[oldEmail] = newEmail;
 });
 
-console.log(`✅ ${Object.keys(mapping).length} emails mapeados\n`);
+if (errors.length > 0) {
+  console.error('❌ ERROS DE VALIDAÇÃO:\n');
+  errors.forEach(err => console.error(`  ${err}`));
+  console.error('\n❌ Corrija os erros no arquivo email-mapping.csv antes de continuar.\n');
+  process.exit(1);
+}
+
+console.log(`✅ ${Object.keys(mapping).length} emails mapeados e validados\n`);
 
 // Ler SQL template
 let sql = fs.readFileSync(SQL_TEMPLATE, 'utf8');
