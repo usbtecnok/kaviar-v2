@@ -148,6 +148,7 @@ router.get('/communities', async (req, res) => {
 
 // GET /api/governance/neighborhoods - List neighborhoods (bairros)
 router.get('/neighborhoods', async (req, res) => {
+  const requestId = randomUUID();
   try {
     const neighborhoods = await prisma.neighborhoods.findMany({
       select: {
@@ -165,11 +166,18 @@ router.get('/neighborhoods', async (req, res) => {
       success: true, 
       data: neighborhoods 
     });
-  } catch (error) {
-    console.error('Error fetching neighborhoods:', error);
+  } catch (error: any) {
+    console.error(`[governance] neighborhoods error requestId=${requestId}`, {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack,
+      clientVersion: error?.clientVersion,
+    });
     res.status(500).json({
       success: false,
-      error: 'Erro ao buscar bairros'
+      error: 'Erro ao buscar bairros',
+      requestId
     });
   }
 });
