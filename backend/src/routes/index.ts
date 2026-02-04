@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authRoutes } from './auth';
+import { passwordResetRoutes } from './password-reset';
 import { adminRoutes } from './admin';
 import { governanceRoutes } from './governance';
 import geoRoutes from './geo';
@@ -19,10 +20,13 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Auth routes
+// Auth routes (public)
 router.use('/admin/auth', authRoutes);
 
-// Admin routes
+// Password reset routes (public) - MUST be before /admin
+router.use('/admin/auth', passwordResetRoutes);
+
+// Admin routes (protected)
 router.use('/admin', adminRoutes);
 
 // Admin geofence routes
