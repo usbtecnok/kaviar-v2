@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma';
 import { config } from '../config';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import rateLimit from 'express-rate-limit';
+import { emailService } from '../services/email/email.service';
 
 const router = Router();
 
@@ -74,11 +75,21 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
     const token = generateInviteToken(admin.id, 'admin');
     const resetUrl = `${config.frontendUrl}/admin/reset-password?token=${token}`;
 
-    // TODO: Integrar com serviço de email real (SendGrid/SES)
-    // Por enquanto, apenas log (em produção, enviar email)
-    console.log(`Convite para ${admin.email}:`);
-    console.log(`Token: ${token}`);
-    console.log(`URL: ${resetUrl}`);
+    // Enviar email de convite
+    await emailService.sendMail({
+      to: admin.email,
+      subject: 'KAVIAR - Convite para Acesso',
+      html: `
+        <h2>Convite para Acesso ao Sistema KAVIAR</h2>
+        <p>Olá ${admin.name},</p>
+        <p>Você foi convidado para acessar o sistema KAVIAR com permissões de ${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'} (read-only).</p>
+        <p>Clique no link abaixo para definir sua senha:</p>
+        <p><a href="${resetUrl}">${resetUrl}</a></p>
+        <p>Este link expira em 15 minutos.</p>
+        <p>Após definir sua senha, faça login em: ${config.frontendUrl}/admin/login</p>
+      `,
+      text: `Olá ${admin.name},\n\nVocê foi convidado para acessar o sistema KAVIAR com permissões de ${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'} (read-only).\n\nAcesse: ${resetUrl}\n\nEste link expira em 15 minutos.\n\nApós definir sua senha, faça login em: ${config.frontendUrl}/admin/login`
+    });
 
     // Resposta neutra (segurança)
     return res.json({ 
