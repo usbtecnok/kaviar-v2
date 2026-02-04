@@ -1,0 +1,27 @@
+# MAPPING DE EMAILS - INVESTIDORES E ANJOS
+# Preencha a coluna EMAIL_REAL com os emails verdadeiros dos investidores/anjos
+# Formato: um email por linha, sem espaços extras
+
+# INVESTIDORES (INVESTOR_VIEW)
+investor01@kaviar.com,<EMAIL_REAL_INVESTIDOR_1>
+investor02@kaviar.com,<EMAIL_REAL_INVESTIDOR_2>
+investor03@kaviar.com,<EMAIL_REAL_INVESTIDOR_3>
+investor04@kaviar.com,<EMAIL_REAL_INVESTIDOR_4>
+investor05@kaviar.com,<EMAIL_REAL_INVESTIDOR_5>
+investor06@kaviar.com,<EMAIL_REAL_INVESTIDOR_6>
+investor07@kaviar.com,<EMAIL_REAL_INVESTIDOR_7>
+investor08@kaviar.com,<EMAIL_REAL_INVESTIDOR_8>
+investor09@kaviar.com,<EMAIL_REAL_INVESTIDOR_9>
+investor10@kaviar.com,<EMAIL_REAL_INVESTIDOR_10>
+
+# ANJOS (ANGEL_VIEWER)
+angel1@kaviar.com,<EMAIL_REAL_ANGEL_1>
+angel2@kaviar.com,<EMAIL_REAL_ANGEL_2>
+angel3@kaviar.com,<EMAIL_REAL_ANGEL_3>
+angel4@kaviar.com,<EMAIL_REAL_ANGEL_4>
+angel5@kaviar.com,<EMAIL_REAL_ANGEL_5>
+angel6@kaviar.com,<EMAIL_REAL_ANGEL_6>
+angel7@kaviar.com,<EMAIL_REAL_ANGEL_7>
+angel8@kaviar.com,<EMAIL_REAL_ANGEL_8>
+angel9@kaviar.com,<EMAIL_REAL_ANGEL_9>
+angel10@kaviar.com,<EMAIL_REAL_ANGEL_10>

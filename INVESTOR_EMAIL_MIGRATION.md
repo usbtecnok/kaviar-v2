@@ -8,22 +8,31 @@ Script SQL idempotente que cria/atualiza contas com emails reais mantendo permis
 
 ## Execução
 
-### 1. Preencher Placeholders
-Edite `backend/scripts/migrate-investor-emails.sql` e substitua:
-- `<EMAIL_REAL_INVESTIDOR_1>` → email real do investidor 1
-- `<EMAIL_REAL_INVESTIDOR_2>` → email real do investidor 2
-- ... (todos os 20 placeholders)
-
-### 2. Executar Script
-```bash
-# Via psql
-psql $DATABASE_URL -f backend/scripts/migrate-investor-emails.sql
-
-# Ou via Docker (se aplicável)
-docker exec -i postgres_container psql -U user -d database < backend/scripts/migrate-investor-emails.sql
+### 1. Preencher Mapping
+Edite `backend/scripts/email-mapping.csv` e substitua os placeholders:
+```csv
+investor01@kaviar.com,joao.silva@exemplo.com
+investor02@kaviar.com,maria.santos@exemplo.com
+...
 ```
 
-### 3. Validar
+### 2. Gerar SQL Pronto
+```bash
+cd backend/scripts
+node apply-email-mapping.js
+```
+Isso gera `migrate-investor-emails-READY.sql` com emails reais.
+
+### 3. Executar Script
+```bash
+# Via psql
+psql $DATABASE_URL -f backend/scripts/migrate-investor-emails-READY.sql
+
+# Ou via Docker (se aplicável)
+docker exec -i postgres_container psql -U user -d database < backend/scripts/migrate-investor-emails-READY.sql
+```
+
+### 4. Validar
 ```sql
 SELECT email, name, role, must_change_password, active 
 FROM admins 
