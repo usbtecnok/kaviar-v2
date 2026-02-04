@@ -15,12 +15,9 @@ const investorView = (req: Request, res: Response, next: NextFunction) => {
 
   // Permitir endpoints de autenticação
   const allowedAuthPaths = [
-    '/api/auth/login',
-    '/api/auth/forgot-password',
-    '/api/auth/reset-password',
-    '/api/admin/login',
-    '/api/admin/forgot-password',
-    '/api/admin/reset-password',
+    '/admin/auth/login',
+    '/admin/auth/forgot-password',
+    '/admin/auth/reset-password',
   ];
 
   if (allowedAuthPaths.some(path => req.path === path)) {

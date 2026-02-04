@@ -9,6 +9,7 @@ import investorView from './middleware/investorView';
 
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
+import { passwordResetRoutes } from './routes/password-reset';
 import { adminRoutes } from './routes/admin';
 import complianceRoutes from './routes/compliance';
 import dashboardRoutes from './routes/dashboard';
@@ -138,6 +139,7 @@ app.get('/api/health', async (req, res) => {
 // Core routes (always enabled)
 console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
+app.use('/api/admin/auth', passwordResetRoutes);
 
 // Demo Mode / Investor View Middleware (read-only)
 app.use('/api', investorView);
