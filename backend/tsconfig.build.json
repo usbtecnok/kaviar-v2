@@ -13,6 +13,7 @@
     "src/routes/passenger-auth.ts",
     "src/routes/rides.ts",
     "src/routes/geo.ts",
+    "src/middleware/**/*",
     "src/middlewares/error.ts",
     "src/modules/auth/**/*",
     "src/modules/rides/**/*",
