@@ -5,6 +5,7 @@ import { getUploadsPaths } from './config/uploads';
 import { errorHandler, notFound } from './middlewares/error';
 import { handleFeatureDisabledError, handleStatusTransitionError } from './middlewares/premium-tourism-flag';
 import { prisma } from './lib/prisma';
+import investorView from './middleware/investorView';
 
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
@@ -133,7 +134,6 @@ console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
 
 // Demo Mode / Investor View Middleware (read-only)
-import investorView from './middleware/investorView';
 app.use('/api', investorView);
 
 app.use('/api/admin/dashboard', dashboardRoutes); // ✅ Dashboard overview
