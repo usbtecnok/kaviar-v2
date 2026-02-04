@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import path from 'path';
 import { config } from './config';
 import { getUploadsPaths } from './config/uploads';
@@ -56,28 +55,32 @@ app.set('trust proxy', 1);
 
 // ✅ CORS - Manual headers BEFORE any middleware
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
+  const origin = req.headers.origin as string | undefined;
+
+  const allowedOrigins = new Set([
     'https://app.kaviar.com.br',
     'https://kaviar.com.br',
     'https://www.kaviar.com.br',
     'https://d29p7cirgjqbxl.cloudfront.net',
-    'http://localhost:5173'
-  ];
-  
-  if (origin && allowedOrigins.includes(origin)) {
+    'http://localhost:5173',
+  ]);
+
+  // ✅ evita cache/proxy devolver preflight errado sem ACAO
+  res.setHeader('Vary', 'Origin');
+
+  if (origin && allowedOrigins.has(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-  
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.setHeader('Access-Control-Max-Age', '600');
-  
+
   if (req.method === 'OPTIONS') {
-    return res.status(204).end();
+    return res.status(204).send('');
   }
-  
+
   next();
 });
 
