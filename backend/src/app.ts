@@ -130,7 +130,7 @@ console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
 
 // Demo Mode / Investor View Middleware (read-only)
-const investorView = require('./middleware/investorView');
+import investorView from './middleware/investorView';
 app.use('/api', investorView);
 
 app.use('/api/admin/dashboard', dashboardRoutes); // ✅ Dashboard overview

@@ -1,7 +1,8 @@
-// Middleware para bloquear ações de investidores (read-only)
+import type { Request, Response, NextFunction } from 'express';
 
-const investorView = (req, res, next) => {
-  const user = req.admin || req.user;
+// Middleware para bloquear ações de investidores (read-only)
+const investorView = (req: Request, res: Response, next: NextFunction) => {
+  const user = (req as any).admin || (req as any).user;
   
   if (!user) {
     return next(); // Sem usuário, deixar outros middlewares tratarem
@@ -60,7 +61,7 @@ const investorView = (req, res, next) => {
   }
 
   // Adicionar flag no request para outros middlewares saberem
-  req.isInvestorView = true;
+  (req as any).isInvestorView = true;
   
   // Adicionar header na resposta
   res.setHeader('X-Demo-Mode', 'true');
@@ -69,4 +70,4 @@ const investorView = (req, res, next) => {
   next();
 };
 
-module.exports = investorView;
+export default investorView;
