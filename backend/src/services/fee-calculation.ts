@@ -136,8 +136,8 @@ async function getNeighborhoodCenter(
     const driver: any = await prisma.drivers.findUnique({
       where: { id: driverId },
       select: { 
-        virtual_fence_center_lat: true,
-        virtual_fence_center_lng: true
+        virtual_fence_center_lat: false /* HOTFIX: prod DB sem coluna */,
+        virtual_fence_center_lng: false /* HOTFIX: prod DB sem coluna */
       }
     });
     
