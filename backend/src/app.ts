@@ -49,6 +49,8 @@ import adminAuditRoutes from './routes/admin-audit';
 import passengerRidesRoutes from './routes/passenger-rides';
 import driverAvailabilityRoutes from './routes/driver-availability';
 import adminDashboardMetricsRoutes from './routes/admin-dashboard-metrics';
+import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
+import driverTerritoryRoutes from './routes/driver-territory';
 
 const app = express();
 
@@ -159,7 +161,11 @@ app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
 app.use('/api/drivers', driverDashboardRoutes); // ✅ Driver dashboard
+app.use('/api/drivers', driverTerritoryRoutes); // ✅ Territory & badges
 app.use('/api/drivers', notificationsRoutes); // ✅ Notifications
+app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
+app.use('/api/drivers', driverAvailabilityRoutes); // ✅ Availability toggle
+app.use('/api/neighborhoods', neighborhoodsSmartRoutes); // ✅ Smart neighborhood list
 app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
 app.use('/api/passengers', passengerProfileRoutes); // ✅ Profile management
 app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (beta)

@@ -190,7 +190,10 @@ const driverCreateSchema = z.object({
   neighborhoodId: z.string().min(1, 'Bairro é obrigatório'),
   communityId: z.string().optional(),
   familyBonusAccepted: z.boolean().optional(),
-  familyProfile: z.string().optional()
+  familyProfile: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  verificationMethod: z.enum(['GPS_AUTO', 'MANUAL_SELECTION']).optional()
 });
 
 // Guide registration schemas
@@ -219,19 +222,66 @@ router.post('/driver', async (req, res) => {
       });
     }
     
+    // Validar se bairro existe e está ativo
+    const neighborhood = await prisma.neighborhoods.findUnique({
+      where: { id: data.neighborhoodId },
+      include: { neighborhood_geofences: true }
+    });
+    
+    if (!neighborhood) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bairro não encontrado'
+      });
+    }
+    
+    if (!neighborhood.is_active) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bairro não está ativo'
+      });
+    }
+    
+    // Determinar tipo de território
+    const territoryType = neighborhood.neighborhood_geofences ? 'OFFICIAL' : 'FALLBACK_800M';
+    
+    // Validar distância se GPS fornecido
+    let territoryWarning = null;
+    if (data.lat && data.lng && neighborhood.center_lat && neighborhood.center_lng) {
+      const toRad = (deg: number) => (deg * Math.PI) / 180;
+      const R = 6371000; // Raio da Terra em metros
+      
+      const dLat = toRad(Number(neighborhood.center_lat) - data.lat);
+      const dLng = toRad(Number(neighborhood.center_lng) - data.lng);
+      
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(data.lat)) * Math.cos(toRad(Number(neighborhood.center_lat))) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c;
+      
+      if (distance > 20000) {
+        territoryWarning = {
+          distance: Math.round(distance),
+          message: `Você está a ${(distance / 1000).toFixed(1)}km de ${neighborhood.name}. Confirme se este é realmente seu bairro.`
+        };
+      }
+    }
+    
     // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
     
     // Log incoming data
     console.log('[GOV] familyBonusAccepted incoming:', data.familyBonusAccepted);
     console.log('[GOV] familyProfile incoming:', data.familyProfile);
-    console.log('[GOV] Full payload:', JSON.stringify(data, null, 2));
+    console.log('[GOV] Territory type:', territoryType);
     
     // Aceitar formato camelCase (já validado pelo schema)
     const familyBonusAccepted = data.familyBonusAccepted ?? false;
     const familyProfile = data.familyProfile ?? 'individual';
     
-    // Create driver - CADASTRO INICIAL (sem validações de aprovação)
+    // Create driver - CADASTRO INICIAL com território
     const driver = await prisma.drivers.create({
       data: {
         id: randomUUID(),
@@ -244,6 +294,11 @@ router.post('/driver', async (req, res) => {
         community_id: data.communityId || null,
         family_bonus_accepted: familyBonusAccepted,
         family_bonus_profile: familyProfile,
+        territory_type: territoryType,
+        territory_verified_at: new Date(),
+        territory_verification_method: data.verificationMethod || 'MANUAL_SELECTION',
+        virtual_fence_center_lat: (territoryType === 'FALLBACK_800M' && data.lat) ? data.lat : null,
+        virtual_fence_center_lng: (territoryType === 'FALLBACK_800M' && data.lng) ? data.lng : null,
         created_at: new Date(),
         updated_at: new Date()
       }
@@ -251,6 +306,7 @@ router.post('/driver', async (req, res) => {
 
     console.log('[GOV] persisted family_bonus_accepted:', driver.family_bonus_accepted);
     console.log('[GOV] persisted family_bonus_profile:', driver.family_bonus_profile);
+    console.log('[GOV] persisted territory_type:', driver.territory_type);
 
     res.status(201).json({ 
       success: true, 
@@ -259,7 +315,9 @@ router.post('/driver', async (req, res) => {
         name: driver.name,
         email: driver.email,
         phone: driver.phone,
-        status: driver.status
+        status: driver.status,
+        territoryType,
+        territoryWarning
       }
     });
   } catch (error) {

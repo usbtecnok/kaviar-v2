@@ -198,14 +198,22 @@ model drivers {
   rejected_at                 DateTime?
   rejected_by                 String?
   rejected_reason             String?
+  territory_type              String?
+  territory_verified_at       DateTime?
+  territory_verification_method String?
   created_at                  DateTime                      @default(now())
   updated_at                  DateTime
   driver_compliance_documents driver_compliance_documents[]
   driver_consents             driver_consents?
+  driver_badges               driver_badges[]
+  driver_territory_stats      driver_territory_stats[]
   communities                 communities?                  @relation(fields: [community_id], references: [id])
   neighborhoods               neighborhoods?                @relation(fields: [neighborhood_id], references: [id])
   match_logs                  match_logs[]
   rides                       rides[]
+
+  @@index([territory_type])
+  @@index([neighborhood_id, territory_type])
 }
 
 model elderly_contracts {
@@ -279,6 +287,8 @@ model neighborhoods {
   match_logs             match_logs[]
   neighborhood_geofences neighborhood_geofences?
   passengers             passengers[]
+  rides_pickup           rides[]                 @relation("pickup_neighborhood")
+  rides_dropoff          rides[]                 @relation("dropoff_neighborhood")
 
   @@unique([name, city])
   @@index([city])
@@ -462,7 +472,13 @@ model rides {
   status                      String                @default("requested")
   price                       Decimal               @db.Decimal(10, 2)
   platform_fee                Decimal?              @db.Decimal(10, 2)
+  platform_fee_percentage     Decimal?              @db.Decimal(5, 2)
   driver_amount               Decimal?              @db.Decimal(10, 2)
+  match_type                  String?
+  pickup_neighborhood_id      String?
+  dropoff_neighborhood_id     String?
+  distance_km                 Decimal?              @db.Decimal(10, 2)
+  duration_minutes            Int?
   payment_method              String?               @default("credit_card")
   cancel_reason               String?
   cancelled_by                String?
@@ -484,8 +500,15 @@ model rides {
   updated_at                  DateTime
   ride_admin_actions          ride_admin_actions[]
   ride_status_history         ride_status_history[]
+  match_logs                  match_logs[]
   drivers                     drivers?              @relation(fields: [driver_id], references: [id])
   passengers                  passengers            @relation(fields: [passenger_id], references: [id])
+  pickup_neighborhood         neighborhoods?        @relation("pickup_neighborhood", fields: [pickup_neighborhood_id], references: [id])
+  dropoff_neighborhood        neighborhoods?        @relation("dropoff_neighborhood", fields: [dropoff_neighborhood_id], references: [id])
+
+  @@index([driver_id, created_at])
+  @@index([status])
+  @@index([pickup_neighborhood_id])
 }
 
 model roles {
@@ -629,6 +652,7 @@ model driver_compliance_documents {
 model match_logs {
   id               String         @id @default(dbgenerated("(gen_random_uuid())::text"))
   trip_id          String?
+  ride_id          String?
   driver_id        String
   passenger_id     String
   match_type       String         @db.VarChar(20)
@@ -644,9 +668,11 @@ model match_logs {
   drivers          drivers        @relation(fields: [driver_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   neighborhoods    neighborhoods? @relation(fields: [neighborhood_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   passengers       passengers     @relation(fields: [passenger_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rides            rides?         @relation(fields: [ride_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([created_at], map: "idx_match_logs_created")
   @@index([driver_id], map: "idx_match_logs_driver")
+  @@index([ride_id], map: "idx_match_logs_ride")
   @@index([trip_id], map: "idx_match_logs_trip")
   @@index([match_type], map: "idx_match_logs_type")
 }
@@ -670,4 +696,40 @@ enum TourBookingStatus {
 enum TourPackageType {
   TOUR
   AIRPORT_TRANSFER
+}
+
+model driver_badges {
+  id          String   @id @default(uuid())
+  driver_id   String
+  badge_code  String   @db.VarChar(50)
+  unlocked_at DateTime @default(now())
+  progress    Int      @default(100)
+  metadata    Json?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  drivers     drivers  @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+
+  @@unique([driver_id, badge_code])
+  @@index([driver_id, unlocked_at(sort: Desc)])
+  @@index([badge_code])
+}
+
+model driver_territory_stats {
+  id                        String   @id @default(uuid())
+  driver_id                 String
+  period_start              DateTime @db.Date
+  period_end                DateTime @db.Date
+  total_trips               Int      @default(0)
+  inside_territory_trips    Int      @default(0)
+  adjacent_territory_trips  Int      @default(0)
+  outside_territory_trips   Int      @default(0)
+  avg_fee_percentage        Decimal? @db.Decimal(5, 2)
+  potential_savings_cents   Int      @default(0)
+  created_at                DateTime @default(now())
+  updated_at                DateTime @updatedAt
+  drivers                   drivers  @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+
+  @@unique([driver_id, period_start, period_end])
+  @@index([driver_id, period_start(sort: Desc)])
+  @@index([period_start, period_end])
 }

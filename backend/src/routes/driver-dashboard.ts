@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { calculateBadgeProgress, generateRecommendation } from '../services/badge-service';
 
 const router = Router();
 
@@ -22,7 +23,19 @@ router.get('/:driverId/dashboard', async (req: Request, res: Response) => {
       select: {
         id: true,
         name: true,
-        neighborhood_id: true
+        neighborhood_id: true,
+        territory_type: true,
+        territory_verified_at: true,
+        neighborhoods: {
+          select: {
+            id: true,
+            name: true,
+            city: true,
+            neighborhood_geofences: {
+              select: { id: true }
+            }
+          }
+        }
       }
     });
 
@@ -33,24 +46,18 @@ router.get('/:driverId/dashboard', async (req: Request, res: Response) => {
       });
     }
 
-    let driverHomeNeighborhood = null;
-    if (driver.neighborhood_id) {
-      driverHomeNeighborhood = await prisma.neighborhoods.findUnique({
-        where: { id: driver.neighborhood_id },
-        select: { id: true, name: true, city: true }
-      });
-    }
+    const driverHomeNeighborhood = driver.neighborhoods;
 
     // 2. Buscar corridas do período
     const trips: any[] = await prisma.$queryRaw`
       SELECT 
         id,
-        fare_amount,
+        price as fare_amount,
         platform_fee_percentage,
-        platform_fee_amount,
+        platform_fee as platform_fee_amount,
         match_type,
         created_at
-      FROM trips
+      FROM rides
       WHERE driver_id = ${driverId}
         AND created_at >= ${startDate}
         AND status IN ('completed', 'finished')
@@ -94,7 +101,21 @@ router.get('/:driverId/dashboard', async (req: Request, res: Response) => {
       date: t.created_at
     }));
 
-    // 7. Status da cerca virtual
+    // 7. Status da cerca virtual e território
+    const hasGeofence = !!driverHomeNeighborhood?.neighborhood_geofences;
+    const territoryInfo = {
+      type: driver.territory_type || null,
+      neighborhood: driverHomeNeighborhood,
+      hasOfficialMap: hasGeofence,
+      virtualRadius: !hasGeofence ? 800 : null,
+      minFee: hasGeofence ? 7 : 12,
+      maxFee: 20,
+      message: !hasGeofence 
+        ? 'Seu território usa cerca virtual de 800m. Faça corridas próximas para manter taxa de 12%.'
+        : 'Seu território tem mapa oficial. Taxa mínima de 7% para corridas no bairro.',
+      verifiedAt: driver.territory_verified_at
+    };
+
     const fenceStatus = {
       active: !!driver.neighborhood_id,
       neighborhood: driverHomeNeighborhood,
@@ -103,6 +124,10 @@ router.get('/:driverId/dashboard', async (req: Request, res: Response) => {
         ? 'Tente fazer mais corridas no seu bairro para economizar!'
         : 'Ótimo! Você está aproveitando bem sua cerca virtual.'
     };
+
+    // 8. Buscar badges e recomendações
+    const badges = await calculateBadgeProgress(driverId);
+    const recommendation = await generateRecommendation(driverId);
 
     // Resposta
     res.json({
@@ -118,6 +143,7 @@ router.get('/:driverId/dashboard', async (req: Request, res: Response) => {
           name: driver.name,
           homeNeighborhood: driverHomeNeighborhood
         },
+        territoryInfo,
         summary: {
           totalTrips,
           totalFare: totalFare.toFixed(2),
@@ -165,6 +191,8 @@ router.get('/:driverId/dashboard', async (req: Request, res: Response) => {
           }
         },
         fenceStatus,
+        badges: badges.filter(b => b.unlocked).slice(0, 3),
+        recommendation,
         recentTrips
       }
     });
