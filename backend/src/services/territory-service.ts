@@ -240,8 +240,9 @@ export async function isRideInsideTerritory(
     select: {
       territory_type: true,
       neighborhood_id: true,
-      virtual_fence_center_lat: true,
-      virtual_fence_center_lng: true,
+      // DESABILITADO: aguardando migration
+      // virtual_fence_center_lat: true,
+      // virtual_fence_center_lng: true,
       neighborhoods: {
         select: {
           center_lat: true,
@@ -273,8 +274,9 @@ export async function isRideInsideTerritory(
 
   // FALLBACK_800M: verificar distância do centro
   if (driver.territory_type === 'FALLBACK_800M') {
-    const centerLat = driver.virtual_fence_center_lat || driver.neighborhoods?.center_lat;
-    const centerLng = driver.virtual_fence_center_lng || driver.neighborhoods?.center_lng;
+    // TEMPORÁRIO: usar apenas center do neighborhood até migration
+    const centerLat = driver.neighborhoods?.center_lat;
+    const centerLng = driver.neighborhoods?.center_lng;
 
     if (centerLat && centerLng) {
       const distance = calculateDistance(

@@ -37,9 +37,9 @@ export class NeighborhoodStatsService {
     const activeDriversResult = await prisma.$queryRaw<Array<{ count: number }>>`
       SELECT COUNT(DISTINCT d.id) as count
       FROM drivers d
-      JOIN trips t ON t.driver_id = d.id
+      JOIN rides t ON t.driver_id = d.id
       WHERE d.neighborhood_id = ${driver.neighborhood_id}
-        AND t.status = 'COMPLETED'
+        AND t.status = 'completed'
         AND t.created_at >= ${startDate}
     `;
     
@@ -49,13 +49,12 @@ export class NeighborhoodStatsService {
     const neighborhoodTrips = await prisma.$queryRaw<Array<{ total_savings: number }>>`
       SELECT 
         COALESCE(SUM(
-          (t.fare * 0.25) - (t.fare * (fl.fee_percentage / 100.0))
+          (t.price * 0.25) - t.platform_fee
         ), 0) as total_savings
-      FROM trips t
+      FROM rides t
       JOIN drivers d ON t.driver_id = d.id
-      LEFT JOIN fee_logs fl ON t.id = fl.trip_id
       WHERE d.neighborhood_id = ${driver.neighborhood_id}
-        AND t.status = 'COMPLETED'
+        AND t.status = 'completed'
         AND t.created_at >= ${startDate}
     `;
 
@@ -72,14 +71,13 @@ export class NeighborhoodStatsService {
         d.id as driver_id,
         d.name as driver_name,
         COALESCE(SUM(
-          (t.fare * 0.25) - (t.fare * (fl.fee_percentage / 100.0))
+          (t.price * 0.25) - t.platform_fee
         ), 0) as savings,
         COUNT(t.id) as trips_count
       FROM drivers d
-      JOIN trips t ON t.driver_id = d.id
-      LEFT JOIN fee_logs fl ON t.id = fl.trip_id
+      JOIN rides t ON t.driver_id = d.id
       WHERE d.neighborhood_id = ${driver.neighborhood_id}
-        AND t.status = 'COMPLETED'
+        AND t.status = 'completed'
         AND t.created_at >= ${startDate}
       GROUP BY d.id, d.name
       ORDER BY savings DESC
@@ -96,13 +94,12 @@ export class NeighborhoodStatsService {
         SELECT 
           d.id as driver_id,
           COALESCE(SUM(
-            (t.fare * 0.25) - (t.fare * (fl.fee_percentage / 100.0))
+            (t.price * 0.25) - t.platform_fee
           ), 0) as savings
         FROM drivers d
-        JOIN trips t ON t.driver_id = d.id
-        LEFT JOIN fee_logs fl ON t.id = fl.trip_id
+        JOIN rides t ON t.driver_id = d.id
         WHERE d.neighborhood_id = ${driver.neighborhood_id}
-          AND t.status = 'COMPLETED'
+          AND t.status = 'completed'
           AND t.created_at >= ${startDate}
         GROUP BY d.id
       )

@@ -133,20 +133,21 @@ async function getNeighborhoodCenter(
     }
     
     // Prioridade 2: Centro virtual do driver (para áreas sem geofence oficial)
-    const driver: any = await prisma.drivers.findUnique({
-      where: { id: driverId },
-      select: { 
-        virtual_fence_center_lat: false /* HOTFIX: prod DB sem coluna */,
-        virtual_fence_center_lng: false /* HOTFIX: prod DB sem coluna */
-      }
-    });
+    // DESABILITADO TEMPORARIAMENTE: aguardando migration
+    // const driver: any = await prisma.drivers.findUnique({
+    //   where: { id: driverId },
+    //   select: { 
+    //     virtual_fence_center_lat: true,
+    //     virtual_fence_center_lng: true
+    //   }
+    // });
     
-    if (driver?.virtual_fence_center_lat && driver?.virtual_fence_center_lng) {
-      return {
-        lat: driver.virtual_fence_center_lat,
-        lng: driver.virtual_fence_center_lng
-      };
-    }
+    // if (driver?.virtual_fence_center_lat && driver?.virtual_fence_center_lng) {
+    //   return {
+    //     lat: driver.virtual_fence_center_lat,
+    //     lng: driver.virtual_fence_center_lng
+    //   };
+    // }
     
     return null;
   } catch (error) {

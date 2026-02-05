@@ -64,8 +64,9 @@ router.post('/me/verify-territory', async (req: Request, res: Response) => {
         territory_type: territoryType,
         territory_verified_at: new Date(),
         territory_verification_method: body.verificationMethod,
-        virtual_fence_center_lat: territoryType === 'FALLBACK_800M' ? body.lat : null,
-        virtual_fence_center_lng: territoryType === 'FALLBACK_800M' ? body.lng : null,
+        // DESABILITADO: aguardando migration
+        // virtual_fence_center_lat: territoryType === 'FALLBACK_800M' ? body.lat : null,
+        // virtual_fence_center_lng: territoryType === 'FALLBACK_800M' ? body.lng : null,
       },
     });
 

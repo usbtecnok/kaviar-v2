@@ -129,6 +129,44 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
   try {
     const driverId = (req as any).userId || (req as any).user?.id || (req as any).driver?.id;
     
+    // ✅ LOG ESTRUTURADO: Início
+    console.log(JSON.stringify({
+      level: 'info',
+      action: 'upload_start',
+      driverId,
+      ip: (req as any).ip || req.headers['x-forwarded-for'] || 'unknown',
+      timestamp: new Date().toISOString()
+    }));
+    
+    // ✅ VALIDAÇÃO 2: Rate limiting (3 tentativas / 10 minutos)
+    const RATE_LIMIT_MAP = new Map<string, { count: number; resetAt: number }>();
+    const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutos
+    const RATE_LIMIT_MAX = 3;
+
+    if (driverId) {
+      const now = Date.now();
+      const rateData = RATE_LIMIT_MAP.get(driverId);
+
+      if (rateData) {
+        if (now < rateData.resetAt) {
+          if (rateData.count >= RATE_LIMIT_MAX) {
+            const retryAfter = Math.ceil((rateData.resetAt - now) / 1000);
+            return res.status(429).json({
+              success: false,
+              error: 'RATE_LIMIT',
+              message: `Limite de ${RATE_LIMIT_MAX} uploads atingido. Tente novamente em ${Math.ceil(retryAfter / 60)} minutos`,
+              retryAfter
+            });
+          }
+          rateData.count++;
+        } else {
+          RATE_LIMIT_MAP.set(driverId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+        }
+      } else {
+        RATE_LIMIT_MAP.set(driverId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+      }
+    }
+
     console.log('[UPLOAD] Driver ID:', driverId);
     console.log('[UPLOAD] Files received:', req.files ? Object.keys(req.files) : 'NONE');
     console.log('[UPLOAD] Body keys:', Object.keys(req.body));
@@ -142,6 +180,37 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
     }
 
     const files = req.files as Record<string, Express.Multer.File[]>;
+
+    // ✅ VALIDAÇÃO 1: MIME types e tamanho
+    const ALLOWED_MIMES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+    if (files) {
+      for (const [fieldName, fileArray] of Object.entries(files)) {
+        for (const file of fileArray) {
+          // Validar MIME type
+          if (!ALLOWED_MIMES.includes(file.mimetype)) {
+            return res.status(400).json({
+              success: false,
+              error: 'INVALID_FILE_TYPE',
+              message: `Arquivo ${file.originalname} tem tipo inválido. Aceitos: JPEG, PNG, PDF`,
+              field: fieldName,
+              receivedType: file.mimetype
+            });
+          }
+          // Validar tamanho
+          if (file.size > MAX_SIZE) {
+            return res.status(400).json({
+              success: false,
+              error: 'FILE_TOO_LARGE',
+              message: `Arquivo ${file.originalname} excede 5MB (${(file.size / 1024 / 1024).toFixed(2)}MB)`,
+              field: fieldName,
+              maxSize: '5MB'
+            });
+          }
+        }
+      }
+    }
 
     // Log detalhado dos arquivos
     if (files) {
@@ -335,6 +404,25 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
     console.log(`   driver_documents upserted: ${upsertedCount}`);
     console.log(`   driver_compliance_documents created: 1`);
 
+    // ✅ LOG ESTRUTURADO: Sucesso
+    console.log(JSON.stringify({
+      level: 'info',
+      action: 'upload_success',
+      driverId,
+      filesReceived: Object.keys(files),
+      s3Keys: {
+        cpf: cpfUrl,
+        rg: rgUrl,
+        cnh: cnhUrl,
+        proofOfAddress: proofOfAddressUrl,
+        vehiclePhotos: vehiclePhotoUrls,
+        backgroundCheck: backgroundCheckUrl
+      },
+      savedDriverDocuments: upsertedCount,
+      savedComplianceDocs: 1,
+      timestamp: new Date().toISOString()
+    }));
+
     res.json({
       success: true,
       message: 'Documentos enviados com sucesso',
@@ -351,6 +439,19 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
       }
     });
   } catch (error) {
+    const driverId = (req as any).userId;
+    
+    // ✅ LOG ESTRUTURADO: Erro
+    console.error(JSON.stringify({
+      level: 'error',
+      action: 'upload_failed',
+      driverId,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      filesReceived: req.files ? Object.keys(req.files as any) : [],
+      timestamp: new Date().toISOString()
+    }));
+
     console.error('❌ Error uploading documents:', error);
     console.error('Driver ID:', (req as any).userId);
     console.error('Files received:', req.files ? Object.keys(req.files as any) : 'none');

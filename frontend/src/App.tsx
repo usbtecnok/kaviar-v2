@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DriverDetailsPage } from './pages/DriverDetailsPage';
 import { PassengerDetailsPage } from './pages/PassengerDetailsPage';
 import { LoginPage } from './pages/LoginPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 const theme = createTheme({
   palette: {
@@ -27,6 +28,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin/reset-password" element={<ResetPasswordPage />} />
             <Route
               path="/admin/drivers/:driverId"
               element={
