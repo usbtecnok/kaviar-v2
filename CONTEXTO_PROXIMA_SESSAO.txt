@@ -1,0 +1,44 @@
+# 📋 CONTEXTO PARA PRÓXIMA SESSÃO
+
+**Cole este texto quando voltar amanhã para me atualizar rapidamente:**
+
+---
+
+Kiro, continuando de onde paramos ontem (2026-02-05):
+
+## ✅ O que fizemos:
+1. Migramos o banco de dados do Neon (us-east-1) para AWS RDS PostgreSQL 15.15 Multi-AZ (us-east-2)
+2. Implementamos e ativamos o sistema de território inteligente com GPS, badges e gamificação
+3. Resolvemos problema de caracteres especiais na senha do RDS (# causava erro de parsing)
+4. Fizemos deployment da task definition kaviar-backend:59 no ECS com 2 tasks HEALTHY
+5. Reimportamos o backup completo (banco estava vazio na primeira tentativa)
+6. Criamos admin temporário (temp@kaviar.com / Kaviar2026!) para acesso
+
+## 📊 Estado atual:
+- **API:** ✅ Funcionando (http://kaviar-alb-1494046292.us-east-2.elb.amazonaws.com/api/health)
+- **RDS:** kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com (senha: KaviarDB2026SecureProd)
+- **ECS:** 2/2 tasks HEALTHY (task definition :59)
+- **Tabelas:** 37 importadas + 2 novas (driver_badges, driver_territory_stats)
+
+## ⚠️ NÃO MEXER:
+- Task definition :59 (versões antigas têm DATABASE_URL incorreto)
+- Senha do RDS (sem caracteres especiais)
+- Security groups do RDS e ECS
+
+## 🚧 Tarefas pendentes (Prioridade ALTA):
+1. Remover regra temporária do Security Group (179.241.244.112/32)
+2. Deletar bucket S3 temporário (kaviar-migrations-temp-2026)
+3. Deletar admin temporário após resetar senhas dos outros
+4. Validar sistema de território com cadastros reais
+5. Configurar alertas CloudWatch
+
+## 📁 Documentos importantes:
+- `ESTADO_ATUAL_SISTEMA.md` - Estado completo e detalhado
+- `MIGRACAO_RDS_SUCESSO.md` - Documentação da migração
+- Backup: `/home/goes/kaviar/kaviar_neon_backup.sql` (9.7MB)
+
+**Sistema está estável e funcionando. Pronto para validação e limpeza.**
+
+---
+
+**Copie e cole este texto quando voltar para eu ter contexto completo!**
