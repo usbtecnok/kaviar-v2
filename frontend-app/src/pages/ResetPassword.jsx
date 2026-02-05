@@ -1,193 +1,168 @@
-import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../config/api';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import {
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Box,
+  CircularProgress,
+} from '@mui/material';
 
+const API_BASE_URL = 'https://api.kaviar.com.br';
 
 export default function ResetPassword() {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [validatingToken, setValidatingToken] = useState(true);
+
   const token = searchParams.get('token');
 
   useEffect(() => {
     if (!token) {
-      setError('Token de redefinição não encontrado');
+      setError('Token inválido ou ausente');
+      setValidatingToken(false);
+      return;
     }
+    setValidatingToken(false);
   }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setMessage('');
+
+    if (!token) {
+      setError('Token inválido');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Senha deve ter no mínimo 6 caracteres');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('As senhas não coincidem');
       return;
     }
 
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/auth/reset-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        setMessage('Senha redefinida com sucesso! Redirecionando...');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } else {
-        setError(data.error || 'Erro ao redefinir senha');
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao redefinir senha');
       }
-    } catch (error) {
-      setError('Erro de conexão. Tente novamente.');
+
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    } catch (err) {
+      setError(err.message || 'Erro ao redefinir senha. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
+  if (validatingToken) {
+    return (
+      <Container maxWidth="sm" sx={{ mt: 8, textAlign: 'center' }}>
+        <CircularProgress />
+        <Typography sx={{ mt: 2 }}>Validando token...</Typography>
+      </Container>
+    );
+  }
+
   if (!token) {
     return (
-      <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px', textAlign: 'center' }}>
-        <h1 style={{ color: '#d32f2f' }}>Link inválido</h1>
-        <p>O link de redefinição de senha é inválido ou expirou.</p>
-        <button
-          onClick={() => navigate('/forgot-password')}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#d32f2f',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginTop: '20px'
-          }}
+      <Container maxWidth="sm" sx={{ mt: 8 }}>
+        <Alert severity="error">
+          Token inválido ou ausente. Solicite um novo link de redefinição de senha.
+        </Alert>
+        <Button
+          variant="contained"
+          fullWidth
+          sx={{ mt: 2 }}
+          onClick={() => navigate('/login')}
         >
-          Solicitar novo link
-        </button>
-      </div>
+          Voltar ao Login
+        </Button>
+      </Container>
     );
   }
 
   return (
-    <div style={{ maxWidth: '400px', margin: '100px auto', padding: '20px' }}>
-      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-        <h1 style={{ color: '#d32f2f' }}>Redefinir senha</h1>
-        <p>Digite sua nova senha</p>
-      </div>
+    <Container maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" gutterBottom align="center">
+          Redefinir Senha
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }} align="center">
+          Digite sua nova senha abaixo
+        </Typography>
 
-      {error && (
-        <div style={{ 
-          backgroundColor: '#ffebee', 
-          color: '#c62828', 
-          padding: '10px', 
-          borderRadius: '4px', 
-          marginBottom: '20px' 
-        }}>
-          {error}
-        </div>
-      )}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-      {message && (
-        <div style={{ 
-          backgroundColor: '#e8f5e8', 
-          color: '#2e7d32', 
-          padding: '10px', 
-          borderRadius: '4px', 
-          marginBottom: '20px' 
-        }}>
-          {message}
-        </div>
-      )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Senha redefinida com sucesso! Redirecionando para login...
+          </Alert>
+        )}
 
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <input
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            fullWidth
+            label="Nova Senha"
             type="password"
-            placeholder="Nova senha (mínimo 6 caracteres)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px'
-            }}
+            disabled={loading || success}
+            helperText="Mínimo 6 caracteres"
+            sx={{ mb: 2 }}
           />
-        </div>
-        
-        <div style={{ marginBottom: '20px' }}>
-          <input
+
+          <TextField
+            fullWidth
+            label="Confirmar Senha"
             type="password"
-            placeholder="Confirmar nova senha"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px'
-            }}
+            disabled={loading || success}
+            sx={{ mb: 3 }}
           />
-        </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: '#d32f2f',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            marginBottom: '15px'
-          }}
-        >
-          {loading ? 'Redefinindo...' : 'Redefinir senha'}
-        </button>
-      </form>
-
-      <div style={{ textAlign: 'center' }}>
-        <button
-          onClick={() => navigate('/login')}
-          disabled={loading}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#1976d2',
-            cursor: 'pointer',
-            textDecoration: 'underline'
-          }}
-        >
-          Voltar ao login
-        </button>
-      </div>
-    </div>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            disabled={loading || success}
+            sx={{ py: 1.5 }}
+          >
+            {loading ? 'Redefinindo...' : 'Redefinir Senha'}
+          </Button>
+        </Box>
+      </Paper>
+    </Container>
   );
 }

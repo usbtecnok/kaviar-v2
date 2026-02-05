@@ -237,6 +237,7 @@ export default function App() {
           {/* Reset de senha */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
           
           {/* First access motorista */}
           <Route path="/motorista/definir-senha" element={<SetPassword />} />
