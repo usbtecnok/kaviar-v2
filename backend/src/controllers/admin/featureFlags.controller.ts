@@ -37,7 +37,21 @@ export const getFeatureFlag = async (req: Request, res: Response) => {
         createdAt: flag.created_at,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    // P2021: Table doesn't exist - return fallback
+    if (error?.code === 'P2021') {
+      return res.json({
+        success: true,
+        flag: {
+          key: req.params.key,
+          enabled: false,
+          rolloutPercentage: 0,
+          updatedByAdminId: null,
+          updatedAt: null,
+          createdAt: null,
+        },
+      });
+    }
     console.error('Error fetching feature flag:', error);
     res.status(500).json({
       success: false,
@@ -125,7 +139,14 @@ export const updateFeatureFlag = async (req: Request, res: Response) => {
         updatedAt: flag.updated_at,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    // P2021: Table doesn't exist - return 501
+    if (error?.code === 'P2021') {
+      return res.status(501).json({
+        success: false,
+        error: 'Feature flags ainda não provisionadas no banco (migration pendente).',
+      });
+    }
     console.error('Error updating feature flag:', error);
     res.status(500).json({
       success: false,
@@ -173,7 +194,15 @@ export const getAllowlist = async (req: Request, res: Response) => {
         totalPages: Math.ceil(total / limit),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    // P2021: Table doesn't exist - return empty list
+    if (error?.code === 'P2021') {
+      return res.json({
+        success: true,
+        allowlist: [],
+        pagination: { page: 1, limit: 50, total: 0, totalPages: 0 },
+      });
+    }
     console.error('Error fetching allowlist:', error);
     res.status(500).json({
       success: false,
@@ -243,7 +272,14 @@ export const addToAllowlist = async (req: Request, res: Response) => {
         createdAt: entry.created_at,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    // P2021: Table doesn't exist - return 501
+    if (error?.code === 'P2021') {
+      return res.status(501).json({
+        success: false,
+        error: 'Feature flags ainda não provisionadas no banco (migration pendente).',
+      });
+    }
     console.error('Error adding to allowlist:', error);
     res.status(500).json({
       success: false,
@@ -300,7 +336,14 @@ export const removeFromAllowlist = async (req: Request, res: Response) => {
       success: true,
       message: 'Passenger removido da allowlist',
     });
-  } catch (error) {
+  } catch (error: any) {
+    // P2021: Table doesn't exist - return 501
+    if (error?.code === 'P2021') {
+      return res.status(501).json({
+        success: false,
+        error: 'Feature flags ainda não provisionadas no banco (migration pendente).',
+      });
+    }
     console.error('Error removing from allowlist:', error);
     res.status(500).json({
       success: false,

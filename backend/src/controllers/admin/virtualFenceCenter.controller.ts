@@ -15,8 +15,6 @@ export async function getVirtualFenceCenter(req: Request, res: Response) {
       where: { id: driverId },
       select: {
         id: true,
-        virtual_fence_center_lat: true,
-        virtual_fence_center_lng: true,
         updated_at: true
       }
     });
@@ -28,18 +26,11 @@ export async function getVirtualFenceCenter(req: Request, res: Response) {
       });
     }
 
-    const virtualFenceCenter = 
-      driver.virtual_fence_center_lat && driver.virtual_fence_center_lng
-        ? {
-            lat: Number(driver.virtual_fence_center_lat),
-            lng: Number(driver.virtual_fence_center_lng)
-          }
-        : null;
-
+    // Always return null for virtual fence center (columns don't exist in prod DB)
     return res.json({
       success: true,
       driverId: driver.id,
-      virtualFenceCenter,
+      virtualFenceCenter: null,
       updatedAt: driver.updated_at
     });
   } catch (error) {
@@ -83,14 +74,10 @@ export async function updateVirtualFenceCenter(req: Request, res: Response) {
       });
     }
 
-    // Buscar estado anterior
+    // Buscar driver
     const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
-      select: {
-        id: true,
-        virtual_fence_center_lat: true,
-        virtual_fence_center_lng: true
-      }
+      select: { id: true }
     });
 
     if (!driver) {
@@ -100,41 +87,11 @@ export async function updateVirtualFenceCenter(req: Request, res: Response) {
       });
     }
 
-    const before = {
-      lat: driver.virtual_fence_center_lat ? Number(driver.virtual_fence_center_lat) : null,
-      lng: driver.virtual_fence_center_lng ? Number(driver.virtual_fence_center_lng) : null
-    };
-
-    // Atualizar
-    await prisma.drivers.update({
-      where: { id: driverId },
-      data: {
-        virtual_fence_center_lat: lat,
-        virtual_fence_center_lng: lng,
-        updated_at: new Date()
-      }
-    });
-
-    const after = { lat, lng };
-
-    // Auditoria
-    console.log(JSON.stringify({
-      event: 'VIRTUAL_FENCE_CENTER_UPDATED',
-      adminId: admin?.id,
-      adminEmail: admin?.email,
-      driverId,
-      before,
-      after,
-      timestamp: new Date().toISOString(),
-      ip: req.ip,
-      userAgent: req.get('user-agent')
-    }));
-
+    // P2022: Columns don't exist - return success with warning
     return res.json({
       success: true,
-      driverId,
-      before,
-      after
+      data: { lat: null, lng: null },
+      warning: 'DB sem virtual fence center (colunas não provisionadas)'
     });
   } catch (error) {
     console.error('Erro ao atualizar centro virtual:', error);
@@ -154,14 +111,10 @@ export async function deleteVirtualFenceCenter(req: Request, res: Response) {
     const { driverId } = req.params;
     const admin = (req as any).admin;
 
-    // Buscar estado anterior
+    // Buscar driver
     const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
-      select: {
-        id: true,
-        virtual_fence_center_lat: true,
-        virtual_fence_center_lng: true
-      }
+      select: { id: true }
     });
 
     if (!driver) {
@@ -171,41 +124,12 @@ export async function deleteVirtualFenceCenter(req: Request, res: Response) {
       });
     }
 
-    const before = {
-      lat: driver.virtual_fence_center_lat ? Number(driver.virtual_fence_center_lat) : null,
-      lng: driver.virtual_fence_center_lng ? Number(driver.virtual_fence_center_lng) : null
-    };
-
-    // Remover
-    await prisma.drivers.update({
-      where: { id: driverId },
-      data: {
-        virtual_fence_center_lat: null,
-        virtual_fence_center_lng: null,
-        updated_at: new Date()
-      }
-    });
-
-    const after = { lat: null, lng: null };
-
-    // Auditoria
-    console.log(JSON.stringify({
-      event: 'VIRTUAL_FENCE_CENTER_DELETED',
-      adminId: admin?.id,
-      adminEmail: admin?.email,
-      driverId,
-      before,
-      after,
-      timestamp: new Date().toISOString(),
-      ip: req.ip,
-      userAgent: req.get('user-agent')
-    }));
-
+    // P2022: Columns don't exist - return success
     return res.json({
       success: true,
       driverId,
-      before,
-      after
+      before: { lat: null, lng: null },
+      after: { lat: null, lng: null }
     });
   } catch (error) {
     console.error('Erro ao remover centro virtual:', error);

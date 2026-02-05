@@ -39,7 +39,15 @@ export class BetaMonitorController {
         checkpoints,
         cursor: checkpoints.length > 0 ? checkpoints[checkpoints.length - 1].created_at : null,
       });
-    } catch (error) {
+    } catch (error: any) {
+      // P2021: Table doesn't exist - return empty list
+      if (error?.code === 'P2021') {
+        return res.json({
+          success: true,
+          checkpoints: [],
+          cursor: null,
+        });
+      }
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Erro ao buscar checkpoints',
@@ -82,7 +90,14 @@ export class BetaMonitorController {
         success: true,
         checkpoint: response,
       });
-    } catch (error) {
+    } catch (error: any) {
+      // P2021: Table doesn't exist - return 501
+      if (error?.code === 'P2021') {
+        return res.status(501).json({
+          success: false,
+          error: 'Beta Monitor não provisionado no banco (migration pendente).',
+        });
+      }
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Erro ao buscar checkpoint',
@@ -160,7 +175,14 @@ export class BetaMonitorController {
         message: 'Checkpoint iniciado',
         label,
       });
-    } catch (error) {
+    } catch (error: any) {
+      // P2021: Table doesn't exist - return 501
+      if (error?.code === 'P2021') {
+        return res.status(501).json({
+          success: false,
+          error: 'Beta Monitor não provisionado no banco (migration pendente).',
+        });
+      }
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Erro ao executar checkpoint',

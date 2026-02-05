@@ -52,7 +52,14 @@ async function getFeatureFlagConfig(key: string): Promise<FeatureFlagConfig | nu
     configCache = { config, timestamp: now };
     
     return config;
-  } catch (error) {
+  } catch (error: any) {
+    // P2021: Table doesn't exist - return safe fallback
+    if (error?.code === 'P2021') {
+      console.warn('[feature-flag] Table feature_flags not provisioned, using fallback');
+      const fallback = { enabled: false, rolloutPercentage: 0 };
+      configCache = { config: fallback, timestamp: now };
+      return fallback;
+    }
     console.error('Error fetching feature flag config:', error);
     return null;
   }
@@ -72,7 +79,11 @@ async function isInAllowlist(key: string, passengerId: string): Promise<boolean>
       },
     });
     return !!entry;
-  } catch (error) {
+  } catch (error: any) {
+    // P2021: Table doesn't exist - return false (no allowlist)
+    if (error?.code === 'P2021') {
+      return false;
+    }
     console.error('[feature-flag] Error checking allowlist:', error);
     return false;
   }
