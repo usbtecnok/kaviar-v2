@@ -297,8 +297,8 @@ router.post('/driver', async (req, res) => {
         territory_type: territoryType,
         territory_verified_at: new Date(),
         territory_verification_method: data.verificationMethod || 'MANUAL_SELECTION',
-        virtual_fence_center_lat: (territoryType === 'FALLBACK_800M' && data.lat) ? data.lat : null,
-        virtual_fence_center_lng: (territoryType === 'FALLBACK_800M' && data.lng) ? data.lng : null,
+        // REMOVIDO TEMPORARIAMENTE: virtual_fence_center_lat/lng
+        // Será adicionado após migration
         created_at: new Date(),
         updated_at: new Date()
       }
