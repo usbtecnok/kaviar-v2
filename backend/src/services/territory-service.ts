@@ -187,8 +187,14 @@ export async function getSmartNeighborhoodList(lat?: number, lng?: number) {
   // Se GPS fornecido, detectar território
   if (lat && lng) {
     const detection = await detectTerritoryFromGPS(lat, lng);
-    if (detection.type === 'OFFICIAL') {
-      detected = detection.neighborhood;
+    if (detection.type === 'OFFICIAL' && detection.neighborhood) {
+      detected = {
+        id: detection.neighborhood.id,
+        name: detection.neighborhood.name,
+        hasGeofence: true,
+        minFee: 7,
+        maxFee: 20,
+      };
     } else {
       nearby = detection.nearby || [];
     }
@@ -201,8 +207,6 @@ export async function getSmartNeighborhoodList(lat?: number, lng?: number) {
       id: true,
       name: true,
       zone: true,
-      center_lat: true,
-      center_lng: true,
       neighborhood_geofences: {
         select: { id: true },
       },
@@ -220,7 +224,6 @@ export async function getSmartNeighborhoodList(lat?: number, lng?: number) {
   }));
 
   return {
-    currentLocation: lat && lng ? { lat, lng } : null,
     detected,
     nearby,
     all,
