@@ -101,3 +101,14 @@ INVESTORS_ACCESS_GENERATED.md
 
 # Investor credentials (DO NOT COMMIT)
 INVESTORS_ACCESS_GENERATED.md
+
+# dumps/backups locais (NUNCA commitar)
+*_backup.sql
+*neon*.sql
+*.dump
+*.bak
+
+# scripts/rascunhos locais
+migrate-to-rds.sh
+validate-territory.sh
+validate-territory.sql
