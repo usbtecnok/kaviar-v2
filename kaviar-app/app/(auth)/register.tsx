@@ -81,11 +81,11 @@ export default function Register() {
       const data = await response.json();
       
       if (data.success) {
-        if (data.data.detected) {
-          setDetectedNeighborhood(data.data.detected);
-          setSelectedNeighborhood(data.data.detected);
+        if (data.detected) {
+          setDetectedNeighborhood(data.detected);
+          setSelectedNeighborhood(data.detected);
         }
-        setNeighborhoods(data.data.nearby.length > 0 ? data.data.nearby : data.data.all);
+        setNeighborhoods(data.nearby.length > 0 ? data.nearby : data.data);
       }
     } catch (error) {
       console.error('Erro ao buscar bairros:', error);
@@ -98,7 +98,7 @@ export default function Register() {
       const response = await fetch(`${API_URL}/api/neighborhoods/smart-list`);
       const data = await response.json();
       if (data.success) {
-        setNeighborhoods(data.data.all);
+        setNeighborhoods(data.data);
       }
     } catch (error) {
       console.error('Erro ao buscar bairros:', error);

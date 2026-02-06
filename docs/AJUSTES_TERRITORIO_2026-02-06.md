@@ -85,17 +85,15 @@ npm run build
 ```json
 {
   "success": true,
-  "data": {
-    "detected": {
-      "id": "uuid",
-      "name": "Zumbi",
-      "hasGeofence": true,
-      "minFee": 7,
-      "maxFee": 20
-    },
-    "nearby": [],
-    "all": [...]
-  }
+  "data": [...],
+  "detected": {
+    "id": "uuid",
+    "name": "Zumbi",
+    "hasGeofence": true,
+    "minFee": 7,
+    "maxFee": 20
+  },
+  "nearby": []
 }
 ```
 
@@ -103,20 +101,18 @@ npm run build
 ```json
 {
   "success": true,
-  "data": {
-    "detected": null,
-    "nearby": [
-      {
-        "id": "uuid",
-        "name": "Abolição",
-        "distance": 1234,
-        "hasGeofence": false,
-        "minFee": 12,
-        "maxFee": 20
-      }
-    ],
-    "all": [...]
-  }
+  "data": [...],
+  "detected": null,
+  "nearby": [
+    {
+      "id": "uuid",
+      "name": "Abolição",
+      "distance": 1234,
+      "hasGeofence": false,
+      "minFee": 12,
+      "maxFee": 20
+    }
+  ]
 }
 ```
 
@@ -124,11 +120,9 @@ npm run build
 ```json
 {
   "success": true,
-  "data": {
-    "detected": null,
-    "nearby": [],
-    "all": [...]
-  }
+  "data": [...],
+  "detected": null,
+  "nearby": []
 }
 ```
 

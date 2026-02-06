@@ -42,13 +42,13 @@ echo ""
 # 2. Testar detecção automática
 echo "2. Testando detecção automática (GPS dentro de Zumbi)..."
 curl -s "${API_URL}/api/neighborhoods/smart-list?lat=${LAT}&lng=${LNG}" | \
-  jq '{detected: .data.detected, nearby: (.data.nearby[0:5] // [])}'
+  jq '{detected, nearby: (.nearby[0:5] // [])}'
 echo ""
 
 # 3. Testar sem GPS (lista completa)
 echo "3. Testando sem GPS (primeiros 5 bairros)..."
 curl -s "${API_URL}/api/neighborhoods/smart-list" | \
-  jq '{detected: .data.detected, nearby: .data.nearby, all: (.data.all[0:5])}'
+  jq '{detected, nearby, data: (.data[0:5])}'
 echo ""
 
 echo "✅ Teste concluído"
