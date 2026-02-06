@@ -154,7 +154,7 @@ router.get('/neighborhoods', async (req, res) => {
       select: {
         id: true,
         name: true,
-        // city: true, // HOTFIX: prod DB sem coluna city
+        city: true,
         zone: true,
         is_active: true
       },

@@ -206,6 +206,7 @@ export async function getSmartNeighborhoodList(lat?: number, lng?: number) {
     select: {
       id: true,
       name: true,
+      city: true,
       zone: true,
       neighborhood_geofences: {
         select: { id: true },
@@ -217,6 +218,7 @@ export async function getSmartNeighborhoodList(lat?: number, lng?: number) {
   const all = allNeighborhoods.map((n) => ({
     id: n.id,
     name: n.name,
+    city: n.city,
     zone: n.zone,
     hasGeofence: !!n.neighborhood_geofences,
     minFee: n.neighborhood_geofences ? 7 : 12,
