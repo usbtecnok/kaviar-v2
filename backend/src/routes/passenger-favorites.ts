@@ -109,4 +109,54 @@ router.get('/favorites', authenticatePassenger, async (req: Request, res: Respon
   }
 });
 
+// DELETE /api/passenger/favorites/:id
+router.delete('/favorites/:id', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passenger = (req as any).passenger;
+    const { id } = req.params;
+
+    // Check feature flag
+    const isEnabled = await isFeatureEnabled('passenger_favorites_matching', passenger.id);
+    
+    if (!isEnabled) {
+      return res.status(403).json({
+        success: false,
+        error: 'Feature not available',
+      });
+    }
+
+    // Verify ownership
+    const favorite = await prisma.passenger_favorite_locations.findFirst({
+      where: {
+        id,
+        passenger_id: passenger.id,
+      },
+    });
+
+    if (!favorite) {
+      return res.status(404).json({
+        success: false,
+        error: 'Favorite not found',
+      });
+    }
+
+    await prisma.passenger_favorite_locations.delete({
+      where: { id },
+    });
+
+    console.log(`[passenger_favorites_matching] Favorite deleted: passenger=${passenger.id}, id=${id}`);
+
+    res.json({
+      success: true,
+      message: 'Favorite deleted',
+    });
+  } catch (error) {
+    console.error('[passenger_favorites_matching] Error deleting favorite:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Internal server error',
+    });
+  }
+});
+
 export default router;
