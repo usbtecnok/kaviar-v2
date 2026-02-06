@@ -72,11 +72,11 @@ Cenário C (OUTSIDE): 20% (esperado 20%)
 ```bash
 # Com GPS (detecção automática)
 curl -s "https://api.kaviar.com.br/api/neighborhoods/smart-list?lat=-22.8857&lng=-43.2994" | \
-  jq '{detected, nearby: (.nearby[0:5])}'
+  jq '{detected: .data.detected, nearby: (.data.nearby[0:5])}'
 
 # Sem GPS (lista completa)
 curl -s "https://api.kaviar.com.br/api/neighborhoods/smart-list" | \
-  jq '{detected, nearby, all: (.all[0:5])}'
+  jq '{detected: .data.detected, nearby: .data.nearby, all: (.data.all[0:5])}'
 ```
 
 ### Obter coordenadas de um bairro

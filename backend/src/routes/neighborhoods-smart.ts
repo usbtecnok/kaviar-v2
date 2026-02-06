@@ -12,6 +12,8 @@ const smartListQuerySchema = z.object({
 /**
  * GET /api/neighborhoods/smart-list
  * Lista inteligente de bairros com detecção automática via GPS
+ * 
+ * Retrocompatível: data = array, detected/nearby no objeto raiz
  */
 router.get('/smart-list', async (req: Request, res: Response) => {
   try {
@@ -21,7 +23,11 @@ router.get('/smart-list', async (req: Request, res: Response) => {
 
     return res.status(200).json({
       success: true,
-      data: result,
+      data: {
+        detected: result.detected,
+        nearby: result.nearby,
+        all: result.all,
+      },
     });
   } catch (error) {
     console.error(error);
