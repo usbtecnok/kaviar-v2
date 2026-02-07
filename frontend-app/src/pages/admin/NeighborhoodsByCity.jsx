@@ -11,7 +11,7 @@ import {
   Chip
 } from '@mui/material';
 import { LocationCity, Map } from '@mui/icons-material';
-import { API_BASE_URL } from '../../config/api';
+import { apiClient } from '../../lib/apiClient';
 
 export default function NeighborhoodsByCity() {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -31,26 +31,16 @@ export default function NeighborhoodsByCity() {
 
   const fetchNeighborhoods = async () => {
     try {
-      console.log('🔗 Fetching from:', `${API_BASE_URL}/api/governance/neighborhoods`);
-      const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('📡 Response status:', response.status);
-      
-      const data = await response.json();
-      console.log('📦 Data received:', { success: data.success, count: data.data?.length });
+      const { data } = await apiClient.get('/api/governance/neighborhoods');
       
       if (data.success) {
         setNeighborhoods(data.data || []);
       } else {
         setError(data.error || 'Erro ao carregar bairros');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Fetch error:', err);
-      setError('Erro de conexão com o servidor: ' + err.message);
+      setError(err.message || 'Erro de conexão com o servidor');
     } finally {
       setLoading(false);
     }

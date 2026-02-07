@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { API_BASE_URL } from '../../config/api';
+import { apiClient } from '../../lib/apiClient';
 
 export default function NeighborhoodsManagement() {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -36,25 +36,16 @@ export default function NeighborhoodsManagement() {
 
   const fetchNeighborhoods = async () => {
     try {
-      const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
-      
-      console.log('Neighborhoods API response:', data);
+      const { data } = await apiClient.get('/api/governance/neighborhoods');
       
       if (data.success) {
-        const neighborhoodsData = data.data || [];
-        setNeighborhoods(neighborhoodsData);
+        setNeighborhoods(data.data || []);
       } else {
         setError(data.error || 'Erro ao carregar bairros');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching neighborhoods:', err);
-      setError('Erro de conexão com o servidor');
+      setError(err.message || 'Erro de conexão com o servidor');
     } finally {
       setLoading(false);
     }
@@ -65,18 +56,11 @@ export default function NeighborhoodsManagement() {
     setGeofence(null);
     
     try {
-      const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods/${neighborhood.id}/geofence`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await response.json();
+      const { data } = await apiClient.get(`/api/governance/neighborhoods/${neighborhood.id}/geofence`);
       
       if (data.success && data.data && data.data.coordinates) {
         setGeofence(data.data.coordinates);
       } else {
-        // Marcar como "sem geometria" para mostrar mensagem
         setGeofence('NO_GEOMETRY');
       }
     } catch (err) {

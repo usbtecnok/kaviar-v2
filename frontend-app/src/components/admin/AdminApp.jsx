@@ -6,6 +6,7 @@ import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
+import { HealthProbeBanner } from "../HealthProbe";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
 import BetaMonitor from "../../pages/admin/BetaMonitor";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
@@ -647,6 +648,7 @@ function AdminElderlyWrapper() {
 export default function AdminApp() {
   return (
     <AdminErrorBoundary>
+      <HealthProbeBanner />
       <Box sx={{ bgcolor: '#000', minHeight: '100vh', color: '#FFD700' }}>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
