@@ -43,7 +43,7 @@ export default function NeighborhoodsManagement() {
       } else {
         setError(data.error || 'Erro ao carregar bairros');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching neighborhoods:', err);
       setError(err.message || 'Erro de conexão com o servidor');
     } finally {

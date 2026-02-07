@@ -38,7 +38,7 @@ export default function NeighborhoodsByCity() {
       } else {
         setError(data.error || 'Erro ao carregar bairros');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ Fetch error:', err);
       setError(err.message || 'Erro de conexão com o servidor');
     } finally {
