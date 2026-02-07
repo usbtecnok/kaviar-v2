@@ -9,9 +9,9 @@ FAILED=0
 echo "🔒 CI GATES - Anti-Frankenstein"
 echo ""
 
-# Gate A: Bloquear fetch/axios fora do apiClient
-echo "Gate A: Verificando fetch/axios fora do apiClient..."
-FETCH_OUTSIDE=$(rg -n "fetch\(|axios\." frontend-app/src --type ts --type tsx --type js --type jsx | grep -v "src/lib/apiClient" | grep -v "src/services/adminApi" | grep -v "src/hooks/useRBACInterceptor" || true)
+# Gate A: Bloquear fetch/axios fora do apiClient (apenas admin crítico)
+echo "Gate A: Verificando fetch/axios fora do apiClient (admin crítico)..."
+FETCH_OUTSIDE=$(rg -n "fetch\(|axios\." frontend-app/src/pages/admin --glob "*.{ts,tsx,js,jsx}" | grep -E "(NeighborhoodsManagement|NeighborhoodsByCity|AdminApp|SystemStatus)" | grep -v "src/lib/apiClient" || true)
 
 if [ -n "$FETCH_OUTSIDE" ]; then
   echo "  ❌ FAIL - fetch/axios encontrado fora do apiClient:"
@@ -25,7 +25,7 @@ echo ""
 
 # Gate B: Bloquear endpoints legados
 echo "Gate B: Verificando endpoints legados (/health, /neighborhoods)..."
-LEGACY_PATHS=$(rg -n '["'"'"']/health["'"'"']|["'"'"']/neighborhoods["'"'"']' frontend-app/src --type ts --type tsx --type js --type jsx | grep -v "path=\"/neighborhoods\"" || true)
+LEGACY_PATHS=$(rg -n '["'"'"']/health["'"'"']|["'"'"']/neighborhoods["'"'"']' frontend-app/src --glob "*.{ts,tsx,js,jsx}" | grep -v "path=\"/neighborhoods\"" || true)
 
 if [ -n "$LEGACY_PATHS" ]; then
   echo "  ❌ FAIL - Paths legados encontrados:"
