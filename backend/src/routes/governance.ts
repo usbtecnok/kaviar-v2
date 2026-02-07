@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { authenticateAdmin, requireRole } from '../middlewares/auth';
+
 import { prisma } from '../lib/prisma';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
@@ -7,6 +9,10 @@ import { randomUUID } from 'crypto';
 import { RatingController } from '../modules/rating/controller';
 
 const router = Router();
+
+router.use(authenticateAdmin);
+router.use(requireRole(['SUPER_ADMIN','OPERATOR']));
+
 const ratingController = new RatingController();
 
 // Schemas
