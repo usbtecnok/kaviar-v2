@@ -12,12 +12,17 @@ class ApiClient {
   }
 
   private normalizePath(path: string): string {
-    // Garante que path sempre começa com /api
-    if (!path.startsWith('/api')) {
-      console.warn(`[ApiClient] Path sem /api: ${path} → corrigindo para /api${path}`);
-      return `/api${path}`;
+    // Remove leading slash se existir
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    // Se já começa com api/, retorna com /
+    if (cleanPath.startsWith('api/')) {
+      return `/${cleanPath}`;
     }
-    return path;
+    
+    // Caso contrário, adiciona /api/
+    console.warn(`[ApiClient] Path sem /api: ${path} → /api/${cleanPath}`);
+    return `/api/${cleanPath}`;
   }
 
   private buildUrl(path: string): string {

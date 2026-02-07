@@ -1,5 +1,5 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
-import { API_BASE_URL } from '../../config/api';
+import { apiClient } from '../../lib/apiClient';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress } from "@mui/material";
 import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
@@ -130,50 +130,26 @@ function AdminHome() {
     try {
       setLoading(true);
       setError('');
-      
-      const token = localStorage.getItem('kaviar_admin_token');
-      if (!token) {
-        throw new Error('Token não encontrado');
-      }
 
-      // Buscar dados do dashboard
-      const [driversResponse, guidesResponse, neighborhoodsResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/admin/drivers`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/admin/guides`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/governance/neighborhoods`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+      // Buscar dados do dashboard usando apiClient
+      const [driversResult, guidesResult, neighborhoodsResult] = await Promise.all([
+        apiClient.get('/api/admin/drivers').catch(e => ({ data: { success: false, data: [] }, error: e })),
+        apiClient.get('/api/admin/guides').catch(e => ({ data: { success: false, data: [] }, error: e })),
+        apiClient.get('/api/governance/neighborhoods').catch(e => ({ data: { success: false, data: [] }, error: e }))
       ]);
 
-      // Só remover token se 401 com erro de token inválido
-      if (driversResponse.status === 401 || guidesResponse.status === 401) {
-        try {
-          const errorData = await driversResponse.json();
-          if (errorData.error && errorData.error.includes('Token inválido')) {
-            localStorage.removeItem('kaviar_admin_token');
-            localStorage.removeItem('kaviar_admin_data');
-            window.location.href = '/admin/login';
-            return;
-          }
-        } catch (e) {
-          // Erro de parsing
-        }
-        
-        throw new Error(`Erro de conexão: ${driversResponse.status}`);
+      // Se algum retornou erro 401, redirecionar para login
+      if (driversResult.error?.status === 401 || guidesResult.error?.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        localStorage.removeItem('kaviar_admin_data');
+        window.location.href = '/admin/login';
+        return;
       }
 
-      const driversData = await driversResponse.json();
-      const guidesData = await guidesResponse.json();
-      const neighborhoodsData = await neighborhoodsResponse.json();
-
       // Calcular estatísticas
-      const drivers = driversData.success ? driversData.data : [];
-      const guides = guidesData.success ? guidesData.data : [];
-      const neighborhoods = neighborhoodsData.success ? neighborhoodsData.data : [];
+      const drivers = driversResult.data?.success ? driversResult.data.data : [];
+      const guides = guidesResult.data?.success ? guidesResult.data.data : [];
+      const neighborhoods = neighborhoodsResult.data?.success ? neighborhoodsResult.data.data : [];
 
       const stats = {
         totalDrivers: drivers.length,
