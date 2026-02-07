@@ -1,4 +1,5 @@
 #!/bin/bash
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 echo "🔐 TESTE COMPLETO DE LOGIN ADMIN"
 echo "================================"
@@ -15,7 +16,7 @@ echo ""
 echo "2. Testando login admin..."
 LOGIN_RESPONSE=$(curl -s -X POST "$BASE_URL/admin/auth/login" \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@kaviar.com","password":"admin123"}')
+    -d '{"email":"admin@kaviar.com","password":"'"$ADMIN_PASSWORD"'"}')
 
 echo "✅ Login Response: $LOGIN_RESPONSE"
 

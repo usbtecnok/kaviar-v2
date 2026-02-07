@@ -57,7 +57,7 @@ code: 'MODULE_NOT_FOUND'
 ### 2. Fix Secundário - ADMIN_DEFAULT_PASSWORD
 
 **Problema Adicional:**
-- Security fix anterior removeu fallback `admin123`
+- Security fix anterior removeu fallback `<ADMIN_PASSWORD>`
 - Produção não tinha `ADMIN_DEFAULT_PASSWORD` env var
 - Task 35 falhou com: `Error: ADMIN_DEFAULT_PASSWORD must be set in production`
 

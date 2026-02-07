@@ -156,6 +156,11 @@ router.get('/communities', async (req, res) => {
 router.get('/neighborhoods', async (req, res) => {
   const requestId = randomUUID();
   try {
+    // Anti-cache headers
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    
     const neighborhoods = await prisma.neighborhoods.findMany({
       select: {
         id: true,

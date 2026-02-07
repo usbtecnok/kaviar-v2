@@ -1,4 +1,5 @@
 #!/bin/bash
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 # PR #1 - Atomic Ride Status Transitions - Manual Test Script
 # This script demonstrates concurrent modification protection
@@ -16,7 +17,7 @@ LOGIN_RESPONSE=$(curl -s -X POST "$API_BASE/admin/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@kaviar.com",
-    "password": "admin123"
+    "password": ""
   }')
 
 ADMIN_TOKEN=$(echo $LOGIN_RESPONSE | jq -r '.token // empty')

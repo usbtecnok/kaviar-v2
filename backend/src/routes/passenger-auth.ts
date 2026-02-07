@@ -52,13 +52,17 @@ router.post('/passenger/register', async (req, res) => {
     });
 
     // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+
     const token = jwt.sign(
       { 
         userId: passenger.id, 
         userType: 'PASSENGER',
         email: passenger.email 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -144,13 +148,17 @@ router.post('/passenger/login', async (req, res) => {
     }
 
     // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+
     const token = jwt.sign(
       { 
         userId: passenger.id, 
         userType: 'PASSENGER',
         email: passenger.email 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 

@@ -227,7 +227,7 @@ curl -X POST $API_URL/api/admin/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@kaviar.com",
-    "password": "admin123"
+    "password": "<ADMIN_PASSWORD>"
   }' | jq .
 
 # ✅ Esperado:

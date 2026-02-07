@@ -1,0 +1,77 @@
+name: Admin Frontend Deploy
+
+on:
+  push:
+    branches: [main, production]
+    paths:
+      - 'frontend-app/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: kaviar-frontend-847895361928
+  CLOUDFRONT_DISTRIBUTION_ID: E30XJMSBHGZAGN
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend-app
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend-app
+        env:
+          VITE_API_BASE_URL: https://api.kaviar.com.br
+        run: npm run build
+
+      - name: Run CI Gates (Pre-Deploy)
+        env:
+          CI_ADMIN_TOKEN: ${{ secrets.CI_ADMIN_TOKEN }}
+        run: |
+          chmod +x scripts/ci-gates.sh
+          ./scripts/ci-gates.sh
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync frontend-app/dist s3://${{ env.S3_BUCKET }} --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ env.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: Run Smoke Tests
+        env:
+          API_BASE_URL: https://api.kaviar.com.br
+          CI_ADMIN_TOKEN: ${{ secrets.CI_ADMIN_TOKEN }}
+        run: |
+          chmod +x scripts/smoke-tests.sh
+          ./scripts/smoke-tests.sh
+
+      - name: Deployment Summary
+        if: success()
+        run: |
+          echo "✅ Deploy concluído com sucesso!"
+          echo "URL: https://d29p7cirgjqbxl.cloudfront.net"
+          echo "Smoke tests: PASS"

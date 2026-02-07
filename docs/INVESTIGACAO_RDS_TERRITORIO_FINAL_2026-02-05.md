@@ -361,7 +361,7 @@ aws ssm send-command \
   --region us-east-2 \
   --instance-ids i-09c5e2c7262bb5ddb \
   --document-name "AWS-RunShellScript" \
-  --parameters 'commands=["PGPASSWORD=<REDACTED> psql -h kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com -U kaviaradmin -d kaviar -c \"SELECT ST_Y(ST_PointOnSurface(ng.geom)) AS lat, ST_X(ST_PointOnSurface(ng.geom)) AS lng FROM neighborhood_geofences ng JOIN neighborhoods n ON n.id=ng.neighborhood_id WHERE n.name='\''Abolição'\'' LIMIT 1;\""]'
+  --parameters 'commands=["PGPASSWORD="<SET_IN_ENV>" psql -h kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com -U kaviaradmin -d kaviar -c \"SELECT ST_Y(ST_PointOnSurface(ng.geom)) AS lat, ST_X(ST_PointOnSurface(ng.geom)) AS lng FROM neighborhood_geofences ng JOIN neighborhoods n ON n.id=ng.neighborhood_id WHERE n.name='\''Abolição'\'' LIMIT 1;\""]'
 
 # Fechar SG
 aws ec2 revoke-security-group-ingress \

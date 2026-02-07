@@ -10,7 +10,8 @@ import path from 'path';
 
 const BASE_URL = process.env.KAVIAR_FRONTEND_URL || 'https://kaviar-frontend.onrender.com';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@kaviar.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (ADMIN_PASSWORD=z4939ia4) throw new Error('ADMIN_PASSWORD missing');
 
 const TARGET_COMMUNITIES = ['Botafogo', 'Tijuca', 'Glória'];
 const EVIDENCE_DIR = '/home/goes/kaviar/audit/ui_map_evidence/2026-01-09__build-b73db6a';

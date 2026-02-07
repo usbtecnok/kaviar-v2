@@ -44,7 +44,7 @@ npm run start:3003
 ```
 
 **Credenciais de Teste:**
-- Admin: `admin@kaviar.com` / `admin123`
+- Admin: `admin@kaviar.com` / `<ADMIN_PASSWORD>`
 - Passageiro: `passenger@test.com` / `pass123`
 - Motorista: `driver@test.com` / `driver123` 
 - Guia: `guide@test.com` / `guide123`

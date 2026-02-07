@@ -75,7 +75,7 @@ Implementar fluxo completo de autenticação para 3 perfis + admin com aprovaç�
 4. **Relatório Final** (auditoria + mudanças)
 
 ## 🧪 USUÁRIOS TESTE
-- Admin: admin@kaviar.com / admin123
+- Admin: admin@kaviar.com / <ADMIN_PASSWORD>
 - Driver: driver@test.com / driver123 (pendente → aprovado)
 - Passenger: passenger@test.com / pass123 (ativo com LGPD)
 - Guide: guide@test.com / guide123 (pendente → aprovado)

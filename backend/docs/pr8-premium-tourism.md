@@ -156,7 +156,7 @@ Confirmar reserva (cria ride)
 **Request:**
 ```json
 {
-  "adminId": "admin123"
+  "adminId": "<ADMIN_ID>"
 }
 ```
 

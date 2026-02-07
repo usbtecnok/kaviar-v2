@@ -53,7 +53,7 @@ psql -h [YOUR_DB_HOST] -U [YOUR_DB_USER]...
 
 ### 4. backend/src/config/index.ts
 **Problema:** Default password inseguro
-- defaultPassword: process.env.ADMIN_DEFAULT_PASSWORD || 'admin123'
+- defaultPassword: process.env.ADMIN_DEFAULT_PASSWORD || '<ADMIN_PASSWORD>'
 
 **Correção:**
 ```typescript
@@ -83,7 +83,7 @@ e6cb328 chore(security): remove hardcoded credentials and unsafe defaults
 
 ### Padrões Críticos Removidos do HEAD
 ```bash
-git grep -nE "npg_2xbfMWRF6hrO|Kaviar2026!|Angel2026!|senha123|admin123" -- \
+git grep -nE "npg_2xbfMWRF6hrO|Kaviar2026!|Angel2026!|senha123|<ADMIN_PASSWORD>" -- \
   backend/data/geojson/README.md \
   backend/scripts/test-virtual-fence-center-api.sh \
   backend/test-driver-registration-flow.sh \

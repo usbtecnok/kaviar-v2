@@ -11,7 +11,8 @@ const API_BASE = 'https://kaviar-v2.onrender.com';
 // Credenciais de admin (assumindo padrão)
 const ADMIN_CREDENTIALS = {
   email: 'admin@kaviar.com',
-  password: 'admin123'
+
+  password: process.env.ADMIN_PASSWORD
 };
 
 const EXPECTED_IDS = {

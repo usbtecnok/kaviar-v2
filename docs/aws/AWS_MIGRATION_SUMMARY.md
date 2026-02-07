@@ -140,7 +140,7 @@ curl "http://$ALB_DNS/api/health"
 # Login admin
 curl -X POST "http://$ALB_DNS/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}'
+  -d '{"email":"admin@kaviar.com","password":"<ADMIN_PASSWORD>"}'
 
 # Logs
 aws logs tail /ecs/kaviar-backend --follow --region us-east-2

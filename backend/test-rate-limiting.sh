@@ -1,4 +1,5 @@
 #!/bin/bash
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 # PR #2 - Admin Login Rate Limiting - Manual Test Script
 # This script demonstrates rate limiting protection on admin login
@@ -88,7 +89,7 @@ echo ""
 echo "5. Testing with valid credentials (should still be rate limited)..."
 VALID_CREDENTIALS='{
   "email": "admin@kaviar.com",
-  "password": "admin123"
+  "password": ""
 }'
 
 VALID_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "$API_BASE/admin/auth/login" \

@@ -1,4 +1,5 @@
 #!/bin/bash
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 API_URL="https://api.kaviar.com.br"
 
@@ -20,7 +21,7 @@ if [ -z "$ADMIN_TOKEN" ] || [ "$ADMIN_TOKEN" = "null" ]; then
   # Verificar se há outro admin no .env
   ADMIN_TOKEN=$(curl -s -X POST "$API_URL/api/admin/auth/login" \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@kaviar.com","password":"admin123"}' | jq -r '.token')
+    -d '{"email":"admin@kaviar.com","password":"'"$ADMIN_PASSWORD"'"}' | jq -r '.token')
 fi
 
 if [ -z "$ADMIN_TOKEN" ] || [ "$ADMIN_TOKEN" = "null" ]; then

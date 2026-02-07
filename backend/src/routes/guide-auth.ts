@@ -50,13 +50,17 @@ router.post('/guide/login', async (req, res) => {
     }
 
     // Generate JWT token
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+
     const token = jwt.sign(
       { 
         userId: guide.id, 
         userType: 'GUIDE',
         email: guide.email 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 

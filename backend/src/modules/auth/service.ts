@@ -20,6 +20,10 @@ export class AuthService {
     }
 
     // Generate token with role
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET não configurado');
+    }
+
     const token = jwt.sign(
       { 
         userId: admin.id, 
@@ -27,7 +31,7 @@ export class AuthService {
         email: admin.email,
         role: admin.role,
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
 
