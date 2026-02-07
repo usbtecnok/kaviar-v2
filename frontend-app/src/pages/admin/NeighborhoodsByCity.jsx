@@ -32,7 +32,12 @@ export default function NeighborhoodsByCity() {
   const fetchNeighborhoods = async () => {
     try {
       console.log('🔗 Fetching from:', `${API_BASE_URL}/api/governance/neighborhoods`);
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`);
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       console.log('📡 Response status:', response.status);
       
       const data = await response.json();

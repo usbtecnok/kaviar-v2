@@ -36,7 +36,12 @@ export default function NeighborhoodsManagement() {
 
   const fetchNeighborhoods = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`);
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       
       console.log('Neighborhoods API response:', data);
@@ -60,7 +65,12 @@ export default function NeighborhoodsManagement() {
     setGeofence(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods/${neighborhood.id}/geofence`);
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods/${neighborhood.id}/geofence`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await response.json();
       
       if (data.success && data.data && data.data.coordinates) {
