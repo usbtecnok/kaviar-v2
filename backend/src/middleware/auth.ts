@@ -5,6 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!JWT_SECRET) {
       return res.status(500).json({ error: 'JWT_SECRET não configurado' });
     }
 
@@ -24,6 +25,7 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!JWT_SECRET) {
       return res.status(500).json({ error: 'JWT_SECRET não configurado' });
     }
 
@@ -48,16 +50,13 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
 
 export const authenticatePassenger = (req: Request, res: Response, next: NextFunction) => {
   try {
-      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
-    }
-
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET!) as any;
     
     if (decoded.role !== 'PASSENGER') {
       return res.status(403).json({ error: 'Passenger access required' });
@@ -73,16 +72,13 @@ export const authenticatePassenger = (req: Request, res: Response, next: NextFun
 
 export const authenticateDriver = (req: Request, res: Response, next: NextFunction) => {
   try {
-      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
-    }
-
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET!) as any;
     
     if (decoded.role !== 'DRIVER') {
       return res.status(403).json({ error: 'Driver access required' });
