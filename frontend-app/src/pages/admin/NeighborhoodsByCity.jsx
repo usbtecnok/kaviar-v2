@@ -75,8 +75,7 @@ export default function NeighborhoodsByCity() {
     
     // Buscar contagem de geofences do backend
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/dashboard/overview`);
-      const data = await response.json();
+      const { data } = await apiClient.get('/api/admin/dashboard/overview');
       // Por enquanto, assumir que Rio tem geometria e SP não
       if (stats['Rio de Janeiro']) stats['Rio de Janeiro'].withGeofence = 162;
       if (stats['São Paulo']) stats['São Paulo'].withGeofence = 0;

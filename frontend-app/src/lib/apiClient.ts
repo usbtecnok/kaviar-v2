@@ -12,12 +12,23 @@ class ApiClient {
   }
 
   private normalizePath(path: string): string {
-    // Remove leading slash se existir
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    // Remove leading/trailing slashes
+    const cleanPath = path.replace(/^\/+|\/+$/g, '');
     
     // Se já começa com api/, retorna com /
     if (cleanPath.startsWith('api/')) {
       return `/${cleanPath}`;
+    }
+    
+    // Mapeamento de paths legados para corretos
+    const legacyMap: Record<string, string> = {
+      'health': '/api/health',
+      'neighborhoods': '/api/governance/neighborhoods',
+    };
+    
+    if (legacyMap[cleanPath]) {
+      console.warn(`[ApiClient] Legacy path detected: ${path} → ${legacyMap[cleanPath]}`);
+      return legacyMap[cleanPath];
     }
     
     // Caso contrário, adiciona /api/

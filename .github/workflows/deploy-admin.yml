@@ -37,6 +37,13 @@ jobs:
           VITE_API_BASE_URL: https://api.kaviar.com.br
         run: npm run build
 
+      - name: Run CI Gates (Pre-Deploy)
+        env:
+          CI_ADMIN_TOKEN: ${{ secrets.CI_ADMIN_TOKEN }}
+        run: |
+          chmod +x scripts/ci-gates.sh
+          ./scripts/ci-gates.sh
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
