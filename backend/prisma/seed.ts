@@ -22,7 +22,11 @@ async function main() {
   console.log('✅ Roles criadas');
 
   // Create default admin
-  const hashedPassword = await bcrypt.hash('admin123', 12);
+
+    throw new Error('ADMIN_DEFAULT_PASSWORD missing for seed');
+  }
+
+  const hashedPassword = await bcrypt.hash(process.env.ADMIN_DEFAULT_PASSWORD as string, 12);
   
   const admin = await prisma.admin.upsert({
     where: { email: 'admin@kaviar.com' },
