@@ -70,7 +70,7 @@ test-driver-management.sh       # Script de teste automatizado
 ### 1. Configurar Banco Neon PostgreSQL
 ```bash
 # Atualizar .env com sua string de conexão Neon
-DATABASE_URL=REDACTED
+DATABASE_URL="<SET_IN_ENV>"
 ```
 
 ### 2. Executar Migration
