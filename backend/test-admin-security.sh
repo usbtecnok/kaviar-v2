@@ -1,4 +1,5 @@
 #!/bin/bash
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 # Script de teste de segurança - Autenticação Admin
 # Valida se todas as rotas estão protegidas
@@ -66,7 +67,7 @@ test_valid_login() {
         -H "Content-Type: application/json" \
         -d '{
             "email": "admin@kaviar.com",
-            "password": "admin123"
+            "password": ""
         }')
     
     SUCCESS=$(echo $RESPONSE | jq -r '.success')

@@ -22,7 +22,7 @@
 - **Ação:** Modificar senha no RDS + atualizar ECS secrets
 
 ### 3. ADMIN_DEFAULT_PASSWORD (MÉDIO)
-- **Atual:** `admin123`
+- **Atual:** `<ADMIN_PASSWORD>`
 - **Novo:** `UKqMLJNPx9ELEZFv5ky5`
 - **Impacto:** Apenas novos admins criados via seed
 - **Ação:** Atualizar .env + recriar admins de teste

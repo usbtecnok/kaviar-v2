@@ -48,7 +48,7 @@ curl -X POST http://localhost:3001/api/admin/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@kaviar.com",
-    "password": "admin123"
+    "password": "<ADMIN_PASSWORD>"
   }'
 ```
 

@@ -76,7 +76,7 @@ test_endpoint "GET" "/api/health" "" "Health check backend"
 echo -e "\n${YELLOW}📋 FASE 2: LOGIN ADMIN${NC}"
 test_endpoint "POST" "/api/admin/auth/login" '{
   "email": "admin@kaviar.com",
-  "password": "admin123"
+  "password": "<ADMIN_PASSWORD>"
 }' "Login admin (credenciais padrão)"
 
 # Se não conseguiu login, tentar outras credenciais
@@ -85,7 +85,7 @@ if [ -z "$ADMIN_TOKEN" ]; then
     
     test_endpoint "POST" "/api/admin/auth/login" '{
       "email": "admin@test.com",
-      "password": "admin123"
+      "password": "<ADMIN_PASSWORD>"
     }' "Login admin (credenciais teste)"
 fi
 

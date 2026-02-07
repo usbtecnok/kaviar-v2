@@ -73,7 +73,7 @@ npm test -- community-activation.test.ts
 # Obter token admin
 TOKEN=$(curl -s -X POST http://localhost:3001/api/admin/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}' | jq -r '.token')
+  -d '{"email":"admin@kaviar.com","password":"<ADMIN_PASSWORD>"}' | jq -r '.token')
 
 # Listar comunidades
 curl -X GET http://localhost:3001/api/governance/communities \

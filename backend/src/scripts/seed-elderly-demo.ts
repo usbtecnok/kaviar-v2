@@ -10,7 +10,10 @@ async function seedElderlyDemo() {
     let admin = await prisma.admins.findUnique({ where: { email: adminEmail } });
     
     if (!admin) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+    throw new Error('ADMIN_DEFAULT_PASSWORD missing');
+  }
+
+      const hashedPassword = await bcrypt.hash(process.env.ADMIN_DEFAULT_PASSWORD as string, 10);
       admin = await prisma.admins.create({
         data: {
           email: adminEmail,

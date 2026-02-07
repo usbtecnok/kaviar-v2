@@ -6,7 +6,7 @@ describe('Admin Login Rate Limiting', () => {
   const loginEndpoint = '/api/admin/auth/login';
   const validCredentials = {
     email: 'admin@kaviar.com',
-    password: 'admin123'
+    password: 'test-only-password'
   };
   const invalidCredentials = {
     email: 'admin@kaviar.com',

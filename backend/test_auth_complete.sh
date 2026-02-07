@@ -1,4 +1,5 @@
 #!/bin/bash
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 # KAVIAR - Roteiro de Testes Completo
 # Testa todos os fluxos de autenticação, cadastro, aprovação e avaliação
@@ -140,7 +141,7 @@ echo -e "\n${YELLOW}📋 FASE 3: LOGIN ADMIN${NC}"
 # Login Admin
 test_endpoint "POST" "/admin/auth/login" '{
   "email": "admin@kaviar.com",
-  "password": "admin123"
+  "password": ""
 }' "Login admin"
 
 echo -e "\n${YELLOW}📋 FASE 4: APROVAÇÕES ADMIN${NC}"

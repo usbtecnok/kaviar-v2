@@ -407,7 +407,7 @@ echo ""
 echo "2️⃣ Login Admin:"
 TOKEN=$(curl -s -X POST "http://$ALB_DNS/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}' | jq -r '.token')
+  -d '{"email":"admin@kaviar.com","password":"<ADMIN_PASSWORD>"}' | jq -r '.token')
 
 echo "Token: ${TOKEN:0:50}..."
 echo ""

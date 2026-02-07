@@ -3,7 +3,9 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
 
 // Mantém compatibilidade: tenta ADMIN_JWT_SECRET e depois JWT_SECRET.
-const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) { throw new Error("JWT_SECRET missing"); }
+
 
 function getBearerToken(req: Request): string | null {
   const header = (req.headers.authorization || (req.headers as any).Authorization) as string | undefined;

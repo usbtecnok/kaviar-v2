@@ -109,7 +109,7 @@ GET /api/governance/ratings/driver/:driverId
 
 ```sql
 -- ✅ CRIADOS:
-admin@kaviar.com / admin123 (ativo)
+admin@kaviar.com / <ADMIN_PASSWORD> (ativo)
 passenger@test.com / pass123 (ativo + LGPD aceito)  
 driver@test.com / driver123 (pendente → aprovado)
 guide@test.com / guide123 (pendente → aprovado)
@@ -151,7 +151,7 @@ curl -X POST http://localhost:3003/api/governance/driver \
 # Login admin
 curl -X POST http://localhost:3003/api/admin/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@kaviar.com", "password": "admin123"}'
+  -d '{"email": "admin@kaviar.com", "password": "<ADMIN_PASSWORD>"}'
 
 # Aprovar motorista  
 curl -X PUT http://localhost:3003/api/admin/drivers/{id}/approve \
@@ -351,7 +351,7 @@ O sistema de autenticação, onboarding e avaliação está **completamente func
 ---
 
 **🔑 CREDENCIAIS DE TESTE:**
-- Admin: `admin@kaviar.com` / `admin123`
+- Admin: `admin@kaviar.com` / `<ADMIN_PASSWORD>`
 - Passageiro: `passenger@test.com` / `pass123` 
 - Motorista: `driver@test.com` / `driver123`
 - Guia: `guide@test.com` / `guide123`

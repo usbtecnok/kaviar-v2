@@ -7,7 +7,7 @@ VALUES (
   'admin-test-001',
   'Admin Teste',
   'admin@kaviar.com',
-  '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password: admin123
+  '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- password: <ADMIN_PASSWORD>
   true,
   'role-admin-001',
   NOW(),

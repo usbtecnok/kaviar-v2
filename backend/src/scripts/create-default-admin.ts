@@ -33,7 +33,10 @@ async function createDefaultAdmin() {
     });
 
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash('admin123', 12);
+    throw new Error('ADMIN_DEFAULT_PASSWORD missing');
+  }
+
+      const hashedPassword = await bcrypt.hash(process.env.ADMIN_DEFAULT_PASSWORD as string, 12);
       
       await prisma.admins.create({
         data: {
@@ -47,7 +50,7 @@ async function createDefaultAdmin() {
       
       console.log('✅ Admin padrão criado');
       console.log('📧 Email: admin@kaviar.com');
-      console.log('🔑 Senha: admin123');
+      console.log('🔑 Admin password set via ADMIN_DEFAULT_PASSWORD');
     } else {
       console.log('ℹ️  Admin padrão já existe');
     }

@@ -25,7 +25,7 @@ curl -i "http://$ALB_DNS/api/health"
 # Testar endpoint específico
 curl -X POST "http://$ALB_DNS/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}'
+  -d '{"email":"admin@kaviar.com","password":"<ADMIN_PASSWORD>"}'
 # Esperado: HTTP 200 + token JWT
 ```
 

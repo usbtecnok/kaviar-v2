@@ -13,7 +13,7 @@ echo ""
 # Configuração
 BACKEND_URL="${BACKEND_URL:-http://localhost:3000}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@kaviar.com}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 # Cores
 GREEN='\033[0;32m'
