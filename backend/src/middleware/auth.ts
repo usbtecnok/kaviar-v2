@@ -1,10 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'kaviar-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   try {
+      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
@@ -21,6 +24,9 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
 
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   try {
+      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
@@ -42,6 +48,9 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
 
 export const authenticatePassenger = (req: Request, res: Response, next: NextFunction) => {
   try {
+      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
@@ -64,6 +73,9 @@ export const authenticatePassenger = (req: Request, res: Response, next: NextFun
 
 export const authenticateDriver = (req: Request, res: Response, next: NextFunction) => {
   try {
+      return res.status(500).json({ error: 'JWT_SECRET não configurado' });
+    }
+
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
