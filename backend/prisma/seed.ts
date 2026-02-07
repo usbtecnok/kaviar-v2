@@ -45,7 +45,7 @@ async function main() {
 
   console.log('✅ Admin padrão criado/atualizado');
   console.log('📧 Email: admin@kaviar.com');
-  console.log('🔑 Senha: admin123');
+  console.log('🔑 Admin password set via ADMIN_DEFAULT_PASSWORD');
 }
 
 main()
