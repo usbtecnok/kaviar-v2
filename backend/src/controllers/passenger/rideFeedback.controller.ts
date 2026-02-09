@@ -114,7 +114,9 @@ export async function createRideFeedback(req: Request, res: Response) {
     });
 
     // Enfileirar análise de sentimento (best-effort, non-blocking)
-    enqueueSentimentAnalysis(feedback.id); // Fire-and-forget
+    void enqueueSentimentAnalysis(feedback.id).catch(err => {
+      console.error('[Sentiment] Enqueue failed (non-blocking):', err);
+    });
 
     return res.status(201).json({
       success: true,
