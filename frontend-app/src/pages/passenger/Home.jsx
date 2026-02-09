@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -25,9 +25,13 @@ import Layout from '../../components/common/Layout';
 import AddressAutocomplete from '../../components/common/AddressAutocomplete';
 import MapComponent from '../../components/common/MapComponent';
 import RideStatusCard from '../../components/common/RideStatusCard';
+import FavoritePlacesPromoBanner from '../../components/passenger/FavoritePlacesPromoBanner';
+import FavoritePlaces from '../../components/passenger/FavoritePlaces';
+import AddFavoritePlaceModal from '../../components/passenger/AddFavoritePlaceModal';
 import { FadeInCard, premiumButtonStyles } from '../../components/common/Animations';
 import { useNavigate } from 'react-router-dom';
 import { useRide } from '../../context/RideContext';
+import api from '../../api';
 
 const PassengerHome = () => {
   const [pickup, setPickup] = useState('');
@@ -37,6 +41,12 @@ const PassengerHome = () => {
   const [serviceType, setServiceType] = useState('STANDARD_RIDE');
   const [careNotes, setCareNotes] = useState('');
   const [careNeedsEscort, setCareNeedsEscort] = useState(false);
+  
+  // Favorites state
+  const [favorites, setFavorites] = useState([]);
+  const [showPromoBanner, setShowPromoBanner] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [modalInitialType, setModalInitialType] = useState('HOME');
 
   // WhatsApp do suporte (pode configurar por env VITE_SUPPORT_WHATSAPP)
   const SUPPORT_WHATSAPP = import.meta.env.VITE_SUPPORT_WHATSAPP || '5521980669989';
@@ -63,6 +73,57 @@ const PassengerHome = () => {
     { value: 'TOUR_GUIDE', label: 'Guia Turístico', description: 'Motorista como guia local', icon: '🧭' },
     { value: 'ELDERLY_ASSISTANCE', label: 'Care / Acompanhamento', description: 'Atendimento especializado', icon: '🧓' }
   ];
+
+  // Load favorites on mount
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      const response = await api.get('/api/passenger/favorites');
+      if (response.data.success) {
+        setFavorites(response.data.data || []);
+        setShowPromoBanner(response.data.data.length < 3);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+    }
+  };
+
+  const handleSaveFavorite = async (formData) => {
+    try {
+      const response = await api.post('/api/passenger/favorites', formData);
+      if (response.data.success) {
+        await loadFavorites();
+      }
+    } catch (error) {
+      console.error('Erro ao salvar favorito:', error);
+      alert(error.response?.data?.error || 'Erro ao salvar local favorito');
+    }
+  };
+
+  const handleDeleteFavorite = async (id) => {
+    if (!confirm('Remover este local favorito?')) return;
+    
+    try {
+      await api.delete(`/api/passenger/favorites/${id}`);
+      await loadFavorites();
+    } catch (error) {
+      console.error('Erro ao deletar favorito:', error);
+      alert('Erro ao remover local favorito');
+    }
+  };
+
+  const handleUseFavorite = (favorite) => {
+    setPickup(favorite.address_text || favorite.label);
+    setPickupCoords({ lat: favorite.lat, lng: favorite.lng });
+  };
+
+  const handleAddFavorite = (type) => {
+    setModalInitialType(type);
+    setShowAddModal(true);
+  };
 
   const handleRequestRide = () => {
     if (!pickup || !destination) {
@@ -114,6 +175,32 @@ const PassengerHome = () => {
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 600 }}>
         Solicitar Corrida
       </Typography>
+
+      {/* Promo Banner de Locais Favoritos */}
+      {showPromoBanner && (
+        <FavoritePlacesPromoBanner
+          onAddHome={() => handleAddFavorite('HOME')}
+          onDismiss={() => setShowPromoBanner(false)}
+        />
+      )}
+
+      {/* Cards de Locais Favoritos */}
+      {favorites.length > 0 && (
+        <FavoritePlaces
+          favorites={favorites}
+          onAdd={handleAddFavorite}
+          onUse={handleUseFavorite}
+          onDelete={handleDeleteFavorite}
+        />
+      )}
+
+      {/* Modal de Adicionar Local */}
+      <AddFavoritePlaceModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSave={handleSaveFavorite}
+        initialType={modalInitialType}
+      />
 
       {/* Atalhos rápidos de serviço */}
       <Card sx={{ mb: 3 }}>
