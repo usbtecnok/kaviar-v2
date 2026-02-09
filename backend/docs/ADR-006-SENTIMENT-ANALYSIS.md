@@ -7,6 +7,30 @@
 
 ---
 
+## ⚠️ ADENDO (Ajustes Pré-Implementação)
+
+**Data**: 2026-02-09 01:30  
+**Motivo**: Simplificação e resiliência
+
+### Mudanças Aprovadas:
+
+1. **SQS Queue**: Trocar FIFO → STANDARD
+   - FIFO não é necessário para análise de sentimento
+   - Idempotência garantida no banco via UNIQUE(ride_feedback_id) + UPSERT
+   - At-least-once delivery é aceitável (mensagens duplicadas toleradas)
+
+2. **Payload Minimalista**: `{ rideFeedbackId }` apenas
+   - Lambda busca `comment` e `tags` do DB (não passa pela fila)
+   - Evita PII em logs do SQS/CloudWatch
+   - Reduz tamanho da mensagem
+
+3. **Delivery Resiliente**: Best-effort + Reconciler
+   - **Primary**: Enqueue após commit do feedback (non-blocking, não pode derrubar POST)
+   - **Fallback**: Reconciler scheduled (5min) que varre feedbacks sem análise e reenfileira
+   - Garante que nenhum feedback fica sem análise mesmo se SQS falhar
+
+---
+
 ## Contexto
 
 Com a Fase 5 concluída (POST /api/passenger/ride-feedback), passageiros podem enviar feedbacks. A tabela `ride_feedback_sentiment_analysis` já existe no schema, mas não há processamento ativo. Precisamos implementar análise de sentimento **assíncrona** para enriquecer os feedbacks sem impactar a experiência do usuário.
@@ -92,9 +116,10 @@ CREATE TABLE ride_feedback_sentiment_analysis (
 - `analysis_metadata`: JSON com payload completo do provider
 
 **Idempotência**: 
-- `ride_feedback_id` é UNIQUE
-- Lambda verifica existência antes de processar
-- Retry seguro (INSERT ... ON CONFLICT DO NOTHING)
+- `ride_feedback_id` é UNIQUE no banco
+- Lambda usa UPSERT (cria se não existe, atualiza se existe)
+- Mensagens duplicadas do SQS são toleradas (at-least-once delivery)
+- Reconciler pode reenfileirar sem risco de duplicação
 
 ---
 
@@ -128,12 +153,17 @@ export async function enqueueSentimentAnalysis(feedbackId: string) {
   if (!config.sentiment.enabled) return;
   
   const sqs = new SQSClient({ region: 'us-east-2' });
-  await sqs.send(new SendMessageCommand({
-    QueueUrl: config.sentiment.sqsQueueUrl,
-    MessageBody: JSON.stringify({ feedbackId }),
-    MessageDeduplicationId: feedbackId, // FIFO idempotência
-    MessageGroupId: 'sentiment-analysis'
-  }));
+  
+  // Best-effort: não pode derrubar o POST se SQS falhar
+  try {
+    await sqs.send(new SendMessageCommand({
+      QueueUrl: config.sentiment.sqsQueueUrl,
+      MessageBody: JSON.stringify({ rideFeedbackId: feedbackId }), // Apenas ID
+    }));
+  } catch (error) {
+    // Log error mas não propaga (fallback reconciler vai pegar)
+    console.error('Failed to enqueue sentiment (non-blocking):', error);
+  }
 }
 ```
 
@@ -142,12 +172,38 @@ export async function enqueueSentimentAnalysis(feedbackId: string) {
 // backend/src/controllers/passenger/rideFeedback.controller.ts
 const feedback = await prisma.ride_feedbacks.create({ ... });
 
-// Enfileirar análise (fire-and-forget)
-enqueueSentimentAnalysis(feedback.id).catch(err => 
-  console.error('Failed to enqueue sentiment:', err)
-);
+// Enfileirar análise (best-effort, non-blocking)
+enqueueSentimentAnalysis(feedback.id); // Fire-and-forget
 
 return res.status(201).json({ ... });
+```
+
+**Reconciler (Fallback)**:
+```typescript
+// backend/src/jobs/sentiment-reconciler.ts
+import { CronJob } from 'cron';
+
+// Roda a cada 5 minutos
+export const sentimentReconciler = new CronJob('*/5 * * * *', async () => {
+  if (!config.sentiment.enabled) return;
+  
+  // Buscar feedbacks sem análise (criados nas últimas 24h)
+  const pending = await prisma.ride_feedbacks.findMany({
+    where: {
+      created_at: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      ride_feedback_sentiment_analysis: null
+    },
+    select: { id: true },
+    take: 100 // Batch de 100 por vez
+  });
+  
+  // Reenfileirar
+  for (const feedback of pending) {
+    await enqueueSentimentAnalysis(feedback.id);
+  }
+  
+  console.log(`Reconciler: enqueued ${pending.length} pending feedbacks`);
+});
 ```
 
 ### 3. Lambda Processor
@@ -163,23 +219,26 @@ const prisma = new PrismaClient();
 
 export async function handler(event: SQSEvent) {
   for (const record of event.Records) {
-    const { feedbackId } = JSON.parse(record.body);
+    const { rideFeedbackId } = JSON.parse(record.body);
     
-    // 1. Buscar feedback
+    // 1. Buscar feedback (busca comment no DB, não na fila)
     const feedback = await prisma.ride_feedbacks.findUnique({
-      where: { id: feedbackId },
+      where: { id: rideFeedbackId },
       select: { id: true, comment: true }
     });
     
-    if (!feedback?.comment) continue;
+    if (!feedback?.comment) {
+      console.log(`Feedback ${rideFeedbackId} has no comment, skipping`);
+      continue;
+    }
     
-    // 2. Verificar se já foi processado
+    // 2. Verificar se já foi processado (idempotência)
     const existing = await prisma.ride_feedback_sentiment_analysis.findUnique({
-      where: { ride_feedback_id: feedbackId }
+      where: { ride_feedback_id: rideFeedbackId }
     });
     
     if (existing) {
-      console.log(`Feedback ${feedbackId} already analyzed`);
+      console.log(`Feedback ${rideFeedbackId} already analyzed, skipping`);
       continue;
     }
     
@@ -189,23 +248,31 @@ export async function handler(event: SQSEvent) {
       LanguageCode: 'pt'
     }));
     
-    // 4. Salvar resultado
+    // 4. Salvar resultado (UPSERT para idempotência)
     const dominantScore = result.SentimentScore[result.Sentiment];
     
-    await prisma.ride_feedback_sentiment_analysis.create({
-      data: {
-        id: `sentiment-${feedbackId}`,
-        ride_feedback_id: feedbackId,
+    await prisma.ride_feedback_sentiment_analysis.upsert({
+      where: { ride_feedback_id: rideFeedbackId },
+      create: {
+        id: `sentiment-${rideFeedbackId}`,
+        ride_feedback_id: rideFeedbackId,
         sentiment_label: result.Sentiment,
         sentiment_score: dominantScore,
         confidence_score: dominantScore,
         model_version: 'aws-comprehend-2023',
         analyzed_at: new Date(),
         analysis_metadata: JSON.stringify(result.SentimentScore)
+      },
+      update: {
+        sentiment_label: result.Sentiment,
+        sentiment_score: dominantScore,
+        confidence_score: dominantScore,
+        analyzed_at: new Date(),
+        analysis_metadata: JSON.stringify(result.SentimentScore)
       }
     });
     
-    console.log(`Sentiment analyzed: ${feedbackId} -> ${result.Sentiment}`);
+    console.log(`Sentiment analyzed: ${rideFeedbackId} -> ${result.Sentiment}`);
   }
 }
 ```
@@ -213,13 +280,12 @@ export async function handler(event: SQSEvent) {
 ### 4. Infraestrutura (Terraform/CDK)
 
 ```hcl
-# SQS Queue (FIFO para idempotência)
+# SQS Queue (STANDARD para at-least-once delivery)
 resource "aws_sqs_queue" "sentiment_queue" {
-  name                        = "kaviar-sentiment-analysis.fifo"
-  fifo_queue                  = true
-  content_based_deduplication = true
-  visibility_timeout_seconds  = 300
-  message_retention_seconds   = 86400
+  name                       = "kaviar-sentiment-analysis"
+  visibility_timeout_seconds = 300
+  message_retention_seconds  = 86400  # 24h
+  receive_wait_time_seconds  = 20     # Long polling
   
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.sentiment_dlq.arn
@@ -229,8 +295,8 @@ resource "aws_sqs_queue" "sentiment_queue" {
 
 # Dead Letter Queue
 resource "aws_sqs_queue" "sentiment_dlq" {
-  name       = "kaviar-sentiment-dlq.fifo"
-  fifo_queue = true
+  name = "kaviar-sentiment-dlq"
+  message_retention_seconds = 1209600  # 14 dias
 }
 
 # Lambda
@@ -253,6 +319,9 @@ resource "aws_lambda_event_source_mapping" "sentiment_trigger" {
   event_source_arn = aws_sqs_queue.sentiment_queue.arn
   function_name    = aws_lambda_function.sentiment_processor.arn
   batch_size       = 10
+  
+  # Partial batch failure (reprocessa apenas mensagens que falharam)
+  function_response_types = ["ReportBatchItemFailures"]
 }
 ```
 
@@ -264,8 +333,10 @@ resource "aws_lambda_event_source_mapping" "sentiment_trigger" {
 - ✅ Já implementada na Fase 5 (1000 chars max, trim)
 - ✅ Reutilizar sem modificações
 
-### 2. Logs
-- ❌ **NÃO logar comentários completos**
+### 2. Logs e PII
+- ❌ **NÃO logar comentários completos** (nem em SQS, nem em Lambda)
+- ✅ Mensagem SQS contém apenas `{ rideFeedbackId }`
+- ✅ Lambda busca comment do DB (não passa pela fila)
 - ✅ Logar apenas: `feedbackId`, `sentiment_label`, `confidence_score`
 - ✅ Usar correlation ID para rastreamento
 
@@ -278,6 +349,7 @@ resource "aws_lambda_event_source_mapping" "sentiment_trigger" {
 - SQS: 3 tentativas antes de DLQ
 - Lambda: Timeout 60s (suficiente para Comprehend)
 - DLQ: Alarme CloudWatch para falhas persistentes
+- Reconciler: Reenfileira feedbacks sem análise (fallback)
 
 ---
 
@@ -442,34 +514,39 @@ aws lambda update-event-source-mapping \
 
 ## Próximos Passos (Implementação)
 
-### PR 1: Infraestrutura
-- [ ] Criar SQS queue (FIFO) + DLQ
+### PR 1: Backend Integration (Flag + Enqueue + Reconciler)
+- [ ] Adicionar feature flag `SENTIMENT_ANALYSIS_ENABLED`
+- [ ] Criar `sentiment-queue.service.ts` (best-effort enqueue)
+- [ ] Integrar no `rideFeedback.controller.ts` (POST, non-blocking)
+- [ ] Criar `sentiment-reconciler.ts` (cron 5min, stub sem provider)
+- [ ] Testes unitários (mock SQS)
+
+### PR 2: Infraestrutura AWS
+- [ ] Criar SQS queue (STANDARD) + DLQ
 - [ ] Criar Lambda function (scaffold vazio)
 - [ ] Configurar IAM roles (Lambda → RDS, Comprehend, SQS)
 - [ ] Adicionar variáveis de ambiente no ECS
+- [ ] Testar conectividade Lambda → RDS
 
-### PR 2: Backend Integration
-- [ ] Adicionar feature flag `SENTIMENT_ANALYSIS_ENABLED`
-- [ ] Criar `sentiment-queue.service.ts`
-- [ ] Integrar no `rideFeedback.controller.ts` (POST)
-- [ ] Testes unitários (mock SQS)
-
-### PR 3: Lambda Processor
+### PR 3: Lambda Processor + Comprehend
 - [ ] Implementar handler completo
 - [ ] Integração com Comprehend
-- [ ] Persistência no banco
+- [ ] Persistência no banco (UPSERT)
 - [ ] Idempotência (check existing)
-- [ ] Logs estruturados
-
-### PR 4: Admin API
-- [ ] Ajustar `listRideFeedbacks` para incluir sentiment
-- [ ] Ajustar `getRideFeedback` para incluir sentiment
+- [ ] Logs estruturados (sem PII)
 - [ ] Testes de integração
 
-### PR 5: Observabilidade
+### PR 4: Observabilidade
 - [ ] CloudWatch metrics
 - [ ] Alarmes (DLQ, errors, lag)
 - [ ] Dashboard CloudWatch
+
+### PR 5: Rollout Controlado
+- [ ] Flag OFF em produção
+- [ ] Flag ON em staging (10% feedbacks)
+- [ ] Monitorar 24h (DLQ, latência, custos)
+- [ ] Flag ON 100% em produção
+- [ ] Evidências e documentação
 
 ### PR 6: Frontend (Opcional)
 - [ ] Exibir sentiment label + chip colorido
