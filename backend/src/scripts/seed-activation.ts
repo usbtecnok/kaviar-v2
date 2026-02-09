@@ -16,7 +16,10 @@ async function main() {
 
   if (!admin) {
     const bcrypt = await import('bcrypt');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    throw new Error('ADMIN_DEFAULT_PASSWORD missing');
+  }
+
+    const hashedPassword = await bcrypt.hash(process.env.ADMIN_DEFAULT_PASSWORD as string, 10);
     
     admin = await prisma.admins.create({
       data: {

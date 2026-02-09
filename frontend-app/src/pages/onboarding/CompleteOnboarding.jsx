@@ -72,7 +72,7 @@ export default function CompleteOnboarding() {
 
   const loadNeighborhoods = async () => {
     try {
-      const response = await api.get('/api/governance/neighborhoods');
+      const response = await api.get('/api/public/neighborhoods');
       if (response.data.success) {
         setNeighborhoods(response.data.data);
       }
@@ -83,7 +83,7 @@ export default function CompleteOnboarding() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/api/governance/communities');
+      const response = await api.get('/api/public/communities');
       if (response.data.success) {
         setCommunities(response.data.data);
       }

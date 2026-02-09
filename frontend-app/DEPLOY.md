@@ -11,7 +11,7 @@
 ### 1. Variáveis de Ambiente (Produção)
 ```bash
 VITE_API_BASE_URL=https://your-backend-url.onrender.com
-VITE_GOOGLE_MAPS_API_KEY=REDACTED
+VITE_GOOGLE_MAPS_API_KEY="<SET_IN_ENV>"
 ```
 
 ### 2. Build Local

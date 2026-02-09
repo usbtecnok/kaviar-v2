@@ -1,64 +1,104 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticatePassenger } from '../middlewares/auth';
-import { isFeatureEnabled } from '../services/feature-flag.service';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// POST /api/passenger/favorites
+const VALID_TYPES = ['HOME', 'WORK', 'OTHER'] as const;
+type FavoriteType = typeof VALID_TYPES[number];
+
+// POST /api/passenger/favorites (UPSERT by passenger_id + type)
 router.post('/favorites', authenticatePassenger, async (req: Request, res: Response) => {
   try {
     const passenger = (req as any).passenger;
-    const { lat, lng, label, type } = req.body;
+    const { type, label, lat, lng, address_text, place_source } = req.body;
 
-    // Check feature flag
-    const isEnabled = await isFeatureEnabled('passenger_favorites_matching', passenger.id);
-    
-    if (!isEnabled) {
-      return res.status(403).json({
-        success: false,
-        error: 'Feature not available',
-      });
-    }
-
-    // Validate input
-    if (!lat || !lng || !label) {
+    // Validate type
+    if (!type || !VALID_TYPES.includes(type)) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: lat, lng, label',
+        error: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}`,
       });
     }
 
-    // Create favorite
-    const favorite = await prisma.passenger_favorite_locations.create({
-      data: {
+    // Validate required fields
+    if (!label || lat === undefined || lng === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: type, label, lat, lng',
+      });
+    }
+
+    // Check if already exists for this type
+    const existing = await prisma.passenger_favorite_locations.findFirst({
+      where: {
         passenger_id: passenger.id,
+        type,
+      },
+    });
+
+    // If doesn't exist, check limit of 3
+    if (!existing) {
+      const count = await prisma.passenger_favorite_locations.count({
+        where: { passenger_id: passenger.id },
+      });
+
+      if (count >= 3) {
+        return res.status(400).json({
+          success: false,
+          error: 'Limite de 3 locais atingido. Delete um para adicionar outro.',
+        });
+      }
+    }
+
+    // UPSERT: update if exists, create if not
+    const favorite = await prisma.passenger_favorite_locations.upsert({
+      where: {
+        passenger_id_type: {
+          passenger_id: passenger.id,
+          type,
+        },
+      },
+      update: {
+        label,
         lat,
         lng,
+        address_text: address_text || null,
+        place_source: place_source || 'manual',
+        updated_at: new Date(),
+      },
+      create: {
+        passenger_id: passenger.id,
+        type,
         label,
-        type: type || 'OTHER',
+        lat,
+        lng,
+        address_text: address_text || null,
+        place_source: place_source || 'manual',
       },
     });
 
-    console.log(`[passenger_favorites_matching] Favorite created: passenger=${passenger.id}, label=${label}`);
+    console.log(`[favorites] ${existing ? 'Updated' : 'Created'} type=${type} passenger=***`);
 
-    res.status(201).json({
+    res.status(existing ? 200 : 201).json({
       success: true,
-      favorite: {
+      data: {
         id: favorite.id,
-        lat: favorite.lat,
-        lng: favorite.lng,
-        label: favorite.label,
         type: favorite.type,
-        created_at: favorite.created_at,
+        label: favorite.label,
+        lat: Number(favorite.lat),
+        lng: Number(favorite.lng),
+        address_text: favorite.address_text,
+        place_source: favorite.place_source,
+        updated_at: favorite.updated_at,
       },
     });
-  } catch (error) {
-    console.error('[passenger_favorites_matching] Error creating favorite:', error);
+  } catch (error: any) {
+    console.error('[favorites] Error:', error.message);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
+      error: 'Erro ao salvar local favorito',
     });
   }
 });
@@ -68,43 +108,35 @@ router.get('/favorites', authenticatePassenger, async (req: Request, res: Respon
   try {
     const passenger = (req as any).passenger;
 
-    // Check feature flag
-    const isEnabled = await isFeatureEnabled('passenger_favorites_matching', passenger.id);
-    
-    if (!isEnabled) {
-      return res.status(403).json({
-        success: false,
-        error: 'Feature not available',
-      });
-    }
-
     const favorites = await prisma.passenger_favorite_locations.findMany({
-      where: {
-        passenger_id: passenger.id,
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
+      where: { passenger_id: passenger.id },
+      orderBy: [
+        { type: 'asc' }, // HOME, WORK, OTHER
+        { created_at: 'desc' },
+      ],
     });
 
-    console.log(`[passenger_favorites_matching] Favorites listed: passenger=${passenger.id}, count=${favorites.length}`);
+    console.log(`[favorites] Listed count=${favorites.length} passenger=***`);
 
     res.json({
       success: true,
-      favorites: favorites.map(f => ({
+      data: favorites.map(f => ({
         id: f.id,
-        lat: f.lat,
-        lng: f.lng,
-        label: f.label,
         type: f.type,
+        label: f.label,
+        lat: Number(f.lat),
+        lng: Number(f.lng),
+        address_text: f.address_text,
+        place_source: f.place_source,
         created_at: f.created_at,
+        updated_at: f.updated_at,
       })),
     });
-  } catch (error) {
-    console.error('[passenger_favorites_matching] Error listing favorites:', error);
+  } catch (error: any) {
+    console.error('[favorites] Error listing:', error.message);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
+      error: 'Erro ao listar locais favoritos',
     });
   }
 });
@@ -114,16 +146,6 @@ router.delete('/favorites/:id', authenticatePassenger, async (req: Request, res:
   try {
     const passenger = (req as any).passenger;
     const { id } = req.params;
-
-    // Check feature flag
-    const isEnabled = await isFeatureEnabled('passenger_favorites_matching', passenger.id);
-    
-    if (!isEnabled) {
-      return res.status(403).json({
-        success: false,
-        error: 'Feature not available',
-      });
-    }
 
     // Verify ownership
     const favorite = await prisma.passenger_favorite_locations.findFirst({
@@ -136,7 +158,7 @@ router.delete('/favorites/:id', authenticatePassenger, async (req: Request, res:
     if (!favorite) {
       return res.status(404).json({
         success: false,
-        error: 'Favorite not found',
+        error: 'Local favorito não encontrado',
       });
     }
 
@@ -144,17 +166,17 @@ router.delete('/favorites/:id', authenticatePassenger, async (req: Request, res:
       where: { id },
     });
 
-    console.log(`[passenger_favorites_matching] Favorite deleted: passenger=${passenger.id}, id=${id}`);
+    console.log(`[favorites] Deleted type=${favorite.type} passenger=***`);
 
     res.json({
       success: true,
-      message: 'Favorite deleted',
+      message: 'Local favorito removido',
     });
-  } catch (error) {
-    console.error('[passenger_favorites_matching] Error deleting favorite:', error);
+  } catch (error: any) {
+    console.error('[favorites] Error deleting:', error.message);
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
+      error: 'Erro ao remover local favorito',
     });
   }
 });

@@ -15,7 +15,7 @@ class KaviarActivation {
       output: process.stdout
     });
     
-    this.JWT_SECRET=REDACTED
+    this.JWT_SECRET = process.env.JWT_SECRET;
     if (!this.JWT_SECRET) {
       throw new Error('JWT_SECRET não configurado no ambiente');
     }

@@ -23,7 +23,7 @@ npm install
 if [ ! -f ".env" ]; then
     echo "⚠️  Arquivo .env não encontrado. Criando exemplo..."
     cp .env.example .env 2>/dev/null || echo "VITE_API_BASE_URL=http://localhost:8080
-VITE_GOOGLE_MAPS_API_KEY=REDACTED
+VITE_GOOGLE_MAPS_API_KEY="<SET_IN_ENV>"
 fi
 
 echo "✅ Instalação concluída!"

@@ -1,4 +1,5 @@
 #!/bin/bash
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?set ADMIN_PASSWORD env}"
 
 # Script de teste para Sistema de Corridas
 # Execute após configurar o banco e ter dados de teste
@@ -17,7 +18,7 @@ login_admin() {
         -H "Content-Type: application/json" \
         -d '{
             "email": "admin@kaviar.com",
-            "password": "admin123"
+            "password": ""
         }')
     
     ADMIN_TOKEN=$(echo $RESPONSE | jq -r '.data.token')

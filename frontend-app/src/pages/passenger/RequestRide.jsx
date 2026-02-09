@@ -42,7 +42,7 @@ const RequestRide = () => {
 
   const fetchCommunities = async () => {
     try {
-      const response = await api.get('/api/governance/communities');
+      const response = await api.get('/api/public/communities');
       setCommunities(response.data.data || []);
     } catch (error) {
       console.error('Erro ao carregar bairros:', error);

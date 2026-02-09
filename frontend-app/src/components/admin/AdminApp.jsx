@@ -1,11 +1,12 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
-import { API_BASE_URL } from '../../config/api';
+import { apiClient } from '../../lib/apiClient';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress } from "@mui/material";
 import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
+import { HealthProbeBanner } from "../HealthProbe";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
 import BetaMonitor from "../../pages/admin/BetaMonitor";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
@@ -30,6 +31,7 @@ import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ChangePassword from "../../pages/admin/ChangePassword";
 import ForgotPassword from "../../pages/admin/ForgotPassword";
 import InvestorInvites from "../../pages/admin/InvestorInvites";
+import RideFeedbacks from "../../pages/admin/RideFeedbacks";
 import { useState, useEffect } from 'react';
 
 
@@ -129,48 +131,26 @@ function AdminHome() {
     try {
       setLoading(true);
       setError('');
-      
-      const token = localStorage.getItem('kaviar_admin_token');
-      if (!token) {
-        throw new Error('Token não encontrado');
-      }
 
-      // Buscar dados do dashboard
-      const [driversResponse, guidesResponse, neighborhoodsResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/admin/drivers`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/admin/guides`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`${API_BASE_URL}/api/governance/neighborhoods`)
+      // Buscar dados do dashboard usando apiClient
+      const [driversResult, guidesResult, neighborhoodsResult] = await Promise.all([
+        apiClient.get('/api/admin/drivers').catch(e => ({ data: { success: false, data: [] }, error: e })),
+        apiClient.get('/api/admin/guides').catch(e => ({ data: { success: false, data: [] }, error: e })),
+        apiClient.get('/api/governance/neighborhoods').catch(e => ({ data: { success: false, data: [] }, error: e }))
       ]);
 
-      // Só remover token se 401 com erro de token inválido
-      if (driversResponse.status === 401 || guidesResponse.status === 401) {
-        try {
-          const errorData = await driversResponse.json();
-          if (errorData.error && errorData.error.includes('Token inválido')) {
-            localStorage.removeItem('kaviar_admin_token');
-            localStorage.removeItem('kaviar_admin_data');
-            window.location.href = '/admin/login';
-            return;
-          }
-        } catch (e) {
-          // Erro de parsing
-        }
-        
-        throw new Error(`Erro de conexão: ${driversResponse.status}`);
+      // Se algum retornou erro 401, redirecionar para login
+      if (driversResult.error?.status === 401 || guidesResult.error?.status === 401) {
+        localStorage.removeItem('kaviar_admin_token');
+        localStorage.removeItem('kaviar_admin_data');
+        window.location.href = '/admin/login';
+        return;
       }
 
-      const driversData = await driversResponse.json();
-      const guidesData = await guidesResponse.json();
-      const neighborhoodsData = await neighborhoodsResponse.json();
-
       // Calcular estatísticas
-      const drivers = driversData.success ? driversData.data : [];
-      const guides = guidesData.success ? guidesData.data : [];
-      const neighborhoods = neighborhoodsData.success ? neighborhoodsData.data : [];
+      const drivers = driversResult.data?.success ? driversResult.data.data : [];
+      const guides = guidesResult.data?.success ? guidesResult.data.data : [];
+      const neighborhoods = neighborhoodsResult.data?.success ? neighborhoodsResult.data.data : [];
 
       const stats = {
         totalDrivers: drivers.length,
@@ -538,6 +518,23 @@ function AdminHome() {
           <Grid item xs={12} sm={6} md={4}>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Analytics sx={{ fontSize: 40, color: 'info.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Feedbacks
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Avaliações de corridas
+                </Typography>
+                <Button variant="contained" color="info" href="/admin/feedbacks">
+                  Acessar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Tour sx={{ fontSize: 40, color: 'secondary.main', mb: 2 }} />
                 <Typography variant="h6" gutterBottom>
                   Premium Tourism
@@ -645,6 +642,7 @@ function AdminElderlyWrapper() {
 export default function AdminApp() {
   return (
     <AdminErrorBoundary>
+      <HealthProbeBanner />
       <Box sx={{ bgcolor: '#000', minHeight: '100vh', color: '#FFD700' }}>
         <Routes>
           <Route path="/login" element={<AdminLogin />} />
@@ -698,6 +696,16 @@ export default function AdminApp() {
                 <GeofenceManagement />
               </Container>
             </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/feedbacks" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <RideFeedbacks />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
           } />
           
           <Route path="/drivers" element={

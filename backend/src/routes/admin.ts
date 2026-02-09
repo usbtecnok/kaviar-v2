@@ -11,6 +11,7 @@ import * as passengerFavoritesController from '../controllers/admin/passengerFav
 import * as driverSecondaryBaseController from '../controllers/admin/driverSecondaryBase.controller';
 import * as featureFlagsController from '../controllers/admin/featureFlags.controller';
 import * as betaMonitorController from '../controllers/admin/betaMonitor.controller';
+import * as rideFeedbackController from '../controllers/admin/rideFeedback.controller';
 
 const router = Router();
 const rideController = new RideAdminController();
@@ -139,5 +140,12 @@ router.post('/beta-monitor/:featureKey/run', requireOperatorOrSuperAdmin, betaMo
 
 // GET /api/admin/runbooks/:key
 router.get('/runbooks/:key', allowReadAccess, betaMonitor.getRunbook.bind(betaMonitor));
+
+// Ride Feedbacks (Read-Only)
+// GET /api/admin/ride-feedbacks
+router.get('/ride-feedbacks', allowReadAccess, rideFeedbackController.listRideFeedbacks);
+
+// GET /api/admin/ride-feedbacks/:rideId
+router.get('/ride-feedbacks/:rideId', allowReadAccess, rideFeedbackController.getRideFeedback);
 
 export { router as adminRoutes };

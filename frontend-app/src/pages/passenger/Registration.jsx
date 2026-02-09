@@ -43,7 +43,7 @@ export default function PassengerRegistration() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/api/governance/communities');
+      const response = await api.get('/api/public/communities');
       if (response.data.success) {
         setCommunities(response.data.data);
       }

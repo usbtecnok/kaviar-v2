@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { isDemoMode } from '../../demo/demoMode';
 import demoData from '../../demo/demoData';
+import { apiClient } from '../../lib/apiClient';
 
 interface HealthCheck {
   status: string;
@@ -34,8 +35,7 @@ const SystemStatus: React.FC = () => {
       } else {
         // Chamar API real
         try {
-          const response = await fetch('/api/health');
-          const data = await response.json();
+          const { data } = await apiClient.get('/api/health');
           setHealth(data);
         } catch (error) {
           console.error('Error fetching health:', error);

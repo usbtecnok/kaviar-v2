@@ -33,6 +33,7 @@ import { driverAuthRoutes } from './routes/driver-auth';
 import { guideAuthRoutes } from './routes/guide-auth';
 import { adminApprovalRoutes } from './routes/admin-approval';
 import { ratingsRoutes } from './routes/ratings';
+import { publicRoutes } from './routes/public';
 import driversRoutes from './routes/drivers';
 import adminDriversRoutes from './routes/admin-drivers';
 import communityLeadersRoutes from './routes/community-leaders';
@@ -48,6 +49,7 @@ import driverEarningsRoutes from './routes/driver-earnings';
 import adminAuditRoutes from './routes/admin-audit';
 import passengerRidesRoutes from './routes/passenger-rides';
 import driverAvailabilityRoutes from './routes/driver-availability';
+import { passengerFeedbackRoutes } from './routes/passenger-feedback';
 import adminDashboardMetricsRoutes from './routes/admin-dashboard-metrics';
 import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
 import driverTerritoryRoutes from './routes/driver-territory';
@@ -83,7 +85,7 @@ app.use((req, res, next) => {
 
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Cache-Control,Pragma,X-Requested-With');
   res.header('Access-Control-Max-Age', '600');
 
   if (req.method === 'OPTIONS') {
@@ -97,6 +99,31 @@ app.use((req, res, next) => {
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Blindagem temporária: responder OPTIONS para paths antigos (cache)
+app.options('/health', (req, res) => {
+  console.log('⚠️ OPTIONS /health (legacy path) - responding with CORS');
+  res.status(204).send('');
+});
+
+app.options('/neighborhoods', (req, res) => {
+  console.log('⚠️ OPTIONS /neighborhoods (legacy path) - responding with CORS');
+  res.status(204).send('');
+});
+
+// Redirecionar GET para paths corretos
+app.get('/health', (req, res) => {
+  console.log('⚠️ GET /health (legacy) → redirect to /api/health');
+  res.redirect(301, '/api/health');
+});
+
+app.get('/neighborhoods', (req, res) => {
+  console.log('⚠️ GET /neighborhoods (legacy) → 410 Gone');
+  res.status(410).json({ 
+    success: false, 
+    error: 'Endpoint movido para /api/governance/neighborhoods' 
+  });
+});
 
 // Core health check (always available)
 app.get('/', (req, res) => {
@@ -169,6 +196,7 @@ app.use('/api/neighborhoods', neighborhoodsSmartRoutes); // ✅ Smart neighborho
 app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
 app.use('/api/passengers', passengerProfileRoutes); // ✅ Profile management
 app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (beta)
+app.use('/api/passenger', passengerFeedbackRoutes); // ✅ Ride feedback (write)
 app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
 app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
 app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
@@ -224,6 +252,7 @@ if (config.legacy.enableLegacy) {
 // app.use('/api/governance', governanceRoutes); // DISABLED - legacy
 
 // Geo routes
+app.use('/api/public', publicRoutes);
 app.use('/api/geo', geoRoutes);
 // app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);

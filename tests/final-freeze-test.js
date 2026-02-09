@@ -5,7 +5,7 @@ const { supabase } = require('../lib/supabase');
 
 // Configurações do teste
 const API_BASE = process.env.API_BASE || 'http://localhost:3000';
-const JWT_SECRET=REDACTED
+const JWT_SECRET = process.env.JWT_SECRET || "test-only-secret";
 
 /**
  * TESTE FINAL DE CONGELAMENTO - VALIDAÇÃO PONTA A PONTA
