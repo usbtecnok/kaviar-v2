@@ -33,6 +33,7 @@ import { driverAuthRoutes } from './routes/driver-auth';
 import { guideAuthRoutes } from './routes/guide-auth';
 import { adminApprovalRoutes } from './routes/admin-approval';
 import { ratingsRoutes } from './routes/ratings';
+import { publicRoutes } from './routes/public';
 import driversRoutes from './routes/drivers';
 import adminDriversRoutes from './routes/admin-drivers';
 import communityLeadersRoutes from './routes/community-leaders';
@@ -251,6 +252,7 @@ if (config.legacy.enableLegacy) {
 // app.use('/api/governance', governanceRoutes); // DISABLED - legacy
 
 // Geo routes
+app.use('/api/public', publicRoutes);
 app.use('/api/geo', geoRoutes);
 // app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);

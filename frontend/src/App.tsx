@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DriverDetailsPage } from './pages/DriverDetailsPage';
-import { PassengerDetailsPage } from './pages/PassengerDetailsPage';
+import { RideFeedbacksPage } from './pages/RideFeedbacksPage';
 import { LoginPage } from './pages/LoginPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
@@ -30,18 +30,18 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/admin/reset-password" element={<ResetPasswordPage />} />
             <Route
-              path="/admin/drivers/:driverId"
+              path="/admin/feedbacks"
               element={
                 <PrivateRoute>
-                  <DriverDetailsPage />
+                  <RideFeedbacksPage />
                 </PrivateRoute>
               }
             />
             <Route
-              path="/admin/passengers/:passengerId"
+              path="/admin/drivers/:driverId"
               element={
                 <PrivateRoute>
-                  <PassengerDetailsPage />
+                  <DriverDetailsPage />
                 </PrivateRoute>
               }
             />
