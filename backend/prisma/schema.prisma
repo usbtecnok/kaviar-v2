@@ -342,6 +342,7 @@ model passengers {
   neighborhoods               neighborhoods?                @relation(fields: [neighborhood_id], references: [id])
   passenger_favorite_locations passenger_favorite_locations[]
   ride_confirmations          ride_confirmations[]
+  ride_feedbacks              ride_feedbacks[]
   rides                       rides[]
   tour_bookings               tour_bookings[]
   user_consents               user_consents[]
@@ -501,6 +502,7 @@ model rides {
   ride_admin_actions          ride_admin_actions[]
   ride_status_history         ride_status_history[]
   match_logs                  match_logs[]
+  ride_feedbacks              ride_feedbacks?
   drivers                     drivers?              @relation(fields: [driver_id], references: [id])
   passengers                  passengers            @relation(fields: [passenger_id], references: [id])
   pickup_neighborhood         neighborhoods?        @relation("pickup_neighborhood", fields: [pickup_neighborhood_id], references: [id])
@@ -732,4 +734,40 @@ model driver_territory_stats {
   @@unique([driver_id, period_start, period_end])
   @@index([driver_id, period_start(sort: Desc)])
   @@index([period_start, period_end])
+}
+
+model ride_feedbacks {
+  id                                String                              @id @default(uuid())
+  ride_id                           String                              @unique
+  passenger_id                      String
+  rating                            Int
+  comment                           String?
+  tags                              String?
+  is_anonymous                      Boolean                             @default(false)
+  created_at                        DateTime                            @default(now())
+  updated_at                        DateTime                            @updatedAt
+  rides                             rides                               @relation(fields: [ride_id], references: [id], onDelete: Cascade)
+  passengers                        passengers                          @relation(fields: [passenger_id], references: [id], onDelete: Cascade)
+  ride_feedback_sentiment_analysis  ride_feedback_sentiment_analysis?
+
+  @@index([passenger_id])
+  @@index([rating])
+  @@index([created_at])
+}
+
+model ride_feedback_sentiment_analysis {
+  id                String          @id @default(uuid())
+  ride_feedback_id  String          @unique
+  sentiment_score   Decimal?        @db.Decimal(5, 4)
+  sentiment_label   String?
+  confidence_score  Decimal?        @db.Decimal(5, 4)
+  model_version     String?
+  analyzed_at       DateTime?
+  analysis_metadata String?
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
+  ride_feedbacks    ride_feedbacks  @relation(fields: [ride_feedback_id], references: [id], onDelete: Cascade)
+
+  @@index([sentiment_label])
+  @@index([analyzed_at])
 }
