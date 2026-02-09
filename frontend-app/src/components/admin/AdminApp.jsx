@@ -31,6 +31,7 @@ import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ChangePassword from "../../pages/admin/ChangePassword";
 import ForgotPassword from "../../pages/admin/ForgotPassword";
 import InvestorInvites from "../../pages/admin/InvestorInvites";
+import RideFeedbacks from "../../pages/admin/RideFeedbacks";
 import { useState, useEffect } from 'react';
 
 
@@ -517,6 +518,23 @@ function AdminHome() {
           <Grid item xs={12} sm={6} md={4}>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Analytics sx={{ fontSize: 40, color: 'info.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Feedbacks
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Avaliações de corridas
+                </Typography>
+                <Button variant="contained" color="info" href="/admin/feedbacks">
+                  Acessar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
                 <Tour sx={{ fontSize: 40, color: 'secondary.main', mb: 2 }} />
                 <Typography variant="h6" gutterBottom>
                   Premium Tourism
@@ -678,6 +696,16 @@ export default function AdminApp() {
                 <GeofenceManagement />
               </Container>
             </ProtectedAdminRoute>
+          } />
+          
+          <Route path="/feedbacks" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <RideFeedbacks />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
           } />
           
           <Route path="/drivers" element={
