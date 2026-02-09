@@ -48,6 +48,7 @@ import driverEarningsRoutes from './routes/driver-earnings';
 import adminAuditRoutes from './routes/admin-audit';
 import passengerRidesRoutes from './routes/passenger-rides';
 import driverAvailabilityRoutes from './routes/driver-availability';
+import { passengerFeedbackRoutes } from './routes/passenger-feedback';
 import adminDashboardMetricsRoutes from './routes/admin-dashboard-metrics';
 import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
 import driverTerritoryRoutes from './routes/driver-territory';
@@ -194,6 +195,7 @@ app.use('/api/neighborhoods', neighborhoodsSmartRoutes); // ✅ Smart neighborho
 app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
 app.use('/api/passengers', passengerProfileRoutes); // ✅ Profile management
 app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (beta)
+app.use('/api/passenger', passengerFeedbackRoutes); // ✅ Ride feedback (write)
 app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
 app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
 app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
