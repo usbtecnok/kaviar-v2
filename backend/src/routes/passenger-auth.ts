@@ -15,13 +15,14 @@ const passengerRegisterSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  phone: z.string().min(10, 'Telefone inválido')
+  phone: z.string().min(10, 'Telefone inválido'),
+  lgpdAccepted: z.boolean().optional().default(true)
 });
 
 // POST /api/auth/passenger/register
 router.post('/passenger/register', async (req, res) => {
   try {
-    const { name, email, password, phone } = passengerRegisterSchema.parse(req.body);
+    const { name, email, password, phone, lgpdAccepted } = passengerRegisterSchema.parse(req.body);
     
     // Check if email already exists
     const existingPassenger = await prisma.passengers.findUnique({
@@ -50,6 +51,30 @@ router.post('/passenger/register', async (req, res) => {
         updated_at: new Date()
       }
     });
+
+    // Create LGPD consent if accepted
+    if (lgpdAccepted) {
+      await prisma.user_consents.upsert({
+        where: {
+          passenger_id_consent_type: {
+            passenger_id: passenger.id,
+            consent_type: 'LGPD'
+          }
+        },
+        create: {
+          id: `consent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          passenger_id: passenger.id,
+          consent_type: 'LGPD',
+          accepted: true,
+          accepted_at: new Date(),
+          created_at: new Date()
+        },
+        update: {
+          accepted: true,
+          accepted_at: new Date()
+        }
+      });
+    }
 
     // Generate JWT token
     const token = jwt.sign(
