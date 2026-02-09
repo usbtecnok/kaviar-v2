@@ -355,10 +355,13 @@ model passenger_favorite_locations {
   type         String     // HOME, WORK, OTHER
   lat          Decimal    @db.Decimal(10, 8)
   lng          Decimal    @db.Decimal(11, 8)
+  address_text String?
+  place_source String     @default("manual") // manual, map
   created_at   DateTime   @default(now())
   updated_at   DateTime   @updatedAt
   passengers   passengers @relation(fields: [passenger_id], references: [id], onDelete: Cascade)
 
+  @@unique([passenger_id, type])
   @@index([passenger_id])
 }
 
