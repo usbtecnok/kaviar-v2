@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../lib/prisma';
+import { enqueueSentimentAnalysis } from '../../services/sentiment-queue.service';
 
 interface CreateFeedbackBody {
   rideId: string;
@@ -111,6 +112,9 @@ export async function createRideFeedback(req: Request, res: Response) {
         created_at: true,
       },
     });
+
+    // Enfileirar análise de sentimento (best-effort, non-blocking)
+    enqueueSentimentAnalysis(feedback.id); // Fire-and-forget
 
     return res.status(201).json({
       success: true,

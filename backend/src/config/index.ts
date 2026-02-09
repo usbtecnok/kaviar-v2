@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -68,6 +68,13 @@ export const config = {
 
   legacy: {
     enableLegacy: process.env.ENABLE_LEGACY === 'true', // Default false
+  },
+
+  sentiment: {
+    enabled: process.env.SENTIMENT_ANALYSIS_ENABLED === 'true', // Default false
+    sqsQueueUrl: process.env.SENTIMENT_QUEUE_URL || '',
+    reconcilerIntervalMinutes: parseInt(process.env.SENTIMENT_RECONCILER_INTERVAL || '5'),
+    reconcilerBatchSize: parseInt(process.env.SENTIMENT_RECONCILER_BATCH_SIZE || '100'),
   },
 
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',

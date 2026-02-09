@@ -1,6 +1,7 @@
 import app from './app';
 import { config } from './config';
 import { prisma } from './lib/prisma';
+import { startSentimentReconciler } from './jobs/sentiment-reconciler';
 
 async function startServer() {
   try {
@@ -27,6 +28,9 @@ async function startServer() {
       console.error('⚠️  Database connection failed (server still running):', dbError);
       // Não faz exit - deixa server rodar para health check responder
     }
+
+    // Start sentiment reconciler (se flag ON)
+    startSentimentReconciler();
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
