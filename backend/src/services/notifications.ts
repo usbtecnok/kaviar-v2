@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { resolveTerritory } from './territory-resolver.service';
 
 const prisma = new PrismaClient();
 
@@ -33,16 +34,13 @@ export async function checkOutsideFenceNotification(
 
   if (!driver?.neighborhood_id) return null;
 
-  // Verificar se está dentro do bairro
-  const inNeighborhood = await prisma.$queryRaw<Array<{ inside: boolean }>>`
-    SELECT EXISTS(
-      SELECT 1 FROM neighborhood_geofences ng
-      WHERE ng.neighborhood_id = ${driver.neighborhood_id}
-        AND ST_Covers(ng.geom, ST_SetSRID(ST_MakePoint(${currentLng}, ${currentLat}), 4326))
-    ) as inside
-  `;
-
-  if (inNeighborhood[0]?.inside) return null;
+  // Usar resolver centralizado para verificar território
+  const territory = await resolveTerritory(currentLng, currentLat);
+  
+  // Se está no bairro base, não notificar
+  if (territory.neighborhood?.id === driver.neighborhood_id) {
+    return null;
+  }
 
   // Buscar nome do bairro
   const neighborhood: any = await prisma.neighborhoods.findUnique({

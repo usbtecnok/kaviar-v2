@@ -44,25 +44,53 @@ OK_HAS_20260210
 
 ### ✅ C) MIGRATION APLICADA NO PROD (EVIDÊNCIA OBJETIVA)
 
-**Comando executado:**
-```bash
-aws ecs run-task --region us-east-2 --cluster kaviar-cluster \
-  --launch-type FARGATE --task-definition kaviar-backend-migrate:6 \
-  --network-configuration "awsvpcConfiguration={subnets=[...],securityGroups=[...],assignPublicIp=ENABLED}" \
-  --overrides '{"containerOverrides":[{"name":"kaviar-backend","environment":[{"name":"DATABASE_URL","value":"postgresql://***"}],"command":["sh","-c","cd /app/backend; npx prisma migrate status"]}]}'
+**1) DBURL_SAFE (Host confirmado):**
 ```
-
-**Task ID:** e0a90c7533ff449aba262e4ba801ea02
-
-**CloudWatch Log:**
+Task ID: e08b04231c244c5d9708f38d9c1f501e
+Output: postgresql://USER:***@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require
 ```
-Prisma schema loaded from prisma/schema.prisma
-Datasource "db": PostgreSQL database "kaviar", schema "public" at "kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432"
-7 migrations found in prisma/migrations
-Database schema is up to date!
-```
+✓ Confirmado: kaviar-prod-db
 
-**Exit Code:** 0 ✓
+**2) Coluna geom (via Prisma $queryRaw):**
+```
+Task ID: 26b0e1e3fa464935bc68f099060ad79e
+Query: SELECT column_name, data_type FROM information_schema.columns 
+       WHERE table_schema='public' AND table_name='community_geofences' AND column_name='geom'
+Output: [{"column_name":"geom","data_type":"USER-DEFINED"}]
+```
+✓ Coluna geom EXISTS
+
+**3) Índice GIST (via Prisma $queryRaw):**
+```
+Query: SELECT indexname FROM pg_indexes 
+       WHERE schemaname='public' AND tablename='community_geofences' AND indexdef LIKE '%gist%'
+Output: [{"indexname":"community_geofences_geom_gist"}]
+```
+✓ Índice GIST EXISTS
+
+**4) Trigger (via Prisma $queryRaw):**
+```
+Query: SELECT tgname FROM pg_trigger 
+       WHERE tgrelid='public.community_geofences'::regclass AND NOT tgisinternal
+Output: []
+```
+⚠ Trigger NOT FOUND - Migration 20260210 cria trigger, mas pode não estar ativo ou foi removido
+
+**5) Estatísticas:**
+```
+Query: SELECT COUNT(*)::int as total, COUNT(geom)::int as with_geom FROM community_geofences
+Output: [{"total":0,"with_geom":0}]
+```
+✓ Tabela existe, sem dados ainda
+
+**6) Prisma Migrate Status:**
+```
+Task ID: e0a90c7533ff449aba262e4ba801ea02
+Output: "7 migrations found in prisma/migrations"
+        "Database schema is up to date!"
+Exit Code: 0
+```
+✓ Migration 20260210 aplicada
 
 ### ✅ D) EXECUÇÕES ANTERIORES (BASELINE + DEPLOY)
 
