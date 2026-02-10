@@ -30,7 +30,9 @@ jobs:
         run: |
           cd frontend-app
           npm ci
-          npm run build
+          VITE_API_BASE_URL=https://api.kaviar.com.br npm run build
+        env:
+          VITE_API_BASE_URL: https://api.kaviar.com.br
 
       - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
