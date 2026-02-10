@@ -47,23 +47,26 @@ model communities {
 }
 
 model community_geofences {
-  id           String      @id
-  community_id String      @unique
-  center_lat   Decimal     @db.Decimal(10, 8)
-  center_lng   Decimal     @db.Decimal(11, 8)
-  min_lat      Decimal?    @db.Decimal(10, 8)
-  min_lng      Decimal?    @db.Decimal(11, 8)
-  max_lat      Decimal?    @db.Decimal(10, 8)
-  max_lng      Decimal?    @db.Decimal(11, 8)
+  id           String                   @id
+  community_id String                   @unique
+  center_lat   Decimal                  @db.Decimal(10, 8)
+  center_lng   Decimal                  @db.Decimal(11, 8)
+  min_lat      Decimal?                 @db.Decimal(10, 8)
+  min_lng      Decimal?                 @db.Decimal(11, 8)
+  max_lat      Decimal?                 @db.Decimal(10, 8)
+  max_lng      Decimal?                 @db.Decimal(11, 8)
   geojson      String?
   source       String
   source_ref   String?
   confidence   String
-  is_verified  Boolean     @default(false)
+  is_verified  Boolean                  @default(false)
   review_notes String?
-  created_at   DateTime    @default(now())
+  created_at   DateTime                 @default(now())
   updated_at   DateTime
-  communities  communities @relation(fields: [community_id], references: [id], onDelete: Cascade)
+  geom         Unsupported("geometry")? // PostGIS native geometry(MultiPolygon, 4326)
+  communities  communities              @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@index([geom], map: "community_geofences_geom_gist", type: Gist)
 }
 
 model community_status_history {
