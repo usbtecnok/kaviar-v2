@@ -43,7 +43,7 @@ export default function PassengerRegistration() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/api/public/communities');
+      const response = { data: [] }; // gps-first: legacy public communities removed
       if (response.data.success) {
         setCommunities(response.data.data);
       }

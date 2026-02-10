@@ -72,7 +72,7 @@ export default function CompleteOnboarding() {
 
   const loadNeighborhoods = async () => {
     try {
-      const response = await api.get('/api/public/neighborhoods');
+      const response = { data: [] }; // gps-first: legacy public neighborhoods removed
       if (response.data.success) {
         setNeighborhoods(response.data.data);
       }
@@ -83,7 +83,7 @@ export default function CompleteOnboarding() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/api/public/communities');
+      const response = { data: [] }; // gps-first: legacy public communities removed
       if (response.data.success) {
         setCommunities(response.data.data);
       }
