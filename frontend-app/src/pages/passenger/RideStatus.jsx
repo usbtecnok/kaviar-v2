@@ -1,10 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
   Typography,
   Box,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Rating,
+  TextField
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import Layout from '../../components/common/Layout';
@@ -14,8 +20,11 @@ import { useNavigate } from 'react-router-dom';
 import { normalizeStatusForDisplay, getStatusLabel } from '../../utils/statusMapping';
 
 const RideStatus = () => {
-  const { rideStatus, currentRide } = useRide();
+  const { rideStatus, currentRide, rateRide } = useRide();
   const navigate = useNavigate();
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
 
   // Normalize status for backward compatibility
   const displayStatus = normalizeStatusForDisplay(rideStatus);
@@ -26,7 +35,20 @@ const RideStatus = () => {
     if (rideStatus === 'idle') {
       navigate('/passageiro/home');
     }
-  }, [rideStatus, navigate]);
+    
+    // Abrir modal de avaliação automaticamente quando corrida completa
+    if (rideStatus === 'completed' && currentRide && !currentRide.rating) {
+      setShowRatingModal(true);
+    }
+  }, [rideStatus, currentRide, navigate]);
+
+  const handleSubmitRating = () => {
+    if (rateRide) {
+      rateRide(rating, comment);
+    }
+    setShowRatingModal(false);
+    navigate('/passageiro/home');
+  };
 
   if (rideStatus === 'idle' || !currentRide) {
     return (
@@ -84,7 +106,7 @@ const RideStatus = () => {
               <Button 
                 variant="contained" 
                 color="primary"
-                href="/passageiro/rating"
+                onClick={() => setShowRatingModal(true)}
                 size="large"
               >
                 Avaliar esta Corrida
@@ -93,6 +115,45 @@ const RideStatus = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Avaliação */}
+      <Dialog 
+        open={showRatingModal} 
+        onClose={() => {}} 
+        maxWidth="sm" 
+        fullWidth
+        disableEscapeKeyDown
+      >
+        <DialogTitle>Avalie sua Corrida</DialogTitle>
+        <DialogContent>
+          <Box sx={{ textAlign: 'center', py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              Como foi sua experiência?
+            </Typography>
+            <Rating
+              value={rating}
+              onChange={(event, newValue) => setRating(newValue || 5)}
+              size="large"
+              sx={{ my: 2 }}
+            />
+            <TextField
+              label="Comentário (opcional)"
+              multiline
+              rows={3}
+              fullWidth
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Conte-nos sobre sua experiência..."
+              sx={{ mt: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleSubmitRating} variant="contained" fullWidth>
+            Enviar Avaliação
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Botão voltar */}
       <Button 
