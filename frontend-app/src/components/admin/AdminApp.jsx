@@ -143,7 +143,7 @@ function AdminHome() {
         fetch(`${API_BASE_URL}/api/admin/guides`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch(`${API_BASE_URL}/api/governance/neighborhoods`)
+        fetch(`${API_BASE_URL}/api/neighborhoods`)
       ]);
 
       // Só remover token se 401 com erro de token inválido
