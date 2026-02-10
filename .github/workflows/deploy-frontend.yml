@@ -8,6 +8,18 @@ on:
       - '.github/workflows/deploy-frontend.yml'
   workflow_dispatch:
 
+concurrency:
+  group: kaviar-frontend-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    branches: [main]
+    paths:
+      - 'frontend-app/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
