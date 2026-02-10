@@ -30,6 +30,28 @@ const MapComponent = ({
     lng: -43.1729
   };
 
+  // Log detalhado de coordenadas
+  useEffect(() => {
+    console.log('[MAP] pickup raw:', pickup);
+    console.log('[MAP] destination raw:', destination);
+    
+    if (pickup) {
+      console.log('[MAP] pickup parsed:', {
+        lat: typeof pickup.lat === 'number' ? pickup.lat : parseFloat(pickup.lat),
+        lng: typeof pickup.lng === 'number' ? pickup.lng : parseFloat(pickup.lng),
+        types: { lat: typeof pickup.lat, lng: typeof pickup.lng }
+      });
+    }
+    
+    if (destination) {
+      console.log('[MAP] destination parsed:', {
+        lat: typeof destination.lat === 'number' ? destination.lat : parseFloat(destination.lat),
+        lng: typeof destination.lng === 'number' ? destination.lng : parseFloat(destination.lng),
+        types: { lat: typeof destination.lat, lng: typeof destination.lng }
+      });
+    }
+  }, [pickup, destination]);
+
   const onLoad = useCallback((map) => {
     setMap(map);
   }, []);
@@ -87,28 +109,28 @@ const MapComponent = ({
       onLoad={onLoad}
       onUnmount={onUnmount}
     >
-      {pickup && (
+      {pickup && typeof pickup.lat === 'number' && typeof pickup.lng === 'number' && (
         <Marker
-          position={pickup}
-            icon={{
-              url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
-            }}
-          />
-        )}
-        
-        {destination && (
-          <Marker
-            position={destination}
-            icon={{
-              url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
-            }}
-          />
-        )}
-        
-        {directions && showDirections && (
-          <DirectionsRenderer directions={directions} />
-        )}
-      </GoogleMap>
+          position={{ lat: pickup.lat, lng: pickup.lng }}
+          icon={{
+            url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+          }}
+        />
+      )}
+      
+      {destination && typeof destination.lat === 'number' && typeof destination.lng === 'number' && (
+        <Marker
+          position={{ lat: destination.lat, lng: destination.lng }}
+          icon={{
+            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+          }}
+        />
+      )}
+      
+      {directions && showDirections && (
+        <DirectionsRenderer directions={directions} />
+      )}
+    </GoogleMap>
   );
 };
 
