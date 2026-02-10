@@ -27,6 +27,7 @@ const locationSchema = z.object({
 // POST /api/passenger/onboarding
 router.post('/', async (req, res) => {
   try {
+    console.log('[passenger/onboarding] Received payload:', JSON.stringify(req.body, null, 2));
     const { name, email, password, phone, neighborhoodId, communityId, lgpdAccepted } = registerSchema.parse(req.body);
     
     const existingPassenger = await prisma.passengers.findUnique({
@@ -103,9 +104,15 @@ router.post('/', async (req, res) => {
     console.error('[passenger/onboarding] Error:', error);
     
     if (error instanceof z.ZodError) {
+      const issues = error.errors.map(e => ({
+        field: e.path.join('.'),
+        message: e.message
+      }));
+      console.error('[passenger/onboarding] Validation errors:', JSON.stringify(issues, null, 2));
       return res.status(400).json({
         success: false,
-        error: error.errors[0].message
+        error: error.errors[0].message,
+        issues
       });
     }
     

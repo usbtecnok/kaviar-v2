@@ -182,7 +182,7 @@ export default function CompleteOnboarding() {
 
       // 1. Criar usuário baseado no tipo
       if (userType === 'passenger') {
-        const response = await api.post('/api/passenger/onboarding', {
+        const payload = {
           name: clean.name,
           email: clean.email,
           phone: clean.phone,
@@ -190,7 +190,9 @@ export default function CompleteOnboarding() {
           neighborhoodId: clean.neighborhoodId,
           communityId: clean.communityId || null,
           lgpdAccepted
-        });
+        };
+        console.log('[CADASTRO] Payload enviado:', payload);
+        const response = await api.post('/api/passenger/onboarding', payload);
         userId = response.data.data.id;
 
         // Login automático após cadastro
@@ -284,9 +286,12 @@ export default function CompleteOnboarding() {
 
       setCompleted(true);
     } catch (error) {
+      console.error('[CADASTRO] Erro:', error.response?.data || error);
       const apiError = error.response?.data;
 
-      if (Array.isArray(apiError?.error)) {
+      if (apiError?.issues && Array.isArray(apiError.issues)) {
+        setError(apiError.issues.map(i => `${i.field}: ${i.message}`).join('\n'));
+      } else if (Array.isArray(apiError?.error)) {
         setError(apiError.error.map(e => e.message).join('\n'));
       } else if (typeof apiError?.error === 'string') {
         setError(apiError.error);
