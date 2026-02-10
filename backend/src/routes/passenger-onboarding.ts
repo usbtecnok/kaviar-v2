@@ -72,24 +72,3 @@ router.post('/location', authenticatePassenger, async (req, res) => {
 });
 
 export default router;
-      success: true,
-      resolution
-    });
-  } catch (error) {
-    console.error('[onboarding/location] Error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: error.errors[0].message
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao processar localização'
-    });
-  }
-});
-
-export default router;

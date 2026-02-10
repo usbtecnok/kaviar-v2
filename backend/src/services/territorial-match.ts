@@ -43,12 +43,6 @@ async function getMatchConfig(): Promise<MatchConfig> {
     match_externo_percent: 20.00
   };
 }
-    JOIN neighborhood_geofences ng ON n.id = ng.neighborhood_id
-    WHERE ST_Covers(ng.geom, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326))
-    LIMIT 1
-  `;
-  return result[0] || null;
-}
 
 // Lógica principal de match territorial
 export async function calculateTerritorialMatch(
@@ -92,20 +86,20 @@ export async function calculateTerritorialMatch(
   }
 
   // 2. Match BAIRRO: Verificar se ambos estão no mesmo bairro oficial
-  const driverNeighborhood = await checkNeighborhood(
-    Number(driver.base_lat),
-    Number(driver.base_lng)
+  const driverTerritory = await resolveTerritory(
+    Number(driver.base_lng),
+    Number(driver.base_lat)
   );
-  const pickupNeighborhood = await checkNeighborhood(pickupLat, pickupLng);
+  const pickupTerritory = await resolveTerritory(pickupLng, pickupLat);
 
-  if (driverNeighborhood && pickupNeighborhood && 
-      driverNeighborhood.id === pickupNeighborhood.id) {
+  if (driverTerritory.neighborhood && pickupTerritory.neighborhood && 
+      driverTerritory.neighborhood.id === pickupTerritory.neighborhood.id) {
     return {
       matchType: 'BAIRRO',
       platformPercent: config.match_bairro_percent,
       platformFeeBrl: (tripValueBrl * config.match_bairro_percent) / 100,
-      neighborhoodId: driverNeighborhood.id,
-      neighborhoodName: driverNeighborhood.name,
+      neighborhoodId: driverTerritory.neighborhood.id,
+      neighborhoodName: driverTerritory.neighborhood.name,
       distance
     };
   }

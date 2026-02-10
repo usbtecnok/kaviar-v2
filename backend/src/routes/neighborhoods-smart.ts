@@ -23,7 +23,6 @@ router.get('/', async (req: Request, res: Response) => {
         id: true,
         name: true,
         city: true,
-        slug: true,
       },
       orderBy: [{ city: 'asc' }, { name: 'asc' }],
     });
