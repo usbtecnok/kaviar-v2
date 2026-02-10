@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { resolveTerritory } from './territory-resolver.service';
 
 const prisma = new PrismaClient();
 
@@ -31,31 +32,6 @@ export interface FeeCalculation {
   pickupNeighborhood?: { id: string; name: string };
   dropoffNeighborhood?: { id: string; name: string };
   driverHomeNeighborhood?: { id: string; name: string };
-}
-
-/**
- * Busca o bairro de um ponto geográfico usando PostGIS
- */
-async function getNeighborhoodFromPoint(
-  lat: number,
-  lng: number,
-  city: string = 'São Paulo'
-): Promise<{ id: string; name: string } | null> {
-  try {
-    const result = await prisma.$queryRaw<Array<{ id: string; name: string }>>`
-      SELECT n.id, n.name
-      FROM neighborhoods n
-      JOIN neighborhood_geofences ng ON ng.neighborhood_id = n.id
-      WHERE n.city = ${city}
-        AND ST_Contains(ng.geom, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326))
-      LIMIT 1
-    `;
-    
-    return result[0] || null;
-  } catch (error) {
-    console.error('Erro ao buscar bairro:', error);
-    return null;
-  }
 }
 
 /**
@@ -181,13 +157,14 @@ export async function calculateTripFee(
   // 1. Buscar bairro base do motorista
   const driverHomeNeighborhood = await getDriverHomeNeighborhood(driverId);
   
-  // 2. Buscar bairro do pickup
-  const pickupNeighborhood = await getNeighborhoodFromPoint(pickupLat, pickupLng, city);
+  // 2. Resolver territórios usando serviço centralizado
+  const pickupTerritory = await resolveTerritory(pickupLng, pickupLat);
+  const dropoffTerritory = await resolveTerritory(dropoffLng, dropoffLat);
   
-  // 3. Buscar bairro do dropoff
-  const dropoffNeighborhood = await getNeighborhoodFromPoint(dropoffLat, dropoffLng, city);
+  const pickupNeighborhood = pickupTerritory.neighborhood;
+  const dropoffNeighborhood = dropoffTerritory.neighborhood;
   
-  // 4. Aplicar lógica de taxa
+  // 3. Aplicar lógica de taxa
   
   // CASO 1: Motorista sem bairro cadastrado = taxa máxima
   if (!driverHomeNeighborhood) {
@@ -249,44 +226,21 @@ export async function calculateTripFee(
     };
   }
   
-  // CASO 4: Fallback 800m - território virtual quando não há geofence oficial
-  // Se não encontrou geofence oficial, verifica se está dentro do raio de 800m do centro do bairro
-  if (!pickupNeighborhood && !dropoffNeighborhood) {
-    const neighborhoodCenter = await getNeighborhoodCenter(driverHomeNeighborhood.id, driverId);
+  // CASO 4: Fallback 800m detectado pelo resolver
+  if (pickupTerritory.method === 'fallback_800m' || dropoffTerritory.method === 'fallback_800m') {
+    const feePercentage = FEE_CONFIG.FALLBACK_800M;
+    const feeAmount = (fareAmount * feePercentage) / 100;
     
-    if (neighborhoodCenter) {
-      const pickupDistance = calculateDistance(
-        pickupLat,
-        pickupLng,
-        neighborhoodCenter.lat,
-        neighborhoodCenter.lng
-      );
-      
-      const dropoffDistance = calculateDistance(
-        dropoffLat,
-        dropoffLng,
-        neighborhoodCenter.lat,
-        neighborhoodCenter.lng
-      );
-      
-      // Se ambos os pontos estão dentro do raio de 800m, aplica taxa de fallback
-      if (
-        pickupDistance <= FEE_CONFIG.FALLBACK_RADIUS_METERS &&
-        dropoffDistance <= FEE_CONFIG.FALLBACK_RADIUS_METERS
-      ) {
-        const feePercentage = FEE_CONFIG.FALLBACK_800M;
-        const feeAmount = (fareAmount * feePercentage) / 100;
-        
-        return {
-          feePercentage,
-          feeAmount,
-          driverEarnings: fareAmount - feeAmount,
-          matchType: 'FALLBACK_800M',
-          reason: `Corrida dentro do raio de 800m de ${driverHomeNeighborhood.name}`,
-          driverHomeNeighborhood
-        };
-      }
-    }
+    return {
+      feePercentage,
+      feeAmount,
+      driverEarnings: fareAmount - feeAmount,
+      matchType: 'FALLBACK_800M',
+      reason: `Corrida dentro do raio de 800m`,
+      pickupNeighborhood: pickupNeighborhood || undefined,
+      dropoffNeighborhood: dropoffNeighborhood || undefined,
+      driverHomeNeighborhood
+    };
   }
   
   // CASO 5: Fora da cerca virtual = taxa máxima (20%)

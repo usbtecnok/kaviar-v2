@@ -38,7 +38,7 @@ export async function checkOutsideFenceNotification(
     SELECT EXISTS(
       SELECT 1 FROM neighborhood_geofences ng
       WHERE ng.neighborhood_id = ${driver.neighborhood_id}
-        AND ST_Contains(ng.geom, ST_SetSRID(ST_MakePoint(${currentLng}, ${currentLat}), 4326))
+        AND ST_Covers(ng.geom, ST_SetSRID(ST_MakePoint(${currentLng}, ${currentLat}), 4326))
     ) as inside
   `;
 

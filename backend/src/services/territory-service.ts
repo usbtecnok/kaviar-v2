@@ -40,7 +40,7 @@ export function calculateDistance(
  * Detecta território a partir de coordenadas GPS
  */
 export async function detectTerritoryFromGPS(lat: number, lng: number) {
-  // 1. Tentar encontrar bairro com geofence oficial via PostGIS
+  // 1. Tentar encontrar bairro com geofence oficial via PostGIS (ST_Covers)
   const officialNeighborhood = await prisma.$queryRaw<
     Array<{ id: string; name: string; distance: number }>
   >`
@@ -54,7 +54,7 @@ export async function detectTerritoryFromGPS(lat: number, lng: number) {
     FROM neighborhoods n
     INNER JOIN neighborhood_geofences ng ON ng.neighborhood_id = n.id
     WHERE n.is_active = true
-      AND ST_Contains(
+      AND ST_Covers(
         ng.geom,
         ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)
       )
@@ -264,10 +264,10 @@ export async function isRideInsideTerritory(
     return false;
   }
 
-  // OFFICIAL: verificar via PostGIS
+  // OFFICIAL: verificar via PostGIS (ST_Covers)
   if (driver.territory_type === 'OFFICIAL' && driver.neighborhoods?.neighborhood_geofences) {
     const result = await prisma.$queryRaw<Array<{ inside: boolean }>>`
-      SELECT ST_Contains(
+      SELECT ST_Covers(
         ng.geom,
         ST_SetSRID(ST_MakePoint(${pickupLng}, ${pickupLat}), 4326)
       ) as inside

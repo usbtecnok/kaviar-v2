@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { resolveTerritory } from './territory-resolver.service';
 
 const prisma = new PrismaClient();
 
@@ -42,14 +43,8 @@ async function getMatchConfig(): Promise<MatchConfig> {
     match_externo_percent: 20.00
   };
 }
-
-// Verificar se ponto está dentro de um bairro (usando PostGIS)
-async function checkNeighborhood(lat: number, lng: number): Promise<{ id: string; name: string } | null> {
-  const result = await prisma.$queryRaw<Array<{ id: string; name: string }>>`
-    SELECT n.id, n.name
-    FROM neighborhoods n
     JOIN neighborhood_geofences ng ON n.id = ng.neighborhood_id
-    WHERE ST_Contains(ng.geom, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326))
+    WHERE ST_Covers(ng.geom, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326))
     LIMIT 1
   `;
   return result[0] || null;

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { resolveTerritory } from '../services/territory-resolver.service';
 
 const router = Router();
 
@@ -20,14 +21,8 @@ router.post('/:passengerId/locations', async (req: Request, res: Response) => {
       });
     }
 
-    // Buscar bairro do endereço
-    const neighborhood: any = await prisma.$queryRaw`
-      SELECT n.id, n.name
-      FROM neighborhoods n
-      JOIN neighborhood_geofences ng ON ng.neighborhood_id = n.id
-      WHERE ST_Contains(ng.geom, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326))
-      LIMIT 1
-    `;
+    // Resolver território usando serviço centralizado
+    const territory = await resolveTerritory(lng, lat);
 
     // Criar localização
     const location = await prisma.$executeRaw`
@@ -36,7 +31,7 @@ router.post('/:passengerId/locations', async (req: Request, res: Response) => {
         neighborhood_id, label, created_at, updated_at
       ) VALUES (
         gen_random_uuid(), ${passengerId}, ${type}, ${address}, 
-        ${lat}, ${lng}, ${neighborhood[0]?.id || null}, 
+        ${lat}, ${lng}, ${territory.neighborhood?.id || null}, 
         ${label || null}, NOW(), NOW()
       )
       ON CONFLICT (passenger_id, location_type) 
@@ -44,7 +39,7 @@ router.post('/:passengerId/locations', async (req: Request, res: Response) => {
         address = ${address},
         lat = ${lat},
         lng = ${lng},
-        neighborhood_id = ${neighborhood[0]?.id || null},
+        neighborhood_id = ${territory.neighborhood?.id || null},
         label = ${label || null},
         updated_at = NOW()
     `;
@@ -54,7 +49,9 @@ router.post('/:passengerId/locations', async (req: Request, res: Response) => {
       data: {
         type,
         address,
-        neighborhood: neighborhood[0] || null
+        neighborhood: territory.neighborhood,
+        community: territory.community,
+        method: territory.method
       }
     });
 
