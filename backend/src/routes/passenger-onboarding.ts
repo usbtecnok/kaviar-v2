@@ -5,6 +5,13 @@ import { authenticatePassenger } from '../middlewares/auth';
 
 const router = Router();
 
+type ResolutionStatus = 'RESOLVED' | 'UNRESOLVED';
+type Resolution = {
+  status: ResolutionStatus;
+  communityId: string | null;
+  neighborhoodId: string | null;
+};
+
 const locationSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
@@ -28,10 +35,10 @@ router.post('/location', authenticatePassenger, async (req, res) => {
     });
 
     // Tentar resolver território (community/neighborhood)
-    let resolution = {
-      status: 'UNRESOLVED' as const,
-      communityId: null as string | null,
-      neighborhoodId: null as string | null
+    const resolution: Resolution = {
+      status: 'UNRESOLVED',
+      communityId: null,
+      neighborhoodId: null
     };
 
     try {
@@ -52,7 +59,8 @@ router.post('/location', authenticatePassenger, async (req, res) => {
         resolution.status = 'RESOLVED';
       }
     } catch (error) {
-      console.log('[onboarding/location] Community resolution skipped:', error.message);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log('[onboarding/location] Community resolution skipped:', msg);
     }
 
     try {
@@ -72,7 +80,8 @@ router.post('/location', authenticatePassenger, async (req, res) => {
         resolution.status = 'RESOLVED';
       }
     } catch (error) {
-      console.log('[onboarding/location] Neighborhood resolution skipped:', error.message);
+      const msg = error instanceof Error ? error.message : String(error);
+      console.log('[onboarding/location] Neighborhood resolution skipped:', msg);
     }
 
     // Atualizar community/neighborhood se resolvido
