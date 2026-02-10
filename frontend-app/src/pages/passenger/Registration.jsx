@@ -83,7 +83,30 @@ export default function PassengerRegistration() {
         localStorage.setItem('kaviar_token', response.data.token);
         localStorage.setItem('kaviar_user', JSON.stringify(response.data.user));
         
-        console.log('[Registration] Cadastro OK, redirecionando...');
+        console.log('[Registration] Cadastro OK, capturando localização...');
+        
+        // Capturar localização (não-bloqueante, apenas 1x por sessão)
+        if (navigator.geolocation && !sessionStorage.getItem('gps_sent')) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              try {
+                await api.post('/api/passenger/onboarding/location', {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                  accuracy_m: position.coords.accuracy
+                });
+                sessionStorage.setItem('gps_sent', '1');
+                console.log('[Registration] Localização capturada');
+              } catch (error) {
+                console.log('[Registration] Erro ao enviar localização (não-crítico):', error);
+              }
+            },
+            (error) => {
+              console.log('[Registration] Localização negada ou indisponível (não-crítico)');
+            },
+            { timeout: 5000, maximumAge: 0 }
+          );
+        }
         
         // Redirecionar para home
         navigate('/passageiro/home');

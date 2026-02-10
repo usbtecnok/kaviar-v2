@@ -37,7 +37,29 @@ export default function LoginForm() {
         localStorage.setItem('kaviar_token', response.data.token);
         localStorage.setItem('kaviar_user', JSON.stringify(response.data.user));
         setUser(response.data.user);
-        console.log('[LoginForm] Token salvo, redirecionando...');
+        console.log('[LoginForm] Token salvo');
+        
+        // Capturar localização apenas 1x por sessão (não-bloqueante)
+        if (navigator.geolocation && !sessionStorage.getItem('gps_sent')) {
+          navigator.geolocation.getCurrentPosition(
+            async (position) => {
+              try {
+                await api.post('/api/passenger/onboarding/location', {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                  accuracy_m: position.coords.accuracy
+                });
+                sessionStorage.setItem('gps_sent', '1');
+                console.log('[LoginForm] Localização capturada');
+              } catch (error) {
+                console.log('[LoginForm] Erro ao enviar localização (não-crítico)');
+              }
+            },
+            () => console.log('[LoginForm] Localização negada (não-crítico)'),
+            { timeout: 5000, maximumAge: 60000 }
+          );
+        }
+        
         navigate('/passageiro/home');
       } else {
         setError('Email ou senha incorretos');
