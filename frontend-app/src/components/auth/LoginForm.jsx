@@ -23,21 +23,27 @@ export default function LoginForm() {
     setLoading(true);
     setError('');
 
+    console.log('[LoginForm] Enviando login:', { email, hasPassword: !!password });
+
     try {
       const response = await api.post('/api/auth/passenger/login', {
-        email,
+        email: email.trim(),
         password
       });
+
+      console.log('[LoginForm] Response:', { success: response.data.success, hasToken: !!response.data.token });
 
       if (response.data.success) {
         localStorage.setItem('kaviar_token', response.data.token);
         localStorage.setItem('kaviar_user', JSON.stringify(response.data.user));
         setUser(response.data.user);
+        console.log('[LoginForm] Token salvo, redirecionando...');
         navigate('/passageiro/home');
       } else {
         setError('Email ou senha incorretos');
       }
     } catch (error) {
+      console.error('[LoginForm] Erro:', error.response?.data || error.message);
       setError(error.response?.data?.error || 'Erro no login');
     }
     

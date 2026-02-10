@@ -72,7 +72,7 @@ export default function CompleteOnboarding() {
 
   const loadNeighborhoods = async () => {
     try {
-      const response = await api.get('/api/governance/neighborhoods');
+      const response = await api.get('/api/public/neighborhoods');
       if (response.data.success) {
         setNeighborhoods(response.data.data);
       }
@@ -83,7 +83,7 @@ export default function CompleteOnboarding() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/api/governance/communities');
+      const response = await api.get('/api/public/communities');
       if (response.data.success) {
         setCommunities(response.data.data);
       }
@@ -182,23 +182,16 @@ export default function CompleteOnboarding() {
 
       // 1. Criar usuário baseado no tipo
       if (userType === 'passenger') {
-        const response = await api.post('/api/governance/passenger', {
+        const response = await api.post('/api/passenger/onboarding', {
           name: clean.name,
           email: clean.email,
           phone: clean.phone,
           password: clean.password,
           neighborhoodId: clean.neighborhoodId,
-          communityId: clean.communityId || null
+          communityId: clean.communityId || null,
+          lgpdAccepted
         });
         userId = response.data.data.id;
-
-        // Registrar consentimento LGPD
-        await api.post('/api/governance/consent', {
-          passengerId: userId,
-          consentType: 'LGPD',
-          accepted: lgpdAccepted,
-          ipAddress: 'onboarding'
-        });
 
         // Login automático após cadastro
         try {

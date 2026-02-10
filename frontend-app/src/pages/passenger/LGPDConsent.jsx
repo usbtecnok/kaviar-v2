@@ -30,14 +30,6 @@ export default function LGPDConsent() {
     setLoading(true);
     try {
       // Implementar chamada para API de consentimento
-      // await api.post('/api/governance/consent', {
-      //   passengerId: currentUser.id,
-      //   consentType: 'lgpd',
-      //   accepted: true
-      // });
-      setLgpdAccepted(true);
-    } catch (error) {
-      console.error('Erro ao registrar consentimento:', error);
     } finally {
       setLoading(false);
     }

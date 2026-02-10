@@ -43,7 +43,7 @@ export default function PassengerRegistration() {
 
   const loadCommunities = async () => {
     try {
-      const response = await api.get('/api/governance/communities');
+      const response = await api.get('/api/public/communities');
       if (response.data.success) {
         setCommunities(response.data.data);
       }
@@ -69,26 +69,27 @@ export default function PassengerRegistration() {
     setError('');
 
     try {
-      // 1. Criar passageiro
-      const passengerResponse = await api.post('/api/governance/passenger', {
-        ...formData,
-        status: 'pending'
+      // Criar passageiro com LGPD consent
+      const response = await api.post('/api/auth/passenger/register', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        lgpdAccepted
       });
 
-      if (passengerResponse.data.success) {
-        const passengerId = passengerResponse.data.data.id;
-
-        // 2. Registrar consentimento LGPD
-        await api.post('/api/governance/consent', {
-          passengerId,
-          consentType: 'lgpd',
-          accepted: lgpdAccepted,
-          ipAddress: 'frontend' // Simplificado
-        });
-
-        navigate('/passageiro/pending');
+      if (response.data.success) {
+        // Salvar token e user
+        localStorage.setItem('kaviar_token', response.data.token);
+        localStorage.setItem('kaviar_user', JSON.stringify(response.data.user));
+        
+        console.log('[Registration] Cadastro OK, redirecionando...');
+        
+        // Redirecionar para home
+        navigate('/passageiro/home');
       }
     } catch (error) {
+      console.error('[Registration] Erro:', error);
       setError(error.response?.data?.error || 'Erro ao cadastrar');
     } finally {
       setLoading(false);
