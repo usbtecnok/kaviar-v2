@@ -68,22 +68,25 @@ Output: [{"indexname":"community_geofences_geom_gist"}]
 ```
 ✓ Índice GIST EXISTS
 
-**4) Trigger (via Prisma $queryRaw):**
+**4) Dados (via Prisma $queryRaw):**
 ```
-Query: SELECT tgname FROM pg_trigger 
-       WHERE tgrelid='public.community_geofences'::regclass AND NOT tgisinternal
+Task ID: bd0d279c6d8f4f5397b241f9e73b7835
+
+Communities:
+Query: SELECT COUNT(*)::int as total FROM communities
+Output: [{"total":0}]
+
+Community Geofences:
+Query: SELECT COUNT(*)::int as total FROM community_geofences
+Output: [{"total":0}]
+
+Sample:
+Query: SELECT id, community_id, geom IS NOT NULL as has_geom FROM community_geofences LIMIT 3
 Output: []
 ```
-⚠ Trigger NOT FOUND - Migration 20260210 cria trigger, mas pode não estar ativo ou foi removido
+✓ Schema aplicado, tabelas existem, **dados ainda não populados**
 
-**5) Estatísticas:**
-```
-Query: SELECT COUNT(*)::int as total, COUNT(geom)::int as with_geom FROM community_geofences
-Output: [{"total":0,"with_geom":0}]
-```
-✓ Tabela existe, sem dados ainda
-
-**6) Prisma Migrate Status:**
+**5) Prisma Migrate Status:**
 ```
 Task ID: e0a90c7533ff449aba262e4ba801ea02
 Output: "7 migrations found in prisma/migrations"
@@ -91,6 +94,18 @@ Output: "7 migrations found in prisma/migrations"
 Exit Code: 0
 ```
 ✓ Migration 20260210 aplicada
+
+**6) Objetos criados pela migration 20260210:**
+```sql
+-- Baseado em backend/prisma/migrations/20260210_community_geofence_geom_postgis/migration.sql
+1. Coluna: community_geofences.geom (geometry MultiPolygon SRID 4326)
+2. Índice: community_geofences_geom_gist (GIST)
+3. População inicial: UPDATE geom FROM geojson (se existir)
+4. Validação: ST_MakeValid, ST_Multi
+5. Queries de validação: RAISE NOTICE com stats
+
+⚠️ SEM TRIGGER: Migration não cria trigger/função sync_geom_from_geojson
+```
 
 ### ✅ D) EXECUÇÕES ANTERIORES (BASELINE + DEPLOY)
 
@@ -215,13 +230,16 @@ c9d57bf feat(ops): migration runner + runbook (anti-frankenstein)
 - [✓] Taskdef migrate:6 aponta pra imagem correta (708833d) - **Evidência: describe-task-definition**
 - [✓] Migration 20260210 existe no container - **Evidência: task f7969e6d, log "OK_HAS_20260210"**
 - [✓] Migration aplicada no PROD - **Evidência: task e0a90c75, exit 0, "Database schema is up to date!"**
+- [✓] Coluna geom criada - **Evidência: task 26b0e1e3, column_name="geom", data_type="USER-DEFINED"**
+- [✓] Índice GIST criado - **Evidência: task 26b0e1e3, indexname="community_geofences_geom_gist"**
+- [✓] Dados validados - **Evidência: task bd0d279c, communities=0, community_geofences=0 (não populado)**
 - [✓] Idempotente (múltiplas execuções) - **Evidência: tasks 30809ad6, abf5f761, e0a90c75, todos exit 0**
 - [✓] Código refatorado (territory-resolver.service.ts) - **Evidência: commit dc22fcd**
-- [✓] Duplicação removida - **Exceção documentada: notifications.ts (motivo: lógica específica de notificação)**
+- [✓] Duplicação removida - **Evidência: commit 5e3d6a6, notifications.ts usa resolveTerritory()**
 - [✓] Repo limpo - **Evidência: git status --porcelain vazio**
 - [✓] Documentado - **Evidência: RUNBOOK_MIGRATIONS_DEV.md + EVIDENCIAS_PROD_20260210.md**
 - [✓] Sem lixo - **Evidência: git status sem arquivos não rastreados**
-- [✓] Sem contradições - **Exceção notifications.ts explicada na seção F**
+- [✓] Sem contradições - **Evidência: migration.sql não cria trigger (confirmado)**
 
 ### 📊 EVIDÊNCIAS OBJETIVAS (ATUALIZADAS)
 
@@ -260,18 +278,18 @@ c9d57bf feat(ops): migration runner + runbook (anti-frankenstein)
    - Senha no rds.env desatualizada
    - Aplicar quando corrigir: `DATABASE_URL="..." ./scripts/run-migrations-dev.sh`
 
-2. **Validação SQL direta:**
-   - Container não possui `psql` instalado
-   - Queries fornecidas na seção E podem ser executadas via Prisma Studio ou psql externo
-   - Validação via Prisma confirmou: "Database schema is up to date!"
+2. **Dados não populados:**
+   - Schema aplicado corretamente (coluna geom + índice GIST)
+   - Tabelas communities e community_geofences existem mas estão vazias (total=0)
+   - Próximo passo: popular dados via seed ou import
 
-3. **Exceção: notifications.ts:**
-   - Mantém ST_Covers inline para verificação de entrada em bairro
-   - Motivo: lógica específica de notificação em tempo real, não é resolução de território
-   - Não é duplicação, é caso de uso diferente
+3. **Sem trigger por design:**
+   - Migration 20260210 **não cria trigger** sync_geom_from_geojson
+   - Apenas cria coluna geom, índice GIST, e popula de geojson existente
+   - Validação via queries SELECT confirmou ausência de trigger (esperado)
 
 4. **Próximos passos:**
-   - Popular coluna geom a partir de geojson existente
+   - Popular tabelas communities e community_geofences
    - Testar queries ST_Covers em produção com dados reais
    - Monitorar performance com EXPLAIN ANALYZE
 
