@@ -75,3 +75,4 @@ src/
 ## Variáveis de Ambiente
 
 Ver `.env.example` para lista completa de variáveis necessárias.
+
