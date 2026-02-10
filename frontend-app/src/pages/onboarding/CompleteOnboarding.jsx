@@ -72,7 +72,7 @@ export default function CompleteOnboarding() {
 
   const loadNeighborhoods = async () => {
     try {
-      const response = { data: { success: true, data: [] } }; // gps-first: legacy public neighborhoods removed
+      const response = await api.get('/api/neighborhoods');
       if (response.data.success) {
         setNeighborhoods(response.data.data);
       }
