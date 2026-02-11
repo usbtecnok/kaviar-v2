@@ -39,10 +39,30 @@ jobs:
       - name: Update Task Definition
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition kaviar-backend --region us-east-2)
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:${{ github.sha }}" --arg COMMIT "${{ github.sha }}" '
+          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:${{ github.sha }}" --arg COMMIT "${{ github.sha }}" \
+            --arg TWILIO_ACCOUNT_SID "${{ secrets.TWILIO_ACCOUNT_SID }}" \
+            --arg TWILIO_AUTH_TOKEN "${{ secrets.TWILIO_AUTH_TOKEN }}" \
+            --arg TWILIO_WHATSAPP_FROM "${{ secrets.TWILIO_WHATSAPP_FROM }}" \
+            --arg TWILIO_TEMPLATE_INVITE_INVESTOR "${{ secrets.TWILIO_TEMPLATE_INVITE_INVESTOR }}" \
+            --arg TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED "${{ secrets.TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED }}" \
+            --arg TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING "${{ secrets.TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING }}" \
+            --arg TWILIO_TEMPLATE_AUTH_PASSWORD_RESET "${{ secrets.TWILIO_TEMPLATE_AUTH_PASSWORD_RESET }}" '
             .taskDefinition |
             .containerDefinitions[0].image = $IMAGE |
+            # Remove existing TWILIO_* and GIT_COMMIT to avoid duplicates
+            .containerDefinitions[0].environment = [.containerDefinitions[0].environment[]? | select(.name | startswith("TWILIO_") | not) | select(.name != "GIT_COMMIT")] |
+            # Add GIT_COMMIT
             .containerDefinitions[0].environment += [{"name": "GIT_COMMIT", "value": $COMMIT}] |
+            # Add TWILIO_* env vars (only if not empty)
+            .containerDefinitions[0].environment += (
+              if $TWILIO_ACCOUNT_SID != "" then [{"name": "TWILIO_ACCOUNT_SID", "value": $TWILIO_ACCOUNT_SID}] else [] end +
+              if $TWILIO_AUTH_TOKEN != "" then [{"name": "TWILIO_AUTH_TOKEN", "value": $TWILIO_AUTH_TOKEN}] else [] end +
+              if $TWILIO_WHATSAPP_FROM != "" then [{"name": "TWILIO_WHATSAPP_FROM", "value": $TWILIO_WHATSAPP_FROM}] else [] end +
+              if $TWILIO_TEMPLATE_INVITE_INVESTOR != "" then [{"name": "TWILIO_TEMPLATE_INVITE_INVESTOR", "value": $TWILIO_TEMPLATE_INVITE_INVESTOR}] else [] end +
+              if $TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED != "" then [{"name": "TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED", "value": $TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED}] else [] end +
+              if $TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING != "" then [{"name": "TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING", "value": $TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING}] else [] end +
+              if $TWILIO_TEMPLATE_AUTH_PASSWORD_RESET != "" then [{"name": "TWILIO_TEMPLATE_AUTH_PASSWORD_RESET", "value": $TWILIO_TEMPLATE_AUTH_PASSWORD_RESET}] else [] end
+            ) |
             .containerDefinitions[0].healthCheck = {
               "command": ["CMD-SHELL", "node /app/healthcheck.js"],
               "interval": 30,
@@ -53,6 +73,11 @@ jobs:
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
           ')
           echo $NEW_TASK_DEF > task-def.json
+          
+          # Log injected TWILIO_* env vars (names only, no values)
+          echo "TWILIO_* env vars injected:"
+          echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].environment[]? | select(.name | startswith("TWILIO_")) | .name'
+          
           aws ecs register-task-definition --cli-input-json file://task-def.json --region us-east-2
       
       - name: Deploy to ECS
