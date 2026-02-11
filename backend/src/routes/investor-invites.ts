@@ -7,6 +7,7 @@ import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import rateLimit from 'express-rate-limit';
 import { emailService } from '../services/email/email.service';
 import { whatsappService } from '../services/whatsapp';
+import { WhatsAppTemplate, isTemplateConfigured } from '../services/whatsapp-templates';
 
 const router = Router();
 
@@ -114,21 +115,52 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
 
     // Enviar convite pelo canal escolhido
     if (channel === 'whatsapp' && phone) {
-      const whatsappBody = `🔐 *KAVIAR - Convite para Acesso*\n\n` +
-        `Olá,\n\n` +
-        `Você foi convidado para acessar o sistema KAVIAR com permissões de *${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'}* (read-only).\n\n` +
-        `📱 Defina sua senha:\n${resetUrl}\n\n` +
-        `⏱️ Este link expira em *15 minutos*.\n\n` +
-        `Após definir sua senha, faça login em:\n${config.frontendUrl}/admin/login`;
+      // Try template first (preferred), fallback to email if not configured
+      if (isTemplateConfigured(WhatsAppTemplate.INVITE_INVESTOR)) {
+        try {
+          await whatsappService.sendTemplate({
+            to: phone,
+            template: WhatsAppTemplate.INVITE_INVESTOR,
+            variables: {
+              name: displayName,
+              role: role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer',
+              link: resetUrl,
+              login_url: `${config.frontendUrl}/admin/login`
+            }
+          });
 
-      await whatsappService.sendWhatsAppInvite({
-        to: phone,
-        body: whatsappBody
+          return res.json({ 
+            success: true, 
+            message: 'Convite enviado via WhatsApp.' 
+          });
+        } catch (error) {
+          console.error('[invites] WhatsApp template failed, falling back to email:', error);
+          // Fallback to email below
+        }
+      } else {
+        console.warn('[invites] WhatsApp template not configured, falling back to email');
+      }
+
+      // Fallback: send via email
+      await emailService.sendMail({
+        to: admin.email,
+        subject: 'KAVIAR - Convite para Acesso',
+        html: `
+          <h2>Convite para Acesso ao Sistema KAVIAR</h2>
+          <p>Olá ${displayName},</p>
+          <p>Você foi convidado para acessar o sistema KAVIAR com permissões de ${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'} (read-only).</p>
+          <p>Clique no link abaixo para definir sua senha:</p>
+          <p><a href="${resetUrl}">${resetUrl}</a></p>
+          <p>Este link expira em 15 minutos.</p>
+          <p>Após definir sua senha, faça login em: ${config.frontendUrl}/admin/login</p>
+          <p><small>Nota: Tentamos enviar via WhatsApp mas o serviço não está disponível no momento.</small></p>
+        `,
+        text: `Olá ${displayName},\n\nVocê foi convidado para acessar o sistema KAVIAR com permissões de ${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'} (read-only).\n\nAcesse: ${resetUrl}\n\nEste link expira em 15 minutos.\n\nApós definir sua senha, faça login em: ${config.frontendUrl}/admin/login`
       });
 
       return res.json({ 
         success: true, 
-        message: 'Convite enviado via WhatsApp.' 
+        message: 'Convite enviado via email (WhatsApp indisponível).' 
       });
     } else {
       // Email (legacy)
