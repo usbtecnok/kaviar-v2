@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -14,6 +15,7 @@ import { LocationCity, Map } from '@mui/icons-material';
 import api from '../../api';
 
 export default function NeighborhoodsByCity() {
+  const navigate = useNavigate();
   const [neighborhoods, setNeighborhoods] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -191,7 +193,7 @@ export default function NeighborhoodsByCity() {
                     variant="contained"
                     fullWidth
                     startIcon={<Map />}
-                    onClick={() => window.location.href = `/admin/neighborhoods?city=${encodeURIComponent(city)}`}
+                    onClick={() => navigate(`/admin/neighborhoods?city=${encodeURIComponent(city)}`)}
                   >
                     Ver Bairros
                   </Button>
