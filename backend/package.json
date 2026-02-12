@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "dev:3003": "PORT=3003 tsx watch src/server.ts",
     "build": "tsc -p tsconfig.build.json",
-    "postbuild": "mkdir -p dist/scripts && cp scripts/beta-monitor-dog.js dist/scripts/ && cp scripts/beta-phase1-checkpoint.sh dist/scripts/ && cp scripts/beta-phase1-go-nogo.sh dist/scripts/ && cp scripts/beta-phase2-activate.sh dist/scripts/ && cp scripts/update-rollout.js dist/scripts/ && cp scripts/check-rollout.js dist/scripts/",
+    "postbuild": "mkdir -p dist/scripts && cp scripts/beta-monitor-dog.js dist/scripts/ && cp scripts/beta-phase1-checkpoint.sh dist/scripts/ && cp scripts/beta-phase1-go-nogo.sh dist/scripts/ && cp scripts/beta-phase2-activate.sh dist/scripts/ && cp scripts/update-rollout.js dist/scripts/ && cp scripts/check-rollout.js dist/scripts/ && cp scripts/promote-premium-tourism.js dist/scripts/",
     "postinstall": "prisma generate",
     "start": "node dist/server.js",
     "start:3003": "PORT=3003 node dist/server.js",
