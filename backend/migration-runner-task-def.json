@@ -13,7 +13,7 @@
       "command": [
         "sh",
         "-c",
-        "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -c 'ALTER TABLE \"drivers\" ADD COLUMN IF NOT EXISTS \"premium_tourism_promoted_at\" TIMESTAMPTZ NULL;' && psql \"$DATABASE_URL\" -c '\\d \"drivers\"' | grep premium_tourism_promoted_at"
+        "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -c \"UPDATE \\\"drivers\\\" SET \\\"premium_tourism_status\\\"='inactive' WHERE \\\"premium_tourism_status\\\" IS NULL; ALTER TABLE \\\"drivers\\\" ALTER COLUMN \\\"premium_tourism_status\\\" SET DEFAULT 'inactive'; ALTER TABLE \\\"drivers\\\" ALTER COLUMN \\\"premium_tourism_status\\\" SET NOT NULL;\" && psql \"$DATABASE_URL\" -c '\\d \"drivers\"' | grep premium_tourism_status"
       ],
       "environment": [
         {
