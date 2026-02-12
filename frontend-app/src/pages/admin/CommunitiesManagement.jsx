@@ -169,67 +169,53 @@ export default function CommunitiesManagement() {
       console.log("[MAP DIAGNOSTIC] fetching geofence", `/api/governance/communities/${community.id}/geofence`);
       const response = await api.get(`/api/governance/communities/${community.id}/geofence`);
 
-      if (response.data.success) {
+      if (response.data.success && response.data.data?.geometry) {
         const geofenceData = response.data;
-        const geometryType = geofenceData.data?.geometry?.type;
+        const geometryType = geofenceData.data.geometry.type;
         
         // Atualizar status da comunidade localmente
         setCommunities(prev => prev.map(c => 
           c.id === community.id 
-            ? { ...c, geofenceStatus: geometryType || 'DADOS_INVÁLIDOS' }
+            ? { ...c, geofenceStatus: geometryType }
             : c
         ));
         
         // Transformar para o formato esperado pelo componente
         const communityForMap = {
           ...community,
-          geometry: geofenceData.data?.geometry || null,
+          geometry: geofenceData.data.geometry,
           geofence: community.geofenceData?.geojson || null
         };
         
         setMapDialog({ open: true, community: communityForMap });
       } else {
-        // SEM DADOS
+        // SEM DADOS ou dados inválidos
         console.log(`📍 [MAP DIAGNOSTIC] Community ${community.name}: SEM DADOS`);
         
-        // Atualizar status da comunidade localmente
         setCommunities(prev => prev.map(c => 
           c.id === community.id 
             ? { ...c, geofenceStatus: 'SEM_DADOS' }
             : c
         ));
         
-        // Abrir modal com mensagem clara
-        const communityForMap = {
-          ...community,
-          geometry: null,
-          geofence: null,
-          hasNoGeofence: true // Flag para mostrar "SEM DADOS"
-        };
-        
-        setMapDialog({ open: true, community: communityForMap });
-      } else {
-        // Outros erros
-        const errorData = await response.json();
-        console.error('Erro ao buscar geofence:', errorData);
-        
-        // Fallback
-        const communityForMap = {
-          ...community,
-          geometry: null,
-          geofence: community.geofenceData?.geojson || null
-        };
-        setMapDialog({ open: true, community: communityForMap });
+        setMapDialog({ 
+          open: true, 
+          community: { ...community, geometry: null, geofence: null, hasNoGeofence: true }
+        });
       }
     } catch (error) {
       console.error('Erro ao buscar geofence:', error);
-      // Fallback em caso de erro
-      const communityForMap = {
-        ...community,
-        geometry: null,
-        geofence: community.geofenceData?.geojson || null
-      };
-      setMapDialog({ open: true, community: communityForMap });
+      
+      if (error.response?.status === 401) {
+        setError('Sessão expirada. Faça login novamente.');
+        return;
+      }
+      
+      // Fallback para outros erros
+      setMapDialog({ 
+        open: true, 
+        community: { ...community, geometry: null, geofence: null }
+      });
     }
   };
 
