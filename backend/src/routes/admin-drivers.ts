@@ -456,6 +456,8 @@ router.get('/drivers/:id/premium-eligibility', allowReadAccess, async (req: Requ
 
 // GET /api/admin/drivers/:id/eligibility (MVP - tenure-based)
 router.get('/drivers/:id/eligibility', allowReadAccess, async (req: Request, res: Response) => {
+  const requestId = (req as any).requestId || req.headers['x-request-id'] || 'unknown';
+  
   try {
     const { id } = req.params;
 
@@ -467,7 +469,7 @@ router.get('/drivers/:id/eligibility', allowReadAccess, async (req: Request, res
     });
 
     if (!driver) {
-      return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
     }
 
     // Calcular tenure desde createdAt
@@ -508,9 +510,23 @@ router.get('/drivers/:id/eligibility', allowReadAccess, async (req: Request, res
         reasons
       }
     });
-  } catch (error) {
-    console.error('Error checking driver eligibility:', error);
-    res.status(500).json({ success: false, error: 'Erro ao verificar elegibilidade' });
+  } catch (error: any) {
+    // Log estruturado com stack + requestId
+    console.error(JSON.stringify({
+      ts: new Date().toISOString(),
+      level: 'error',
+      requestId,
+      path: req.path,
+      driverId: req.params.id,
+      error: error?.message || String(error),
+      stack: error?.stack
+    }));
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro ao verificar elegibilidade', 
+      requestId 
+    });
   }
 });
 
