@@ -215,7 +215,7 @@ export default function CompleteOnboarding() {
           console.error('Erro no login automático:', loginError);
         }
       } else if (userType === 'driver') {
-        // CADASTRO INICIAL DO MOTORISTA (via /governance/driver)
+        // CADASTRO INICIAL DO MOTORISTA (via /driver/onboarding - público)
         if (!clean.password || clean.password.length < 6) {
           setError('Senha deve ter pelo menos 6 caracteres.');
           setLoading(false);
@@ -232,19 +232,31 @@ export default function CompleteOnboarding() {
           return;
         }
 
-        // 1. Criar motorista com senha
-        const registerResponse = await api.post('/api/governance/driver', {
-          name: clean.name,
-          email: clean.email,
-          phone: clean.phone,
-          password: clean.password,
-          neighborhoodId: clean.neighborhoodId,
-          communityId: clean.communityId || undefined,
-          familyBonusAccepted: clean.familyBonusAccepted,
-          familyProfile: clean.familyProfile
+        // 1. Criar motorista com senha (endpoint público)
+        const registerResponse = await fetch(`${API_BASE_URL}/api/driver/onboarding`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: clean.name,
+            email: clean.email,
+            phone: clean.phone,
+            password: clean.password,
+            neighborhoodId: clean.neighborhoodId,
+            communityId: clean.communityId || undefined,
+            familyBonusAccepted: clean.familyBonusAccepted,
+            familyProfile: clean.familyProfile
+          })
         });
 
-        userId = registerResponse.data.data.id;
+        const registerData = await registerResponse.json();
+        
+        if (!registerData.success) {
+          setError(registerData.error || 'Erro ao realizar cadastro');
+          setLoading(false);
+          return;
+        }
+
+        userId = registerData.data.id;
 
         // 2. Fazer login automático
         try {

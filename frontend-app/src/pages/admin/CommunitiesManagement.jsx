@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config/api';
+import api from '../../api';
 import {
   Box,
   Typography,
@@ -48,16 +48,11 @@ export default function CommunitiesManagement() {
     try {
       // CORREÇÃO: Usar endpoint governance (IDs canônicos) em vez de admin
       // Motivo: admin tem bug na deduplicação, retorna IDs sem geofence
-      const response = await fetch(`${API_BASE_URL}/api/governance/communities`);
+      const response = await api.get('/api/governance/communities');
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
+      if (response.data.success) {
         // Transformar dados do governance para formato esperado pela UI admin
-        const transformedData = data.data.map(community => ({
+        const transformedData = response.data.data.map(community => ({
           ...community,
           // Adicionar campos esperados pela UI admin (com valores padrão)
           stats: {
@@ -72,10 +67,15 @@ export default function CommunitiesManagement() {
         }));
         setCommunities(transformedData);
       } else {
-        setError(data.error || 'Erro ao carregar comunidades');
+        setError(response.data.error || 'Erro ao carregar comunidades');
       }
     } catch (error) {
-      setError('Erro de conexão');
+      console.error('Erro ao carregar comunidades:', error);
+      if (error.response?.status === 401) {
+        setError('Token ausente ou inválido. Faça login novamente.');
+      } else {
+        setError('Erro de conexão');
+      }
     } finally {
       setLoading(false);
     }
@@ -166,16 +166,11 @@ export default function CommunitiesManagement() {
   const openMapDialog = async (community) => {
     try {
       // Buscar dados completos do geofence da API
-      const token = localStorage.getItem('kaviar_admin_token');
       console.log("[MAP DIAGNOSTIC] fetching geofence", `/api/governance/communities/${community.id}/geofence`);
-      const response = await fetch(`${API_BASE_URL}/api/governance/communities/${community.id}/geofence`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get(`/api/governance/communities/${community.id}/geofence`);
 
-      if (response.ok) {
-        const geofenceData = await response.json();
+      if (response.data.success) {
+        const geofenceData = response.data;
         const geometryType = geofenceData.data?.geometry?.type;
         
         // Atualizar status da comunidade localmente
@@ -193,9 +188,9 @@ export default function CommunitiesManagement() {
         };
         
         setMapDialog({ open: true, community: communityForMap });
-      } else if (response.status === 204 || response.status === 404) {
-        // SEM DADOS - não chamar response.json() para 204/404
-        console.log(`📍 [MAP DIAGNOSTIC] Community ${community.name}: SEM DADOS (${response.status})`);
+      } else {
+        // SEM DADOS
+        console.log(`📍 [MAP DIAGNOSTIC] Community ${community.name}: SEM DADOS`);
         
         // Atualizar status da comunidade localmente
         setCommunities(prev => prev.map(c => 

@@ -43,23 +43,25 @@ api.interceptors.request.use(
     // Selecionar token por escopo
     const scope = getTokenScope(url);
     let token = null;
+    let storageKey = '';
     
     if (scope === 'driver') {
-      token = localStorage.getItem('kaviar_driver_token');
+      storageKey = 'kaviar_driver_token';
+      token = localStorage.getItem(storageKey);
     } else if (scope === 'admin') {
-      token = localStorage.getItem('kaviar_admin_token');
+      storageKey = 'kaviar_admin_token';
+      token = localStorage.getItem(storageKey);
     } else {
-      token = localStorage.getItem('kaviar_token');
+      storageKey = 'kaviar_token';
+      token = localStorage.getItem(storageKey);
     }
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('[API] ✅ Request:', config.method?.toUpperCase(), url, { scope, storageKey, hasToken: true });
+    } else {
+      console.warn('[API] ⚠️ Request WITHOUT token:', config.method?.toUpperCase(), url, { scope, storageKey, hasToken: false });
     }
-    
-    console.log('[API] Request:', config.method?.toUpperCase(), url, {
-      scope,
-      hasAuth: !!token
-    });
     
     return config;
   },

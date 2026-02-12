@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config/api';
+import api from '../../api';
 import {
   Box,
   Typography,
@@ -260,23 +260,19 @@ export default function GeofenceManagement() {
 
   const openMapDialog = async (community) => {
     try {
-      const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/governance/communities/${community.id}/geofence`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get(`/api/governance/communities/${community.id}/geofence`);
 
-      if (response.ok) {
-        const data = await response.json();
-        setMapDialog({ open: true, community, geofence: data.data });
-      } else if (response.status === 404) {
-        setMapDialog({ open: true, community, geofence: null });
+      if (response.data.success) {
+        setMapDialog({ open: true, community, geofence: response.data.data });
       } else {
-        setError('Erro ao carregar dados do geofence');
+        setMapDialog({ open: true, community, geofence: null });
       }
     } catch (error) {
-      setError('Erro ao carregar mapa');
+      if (error.response?.status === 404) {
+        setMapDialog({ open: true, community, geofence: null });
+      } else {
+        setError('Erro ao carregar mapa');
+      }
     }
   };
 

@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { API_BASE_URL } from '../../config/api';
+import api from '../../api';
 
 export default function NeighborhoodsManagement() {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -36,16 +36,15 @@ export default function NeighborhoodsManagement() {
 
   const fetchNeighborhoods = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/neighborhoods`);
-      const data = await response.json();
+      const response = await api.get('/api/neighborhoods');
       
-      console.log('Neighborhoods API response:', data);
+      console.log('Neighborhoods API response:', response.data);
       
-      if (data.success) {
-        const neighborhoodsData = data.data || [];
+      if (response.data.success) {
+        const neighborhoodsData = response.data.data || [];
         setNeighborhoods(neighborhoodsData);
       } else {
-        setError(data.error || 'Erro ao carregar bairros');
+        setError(response.data.error || 'Erro ao carregar bairros');
       }
     } catch (err) {
       console.error('Error fetching neighborhoods:', err);
@@ -60,11 +59,10 @@ export default function NeighborhoodsManagement() {
     setGeofence(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods/${neighborhood.id}/geofence`);
-      const data = await response.json();
+      const response = await api.get(`/api/governance/neighborhoods/${neighborhood.id}/geofence`);
       
-      if (data.success && data.data && data.data.coordinates) {
-        setGeofence(data.data.coordinates);
+      if (response.data.success && response.data.data && response.data.data.coordinates) {
+        setGeofence(response.data.data.coordinates);
       } else {
         // Marcar como "sem geometria" para mostrar mensagem
         setGeofence('NO_GEOMETRY');

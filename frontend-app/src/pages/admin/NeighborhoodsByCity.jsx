@@ -11,7 +11,7 @@ import {
   Chip
 } from '@mui/material';
 import { LocationCity, Map } from '@mui/icons-material';
-import { API_BASE_URL } from '../../config/api';
+import api from '../../api';
 
 export default function NeighborhoodsByCity() {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -31,21 +31,20 @@ export default function NeighborhoodsByCity() {
 
   const fetchNeighborhoods = async () => {
     try {
-      console.log('🔗 Fetching from:', `${API_BASE_URL}/api/governance/neighborhoods`);
-      const response = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`);
-      console.log('📡 Response status:', response.status);
+      const response = await api.get('/api/governance/neighborhoods');
       
-      const data = await response.json();
-      console.log('📦 Data received:', { success: data.success, count: data.data?.length });
-      
-      if (data.success) {
-        setNeighborhoods(data.data || []);
+      if (response.data.success) {
+        setNeighborhoods(response.data.data || []);
       } else {
-        setError(data.error || 'Erro ao carregar bairros');
+        setError(response.data.error || 'Erro ao carregar bairros');
       }
     } catch (err) {
       console.error('❌ Fetch error:', err);
-      setError('Erro de conexão com o servidor: ' + err.message);
+      if (err.response?.status === 401) {
+        setError('Token ausente ou inválido. Faça login novamente.');
+      } else {
+        setError('Erro de conexão com o servidor: ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -80,8 +79,7 @@ export default function NeighborhoodsByCity() {
     
     // Buscar contagem de geofences do backend
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/dashboard/overview`);
-      const data = await response.json();
+      const response = await api.get('/api/admin/dashboard/overview');
       // Por enquanto, assumir que Rio tem geometria e SP não
       if (stats['Rio de Janeiro']) stats['Rio de Janeiro'].withGeofence = 162;
       if (stats['São Paulo']) stats['São Paulo'].withGeofence = 0;

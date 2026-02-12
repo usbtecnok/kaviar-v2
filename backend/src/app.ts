@@ -44,6 +44,7 @@ import notificationsRoutes from './routes/notifications';
 import passengerLocationsRoutes from './routes/passenger-locations';
 import passengerFavoritesRoutes from './routes/passenger-favorites';
 import passengerOnboardingRoutes from './routes/passenger-onboarding';
+import driverOnboardingRoutes from './routes/driver-onboarding';
 import neighborhoodStatsRoutes from './routes/neighborhood-stats';
 import { rolloutRoutes } from './routes/rollout-temp';
 import passengerProfileRoutes from './routes/passenger-profile';
@@ -207,6 +208,7 @@ app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
 app.use('/api/passengers', passengerProfileRoutes); // ✅ Profile management
 app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (beta)
 app.use('/api/passenger/onboarding', passengerOnboardingRoutes); // ✅ GPS-first onboarding
+app.use('/api/driver', driverOnboardingRoutes); // ✅ Driver onboarding (public)
 app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
 app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
 app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
