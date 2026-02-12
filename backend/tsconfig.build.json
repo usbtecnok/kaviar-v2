@@ -19,14 +19,16 @@
     "src/middlewares/error.ts",
     "src/modules/auth/**/*",
     "src/modules/rides/**/*",
-    "src/modules/geo/**/*"
+    "src/modules/geo/**/*",
+    "src/services/**/*"
   ],
   "exclude": [
-    "src/services/**",
     "src/modules/admin/**",
     "src/modules/governance/**",
     "src/modules/premium-tourism/**",
     "src/scripts/**",
-    "src/**/__tests__/**"
+    "src/**/__tests__/**",
+    "src/services/compliance-notifications.service.ts",
+    "src/services/compliance.service.BACKUP.ts"
   ]
 }

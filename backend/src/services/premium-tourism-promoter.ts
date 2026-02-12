@@ -37,10 +37,9 @@ export async function promotePremiumTourism(
         approved_at: {
           lte: sixMonthsAgo
         },
-        OR: [
-          { premium_tourism_status: 'inactive' },
-          { premium_tourism_status: null }
-        ]
+        premium_tourism_status: {
+          not: 'active'
+        }
       },
       select: {
         id: true,
