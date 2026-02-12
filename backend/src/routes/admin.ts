@@ -79,6 +79,42 @@ router.get('/passengers', allowReadAccess, async (req, res) => {
   }
 });
 
+// GET /api/admin/passengers/:id
+router.get('/passengers/:id', allowReadAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const passenger = await prisma.passengers.findUnique({
+      where: { id },
+      include: {
+        passenger_favorite_locations: {
+          orderBy: { created_at: 'desc' }
+        },
+        neighborhoods: true,
+        communities: true
+      }
+    });
+
+    if (!passenger) {
+      return res.status(404).json({
+        success: false,
+        error: 'Passageiro não encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: passenger
+    });
+  } catch (error) {
+    console.error('Error fetching passenger:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar passageiro'
+    });
+  }
+});
+
 // GET /api/admin/rides - Using RideAdminController with filters
 router.get('/rides', allowReadAccess, rideController.getRides);
 
