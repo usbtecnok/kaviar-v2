@@ -157,6 +157,8 @@ router.get('/drivers', allowReadAccess, async (req: Request, res: Response) => {
 
 // GET /api/admin/drivers/:id
 router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) => {
+  const requestId = (req as any).requestId || req.headers['x-request-id'] || 'unknown';
+  
   try {
     const { id } = req.params;
 
@@ -190,7 +192,8 @@ router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) 
       console.error(`[Admin] Driver not found with param: ${id}`);
       return res.status(404).json({
         success: false,
-        error: 'Motorista não encontrado'
+        error: 'Motorista não encontrado',
+        requestId
       });
     }
 
@@ -207,11 +210,22 @@ router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) 
       success: true,
       data: driver
     });
-  } catch (error) {
-    console.error('Error getting driver:', error);
+  } catch (error: any) {
+    // Log estruturado com stack + requestId
+    console.error(JSON.stringify({
+      ts: new Date().toISOString(),
+      level: 'error',
+      requestId,
+      path: req.path,
+      driverId: req.params.id,
+      error: error?.message || String(error),
+      stack: error?.stack
+    }));
+    
     res.status(500).json({
       success: false,
-      error: 'Erro ao buscar motorista'
+      error: 'Erro ao buscar motorista',
+      requestId
     });
   }
 });
