@@ -21,6 +21,7 @@ import { CheckCircle, Cancel, ArrowBack } from '@mui/icons-material';
 import api from '../../api/index';
 import { VirtualFenceCenterCard } from '../../components/admin/VirtualFenceCenterCard';
 import { SecondaryBaseCard } from '../../components/admin/SecondaryBaseCard';
+import { DriverPremiumEligibilityCard } from '../../components/admin/DriverPremiumEligibilityCard';
 
 
 const isSuperAdmin = () => {
@@ -384,6 +385,11 @@ export default function AdminDriverDetail() {
           </Box>
         )}
       </Paper>
+
+      {/* Premium Eligibility Card */}
+      <Box sx={{ mt: 3 }}>
+        <DriverPremiumEligibilityCard driverId={id} />
+      </Box>
 
       {/* Virtual Fence Center Card */}
       <Box sx={{ mt: 3 }}>
