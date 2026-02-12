@@ -55,6 +55,7 @@ import driverAvailabilityRoutes from './routes/driver-availability';
 import adminDashboardMetricsRoutes from './routes/admin-dashboard-metrics';
 import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
 import driverTerritoryRoutes from './routes/driver-territory';
+import { publicRoutes } from './routes/public';
 
 const app = express();
 
@@ -264,6 +265,7 @@ if (config.legacy.enableLegacy) {
 // app.use('/api/governance', governanceRoutes); // DISABLED - legacy
 
 // Geo routes
+app.use('/api/public', publicRoutes); // ✅ Public endpoints (no auth)
 app.use('/api/geo', geoRoutes);
 // app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);
@@ -271,7 +273,7 @@ app.use('/api/governance', governanceRoutes);
 app.use('/api/auth', passengerAuthRoutes);
 app.use('/api/auth', driverAuthRoutes);
 app.use('/api/auth', guideAuthRoutes);
-console.log('✅ Geo: /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
+console.log('✅ Geo: /api/public/*, /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
 
 console.log('✅ Core: Pricing & Rides enabled, legacy routes disabled');
 

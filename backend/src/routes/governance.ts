@@ -1,6 +1,25 @@
 import { Router } from 'express';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 
+function extractGeojsonCoordinates(geojsonStr?: string | null) {
+  if (!geojsonStr) return null;
+  try {
+    const obj = JSON.parse(geojsonStr);
+
+    // Aceita FeatureCollection, Feature, ou Geometry direto
+    const geom =
+      obj?.type === 'FeatureCollection'
+        ? obj?.features?.[0]?.geometry
+        : obj?.type === 'Feature'
+          ? obj?.geometry
+          : obj;
+
+    return geom?.coordinates ?? null;
+  } catch {
+    return null;
+  }
+}
+
 import { prisma } from '../lib/prisma';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
@@ -414,6 +433,25 @@ router.get('/neighborhoods/:id/geofence', async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Tentar geofence de comunidade primeiro (se communityId fornecido via query)
+    const communityId = req.query.communityId as string | undefined;
+    if (communityId) {
+      const communityGeofence = await prisma.community_geofences.findFirst({
+        where: { community_id: communityId },
+        select: {
+          id: true,
+          community_id: true,
+          geojson: true,
+          source: true,
+          source_ref: true,
+        },
+      });
+      if (communityGeofence) {
+        return res.json({ success: true, data: communityGeofence, source: 'community' });
+      }
+    }
+
+    // Fallback: geofence do bairro
     const geofence = await prisma.neighborhood_geofences.findFirst({
       where: { neighborhood_id: id },
       select: {
@@ -429,10 +467,10 @@ router.get('/neighborhoods/:id/geofence', async (req, res) => {
 
     // Se tem geofence oficial, retorna
     if (geofence) {
-      return res.json({ success: true, data: geofence });
+      return res.json({ success: true, data: geofence, source: 'neighborhood' });
     }
 
-    // Fallback: gerar círculo de 800m baseado no centro do bairro
+    // Fallback final: gerar círculo de 800m baseado no centro do bairro
     const neighborhood = await prisma.neighborhoods.findUnique({
       where: { id },
       select: {

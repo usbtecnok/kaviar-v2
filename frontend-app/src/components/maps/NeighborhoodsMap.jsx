@@ -125,21 +125,24 @@ const NeighborhoodsMap = ({
           
           const coords = coordinates[0].map(coord => [coord[1], coord[0]]);
           const isSelected = selectedNeighborhood?.id === neighborhood.id;
+          const isFallback = neighborhood.geofence.source === 'fallback' || neighborhood.geofence.geofence_type === 'circle';
           
           console.log(`🗺️ [MAP] Renderizando ${neighborhood.name}:`, {
             isSelected,
             coordsLength: coords.length,
-            geofenceType: neighborhood.geofence.geofenceType
+            geofenceType: neighborhood.geofence.geofence_type,
+            isFallback
           });
           
           const polygon = window.L.polygon(coords, {
-            color: isSelected ? '#FF5722' : '#4CAF50',
-            fillColor: isSelected ? '#FF5722' : '#4CAF50',
-            fillOpacity: isSelected ? 0.6 : 0.3,
+            color: isSelected ? '#FF5722' : (isFallback ? '#FFA726' : '#4CAF50'),
+            fillColor: isSelected ? '#FF5722' : (isFallback ? '#FFA726' : '#4CAF50'),
+            fillOpacity: isSelected ? 0.6 : (isFallback ? 0.2 : 0.3),
             weight: isSelected ? 3 : 2,
+            dashArray: isFallback ? '5, 5' : null,
             isNeighborhood: true
           }).addTo(mapInstanceRef.current)
-            .bindPopup(`<b>Bairro:</b> ${neighborhood.name}<br><b>Zona:</b> ${neighborhood.zone}`);
+            .bindPopup(`<b>Bairro:</b> ${neighborhood.name}<br><b>Zona:</b> ${neighborhood.zone}${isFallback ? '<br><span style="color: orange;">⚠️ Geofence aproximada (800m)</span>' : ''}`);
           
           // Se selecionado, fazer zoom para o bairro
           if (isSelected) {

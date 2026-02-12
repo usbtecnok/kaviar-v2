@@ -188,7 +188,7 @@ export default function CompleteOnboarding() {
           phone: clean.phone,
           password: clean.password,
           neighborhoodId: clean.neighborhoodId,
-          communityId: clean.communityId || null,
+          communityId: clean.communityId || null, // Backend aceita UUID ou slug
           lgpdAccepted
         };
         console.log('[CADASTRO] Payload enviado:', payload);
@@ -242,7 +242,7 @@ export default function CompleteOnboarding() {
             phone: clean.phone,
             password: clean.password,
             neighborhoodId: clean.neighborhoodId,
-            communityId: clean.communityId || undefined,
+            communityId: clean.communityId || undefined, // Backend aceita UUID ou slug
             familyBonusAccepted: clean.familyBonusAccepted,
             familyProfile: clean.familyProfile
           })

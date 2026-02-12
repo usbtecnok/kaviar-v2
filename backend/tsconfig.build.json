@@ -1,34 +1,35 @@
 {
   "extends": "./tsconfig.json",
+
+  // IMPORTANTE: se o tsconfig base tiver "files" ou "references",
+  // isso IGNORA exclude. Aqui a gente zera.
+  "files": [],
+  "references": [],
+
   "compilerOptions": {
-    "outDir": "./dist",
-    "declaration": false,
-    "declarationMap": false
+    "noEmitOnError": true
   },
+
   "include": [
-    "src/app.ts",
-    "src/server.ts",
-    "src/config/**/*",
-    "src/routes/index.ts",
-    "src/routes/auth.ts",
-    "src/routes/password-reset.ts",
-    "src/routes/passenger-auth.ts",
-    "src/routes/rides.ts",
-    "src/routes/geo.ts",
-    "src/middleware/**/*",
-    "src/middlewares/error.ts",
-    "src/modules/auth/**/*",
-    "src/modules/rides/**/*",
-    "src/modules/geo/**/*",
-    "src/services/**/*"
+    "src/**/*.ts"
   ],
+
   "exclude": [
-    "src/modules/admin/**",
-    "src/modules/governance/**",
-    "src/modules/premium-tourism/**",
+    "node_modules",
+    "dist",
+
+    "**/*.test.ts",
+    "**/*.spec.ts",
+
     "src/scripts/**",
-    "src/**/__tests__/**",
-    "src/services/compliance-notifications.service.ts",
-    "src/services/compliance.service.BACKUP.ts"
+    "src/**/trips-integration-example.ts",
+
+    "**/*.BACKUP.ts",
+    "**/*.backup.ts",
+    "**/*.bak.ts",
+
+    "src/routes/governance.ts",
+    "src/routes/Governance.ts",
+    "src/services/compliance-notifications.service.ts"
   ]
 }

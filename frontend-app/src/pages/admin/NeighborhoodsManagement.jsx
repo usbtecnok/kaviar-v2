@@ -59,7 +59,7 @@ export default function NeighborhoodsManagement() {
     setGeofence(null);
     
     try {
-      const response = await api.get(`/api/governance/neighborhoods/${neighborhood.id}/geofence`);
+      const response = await api.get(`/api/public/neighborhoods/${neighborhood.id}/geofence`);
       
       if (response.data.success && response.data.data && response.data.data.coordinates) {
         setGeofence(response.data.data.coordinates);

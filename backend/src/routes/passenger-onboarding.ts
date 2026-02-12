@@ -14,9 +14,26 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   phone: z.string().min(10, 'Telefone inválido'),
   neighborhoodId: z.string().uuid('Bairro inválido'),
-  communityId: z.string().uuid().optional().nullable(),
+  communityId: z.string().optional().nullable(), // Aceita UUID ou slug
   lgpdAccepted: z.boolean().optional().default(true)
 });
+
+// Helper: resolver communityId (UUID ou slug) para UUID
+async function resolveCommunityId(input: string | null | undefined): Promise<string | null> {
+  if (!input) return null;
+  
+  // Se já é UUID, retorna direto
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(input)) return input;
+  
+  // Caso contrário, tenta resolver por nome
+  const community = await prisma.communities.findFirst({
+    where: { name: { equals: input, mode: 'insensitive' } },
+    select: { id: true }
+  });
+  
+  return community?.id || null;
+}
 
 const locationSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -28,7 +45,10 @@ const locationSchema = z.object({
 router.post('/', async (req, res) => {
   try {
     console.log('[passenger/onboarding] Received payload:', JSON.stringify(req.body, null, 2));
-    const { name, email, password, phone, neighborhoodId, communityId, lgpdAccepted } = registerSchema.parse(req.body);
+    const { name, email, password, phone, neighborhoodId, communityId: communityInput, lgpdAccepted } = registerSchema.parse(req.body);
+    
+    // Resolver communityId (UUID ou slug)
+    const communityId = await resolveCommunityId(communityInput);
     
     const existingPassenger = await prisma.passengers.findUnique({
       where: { email }
@@ -51,7 +71,7 @@ router.post('/', async (req, res) => {
         password_hash,
         phone,
         neighborhood_id: neighborhoodId,
-        community_id: communityId || null,
+        community_id: communityId,
         status: 'ACTIVE',
         updated_at: new Date()
       }
@@ -123,6 +143,47 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Helper: criar geofence circular para comunidade (se não existir)
+async function ensureCommunityGeofence(communityId: string, lat: number, lng: number, radiusMeters: number = 500) {
+  try {
+    // Verificar se já existe
+    const existing = await prisma.community_geofences.findFirst({
+      where: { community_id: communityId }
+    });
+    if (existing) return;
+
+    // Gerar círculo
+    const EARTH_R = 6371000;
+    const coords: number[][] = [];
+    for (let i = 0; i <= 32; i++) {
+      const angle = (i * 360 / 32) * Math.PI / 180;
+      const dx = radiusMeters * Math.cos(angle);
+      const dy = radiusMeters * Math.sin(angle);
+      const newLat = lat + (dy / EARTH_R) * (180 / Math.PI);
+      const newLng = lng + (dx / EARTH_R) * (180 / Math.PI) / Math.cos(lat * Math.PI / 180);
+      coords.push([newLng, newLat]);
+    }
+
+    // Criar geofence
+    await prisma.community_geofences.create({
+      data: {
+        id: `geofence-${communityId}-${Date.now()}`,
+        community_id: communityId,
+        center_lat: lat,
+        center_lng: lng,
+        geojson: JSON.stringify({ type: 'Polygon', coordinates: [coords] }),
+        source: `Generated from first resident GPS (${radiusMeters}m)`,
+        confidence: 'generated',
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+    console.log(`[geofence] Created circular geofence for community ${communityId} (${radiusMeters}m)`);
+  } catch (error) {
+    console.error('[geofence] Error creating community geofence:', error);
+  }
+}
+
 // POST /api/passenger/onboarding/location
 router.post('/location', authenticatePassenger, async (req, res) => {
   try {
@@ -151,6 +212,11 @@ router.post('/location', authenticatePassenger, async (req, res) => {
           neighborhood_id: territory.neighborhood?.id || null
         }
       });
+
+      // Criar geofence circular para comunidade (se não existir)
+      if (territory.community?.id) {
+        await ensureCommunityGeofence(territory.community.id, lat, lng, 500);
+      }
     }
 
     console.log(`[onboarding/location] Passenger ${passenger.id}: method=${territory.method}, resolved=${territory.resolved}`);
