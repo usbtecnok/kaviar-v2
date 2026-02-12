@@ -38,16 +38,18 @@ curl http://kaviar-alb-1494046292.us-east-2.elb.amazonaws.com/api/health/ready
 
 ---
 
-## 2. Recomendação: NEXT SPRINT (Observability + Matching)
+## 2. Recomendação: NEXT SPRINT (Base Operacional)
 
-**Objetivo:** Aumentar visibilidade operacional e melhorar matching territorial com incentivos.
+**Contexto:** Não há motoristas reais ainda. Foco em infraestrutura para simulação e testes.
+
+**Objetivo:** Criar base operacional para onboarding de motoristas e observabilidade.
 
 **Duração:** 1 sprint curto (3-5 dias)
 
 **Impacto esperado:**
 - Reduzir MTTR (Mean Time To Resolution) de incidentes em 50%
-- Aumentar taxa de match territorial em 15-20%
-- Melhorar retenção de motoristas com gamificação
+- Habilitar simulação de matching com drivers seed
+- Preparar sistema para onboarding real de motoristas
 
 ---
 
@@ -94,50 +96,76 @@ aws logs tail /ecs/kaviar-backend --follow --format json | jq '.message | fromjs
 
 ---
 
-### Tarefa 2: Pontos Extra Trabalho/Escola + Incentivo (Matching)
+### Tarefa 2: MVP Onboarding de Motorista + Seed (Matching)
 **Prioridade:** ALTA  
-**Impacto:** Aumentar match territorial, reduzir tempo de espera, fidelizar motoristas
+**Impacto:** Habilitar simulação de matching, preparar onboarding real
 
 **Entregas:**
-1. Adicionar campos `work_location` e `school_location` (lat/lng) em `drivers` table
-2. Criar endpoint `POST /api/drivers/locations` (motorista cadastra trabalho/escola)
-3. Atualizar `territorial-match.ts`: +10 pontos se origem/destino está a < 2km de work/school
-4. Dashboard motorista: mostrar "Você ganhou +10 pontos por corrida próxima ao trabalho!"
+1. Admin endpoint `POST /api/admin/drivers/create` (criar motorista manualmente)
+2. Admin endpoint `PATCH /api/admin/drivers/:id/approve` (aprovar motorista)
+3. Driver endpoint `PATCH /api/drivers/location` (atualizar lat/lng)
+4. Script seed `prisma/seed-drivers.ts` (gerar 20-50 drivers fake em bairros RJ)
+5. Endpoint `POST /api/match/simulate` usando drivers seed
+
+**Campos mínimos (drivers table):**
+- `name`, `phone`, `email`, `status` (PENDING/APPROVED/ACTIVE)
+- `last_lat`, `last_lng`, `updatedAt` (localização atual)
+- `community_id` (bairro/território)
 
 **Critérios de Aceite:**
-- [ ] Motorista consegue cadastrar até 2 localizações extras (trabalho + escola)
-- [ ] Match score aumenta +10 pontos se corrida está no raio de 2km
-- [ ] Dashboard exibe badge "Corrida no Caminho" quando aplicável
-- [ ] Migração Prisma executada sem downtime
+- [ ] Admin consegue criar driver via API (status=PENDING)
+- [ ] Admin consegue aprovar driver (status=APPROVED)
+- [ ] Driver consegue atualizar localização (PATCH /api/drivers/location)
+- [ ] Seed gera 50 drivers distribuídos em 10 bairros (Copacabana, Ipanema, Botafogo, etc)
+- [ ] `/api/match/simulate` retorna top 5 drivers mais próximos da origem
 
 **Validação:**
 ```bash
-# 1. Cadastrar localização
-curl -X POST http://localhost:3003/api/drivers/locations \
+# 1. Criar driver (admin)
+curl -X POST http://localhost:3003/api/admin/drivers/create \
+  -H "Authorization: Bearer <admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "João Silva",
+    "phone": "+5521999999999",
+    "email": "joao@example.com",
+    "community_id": "copacabana"
+  }'
+# Verificar: status=PENDING
+
+# 2. Aprovar driver
+curl -X PATCH http://localhost:3003/api/admin/drivers/<driver_id>/approve \
+  -H "Authorization: Bearer <admin_token>"
+# Verificar: status=APPROVED
+
+# 3. Atualizar localização (driver)
+curl -X PATCH http://localhost:3003/api/drivers/location \
   -H "Authorization: Bearer <driver_token>" \
   -H "Content-Type: application/json" \
-  -d '{"type":"work","lat":-22.9068,"lng":-43.1729,"name":"Escritório Centro"}'
+  -d '{"lat":-22.9668,"lng":-43.1729}'
+# Verificar: last_lat, last_lng, updatedAt atualizados
 
-# 2. Simular match com corrida próxima
+# 4. Executar seed
+npm run seed:drivers
+# Verificar: 50 drivers criados com status=ACTIVE
+
+# 5. Simular match
 curl -X POST http://localhost:3003/api/match/simulate \
   -H "Content-Type: application/json" \
   -d '{
-    "driverId": "<driver_id>",
-    "rideOrigin": {"lat":-22.9050,"lng":-43.1750},
-    "rideDestination": {"lat":-22.9100,"lng":-43.1800}
+    "origin": {"lat":-22.9668,"lng":-43.1729},
+    "destination": {"lat":-22.9500,"lng":-43.1800}
   }'
-# Verificar: matchScore contém +10 (workProximityBonus)
-
-# 3. Verificar dashboard
-curl http://localhost:3003/api/drivers/dashboard \
-  -H "Authorization: Bearer <driver_token>" | jq '.badges'
+# Verificar: retorna array com 5 drivers, ordenados por score (distância + território)
 ```
 
 **Arquivos a modificar:**
-- `prisma/schema.prisma` (adicionar campos work_location, school_location)
-- `src/routes/driver-locations.ts` (criar)
-- `src/services/territorial-match.ts` (adicionar lógica de proximidade)
-- `src/routes/driver-dashboard.ts` (exibir badge)
+- `prisma/schema.prisma` (verificar campos last_lat, last_lng, updatedAt)
+- `src/routes/admin-drivers.ts` (adicionar POST /create, PATCH /:id/approve)
+- `src/routes/drivers.ts` (adicionar PATCH /location)
+- `prisma/seed-drivers.ts` (criar script seed)
+- `src/routes/match.ts` (criar POST /simulate)
+- `package.json` (adicionar script "seed:drivers")
 
 ---
 
@@ -191,8 +219,14 @@ npm test
 # Verificar logs estruturados
 npm run dev:3003 2>&1 | grep requestId | jq
 
-# Testar match com localização extra
-npm run test:matching
+# Executar seed de drivers
+npm run seed:drivers
+# Verificar: 50 drivers criados
+
+# Testar match com drivers seed
+curl -X POST http://localhost:3003/api/match/simulate \
+  -H "Content-Type: application/json" \
+  -d '{"origin":{"lat":-22.9668,"lng":-43.1729},"destination":{"lat":-22.9500,"lng":-43.1800}}'
 ```
 
 ### Deploy PROD
@@ -213,12 +247,18 @@ curl -i http://kaviar-alb-1494046292.us-east-2.elb.amazonaws.com/api/health/read
 # 4. Verificar logs estruturados
 aws logs tail /ecs/kaviar-backend --follow --format json | jq '.message | fromjson'
 
-# 5. Testar match com pontos extras
+# 5. Testar criação de driver (admin)
+curl -X POST https://api.kaviar.com.br/api/admin/drivers/create \
+  -H "Authorization: Bearer <admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test Driver","phone":"+5521999999999","email":"test@example.com"}'
+
+# 6. Testar match com drivers seed
 curl -X POST https://api.kaviar.com.br/api/match/simulate \
   -H "Content-Type: application/json" \
-  -d '{"driverId":"<id>","rideOrigin":{"lat":-22.9050,"lng":-43.1750}}'
+  -d '{"origin":{"lat":-22.9668,"lng":-43.1729},"destination":{"lat":-22.9500,"lng":-43.1800}}'
 
-# 6. Verificar dashboard CloudWatch
+# 7. Verificar dashboard CloudWatch
 open "https://console.aws.amazon.com/cloudwatch/home?region=us-east-2#dashboards:name=KAVIAR-Production"
 ```
 
@@ -251,15 +291,20 @@ aws cloudwatch get-metric-statistics \
 
 ## 5. Alternativas Consideradas (Não Priorizadas)
 
-### Opção B: Governança/Investors (WhatsApp Invites)
+### Opção B: Pontos Extra Trabalho/Escola (Matching Avançado)
+- **Impacto:** Alto (gamificação, +15% match territorial)
+- **Complexidade:** Média
+- **Motivo não priorizado:** Requer motoristas reais ativos. Fica para sprint futura após onboarding.
+
+### Opção C: Governança/Investors (WhatsApp Invites)
 - **Impacto:** Médio (facilita onboarding de investidores)
 - **Complexidade:** Baixa
-- **Motivo não priorizado:** Observability é mais crítico para estabilidade
+- **Motivo não priorizado:** Observability e base operacional são mais críticos
 
-### Opção C: Geofence Avançado (Polígonos Verificados)
+### Opção D: Geofence Avançado (Polígonos Verificados)
 - **Impacto:** Alto (pricing mais preciso)
 - **Complexidade:** Alta (importação de dados oficiais)
-- **Motivo não priorizado:** Matching + Observability têm ROI mais rápido
+- **Motivo não priorizado:** Matching básico + Observability têm ROI mais rápido
 
 ---
 
@@ -268,9 +313,9 @@ aws cloudwatch get-metric-statistics \
 | Risco | Probabilidade | Impacto | Mitigação |
 |-------|---------------|---------|-----------|
 | Logs estruturados aumentam latência | Baixa | Médio | Usar logger assíncrono (winston/pino) |
-| Migração de schema quebra prod | Baixa | Alto | Testar em staging, usar `prisma migrate deploy` |
+| Seed de drivers polui DB de prod | Média | Alto | Usar flag `NODE_ENV=development`, nunca rodar seed em prod |
+| Match simulate retorna drivers inativos | Média | Médio | Filtrar apenas drivers com `status=ACTIVE` e `updatedAt < 5min` |
 | Dashboard CloudWatch custa caro | Baixa | Baixo | Usar apenas métricas padrão (sem custom metrics) |
-| Match score muda comportamento | Média | Médio | A/B test com 10% dos motoristas primeiro |
 
 ---
 
@@ -281,19 +326,21 @@ aws cloudwatch get-metric-statistics \
   - MTTR de incidentes < 10 minutos (vs. 30min atual)
   - Dashboard CloudWatch acessado 5x/dia pela equipe
 
-- **Matching:**
-  - 20% dos motoristas cadastram localização extra
-  - Taxa de match territorial aumenta 15%
-  - NPS de motoristas aumenta 5 pontos
+- **Base Operacional:**
+  - 50 drivers seed criados e distribuídos em 10 bairros
+  - Admin consegue criar/aprovar drivers via API
+  - `/api/match/simulate` retorna top 5 drivers em < 200ms
+  - 0 erros 5XX durante testes de carga (100 req/s por 5min)
 
 ---
 
 ## 8. Próximos Passos (Pós-Sprint)
 
-1. **Observability Avançado:** Distributed tracing (AWS X-Ray), custom metrics (match_score, ride_duration)
-2. **Matching ML:** Modelo preditivo de aceitação de corrida (XGBoost)
-3. **Governança:** Investor invites via WhatsApp, dashboard de métricas para investidores
-4. **Geofence:** Importação de polígonos oficiais (IBGE), pricing dinâmico por bairro
+1. **Onboarding Real:** App de motorista (signup, upload de documentos, aprovação)
+2. **Matching Avançado:** Pontos extra trabalho/escola, histórico de aceitação, ML preditivo
+3. **Observability Avançado:** Distributed tracing (AWS X-Ray), custom metrics (match_score, ride_duration)
+4. **Governança:** Investor invites via WhatsApp, dashboard de métricas para investidores
+5. **Geofence:** Importação de polígonos oficiais (IBGE), pricing dinâmico por bairro
 
 ---
 
