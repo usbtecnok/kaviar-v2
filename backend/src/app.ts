@@ -63,6 +63,11 @@ app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
   console.log(`🔍 CORS middleware: ${req.method} ${req.path} | Origin: ${origin}`);
 
+  // ✅ Healthcheck ALB: não depende de Origin/CORS
+  if (req.path === '/api/health' || req.originalUrl?.startsWith('/api/health')) {
+    return next();
+  }
+
   const allowedOrigins = new Set([
     'https://app.kaviar.com.br',
     'https://kaviar.com.br',
@@ -75,11 +80,17 @@ app.use((req, res, next) => {
   res.header('Vary', 'Origin');
   console.log(`📤 Set Vary: Origin`);
 
-  if (origin && allowedOrigins.has(origin)) {
+  // ✅ Requests sem Origin (server-to-server) devem ser permitidos
+  if (!origin) {
+    return next();
+  }
+
+  if (allowedOrigins.has(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
     console.log(`✅ Set Access-Control-Allow-Origin: ${origin}`);
   } else {
     console.log(`❌ Origin not allowed: ${origin}`);
+    return res.status(403).json({ success: false, error: 'CORS origin not allowed' });
   }
 
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -104,19 +115,29 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'KAVIAR API' });
 });
 
-app.get('/api/health', async (req, res) => {
+// LIVENESS: ALB health check (always 200)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'KAVIAR Backend',
+    version: process.env.GIT_COMMIT || 'unknown',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// READINESS: dependency checks (200 if ready, 503 if not)
+app.get('/api/health/ready', async (req, res) => {
   const startTime = Date.now();
   const checks: any = { database: false, s3: false };
 
   try {
-    // Database check
     await prisma.$queryRaw`SELECT 1`;
     checks.database = true;
   } catch (e) {
     checks.database = false;
   }
 
-  // S3 check (basic - just verify env var exists)
   checks.s3 = !!process.env.AWS_S3_BUCKET;
 
   const responseTime = Date.now() - startTime;
