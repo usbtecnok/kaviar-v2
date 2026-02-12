@@ -218,4 +218,89 @@ router.get('/passengers/:id/addresses', requireAuth, async (req: Request, res: R
   }
 });
 
+// POST /api/match/simulate - Simular matching (MVP - sem auth)
+router.post('/simulate', async (req: Request, res: Response) => {
+  try {
+    const { origin, limit = 5 } = req.body;
+
+    if (!origin || !origin.lat || !origin.lng) {
+      return res.status(400).json({ success: false, error: 'origin.lat e origin.lng são obrigatórios' });
+    }
+
+    const originLat = Number(origin.lat);
+    const originLng = Number(origin.lng);
+
+    if (originLat < -90 || originLat > 90 || originLng < -180 || originLng > 180) {
+      return res.status(400).json({ success: false, error: 'Coordenadas inválidas' });
+    }
+
+    // Buscar drivers ACTIVE com localização recente (últimos 5 min)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    
+    const drivers = await prisma.drivers.findMany({
+      where: {
+        status: 'active',
+        last_lat: { not: null },
+        last_lng: { not: null },
+        last_location_updated_at: { gte: fiveMinutesAgo }
+      },
+      select: {
+        id: true,
+        name: true,
+        last_lat: true,
+        last_lng: true,
+        last_location_updated_at: true
+      }
+    });
+
+    // Calcular distância Haversine
+    const haversine = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371000; // Raio da Terra em metros
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c;
+    };
+
+    // Calcular distância e score para cada driver
+    const results = drivers.map(driver => {
+      const distanceMeters = haversine(
+        originLat,
+        originLng,
+        Number(driver.last_lat),
+        Number(driver.last_lng)
+      );
+      const score = 100000 - distanceMeters;
+
+      return {
+        driverId: driver.id,
+        name: driver.name,
+        distanceMeters: Math.round(distanceMeters),
+        lastLocationAt: driver.last_location_updated_at?.toISOString(),
+        score: Math.round(score)
+      };
+    });
+
+    // Ordenar por distância ASC e pegar top N
+    results.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    const topResults = results.slice(0, limit);
+
+    res.json({
+      success: true,
+      results: topResults,
+      total: drivers.length
+    });
+  } catch (error) {
+    console.error('Error simulating match:', error);
+    res.status(500).json({ success: false, error: 'Erro ao simular matching' });
+  }
+});
+
 export default router;

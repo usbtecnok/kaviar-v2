@@ -477,4 +477,40 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
   }
 });
 
+// PATCH /api/drivers/location (MVP - sem auth para seed/testing)
+const locationSchema = z.object({
+  driverId: z.string().min(1),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180)
+});
+
+router.patch('/location', async (req: Request, res: Response) => {
+  try {
+    const data = locationSchema.parse(req.body);
+
+    const driver = await prisma.drivers.findUnique({ where: { id: data.driverId } });
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    }
+
+    await prisma.drivers.update({
+      where: { id: data.driverId },
+      data: {
+        last_lat: data.lat,
+        last_lng: data.lng,
+        last_location_updated_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0].message });
+    }
+    console.error('Error updating location:', error);
+    res.status(500).json({ success: false, error: 'Erro ao atualizar localização' });
+  }
+});
+
 export default router;

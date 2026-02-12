@@ -217,6 +217,8 @@ model drivers {
 
   @@index([territory_type])
   @@index([neighborhood_id, territory_type])
+  @@index([status])
+  @@index([last_location_updated_at])
 }
 
 model elderly_contracts {

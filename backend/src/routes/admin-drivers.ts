@@ -344,4 +344,59 @@ router.get('/debug/uploads-check', requireSuperAdmin, async (req: Request, res: 
   res.json(result);
 });
 
+// PATCH /api/admin/drivers/:id/approve
+router.patch('/drivers/:id/approve', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const driver = await prisma.drivers.findUnique({ where: { id } });
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    }
+
+    const updated = await prisma.drivers.update({
+      where: { id },
+      data: {
+        status: 'approved',
+        approved_at: new Date(),
+        approved_by: (req as any).admin?.id || 'admin',
+        updated_at: new Date()
+      }
+    });
+
+    res.json({
+      success: true,
+      driver: { id: updated.id, status: updated.status }
+    });
+  } catch (error) {
+    console.error('Error approving driver:', error);
+    res.status(500).json({ success: false, error: 'Erro ao aprovar motorista' });
+  }
+});
+
+// PATCH /api/admin/drivers/:id/activate
+router.patch('/drivers/:id/activate', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const driver = await prisma.drivers.findUnique({ where: { id } });
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    }
+
+    const updated = await prisma.drivers.update({
+      where: { id },
+      data: {
+        status: 'active',
+        updated_at: new Date()
+      }
+    });
+
+    res.json({ success: true, driver: { id: updated.id, status: updated.status } });
+  } catch (error) {
+    console.error('Error activating driver:', error);
+    res.status(500).json({ success: false, error: 'Erro ao ativar motorista' });
+  }
+});
+
 export default router;
