@@ -1,0 +1,508 @@
+openapi: 3.0.3
+info:
+  title: Kaviar Admin API
+  version: 1.0.0
+  description: Admin endpoints for Kaviar platform management
+servers:
+  - url: https://api.kaviar.com.br
+    description: Production
+  - url: http://localhost:3003
+    description: Local
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/admin/dashboard/overview:
+    get:
+      summary: Dashboard overview metrics
+      tags: [Dashboard]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  drivers: { type: integer }
+                  activeDrivers: { type: integer }
+                  passengers: { type: integer }
+                  rides: { type: integer }
+                  communities: { type: integer }
+                  activeCommunities: { type: integer }
+                  neighborhoodsByCity: { type: object }
+                  guides: { type: integer }
+                  pending:
+                    type: object
+                    properties:
+                      drivers: { type: integer }
+                      guides: { type: integer }
+
+  /api/admin/drivers:
+    get:
+      summary: List drivers
+      tags: [Drivers]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, active, rejected]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { type: array, items: { $ref: '#/components/schemas/Driver' } }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+
+  /api/admin/drivers/create:
+    post:
+      summary: Create driver
+      tags: [Drivers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                phone: { type: string }
+      responses:
+        '200':
+          description: Driver created
+        '400':
+          description: Validation error
+
+  /api/admin/drivers/{id}:
+    get:
+      summary: Get driver details
+      tags: [Drivers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+        '404':
+          description: Not found
+
+  /api/admin/drivers/{id}/approve:
+    patch:
+      summary: Approve driver
+      tags: [Drivers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Approved
+        '404':
+          description: Not found
+
+  /api/admin/drivers/{id}/activate:
+    patch:
+      summary: Activate driver
+      tags: [Drivers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activated
+
+  /api/admin/drivers/{id}/reject:
+    post:
+      summary: Reject driver
+      tags: [Drivers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Rejected
+
+  /api/admin/drivers/{id}/eligibility:
+    get:
+      summary: Check premium eligibility (tenure-based)
+      tags: [Drivers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      driverId: { type: string }
+                      createdAt: { type: string, format: date-time }
+                      tenureMonths: { type: integer }
+                      tenureLabel: { type: string }
+                      docsOk: { type: boolean }
+                      termsOk: { type: boolean }
+                      eligiblePremium: { type: boolean }
+                      reasons: { type: array, items: { type: string } }
+
+  /api/admin/drivers/{id}/promote-premium-tourism:
+    patch:
+      summary: Promote driver to premium tourism
+      tags: [Drivers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Promoted
+        '403':
+          description: Not eligible
+
+  /api/admin/drivers/{driverId}/virtual-fence-center:
+    get:
+      summary: Get virtual fence center
+      tags: [Drivers]
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+    put:
+      summary: Update virtual fence center
+      tags: [Drivers]
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete virtual fence center
+      tags: [Drivers]
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+
+  /api/admin/passengers:
+    get:
+      summary: List passengers
+      tags: [Passengers]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Success
+
+  /api/admin/passengers/{passengerId}/favorites:
+    get:
+      summary: Get passenger favorites
+      tags: [Passengers]
+      parameters:
+        - name: passengerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+    put:
+      summary: Upsert favorite location
+      tags: [Passengers]
+      parameters:
+        - name: passengerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated
+
+  /api/admin/passengers/{passengerId}/favorites/{favoriteId}:
+    delete:
+      summary: Delete favorite location
+      tags: [Passengers]
+      parameters:
+        - name: passengerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: favoriteId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+
+  /api/admin/rides:
+    get:
+      summary: List rides with filters
+      tags: [Rides]
+      responses:
+        '200':
+          description: Success
+
+  /api/admin/rides/{id}:
+    get:
+      summary: Get ride details
+      tags: [Rides]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  /api/admin/rides/{id}/status:
+    patch:
+      summary: Update ride status
+      tags: [Rides]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated
+
+  /api/admin/rides/{id}/cancel:
+    post:
+      summary: Cancel ride
+      tags: [Rides]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cancelled
+
+  /api/admin/rides/{id}/force-complete:
+    post:
+      summary: Force complete ride
+      tags: [Rides]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Completed
+
+  /api/admin/rides/audit:
+    get:
+      summary: Get ride audit logs
+      tags: [Rides]
+      responses:
+        '200':
+          description: Success
+
+  /api/admin/feature-flags/{key}:
+    get:
+      summary: Get feature flag
+      tags: [Feature Flags]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+    put:
+      summary: Update feature flag
+      tags: [Feature Flags]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated
+
+  /api/admin/feature-flags/{key}/allowlist:
+    get:
+      summary: Get allowlist
+      tags: [Feature Flags]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+    post:
+      summary: Add to allowlist
+      tags: [Feature Flags]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Added
+
+  /api/admin/feature-flags/{key}/allowlist/{passengerId}:
+    delete:
+      summary: Remove from allowlist
+      tags: [Feature Flags]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: passengerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Removed
+
+  /api/admin/beta-monitor/{featureKey}/checkpoints:
+    get:
+      summary: Get beta checkpoints
+      tags: [Beta Monitor]
+      parameters:
+        - name: featureKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  /api/admin/beta-monitor/{featureKey}/run:
+    post:
+      summary: Run checkpoint
+      tags: [Beta Monitor]
+      parameters:
+        - name: featureKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Started
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Driver:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        status: { type: string, enum: [pending, approved, active, rejected] }
+        createdAt: { type: string, format: date-time }
+
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        pages: { type: integer }

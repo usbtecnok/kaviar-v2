@@ -17,6 +17,26 @@ const rideController = new RideAdminController();
 
 router.use(authenticateAdmin);
 
+// GET /api/admin/admins
+router.get('/admins', requireSuperAdmin, async (req, res) => {
+  try {
+    const admins = await prisma.admins.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        is_active: true,
+        created_at: true
+      },
+      orderBy: { created_at: 'desc' }
+    });
+    res.json({ success: true, data: admins });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar admins' });
+  }
+});
+
 // GET /api/admin/passengers
 router.get('/passengers', allowReadAccess, async (req, res) => {
   try {
