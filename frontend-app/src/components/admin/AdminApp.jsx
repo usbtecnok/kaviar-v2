@@ -8,6 +8,7 @@ import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
 import BetaMonitor from "../../pages/admin/BetaMonitor";
+import MatchMonitor from "../../pages/admin/MatchMonitor";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
 import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
 import NeighborhoodsByCity from "../../pages/admin/NeighborhoodsByCity";
@@ -731,6 +732,15 @@ export default function AdminApp() {
             <ProtectedAdminRoute>
               <AdminHeader />
               <BetaMonitor />
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/match-monitor" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <MatchMonitor />
+              </Container>
             </ProtectedAdminRoute>
           } />
           

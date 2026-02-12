@@ -275,7 +275,7 @@ export default function AdminDashboard() {
                 Passageiros
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Aprovar e gerenciar passageiros
+                Gerenciar passageiros
               </Typography>
             </Box>
           </Button>
@@ -322,6 +322,24 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
+            href="/admin/rides/audit"
+          >
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                Audit Logs
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Histórico de ações administrativas
+              </Typography>
+            </Box>
+          </Button>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Button
+            variant="outlined"
+            fullWidth
+            sx={{ p: 2, textAlign: 'left' }}
             href="/admin/beta-monitor"
           >
             <Box>
@@ -329,7 +347,43 @@ export default function AdminDashboard() {
                 Beta Monitor
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Checkpoints + logs + runbook operacional
+                Checkpoints e runbooks operacionais
+              </Typography>
+            </Box>
+          </Button>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Button
+            variant="outlined"
+            fullWidth
+            sx={{ p: 2, textAlign: 'left' }}
+            href="/admin/match-monitor"
+          >
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                Match Monitor
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Monitorar matches em tempo real
+              </Typography>
+            </Box>
+          </Button>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Button
+            variant="outlined"
+            fullWidth
+            sx={{ p: 2, textAlign: 'left' }}
+            href="/admin/feature-flags"
+          >
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                Feature Flags
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Controle de features e allowlists
               </Typography>
             </Box>
           </Button>
