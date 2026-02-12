@@ -256,6 +256,31 @@ export class ApprovalController {
         }
       });
 
+      // Premium Tourism Ativos
+      const premiumTourismActive = await prisma.drivers.groupBy({
+        by: ['neighborhood_id'],
+        _count: true,
+        where: {
+          neighborhood_id: { not: null },
+          premium_tourism_status: 'active'
+        }
+      });
+
+      // Elegíveis (6 meses)
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      
+      const eligible = await prisma.drivers.groupBy({
+        by: ['neighborhood_id'],
+        _count: true,
+        where: {
+          neighborhood_id: { not: null },
+          status: 'approved',
+          approved_at: { lte: sixMonthsAgo },
+          premium_tourism_status: { not: 'active' }
+        }
+      });
+
       // Buscar nomes dos bairros
       const neighborhoodIds = [...new Set(drivers.map(d => d.neighborhood_id).filter(Boolean))];
       const neighborhoods = await prisma.neighborhoods.findMany({
@@ -264,9 +289,19 @@ export class ApprovalController {
       });
 
       const neighborhoodMap = new Map(neighborhoods.map(n => [n.id, n.name]));
+      const premiumMap = new Map(premiumTourismActive.map(p => [p.neighborhood_id, p._count]));
+      const eligibleMap = new Map(eligible.map(e => [e.neighborhood_id, e._count]));
 
       // Agrupar por bairro
-      const metrics = new Map<string, { neighborhoodId: string; name: string; total: number; approved: number; pending: number }>();
+      const metrics = new Map<string, { 
+        neighborhoodId: string; 
+        name: string; 
+        total: number; 
+        approved: number; 
+        pending: number;
+        premiumTourismActive: number;
+        eligible6Months: number;
+      }>();
 
       drivers.forEach(d => {
         if (!d.neighborhood_id) return;
@@ -277,7 +312,9 @@ export class ApprovalController {
             name: neighborhoodMap.get(d.neighborhood_id) || 'Desconhecido',
             total: 0,
             approved: 0,
-            pending: 0
+            pending: 0,
+            premiumTourismActive: premiumMap.get(d.neighborhood_id) || 0,
+            eligible6Months: eligibleMap.get(d.neighborhood_id) || 0
           });
         }
 

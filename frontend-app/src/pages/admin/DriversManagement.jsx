@@ -216,10 +216,12 @@ export default function DriversManagement() {
                     <Typography variant="subtitle1" fontWeight="bold">
                       {metric.name}
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
                       <Chip label={`Total: ${metric.total}`} size="small" />
                       <Chip label={`Aprovados: ${metric.approved}`} size="small" color="success" />
                       <Chip label={`Pendentes: ${metric.pending}`} size="small" color="warning" />
+                      <Chip label={`Premium Turismo: ${metric.premiumTourismActive || 0}`} size="small" color="secondary" />
+                      <Chip label={`Elegíveis (6m): ${metric.eligible6Months || 0}`} size="small" color="info" />
                     </Box>
                   </CardContent>
                 </Card>
@@ -237,7 +239,7 @@ export default function DriversManagement() {
               <TableCell>Email</TableCell>
               <TableCell>Bairro</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Premium</TableCell>
+              <TableCell>Premium Turismo</TableCell>
               <TableCell>Cadastro</TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
@@ -256,10 +258,10 @@ export default function DriversManagement() {
                   />
                 </TableCell>
                 <TableCell>
-                  {driver.isPremium ? (
-                    <Chip label="Premium" color="secondary" size="small" />
+                  {driver.premium_tourism_status === 'active' ? (
+                    <Chip label="Ativo" color="success" size="small" />
                   ) : (
-                    <Chip label="Comum" color="default" size="small" />
+                    <Chip label="Inativo" color="default" size="small" />
                   )}
                 </TableCell>
                 <TableCell>
