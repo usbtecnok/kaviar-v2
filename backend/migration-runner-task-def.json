@@ -1,0 +1,34 @@
+{
+  "family": "kaviar-migration-runner",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::847895361928:role/KaviarEcsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "postgres-client",
+      "image": "postgres:16-alpine",
+      "essential": true,
+      "command": [
+        "sh",
+        "-c",
+        "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -c 'ALTER TABLE \"drivers\" ADD COLUMN IF NOT EXISTS \"active_since\" TIMESTAMPTZ NULL;' && psql \"$DATABASE_URL\" -c '\\d \"drivers\"' | grep active_since"
+      ],
+      "environment": [
+        {
+          "name": "DATABASE_URL",
+          "value": "postgresql://kaviaradmin:KaviarDB2026SecureProd@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/kaviar-migration-runner",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "migration"
+        }
+      }
+    }
+  ]
+}
