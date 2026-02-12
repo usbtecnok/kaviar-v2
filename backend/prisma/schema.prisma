@@ -204,6 +204,9 @@ model drivers {
   territory_type              String?
   territory_verified_at       DateTime?
   territory_verification_method String?
+  active_since                DateTime?
+  premium_tourism_status      String                        @default("standard")
+  premium_tourism_promoted_at DateTime?
   created_at                  DateTime                      @default(now())
   updated_at                  DateTime
   driver_compliance_documents driver_compliance_documents[]
@@ -219,6 +222,8 @@ model drivers {
   @@index([neighborhood_id, territory_type])
   @@index([status])
   @@index([last_location_updated_at])
+  @@index([active_since])
+  @@index([premium_tourism_status])
 }
 
 model elderly_contracts {

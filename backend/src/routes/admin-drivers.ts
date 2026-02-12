@@ -384,18 +384,130 @@ router.patch('/drivers/:id/activate', requireSuperAdmin, async (req: Request, re
       return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
     }
 
+    // Se activeSince não existe, setar agora (primeira ativação)
+    const updateData: any = {
+      status: 'active',
+      updated_at: new Date()
+    };
+
+    if (!driver.active_since) {
+      updateData.active_since = new Date();
+    }
+
+    const updated = await prisma.drivers.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({ success: true, driver: { id: updated.id, status: updated.status, activeSince: updated.active_since } });
+  } catch (error) {
+    console.error('Error activating driver:', error);
+    res.status(500).json({ success: false, error: 'Erro ao ativar motorista' });
+  }
+});
+
+// GET /api/admin/drivers/:id/premium-eligibility
+router.get('/drivers/:id/premium-eligibility', allowReadAccess, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const driver = await prisma.drivers.findUnique({ where: { id } });
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    }
+
+    const requiredMonths = parseInt(process.env.PREMIUM_TOURISM_MIN_MONTHS || '6');
+    let monthsActive = 0;
+    let eligibleByTime = false;
+
+    if (driver.active_since) {
+      const diffMs = Date.now() - driver.active_since.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      monthsActive = Math.floor(diffDays / 30);
+      eligibleByTime = monthsActive >= requiredMonths;
+    }
+
+    // Docs/Terms check (placeholder - retornar null se não existir validação)
+    const docsOk = null;
+    const termsOk = null;
+
+    const eligible = eligibleByTime && driver.status === 'active';
+
+    res.json({
+      success: true,
+      data: {
+        driverId: driver.id,
+        status: driver.status,
+        activeSince: driver.active_since?.toISOString() || null,
+        monthsActive,
+        requiredMonths,
+        eligibleByTime,
+        docsOk,
+        termsOk,
+        eligible,
+        currentPremiumTourismStatus: driver.premium_tourism_status
+      }
+    });
+  } catch (error) {
+    console.error('Error checking premium eligibility:', error);
+    res.status(500).json({ success: false, error: 'Erro ao verificar elegibilidade' });
+  }
+});
+
+// PATCH /api/admin/drivers/:id/promote-premium-tourism
+router.patch('/drivers/:id/promote-premium-tourism', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const driver = await prisma.drivers.findUnique({ where: { id } });
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    }
+
+    if (driver.status !== 'active') {
+      return res.status(400).json({ success: false, error: 'Driver not active' });
+    }
+
+    if (!driver.active_since) {
+      return res.status(400).json({ success: false, error: 'ActiveSince not set' });
+    }
+
+    if (driver.premium_tourism_status === 'premium') {
+      return res.status(409).json({ success: false, error: 'Already premium' });
+    }
+
+    const requiredMonths = parseInt(process.env.PREMIUM_TOURISM_MIN_MONTHS || '6');
+    const diffMs = Date.now() - driver.active_since.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const monthsActive = Math.floor(diffDays / 30);
+
+    if (monthsActive < requiredMonths) {
+      return res.status(403).json({ 
+        success: false, 
+        error: `Not eligible: requires ${requiredMonths} months active (current: ${monthsActive})` 
+      });
+    }
+
     const updated = await prisma.drivers.update({
       where: { id },
       data: {
-        status: 'active',
+        premium_tourism_status: 'premium',
+        premium_tourism_promoted_at: new Date(),
         updated_at: new Date()
       }
     });
 
-    res.json({ success: true, driver: { id: updated.id, status: updated.status } });
+    res.json({
+      success: true,
+      data: {
+        driverId: updated.id,
+        premiumTourismStatus: updated.premium_tourism_status,
+        promotedAt: updated.premium_tourism_promoted_at
+      }
+    });
   } catch (error) {
-    console.error('Error activating driver:', error);
-    res.status(500).json({ success: false, error: 'Erro ao ativar motorista' });
+    console.error('Error promoting to premium tourism:', error);
+    res.status(500).json({ success: false, error: 'Erro ao promover motorista' });
   }
 });
 
