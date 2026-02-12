@@ -6,6 +6,8 @@ import { errorHandler, notFound } from './middlewares/error';
 import { handleFeatureDisabledError, handleStatusTransitionError } from './middlewares/premium-tourism-flag';
 import { prisma } from './lib/prisma';
 import investorView from './middleware/investorView';
+import { requestIdMiddleware } from './middleware/request-id';
+import { structuredLogger } from './middleware/structured-logger';
 
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
@@ -57,6 +59,12 @@ const app = express();
 
 // ✅ Trust proxy (ALB)
 app.set('trust proxy', 1);
+
+// ✅ Request ID (primeiro middleware)
+app.use(requestIdMiddleware);
+
+// ✅ Structured logging (segundo middleware)
+app.use(structuredLogger);
 
 // ✅ CORS - Manual headers BEFORE any middleware
 app.use((req, res, next) => {
@@ -114,6 +122,13 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'KAVIAR API' });
 });
+
+// Debug endpoint (DEV only) - force error for testing
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/_debug/error', (req, res, next) => {
+    next(new Error('Test error from debug endpoint'));
+  });
+}
 
 // LIVENESS: ALB health check (always 200)
 app.get('/api/health', (req, res) => {
