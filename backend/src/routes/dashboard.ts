@@ -10,6 +10,7 @@ router.get('/overview', async (req: Request, res: Response) => {
     const [
       totalDrivers,
       activeDrivers,
+      pendingDrivers,
       totalPassengers,
       totalRides,
       totalNeighborhoods,
@@ -18,6 +19,7 @@ router.get('/overview', async (req: Request, res: Response) => {
     ] = await Promise.all([
       prisma.drivers.count(),
       prisma.drivers.count({ where: { status: 'APPROVED' } }),
+      prisma.drivers.count({ where: { status: 'PENDING' } }),
       prisma.passengers.count(),
       Promise.resolve(0), // trips - tabela não existe
       prisma.neighborhoods.count(),
@@ -41,7 +43,12 @@ router.get('/overview', async (req: Request, res: Response) => {
       rides: totalRides,
       communities: totalNeighborhoods,
       activeCommunities: activeNeighborhoods,
-      neighborhoodsByCity: cityCounts
+      neighborhoodsByCity: cityCounts,
+      guides: 0,
+      pending: {
+        drivers: pendingDrivers,
+        guides: 0
+      }
     });
   } catch (error) {
     console.error('Error fetching dashboard overview:', error);

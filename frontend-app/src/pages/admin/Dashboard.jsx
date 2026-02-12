@@ -40,7 +40,7 @@ export default function AdminDashboard() {
 
       const data = await response.json();
       if (response.ok) {
-        setDashboardData({ overview: data });
+        setDashboardData(data);
       } else {
         setError(data.error || 'Erro ao carregar dashboard');
       }
@@ -67,7 +67,8 @@ export default function AdminDashboard() {
     );
   }
 
-  const { overview, pending } = dashboardData;
+  const overview = dashboardData;
+  const pending = dashboardData.pending;
 
   return (
     <Box sx={{ p: 3 }}>
