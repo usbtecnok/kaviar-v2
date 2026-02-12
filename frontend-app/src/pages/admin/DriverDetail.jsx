@@ -360,6 +360,47 @@ export default function AdminDriverDetail() {
               );
             })()}
           </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Kaviar Premium Turismo</Typography>
+            <Box sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Status:</Typography>
+                  <Chip 
+                    label={driver.premium_tourism_status === 'active' ? 'Ativo' : 'Inativo'} 
+                    color={driver.premium_tourism_status === 'active' ? 'success' : 'default'}
+                    size="small"
+                    sx={{ mt: 0.5 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Promovido em:</Typography>
+                  <Typography variant="body2">
+                    {driver.premium_tourism_promoted_at 
+                      ? new Date(driver.premium_tourism_promoted_at).toLocaleDateString('pt-BR')
+                      : '—'}
+                  </Typography>
+                </Grid>
+                {driver.approved_at && driver.premium_tourism_status !== 'active' && (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary">Elegível em:</Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {(() => {
+                        const approvedDate = new Date(driver.approved_at);
+                        const eligibleDate = new Date(approvedDate);
+                        eligibleDate.setMonth(eligibleDate.getMonth() + 6);
+                        return eligibleDate.toLocaleDateString('pt-BR');
+                      })()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      (6 meses após aprovação)
+                    </Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          </Grid>
         </Grid>
 
         {isSuperAdmin() && driver.status === 'pending' && (
