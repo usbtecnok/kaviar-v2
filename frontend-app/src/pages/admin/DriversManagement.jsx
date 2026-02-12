@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { MatchSimulatorCard } from '../../components/admin/MatchSimulatorCard';
 
 
 const isSuperAdmin = () => {
@@ -183,6 +184,9 @@ export default function DriversManagement() {
           {error}
         </Alert>
       )}
+
+      {/* Match Simulator Card (T2 MVP) */}
+      <MatchSimulatorCard />
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
