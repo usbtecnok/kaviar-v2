@@ -454,6 +454,66 @@ router.get('/drivers/:id/premium-eligibility', allowReadAccess, async (req: Requ
   }
 });
 
+// GET /api/admin/drivers/:id/eligibility (MVP - tenure-based)
+router.get('/drivers/:id/eligibility', allowReadAccess, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const driver = await prisma.drivers.findUnique({
+      where: { id },
+      include: {
+        driver_consents: true
+      }
+    });
+
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    }
+
+    // Calcular tenure desde createdAt
+    const createdAt = driver.created_at;
+    const now = new Date();
+    const diffMs = now.getTime() - createdAt.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const tenureMonths = Math.floor(diffDays / 30);
+
+    const tenureLabel = tenureMonths === 0 ? 'menos de 1 mês' :
+                        tenureMonths === 1 ? 'há 1 mês' :
+                        `há ${tenureMonths} meses`;
+
+    // Verificar docs (MVP: considerar OK se certidao_nada_consta_url existe)
+    const docsOk = !!driver.certidao_nada_consta_url;
+
+    // Verificar termos (MVP: considerar OK se driver_consents existe)
+    const termsOk = !!driver.driver_consents;
+
+    // Calcular elegibilidade
+    const reasons: string[] = [];
+    if (tenureMonths < 6) reasons.push('TENURE_LT_6');
+    if (!docsOk) reasons.push('DOCS_PENDING');
+    if (!termsOk) reasons.push('TERMS_NOT_ACCEPTED');
+
+    const eligiblePremium = tenureMonths >= 6 && docsOk && termsOk;
+
+    res.json({
+      success: true,
+      data: {
+        driverId: driver.id,
+        createdAt: createdAt.toISOString(),
+        tenureMonths,
+        tenureLabel,
+        docsOk,
+        termsOk,
+        eligiblePremium,
+        reasons
+      }
+    });
+  } catch (error) {
+    console.error('Error checking driver eligibility:', error);
+    res.status(500).json({ success: false, error: 'Erro ao verificar elegibilidade' });
+  }
+});
+
 // PATCH /api/admin/drivers/:id/promote-premium-tourism
 router.patch('/drivers/:id/promote-premium-tourism', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
