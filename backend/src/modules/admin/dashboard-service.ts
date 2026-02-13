@@ -90,20 +90,7 @@ export class DashboardService {
     return prisma.rides.findMany({
       take: limit,
       orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        driver_id: true,
-        passenger_id: true,
-        origin: true,
-        destination: true,
-        status: true,
-        type: true,
-        price: true,
-        distance: true,
-        duration: true,
-        created_at: true,
-        updated_at: true,
-        // platform_fee_percentage: true, // TODO: Descomentar após aplicar migration add_metrics_fields.sql
+      include: {
         drivers: {
           select: { id: true, name: true, email: true }
         },
