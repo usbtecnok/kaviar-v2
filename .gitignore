@@ -1,118 +1,3 @@
-# Environment variables
-.env
-
-# Node.js
-node_modules/
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
-
-# OS files
-.DS_Store
-Thumbs.db
-# Frontend build artifacts
-frontend-app/dist
-frontend-app/dist/**
-.env
-.env.*
-*.swp
-*.swo
-*.swx
-
-# editor swap files
-*.swp
-*.swo
-*.swx
-
-*.bak
-
-# anti-lixo / anti-secrets
-/audit/backups/
-**/.env
-**/.env.*
-
-# Bloquear backups e env
-/audit/backups/
-*.env*
-.env*
-
-# Bloquear backups e env
-/audit/backups/
-*.env*
-.env*
-
-# Environment files (security)
-.env
-.env.*
-**/.env
-**/.env.*
-!.env.example
-!**/.env.example
-
-# Dependencies / build output
-node_modules
-**/node_modules
-dist
-**/dist
-build
-**/build
-
-# local pipeline reports
-backend/audit/
-
-# editor junk
-*.swp
-*.swo
-*.swx
-*.bak
-*.bak.*
-validate-aws-infra.sh
-
-# AWS credentials and secrets (NEVER COMMIT)
-rds-credentials.txt
-rds.env
-aws-resources.env
-*.log
-**/rds-credentials.txt
-**/rds.env
-**/aws-resources.env
-**/*.log
-docs/ADMIN_CREDENTIALS.md
-
-# one-off ops scripts (never commit)
-backend/create-admin-inline.js
-backend/scripts/create-super-admin*.js
-
-# one-off ops scripts (never commit)
-backend/create-admin-inline.js
-backend/scripts/create-super-admin*.js
-taskdef.json
-taskdef.json
-INVESTORS_ACCESS.md
-
-# Investor credentials (confidential)
-INVESTORS_ACCESS.md
-INVESTORS_ACCESS_GENERATED.md
-
-# Investor credentials (DO NOT COMMIT)
-INVESTORS_ACCESS_GENERATED.md
-
-# Investor credentials (DO NOT COMMIT)
-INVESTORS_ACCESS_GENERATED.md
-
-# dumps/backups locais (NUNCA commitar)
-*_backup.sql
-*neon*.sql
-*.dump
-*.bak
-
-# scripts/rascunhos locais
-migrate-to-rds.sh
-validate-territory.sh
-validate-territory.sql
-
 # arquivos locais gerados (docs/relatórios/scripts)
 *.txt
 *_HOTFIX*.md
@@ -123,8 +8,9 @@ CHECKLIST_*.md
 DIFF_*.md
 INDEX.md
 QUICK_START.md
+
+# scripts locais (se não forem parte do repo)
 deploy-geofence-fix.sh
 rollback-geofence-fix.sh
 test-geofence-patches.sh
 validate-*.sh
-
