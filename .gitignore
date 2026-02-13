@@ -14,3 +14,26 @@ deploy-geofence-fix.sh
 rollback-geofence-fix.sh
 test-geofence-patches.sh
 validate-*.sh
+
+# secrets / env
+.env
+**/.env
+*.env
+*.env.*
+aws-resources.env
+rds.env
+
+# deps / build
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+
+# backups & logs
+*.bak
+*.log
+deploy.log
+*.sql.bak
+
+# OS/editor
+.DS_Store
