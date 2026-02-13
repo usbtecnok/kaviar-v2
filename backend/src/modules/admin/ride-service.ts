@@ -81,7 +81,33 @@ export class RideAdminService {
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
-        include: {
+        select: {
+          id: true,
+          driver_id: true,
+          passenger_id: true,
+          origin: true,
+          destination: true,
+          origin_lat: true,
+          origin_lng: true,
+          destination_lat: true,
+          destination_lng: true,
+          status: true,
+          type: true,
+          price: true,
+          distance: true,
+          duration: true,
+          created_at: true,
+          updated_at: true,
+          started_at: true,
+          completed_at: true,
+          cancelled_at: true,
+          cancellation_reason: true,
+          // platform_fee_percentage: true, // TODO: Descomentar após aplicar migration add_metrics_fields.sql
+          match_type: true,
+          pickup_neighborhood_id: true,
+          dropoff_neighborhood_id: true,
+          distance_km: true,
+          duration_minutes: true,
           drivers: {
             select: {
               id: true,
@@ -118,7 +144,33 @@ export class RideAdminService {
   async getRideById(id: string) {
     const ride = await prisma.rides.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        driver_id: true,
+        passenger_id: true,
+        origin: true,
+        destination: true,
+        origin_lat: true,
+        origin_lng: true,
+        destination_lat: true,
+        destination_lng: true,
+        status: true,
+        type: true,
+        price: true,
+        distance: true,
+        duration: true,
+        created_at: true,
+        updated_at: true,
+        started_at: true,
+        completed_at: true,
+        cancelled_at: true,
+        cancellation_reason: true,
+        // platform_fee_percentage: true, // TODO: Descomentar após aplicar migration add_metrics_fields.sql
+        match_type: true,
+        pickup_neighborhood_id: true,
+        dropoff_neighborhood_id: true,
+        distance_km: true,
+        duration_minutes: true,
         drivers: {
           select: {
             id: true,
