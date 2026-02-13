@@ -183,7 +183,7 @@ app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin/auth', passwordResetRoutes);
 
 // Investor invites (SUPER_ADMIN only, before investorView middleware)
-import investorInvitesRoutes from './routes/investor-invites';
+import investorInvitesRoutes from './routes/investor-invites-v2';
 app.use('/api/admin/investors', investorInvitesRoutes);
 
 // Demo Mode / Investor View Middleware (read-only)
