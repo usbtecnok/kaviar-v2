@@ -10,7 +10,7 @@ export const WHATSAPP_TEMPLATES = {
   kaviar_rides_driver_cancelled_v1: "HX3f5789f32a05ea805735351720c6b0a3",
   kaviar_rides_passenger_completed_v1: "HXb370f31ef271b85e0abf17e921ef16db",
   kaviar_invites_driver_v1: "HXd4fb99531949db1ac1a4bd232f387bf6",
-  kaviar_invites_investor_v1: "HXa1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+  kaviar_invites_investor_v1: "HX823a1b38ef9f20814e5fb5977f353356",
   kaviar_rides_driver_arrived_v1: "HX1ec498822ddee9172cbdddafb53d3dc8",
   kaviar_payment_receipt_v1: "HXb1cf76a5d9693227510cca86728884ca",
   copy_kaviar_auth_password_reset_v1: "HX514417adf01e3725e58c93beaa245b5c",
