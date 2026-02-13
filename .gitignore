@@ -69,3 +69,19 @@ backend/audit/
 # backups
 *.bak
 *.bak.*
+
+# docs/relatórios locais (não versionar)
+ANALISE_TERRITORIO_GOOGLE.md
+APRESENTACAO_EXECUTIVA.md
+CORRECAO_FINAL.md
+HOTFIX_COMPLETO.md
+HOTFIX_GEOFENCE_FALLBACK.md
+INVESTORS_ACCESS*.md
+METRICAS_SISTEMA_KAVIAR.md
+
+# auditorias locais (muitos arquivos gerados)
+backend/audit/
+
+# backups
+*.bak
+*.bak.*
