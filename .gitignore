@@ -37,3 +37,11 @@ deploy.log
 
 # OS/editor
 .DS_Store
+
+# scripts locais perigosos / rascunhos de migração
+migrate-to-rds.sh
+validate-territory.sql
+
+# backups
+*.bak
+*.bak.*
