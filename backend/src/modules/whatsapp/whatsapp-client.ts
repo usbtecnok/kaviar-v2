@@ -23,7 +23,24 @@ export function getWhatsAppFrom(): string {
   return must(WHATSAPP_ENV.from, "TWILIO_WHATSAPP_FROM");
 }
 
-export function normalizeWhatsAppTo(e164: string): string {
-  const to = e164.trim();
-  return to.startsWith("whatsapp:") ? to : `whatsapp:${to}`;
+export function normalizeWhatsAppTo(to: string): string {
+  const raw = (to || "").trim();
+  
+  // Se já tem prefixo whatsapp:, extrair número
+  const phoneOnly = raw.startsWith("whatsapp:") ? raw.substring(9) : raw;
+  
+  // Limpar: manter apenas + e dígitos
+  const cleaned = phoneOnly.replace(/[^\d+]/g, "");
+  
+  // Validar formato E.164 (deve começar com +)
+  if (!cleaned.startsWith("+")) {
+    throw new Error(`[whatsapp] Invalid To phone (missing +): ${to}`);
+  }
+  
+  // Validar comprimento mínimo (+ e pelo menos 10 dígitos)
+  if (cleaned.length < 11) {
+    throw new Error(`[whatsapp] Invalid To phone (too short): ${to}`);
+  }
+  
+  return `whatsapp:${cleaned}`;
 }
