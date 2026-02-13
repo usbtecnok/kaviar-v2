@@ -11,6 +11,13 @@ import { WHATSAPP_ENV } from '../modules/whatsapp/whatsapp-client';
 
 const router = Router();
 
+// Logger estruturado
+const logger = {
+  info: (data: any, msg: string) => console.log(JSON.stringify({ ...data, level: 'info', message: msg, ts: new Date().toISOString() })),
+  warn: (data: any, msg: string) => console.warn(JSON.stringify({ ...data, level: 'warn', message: msg, ts: new Date().toISOString() })),
+  error: (data: any, msg: string) => console.error(JSON.stringify({ ...data, level: 'error', message: msg, ts: new Date().toISOString() }))
+};
+
 const inviteSchemaEmail = z.object({
   channel: z.literal('email').optional(),
   email: z.string().email('Email inválido'),
@@ -106,19 +113,30 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
 
     // WhatsApp first, email fallback
     if (channel === 'whatsapp' && phone && WHATSAPP_ENV.enabled) {
+      logger.info({ requestId, phone, role }, 'INVESTOR_INVITE_WHATSAPP_ATTEMPT');
+      
       try {
         await whatsappEvents.inviteInvestor(phone, {
           "1": displayName,
           "2": inviteUrl
         });
         
-        console.log({ requestId, phone }, 'INVESTOR_INVITE_WHATSAPP_SENT');
+        logger.info({ requestId, phone }, 'INVESTOR_INVITE_WHATSAPP_SENT');
         return res.json({ 
           success: true, 
           message: 'Convite enviado via WhatsApp.' 
         });
-      } catch (err) {
-        console.warn({ requestId, err }, 'INVESTOR_INVITE_WHATSAPP_FAILED');
+      } catch (err: any) {
+        const twilioError = {
+          requestId,
+          phone,
+          twilioCode: err?.code,
+          twilioStatus: err?.status,
+          twilioMessage: err?.message,
+          moreInfo: err?.moreInfo,
+          stack: err?.stack?.split('\n')[0]
+        };
+        logger.warn(twilioError, 'INVESTOR_INVITE_WHATSAPP_FAILED');
         // Fallback to email
       }
     }
@@ -143,14 +161,14 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
       `
     });
 
-    console.log({ requestId, email }, 'INVESTOR_INVITE_EMAIL_SENT');
+    logger.info({ requestId, email }, 'INVESTOR_INVITE_EMAIL_SENT');
     return res.json({ 
       success: true, 
       message: channel === 'whatsapp' ? 'WhatsApp falhou. Convite enviado via email.' : 'Convite enviado via email.' 
     });
 
-  } catch (error) {
-    console.error({ requestId, error }, 'INVESTOR_INVITE_ERROR');
+  } catch (error: any) {
+    logger.error({ requestId, error: error?.message, stack: error?.stack?.split('\n')[0] }, 'INVESTOR_INVITE_ERROR');
     
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
