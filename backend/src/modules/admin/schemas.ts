@@ -70,7 +70,7 @@ export const forceCompleteRideSchema = z.object({
 
 // Ride ID param schema
 export const rideIdSchema = z.object({
-  id: z.string().cuid(),
+  id: z.string().min(1),
 });
 
 // Driver ID param schema
