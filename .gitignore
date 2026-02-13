@@ -45,3 +45,11 @@ validate-territory.sql
 # backups
 *.bak
 *.bak.*
+
+# scripts locais perigosos / rascunhos de migração/validação
+migrate-to-rds.sh
+validate-territory.sql
+
+# backups
+*.bak
+*.bak.*
