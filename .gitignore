@@ -112,3 +112,19 @@ INVESTORS_ACCESS_GENERATED.md
 migrate-to-rds.sh
 validate-territory.sh
 validate-territory.sql
+
+# arquivos locais gerados (docs/relatórios/scripts)
+*.txt
+*_HOTFIX*.md
+RELATORIO_*.md
+AUDITORIA_*.md
+STATUS_*.md
+CHECKLIST_*.md
+DIFF_*.md
+INDEX.md
+QUICK_START.md
+deploy-geofence-fix.sh
+rollback-geofence-fix.sh
+test-geofence-patches.sh
+validate-*.sh
+
