@@ -116,12 +116,17 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
       logger.info({ requestId, phone, role }, 'INVESTOR_INVITE_WHATSAPP_ATTEMPT');
       
       try {
+        const roleLabel = role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer';
+        const loginUrl = `${config.frontendUrl}/admin/login`;
+        
         await whatsappEvents.inviteInvestor(phone, {
           "1": displayName,
-          "2": inviteUrl
+          "2": roleLabel,
+          "3": inviteUrl,
+          "4": loginUrl
         });
         
-        logger.info({ requestId, phone }, 'INVESTOR_INVITE_WHATSAPP_SENT');
+        logger.info({ requestId, phone, role }, 'INVESTOR_INVITE_WHATSAPP_SENT');
         return res.json({ 
           success: true, 
           message: 'Convite enviado via WhatsApp.' 
