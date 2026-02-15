@@ -6,14 +6,8 @@ type Vars = Record<string, string | number | boolean | null | undefined>;
 function toContentVariables(vars: Vars): string {
   const clean: Record<string, string> = {};
   for (const [k, v] of Object.entries(vars)) {
-    const value = String(v ?? '');
-    // Twilio rejeita: empty string, null, newlines, tabs, 4+ espaços consecutivos
-    if (!value || value.trim() === '') {
-      clean[String(k)] = ' '; // espaço único como fallback
-    } else {
-      // Remove newlines, tabs, reduz espaços múltiplos
-      clean[String(k)] = value.replace(/[\n\r\t]/g, ' ').replace(/ {4,}/g, '   ');
-    }
+    // Garantir sempre string não-vazia
+    clean[String(k)] = String(v ?? '').replace(/[\n\r\t]/g, ' ').replace(/ {4,}/g, '   ') || ' ';
   }
   const json = JSON.stringify(clean);
   console.log('[whatsapp] toContentVariables:', { 
