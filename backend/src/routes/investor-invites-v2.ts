@@ -109,7 +109,7 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
     });
 
     const token = generateInviteToken(admin.id, 'admin');
-    const inviteUrl = `https://kaviar.com.br/admin/investor-invites?token=${token}`;
+    const inviteUrl = `${config.frontendUrl}/admin/activate?token=${token}`;
 
     // WhatsApp first, email fallback
     if (channel === 'whatsapp' && phone && WHATSAPP_ENV.enabled) {
