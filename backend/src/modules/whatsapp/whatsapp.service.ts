@@ -39,14 +39,19 @@ export class WhatsAppService {
 
     const contentVariables = toContentVariables(params.variables ?? {});
     
-    // Log para debug (sem expor dados sensíveis)
-    console.log('[whatsapp] Sending template:', {
-      template: params.template,
+    // Mascarar tokens/URLs mas manter estrutura
+    const maskSensitive = (str: string) => str.replace(/(token=|invites\?token=)[^"&}]+/gi, '$1***MASKED***');
+    
+    // Log CRÍTICO antes do Twilio call
+    console.log('[TWILIO_CALL_DEBUG]', JSON.stringify({
       contentSid,
+      contentSidLength: contentSid.length,
       contentVariablesType: typeof contentVariables,
       contentVariablesLength: contentVariables.length,
-      contentVariablesPreview: contentVariables.substring(0, 200)
-    });
+      contentVariablesRaw: maskSensitive(contentVariables),
+      from,
+      toMasked: to.substring(0, 15) + '***'
+    }));
 
     // contentVariables já é string JSON
     const msg = await client.messages.create({ 
