@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { API_BASE_URL } from '../../config/api';
+import api from '../../api';
 
 export default function InvestorInvites() {
+  const [channel, setChannel] = useState('whatsapp');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [role, setRole] = useState('INVESTOR_VIEW');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -15,26 +17,21 @@ export default function InvestorInvites() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${API_BASE_URL}/api/admin/investors/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ email, role }),
-      });
+      const payload = channel === 'whatsapp' 
+        ? { channel: 'whatsapp', phone, role }
+        : { channel: 'email', email, role };
 
-      const data = await response.json();
+      const { data } = await api.post('/api/admin/investors/invite', payload);
 
-      if (response.ok) {
+      if (data.success) {
         setSuccess(data.message);
         setEmail('');
+        setPhone('');
       } else {
         setError(data.error || 'Erro ao enviar convite');
       }
-    } catch (error) {
-      setError('Erro de conexão com o servidor');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erro ao enviar convite');
     } finally {
       setLoading(false);
     }
@@ -76,14 +73,11 @@ export default function InvestorInvites() {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
-            Email do Investidor/Anjo
+            Canal de Envio
           </label>
-          <input
-            type="email"
-            placeholder="email.real@exemplo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
+          <select
+            value={channel}
+            onChange={(e) => setChannel(e.target.value)}
             disabled={loading}
             style={{
               width: '100%',
@@ -93,8 +87,60 @@ export default function InvestorInvites() {
               fontSize: '14px',
               opacity: loading ? 0.6 : 1
             }}
-          />
+          >
+            <option value="whatsapp">📱 WhatsApp</option>
+            <option value="email">📧 Email</option>
+          </select>
         </div>
+
+        {channel === 'whatsapp' ? (
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+              Telefone (formato E.164)
+            </label>
+            <input
+              type="text"
+              placeholder="+5521987654321"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                opacity: loading ? 0.6 : 1
+              }}
+            />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              Formato: +55 (código país) + DDD + número
+            </small>
+          </div>
+        ) : (
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+              Email do Investidor/Anjo
+            </label>
+            <input
+              type="email"
+              placeholder="email.real@exemplo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                opacity: loading ? 0.6 : 1
+              }}
+            />
+          </div>
+        )}
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
@@ -133,17 +179,18 @@ export default function InvestorInvites() {
             cursor: loading ? 'not-allowed' : 'pointer'
           }}
         >
-          {loading ? '⏳ Enviando...' : '📧 Enviar Convite'}
+          {loading ? '⏳ Enviando...' : channel === 'whatsapp' ? '📱 Enviar via WhatsApp' : '📧 Enviar via Email'}
         </button>
       </form>
 
       <div style={{ marginTop: '30px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
         <h3 style={{ fontSize: '14px', marginBottom: '10px', color: '#333' }}>ℹ️ Como funciona:</h3>
         <ul style={{ fontSize: '13px', color: '#666', lineHeight: '1.6', paddingLeft: '20px' }}>
-          <li>O convidado receberá um email com link para definir senha</li>
+          <li>O convidado receberá um link para definir senha</li>
           <li>Link expira em 15 minutos</li>
           <li>Acesso read-only: pode visualizar mas não editar dados</li>
           <li>Login em: app.kaviar.com.br/admin/login</li>
+          <li>WhatsApp: fallback automático para email se falhar</li>
         </ul>
       </div>
     </div>
