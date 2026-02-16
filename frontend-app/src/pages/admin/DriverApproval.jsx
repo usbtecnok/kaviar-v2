@@ -24,6 +24,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Visibility, Delete } from '@mui/icons-material';
 import { adminApi } from '../../services/adminApi';
+import api from '../../api/index';
 
 
 const normType = (t) => String(t || "").trim().toUpperCase();
@@ -370,9 +371,18 @@ export default function DriverApproval() {
                           <Button
                             variant="outlined"
                             size="small"
-                            href={`${API_BASE_URL}${doc.file_url || doc.document_url}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            onClick={async () => {
+                              const key = (doc.file_url || doc.document_url).replace(/^\//, '');
+                              try {
+                                const { data } = await api.get(`/api/admin/presign?key=${encodeURIComponent(key)}`);
+                                if (data.success && data.url) {
+                                  window.open(data.url, '_blank', 'noopener,noreferrer');
+                                }
+                              } catch (err) {
+                                console.error('Failed to get presigned URL:', err);
+                                alert('Erro ao abrir documento');
+                              }
+                            }}
                           >
                             Ver
                           </Button>

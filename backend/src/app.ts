@@ -56,6 +56,7 @@ import adminDashboardMetricsRoutes from './routes/admin-dashboard-metrics';
 import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
 import driverTerritoryRoutes from './routes/driver-territory';
 import { publicRoutes } from './routes/public';
+import adminPresignRoutes from './routes/admin-presign';
 
 const app = express();
 
@@ -194,6 +195,7 @@ app.use('/api/match', matchRoutes); // ✅ Territorial match system
 app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes); // ✅ Driver details + documents
+app.use('/api/admin', adminPresignRoutes); // ✅ Presigned URLs for S3 documents
 app.use('/api/admin/dashboard', adminDashboardMetricsRoutes); // ✅ Real-time metrics
 app.use('/api/admin/community-leaders', communityLeadersRoutes); // ✅ Community leaders management
 app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
