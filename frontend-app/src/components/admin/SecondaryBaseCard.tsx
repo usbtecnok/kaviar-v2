@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, Typography, TextField, Button, Box, Alert, CircularProgress, Switch, FormControlLabel } from '@mui/material';
 import { Place as MapPinIcon, Delete as TrashIcon } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api';
 
 interface SecondaryBaseCardProps {
   driverId: string;
@@ -14,10 +14,7 @@ interface SecondaryBase {
   enabled: boolean;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://api.kaviar.com.br';
-
 export const SecondaryBaseCard: React.FC<SecondaryBaseCardProps> = ({ driverId }) => {
-  const { token } = useAuth();
   const [base, setBase] = useState<SecondaryBase | null>(null);
   const [lat, setLat] = useState('');
   const [lng, setLng] = useState('');
@@ -34,10 +31,7 @@ export const SecondaryBaseCard: React.FC<SecondaryBaseCardProps> = ({ driverId }
   const fetchBase = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/admin/drivers/${driverId}/secondary-base`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
+      const { data } = await api.get(`/api/admin/drivers/${driverId}/secondary-base`);
       
       if (data.success && data.secondaryBase) {
         setBase(data.secondaryBase);
@@ -76,21 +70,12 @@ export const SecondaryBaseCard: React.FC<SecondaryBaseCardProps> = ({ driverId }
       setSaving(true);
       setMessage(null);
 
-      const response = await fetch(`${API_URL}/api/admin/drivers/${driverId}/secondary-base`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          lat: latNum,
-          lng: lngNum,
-          label: label || null,
-          enabled
-        })
+      const { data } = await api.put(`/api/admin/drivers/${driverId}/secondary-base`, {
+        lat: latNum,
+        lng: lngNum,
+        label: label || null,
+        enabled
       });
-
-      const data = await response.json();
 
       if (data.success) {
         setMessage({ type: 'success', text: 'Base secundária atualizada' });
@@ -112,12 +97,7 @@ export const SecondaryBaseCard: React.FC<SecondaryBaseCardProps> = ({ driverId }
       setSaving(true);
       setMessage(null);
 
-      const response = await fetch(`${API_URL}/api/admin/drivers/${driverId}/secondary-base`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const { data } = await api.delete(`/api/admin/drivers/${driverId}/secondary-base`);
 
       if (data.success) {
         setMessage({ type: 'success', text: 'Base secundária removida' });
