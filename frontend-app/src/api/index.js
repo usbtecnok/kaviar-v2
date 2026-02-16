@@ -81,6 +81,17 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
       
+      // Se 401 em endpoint governance/admin mas usuário está em rota de motorista/passageiro, não redirecionar
+      const isGovernanceRoute = url?.includes('/api/governance/') || url?.includes('/api/admin/');
+      const currentPath = window.location.pathname;
+      const isDriverPage = currentPath.startsWith('/motorista');
+      const isPassengerPage = currentPath.startsWith('/passageiro') || currentPath === '/';
+      
+      if (isGovernanceRoute && (isDriverPage || isPassengerPage)) {
+        console.log('[API] 401 em governance/admin route mas usuário não é admin - sem redirect');
+        return Promise.reject(error);
+      }
+      
       // 401 em rota protegida: limpar token do escopo e redirecionar
       const scope = getTokenScope(url);
       

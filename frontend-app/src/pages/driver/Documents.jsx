@@ -64,18 +64,13 @@ export default function DriverDocuments() {
       return;
     }
     setAuthLoading(false);
-    loadCommunities();
+    // Comunidade é opcional - não precisa carregar
   }, [navigate]);
 
   const loadCommunities = async () => {
-    try {
-      const response = await api.get('/api/governance/communities');
-      if (response.data.success) {
-        setCommunities(response.data.data);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar comunidades:', error);
-    }
+    // Removido: endpoint /api/governance/communities é protegido (admin only)
+    // Comunidade é opcional no cadastro do motorista
+    console.log('[Driver Documents] Comunidade é opcional - não carrega lista');
   };
 
   const handleFileChange = (field, event) => {

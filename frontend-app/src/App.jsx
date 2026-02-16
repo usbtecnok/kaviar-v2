@@ -9,10 +9,12 @@ import PremiumTourism from "./pages/PremiumTourism";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AdminResetPassword from "./pages/admin/ResetPassword";
 import SetPassword from "./pages/driver/SetPassword";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 function Home() {
   return (
@@ -237,7 +239,14 @@ export default function App() {
           {/* Reset de senha */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/admin/reset-password" element={<ResetPassword />} />
+          <Route
+            path="/admin/reset-password"
+            element={
+              <AuthProvider>
+                <AdminResetPassword />
+              </AuthProvider>
+            }
+          />
           
           {/* First access motorista */}
           <Route path="/motorista/definir-senha" element={<SetPassword />} />
@@ -258,7 +267,14 @@ export default function App() {
             }
           />
           <Route path="/motorista/*" element={<DriverApp />} />
-          <Route path="/admin/*" element={<AdminApp />} />
+          <Route
+            path="/admin/*"
+            element={
+              <AuthProvider>
+                <AdminApp />
+              </AuthProvider>
+            }
+          />
 
           <Route path="/turismo" element={<PremiumTourism />} />
 
