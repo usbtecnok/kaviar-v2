@@ -23,8 +23,8 @@ const isAuthRoute = (url) => {
 
 // Helper: detectar escopo por URL
 const getTokenScope = (url) => {
-  if (url?.includes('/api/driver')) return 'driver'; // Cobre /api/driver/* e /api/drivers/*
   if (url?.includes('/api/admin/')) return 'admin';
+  if (url?.includes('/api/driver/') || url?.includes('/api/drivers/')) return 'driver';
   return 'passenger';
 };
 
@@ -60,6 +60,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
       console.log('[API] ✅ Request:', config.method?.toUpperCase(), url, { scope, storageKey, hasToken: true });
     } else {
+      delete config.headers.Authorization;
       console.warn('[API] ⚠️ Request WITHOUT token:', config.method?.toUpperCase(), url, { scope, storageKey, hasToken: false });
     }
     
