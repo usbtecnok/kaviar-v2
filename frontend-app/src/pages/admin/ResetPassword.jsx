@@ -53,7 +53,7 @@ export default function ResetPassword() {
       if (response.ok && data.success) {
         setSuccess(true);
         setTimeout(() => {
-          navigate('/admin/login', { replace: true });
+          navigate('/admin', { replace: true });
         }, 3000);
       } else {
         setError(data.error || 'Erro ao redefinir senha');
@@ -78,10 +78,10 @@ export default function ResetPassword() {
           border: '1px solid #4caf50'
         }}>
           <p>Sua senha foi redefinida com sucesso!</p>
-          <p><strong>Redirecionando para o login...</strong></p>
+          <p><strong>Redirecionando para o painel...</strong></p>
         </div>
         <Link
-          to="/admin/login"
+          to="/admin"
           style={{
             display: 'block',
             textAlign: 'center',
@@ -89,7 +89,7 @@ export default function ResetPassword() {
             textDecoration: 'none'
           }}
         >
-          Ir para o login agora →
+          Ir para o painel agora →
         </Link>
       </div>
     );
