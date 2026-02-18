@@ -293,9 +293,18 @@ Exemplo:
 
 ### Comportamento Esperado vs Real
 
-**Esperado (sem motoristas reais):**
-- Todas as rides devem virar `no_driver` após timeout
-- Todas as offers devem expirar (sem aceite)
+**Esperado (sem motoristas reais em staging):**
+- Todas as rides devem processar pelo dispatcher
+- Offers devem ser criadas e enviadas via SSE
+- Offers devem expirar após timeout (~15s) ou serem rejeitadas
+- Rides devem transitar para status final (`no_driver`, `offered`, ou `accepted` se houver simulação)
+
+**Critério de validação técnica:**
+- ✅ Fluxo completo executado: `created` → `dispatcher` → `offer` → `accepted/rejected/expired` → `status persisted`
+- ✅ Logs mostram todas as etapas (RIDE_CREATED, DISPATCHER, OFFER_SENT, status final)
+- ✅ Banco de dados reflete transições corretas
+
+**Nota:** Não é necessário ter X% de rides accepted. O objetivo é comprovar que o **fluxo técnico funciona** ponta-a-ponta.
 
 **Real:**
 [PREENCHER COM OBSERVAÇÕES]
@@ -309,8 +318,23 @@ Exemplo:
 **Justificativa:**
 [PREENCHER]
 
-Exemplo:
-✅ **APROVADO** - Todas as 20 rides foram processadas com sucesso. Dispatcher executou corretamente, offers foram enviadas e expiraram conforme esperado. Sistema está pronto para produção.
+**Critérios para APROVADO:**
+- ✅ 20 rides criadas e registradas no banco
+- ✅ Dispatcher executou para todas as rides (logs DISPATCHER_FILTER)
+- ✅ Offers criadas e enviadas (logs OFFER_SENT)
+- ✅ Timeout funcionou (offers expiraram após ~15s)
+- ✅ Status finais persistidos corretamente no banco
+- ✅ Fluxo completo comprovado: created → dispatcher → offer → status final
+
+**Nota:** Não é necessário ter rides accepted. O objetivo é validar que o **fluxo técnico funciona** ponta-a-ponta.
+
+Exemplo de justificativa APROVADO:
+```
+✅ APROVADO - Todas as 20 rides foram processadas pelo dispatcher. 
+Offers foram criadas e enviadas via SSE. Timeout de 15s funcionou corretamente.
+Status finais foram persistidos no banco (no_driver/offered/expired).
+Fluxo técnico validado ponta-a-ponta. Sistema pronto para produção.
+```
 
 ### Próximos Passos
 - [ ] Aplicar migration em produção (manual, fora de horário de pico)

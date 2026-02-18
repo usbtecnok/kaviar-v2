@@ -55,18 +55,29 @@ bash scripts/test-ride-flow-v1.sh
 
 ## Passo 4: Coletar Evidências
 
+**IMPORTANTE:** Verificar configuração real do CloudWatch antes de executar!
+
 ```bash
-# Configurar variáveis
+# 1. Descobrir o log group correto do staging
+aws logs describe-log-groups --region us-east-2 | grep kaviar
+
+# Exemplos comuns:
+# - /ecs/kaviar-backend-staging
+# - /aws/ecs/kaviar-backend-staging
+# - /ecs/kaviar-staging
+
+# 2. Configurar variáveis com valores REAIS
 export STAGING_DATABASE_URL="postgresql://user:pass@staging-rds.amazonaws.com:5432/kaviar_staging"
-export LOG_GROUP="/ecs/kaviar-backend-staging"  # Ajustar se necessário
+export LOG_GROUP="/ecs/kaviar-backend-staging"  # ⚠️ AJUSTAR COM VALOR REAL
 export REGION="us-east-2"
 
-# Rodar script de coleta
+# 3. Rodar script de coleta
 bash scripts/collect-staging-evidence.sh
 
 # O script vai pedir:
-# - Data/hora início do teste
-# - Data/hora fim do teste
+# - Data/hora início do teste (ex: 2026-02-18 19:30:00)
+# - Data/hora fim do teste (ex: 2026-02-18 19:35:00)
+# ⚠️ IMPORTANTE: Usar horário UTC e período exato do teste
 
 # Arquivos gerados:
 # - staging-logs-ride-created.txt

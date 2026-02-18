@@ -6,25 +6,36 @@ set -e
 echo "🔍 Coletando evidências do staging..."
 echo ""
 
-# Configuração
+# Configuração (com fallbacks)
 LOG_GROUP="${LOG_GROUP:-/ecs/kaviar-backend-staging}"
 REGION="${REGION:-us-east-2}"
-DB_URL="${STAGING_DATABASE_URL}"
+DB_URL="${STAGING_DATABASE_URL:-$DATABASE_URL}"
 
 # Verificar variáveis
-if [ -z "$STAGING_DATABASE_URL" ]; then
-  echo "❌ STAGING_DATABASE_URL não configurada"
+if [ -z "$DB_URL" ]; then
+  echo "❌ STAGING_DATABASE_URL (ou DATABASE_URL) não configurada"
   echo "   Export: export STAGING_DATABASE_URL='postgresql://...'"
   exit 1
 fi
 
+echo "📋 Configuração:"
+echo "   LOG_GROUP: $LOG_GROUP"
+echo "   REGION: $REGION"
+echo "   DATABASE: ${DB_URL%%@*}@***" # Oculta senha
+echo ""
+
 # Pedir timestamps do teste
 echo "📅 Informe o período do teste:"
+echo "   Exemplo: 2026-02-18 19:30:00"
 read -p "Data/hora início (YYYY-MM-DD HH:MM:SS UTC): " START_TIME
 read -p "Data/hora fim (YYYY-MM-DD HH:MM:SS UTC): " END_TIME
 
 START_MS=$(date -d "$START_TIME" +%s)000
 END_MS=$(date -d "$END_TIME" +%s)000
+
+echo ""
+echo "⏰ Período: $START_TIME até $END_TIME"
+echo ""
 
 echo ""
 echo "📊 Coletando logs do CloudWatch..."
