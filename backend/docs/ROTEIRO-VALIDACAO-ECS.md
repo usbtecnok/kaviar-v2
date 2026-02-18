@@ -108,7 +108,7 @@ cat /tmp/ecs-validation-overrides.json | jq '.containerOverrides[0] | {name, ima
 ### 4.2 Executar run-task
 
 ```bash
-# Executar task
+# Executar task e salvar resultado como evidência
 aws ecs run-task \
   --cluster kaviar-cluster \
   --task-definition arn:aws:ecs:us-east-2:847895361928:task-definition/kaviar-backend:148 \
@@ -116,11 +116,24 @@ aws ecs run-task \
   --network-configuration "awsvpcConfiguration={subnets=[subnet-046613642f742faa2,subnet-01a498f7b4f3fcff5],securityGroups=[sg-0a54bc7272cae4623],assignPublicIp=ENABLED}" \
   --overrides file:///tmp/ecs-validation-overrides.json \
   --region us-east-2 \
-  > /tmp/ecs-task-result.json
+  > /tmp/ecs-validation-run-task.json
+
+# Verificar se task foi criada
+if [ ! -s /tmp/ecs-validation-run-task.json ]; then
+  echo "❌ Erro ao criar task"
+  exit 1
+fi
 
 # Extrair task ARN
-TASK_ARN=$(cat /tmp/ecs-task-result.json | jq -r '.tasks[0].taskArn')
-TASK_ID=$(echo $TASK_ARN | awk -F'/' '{print $NF}')
+TASK_ARN=$(cat /tmp/ecs-validation-run-task.json | jq -r '.tasks[0].taskArn')
+TASK_ID=$(echo "$TASK_ARN" | awk -F'/' '{print $NF}')
+
+echo "Task ARN: $TASK_ARN"
+echo "Task ID: $TASK_ID"
+
+# Salvar para referência
+echo "$TASK_ARN" > /tmp/validation-task-arn.txt
+```
 
 echo "Task ARN: $TASK_ARN"
 echo "Task ID: $TASK_ID"
@@ -141,9 +154,9 @@ echo "Task ID: $TASK_ID"
 # Configurar variáveis
 REGION="us-east-2"
 CLUSTER="kaviar-cluster"
-TASK_ARN="COLE_O_TASK_ARN_AQUI"  # Do Passo 4.2
+TASK_ARN="COLE_O_TASK_ARN_AQUI"  # Do Passo 4.2 (ou use: cat /tmp/validation-task-arn.txt)
 
-# Verificar status atual
+# Verificar status atual (comando completo)
 aws ecs describe-tasks \
   --region "$REGION" \
   --cluster "$CLUSTER" \
@@ -195,17 +208,18 @@ STREAM=$(aws logs describe-log-streams \
 
 echo "Log Stream: $STREAM"
 
-# Verificar se encontrou
-if [ "$STREAM" = "None" ] || [ -z "$STREAM" ]; then
-  echo "❌ Stream não encontrado. Listando streams recentes:"
+# Verificar se encontrou (validação robusta)
+if [ -z "$STREAM" ] || [ "$STREAM" = "None" ]; then
+  echo "❌ Stream não encontrado para TASK_ID=$TASK_ID"
+  echo "Streams recentes:"
   aws logs describe-log-streams \
     --region "$REGION" \
     --log-group-name "$LOG_GROUP" \
     --order-by LastEventTime \
     --descending \
-    --max-items 10 \
-    --query "logStreams[*].logStreamName" \
-    --output text
+    --max-items 20 \
+    --query "logStreams[].logStreamName" \
+    --output text | tr '\t' '\n'
   exit 1
 fi
 ```
