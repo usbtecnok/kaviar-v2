@@ -1,0 +1,5 @@
+# Atalho para checklist de produção
+alias checklist='cd /home/goes/kaviar && ./checklist.sh'
+alias check='cd /home/goes/kaviar && cat PRODUCAO-CHECKLIST.md'
+alias check-edit='cd /home/goes/kaviar && nano PRODUCAO-CHECKLIST.md'
+alias check-progress='echo "✅ Concluídos: $(grep -c "\[x\]" /home/goes/kaviar/PRODUCAO-CHECKLIST.md)" && echo "⏳ Pendentes: $(grep -c "\[ \]" /home/goes/kaviar/PRODUCAO-CHECKLIST.md)"'

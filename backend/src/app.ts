@@ -57,6 +57,9 @@ import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
 import driverTerritoryRoutes from './routes/driver-territory';
 import { publicRoutes } from './routes/public';
 import adminPresignRoutes from './routes/admin-presign';
+import ridesV2Routes from './routes/rides-v2';
+import driversV2Routes from './routes/drivers-v2';
+import realtimeRoutes from './routes/realtime';
 
 const app = express();
 
@@ -275,6 +278,13 @@ app.use('/api/governance', governanceRoutes);
 app.use('/api/auth', passengerAuthRoutes);
 app.use('/api/auth', driverAuthRoutes);
 app.use('/api/auth', guideAuthRoutes);
+
+// SPEC_RIDE_FLOW_V1 routes
+app.use('/api/v2/rides', ridesV2Routes);
+app.use('/api/v2/drivers', driversV2Routes);
+app.use('/api/realtime', realtimeRoutes);
+console.log('✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/*');
+
 console.log('✅ Geo: /api/public/*, /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
 
 console.log('✅ Core: Pricing & Rides enabled, legacy routes disabled');

@@ -44,6 +44,8 @@ model communities {
   elderly_contracts        elderly_contracts[]
   passengers               passengers[]
   tourist_guides           tourist_guides[]
+  rides_v2_origin          rides_v2[]                 @relation("RideOriginV2")
+  rides_v2_dest            rides_v2[]                 @relation("RideDestV2")
 }
 
 model community_geofences {
@@ -217,6 +219,10 @@ model drivers {
   neighborhoods               neighborhoods?                @relation(fields: [neighborhood_id], references: [id])
   match_logs                  match_logs[]
   rides                       rides[]
+  rides_v2                    rides_v2[]                    @relation("DriverRidesV2")
+  ride_offers                 ride_offers[]
+  driver_status               driver_status?
+  driver_location             driver_locations?
 
   @@index([territory_type])
   @@index([neighborhood_id, territory_type])
@@ -353,6 +359,7 @@ model passengers {
   passenger_favorite_locations passenger_favorite_locations[]
   ride_confirmations          ride_confirmations[]
   rides                       rides[]
+  rides_v2                    rides_v2[]                    @relation("PassengerRidesV2")
   tour_bookings               tour_bookings[]
   user_consents               user_consents[]
 }
@@ -742,4 +749,109 @@ model driver_territory_stats {
   @@unique([driver_id, period_start, period_end])
   @@index([driver_id, period_start(sort: Desc)])
   @@index([period_start, period_end])
+}
+
+// SPEC_RIDE_FLOW_V1 Models
+
+enum RideStatus {
+  requested
+  offered
+  accepted
+  arrived
+  in_progress
+  completed
+  canceled_by_passenger
+  canceled_by_driver
+  no_driver
+}
+
+enum OfferStatus {
+  pending
+  accepted
+  rejected
+  expired
+  canceled
+}
+
+enum DriverAvailability {
+  offline
+  online
+  busy
+}
+
+model rides_v2 {
+  id                     String       @id @default(uuid())
+  passenger_id           String
+  driver_id              String?
+  status                 RideStatus   @default(requested)
+  origin_lat             Decimal      @db.Decimal(10, 8)
+  origin_lng             Decimal      @db.Decimal(11, 8)
+  origin_text            String?
+  origin_neighborhood_id String?
+  dest_lat               Decimal      @db.Decimal(10, 8)
+  dest_lng               Decimal      @db.Decimal(11, 8)
+  destination_text       String?
+  dest_neighborhood_id   String?
+  ride_type              String       @default("normal")
+  idempotency_key        String?
+  requested_at           DateTime     @default(now())
+  offered_at             DateTime?
+  accepted_at            DateTime?
+  arrived_at             DateTime?
+  started_at             DateTime?
+  completed_at           DateTime?
+  canceled_at            DateTime?
+  created_at             DateTime     @default(now())
+  updated_at             DateTime     @updatedAt
+  passenger              passengers   @relation("PassengerRidesV2", fields: [passenger_id], references: [id])
+  driver                 drivers?     @relation("DriverRidesV2", fields: [driver_id], references: [id])
+  origin_neighborhood    communities? @relation("RideOriginV2", fields: [origin_neighborhood_id], references: [id])
+  dest_neighborhood      communities? @relation("RideDestV2", fields: [dest_neighborhood_id], references: [id])
+  offers                 ride_offers[]
+
+  @@map("rides_v2")
+  @@index([status])
+  @@index([passenger_id])
+  @@index([driver_id])
+  @@index([idempotency_key])
+  @@index([created_at(sort: Desc)])
+}
+
+model ride_offers {
+  id           String      @id @default(uuid())
+  ride_id      String
+  driver_id    String
+  status       OfferStatus @default(pending)
+  sent_at      DateTime    @default(now())
+  expires_at   DateTime
+  responded_at DateTime?
+  rank_score   Decimal?    @db.Decimal(10, 2)
+  created_at   DateTime    @default(now())
+  updated_at   DateTime    @updatedAt
+  ride         rides_v2    @relation(fields: [ride_id], references: [id], onDelete: Cascade)
+  driver       drivers     @relation(fields: [driver_id], references: [id])
+
+  @@index([ride_id])
+  @@index([driver_id])
+  @@index([status])
+  @@index([expires_at])
+}
+
+model driver_status {
+  driver_id    String             @id
+  availability DriverAvailability @default(offline)
+  updated_at   DateTime           @updatedAt
+  driver       drivers            @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+}
+
+model driver_locations {
+  driver_id  String   @id
+  lat        Decimal  @db.Decimal(10, 8)
+  lng        Decimal  @db.Decimal(11, 8)
+  heading    Decimal? @db.Decimal(5, 2)
+  speed      Decimal? @db.Decimal(5, 2)
+  updated_at DateTime @updatedAt
+  driver     drivers  @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+
+  @@index([updated_at(sort: Desc)])
 }

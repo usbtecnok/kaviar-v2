@@ -1,10 +1,31 @@
 import app from './app';
 import { config } from './config';
 import { prisma } from './lib/prisma';
+import { startOfferTimeoutJob } from './jobs/offer-timeout.job';
 
 async function startServer() {
   try {
     const PORT = Number(process.env.PORT || 3003);
+
+    // Log database host (without password)
+    const dbUrl = process.env.DATABASE_URL || '';
+    const dbHost = dbUrl.match(/@([^:\/]+)/)?.[1] || 'unknown';
+    const dbPort = dbUrl.match(/:(\d+)\//)?.[1] || '5432';
+    console.log(`🗄️  Database: ${dbHost}:${dbPort}`);
+    console.log(`📊 Environment: ${config.nodeEnv}`);
+    
+    // DEV simulation flags
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔧 DEV_AUTO_ACCEPT: ${process.env.DEV_AUTO_ACCEPT || 'false'}`);
+      console.log(`🔧 DEV_AUTO_RELEASE: ${process.env.DEV_AUTO_RELEASE || 'false'}`);
+      console.log(`🔧 DEV_ACCEPT_PROB: ${process.env.DEV_ACCEPT_PROB || '0'}`);
+      console.log(`🔧 DEV_REJECT_PROB: ${process.env.DEV_REJECT_PROB || '0'}`);
+      console.log(`🔧 DEV_IGNORE_PROB: ${process.env.DEV_IGNORE_PROB || '0'}`);
+      console.log(`🔧 DEV_RELEASE_MIN_MS: ${process.env.DEV_RELEASE_MIN_MS || '0'}`);
+      console.log(`🔧 DEV_RELEASE_MAX_MS: ${process.env.DEV_RELEASE_MAX_MS || '0'}`);
+      console.log(`🔧 DEV_GEOFENCE_BOOST: ${process.env.DEV_GEOFENCE_BOOST || '0'}`);
+      console.log(`🔧 DEV_TIME_SCALE: ${process.env.DEV_TIME_SCALE || '1'}`);
+    }
 
     // Start server FIRST (não bloqueia no DB)
     app.listen(PORT, '0.0.0.0', () => {
@@ -13,6 +34,9 @@ async function startServer() {
       console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
       console.log(`🔗 Git Commit: ${process.env.GIT_COMMIT || process.env.RENDER_GIT_COMMIT || 'unknown'}`);
     });
+
+    // Start offer timeout job (SPEC_RIDE_FLOW_V1)
+    startOfferTimeoutJob();
 
     // Test database connection (non-blocking startup)
     try {
