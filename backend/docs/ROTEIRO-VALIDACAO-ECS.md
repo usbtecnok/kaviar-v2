@@ -1,5 +1,17 @@
 # Roteiro: Validação Ride-Flow V1 no ECS (kaviar_validation)
 
+## Contexto
+
+**Ambiente:** Validação via **ECS run-task one-off** (não há service/DNS staging)
+
+**Database:** `kaviar_validation` no RDS prod (isolado)
+
+**Objetivo:** Executar 20 rides e coletar evidências técnicas do fluxo completo
+
+**Nota:** Este é um ambiente de validação temporário. A task executa, coleta evidências e para.
+
+---
+
 ## Passo 1: Validar Conexão DB
 
 ```bash
@@ -66,26 +78,30 @@ cat > /tmp/ecs-validation-overrides.json <<EOF
   "containerOverrides": [
     {
       "name": "kaviar-backend",
+      "image": "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:11bdd8c",
       "environment": [
         {"name": "NODE_ENV", "value": "staging"},
         {"name": "FEATURE_SPEC_RIDE_FLOW_V1", "value": "true"},
         {"name": "DATABASE_URL", "value": "$VALIDATION_DATABASE_URL"},
         {"name": "PORT", "value": "3001"},
-        {"name": "JWT_SECRET", "value": "validation-secret-key"}
+        {"name": "JWT_SECRET", "value": "validation-secret-key"},
+        {"name": "API_URL", "value": "http://127.0.0.1:3001"}
       ],
       "command": [
         "/bin/bash",
         "-c",
-        "echo '=== VALIDATION RUN ===' && npx prisma migrate deploy && echo '=== SEED ===' && npx tsx prisma/seed-ride-flow-v1.ts && echo '=== STARTING SERVER ===' && node dist/server.js & sleep 10 && echo '=== TESTING 20 RIDES ===' && cd /app && bash scripts/test-ride-flow-v1.sh && echo '=== DONE ===' && sleep 30"
+        "echo '=== VALIDATION RUN ===' && echo 'Image: 11bdd8c' && npx prisma migrate deploy && echo '=== SEED ===' && npx tsx prisma/seed-ride-flow-v1.ts && echo '=== STARTING SERVER ===' && node dist/server.js & sleep 10 && echo '=== TESTING 20 RIDES ===' && export API_URL=http://127.0.0.1:3001 && cd /app && bash scripts/test-ride-flow-v1.sh && echo '=== DONE ===' && sleep 30"
       ]
     }
   ]
 }
 EOF
 
-# Verificar arquivo criado
-cat /tmp/ecs-validation-overrides.json
+# Verificar arquivo criado (sem mostrar senha)
+cat /tmp/ecs-validation-overrides.json | jq '.containerOverrides[0] | {name, image, command}'
 ```
+
+**Nota:** A senha do DATABASE_URL vem da variável `$VALIDATION_DATABASE_URL` exportada no Passo 3.
 
 **Status:** [ ] Arquivo de overrides criado
 
@@ -122,11 +138,24 @@ echo "Task ID: $TASK_ID"
 ## Passo 5: Monitorar Execução
 
 ```bash
-# Acompanhar status da task
+# Configurar variáveis
+REGION="us-east-2"
+CLUSTER="kaviar-cluster"
+TASK_ARN="COLE_O_TASK_ARN_AQUI"  # Do Passo 4.2
+
+# Verificar status atual
+aws ecs describe-tasks \
+  --region "$REGION" \
+  --cluster "$CLUSTER" \
+  --tasks "$TASK_ARN" \
+  --query "tasks[0].{lastStatus:lastStatus,desiredStatus:desiredStatus,stopCode:stopCode,stoppedReason:stoppedReason}" \
+  --output json
+
+# Ou acompanhar em loop (Ctrl+C para sair)
 watch -n 5 "aws ecs describe-tasks \
-  --cluster kaviar-cluster \
+  --region $REGION \
+  --cluster $CLUSTER \
   --tasks $TASK_ARN \
-  --region us-east-2 \
   --query 'tasks[0].lastStatus' \
   --output text"
 
@@ -142,21 +171,43 @@ watch -n 5 "aws ecs describe-tasks \
 
 ## Passo 6: Coletar Logs do CloudWatch
 
-### 6.1 Descobrir log stream
+### 6.1 Descobrir log stream (descoberta automática)
 
 ```bash
-# Log group
+# Configurar variáveis
+REGION="us-east-2"
 LOG_GROUP="/ecs/kaviar-backend"
+TASK_ARN="COLE_O_TASK_ARN_AQUI"  # Do Passo 4.2
 
-# Buscar log stream da task
-LOG_STREAM=$(aws logs describe-log-streams \
+# Extrair Task ID
+TASK_ID=$(echo "$TASK_ARN" | awk -F/ '{print $NF}')
+echo "Task ID: $TASK_ID"
+
+# Descobrir log stream automaticamente (busca nos últimos 50 streams)
+STREAM=$(aws logs describe-log-streams \
+  --region "$REGION" \
   --log-group-name "$LOG_GROUP" \
-  --log-stream-name-prefix "ecs/kaviar-backend/$TASK_ID" \
-  --region us-east-2 \
-  --query 'logStreams[0].logStreamName' \
+  --order-by LastEventTime \
+  --descending \
+  --max-items 50 \
+  --query "logStreams[?contains(logStreamName, \`$TASK_ID\`)].logStreamName | [0]" \
   --output text)
 
-echo "Log Stream: $LOG_STREAM"
+echo "Log Stream: $STREAM"
+
+# Verificar se encontrou
+if [ "$STREAM" = "None" ] || [ -z "$STREAM" ]; then
+  echo "❌ Stream não encontrado. Listando streams recentes:"
+  aws logs describe-log-streams \
+    --region "$REGION" \
+    --log-group-name "$LOG_GROUP" \
+    --order-by LastEventTime \
+    --descending \
+    --max-items 10 \
+    --query "logStreams[*].logStreamName" \
+    --output text
+  exit 1
+fi
 ```
 
 **Anotar:**
@@ -165,37 +216,50 @@ echo "Log Stream: $LOG_STREAM"
 ### 6.2 Baixar logs completos
 
 ```bash
-# Baixar todos os logs da task
+# Baixar todos os logs da task (até 10000 eventos)
 aws logs get-log-events \
+  --region "$REGION" \
   --log-group-name "$LOG_GROUP" \
-  --log-stream-name "$LOG_STREAM" \
-  --region us-east-2 \
+  --log-stream-name "$STREAM" \
+  --limit 10000 \
+  --query "events[].message" \
   --output text > /tmp/validation-full-logs.txt
 
 # Ver tamanho
 wc -l /tmp/validation-full-logs.txt
+echo "Primeiras 20 linhas:"
+head -20 /tmp/validation-full-logs.txt
 ```
 
-### 6.3 Extrair marcadores específicos
+### 6.3 Extrair marcadores (filtros robustos)
 
 ```bash
-# RIDE_CREATED
-grep "RIDE_CREATED" /tmp/validation-full-logs.txt > /tmp/validation-ride-created.txt
+# Filtros genéricos (case-insensitive) para capturar variações
+grep -Ei "ride|/api/v2/rides" /tmp/validation-full-logs.txt > /tmp/validation-ride.txt
+grep -Ei "dispatch|match|candidate" /tmp/validation-full-logs.txt > /tmp/validation-dispatch.txt
+grep -Ei "offer" /tmp/validation-full-logs.txt > /tmp/validation-offer.txt
+grep -Ei "timeout|expired" /tmp/validation-full-logs.txt > /tmp/validation-timeout.txt
+grep -Ei "status.*changed|transition" /tmp/validation-full-logs.txt > /tmp/validation-status.txt
 
-# DISPATCHER
-grep "DISPATCHER" /tmp/validation-full-logs.txt > /tmp/validation-dispatcher.txt
-
-# OFFER
-grep "OFFER" /tmp/validation-full-logs.txt > /tmp/validation-offers.txt
-
-# STATUS_CHANGED
-grep "STATUS_CHANGED" /tmp/validation-full-logs.txt > /tmp/validation-status.txt
+# Marcadores específicos (se existirem)
+grep "RIDE_CREATED" /tmp/validation-full-logs.txt > /tmp/validation-ride-created.txt 2>/dev/null || touch /tmp/validation-ride-created.txt
+grep "DISPATCHER" /tmp/validation-full-logs.txt > /tmp/validation-dispatcher.txt 2>/dev/null || touch /tmp/validation-dispatcher.txt
+grep "OFFER_SENT" /tmp/validation-full-logs.txt > /tmp/validation-offer-sent.txt 2>/dev/null || touch /tmp/validation-offer-sent.txt
+grep "STATUS_CHANGED" /tmp/validation-full-logs.txt > /tmp/validation-status-changed.txt 2>/dev/null || touch /tmp/validation-status-changed.txt
 
 # Contar ocorrências
+echo "=== Filtros Genéricos ==="
+echo "RIDE (genérico): $(wc -l < /tmp/validation-ride.txt)"
+echo "DISPATCH (genérico): $(wc -l < /tmp/validation-dispatch.txt)"
+echo "OFFER (genérico): $(wc -l < /tmp/validation-offer.txt)"
+echo "TIMEOUT (genérico): $(wc -l < /tmp/validation-timeout.txt)"
+echo "STATUS (genérico): $(wc -l < /tmp/validation-status.txt)"
+echo ""
+echo "=== Marcadores Específicos ==="
 echo "RIDE_CREATED: $(wc -l < /tmp/validation-ride-created.txt)"
 echo "DISPATCHER: $(wc -l < /tmp/validation-dispatcher.txt)"
-echo "OFFER: $(wc -l < /tmp/validation-offers.txt)"
-echo "STATUS_CHANGED: $(wc -l < /tmp/validation-status.txt)"
+echo "OFFER_SENT: $(wc -l < /tmp/validation-offer-sent.txt)"
+echo "STATUS_CHANGED: $(wc -l < /tmp/validation-status-changed.txt)"
 ```
 
 **Checklist de marcadores:**
