@@ -124,8 +124,8 @@ if [ ! -s /tmp/ecs-validation-run-task.json ]; then
   exit 1
 fi
 
-# Extrair task ARN
-TASK_ARN=$(cat /tmp/ecs-validation-run-task.json | jq -r '.tasks[0].taskArn')
+# Extrair task ARN do JSON (não assumir variável)
+TASK_ARN=$(jq -r '.tasks[0].taskArn' /tmp/ecs-validation-run-task.json)
 TASK_ID=$(echo "$TASK_ARN" | awk -F'/' '{print $NF}')
 
 echo "Task ARN: $TASK_ARN"
@@ -133,10 +133,6 @@ echo "Task ID: $TASK_ID"
 
 # Salvar para referência
 echo "$TASK_ARN" > /tmp/validation-task-arn.txt
-```
-
-echo "Task ARN: $TASK_ARN"
-echo "Task ID: $TASK_ID"
 ```
 
 **Status:** [ ] Task iniciada
