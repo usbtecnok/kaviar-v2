@@ -7,6 +7,29 @@ async function startServer() {
   try {
     const PORT = Number(process.env.PORT || 3003);
 
+    // FATAL: Prevent DEV simulation flags in production
+    if (process.env.NODE_ENV === 'production') {
+      const devFlags = [
+        'DEV_AUTO_ACCEPT',
+        'DEV_AUTO_RELEASE',
+        'DEV_ACCEPT_PROB',
+        'DEV_REJECT_PROB',
+        'DEV_IGNORE_PROB',
+        'DEV_RELEASE_MIN_MS',
+        'DEV_RELEASE_MAX_MS',
+        'DEV_GEOFENCE_BOOST',
+        'DEV_TIME_SCALE'
+      ];
+      
+      const foundDevFlags = devFlags.filter(flag => process.env[flag] === 'true' || (process.env[flag] && process.env[flag] !== '0' && process.env[flag] !== 'false'));
+      
+      if (foundDevFlags.length > 0) {
+        console.error(`❌ FATAL: DEV simulation flags detected in production: ${foundDevFlags.join(', ')}`);
+        console.error('❌ FATAL: Remove these flags from ECS Task Definition immediately');
+        process.exit(1);
+      }
+    }
+
     // Log database host (without password)
     const dbUrl = process.env.DATABASE_URL || '';
     const dbHost = dbUrl.match(/@([^:\/]+)/)?.[1] || 'unknown';

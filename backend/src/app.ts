@@ -279,11 +279,15 @@ app.use('/api/auth', passengerAuthRoutes);
 app.use('/api/auth', driverAuthRoutes);
 app.use('/api/auth', guideAuthRoutes);
 
-// SPEC_RIDE_FLOW_V1 routes
-app.use('/api/v2/rides', ridesV2Routes);
-app.use('/api/v2/drivers', driversV2Routes);
-app.use('/api/realtime', realtimeRoutes);
-console.log('✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/*');
+// SPEC_RIDE_FLOW_V1 routes (feature flag protected)
+if (process.env.FEATURE_SPEC_RIDE_FLOW_V1 === 'true') {
+  app.use('/api/v2/rides', ridesV2Routes);
+  app.use('/api/v2/drivers', driversV2Routes);
+  app.use('/api/realtime', realtimeRoutes);
+  console.log('✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/* (ENABLED)');
+} else {
+  console.log('⚠️  SPEC_RIDE_FLOW_V1: DISABLED (set FEATURE_SPEC_RIDE_FLOW_V1=true to enable)');
+}
 
 console.log('✅ Geo: /api/public/*, /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
 
