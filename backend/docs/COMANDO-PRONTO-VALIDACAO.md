@@ -842,6 +842,104 @@ git push origin feat/dev-load-test-ride-flow-v1
 
 ---
 
+## Passo 7.4: Carimbar com Git Commit (Opcional)
+
+```bash
+set -euo pipefail
+
+cd /home/goes/kaviar/backend
+
+# Usar DEST_RUN do Passo 7
+DEST_RUN="${DEST_DIR}/ride-flow-validation-${RUN_ID}"
+
+EVID="${DEST_RUN}/EVIDENCIAS-RIDE-FLOW.md"
+[ -f "$EVID" ] || { echo "❌ Falta $EVID"; exit 1; }
+
+RUN_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+COMMIT=$(git rev-parse HEAD)
+
+TMP="/tmp/evid-stamped.md"
+
+# Remover bloco anterior (idempotente)
+awk 'BEGIN{drop=0} /^## Build\/Commit \(auto\)/{drop=1} drop && /^---$/{drop=0; next} !drop{print}' "$EVID" > "$TMP"
+
+# Reescrever com carimbo
+cat > "$EVID" <<MD
+## Build/Commit (auto)
+- UTC: ${RUN_UTC}
+- Branch: ${BRANCH}
+- Commit: ${COMMIT}
+
+---
+
+$(cat "$TMP")
+MD
+
+echo "✅ Carimbo inserido: $EVID"
+head -n 25 "$EVID"
+```
+
+---
+
+## Passo 7.5: Anexar Resumo do Manifest (Opcional)
+
+```bash
+set -euo pipefail
+
+cd /home/goes/kaviar/backend
+
+# Usar DEST_RUN do Passo 7
+DEST_RUN="${DEST_DIR}/ride-flow-validation-${RUN_ID}"
+
+EVID="${DEST_RUN}/EVIDENCIAS-RIDE-FLOW.md"
+MANIFEST="${DEST_RUN}/MANIFEST.json"
+
+[ -f "$EVID" ] || { echo "❌ Falta $EVID"; exit 1; }
+[ -f "$MANIFEST" ] || { echo "❌ Falta $MANIFEST (rode 7.1)"; exit 1; }
+
+RUN_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+TOTAL_FILES=$(jq -r '.files | length' "$MANIFEST")
+TOTAL_BYTES=$(jq -r '[.files[].size] | add' "$MANIFEST")
+
+TOP10=$(jq -r '.files[:10][] | "\(.path) | \(.size) bytes | \(.sha256)"' "$MANIFEST")
+
+{
+  echo ""
+  echo "---"
+  echo "## Manifest (auto) — ${RUN_UTC}"
+  echo ""
+  echo "- Arquivos: ${TOTAL_FILES}"
+  echo "- Total bytes: ${TOTAL_BYTES}"
+  echo ""
+  echo "### Top 10 (path | bytes | sha256)"
+  echo '```'
+  echo "$TOP10"
+  echo '```'
+} >> "$EVID"
+
+echo "✅ Seção Manifest anexada: $EVID"
+tail -n 40 "$EVID"
+```
+
+---
+
+## Passo 7.6: Commit Complementos (Opcional)
+
+```bash
+set -euo pipefail
+
+cd /home/goes/kaviar
+
+git add "$DEST_RUN/EVIDENCIAS-RIDE-FLOW.md"
+git commit -m "docs(evidences): stamp with commit + manifest summary" \
+  -m "Adds build/commit traceability and manifest summary for audit readability."
+git push origin feat/dev-load-test-ride-flow-v1
+```
+
+---
+
 ## Arquivos Gerados (Resumo Final)
 
 **Temporários (/tmp):**
