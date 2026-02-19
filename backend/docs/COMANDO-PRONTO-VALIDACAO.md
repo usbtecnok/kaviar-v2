@@ -614,3 +614,89 @@ git push origin feat/dev-load-test-ride-flow-v1
 
 **Tempo:** ~30-35 min  
 **Pronto para copiar/colar!** 🚀
+
+
+---
+
+## Passo 7: Copiar Evidências + Commit
+
+```bash
+set -euo pipefail
+
+cd /home/goes/kaviar/backend
+
+DEST_DIR="docs/evidencias"
+RUN_ID=$(date -u +%Y%m%dT%H%M%SZ)
+DEST_RUN="${DEST_DIR}/ride-flow-validation-${RUN_ID}"
+
+mkdir -p "$DEST_RUN/anexos"
+
+# Evidências auto (se rodou Passo 3.5)
+[ -f /tmp/EVIDENCIAS-RIDE-FLOW.md ] && cp -f /tmp/EVIDENCIAS-RIDE-FLOW.md "$DEST_RUN/EVIDENCIAS-RIDE-FLOW.md" || :
+
+# Anexos
+[ -d /tmp/EVIDENCIAS-ANEXOS ] && cp -R /tmp/EVIDENCIAS-ANEXOS/. "$DEST_RUN/anexos/" || :
+
+# Sanity + SQL full
+[ -f /tmp/validation-db-sanity.txt ] && cp -f /tmp/validation-db-sanity.txt "$DEST_RUN/validation-db-sanity.txt" || :
+[ -f /tmp/validation-sql-full.txt ] && cp -f /tmp/validation-sql-full.txt "$DEST_RUN/validation-sql-full.txt" || :
+
+# Logs marcadores (Passo 3)
+for f in \
+  /tmp/validation-full-logs.txt \
+  /tmp/validation-ride-created.txt \
+  /tmp/validation-dispatcher-filter.txt \
+  /tmp/validation-dispatch-candidates.txt \
+  /tmp/validation-offer-sent.txt \
+  /tmp/validation-offer-expired.txt \
+  /tmp/validation-status-changed.txt
+do
+  [ -f "$f" ] && cp -f "$f" "$DEST_RUN/anexos/$(basename "$f")" || :
+done
+
+echo "✅ Evidências copiadas para: $DEST_RUN"
+ls -lh "$DEST_RUN"
+
+# Commit
+cd /home/goes/kaviar
+git add "$DEST_RUN"
+git commit -m "docs(evidences): ride flow validation run" \
+  -m "Adds backend log markers, DB sanity check, and SQL full output for this validation run."
+git push origin feat/dev-load-test-ride-flow-v1
+
+# Marcar checkbox
+nano PRODUCAO-CHECKLIST.md
+# Marcar: [x] Evidências em staging
+
+git add PRODUCAO-CHECKLIST.md
+git commit -m "chore: mark evidence checkbox"
+git push origin feat/dev-load-test-ride-flow-v1
+```
+
+---
+
+## Arquivos Gerados (Resumo Final)
+
+**Temporários (/tmp):**
+- `validation-migrate-logs.txt`
+- `validation-task-arn.txt` / `validation-task-id.txt`
+- `validation-full-logs.txt` (paginado)
+- `validation-ride-created.txt`
+- `validation-dispatcher-filter.txt`
+- `validation-dispatch-candidates.txt`
+- `validation-offer-sent.txt`
+- `validation-offer-expired.txt`
+- `validation-status-changed.txt`
+- `validation-db-sanity.txt`
+- `validation-sql-full.txt`
+- `EVIDENCIAS-RIDE-FLOW.md` (se rodou 3.5)
+- `EVIDENCIAS-ANEXOS/` (se rodou 3.5)
+
+**Arquivados (repo):**
+- `backend/docs/evidencias/ride-flow-validation-YYYYMMDDTHHMMSSZ/`
+
+---
+
+## Tempo Total: ~25-35 min
+
+**Validação completa! 🚀**
