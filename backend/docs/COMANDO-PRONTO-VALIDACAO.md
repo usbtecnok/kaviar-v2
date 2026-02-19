@@ -1,25 +1,29 @@
-# Comando Pronto: ECS Run-Task Ride-Flow V1 Validation
+# Validação SPEC_RIDE_FLOW_V1 - Comando Pronto
 
-## Passo 1: Rodar Migration no DB Validation
+**Ambiente:** ECS one-off (sem staging DNS)  
+**DB:** kaviar_validation (RDS prod, isolado)  
+**User:** usbtecnok (já existe com grants)
+
+---
+
+## Passo 1: Migration (OBRIGATÓRIO - rodar primeiro)
 
 ```bash
-# Criar overrides para migration
+# Criar overrides
 cat > /tmp/ecs-migrate-overrides.json <<'EOF'
 {
-  "containerOverrides": [
-    {
-      "name": "kaviar-backend",
-      "environment": [
-        {"name": "DATABASE_URL", "value": "postgresql://usbtecnok:z4939ia4@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar_validation?sslmode=require"}
-      ],
-      "command": ["sh", "-c", "npx prisma migrate deploy && echo MIGRATION_COMPLETE"]
-    }
-  ]
+  "containerOverrides": [{
+    "name": "kaviar-backend",
+    "environment": [
+      {"name": "DATABASE_URL", "value": "postgresql://usbtecnok:z4939ia4@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar_validation?sslmode=require"}
+    ],
+    "command": ["sh", "-c", "npx prisma migrate deploy && echo '=== MIGRATE OK ==='"]
+  }]
 }
 EOF
 
-# Executar migration
-MIGRATE_TASK_ARN=$(aws ecs run-task \
+# Executar
+MIGRATE_ARN=$(aws ecs run-task \
   --cluster kaviar-cluster \
   --task-definition arn:aws:ecs:us-east-2:847895361928:task-definition/kaviar-backend:148 \
   --launch-type FARGATE \
@@ -29,43 +33,72 @@ MIGRATE_TASK_ARN=$(aws ecs run-task \
   --query "tasks[0].taskArn" \
   --output text)
 
-echo "Migration Task ARN: $MIGRATE_TASK_ARN"
-echo "Aguardando migration (~60s)..."
+MIGRATE_ID=$(echo "$MIGRATE_ARN" | awk -F'/' '{print $NF}')
+echo "Migration Task: $MIGRATE_ARN"
+echo "$MIGRATE_ARN" > /tmp/validation-migrate-task-arn.txt
+
+# Aguardar (~60s)
 sleep 60
-echo "✅ Migration concluída"
+
+# Coletar logs
+for i in {1..12}; do
+  MIGRATE_STREAM=$(aws logs describe-log-streams \
+    --region us-east-2 \
+    --log-group-name /ecs/kaviar-backend \
+    --order-by LastEventTime \
+    --descending \
+    --max-items 50 \
+    --query "logStreams[?contains(logStreamName, \`$MIGRATE_ID\`)].logStreamName | [0]" \
+    --output text)
+  
+  if [ -n "$MIGRATE_STREAM" ] && [ "$MIGRATE_STREAM" != "None" ]; then
+    break
+  fi
+  echo "Aguardando stream... $i/12"
+  sleep 5
+done
+
+if [ -z "$MIGRATE_STREAM" ] || [ "$MIGRATE_STREAM" = "None" ]; then
+  echo "❌ Stream não encontrado"
+  exit 1
+fi
+
+aws logs get-log-events \
+  --region us-east-2 \
+  --log-group-name /ecs/kaviar-backend \
+  --log-stream-name "$MIGRATE_STREAM" \
+  --limit 1000 \
+  --output json | jq -r '.events[].message' > /tmp/validation-migrate-logs.txt
+
+echo "✅ Migration logs: /tmp/validation-migrate-logs.txt"
+grep "MIGRATE OK" /tmp/validation-migrate-logs.txt && echo "✅ Migration SUCCESS" || echo "❌ Migration FAILED"
 ```
 
 ---
 
-## Passo 2: Rodar Validação (20 Rides)
+## Passo 2: Validação 20 Rides
 
 ```bash
-# Criar overrides JSON
+# Criar overrides
 cat > /tmp/ecs-validation-overrides.json <<'EOF'
 {
-  "containerOverrides": [
-    {
-      "name": "kaviar-backend",
-      "image": "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:11bdd8c",
-      "environment": [
-        {"name": "NODE_ENV", "value": "staging"},
-        {"name": "FEATURE_SPEC_RIDE_FLOW_V1", "value": "true"},
-        {"name": "DATABASE_URL", "value": "postgresql://usbtecnok:z4939ia4@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar_validation?sslmode=require"},
-        {"name": "PORT", "value": "3001"},
-        {"name": "JWT_SECRET", "value": "validation-secret-key"},
-        {"name": "API_URL", "value": "http://127.0.0.1:3001"}
-      ],
-      "command": [
-        "/bin/bash",
-        "-c",
-        "echo '=== VALIDATION RUN ===' && echo 'Image: 11bdd8c' && npx tsx prisma/seed-ride-flow-v1.ts && echo '=== STARTING SERVER ===' && node dist/server.js & sleep 10 && echo '=== TESTING 20 RIDES ===' && export API_URL=http://127.0.0.1:3001 && cd /app && bash scripts/test-ride-flow-v1.sh && echo '=== DONE ===' && sleep 30"
-      ]
-    }
-  ]
+  "containerOverrides": [{
+    "name": "kaviar-backend",
+    "image": "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:11bdd8c",
+    "environment": [
+      {"name": "NODE_ENV", "value": "staging"},
+      {"name": "FEATURE_SPEC_RIDE_FLOW_V1", "value": "true"},
+      {"name": "DATABASE_URL", "value": "postgresql://usbtecnok:z4939ia4@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar_validation?sslmode=require"},
+      {"name": "PORT", "value": "3001"},
+      {"name": "JWT_SECRET", "value": "validation-secret-key"},
+      {"name": "API_URL", "value": "http://127.0.0.1:3001"}
+    ],
+    "command": ["/bin/bash", "-c", "echo '=== VALIDATION START ===' && npx tsx prisma/seed-ride-flow-v1.ts && node dist/server.js & sleep 10 && export API_URL=http://127.0.0.1:3001 && bash scripts/test-ride-flow-v1.sh && echo '=== VALIDATION END ===' && sleep 30"]
+  }]
 }
 EOF
 
-# Executar run-task
+# Executar
 TASK_ARN=$(aws ecs run-task \
   --cluster kaviar-cluster \
   --task-definition arn:aws:ecs:us-east-2:847895361928:task-definition/kaviar-backend:148 \
@@ -77,44 +110,28 @@ TASK_ARN=$(aws ecs run-task \
   --output text)
 
 TASK_ID=$(echo "$TASK_ARN" | awk -F'/' '{print $NF}')
-
-echo ""
-echo "✅ Task iniciada!"
-echo "Task ARN: $TASK_ARN"
+echo "Validation Task: $TASK_ARN"
 echo "Task ID: $TASK_ID"
-echo "Horário início: $(date -u)"
-echo ""
+echo "Início: $(date -u)"
 echo "$TASK_ARN" > /tmp/validation-task-arn.txt
 echo "$TASK_ID" > /tmp/validation-task-id.txt
 
-# Monitorar (aguardar STOPPED)
-echo "Monitorando status (Ctrl+C para sair)..."
-watch -n 5 "aws ecs describe-tasks \
-  --region us-east-2 \
-  --cluster kaviar-cluster \
-  --tasks $TASK_ARN \
-  --query 'tasks[0].lastStatus' \
-  --output text"
+# Monitorar
+watch -n 5 "aws ecs describe-tasks --region us-east-2 --cluster kaviar-cluster --tasks $TASK_ARN --query 'tasks[0].lastStatus' --output text"
 ```
 
 ---
 
-## Passo 3: Coletar Logs CloudWatch (Backend)
+## Passo 3: Coletar Logs Backend
 
 ```bash
-# Configurar variáveis
-REGION="us-east-2"
-LOG_GROUP="/ecs/kaviar-backend"
 TASK_ID=$(cat /tmp/validation-task-id.txt)
 
-echo "Task ID: $TASK_ID"
-
-# Descobrir log stream (aguardar até aparecer)
-echo "Aguardando log stream aparecer..."
+# Aguardar stream
 for i in {1..12}; do
   STREAM=$(aws logs describe-log-streams \
-    --region "$REGION" \
-    --log-group-name "$LOG_GROUP" \
+    --region us-east-2 \
+    --log-group-name /ecs/kaviar-backend \
     --order-by LastEventTime \
     --descending \
     --max-items 50 \
@@ -122,10 +139,10 @@ for i in {1..12}; do
     --output text)
   
   if [ -n "$STREAM" ] && [ "$STREAM" != "None" ]; then
-    echo "✅ Stream encontrado: $STREAM"
+    echo "✅ Stream: $STREAM"
     break
   fi
-  echo "Tentativa $i/12... aguardando 5s"
+  echo "Aguardando stream... $i/12"
   sleep 5
 done
 
@@ -134,18 +151,18 @@ if [ -z "$STREAM" ] || [ "$STREAM" = "None" ]; then
   exit 1
 fi
 
-# Baixar logs completos (amostra até 10k eventos)
+# Baixar logs (amostra 10k - pode estar paginado)
 aws logs get-log-events \
-  --region "$REGION" \
-  --log-group-name "$LOG_GROUP" \
+  --region us-east-2 \
+  --log-group-name /ecs/kaviar-backend \
   --log-stream-name "$STREAM" \
   --limit 10000 \
   --output json | jq -r '.events[].message' > /tmp/validation-full-logs.txt
 
-echo "✅ Logs salvos em /tmp/validation-full-logs.txt ($(wc -l < /tmp/validation-full-logs.txt) linhas)"
-echo "⚠️  Nota: Limite de 10k eventos - pode ser amostra se task gerou mais logs"
+echo "✅ Logs: /tmp/validation-full-logs.txt ($(wc -l < /tmp/validation-full-logs.txt) linhas)"
+echo "⚠️  Limite 10k eventos - pode ser amostra"
 
-# Extrair marcadores específicos
+# Extrair marcadores
 grep "RIDE_CREATED" /tmp/validation-full-logs.txt > /tmp/validation-ride-created.txt 2>/dev/null || touch /tmp/validation-ride-created.txt
 grep "DISPATCHER_FILTER" /tmp/validation-full-logs.txt > /tmp/validation-dispatcher-filter.txt 2>/dev/null || touch /tmp/validation-dispatcher-filter.txt
 grep "DISPATCH_CANDIDATES" /tmp/validation-full-logs.txt > /tmp/validation-dispatch-candidates.txt 2>/dev/null || touch /tmp/validation-dispatch-candidates.txt
@@ -154,7 +171,7 @@ grep "OFFER_EXPIRED" /tmp/validation-full-logs.txt > /tmp/validation-offer-expir
 grep "RIDE_STATUS_CHANGED" /tmp/validation-full-logs.txt > /tmp/validation-status-changed.txt 2>/dev/null || touch /tmp/validation-status-changed.txt
 
 echo ""
-echo "=== Marcadores de Evidência ==="
+echo "=== Marcadores ==="
 echo "RIDE_CREATED: $(wc -l < /tmp/validation-ride-created.txt)"
 echo "DISPATCHER_FILTER: $(wc -l < /tmp/validation-dispatcher-filter.txt)"
 echo "DISPATCH_CANDIDATES: $(wc -l < /tmp/validation-dispatch-candidates.txt)"
@@ -165,35 +182,29 @@ echo "RIDE_STATUS_CHANGED: $(wc -l < /tmp/validation-status-changed.txt)"
 
 ---
 
-## Passo 4: Coletar SQL via ECS psql-runner
+## Passo 4: SQL via ECS psql-runner
 
 ```bash
-# Criar overrides para psql-runner
+# Criar overrides com sanity check
 cat > /tmp/ecs-psql-runner-overrides.json <<'EOF'
 {
-  "containerOverrides": [
-    {
-      "name": "psql-runner",
-      "environment": [
-        {"name": "PGHOST", "value": "kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com"},
-        {"name": "PGPORT", "value": "5432"},
-        {"name": "PGDATABASE", "value": "kaviar_validation"},
-        {"name": "PGUSER", "value": "usbtecnok"},
-        {"name": "PGPASSWORD", "value": "z4939ia4"},
-        {"name": "PGSSLMODE", "value": "require"}
-      ],
-      "command": [
-        "sh",
-        "-c",
-        "echo '=== SANITY CHECK TABLES ===' && psql -c \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename ILIKE '%ride%' OR tablename ILIKE '%offer%' OR tablename ILIKE '%driver%') ORDER BY tablename;\" && echo '' && echo '=== RIDES POR STATUS ===' && psql -c \"SELECT status, COUNT(*) as count FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status ORDER BY count DESC;\" && echo '' && echo '=== OFFERS POR STATUS ===' && psql -c \"SELECT status, COUNT(*) as count FROM ride_offers WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status ORDER BY count DESC;\" && echo '' && echo '=== DETALHES DAS 20 RIDES ===' && psql -c \"SELECT id, status, created_at, offered_at, (SELECT COUNT(*) FROM ride_offers WHERE ride_id = rides_v2.id) as offer_count FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' ORDER BY created_at DESC LIMIT 20;\""
-      ]
-    }
-  ]
+  "containerOverrides": [{
+    "name": "psql-runner",
+    "environment": [
+      {"name": "PGHOST", "value": "kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com"},
+      {"name": "PGPORT", "value": "5432"},
+      {"name": "PGDATABASE", "value": "kaviar_validation"},
+      {"name": "PGUSER", "value": "usbtecnok"},
+      {"name": "PGPASSWORD", "value": "z4939ia4"},
+      {"name": "PGSSLMODE", "value": "require"}
+    ],
+    "command": ["sh", "-c", "echo '=== SANITY CHECK ===' && psql -c \"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename ILIKE '%ride%' OR tablename ILIKE '%offer%' OR tablename ILIKE '%driver%') ORDER BY tablename;\" && echo '' && echo '=== RIDES STATUS ===' && psql -c \"SELECT status, COUNT(*) FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status ORDER BY count DESC;\" && echo '' && echo '=== OFFERS STATUS ===' && psql -c \"SELECT status, COUNT(*) FROM ride_offers WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status ORDER BY count DESC;\" && echo '' && echo '=== RIDES DETAILS ===' && psql -c \"SELECT id, status, created_at, offered_at, (SELECT COUNT(*) FROM ride_offers WHERE ride_id = rides_v2.id) as offer_count FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' ORDER BY created_at DESC LIMIT 20;\""]
+  }]
 }
 EOF
 
-# Executar psql-runner
-SQL_TASK_ARN=$(aws ecs run-task \
+# Executar
+SQL_ARN=$(aws ecs run-task \
   --cluster kaviar-cluster \
   --task-definition kaviar-psql-runner \
   --launch-type FARGATE \
@@ -203,14 +214,10 @@ SQL_TASK_ARN=$(aws ecs run-task \
   --query "tasks[0].taskArn" \
   --output text)
 
-SQL_TASK_ID=$(echo "$SQL_TASK_ARN" | awk -F'/' '{print $NF}')
+SQL_ID=$(echo "$SQL_ARN" | awk -F'/' '{print $NF}')
+echo "SQL Task: $SQL_ARN"
 
-echo "SQL Runner Task ARN: $SQL_TASK_ARN"
-echo "SQL Runner Task ID: $SQL_TASK_ID"
-echo "$SQL_TASK_ARN" > /tmp/validation-sql-task-arn.txt
-
-# Aguardar stream aparecer (loop 12x com sleep 5)
-echo "Aguardando SQL runner stream aparecer..."
+# Aguardar stream
 for i in {1..12}; do
   SQL_STREAM=$(aws logs describe-log-streams \
     --region us-east-2 \
@@ -218,14 +225,14 @@ for i in {1..12}; do
     --order-by LastEventTime \
     --descending \
     --max-items 20 \
-    --query "logStreams[?contains(logStreamName, \`$SQL_TASK_ID\`)].logStreamName | [0]" \
+    --query "logStreams[?contains(logStreamName, \`$SQL_ID\`)].logStreamName | [0]" \
     --output text)
   
   if [ -n "$SQL_STREAM" ] && [ "$SQL_STREAM" != "None" ]; then
-    echo "✅ SQL Stream encontrado: $SQL_STREAM"
+    echo "✅ SQL Stream: $SQL_STREAM"
     break
   fi
-  echo "Tentativa $i/12... aguardando 5s"
+  echo "Aguardando SQL stream... $i/12"
   sleep 5
 done
 
@@ -240,74 +247,91 @@ aws logs get-log-events \
   --log-group-name /ecs/kaviar-psql-runner \
   --log-stream-name "$SQL_STREAM" \
   --limit 1000 \
-  --output json | jq -r '.events[].message' | tee /tmp/validation-sql-all.txt
+  --output json | jq -r '.events[].message' > /tmp/validation-sql-all.txt
 
-echo ""
-echo "✅ Dados SQL coletados em /tmp/validation-sql-all.txt"
-echo "Linhas: $(wc -l < /tmp/validation-sql-all.txt)"
+echo "✅ SQL: /tmp/validation-sql-all.txt ($(wc -l < /tmp/validation-sql-all.txt) linhas)"
+cat /tmp/validation-sql-all.txt
+
+# Verificar sanity
+if grep -q "(0 rows)" /tmp/validation-sql-all.txt | head -5; then
+  echo "❌ TABELAS NÃO EXISTEM - Rodar Passo 1 (Migration) novamente"
+  exit 1
+fi
 ```
 
 ---
 
-## Passo 5: Preencher Documento de Evidências
+## Passo 5: Preencher Evidências
 
 ```bash
-cd /home/goes/kaviar/backend
-
-# Abrir documento
-nano docs/EVIDENCIAS-STAGING-RIDE-FLOW.md
-
-# Preencher seções:
-# 1. Task ARN/ID: copiar de /tmp/validation-task-arn.txt
-# 2. Data/Hora: horário anotado no Passo 2
-# 3. Logs CloudWatch: copiar marcadores de /tmp/validation-*.txt
-# 4. SQL: copiar de /tmp/validation-sql-all.txt
-# 5. Resumo Executivo: contar rides/offers
-# 6. Conclusão: ✅ APROVADO (se fluxo completo validado)
+nano backend/docs/EVIDENCIAS-VALIDACAO-ECS.md
 ```
+
+Preencher:
+- Migration Task ARN (de `/tmp/validation-migrate-task-arn.txt`)
+- Validation Task ARN (de `/tmp/validation-task-arn.txt`)
+- Horários (anotados no Passo 2)
+- Logs (copiar marcadores de `/tmp/validation-*.txt`)
+- SQL (copiar de `/tmp/validation-sql-all.txt`)
+- Resumo (contar rides/offers)
+- Conclusão: ✅ APROVADO ou ❌ REPROVADO
 
 ---
 
-## Passo 6: Commit e Marcar Checkbox
+## Passo 6: Commit
 
 ```bash
 cd /home/goes/kaviar
 
-# Commit evidências (mensagem curta, detalhes no arquivo)
-git add backend/docs/EVIDENCIAS-STAGING-RIDE-FLOW.md
-git commit -m "docs: validation evidence SPEC_RIDE_FLOW_V1 complete"
+git add backend/docs/EVIDENCIAS-VALIDACAO-ECS.md
+git commit -m "docs: validation evidence complete"
 git push origin feat/dev-load-test-ride-flow-v1
 
-# Marcar checkbox no PRODUCAO-CHECKLIST.md
 nano PRODUCAO-CHECKLIST.md
-# Linha 31: - [x] Evidências em staging (CloudWatch + 20 corridas + logs do dispatcher)
+# Marcar: [x] Evidências em staging
 
 git add PRODUCAO-CHECKLIST.md
-git commit -m "chore: mark staging evidence checkbox complete"
+git commit -m "chore: mark evidence checkbox"
 git push origin feat/dev-load-test-ride-flow-v1
 ```
 
-**Nota:** Detalhes da validação (Task ARN, horários, contagens) estão documentados em `EVIDENCIAS-STAGING-RIDE-FLOW.md`.
+---
+
+## Troubleshooting
+
+**Stream não aparece (STREAM=None)**
+- Aguardar loop 60s (12x5s) já está no script
+- Se ainda falhar: verificar Task ARN correto
+
+**Arquivo vazio**
+- Usar `jq -r` (não `--output text`)
+- Mensagens podem ter TAB → script já usa `jq -r`
+
+**Tabelas não existem**
+- Rodar Passo 1 (Migration) primeiro
+- Sanity check detecta automaticamente
 
 ---
 
 ## Arquivos Gerados
 
-- `/tmp/ecs-migrate-overrides.json` - Config da task de migration
-- `/tmp/ecs-validation-overrides.json` - Config da task backend
-- `/tmp/ecs-psql-runner-overrides.json` - Config da task psql-runner
-- `/tmp/validation-task-arn.txt` - Task ARN backend
-- `/tmp/validation-task-id.txt` - Task ID backend
-- `/tmp/validation-sql-task-arn.txt` - Task ARN psql-runner
-- `/tmp/validation-full-logs.txt` - Logs completos (amostra até 10k)
-- `/tmp/validation-ride-created.txt` - Marcador RIDE_CREATED
-- `/tmp/validation-dispatcher-filter.txt` - Marcador DISPATCHER_FILTER
-- `/tmp/validation-dispatch-candidates.txt` - Marcador DISPATCH_CANDIDATES
-- `/tmp/validation-offer-sent.txt` - Marcador OFFER_SENT
-- `/tmp/validation-offer-expired.txt` - Marcador OFFER_EXPIRED
-- `/tmp/validation-status-changed.txt` - Marcador RIDE_STATUS_CHANGED
-- `/tmp/validation-sql-all.txt` - Resultados SQL (via ECS psql-runner)
+- `/tmp/ecs-migrate-overrides.json`
+- `/tmp/ecs-validation-overrides.json`
+- `/tmp/ecs-psql-runner-overrides.json`
+- `/tmp/validation-migrate-task-arn.txt`
+- `/tmp/validation-migrate-logs.txt`
+- `/tmp/validation-task-arn.txt`
+- `/tmp/validation-task-id.txt`
+- `/tmp/validation-full-logs.txt`
+- `/tmp/validation-ride-created.txt`
+- `/tmp/validation-dispatcher-filter.txt`
+- `/tmp/validation-dispatch-candidates.txt`
+- `/tmp/validation-offer-sent.txt`
+- `/tmp/validation-offer-expired.txt`
+- `/tmp/validation-status-changed.txt`
+- `/tmp/validation-sql-all.txt`
 
 ---
 
-**Pronto para executar! Copie cada bloco de Passo em Passo.** 🚀
+**Tempo:** ~30-35 min  
+**Pronto para copiar/colar!** 🚀

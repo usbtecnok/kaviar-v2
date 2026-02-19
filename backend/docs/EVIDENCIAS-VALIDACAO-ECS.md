@@ -1,5 +1,7 @@
 # Evidências Validação ECS (one-off) - SPEC_RIDE_FLOW_V1
 
+**Nota:** Este documento foi renomeado de "Evidências Staging" para refletir a realidade: validação via ECS one-off, sem staging DNS/service.
+
 ## Objetivo
 Validar funcionamento completo do ride-flow v1 em validação via ECS run-task one-off (sem DNS/service) com 20 corridas reais.
 
