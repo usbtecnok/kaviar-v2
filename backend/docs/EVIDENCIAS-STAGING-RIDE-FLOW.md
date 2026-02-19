@@ -1,74 +1,55 @@
-# Evidências Staging - SPEC_RIDE_FLOW_V1
+# Evidências Validação ECS (one-off) - SPEC_RIDE_FLOW_V1
 
 ## Objetivo
-Validar funcionamento completo do ride-flow v1 em ambiente de staging com 20 corridas reais.
+Validar funcionamento completo do ride-flow v1 em validação via ECS run-task one-off (sem DNS/service) com 20 corridas reais.
 
 ## Pré-requisitos Verificados
 
-### 1. Deploy em Staging
-- [ ] Branch deployado: `feat/dev-load-test-ride-flow-v1` ou `main` (após merge)
-- [ ] ECS Task Definition staging configurado com:
-  - `FEATURE_SPEC_RIDE_FLOW_V1=true`
-  - `NODE_ENV=production` (ou `staging`)
-  - `DATABASE_URL` apontando para RDS staging
-  - Sem flags `DEV_*` (produção/staging não usa simulação)
+### 1. Execução via ECS run-task one-off
+- [ ] Task Definition: kaviar-backend:148
+- [ ] Feature flag: `FEATURE_SPEC_RIDE_FLOW_V1=true`
+- [ ] NODE_ENV: `staging`
+- [ ] Database: `kaviar_validation` (RDS prod, isolado)
+- [ ] Usuário DB: `usbtecnok`
+- [ ] VALIDATION_DATABASE_URL configurado
 
-### 2. Verificação de Health
+### 2. Migration Aplicada
 ```bash
-# Backend staging respondendo
-curl https://staging-api.kaviar.com/api/health
-# Esperado: {"status":"ok"}
-
-# Endpoints v2 montados (não 404)
-curl -i https://staging-api.kaviar.com/api/v2/rides
-# Esperado: 401 Unauthorized (não 404)
-```
-
-### 3. Migration Aplicada
-```bash
-# Conectar no RDS staging e verificar tabelas
-psql $STAGING_DATABASE_URL -c "\dt rides_v2"
-psql $STAGING_DATABASE_URL -c "\dt ride_offers"
-psql $STAGING_DATABASE_URL -c "\dt driver_locations"
-psql $STAGING_DATABASE_URL -c "\dt driver_status"
+# Verificar tabelas no DB validation
+psql $VALIDATION_DATABASE_URL -c "\dt rides_v2"
+psql $VALIDATION_DATABASE_URL -c "\dt ride_offers"
+psql $VALIDATION_DATABASE_URL -c "\dt driver_locations"
+psql $VALIDATION_DATABASE_URL -c "\dt driver_status"
 ```
 
 ---
 
-## Execução do Teste (20 Rides)
+## Execução do Teste (20 Rides via ECS)
+
+### Informações da Task
+- **Task ARN**: [PREENCHER - ex: arn:aws:ecs:us-east-2:847895361928:task/kaviar-cluster/abc123...]
+- **Task ID**: [PREENCHER - ex: abc123def456]
+- **Image**: 11bdd8c (ou conforme executado)
 
 ### Data/Hora do Teste
-- **Início**: [PREENCHER - ex: 2026-02-18 19:30:00 UTC]
-- **Fim**: [PREENCHER - ex: 2026-02-18 19:35:00 UTC]
+- **Início**: [PREENCHER - ex: 2026-02-18 22:30:00 -03:00]
+- **Fim**: [PREENCHER - ex: 2026-02-18 22:35:00 -03:00]
 - **Duração**: ~5 minutos
 
-### Seed de Dados
+### Execução
 ```bash
-# Conectar no ambiente staging e rodar seed
-# Opção 1: Via bastion/tunnel
-ssh -L 5432:staging-rds.amazonaws.com:5432 bastion-host
-export DATABASE_URL="postgresql://user:pass@localhost:5432/kaviar_staging"
-npx tsx backend/prisma/seed-ride-flow-v1.ts
-
-# Resultado esperado:
+# Task executada via roteiro COMANDO-PRONTO-VALIDACAO.md
+# Seed + Server + Test script rodaram dentro da task
+# Logs coletados via CloudWatch
+```
 # ✓ Passenger created: pass_beta_test_001
 # ✓ Driver 1 created: test-driver-1
 # ✓ Driver 2 created: test-driver-2
 ```
 
-### Execução do Script de Teste
-```bash
-# Configurar endpoint staging
-export API_URL="https://staging-api.kaviar.com"
+### Output do Teste
 
-# Rodar teste de 20 rides
-cd backend
-bash scripts/test-ride-flow-v1.sh
-
-# Output esperado (colar aqui):
-```
-
-**[PREENCHER COM OUTPUT DO SCRIPT]**
+**[PREENCHER COM OUTPUT DO SCRIPT - extraído dos logs CloudWatch]**
 
 Exemplo:
 ```
@@ -88,24 +69,20 @@ Exemplo:
 
 ---
 
-## Evidências CloudWatch Logs (Staging)
+## Evidências CloudWatch Logs
 
 ### Log Group
-- **Nome**: `/ecs/kaviar-backend-staging` (ou similar)
+- **Nome**: `/ecs/kaviar-backend`
 - **Região**: `us-east-2`
-- **Período**: [INÍCIO] até [FIM] do teste
+- **Task ID**: [PREENCHER - do Passo 4.2]
+- **Log Stream**: [PREENCHER - descoberto automaticamente]
 
-### Comandos para Coletar Logs
+### Coleta de Logs
 ```bash
-# Buscar logs do período do teste
-aws logs filter-log-events \
-  --log-group-name /ecs/kaviar-backend-staging \
-  --start-time $(date -d "2026-02-18 19:30:00" +%s)000 \
-  --end-time $(date -d "2026-02-18 19:35:00" +%s)000 \
-  --filter-pattern "RIDE_CREATED" \
-  --region us-east-2 \
-  --max-items 25 \
-  > staging-logs-ride-created.json
+# Logs coletados via roteiro COMANDO-PRONTO-VALIDACAO.md
+# Arquivo: /tmp/validation-full-logs.txt (até 10k eventos)
+# Marcadores extraídos em arquivos separados
+```
 
 # Buscar logs do dispatcher
 aws logs filter-log-events \
@@ -120,114 +97,89 @@ aws logs filter-log-events \
 # Buscar logs de offers
 aws logs filter-log-events \
   --log-group-name /ecs/kaviar-backend-staging \
-  --start-time $(date -d "2026-02-18 19:30:00" +%s)000 \
-  --end-time $(date -d "2026-02-18 19:35:00" +%s)000 \
-  --filter-pattern "OFFER" \
-  --region us-east-2 \
-  --max-items 50 \
-  > staging-logs-offers.json
-```
-
 ### Trechos Relevantes dos Logs
 
-#### 1. Ride Created
+**Fonte:** Arquivos extraídos via roteiro (Passo 6.3)
+
+#### 1. RIDE_CREATED
 ```
-[PREENCHER COM LOGS REAIS]
+[PREENCHER - copiar de /tmp/validation-ride-created.txt]
 
 Exemplo:
-2026-02-18T19:30:15.234Z [RIDE_CREATED] ride_id=abc123-... passenger_id=pass_beta_test_001 origin=[-22.9668,-43.1729] dest=[-22.9700,-43.1800]
-2026-02-18T19:30:16.123Z [RIDE_CREATED] ride_id=def456-... passenger_id=pass_beta_test_001 origin=[-22.9668,-43.1729] dest=[-22.9700,-43.1800]
+2026-02-18T22:30:15.234Z [RIDE_CREATED] ride_id=abc123-... passenger_id=pass_beta_test_001 origin=[-22.9668,-43.1729] dest=[-22.9700,-43.1800]
+2026-02-18T22:30:16.123Z [RIDE_CREATED] ride_id=def456-... passenger_id=pass_beta_test_001 origin=[-22.9668,-43.1729] dest=[-22.9700,-43.1800]
 ...
 ```
 
-#### 2. Dispatcher Filter & Candidates
+#### 2. DISPATCHER_FILTER & DISPATCH_CANDIDATES
 ```
-[PREENCHER COM LOGS REAIS]
+[PREENCHER - copiar de /tmp/validation-dispatcher-filter.txt e /tmp/validation-dispatch-candidates.txt]
 
 Exemplo:
-2026-02-18T19:30:15.345Z [DISPATCHER_FILTER] ride_id=abc123-... online=2 with_location=2 fresh_location=2 within_distance=2 final_candidates=2 dropped={"no_location":0,"stale_location":0,"too_far":0}
-2026-02-18T19:30:15.346Z [DISPATCH_CANDIDATES] ride_id=abc123-... attempt=1 candidates=2 top3=[{"driver_id":"test-driver-1","distance_km":0.5,"score":0.5,"same_neighborhood":false}]
+2026-02-18T22:30:15.345Z [DISPATCHER_FILTER] ride_id=abc123-... online=2 with_location=2 fresh_location=2 within_distance=2 final_candidates=2 dropped={"no_location":0,"stale_location":0,"too_far":0}
+2026-02-18T22:30:15.346Z [DISPATCH_CANDIDATES] ride_id=abc123-... attempt=1 candidates=2 top3=[{"driver_id":"test-driver-1","distance_km":0.5,"score":0.5,"same_neighborhood":false}]
 ```
 
-#### 3. Offer Sent
+#### 3. OFFER_SENT
 ```
-[PREENCHER COM LOGS REAIS]
-
-Exemplo:
-2026-02-18T19:30:15.456Z [OFFER_SENT] ride_id=abc123-... offer_id=offer-001 driver_id=test-driver-1 expires_at=2026-02-18T19:30:30.456Z score=0.5
-```
-
-#### 4. Offer Status (Accepted/Rejected/Expired)
-```
-[PREENCHER COM LOGS REAIS]
+[PREENCHER - copiar de /tmp/validation-offer-sent.txt]
 
 Exemplo:
-2026-02-18T19:30:30.567Z [OFFER_EXPIRED] offer_id=offer-001 ride_id=abc123-... driver_id=test-driver-1
-2026-02-18T19:30:30.678Z [DISPATCHER] No candidates for ride abc123-..., setting no_driver
+2026-02-18T22:30:15.456Z [OFFER_SENT] ride_id=abc123-... offer_id=offer-001 driver_id=test-driver-1 expires_at=2026-02-18T22:30:30.456Z score=0.5
 ```
 
-#### 5. Ride Status Changed
+#### 4. OFFER_EXPIRED
 ```
-[PREENCHER COM LOGS REAIS]
+[PREENCHER - copiar de /tmp/validation-offer-expired.txt]
 
 Exemplo:
-2026-02-18T19:30:30.789Z [RIDE_STATUS_CHANGED] ride_id=abc123-... status=no_driver
+2026-02-18T22:30:30.567Z [OFFER_EXPIRED] offer_id=offer-001 ride_id=abc123-... driver_id=test-driver-1
+```
+
+#### 5. RIDE_STATUS_CHANGED
+```
+[PREENCHER - copiar de /tmp/validation-status-changed.txt]
+
+Exemplo:
+2026-02-18T22:30:30.789Z [RIDE_STATUS_CHANGED] ride_id=abc123-... status=no_driver
 ```
 
 ---
 
-## Evidências SQL (Staging Database)
+## Evidências SQL (via ECS psql-runner)
 
-### Query: Rides por Status
-```sql
-SELECT status, COUNT(*) as count
-FROM rides_v2
-WHERE created_at > NOW() - INTERVAL '1 hour'
-GROUP BY status
-ORDER BY count DESC;
-```
+**Fonte:** `/tmp/validation-sql-all.txt` (coletado via Passo 7 do roteiro)
 
-**Resultado:**
+### Resultado Completo
+
 ```
-[PREENCHER COM RESULTADO REAL]
+[PREENCHER - copiar todo conteúdo de /tmp/validation-sql-all.txt]
 
 Exemplo:
+
+=== RIDES POR STATUS ===
   status   | count
 -----------+-------
  no_driver |    18
  offered   |     2
  requested |     0
 (3 rows)
-```
 
-### Query: Offers por Status
-```sql
-SELECT status, COUNT(*) as count
-FROM ride_offers
-WHERE created_at > NOW() - INTERVAL '1 hour'
-GROUP BY status
-ORDER BY count DESC;
-```
-
-**Resultado:**
-```
-[PREENCHER COM RESULTADO REAL]
-
-Exemplo:
+=== OFFERS POR STATUS ===
   status  | count
 ----------+-------
  expired  |    20
  pending  |     0
 (2 rows)
-```
 
-### Query: Detalhes das 20 Rides
-```sql
-SELECT 
-  id,
-  status,
-  created_at,
-  offered_at,
+=== DETALHES DAS 20 RIDES ===
+                  id                  |  status   |         created_at         |         offered_at         | offer_count
+--------------------------------------+-----------+----------------------------+----------------------------+-------------
+ abc123-def4-5678-90ab-cdef12345678   | no_driver | 2026-02-18 22:30:15.234+00 | 2026-02-18 22:30:15.456+00 |           1
+ def456-abc1-2345-6789-0abcdef12345   | offered   | 2026-02-18 22:30:16.123+00 | 2026-02-18 22:30:16.345+00 |           1
+...
+(20 rows)
+```
   (SELECT COUNT(*) FROM ride_offers WHERE ride_id = rides_v2.id) as offer_count,
   (SELECT COUNT(*) FROM ride_offers WHERE ride_id = rides_v2.id AND status = 'expired') as expired_count
 FROM rides_v2
@@ -293,9 +245,9 @@ Exemplo:
 
 ### Comportamento Esperado vs Real
 
-**Esperado (sem motoristas reais em staging):**
+**Esperado (validação sem motoristas reais):**
 - Todas as rides devem processar pelo dispatcher
-- Offers devem ser criadas e enviadas via SSE
+- Offers devem ser criadas e enviadas via SSE (simulado dentro da task)
 - Offers devem expirar após timeout (~15s) ou serem rejeitadas
 - Rides devem transitar para status final (`no_driver`, `offered`, ou `accepted` se houver simulação)
 
@@ -349,29 +301,32 @@ Fluxo técnico validado ponta-a-ponta. Sistema pronto para produção.
 ### Comandos Úteis para Troubleshooting
 
 ```bash
-# Ver logs em tempo real (staging)
-aws logs tail /ecs/kaviar-backend-staging --follow --region us-east-2
+# Ver logs em tempo real (task específica)
+aws logs tail /ecs/kaviar-backend --follow --region us-east-2
 
-# Contar rides por status
-psql $STAGING_DATABASE_URL -c "SELECT status, COUNT(*) FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status;"
+# Contar rides por status (via psql local se disponível, ou via ECS psql-runner)
+psql $VALIDATION_DATABASE_URL -c "SELECT status, COUNT(*) FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status;"
 
 # Ver últimas 10 rides
-psql $STAGING_DATABASE_URL -c "SELECT id, status, created_at FROM rides_v2 ORDER BY created_at DESC LIMIT 10;"
+psql $VALIDATION_DATABASE_URL -c "SELECT id, status, created_at FROM rides_v2 ORDER BY created_at DESC LIMIT 10;"
 
 # Ver offers de uma ride específica
-psql $STAGING_DATABASE_URL -c "SELECT * FROM ride_offers WHERE ride_id = 'RIDE_ID_AQUI';"
+psql $VALIDATION_DATABASE_URL -c "SELECT * FROM ride_offers WHERE ride_id = 'RIDE_ID_AQUI';"
 ```
 
 ### Informações do Ambiente
 
 - **Região AWS**: us-east-2
-- **Cluster ECS**: kaviar-cluster-staging (ou similar)
-- **Service**: kaviar-backend-service-staging
-- **RDS Endpoint**: [PREENCHER]
-- **Log Group**: /ecs/kaviar-backend-staging
+- **Cluster ECS**: kaviar-cluster
+- **Execução**: ECS run-task one-off (sem service/DNS)
+- **Database**: kaviar_validation (RDS prod, isolado)
+- **Usuário DB**: usbtecnok
+- **Log Group Backend**: /ecs/kaviar-backend
+- **Log Group SQL Runner**: /ecs/kaviar-psql-runner
 
 ---
 
 **Documento gerado em**: [PREENCHER DATA/HORA]
 **Responsável**: [PREENCHER NOME]
+**Task ARN**: [PREENCHER]
 **Versão do código**: commit [PREENCHER HASH]
