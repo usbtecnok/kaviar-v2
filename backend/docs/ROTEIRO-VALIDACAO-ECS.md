@@ -223,10 +223,10 @@ fi
 **Anotar:**
 - Log Stream: _______________________
 
-### 6.2 Baixar logs completos
+### 6.2 Baixar logs completos (amostra)
 
 ```bash
-# Baixar todos os logs da task (até 10000 eventos)
+# Baixar até 10000 eventos (pode estar paginado se houver mais)
 aws logs get-log-events \
   --region "$REGION" \
   --log-group-name "$LOG_GROUP" \
@@ -237,70 +237,62 @@ aws logs get-log-events \
 
 # Ver tamanho
 wc -l /tmp/validation-full-logs.txt
+echo "⚠️  Nota: Limite de 10k eventos - pode ser amostra se task gerou mais logs"
 echo "Primeiras 20 linhas:"
 head -20 /tmp/validation-full-logs.txt
 ```
 
-### 6.3 Extrair marcadores (filtros robustos)
+### 6.3 Extrair marcadores específicos (evidências confiáveis)
 
 ```bash
-# Filtros genéricos (case-insensitive) para capturar variações
-grep -Ei "ride|/api/v2/rides" /tmp/validation-full-logs.txt > /tmp/validation-ride.txt
-grep -Ei "dispatch|match|candidate" /tmp/validation-full-logs.txt > /tmp/validation-dispatch.txt
-grep -Ei "offer" /tmp/validation-full-logs.txt > /tmp/validation-offer.txt
-grep -Ei "timeout|expired" /tmp/validation-full-logs.txt > /tmp/validation-timeout.txt
-grep -Ei "status.*changed|transition" /tmp/validation-full-logs.txt > /tmp/validation-status.txt
-
-# Marcadores específicos (se existirem)
+# Marcadores específicos do ride-flow
 grep "RIDE_CREATED" /tmp/validation-full-logs.txt > /tmp/validation-ride-created.txt 2>/dev/null || touch /tmp/validation-ride-created.txt
-grep "DISPATCHER" /tmp/validation-full-logs.txt > /tmp/validation-dispatcher.txt 2>/dev/null || touch /tmp/validation-dispatcher.txt
+grep "DISPATCHER_FILTER" /tmp/validation-full-logs.txt > /tmp/validation-dispatcher-filter.txt 2>/dev/null || touch /tmp/validation-dispatcher-filter.txt
+grep "DISPATCH_CANDIDATES" /tmp/validation-full-logs.txt > /tmp/validation-dispatch-candidates.txt 2>/dev/null || touch /tmp/validation-dispatch-candidates.txt
 grep "OFFER_SENT" /tmp/validation-full-logs.txt > /tmp/validation-offer-sent.txt 2>/dev/null || touch /tmp/validation-offer-sent.txt
-grep "STATUS_CHANGED" /tmp/validation-full-logs.txt > /tmp/validation-status-changed.txt 2>/dev/null || touch /tmp/validation-status-changed.txt
+grep "OFFER_EXPIRED" /tmp/validation-full-logs.txt > /tmp/validation-offer-expired.txt 2>/dev/null || touch /tmp/validation-offer-expired.txt
+grep "RIDE_STATUS_CHANGED" /tmp/validation-full-logs.txt > /tmp/validation-status-changed.txt 2>/dev/null || touch /tmp/validation-status-changed.txt
 
 # Contar ocorrências
-echo "=== Filtros Genéricos ==="
-echo "RIDE (genérico): $(wc -l < /tmp/validation-ride.txt)"
-echo "DISPATCH (genérico): $(wc -l < /tmp/validation-dispatch.txt)"
-echo "OFFER (genérico): $(wc -l < /tmp/validation-offer.txt)"
-echo "TIMEOUT (genérico): $(wc -l < /tmp/validation-timeout.txt)"
-echo "STATUS (genérico): $(wc -l < /tmp/validation-status.txt)"
-echo ""
-echo "=== Marcadores Específicos ==="
+echo "=== Marcadores de Evidência ==="
 echo "RIDE_CREATED: $(wc -l < /tmp/validation-ride-created.txt)"
-echo "DISPATCHER: $(wc -l < /tmp/validation-dispatcher.txt)"
+echo "DISPATCHER_FILTER: $(wc -l < /tmp/validation-dispatcher-filter.txt)"
+echo "DISPATCH_CANDIDATES: $(wc -l < /tmp/validation-dispatch-candidates.txt)"
 echo "OFFER_SENT: $(wc -l < /tmp/validation-offer-sent.txt)"
-echo "STATUS_CHANGED: $(wc -l < /tmp/validation-status-changed.txt)"
+echo "OFFER_EXPIRED: $(wc -l < /tmp/validation-offer-expired.txt)"
+echo "RIDE_STATUS_CHANGED: $(wc -l < /tmp/validation-status-changed.txt)"
 ```
 
-**Checklist de marcadores:**
+**Checklist de marcadores (evidências mínimas):**
 - [ ] RIDE_CREATED: >= 20
-- [ ] DISPATCHER: >= 20
-- [ ] OFFER: >= 1
-- [ ] STATUS_CHANGED: >= 1
+- [ ] DISPATCHER_FILTER: >= 20
+- [ ] OFFER_SENT: >= 1
+- [ ] RIDE_STATUS_CHANGED: >= 1
 
 ---
 
-## Passo 7: Coletar Dados SQL
+## Passo 7: Coletar Dados SQL (via ECS psql-runner)
 
 ```bash
-# Conectar no DB validation
-psql "$VALIDATION_DATABASE_URL" <<'SQL' > /tmp/validation-sql-rides-status.txt
+# Criar script SQL
+cat > /tmp/validation-queries.sql <<'SQL'
+\echo '=== RIDES POR STATUS ==='
 SELECT status, COUNT(*) as count
 FROM rides_v2
 WHERE created_at > NOW() - INTERVAL '1 hour'
 GROUP BY status
 ORDER BY count DESC;
-SQL
 
-psql "$VALIDATION_DATABASE_URL" <<'SQL' > /tmp/validation-sql-offers-status.txt
+\echo ''
+\echo '=== OFFERS POR STATUS ==='
 SELECT status, COUNT(*) as count
 FROM ride_offers
 WHERE created_at > NOW() - INTERVAL '1 hour'
 GROUP BY status
 ORDER BY count DESC;
-SQL
 
-psql "$VALIDATION_DATABASE_URL" <<'SQL' > /tmp/validation-sql-rides-details.txt
+\echo ''
+\echo '=== DETALHES DAS 20 RIDES ==='
 SELECT id, status, created_at, offered_at,
   (SELECT COUNT(*) FROM ride_offers WHERE ride_id = rides_v2.id) as offer_count
 FROM rides_v2
@@ -309,12 +301,74 @@ ORDER BY created_at DESC
 LIMIT 20;
 SQL
 
-# Ver resultados
-cat /tmp/validation-sql-rides-status.txt
-cat /tmp/validation-sql-offers-status.txt
+# Executar via ECS run-task (kaviar-psql-runner)
+aws ecs run-task \
+  --cluster kaviar-cluster \
+  --task-definition kaviar-psql-runner \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-046613642f742faa2,subnet-01a498f7b4f3fcff5],securityGroups=[sg-0a54bc7272cae4623],assignPublicIp=ENABLED}" \
+  --overrides "{
+    \"containerOverrides\": [{
+      \"name\": \"psql-runner\",
+      \"environment\": [
+        {\"name\": \"PGHOST\", \"value\": \"kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com\"},
+        {\"name\": \"PGPORT\", \"value\": \"5432\"},
+        {\"name\": \"PGDATABASE\", \"value\": \"kaviar_validation\"},
+        {\"name\": \"PGUSER\", \"value\": \"usbtecnok\"},
+        {\"name\": \"PGPASSWORD\", \"value\": \"z4939ia4\"}
+      ],
+      \"command\": [\"sh\", \"-c\", \"psql -f /dev/stdin <<'SQLEOF'
+\\\\echo '=== RIDES POR STATUS ==='
+SELECT status, COUNT(*) as count FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status ORDER BY count DESC;
+\\\\echo ''
+\\\\echo '=== OFFERS POR STATUS ==='
+SELECT status, COUNT(*) as count FROM ride_offers WHERE created_at > NOW() - INTERVAL '1 hour' GROUP BY status ORDER BY count DESC;
+\\\\echo ''
+\\\\echo '=== DETALHES DAS 20 RIDES ==='
+SELECT id, status, created_at, offered_at, (SELECT COUNT(*) FROM ride_offers WHERE ride_id = rides_v2.id) as offer_count FROM rides_v2 WHERE created_at > NOW() - INTERVAL '1 hour' ORDER BY created_at DESC LIMIT 20;
+SQLEOF
+\"]
+    }]
+  }" \
+  --region us-east-2 \
+  > /tmp/psql-runner-task.json
+
+# Extrair Task ARN
+SQL_TASK_ARN=$(jq -r '.tasks[0].taskArn' /tmp/psql-runner-task.json)
+SQL_TASK_ID=$(echo "$SQL_TASK_ARN" | awk -F'/' '{print $NF}')
+
+echo "SQL Runner Task ID: $SQL_TASK_ID"
+echo "Aguardando execução (~30s)..."
+sleep 30
+
+# Descobrir log stream do psql-runner
+SQL_STREAM=$(aws logs describe-log-streams \
+  --region us-east-2 \
+  --log-group-name /ecs/kaviar-psql-runner \
+  --order-by LastEventTime \
+  --descending \
+  --max-items 20 \
+  --query "logStreams[?contains(logStreamName, \`$SQL_TASK_ID\`)].logStreamName | [0]" \
+  --output text)
+
+echo "SQL Log Stream: $SQL_STREAM"
+
+# Baixar logs SQL
+aws logs get-log-events \
+  --region us-east-2 \
+  --log-group-name /ecs/kaviar-psql-runner \
+  --log-stream-name "$SQL_STREAM" \
+  --limit 1000 \
+  --query "events[].message" \
+  --output text > /tmp/validation-sql-all.txt
+
+echo "✅ Dados SQL coletados em /tmp/validation-sql-all.txt"
+cat /tmp/validation-sql-all.txt
 ```
 
-**Status:** [ ] Dados SQL coletados
+**Status:** [ ] Dados SQL coletados via ECS psql-runner
+
+**Nota:** Este método não depende de psql local nem túnel. Os logs do runner contêm os resultados SQL.
 
 ---
 
@@ -338,14 +392,14 @@ nano docs/EVIDENCIAS-STAGING-RIDE-FLOW.md
 
 3. **Logs CloudWatch**
    - RIDE_CREATED: copiar de `/tmp/validation-ride-created.txt`
-   - DISPATCHER: copiar de `/tmp/validation-dispatcher.txt`
-   - OFFER: copiar de `/tmp/validation-offers.txt`
-   - STATUS_CHANGED: copiar de `/tmp/validation-status.txt`
+   - DISPATCHER_FILTER: copiar de `/tmp/validation-dispatcher-filter.txt`
+   - DISPATCH_CANDIDATES: copiar de `/tmp/validation-dispatch-candidates.txt`
+   - OFFER_SENT: copiar de `/tmp/validation-offer-sent.txt`
+   - OFFER_EXPIRED: copiar de `/tmp/validation-offer-expired.txt`
+   - RIDE_STATUS_CHANGED: copiar de `/tmp/validation-status-changed.txt`
 
 4. **Evidências SQL**
-   - Rides por status: copiar de `/tmp/validation-sql-rides-status.txt`
-   - Offers por status: copiar de `/tmp/validation-sql-offers-status.txt`
-   - Detalhes: copiar de `/tmp/validation-sql-rides-details.txt`
+   - Copiar todo conteúdo de `/tmp/validation-sql-all.txt` (contém as 3 queries)
 
 5. **Resumo Executivo**
    - Total de rides criadas: [contar]
@@ -369,22 +423,14 @@ cd /home/goes/kaviar
 # Adicionar evidências
 git add backend/docs/EVIDENCIAS-STAGING-RIDE-FLOW.md
 
-# Commit
-git commit -m "docs: Add validation evidence for SPEC_RIDE_FLOW_V1
-
-- 20 rides tested in kaviar_validation database
-- ECS run-task executed with task definition 148
-- CloudWatch logs collected and analyzed
-- SQL queries confirm correct status transitions
-- Complete flow validated: created → dispatcher → offer → final status
-
-Task ARN: $TASK_ARN
-Database: kaviar_validation
-Status: APPROVED - Technical flow works end-to-end"
+# Commit (mensagem curta, detalhes no arquivo)
+git commit -m "docs: validation evidence SPEC_RIDE_FLOW_V1 complete"
 
 # Push
 git push origin feat/dev-load-test-ride-flow-v1
 ```
+
+**Nota:** Detalhes da validação (Task ARN, horários, contagens) estão documentados em `EVIDENCIAS-STAGING-RIDE-FLOW.md`.
 
 **Status:** [ ] Commit e push realizados
 
@@ -407,7 +453,7 @@ nano PRODUCAO-CHECKLIST.md
 
 # Commit
 git add PRODUCAO-CHECKLIST.md
-git commit -m "chore: Mark staging evidence checkbox as complete"
+git commit -m "chore: mark staging evidence checkbox complete"
 git push origin feat/dev-load-test-ride-flow-v1
 ```
 
@@ -453,13 +499,17 @@ aws logs describe-log-streams \
 Após execução completa, você terá:
 
 - `/tmp/ecs-validation-overrides.json` - Configuração da task
-- `/tmp/ecs-task-result.json` - Resultado do run-task
-- `/tmp/validation-full-logs.txt` - Logs completos
-- `/tmp/validation-ride-created.txt` - Logs RIDE_CREATED
-- `/tmp/validation-dispatcher.txt` - Logs DISPATCHER
-- `/tmp/validation-offers.txt` - Logs OFFER
-- `/tmp/validation-status.txt` - Logs STATUS_CHANGED
-- `/tmp/validation-sql-*.txt` - Resultados SQL
+- `/tmp/ecs-validation-run-task.json` - Resultado do run-task
+- `/tmp/validation-task-arn.txt` - Task ARN salvo
+- `/tmp/validation-full-logs.txt` - Logs completos (amostra até 10k eventos)
+- `/tmp/validation-ride-created.txt` - Marcador RIDE_CREATED
+- `/tmp/validation-dispatcher-filter.txt` - Marcador DISPATCHER_FILTER
+- `/tmp/validation-dispatch-candidates.txt` - Marcador DISPATCH_CANDIDATES
+- `/tmp/validation-offer-sent.txt` - Marcador OFFER_SENT
+- `/tmp/validation-offer-expired.txt` - Marcador OFFER_EXPIRED
+- `/tmp/validation-status-changed.txt` - Marcador RIDE_STATUS_CHANGED
+- `/tmp/validation-sql-all.txt` - Resultados SQL (via ECS psql-runner)
+- `/tmp/psql-runner-task.json` - Task do psql-runner
 
 ---
 
