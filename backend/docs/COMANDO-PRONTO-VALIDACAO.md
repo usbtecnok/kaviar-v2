@@ -379,8 +379,84 @@ fi
 ## Passo 5: SQL Completo via ECS psql-runner
 
 ```bash
-# Criar overrides com sanity check
-cat > /tmp/ecs-psql-runner-overrides.json <<'EOF'
+set -euo pipefail
+
+cat > /tmp/ecs-psql-sql-full.json <<'EOF'
+{
+  "containerOverrides": [{
+    "name": "psql-runner",
+    "environment": [
+      {"name": "PGHOST", "value": "kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com"},
+      {"name": "PGPORT", "value": "5432"},
+      {"name": "PGDATABASE", "value": "kaviar_validation"},
+      {"name": "PGUSER", "value": "usbtecnok"},
+      {"name": "PGPASSWORD", "value": "z4939ia4"},
+      {"name": "PGSSLMODE", "value": "require"}
+    ],
+    "command": ["sh", "-c", "echo '=== SQL FULL: PRECHECK ===' && psql -v ON_ERROR_STOP=1 -c \"DO \\$\\$ DECLARE r1 regclass; r2 regclass; BEGIN r1 := to_regclass('public.rides_v2'); r2 := to_regclass('public.ride_offers'); IF r1 IS NULL OR r2 IS NULL THEN RAISE EXCEPTION 'TABELAS NÃO EXISTEM (rodar Passo 1)'; END IF; END \\$\\$;\" && echo '' && echo '=== RIDES_V2: COUNT BY STATUS ===' && psql -c \"SELECT status, count(*)::int AS qty FROM rides_v2 GROUP BY status ORDER BY qty DESC, status;\" && echo '' && echo '=== RIDE_OFFERS: COUNT BY STATUS ===' && psql -c \"SELECT status, count(*)::int AS qty FROM ride_offers GROUP BY status ORDER BY qty DESC, status;\" && echo '' && echo '=== LAST 20 RIDES_V2 ===' && psql -c \"SELECT id, passenger_id, driver_id, status, origin, destination, pickup_neighborhood_id, dropoff_neighborhood_id, created_at FROM rides_v2 ORDER BY created_at DESC LIMIT 20;\" && echo '' && echo '=== OFFERS FOR LAST 20 RIDES ===' && psql -c \"WITH last_rides AS (SELECT id FROM rides_v2 ORDER BY created_at DESC LIMIT 20) SELECT o.id, o.ride_id, o.driver_id, o.status, o.created_at FROM ride_offers o JOIN last_rides r ON r.id = o.ride_id ORDER BY o.created_at DESC;\" && echo '' && echo '=== OFFERS: AGG METRICS ===' && psql -c \"SELECT count(*)::int AS offers_total, sum(CASE WHEN status ILIKE '%sent%' THEN 1 ELSE 0 END)::int AS offers_sent_like, sum(CASE WHEN status ILIKE '%expired%' THEN 1 ELSE 0 END)::int AS offers_expired_like, sum(CASE WHEN status ILIKE '%accept%' THEN 1 ELSE 0 END)::int AS offers_accepted_like FROM ride_offers;\" && echo '[OK] SQL FULL COMPLETE'"]
+  }]
+}
+EOF
+
+TASK_ARN=$(aws ecs run-task \
+  --cluster kaviar-cluster \
+  --task-definition kaviar-psql-runner \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-046613642f742faa2,subnet-01a498f7b4f3fcff5],securityGroups=[sg-0a54bc7272cae4623],assignPublicIp=ENABLED}" \
+  --overrides file:///tmp/ecs-psql-sql-full.json \
+  --region us-east-2 \
+  --query "tasks[0].taskArn" \
+  --output text)
+
+TASK_ID=$(echo "$TASK_ARN" | awk -F'/' '{print $NF}')
+echo "SQL Full Task: $TASK_ARN"
+
+# Aguardar stream (até 2 min)
+STREAM=""
+for i in $(seq 1 24); do
+  STREAM=$(aws logs describe-log-streams \
+    --region us-east-2 \
+    --log-group-name /ecs/kaviar-psql-runner \
+    --order-by LastEventTime \
+    --descending \
+    --max-items 50 \
+    --query "logStreams[?contains(logStreamName, \`$TASK_ID\`)].logStreamName | [0]" \
+    --output text)
+  
+  if [ -n "$STREAM" ] && [ "$STREAM" != "None" ]; then
+    break
+  fi
+  sleep 5
+done
+
+if [ -z "$STREAM" ] || [ "$STREAM" = "None" ]; then
+  echo "❌ Stream não encontrado"
+  exit 1
+fi
+
+# Baixar logs SQL
+aws logs get-log-events \
+  --region us-east-2 \
+  --log-group-name /ecs/kaviar-psql-runner \
+  --log-stream-name "$STREAM" \
+  --limit 2000 \
+  --output json | jq -r '.events[].message' | tee /tmp/validation-sql-full.txt
+
+echo ""
+echo "✅ SQL completo: /tmp/validation-sql-full.txt"
+
+# Verificar se completou
+if grep -q "SQL FULL COMPLETE" /tmp/validation-sql-full.txt; then
+  echo "✅ SQL completo executado com sucesso"
+else
+  echo "❌ SQL FALHOU - Ver /tmp/validation-sql-full.txt"
+  exit 1
+fi
+```
+
+---
+
+## Passo 6: Preencher Evidências
 {
   "containerOverrides": [{
     "name": "psql-runner",
