@@ -965,3 +965,44 @@ git push origin feat/dev-load-test-ride-flow-v1
 ## Tempo Total: ~25-35 min
 
 **Validação completa! 🚀**
+
+
+---
+
+## ✅ Checks Finais (Validação Rápida)
+
+Execute após qualquer run para validar rapidamente:
+
+```bash
+# Definir DEST_RUN (do Passo 7)
+DEST_RUN="backend/docs/evidencias/ride-flow-validation-YYYYMMDDTHHMMSSZ"
+
+# CHECK 1: Evidência tem carimbo de commit?
+echo "=== CHECK 1: Carimbo de commit ==="
+grep -n "## Build/Commit (auto)" "$DEST_RUN/EVIDENCIAS-RIDE-FLOW.md" && \
+grep -n "Commit:" "$DEST_RUN/EVIDENCIAS-RIDE-FLOW.md" | head -n 3
+
+# CHECK 2: Passo 6 idempotente (só 1 seção auto)
+echo ""
+echo "=== CHECK 2: Idempotência (deve ser 1) ==="
+grep -c "## Evidências DB e SQL (auto)" "$DEST_RUN/EVIDENCIAS-RIDE-FLOW.md"
+
+# CHECK 3: Integridade (manifest + todos os arquivos)
+echo ""
+echo "=== CHECK 3: Integridade SHA256 ==="
+sha256sum -c "$DEST_RUN/MANIFEST.sha256" && \
+jq -r '.files[] | "\(.sha256)  '"$DEST_RUN"'/" + .path' "$DEST_RUN/MANIFEST.json" > /tmp/manifest-files.sha256 && \
+sha256sum -c /tmp/manifest-files.sha256
+
+echo ""
+echo "✅ Todos os checks passaram!"
+```
+
+**Resultado esperado:**
+- CHECK 1: Mostra linha com carimbo + commit hash
+- CHECK 2: Retorna `1` (uma única seção)
+- CHECK 3: Todos os arquivos `OK`
+
+---
+
+**Validação SPEC_RIDE_FLOW_V1 completa! 🚀**
