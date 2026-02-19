@@ -219,6 +219,70 @@ echo "RIDE_STATUS_CHANGED: $(wc -l < /tmp/validation-status-changed.txt)"
 
 ---
 
+## Passo 3.5: Gerar Evidências Automaticamente (Opcional)
+
+```bash
+set -euo pipefail
+
+OUT_MD="/tmp/EVIDENCIAS-RIDE-FLOW.md"
+ANX_DIR="/tmp/EVIDENCIAS-ANEXOS"
+FULL="/tmp/validation-full-logs.txt"
+
+mkdir -p "$ANX_DIR"
+
+# Copiar anexos
+cp -f /tmp/validation-ride-created.txt "$ANX_DIR/01_ride_created.log" || :
+cp -f /tmp/validation-dispatcher-filter.txt "$ANX_DIR/02_dispatcher_filter.log" || :
+cp -f /tmp/validation-dispatch-candidates.txt "$ANX_DIR/03_dispatch_candidates.log" || :
+cp -f /tmp/validation-offer-sent.txt "$ANX_DIR/04_offer_sent.log" || :
+cp -f /tmp/validation-offer-expired.txt "$ANX_DIR/05_offer_expired.log" || :
+cp -f /tmp/validation-status-changed.txt "$ANX_DIR/06_status_changed.log" || :
+
+# Amostras
+head -n 30 /tmp/validation-ride-created.txt > "$ANX_DIR/SAMPLE_01_ride_created.log" || :
+head -n 30 /tmp/validation-dispatcher-filter.txt > "$ANX_DIR/SAMPLE_02_dispatcher_filter.log" || :
+head -n 30 /tmp/validation-dispatch-candidates.txt > "$ANX_DIR/SAMPLE_03_dispatch_candidates.log" || :
+head -n 30 /tmp/validation-offer-sent.txt > "$ANX_DIR/SAMPLE_04_offer_sent.log" || :
+head -n 30 /tmp/validation-offer-expired.txt > "$ANX_DIR/SAMPLE_05_offer_expired.log" || :
+head -n 30 /tmp/validation-status-changed.txt > "$ANX_DIR/SAMPLE_06_status_changed.log" || :
+
+# Contagens
+C_RIDE_CREATED=$(wc -l < /tmp/validation-ride-created.txt || echo 0)
+C_FILTER=$(wc -l < /tmp/validation-dispatcher-filter.txt || echo 0)
+C_CAND=$(wc -l < /tmp/validation-dispatch-candidates.txt || echo 0)
+C_SENT=$(wc -l < /tmp/validation-offer-sent.txt || echo 0)
+C_EXPIRED=$(wc -l < /tmp/validation-offer-expired.txt || echo 0)
+C_STATUS=$(wc -l < /tmp/validation-status-changed.txt || echo 0)
+
+LINES_TOTAL=$(wc -l < "$FULL" || echo 0)
+
+# Gerar markdown
+cat > "$OUT_MD" <<MD
+# EVIDÊNCIAS — RIDE FLOW (Validation)
+
+## Resumo
+- Total linhas: $LINES_TOTAL
+
+## Marcadores
+- RIDE_CREATED: $C_RIDE_CREATED
+- DISPATCHER_FILTER: $C_FILTER
+- DISPATCH_CANDIDATES: $C_CAND
+- OFFER_SENT: $C_SENT
+- OFFER_EXPIRED: $C_EXPIRED
+- RIDE_STATUS_CHANGED: $C_STATUS
+
+## Anexos
+Ver: /tmp/EVIDENCIAS-ANEXOS/
+MD
+
+echo "✅ Evidências: $OUT_MD"
+ls -lh "$ANX_DIR/"
+```
+
+**Status:** [ ] Evidências geradas
+
+---
+
 ## Passo 4: SQL via ECS psql-runner
 
 ```bash
