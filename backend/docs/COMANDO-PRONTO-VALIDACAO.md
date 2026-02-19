@@ -302,7 +302,81 @@ ls -lh "$OUT_MD" "$ANX_DIR/"
 
 ---
 
-## Passo 4: SQL via ECS psql-runner
+## Passo 4: Sanity Check DB (via ECS psql-runner)
+
+```bash
+set -euo pipefail
+
+cat > /tmp/ecs-psql-sanity-rideflow.json <<'EOF'
+{
+  "containerOverrides": [{
+    "name": "psql-runner",
+    "environment": [
+      {"name": "PGHOST", "value": "kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com"},
+      {"name": "PGPORT", "value": "5432"},
+      {"name": "PGDATABASE", "value": "kaviar_validation"},
+      {"name": "PGUSER", "value": "usbtecnok"},
+      {"name": "PGPASSWORD", "value": "z4939ia4"},
+      {"name": "PGSSLMODE", "value": "require"}
+    ],
+    "command": ["sh", "-c", "echo '=== TABLES EXIST? ===' && psql -c \"SELECT to_regclass('public.rides_v2') AS rides_v2, to_regclass('public.ride_offers') AS ride_offers;\" && echo '' && echo '=== COUNTS ===' && psql -c \"SELECT (SELECT count(*) FROM rides_v2) AS rides_v2_count, (SELECT count(*) FROM ride_offers) AS ride_offers_count;\" && echo '' && echo '=== LAST 20 rides_v2 ===' && psql -c \"SELECT id, status, created_at FROM rides_v2 ORDER BY created_at DESC LIMIT 20;\" && echo '' && echo '=== LAST 20 ride_offers ===' && psql -c \"SELECT id, ride_id, driver_id, status, created_at FROM ride_offers ORDER BY created_at DESC LIMIT 20;\" && echo '[OK]'"]
+  }]
+}
+EOF
+
+TASK_ARN=$(aws ecs run-task \
+  --cluster kaviar-cluster \
+  --task-definition kaviar-psql-runner \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-046613642f742faa2,subnet-01a498f7b4f3fcff5],securityGroups=[sg-0a54bc7272cae4623],assignPublicIp=ENABLED}" \
+  --overrides file:///tmp/ecs-psql-sanity-rideflow.json \
+  --region us-east-2 \
+  --query "tasks[0].taskArn" \
+  --output text)
+
+TASK_ID=$(echo "$TASK_ARN" | awk -F'/' '{print $NF}')
+echo "Sanity Check Task: $TASK_ARN"
+
+# Aguardar stream
+for i in $(seq 1 12); do
+  STREAM=$(aws logs describe-log-streams \
+    --region us-east-2 \
+    --log-group-name /ecs/kaviar-psql-runner \
+    --order-by LastEventTime \
+    --descending \
+    --max-items 50 \
+    --query "logStreams[?contains(logStreamName, \`$TASK_ID\`)].logStreamName | [0]" \
+    --output text)
+  
+  if [ -n "$STREAM" ] && [ "$STREAM" != "None" ]; then
+    break
+  fi
+  sleep 5
+done
+
+# Baixar logs
+aws logs get-log-events \
+  --region us-east-2 \
+  --log-group-name /ecs/kaviar-psql-runner \
+  --log-stream-name "$STREAM" \
+  --limit 2000 \
+  --output json | jq -r '.events[].message' | tee /tmp/validation-db-sanity.txt
+
+echo ""
+echo "✅ Sanity check: /tmp/validation-db-sanity.txt"
+
+# Verificar se tabelas existem
+if grep -q "rides_v2" /tmp/validation-db-sanity.txt && grep -q "ride_offers" /tmp/validation-db-sanity.txt; then
+  echo "✅ Tabelas existem"
+else
+  echo "❌ TABELAS NÃO EXISTEM - Rodar Passo 1 (Migration)"
+  exit 1
+fi
+```
+
+---
+
+## Passo 5: SQL Completo via ECS psql-runner
 
 ```bash
 # Criar overrides com sanity check
