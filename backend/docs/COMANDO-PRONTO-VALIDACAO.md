@@ -753,6 +753,95 @@ git push origin feat/dev-load-test-ride-flow-v1
 
 ---
 
+## Passo 7.1: Gerar Manifest de Integridade (Opcional)
+
+```bash
+set -euo pipefail
+
+cd /home/goes/kaviar/backend
+
+# Usar DEST_RUN do Passo 7
+DEST_RUN="${DEST_DIR}/ride-flow-validation-${RUN_ID}"
+
+# Gerar SHA256 de todos os arquivos
+MANIFEST="${DEST_RUN}/MANIFEST.json"
+MANIFEST_HASH="${DEST_RUN}/MANIFEST.sha256"
+
+echo '{"files":[' > "$MANIFEST"
+
+FIRST=1
+find "$DEST_RUN" -type f ! -name "MANIFEST.*" | while read -r f; do
+  REL_PATH="${f#$DEST_RUN/}"
+  HASH=$(sha256sum "$f" | awk '{print $1}')
+  SIZE=$(stat -c%s "$f")
+  
+  [ "$FIRST" -eq 0 ] && echo "," >> "$MANIFEST"
+  FIRST=0
+  
+  cat >> "$MANIFEST" <<JSON
+{"path":"$REL_PATH","sha256":"$HASH","size":$SIZE}
+JSON
+done
+
+echo ']}' >> "$MANIFEST"
+
+# Hash do manifest
+sha256sum "$MANIFEST" > "$MANIFEST_HASH"
+
+echo "✅ Manifest gerado: $MANIFEST"
+cat "$MANIFEST_HASH"
+```
+
+---
+
+## Passo 7.2: Verificar Integridade (Opcional)
+
+```bash
+set -euo pipefail
+
+cd /home/goes/kaviar/backend
+
+# Usar DEST_RUN do Passo 7
+DEST_RUN="${DEST_DIR}/ride-flow-validation-${RUN_ID}"
+
+MANIFEST="${DEST_RUN}/MANIFEST.json"
+MANIFEST_HASH="${DEST_RUN}/MANIFEST.sha256"
+
+[ -f "$MANIFEST" ] || { echo "❌ Falta $MANIFEST"; exit 1; }
+[ -f "$MANIFEST_HASH" ] || { echo "❌ Falta $MANIFEST_HASH"; exit 1; }
+
+echo "=== Verificando hash do MANIFEST.json ==="
+sha256sum -c "$MANIFEST_HASH"
+
+echo ""
+echo "=== Verificando arquivos do MANIFEST ==="
+jq -r '.files[] | "\(.sha256)  '"$DEST_RUN"'/" + .path' "$MANIFEST" > /tmp/manifest-files.sha256
+
+if sha256sum -c /tmp/manifest-files.sha256; then
+  echo "✅ Integridade OK (todos os sha256 batem)"
+else
+  echo "❌ Integridade FALHOU"
+  exit 1
+fi
+```
+
+---
+
+## Passo 7.3: Commit Manifest (Opcional)
+
+```bash
+set -euo pipefail
+
+cd /home/goes/kaviar
+
+git add "$DEST_RUN/MANIFEST.json" "$DEST_RUN/MANIFEST.sha256"
+git commit -m "docs(evidences): add integrity manifest" \
+  -m "Adds MANIFEST.json + MANIFEST.sha256 for audit-grade integrity checks."
+git push origin feat/dev-load-test-ride-flow-v1
+```
+
+---
+
 ## Arquivos Gerados (Resumo Final)
 
 **Temporários (/tmp):**
