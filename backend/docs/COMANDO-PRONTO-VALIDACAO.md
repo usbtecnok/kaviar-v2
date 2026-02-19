@@ -125,13 +125,20 @@ watch -n 5 "aws ecs describe-tasks --region us-east-2 --cluster kaviar-cluster -
 ## Passo 3: Coletar Logs Backend
 
 ```bash
+set -euo pipefail
+
+REGION="us-east-2"
+LOG_GROUP="/ecs/kaviar-backend"
 TASK_ID=$(cat /tmp/validation-task-id.txt)
 
-# Aguardar stream
-for i in {1..12}; do
+echo "TASK_ID=$TASK_ID"
+
+# Aguardar stream (até 2 min)
+STREAM=""
+for i in $(seq 1 24); do
   STREAM=$(aws logs describe-log-streams \
-    --region us-east-2 \
-    --log-group-name /ecs/kaviar-backend \
+    --region "$REGION" \
+    --log-group-name "$LOG_GROUP" \
     --order-by LastEventTime \
     --descending \
     --max-items 50 \
@@ -139,36 +146,73 @@ for i in {1..12}; do
     --output text)
   
   if [ -n "$STREAM" ] && [ "$STREAM" != "None" ]; then
-    echo "✅ Stream: $STREAM"
+    echo "✅ STREAM=$STREAM"
     break
   fi
-  echo "Aguardando stream... $i/12"
+  echo "Aguardando stream... $i/24"
   sleep 5
 done
 
 if [ -z "$STREAM" ] || [ "$STREAM" = "None" ]; then
-  echo "❌ Stream não encontrado após 60s"
+  echo "❌ Stream não encontrado"
   exit 1
 fi
 
-# Baixar logs (amostra 10k - pode estar paginado)
-aws logs get-log-events \
-  --region us-east-2 \
-  --log-group-name /ecs/kaviar-backend \
-  --log-stream-name "$STREAM" \
-  --limit 10000 \
-  --output json | jq -r '.events[].message' > /tmp/validation-full-logs.txt
+# Baixar TODOS os eventos com paginação
+OUT="/tmp/validation-full-logs.txt"
+: > "$OUT"
 
-echo "✅ Logs: /tmp/validation-full-logs.txt ($(wc -l < /tmp/validation-full-logs.txt) linhas)"
-echo "⚠️  Limite 10k eventos - pode ser amostra"
+TOKEN="__START__"
+ITER=0
+
+while :; do
+  ITER=$((ITER+1))
+  
+  if [ "$TOKEN" = "__START__" ]; then
+    RESP=$(aws logs get-log-events \
+      --region "$REGION" \
+      --log-group-name "$LOG_GROUP" \
+      --log-stream-name "$STREAM" \
+      --start-from-head \
+      --limit 10000 \
+      --output json)
+  else
+    RESP=$(aws logs get-log-events \
+      --region "$REGION" \
+      --log-group-name "$LOG_GROUP" \
+      --log-stream-name "$STREAM" \
+      --start-from-head \
+      --next-token "$TOKEN" \
+      --limit 10000 \
+      --output json)
+  fi
+
+  echo "$RESP" | jq -r '.events[].message' >> "$OUT"
+
+  NEXT=$(echo "$RESP" | jq -r '.nextForwardToken')
+
+  # Token não muda = acabou
+  if [ "$NEXT" = "$TOKEN" ]; then
+    break
+  fi
+  TOKEN="$NEXT"
+
+  # Safety: max 50 páginas
+  if [ "$ITER" -ge 50 ]; then
+    echo "⚠️  Parando após 50 páginas (safety)"
+    break
+  fi
+done
+
+echo "✅ Logs: $OUT ($(wc -l < "$OUT") linhas)"
 
 # Extrair marcadores
-grep "RIDE_CREATED" /tmp/validation-full-logs.txt > /tmp/validation-ride-created.txt 2>/dev/null || touch /tmp/validation-ride-created.txt
-grep "DISPATCHER_FILTER" /tmp/validation-full-logs.txt > /tmp/validation-dispatcher-filter.txt 2>/dev/null || touch /tmp/validation-dispatcher-filter.txt
-grep "DISPATCH_CANDIDATES" /tmp/validation-full-logs.txt > /tmp/validation-dispatch-candidates.txt 2>/dev/null || touch /tmp/validation-dispatch-candidates.txt
-grep "OFFER_SENT" /tmp/validation-full-logs.txt > /tmp/validation-offer-sent.txt 2>/dev/null || touch /tmp/validation-offer-sent.txt
-grep "OFFER_EXPIRED" /tmp/validation-full-logs.txt > /tmp/validation-offer-expired.txt 2>/dev/null || touch /tmp/validation-offer-expired.txt
-grep "RIDE_STATUS_CHANGED" /tmp/validation-full-logs.txt > /tmp/validation-status-changed.txt 2>/dev/null || touch /tmp/validation-status-changed.txt
+grep "RIDE_CREATED" "$OUT" > /tmp/validation-ride-created.txt 2>/dev/null || : > /tmp/validation-ride-created.txt
+grep "DISPATCHER_FILTER" "$OUT" > /tmp/validation-dispatcher-filter.txt 2>/dev/null || : > /tmp/validation-dispatcher-filter.txt
+grep "DISPATCH_CANDIDATES" "$OUT" > /tmp/validation-dispatch-candidates.txt 2>/dev/null || : > /tmp/validation-dispatch-candidates.txt
+grep "OFFER_SENT" "$OUT" > /tmp/validation-offer-sent.txt 2>/dev/null || : > /tmp/validation-offer-sent.txt
+grep "OFFER_EXPIRED" "$OUT" > /tmp/validation-offer-expired.txt 2>/dev/null || : > /tmp/validation-offer-expired.txt
+grep "RIDE_STATUS_CHANGED" "$OUT" > /tmp/validation-status-changed.txt 2>/dev/null || : > /tmp/validation-status-changed.txt
 
 echo ""
 echo "=== Marcadores ==="
