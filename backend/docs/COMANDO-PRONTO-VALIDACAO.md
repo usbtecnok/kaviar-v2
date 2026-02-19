@@ -618,7 +618,7 @@ git push origin feat/dev-load-test-ride-flow-v1
 
 ---
 
-## Passo 6: Preencher Evidências (AUTO)
+## Passo 6: Preencher Evidências (AUTO - Idempotente)
 
 ```bash
 set -euo pipefail
@@ -632,7 +632,7 @@ RUN_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 [ -f "$DB" ] || { echo "❌ Falta $DB (rode Passo 4)"; exit 1; }
 [ -f "$SQL" ] || { echo "❌ Falta $SQL (rode Passo 5)"; exit 1; }
 
-# Criar base se não existir (caso Passo 3.5 não rodou)
+# Criar base se não existir
 if [ ! -f "$EVID" ]; then
   cat > "$EVID" <<'MD'
 # EVIDÊNCIAS — RIDE FLOW (Validation)
@@ -642,59 +642,57 @@ Gerado automaticamente.
 MD
 fi
 
-# Extrair métricas
-RIDES_V2_COUNT=$(grep -E "rides_v2_count" -A2 "$DB" 2>/dev/null | tail -1 | tr -d '[:space:]' || echo "N/A")
-OFFERS_COUNT=$(grep -E "ride_offers_count" -A2 "$DB" 2>/dev/null | tail -1 | tr -d '[:space:]' || echo "N/A")
+# Remover seção auto anterior (idempotente)
+TMP_BASE="/tmp/EVID_BASE.md"
+awk 'BEGIN{drop=0} /^## Evidências DB e SQL \(auto\)/{drop=1} {if (!drop) print}' "$EVID" > "$TMP_BASE"
 
-RIDES_BY_STATUS=$(awk 'BEGIN{p=0} /RIDES_V2: COUNT BY STATUS/{p=1; next} /RIDE_OFFERS: COUNT BY STATUS/{p=0} p{print}' "$SQL" || true)
-OFFERS_BY_STATUS=$(awk 'BEGIN{p=0} /RIDE_OFFERS: COUNT BY STATUS/{p=1; next} /LAST 20 RIDES_V2/{p=0} p{print}' "$SQL" || true)
-OFFERS_AGG=$(awk 'BEGIN{p=0} /OFFERS: AGG METRICS/{p=1; next} /\[OK\] SQL FULL COMPLETE/{p=0} p{print}' "$SQL" || true)
+# Extrair blocos
+RIDES_BY_STATUS=$(awk 'BEGIN{p=0} /RIDES_V2: COUNT BY STATUS/{p=1;next} /RIDE_OFFERS: COUNT BY STATUS/{p=0} p{print}' "$SQL" | sed -n '1,120p' || true)
+OFFERS_BY_STATUS=$(awk 'BEGIN{p=0} /RIDE_OFFERS: COUNT BY STATUS/{p=1;next} /LAST 20 RIDES_V2/{p=0} p{print}' "$SQL" | sed -n '1,120p' || true)
+OFFERS_AGG=$(awk 'BEGIN{p=0} /OFFERS: AGG METRICS/{p=1;next} /\[OK\] SQL FULL COMPLETE/{p=0} p{print}' "$SQL" | sed -n '1,80p' || true)
 
-# Append evidências
-{
-  echo ""
-  echo "---"
-  echo ""
-  echo "## Evidências DB e SQL (auto) — ${RUN_UTC}"
-  echo ""
-  echo "### Checklist"
-  echo "- [x] DB sanity: \`$DB\`"
-  echo "- [x] SQL full: \`$SQL\`"
-  echo ""
-  echo "### Resumo"
-  echo "- rides_v2_count: ${RIDES_V2_COUNT}"
-  echo "- ride_offers_count: ${OFFERS_COUNT}"
-  echo ""
-  echo "### Rides por status"
-  echo "\`\`\`"
-  echo "${RIDES_BY_STATUS:-[sem dados]}"
-  echo "\`\`\`"
-  echo ""
-  echo "### Offers por status"
-  echo "\`\`\`"
-  echo "${OFFERS_BY_STATUS:-[sem dados]}"
-  echo "\`\`\`"
-  echo ""
-  echo "### Offers agregados"
-  echo "\`\`\`"
-  echo "${OFFERS_AGG:-[sem dados]}"
-  echo "\`\`\`"
-  echo ""
-  echo "### DB sanity (raw)"
-  echo "\`\`\`"
-  tail -n 260 "$DB" || true
-  echo "\`\`\`"
-  echo ""
-  echo "### SQL full (raw)"
-  echo "\`\`\`"
-  tail -n 320 "$SQL" || true
-  echo "\`\`\`"
-  echo ""
-} >> "$EVID"
+# Reescrever arquivo (base + seção nova)
+cat > "$EVID" <<MD
+$(cat "$TMP_BASE")
 
-echo "✅ Evidências atualizadas: $EVID"
-tail -n 80 "$EVID"
+---
+## Evidências DB e SQL (auto) — ${RUN_UTC}
+
+### Checklist
+- [x] DB sanity: \`$DB\`
+- [x] SQL full: \`$SQL\`
+
+### Rides por status
+\`\`\`
+${RIDES_BY_STATUS:-[sem dados]}
+\`\`\`
+
+### Offers por status
+\`\`\`
+${OFFERS_BY_STATUS:-[sem dados]}
+\`\`\`
+
+### Offers agregados
+\`\`\`
+${OFFERS_AGG:-[sem dados]}
+\`\`\`
+
+### DB sanity (raw — últimos 260 linhas)
+\`\`\`
+$(tail -n 260 "$DB" || true)
+\`\`\`
+
+### SQL full (raw — últimos 320 linhas)
+\`\`\`
+$(tail -n 320 "$SQL" || true)
+\`\`\`
+MD
+
+echo "✅ Evidências atualizadas (idempotente): $EVID"
+tail -n 60 "$EVID"
 ```
+
+**Nota:** Este passo é idempotente - pode rodar múltiplas vezes sem duplicar conteúdo.
 
 ---
 
