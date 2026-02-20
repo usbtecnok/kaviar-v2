@@ -76,7 +76,7 @@ export const authenticateDriver = (req: Request, res: Response, next: NextFuncti
       return res.status(403).json({ error: 'Driver access required' });
     }
 
-    (req as any).driverId = decoded.id;
+    (req as any).driverId = decoded.driverId || decoded.userId || decoded.id;
     (req as any).user = decoded;
     next();
   } catch (error) {
