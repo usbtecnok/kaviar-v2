@@ -65,18 +65,21 @@ export const authenticatePassenger = (req: Request, res: Response, next: NextFun
 export const authenticateDriver = (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
 
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    
-    if (decoded.role !== 'DRIVER') {
+
+    const role = decoded.role || decoded.userType || decoded.user_type;
+    if (role !== 'DRIVER') {
       return res.status(403).json({ error: 'Driver access required' });
     }
 
-    (req as any).driverId = decoded.driverId || decoded.userId || decoded.id;
+    const driverId = decoded.driverId || decoded.userId || decoded.id;
+    if (!driverId) {
+      return res.status(403).json({ error: 'Driver access required' });
+    }
+
+    (req as any).driverId = driverId;
     (req as any).user = decoded;
     next();
   } catch (error) {
