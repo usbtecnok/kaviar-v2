@@ -22,6 +22,7 @@ import api from '../../api/index';
 import { VirtualFenceCenterCard } from '../../components/admin/VirtualFenceCenterCard';
 import { SecondaryBaseCard } from '../../components/admin/SecondaryBaseCard';
 import { DriverPremiumEligibilityCard } from '../../components/admin/DriverPremiumEligibilityCard';
+import { DriverCreditsCard } from '../../components/admin/DriverCreditsCard';
 
 
 const isSuperAdmin = () => {
@@ -435,6 +436,11 @@ export default function AdminDriverDetail() {
           </Box>
         )}
       </Paper>
+
+      {/* Driver Credits Card */}
+      <Box sx={{ mt: 3 }}>
+        <DriverCreditsCard driverId={id} />
+      </Box>
 
       {/* Premium Eligibility Card */}
       <Box sx={{ mt: 3 }}>
