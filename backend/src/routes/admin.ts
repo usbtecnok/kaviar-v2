@@ -11,11 +11,15 @@ import * as passengerFavoritesController from '../controllers/admin/passengerFav
 import * as driverSecondaryBaseController from '../controllers/admin/driverSecondaryBase.controller';
 import * as featureFlagsController from '../controllers/admin/featureFlags.controller';
 import * as betaMonitorController from '../controllers/admin/betaMonitor.controller';
+import adminDriverCreditsRoutes from './admin-driver-credits';
 
 const router = Router();
 const rideController = new RideAdminController();
 
 router.use(authenticateAdmin);
+
+// Driver credits routes
+router.use('/drivers', adminDriverCreditsRoutes);
 
 // GET /api/admin/admins
 router.get('/admins', requireSuperAdmin, async (req, res) => {
