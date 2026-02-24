@@ -28,7 +28,7 @@ cd /home/goes/kaviar && nano PRODUCAO-CHECKLIST.md
 - [x] Timeout de 15s para aceitar corrida
 - [x] Redistribuição automática se motorista rejeitar
 - [x] Teste: Script de 20 corridas criado
-- [ ] Evidências em staging (CloudWatch + 20 corridas + logs do dispatcher)
+- [x ] Evidências em staging (CloudWatch + 20 corridas + logs do dispatcher)
 
 
 **Status:** ✅ SPEC_RIDE_FLOW_V1 implementada completa  

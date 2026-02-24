@@ -1,0 +1,112 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: #000;
+  color: #fff;
+  padding: 20px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+input {
+  padding: 12px;
+  font-size: 16px;
+  border: 1px solid #333;
+  background: #111;
+  color: #fff;
+  border-radius: 4px;
+}
+
+button {
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button[type="submit"] {
+  background: #0066ff;
+  color: #fff;
+}
+
+.status {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.online {
+  background: #00cc00;
+  color: #000;
+  flex: 1;
+}
+
+.offline {
+  background: #cc0000;
+  color: #fff;
+  flex: 1;
+}
+
+.info {
+  background: #111;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-family: monospace;
+}
+
+.offers {
+  margin-bottom: 20px;
+}
+
+.offer {
+  background: #222;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.offer button {
+  background: #00cc00;
+  color: #000;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.logs {
+  margin-top: 20px;
+}
+
+.log-content {
+  background: #111;
+  padding: 12px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.log-content div {
+  margin-bottom: 4px;
+}

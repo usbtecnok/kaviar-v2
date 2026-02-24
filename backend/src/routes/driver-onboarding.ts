@@ -83,7 +83,12 @@ router.post('/onboarding', async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
-        error: error.errors[0].message
+        error: error.errors[0].message,
+        field: error.errors[0].path[0],
+        details: error.errors.map(e => ({
+          field: e.path[0],
+          message: e.message
+        }))
       });
     }
     console.error('Error in driver onboarding:', error);

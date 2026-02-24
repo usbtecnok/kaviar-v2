@@ -1,0 +1,38 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+input {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Mobile-friendly */
+@media (max-width: 600px) {
+  body {
+    font-size: 14px;
+  }
+  
+  button {
+    min-height: 44px;
+  }
+  
+  input {
+    min-height: 44px;
+  }
+}

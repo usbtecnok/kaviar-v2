@@ -7,6 +7,7 @@ import geoRoutes from './geo';
 import driversRoutes from './drivers';
 import ridesRoutes from './rides';
 import reputationRoutes from './reputation';
+import turismoRoutes from './turismo';
 // import adminGeofenceRoutes from './admin-geofence';
 
 const router = Router();
@@ -44,5 +45,8 @@ router.use('/rides', ridesRoutes);
 
 // Reputation routes
 router.use('/reputation', reputationRoutes);
+
+// Turismo routes (public)
+router.use('/turismo', turismoRoutes);
 
 export { router as apiRoutes };

@@ -48,6 +48,7 @@ import driverOnboardingRoutes from './routes/driver-onboarding';
 import neighborhoodStatsRoutes from './routes/neighborhood-stats';
 import { rolloutRoutes } from './routes/rollout-temp';
 import passengerProfileRoutes from './routes/passenger-profile';
+import turismoRoutes from './routes/turismo';
 import driverEarningsRoutes from './routes/driver-earnings';
 import adminAuditRoutes from './routes/admin-audit';
 import passengerRidesRoutes from './routes/passenger-rides';
@@ -222,6 +223,7 @@ app.use('/api/drivers', driverAvailabilityRoutes); // ✅ Availability toggle
 app.use('/api/rides', passengerRidesRoutes); // ✅ Passenger ride actions
 app.use('/api/admin', adminAuditRoutes); // ✅ Audit logs
 app.use('/api/temp', rolloutRoutes); // 🔧 TEMPORARY - Phase 2 rollout
+app.use('/api/turismo', turismoRoutes); // ✅ Turismo chat with AI
 console.log('✅ Core routes mounted:');
 console.log('   - /api/admin/auth/*');
 console.log('   - /api/admin/dashboard/* (overview)');

@@ -79,6 +79,13 @@ export default function Login() {
         title={loading ? 'Entrando...' : 'Entrar'}
         onPress={handleLogin}
       />
+      
+      <TouchableOpacity
+        style={styles.registerLink}
+        onPress={() => router.push('/(auth)/register')}
+      >
+        <Text style={styles.registerText}>Criar conta de passageiro</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -118,5 +125,15 @@ const styles = StyleSheet.create({
   typeTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  registerLink: {
+    marginTop: 16,
+    padding: 12,
+    alignItems: 'center',
+  },
+  registerText: {
+    fontSize: 16,
+    color: '#007AFF',
+    textDecorationLine: 'underline',
   },
 });

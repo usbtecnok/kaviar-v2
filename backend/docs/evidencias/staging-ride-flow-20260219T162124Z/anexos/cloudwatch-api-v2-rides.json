@@ -1,0 +1,896 @@
+{
+    "queryLanguage": "CWLI",
+    "results": [
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:05.820"
+            },
+            {
+                "field": "@message",
+                "value": "✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/* (ENABLED)"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAYaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWs2NFAAAAAMoNaT0ABplyq1AAAAFSIAEo5Y6BtMczMP/EgrTHMzg7QKctSKcmUPkaIAIQERgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:19.492"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneb3CIABplyr2AAAAGiIAEov4SCtMczMN7Cg7THMzhEQJ5GSMEkUJIZIAIQARgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:21.597"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneb3CIABplyr2AAAAGiIAEov4SCtMczMN7Cg7THMzhEQJ5GSMEkUJIZIAIQDBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:23.614"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneb3CIABplyr2AAAAGiIAEov4SCtMczMN7Cg7THMzhEQJ5GSMEkUJIZIAIQFxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:25.625"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAYaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWs2NFAAAAAMoNaT0ABplyq1AAAAFSIAEo5Y6BtMczMP/EgrTHMzg7QKctSKcmUPkaIAIQJhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:27.635"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAYaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWs2NFAAAAAMoNaT0ABplyq1AAAAFSIAEo5Y6BtMczMP/EgrTHMzg7QKctSKcmUPkaIAIQMRgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:29.646"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAMaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWawdxAAAAAT6BiM0ABplysuAAAAASIAEozNSCtMczMO+qhrTHMzgiQIYiSLQeUIcTIAIQARgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:31.657"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAMaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWawdxAAAAAT6BiM0ABplysuAAAAASIAEozNSCtMczMO+qhrTHMzgiQIYiSLQeUIcTIAIQDBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:33.670"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAMaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWawdxAAAAAT6BiM0ABplysuAAAAASIAEozNSCtMczMO+qhrTHMzgiQIYiSLQeUIcTIAIQFxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:35.680"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAEaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWr7pUAAAAAKwTw44ABplyrYAAAAVCIAEoh/L+s8czMMqTg7THMzgmQIYrSI8lUOAZIAIQERgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:37.693"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAEaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWr7pUAAAAAKwTw44ABplyrYAAAAVCIAEoh/L+s8czMMqTg7THMzgmQIYrSI8lUOAZIAIQHBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:39.704"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneb3CIABplyr2AAAAGiIAEov4SCtMczMN7Cg7THMzhEQJ5GSMEkUJIZIAIQJBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:41.717"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneb3CIABplyr2AAAAGiIAEov4SCtMczMN7Cg7THMzhEQJ5GSMEkUJIZIAIQLxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:43.729"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneb3CIABplyr2AAAAGiIAEov4SCtMczMN7Cg7THMzhEQJ5GSMEkUJIZIAIQOhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:45.740"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2cGdsABplysSAAAAXyIAEoqtKDtMczMKSchrTHMzgeQPYgSJkiUOoWIAIQARgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:47.750"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2cGdsABplysSAAAAXyIAEoqtKDtMczMKSchrTHMzgeQPYgSJkiUOoWIAIQDBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:49.761"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqKhEgABplysiAAAAESIAEok8eCtMczMOW0iLTHMzg0QJg5SKAnUPEbIAIQCRgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:51.772"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqKhEgABplysiAAAAESIAEok8eCtMczMOW0iLTHMzg0QJg5SKAnUPEbIAIQFBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:53.782"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqKhEgABplysiAAAAESIAEok8eCtMczMOW0iLTHMzg0QJg5SKAnUPEbIAIQHxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:55.793"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAEaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWr7pUAAAAAKwVZa4ABplytKAAAAVCIAEo76CEtMczMPSGiLTHMzgcQKceSPUgUMcVIAIQARgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:24:57.802"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAEaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWr7pUAAAAAKwVZa4ABplytKAAAAVCIAEo76CEtMczMPSGiLTHMzgcQKceSPUgUMcVIAIQDBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:18.865"
+            },
+            {
+                "field": "@message",
+                "value": "✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/* (ENABLED)"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneeVg8ABplyvzAAAAGiIAEojrGPtMczMLzrk7THMzhdQMpUSJ4vUOwjIAIQExgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:32.765"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqMNAgABplyv1AAAAESIAEojbGPtMczMMbwlLTHMzhKQPhNSMwnUJscIAIQBxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:34.861"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqMNAgABplyv1AAAAESIAEojbGPtMczMMbwlLTHMzhKQPhNSMwnUJscIAIQEhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:36.878"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqMNAgABplyv1AAAAESIAEojbGPtMczMMbwlLTHMzhKQPhNSMwnUJscIAIQHRgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:38.890"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2dCkQABplyvPAAAAXyIAEo6O+RtMczMNb/kbTHMzgWQMIWSOAcULMRIAIQARgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:40.901"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2dCkQABplyvPAAAAXyIAEo6O+RtMczMNb/kbTHMzgWQMIWSOAcULMRIAIQDBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:42.914"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqMNAgABplyv1AAAAESIAEojbGPtMczMMbwlLTHMzhKQPhNSMwnUJscIAIQKBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:44.925"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqMNAgABplyv1AAAAESIAEojbGPtMczMMbwlLTHMzhKQPhNSMwnUJscIAIQMxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:46.938"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqMNAgABplyv1AAAAESIAEojbGPtMczMMbwlLTHMzhKQPhNSMwnUJscIAIQPhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:48.950"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneeVg8ABplyvzAAAAGiIAEojrGPtMczMLzrk7THMzhdQMpUSJ4vUOwjIAIQKhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:50.961"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneeVg8ABplyvzAAAAGiIAEojrGPtMczMLzrk7THMzhdQMpUSJ4vUOwjIAIQNRgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:52.973"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAYaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWs2NFAAAAAMoR1QYABplywbAAAAFSIAEo692StMczMJihlLTHMzgjQKokSLwfUI8UIAIQARgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:54.984"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAYaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWs2NFAAAAAMoR1QYABplywbAAAAFSIAEo692StMczMJihlLTHMzgjQKokSLwfUI8UIAIQDBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:56.996"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAYaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWs2NFAAAAAMoR1QYABplywbAAAAFSIAEo692StMczMJihlLTHMzgjQKokSLwfUI8UIAIQFxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:28:59.007"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2dhf0ABplywyAAAAXyIAEo/YyTtMczMOK/lbTHMzg7QMA9SPcjUMgYIAIQARgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:29:01.017"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2dhf0ABplywyAAAAXyIAEo/YyTtMczMOK/lbTHMzg7QMA9SPcjUMgYIAIQDBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:29:03.029"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2dhf0ABplywyAAAAXyIAEo/YyTtMczMOK/lbTHMzg7QMA9SPcjUMgYIAIQFxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:29:05.050"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2dhf0ABplywyAAAAXyIAEo/YyTtMczMOK/lbTHMzg7QMA9SPcjUMgYIAIQIhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:29:07.061"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAAaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaRWPIfAAAAAY2dhf0ABplywyAAAAXyIAEo/YyTtMczMOK/lbTHMzg7QMA9SPcjUMgYIAIQLRgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:29:09.074"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneeVg8ABplyvzAAAAGiIAEojrGPtMczMLzrk7THMzhdQMpUSJ4vUOwjIAIQRhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:29:11.084"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAneeVg8ABplyvzAAAAGiIAEojrGPtMczMLzrk7THMzhdQMpUSJ4vUOwjIAIQURgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:17.210"
+            },
+            {
+                "field": "@message",
+                "value": "✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/* (ENABLED)"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqN2MQABplyzCAAAAESIAEo17qbtMczMKO+nrTHMzh4QMl9SO4wUL0lIAIQERgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:31.235"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpcBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAIaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNxoYAgaQlKnIAAAAAO2B2qMABplyzIAAAAeCIAEo5pqctMczMIe+oLTHMziAAUDOpwFI/jBQyyUgAhAEGAE="
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:33.330"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpcBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAIaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNxoYAgaQlKnIAAAAAO2B2qMABplyzIAAAAeCIAEo5pqctMczMIe+oLTHMziAAUDOpwFI/jBQyyUgAhAQGAE="
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:35.343"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpcBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAIaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNxoYAgaQlKnIAAAAAO2B2qMABplyzIAAAAeCIAEo5pqctMczMIe+oLTHMziAAUDOpwFI/jBQyyUgAhAcGAE="
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:37.356"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAUaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaZVc4xAAAAAxAU6e0ABplyyrAAAAISIAEomtOatMczMPzxnLTHMzgeQIUpSL8jUJEYIAIQBxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:39.367"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAUaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaZVc4xAAAAAxAU6e0ABplyyrAAAAISIAEomtOatMczMPzxnLTHMzgeQIUpSL8jUJEYIAIQExgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:41.381"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqN2MQABplyzCAAAAESIAEo17qbtMczMKO+nrTHMzh4QMl9SO4wUL0lIAIQKBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:43.392"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqN2MQABplyzCAAAAESIAEo17qbtMczMKO+nrTHMzh4QMl9SO4wUL0lIAIQNBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:45.402"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqN2MQABplyzCAAAAESIAEo17qbtMczMKO+nrTHMzh4QMl9SO4wUL0lIAIQQBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:47.414"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpcBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAIaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNxoYAgaQlKnIAAAAAO2B2qMABplyzIAAAAeCIAEo5pqctMczMIe+oLTHMziAAUDOpwFI/jBQyyUgAhAzGAE="
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:49.426"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpcBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAIaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNxoYAgaQlKnIAAAAAO2B2qMABplyzIAAAAeCIAEo5pqctMczMIe+oLTHMziAAUDOpwFI/jBQyyUgAhA/GAE="
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:51.439"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAMaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWawdxAAAAAT6DJ04ABplyyfAAAAASIAEowN6atMczMNvvnbTHMzg0QMxOSKwlUP4ZIAIQAxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:53.452"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAMaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWawdxAAAAAT6DJ04ABplyyfAAAAASIAEowN6atMczMNvvnbTHMzg0QMxOSKwlUP4ZIAIQHRgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:55.463"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAMaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaWawdxAAAAAT6DJ04ABplyyfAAAAASIAEowN6atMczMNvvnbTHMzg0QMxOSKwlUP4ZIAIQKRgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:57.473"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAnegbnsABplyzNAAAAGiIAEoqv2dtMczMOCIorTHMzg8QNpaSLQqUIUfIAIQFhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:31:59.484"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAQaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaYPac6AAAAAnegbnsABplyzNAAAAGiIAEoqv2dtMczMOCIorTHMzg8QNpaSLQqUIUfIAIQIhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:32:01.498"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqN2MQABplyzCAAAAESIAEo17qbtMczMKO+nrTHMzh4QMl9SO4wUL0lIAIQTBgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:32:03.517"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqN2MQABplyzCAAAAESIAEo17qbtMczMKO+nrTHMzh4QMl9SO4wUL0lIAIQYxgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:32:05.527"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpUBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAcaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNRoYAgaQh0NBAAAAAzqN2MQABplyzCAAAAESIAEo17qbtMczMKO+nrTHMzh4QMl9SO4wUL0lIAIQbhgB"
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:32:07.536"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpcBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAIaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNxoYAgaQlKnIAAAAAO2B2qMABplyzIAAAAeCIAEo5pqctMczMIe+oLTHMziAAUDOpwFI/jBQyyUgAhBnGAE="
+            }
+        ],
+        [
+            {
+                "field": "@timestamp",
+                "value": "2026-02-19 15:32:09.546"
+            },
+            {
+                "field": "@message",
+                "value": "🔍 CORS middleware: POST /api/v2/rides | Origin: undefined"
+            },
+            {
+                "field": "@ptr",
+                "value": "CpcBCloKIDg0Nzg5NTM2MTkyODovZWNzL2thdmlhci1iYWNrZW5kEAIaJDlkNGI1MzI5LWM2NzYtNDkwNi1hNzQyLWVkNWUyZWJjYjc3NiIOCKCq97PHMxCHj9O1xzMSNxoYAgaQlKnIAAAAAO2B2qMABplyzIAAAAeCIAEo5pqctMczMIe+oLTHMziAAUDOpwFI/jBQyyUgAhByGAE="
+            }
+        ]
+    ],
+    "statistics": {
+        "recordsMatched": 63.0,
+        "recordsScanned": 2383.0,
+        "estimatedRecordsSkipped": 0.0,
+        "bytesScanned": 370841.0,
+        "estimatedBytesSkipped": 0.0,
+        "logGroupsScanned": 1.0
+    },
+    "status": "Complete"
+}
