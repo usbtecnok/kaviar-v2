@@ -248,11 +248,11 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.rides.update({
+      await tx.rides_v2.update({
         where: { id: ride_id },
         data: {
           status: 'completed',
-          completed_at: new Date()
+          updated_at: new Date()
         }
       });
 
