@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { pool } from '../db';
-import { authenticateAdmin } from '../middleware/auth';
+import { authenticateAdmin } from '../middlewares/auth';
 
 const router = Router();
 
 // Transactional and idempotent credit adjustment
 async function applyCreditDelta(
-  driverId: number,
+  driverId: string,
   delta: number,
   reason: string,
-  adminUserId: number,
+  adminUserId: string,
   idempotencyKey?: string
 ) {
   const client = await pool.connect();
@@ -117,7 +117,11 @@ router.post('/:driverId/credits/adjust', authenticateAdmin, async (req, res) => 
   try {
     const { driverId } = req.params;
     const { delta, reason, idempotencyKey } = req.body;
-    const adminUserId = req.user.id;
+    const adminUserId = (req as any).user?.id;
+
+    if (!adminUserId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
 
     if (!delta || delta === 0) {
       return res.status(400).json({ error: 'Delta must be non-zero' });
@@ -127,7 +131,7 @@ router.post('/:driverId/credits/adjust', authenticateAdmin, async (req, res) => 
     }
 
     const result = await applyCreditDelta(
-      parseInt(driverId),
+      driverId,
       parseFloat(delta),
       reason.trim(),
       adminUserId,
