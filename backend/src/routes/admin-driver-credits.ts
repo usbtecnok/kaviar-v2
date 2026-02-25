@@ -117,7 +117,7 @@ router.post('/:driverId/credits/adjust', authenticateAdmin, async (req, res) => 
   try {
     const { driverId } = req.params;
     const { delta, reason, idempotencyKey } = req.body;
-    const adminUserId = (req as any).user?.id;
+    const adminUserId = (req as any).adminId || (req as any).admin?.id;
 
     if (!adminUserId) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
