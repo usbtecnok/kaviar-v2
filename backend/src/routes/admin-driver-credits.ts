@@ -119,7 +119,11 @@ router.post('/:driverId/credits/adjust', authenticateAdmin, async (req, res) => 
     const { delta, reason, idempotencyKey } = req.body;
     const adminUserId = (req as any).adminId || (req as any).admin?.id;
 
+    // Debug log
+    console.log('[CREDITS_ADJUST] adminId:', (req as any).adminId, 'admin:', (req as any).admin);
+
     if (!adminUserId) {
+      console.error('[CREDITS_ADJUST] Unauthorized: adminUserId is undefined');
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
