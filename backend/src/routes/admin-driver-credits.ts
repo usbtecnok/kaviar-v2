@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { pool } from '../db';
+import { authenticateAdmin } from '../middlewares/auth';
 
 const router = Router();
+
+// Apply authentication to all routes in this router
+router.use(authenticateAdmin);
 
 // Transactional and idempotent credit adjustment
 async function applyCreditDelta(
@@ -155,9 +159,17 @@ router.post('/:driverId/credits/adjust', async (req, res) => {
       alreadyProcessed: result.alreadyProcessed,
       balance: result.balance
     });
-  } catch (error) {
-    console.error('Error adjusting credits:', error);
-    res.status(500).json({ error: 'Failed to adjust credits' });
+  } catch (error: any) {
+    console.error('❌ [CREDITS_ADJUST] Error:', {
+      message: error.message,
+      code: error.code,
+      driverId: req.params.driverId,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n')
+    });
+    res.status(500).json({ 
+      error: 'Failed to adjust credits',
+      ...(process.env.NODE_ENV !== 'production' && { details: error.message })
+    });
   }
 });
 
