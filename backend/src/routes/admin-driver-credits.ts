@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { pool } from '../db';
-import { authenticateAdmin } from '../middlewares/auth';
 
 const router = Router();
 
@@ -58,7 +57,7 @@ async function applyCreditDelta(
 }
 
 // GET /api/admin/drivers/:driverId/credits/balance
-router.get('/:driverId/credits/balance', authenticateAdmin, async (req, res) => {
+router.get('/:driverId/credits/balance', async (req, res) => {
   try {
     const { driverId } = req.params;
     const result = await pool.query(
@@ -78,7 +77,7 @@ router.get('/:driverId/credits/balance', authenticateAdmin, async (req, res) => 
 });
 
 // GET /api/admin/drivers/:driverId/credits/ledger
-router.get('/:driverId/credits/ledger', authenticateAdmin, async (req, res) => {
+router.get('/:driverId/credits/ledger', async (req, res) => {
   try {
     const { driverId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
@@ -113,18 +112,27 @@ router.get('/:driverId/credits/ledger', authenticateAdmin, async (req, res) => {
 });
 
 // POST /api/admin/drivers/:driverId/credits/adjust
-router.post('/:driverId/credits/adjust', authenticateAdmin, async (req, res) => {
+router.post('/:driverId/credits/adjust', async (req, res) => {
+  console.log('🔍 [CREDITS_ADJUST] POST recebido:', {
+    driverId: req.params.driverId,
+    headers: {
+      authorization: req.headers.authorization ? '✅ presente' : '❌ ausente',
+      origin: req.headers.origin,
+      contentType: req.headers['content-type']
+    },
+    body: req.body,
+    adminId: (req as any).adminId,
+    admin: (req as any).admin
+  });
+
   try {
     const { driverId } = req.params;
     const { delta, reason, idempotencyKey } = req.body;
     const adminUserId = (req as any).adminId || (req as any).admin?.id;
 
-    // Debug log
-    console.log('[CREDITS_ADJUST] adminId:', (req as any).adminId, 'admin:', (req as any).admin);
-
     if (!adminUserId) {
-      console.error('[CREDITS_ADJUST] Unauthorized: adminUserId is undefined');
-      return res.status(401).json({ success: false, error: 'Unauthorized' });
+      console.error('❌ [CREDITS_ADJUST] Unauthorized: adminUserId is undefined. adminId:', (req as any).adminId, 'admin:', (req as any).admin);
+      return res.status(401).json({ success: false, error: 'Unauthorized: admin user not found' });
     }
 
     if (!delta || delta === 0) {
