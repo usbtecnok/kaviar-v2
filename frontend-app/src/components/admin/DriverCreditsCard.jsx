@@ -45,7 +45,8 @@ export function DriverCreditsCard({ driverId }) {
   const loadBalance = async () => {
     try {
       const res = await api.get(`/api/admin/drivers/${driverId}/credits/balance`);
-      setBalance(res.data.balance || 0);
+      // Normalize: API may return string, ensure number
+      setBalance(parseFloat(res.data.balance) || 0);
     } catch (err) {
       console.error('Error loading balance:', err);
     }
@@ -106,7 +107,7 @@ export function DriverCreditsCard({ driverId }) {
           <Typography variant="h6">Créditos do Motorista</Typography>
           <Box display="flex" gap={2} alignItems="center">
             <Chip 
-              label={`R$ ${balance.toFixed(2)}`} 
+              label={`R$ ${(parseFloat(balance) || 0).toFixed(2)}`} 
               color="primary" 
               size="large"
             />
@@ -155,15 +156,15 @@ export function DriverCreditsCard({ driverId }) {
                       </TableCell>
                       <TableCell align="right">
                         <Typography
-                          color={entry.delta > 0 ? 'success.main' : 'error.main'}
+                          color={parseFloat(entry.delta) > 0 ? 'success.main' : 'error.main'}
                           fontWeight="bold"
                         >
-                          {entry.delta > 0 ? '+' : ''}
-                          R$ {parseFloat(entry.delta).toFixed(2)}
+                          {parseFloat(entry.delta) > 0 ? '+' : ''}
+                          R$ {(parseFloat(entry.delta) || 0).toFixed(2)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        R$ {parseFloat(entry.balance_after).toFixed(2)}
+                        R$ {(parseFloat(entry.balance_after) || 0).toFixed(2)}
                       </TableCell>
                       <TableCell>{entry.reason}</TableCell>
                     </TableRow>
