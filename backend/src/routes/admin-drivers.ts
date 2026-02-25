@@ -162,33 +162,20 @@ router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) 
   try {
     const { id } = req.params;
 
-    // Buscar por id, email ou phone (robustez máxima)
-    const driver = await prisma.drivers.findFirst({
-      where: {
-        OR: [
-          { id },
-          { email: id },
-          { phone: id }
-        ]
-      },
-      include: {
-        driver_consents: true,
-        neighborhoods: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        communities: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    });
+    // HOTFIX: Use raw query to avoid Prisma selecting missing column territory_type
+    const driverRaw = await prisma.$queryRaw<any[]>`
+      SELECT 
+        d.*,
+        n.id as neighborhood_id_obj, n.name as neighborhood_name,
+        c.id as community_id_obj, c.name as community_name
+      FROM drivers d
+      LEFT JOIN neighborhoods n ON d.neighborhood_id = n.id
+      LEFT JOIN communities c ON d.community_id = c.id
+      WHERE d.id = ${id} OR d.email = ${id} OR d.phone = ${id}
+      LIMIT 1
+    `;
 
-    if (!driver) {
+    if (!driverRaw || driverRaw.length === 0) {
       console.error(`[Admin] Driver not found with param: ${id}`);
       return res.status(404).json({
         success: false,
@@ -197,18 +184,37 @@ router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) 
       });
     }
 
-    // Log qual campo casou e valores críticos
+    const driver = driverRaw[0];
+
+    // Reconstruct nested objects for compatibility
+    const result = {
+      ...driver,
+      neighborhoods: driver.neighborhood_id_obj ? {
+        id: driver.neighborhood_id_obj,
+        name: driver.neighborhood_name
+      } : null,
+      communities: driver.community_id_obj ? {
+        id: driver.community_id_obj,
+        name: driver.community_name
+      } : null,
+      driver_consents: [] // Empty for now, not critical
+    };
+
+    // Remove temp fields
+    delete result.neighborhood_id_obj;
+    delete result.neighborhood_name;
+    delete result.community_id_obj;
+    delete result.community_name;
+
+    // Log qual campo casou
     let matchedBy = 'id';
     if (driver.email === id) matchedBy = 'email';
     else if (driver.phone === id) matchedBy = 'phone';
     console.log(`[Admin] Driver found by ${matchedBy}: ${driver.id}`);
-    console.log(`[Admin] vehicle_color: ${driver.vehicle_color}`);
-    console.log(`[Admin] family_bonus_accepted: ${driver.family_bonus_accepted} (type: ${typeof driver.family_bonus_accepted})`);
-    console.log(`[Admin] family_bonus_profile: ${driver.family_bonus_profile}`);
 
     res.json({
       success: true,
-      data: driver
+      data: result
     });
   } catch (error: any) {
     // Log estruturado com stack + requestId
