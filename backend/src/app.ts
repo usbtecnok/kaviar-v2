@@ -88,6 +88,8 @@ app.use((req, res, next) => {
     'https://www.kaviar.com.br',
     'https://d29p7cirgjqbxl.cloudfront.net',
     'http://localhost:5173',
+    'http://localhost:4173',
+    'http://localhost:4174',
   ]);
 
   // ✅ evita cache/proxy devolver preflight errado sem ACAO
