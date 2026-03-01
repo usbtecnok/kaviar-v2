@@ -11,7 +11,9 @@ export const checkPremiumTourismEnabled = async () => {
     const healthResponse = await fetch(`${API_BASE_URL}/api/health`);
     if (healthResponse.ok) {
       const health = await healthResponse.json();
-      return health.features?.premium_tourism === true;
+      if (health.features?.premium_tourism === true) {
+        return true;
+      }
     }
 
     // Fallback: tentar endpoint governance
