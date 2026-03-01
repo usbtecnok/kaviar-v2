@@ -1,9 +1,9 @@
-/**
 import { API_BASE_URL } from '../config/api';
+
+/**
  * Feature Flags Service
  * Verifica quais funcionalidades estão habilitadas no backend
  */
-
 
 export const checkPremiumTourismEnabled = async () => {
   try {
