@@ -23,7 +23,7 @@ const isAuthRoute = (url) => {
 
 // Helper: detectar escopo por URL
 const getTokenScope = (url) => {
-  if (url?.includes('/api/admin/')) return 'admin';
+  if (url?.includes('/api/admin/') || url?.includes('/api/governance/')) return 'admin';
   if (url?.includes('/api/driver/') || url?.includes('/api/drivers/')) return 'driver';
   return 'passenger';
 };
