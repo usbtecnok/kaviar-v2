@@ -164,30 +164,19 @@ export default function GeofenceManagement() {
 
   const fetchCommunities = async () => {
     try {
-      const token = localStorage.getItem('kaviar_admin_token');
       const url = showArchived 
-        ? `${API_BASE_URL}/api/governance/admin/communities/with-duplicates?includeArchived=1`
-        : `${API_BASE_URL}/api/governance/admin/communities/with-duplicates`;
+        ? '/api/governance/admin/communities/with-duplicates?includeArchived=1'
+        : '/api/governance/admin/communities/with-duplicates';
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get(url);
 
-      if (response.status === 401) {
-        localStorage.removeItem('kaviar_admin_token');
-        window.location.href = '/admin/login';
-        return;
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setCommunities(data.data || []);
+      if (response.data.success) {
+        setCommunities(response.data.data || []);
       } else {
-        setError(data.error || 'Erro ao carregar comunidades');
+        setError(response.data.error || 'Erro ao carregar comunidades');
       }
     } catch (error) {
+      console.error('Erro ao carregar comunidades:', error);
       setError('Erro de conexão');
     } finally {
       setLoading(false);
