@@ -6,6 +6,7 @@ import AuthApp from "./components/auth/AuthApp";
 import AdminApp from "./components/admin/AdminApp";
 import CompleteOnboarding from "./pages/onboarding/CompleteOnboarding";
 import PremiumTourism from "./pages/PremiumTourism";
+import Turismo from "./pages/Turismo";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -276,7 +277,8 @@ export default function App() {
             }
           />
 
-          <Route path="/turismo" element={<PremiumTourism />} />
+          <Route path="/turismo" element={<Turismo />} />
+          <Route path="/premium-tourism" element={<PremiumTourism />} />
 
           {/* fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
