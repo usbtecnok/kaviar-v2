@@ -85,3 +85,14 @@ backend/audit/
 # backups
 *.bak
 *.bak.*
+
+# backups / temporários
+*.bak-*
+*.broken-*
+*.tmp
+*.log
+
+# evidências locais
+evidencias-prod-*/
+*.json
+
