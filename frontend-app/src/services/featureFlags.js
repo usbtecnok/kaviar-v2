@@ -11,7 +11,9 @@ export const checkPremiumTourismEnabled = async () => {
     const healthResponse = await fetch(`${API_BASE_URL}/api/health`);
     if (healthResponse.ok) {
       const health = await healthResponse.json();
-      if (health.features?.premium_tourism === true) {
+      // Só retorna true se explicitamente true, caso contrário tenta fallback
+      // Trata null e undefined igualmente (health.features == null cobre ambos)
+      if (health.features != null && health.features.premium_tourism === true) {
         return true;
       }
     }
