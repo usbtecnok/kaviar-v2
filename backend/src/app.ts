@@ -77,11 +77,6 @@ app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
   console.log(`🔍 CORS middleware: ${req.method} ${req.path} | Origin: ${origin}`);
 
-  // ✅ Healthcheck ALB: não depende de Origin/CORS
-  if (req.path === '/api/health' || req.originalUrl?.startsWith('/api/health')) {
-    return next();
-  }
-
   const allowedOrigins = new Set([
     'https://app.kaviar.com.br',
     'https://kaviar.com.br',
@@ -95,6 +90,11 @@ app.use((req, res, next) => {
   // ✅ evita cache/proxy devolver preflight errado sem ACAO
   res.header('Vary', 'Origin');
   console.log(`📤 Set Vary: Origin`);
+
+  // ✅ Healthcheck ALB sem Origin (server-to-server) deve passar
+  if (!origin && (req.path === '/api/health' || req.originalUrl?.startsWith('/api/health'))) {
+    return next();
+  }
 
   // ✅ Requests sem Origin (server-to-server) devem ser permitidos
   if (!origin) {
