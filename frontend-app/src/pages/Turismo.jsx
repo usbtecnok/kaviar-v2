@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Container, Typography, Button, Grid, Card, CardContent, TextField, Paper, IconButton, CircularProgress, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { WhatsApp, Send, Close, Chat, Star, Shield, EmojiEvents, ExpandMore } from '@mui/icons-material';
 import { API_BASE_URL } from '../config/api';
@@ -75,6 +76,7 @@ const faqs = [
 ];
 
 export default function Turismo() {
+  const navigate = useNavigate();
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Olá! Sou o assistente da Kaviar. Pergunte sobre nossos roteiros ou fale direto no WhatsApp!' }
@@ -248,6 +250,29 @@ export default function Turismo() {
               }}
             >
               BAIXAR O APP
+            </Button>
+            <Button
+              size="large"
+              variant="contained"
+              onClick={() => navigate('/premium-tourism')}
+              sx={{
+                bgcolor: '#9C27B0',
+                color: 'white',
+                px: 4,
+                py: 2,
+                fontSize: '1.125rem',
+                fontWeight: 700,
+                borderRadius: 50,
+                boxShadow: '0 0 20px rgba(156,39,176,0.3)',
+                '&:hover': {
+                  bgcolor: '#7B1FA2',
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 0 30px rgba(156,39,176,0.5)'
+                },
+                transition: 'all 0.3s'
+              }}
+            >
+              VER PACOTES
             </Button>
             <Button
               size="large"
