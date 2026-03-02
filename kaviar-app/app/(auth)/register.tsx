@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { authStore } from '../../src/auth/auth.store';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function Register() {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -89,7 +92,8 @@ export default function Register() {
       }
     } catch (error) {
       console.error('Erro ao buscar bairros:', error);
-      loadNeighborhoods();
+      // Fallback: tentar carregar lista completa
+      await loadNeighborhoods();
     }
   };
 
@@ -102,42 +106,109 @@ export default function Register() {
       }
     } catch (error) {
       console.error('Erro ao buscar bairros:', error);
+      // Fallback final: permitir continuar sem bairros
+      Alert.alert(
+        'Aviso',
+        'Não consegui carregar bairros agora. Você pode continuar sem escolher bairro e definir depois.',
+        [{ text: 'OK' }]
+      );
+      setNeighborhoods([]);
     }
   };
 
   const handleRegister = async () => {
-    if (!selectedNeighborhood) {
-      Alert.alert('Erro', 'Selecione seu bairro');
+    // ✅ KAVIAR: Território é opcional, não bloqueia cadastro
+    if (!selectedNeighborhood && neighborhoods.length > 0) {
+      Alert.alert(
+        'Aviso',
+        'Você não selecionou um bairro. Deseja continuar mesmo assim? O território pode ser definido depois.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Continuar', onPress: () => performRegister() }
+        ]
+      );
       return;
     }
 
+    await performRegister();
+  };
+
+  const performRegister = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/governance/driver`, {
+
+      // 1. Criar motorista (SEM password)
+      const registerPayload: any = {
+        name,
+        email,
+        phone,
+      };
+
+      // ✅ KAVIAR: Só envia neighborhoodId se existir
+      if (selectedNeighborhood) {
+        registerPayload.neighborhoodId = selectedNeighborhood.id;
+      }
+
+      // ✅ KAVIAR: Só envia localização se existir
+      if (location) {
+        registerPayload.lat = location.lat;
+        registerPayload.lng = location.lng;
+        registerPayload.verificationMethod = 'GPS_AUTO';
+      } else if (selectedNeighborhood) {
+        registerPayload.verificationMethod = 'MANUAL_SELECTION';
+      }
+
+      const registerResponse = await fetch(`${API_URL}/api/governance/driver`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          phone,
-          password,
-          neighborhoodId: selectedNeighborhood.id,
-          lat: location?.lat,
-          lng: location?.lng,
-          verificationMethod: location ? 'GPS_AUTO' : 'MANUAL_SELECTION',
-        }),
+        body: JSON.stringify(registerPayload),
       });
 
-      const data = await response.json();
+      const registerData = await registerResponse.json();
 
-      if (data.success) {
+      if (!registerResponse.ok) {
+        Alert.alert('Erro', registerData.error || 'Erro ao cadastrar');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Definir senha (endpoint separado)
+      await fetch(`${API_URL}/api/auth/driver/set-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      // 3. Login automático
+      const loginResponse = await fetch(`${API_URL}/api/auth/driver/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const loginData = await loginResponse.json();
+
+      if (loginResponse.ok) {
+        // ✅ KAVIAR: Reusar authStore como no login.tsx
+        await authStore.setAuth(loginData.token, loginData.user);
+
+        // Mensagem de sucesso
+        const territoryMsg = selectedNeighborhood
+          ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
+          : 'Território pode ser definido depois';
+
         Alert.alert(
           'Cadastro Realizado!',
-          `Seu território: ${selectedNeighborhood.name}\nTipo: ${data.data.territoryType === 'OFFICIAL' ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}\n\nAguarde aprovação do admin.`,
-          [{ text: 'OK', onPress: () => {/* navegar para login */} }]
+          `${territoryMsg}\n\nAguarde aprovação do admin.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/(driver)/online')
+            }
+          ]
         );
       } else {
-        Alert.alert('Erro', data.error || 'Erro ao cadastrar');
+        Alert.alert('Sucesso', 'Cadastro realizado! Faça login.');
       }
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
