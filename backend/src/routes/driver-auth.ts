@@ -63,7 +63,8 @@ router.post('/driver/register', async (req, res) => {
         });
       }
 
-      territoryType = neighborhood.neighborhood_geofences ? 'OFFICIAL' : 'FALLBACK_800M';
+      const hasGeofence = (neighborhood.neighborhood_geofences?.length ?? 0) > 0;
+territoryType = hasGeofence ? 'OFFICIAL' : 'FALLBACK_800M';
     }
 
     // Hash password
