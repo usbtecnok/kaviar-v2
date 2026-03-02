@@ -137,11 +137,12 @@ export default function Register() {
     try {
       setLoading(true);
 
-      // 1. Criar motorista (SEM password)
+      // ✅ KAVIAR: Usar endpoint público /api/auth/driver/register
       const registerPayload: any = {
         name,
         email,
         phone,
+        password, // ✅ Agora envia password no endpoint correto
       };
 
       // ✅ KAVIAR: Só envia neighborhoodId se existir
@@ -158,7 +159,8 @@ export default function Register() {
         registerPayload.verificationMethod = 'MANUAL_SELECTION';
       }
 
-      const registerResponse = await fetch(`${API_URL}/api/governance/driver`, {
+      // ✅ Endpoint público (sem token)
+      const registerResponse = await fetch(`${API_URL}/api/auth/driver/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(registerPayload),
@@ -172,44 +174,24 @@ export default function Register() {
         return;
       }
 
-      // 2. Definir senha (endpoint separado)
-      await fetch(`${API_URL}/api/auth/driver/set-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      // ✅ Endpoint já retorna token (auto-login)
+      await authStore.setAuth(registerData.token, registerData.user);
 
-      // 3. Login automático
-      const loginResponse = await fetch(`${API_URL}/api/auth/driver/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      // Mensagem de sucesso
+      const territoryMsg = selectedNeighborhood
+        ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
+        : 'Território pode ser definido depois';
 
-      const loginData = await loginResponse.json();
-
-      if (loginResponse.ok) {
-        // ✅ KAVIAR: Reusar authStore como no login.tsx
-        await authStore.setAuth(loginData.token, loginData.user);
-
-        // Mensagem de sucesso
-        const territoryMsg = selectedNeighborhood
-          ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
-          : 'Território pode ser definido depois';
-
-        Alert.alert(
-          'Cadastro Realizado!',
-          `${territoryMsg}\n\nAguarde aprovação do admin.`,
-          [
-            {
-              text: 'OK',
-              onPress: () => router.replace('/(driver)/online')
-            }
-          ]
-        );
-      } else {
-        Alert.alert('Sucesso', 'Cadastro realizado! Faça login.');
-      }
+      Alert.alert(
+        'Cadastro Realizado!',
+        `${territoryMsg}\n\nAguarde aprovação do admin.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(driver)/online')
+          }
+        ]
+      );
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
       Alert.alert('Erro', 'Não foi possível completar o cadastro');

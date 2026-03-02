@@ -16,6 +16,119 @@ const driverSetPasswordSchema = z.object({
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres')
 });
 
+const driverRegisterSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().email('Email inválido'),
+  phone: z.string().min(10, 'Telefone inválido'),
+  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+  neighborhoodId: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  verificationMethod: z.enum(['GPS_AUTO', 'MANUAL_SELECTION']).optional()
+});
+
+// POST /api/auth/driver/register - Cadastro público (sem token)
+router.post('/driver/register', async (req, res) => {
+  try {
+    const data = driverRegisterSchema.parse(req.body);
+
+    // Verificar se email já existe
+    const existingDriver = await prisma.drivers.findUnique({ where: { email: data.email } });
+    if (existingDriver) {
+      return res.status(409).json({
+        success: false,
+        error: 'Email já cadastrado'
+      });
+    }
+
+    // Validar neighborhoodId se fornecido
+    let territoryType = null;
+    if (data.neighborhoodId) {
+      const neighborhood = await prisma.neighborhoods.findUnique({
+        where: { id: data.neighborhoodId },
+        include: { neighborhood_geofences: true }
+      });
+
+      if (!neighborhood) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bairro não encontrado'
+        });
+      }
+
+      if (!neighborhood.is_active) {
+        return res.status(400).json({
+          success: false,
+          error: 'Bairro não está ativo'
+        });
+      }
+
+      territoryType = neighborhood.neighborhood_geofences ? 'OFFICIAL' : 'FALLBACK_800M';
+    }
+
+    // Hash password
+    const password_hash = await bcrypt.hash(data.password, 10);
+
+    // Criar motorista
+    const driver = await prisma.drivers.create({
+      data: {
+        id: `driver_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password_hash,
+        status: 'pending',
+        neighborhood_id: data.neighborhoodId || null,
+        territory_type: territoryType,
+        territory_verified_at: data.neighborhoodId ? new Date() : null,
+        territory_verification_method: data.verificationMethod || null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    // Gerar token (auto-login)
+    const token = jwt.sign(
+      {
+        userId: driver.id,
+        userType: 'DRIVER',
+        email: driver.email,
+        status: driver.status
+      },
+      process.env.JWT_SECRET || 'fallback-secret',
+      { expiresIn: '24h' }
+    );
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: driver.id,
+        name: driver.name,
+        email: driver.email,
+        phone: driver.phone,
+        status: driver.status,
+        user_type: 'DRIVER',
+        isPending: true
+      }
+    });
+  } catch (error) {
+    console.error('Error in driver register:', error);
+
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: error.errors[0].message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao cadastrar motorista'
+    });
+  }
+});
+
 router.post('/driver/login', async (req, res) => {
   try {
     if (!process.env.JWT_SECRET) {
