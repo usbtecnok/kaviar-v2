@@ -214,4 +214,41 @@ router.post('/driver/set-password', async (req, res) => {
   }
 });
 
+// POST /api/auth/driver/location - Envio de localização (autenticado)
+router.post('/driver/location', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Token ausente' });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    
+    if (decoded.userType !== 'DRIVER') {
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+
+    const { lat, lng } = req.body;
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'Coordenadas inválidas' });
+    }
+
+    // Atualizar última localização do motorista
+    await prisma.drivers.update({
+      where: { id: decoded.userId },
+      data: {
+        last_lat: lat,
+        last_lng: lng,
+        last_location_updated_at: new Date()
+      }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating location:', error);
+    res.status(500).json({ error: 'Erro ao atualizar localização' });
+  }
+});
+
 export { router as driverAuthRoutes };
