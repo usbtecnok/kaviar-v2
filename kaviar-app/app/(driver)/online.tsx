@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
+import { authStore } from '../../src/auth/auth.store';
 
 // Tela de motorista online/offline
 export default function DriverOnline() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    const user = await authStore.getUser();
+    if (user?.name) {
+      setUserName(user.name);
+    }
+  };
 
   const handleToggleOnline = async () => {
     setLoading(true);
@@ -27,9 +40,28 @@ export default function DriverOnline() {
     router.push('/(driver)/accept-ride');
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Sair',
+      'Deseja realmente sair?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: async () => {
+            await authStore.clearAuth();
+            router.replace('/(auth)/login');
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Motorista</Text>
+      <Text style={styles.title}>Bem-vindo!</Text>
+      {userName && <Text style={styles.userName}>{userName}</Text>}
       
       <View style={styles.statusContainer}>
         <Text style={styles.statusLabel}>Status:</Text>
@@ -49,6 +81,12 @@ export default function DriverOnline() {
           onPress={handleAcceptRide}
         />
       )}
+
+      <Button
+        title="Sair"
+        onPress={handleLogout}
+        style={styles.logoutButton}
+      />
     </View>
   );
 }
@@ -63,6 +101,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  userName: {
+    fontSize: 18,
+    color: '#666',
     marginBottom: 32,
     textAlign: 'center',
   },
@@ -82,5 +126,9 @@ const styles = StyleSheet.create({
   },
   statusOnline: {
     color: '#4CAF50',
+  },
+  logoutButton: {
+    marginTop: 20,
+    backgroundColor: '#FF3B30',
   },
 });
