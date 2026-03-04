@@ -1,0 +1,23 @@
+{
+  "cli": {
+    "version": ">= 13.2.0"
+  },
+  "build": {
+    "driver-apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "driver"
+      }
+    },
+    "passenger-apk": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "passenger"
+      }
+    }
+  }
+}
