@@ -166,18 +166,16 @@ export default function Register() {
         body: JSON.stringify(registerPayload),
       });
 
-      const registerData = await registerResponse.json();
+      const registerJson = await registerResponse.json();
 
-      if (!registerResponse.ok) {
-        Alert.alert('Erro', registerData.error || 'Erro ao cadastrar');
-        setLoading(false);
+      if (!registerResponse.ok || !registerJson?.success) {
+        Alert.alert('Erro', registerJson?.error || 'Falha no cadastro');
         return;
       }
 
-      // ✅ Endpoint já retorna token (auto-login)
-      await authStore.setAuth(registerData.token, registerData.user);
-
-      // Mensagem de sucesso
+      // ✅ Auto-login com token retornado
+      await authStore.setAuth(registerJson.token, registerJson.user);
+      router.replace('/(driver)/online');      // Mensagem de sucesso
       const territoryMsg = selectedNeighborhood
         ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
         : 'Território pode ser definido depois';

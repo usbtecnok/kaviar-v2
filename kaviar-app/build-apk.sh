@@ -9,13 +9,13 @@ echo "🚀 Kaviar APK Builder"
 echo ""
 
 # Verificar se está logado no EAS
-if ! npx eas whoami &>/dev/null; then
+if ! npx --yes eas-cli@latest whoami &>/dev/null; then
   echo "❌ Você não está logado no EAS"
-  echo "Execute: npx eas login"
+  echo "Execute: npx --yes eas-cli@latest login"
   exit 1
 fi
 
-echo "✅ Logado no EAS como: $(npx eas whoami)"
+echo "✅ Logado no EAS como: $(npx --yes eas-cli@latest whoami)"
 echo ""
 
 # Menu
@@ -37,10 +37,10 @@ case $opcao in
   1)
     echo ""
     echo "📦 Configurando projeto DRIVER..."
-    APP_VARIANT=driver npx eas build:configure
+    APP_VARIANT=driver npx --yes eas-cli@latest build:configure
     echo ""
     echo "📦 Configurando projeto PASSENGER..."
-    APP_VARIANT=passenger npx eas build:configure
+    APP_VARIANT=passenger npx --yes eas-cli@latest build:configure
     echo ""
     echo "✅ Projects configurados!"
     echo ""
@@ -51,31 +51,31 @@ case $opcao in
   2)
     echo ""
     echo "🚗 Buildando APK Motorista..."
-    APP_VARIANT=driver npx eas build -p android --profile driver-apk
+    APP_VARIANT=driver npx --yes eas-cli@latest build -p android --profile driver-apk
     ;;
   3)
     echo ""
     echo "👤 Buildando APK Passageiro..."
-    APP_VARIANT=passenger npx eas build -p android --profile passenger-apk
+    APP_VARIANT=passenger npx --yes eas-cli@latest build -p android --profile passenger-apk
     ;;
   4)
     echo ""
     echo "🚗 Buildando APK Motorista..."
-    APP_VARIANT=driver npx eas build -p android --profile driver-apk
+    APP_VARIANT=driver npx --yes eas-cli@latest build -p android --profile driver-apk
     echo ""
     echo "👤 Buildando APK Passageiro..."
-    APP_VARIANT=passenger npx eas build -p android --profile passenger-apk
+    APP_VARIANT=passenger npx --yes eas-cli@latest build -p android --profile passenger-apk
     ;;
   5)
     echo ""
-    npx eas build:list
+    npx --yes eas-cli@latest build:list
     ;;
   6)
     echo ""
-    npx eas build:list --limit 1
+    npx --yes eas-cli@latest build:list --limit 1
     echo ""
     read -p "Build ID para baixar: " build_id
-    npx eas build:download --id "$build_id"
+    npx --yes eas-cli@latest build:download --id "$build_id"
     ;;
   7)
     echo ""
