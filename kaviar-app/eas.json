@@ -4,12 +4,24 @@
   },
   "build": {
     "driver-apk": {
-      "android": { "buildType": "apk" },
-      "env": { "APP_VARIANT": "driver" }
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "APP_VARIANT": "driver"
+      }
     },
     "passenger-apk": {
-      "android": { "buildType": "apk" },
-      "env": { "APP_VARIANT": "passenger" }
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "APP_VARIANT": "passenger"
+      }
     }
   }
 }
