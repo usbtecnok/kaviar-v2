@@ -1,0 +1,11 @@
+../backend
+../frontend
+../frontend-app
+../driver-pwa
+../docs
+../.git
+../node_modules
+../*.md
+../*.sh
+../*.log
+../*.sql
