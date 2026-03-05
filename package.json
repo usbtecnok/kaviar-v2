@@ -1,53 +1,32 @@
 {
   "name": "kaviar-app",
-  "version": "2.0.0",
-  "description": "Kaviar - Sistema de Corridas Comunitárias (Frontend React + Backend TypeScript)",
-  "main": "backend/dist/server.js",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "private": true,
   "scripts": {
-    "start": "npm run start:backend",
-    "start:backend": "cd backend && npm start",
-    "start:frontend": "cd frontend-app && npm run dev",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend-app && npm run dev",
-    "build": "npm run build:backend && npm run build:frontend",
-    "build:backend": "cd backend && npm run build",
-    "build:frontend": "cd frontend-app && npm run build",
-    "legacy:start": "node legacy/server_legacy.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "test:final": "node tests/final-freeze-test.js",
-    "activate": "node scripts/activate-kaviar.js",
-    "validate": "./run-final-validation.sh",
-    "security:test": "psql -d kaviar -f tests/security-validation.test.sql"
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.38.0",
-    "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.1.5",
-    "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "node-cron": "^3.0.3",
-    "pdfkit": "^0.14.0",
-    "twilio": "^4.19.0"
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/native": "^7.1.31",
+    "@react-navigation/native-stack": "^7.14.2",
+    "@types/react": "~19.1.10",
+    "axios": "^1.13.2",
+    "dotenv": "^17.3.1",
+    "expo": "~54.0.31",
+    "expo-constants": "~18.0.13",
+    "expo-linking": "~8.0.11",
+    "expo-location": "~19.0.8",
+    "expo-router": "^6.0.21",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "typescript": "~5.9.2"
   },
-  "devDependencies": {
-    "concurrently": "^7.6.0",
-    "nodemon": "^3.0.2"
-  },
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "keywords": [
-    "kaviar",
-    "whatsapp",
-    "twilio",
-    "webhook",
-    "rideshare",
-    "supabase"
-  ],
-  "author": "Kaviar Team",
-  "license": "MIT"
+  "devDependencies": {}
 }
