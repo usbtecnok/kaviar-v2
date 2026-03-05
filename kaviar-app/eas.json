@@ -11,7 +11,9 @@
         "gradleCommand": ":app:assembleRelease"
       },
       "env": {
-        "APP_VARIANT": "driver"
+        "APP_VARIANT": "driver",
+        "EAS_PROJECT_ID_DRIVER": "01426c18-feb5-44f2-94f1-dab900d8bc85",
+        "EAS_PROJECT_ID_PASSENGER": "23cab91b-82a5-4d92-9709-017279a2539d"
       }
     },
     "passenger-apk": {
@@ -21,7 +23,9 @@
         "gradleCommand": ":app:assembleRelease"
       },
       "env": {
-        "APP_VARIANT": "passenger"
+        "APP_VARIANT": "passenger",
+        "EAS_PROJECT_ID_DRIVER": "01426c18-feb5-44f2-94f1-dab900d8bc85",
+        "EAS_PROJECT_ID_PASSENGER": "23cab91b-82a5-4d92-9709-017279a2539d"
       }
     }
   }
