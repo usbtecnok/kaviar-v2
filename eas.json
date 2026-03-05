@@ -1,8 +1,7 @@
 {
   "cli": {
     "version": ">= 13.2.0",
-    "appVersionSource": "local",
-    "projectDir": "kaviar-app"
+    "appVersionSource": "local"
   },
   "build": {
     "driver-apk": {
@@ -13,7 +12,8 @@
       },
       "env": {
         "APP_VARIANT": "driver"
-      }
+      },
+      "appRootDirectory": "kaviar-app"
     },
     "passenger-apk": {
       "distribution": "internal",
@@ -23,7 +23,8 @@
       },
       "env": {
         "APP_VARIANT": "passenger"
-      }
+      },
+      "appRootDirectory": "kaviar-app"
     }
   }
 }
