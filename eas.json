@@ -1,0 +1,29 @@
+{
+  "cli": {
+    "version": ">= 13.2.0",
+    "appVersionSource": "local",
+    "projectDir": "kaviar-app"
+  },
+  "build": {
+    "driver-apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "APP_VARIANT": "driver"
+      }
+    },
+    "passenger-apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "APP_VARIANT": "passenger"
+      }
+    }
+  }
+}
