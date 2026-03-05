@@ -1,5 +1,3 @@
-import 'dotenv/config';
-
 const variant = process.env.APP_VARIANT || 'driver';
 
 const config = {
@@ -11,7 +9,7 @@ const config = {
     splash: './assets/splash-driver.png',
     adaptiveIcon: './assets/adaptive-icon-driver.png',
     scheme: 'kaviar-driver',
-    projectId: process.env.EAS_PROJECT_ID_DRIVER || '01426c18-feb5-44f2-94f1-dab900d8bc85'
+    projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85'
   },
   passenger: {
     name: 'Kaviar Passageiro',
@@ -21,7 +19,7 @@ const config = {
     splash: './assets/splash-passenger.png',
     adaptiveIcon: './assets/adaptive-icon-passenger.png',
     scheme: 'kaviar-passenger',
-    projectId: process.env.EAS_PROJECT_ID_PASSENGER || '23cab91b-82a5-4d92-9709-017279a2539d'
+    projectId: '23cab91b-82a5-4d92-9709-017279a2539d'
   }
 };
 
