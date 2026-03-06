@@ -8,7 +8,8 @@
       "node": "20.19.4",
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "image": "latest"
       },
       "env": {
         "APP_VARIANT": "driver"
@@ -18,7 +19,8 @@
       "node": "20.19.4",
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "image": "latest"
       },
       "env": {
         "APP_VARIANT": "passenger"
