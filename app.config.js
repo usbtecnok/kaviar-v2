@@ -5,9 +5,9 @@ const config = {
     name: 'Kaviar Motorista',
     slug: 'kaviar-driver',
     package: 'com.kaviar.driver',
-    icon: './assets/icon-driver.png',
-    splash: './assets/splash-driver.png',
-    adaptiveIcon: './assets/adaptive-icon-driver.png',
+    icon: './kaviar-app/assets/icon-driver.png',
+    splash: './kaviar-app/assets/splash-driver.png',
+    adaptiveIcon: './kaviar-app/assets/adaptive-icon-driver.png',
     scheme: 'kaviar-driver',
     projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85'
   },
@@ -15,9 +15,9 @@ const config = {
     name: 'Kaviar Passageiro',
     slug: 'kaviar-passenger',
     package: 'com.kaviar.passenger',
-    icon: './assets/icon-passenger.png',
-    splash: './assets/splash-passenger.png',
-    adaptiveIcon: './assets/adaptive-icon-passenger.png',
+    icon: './kaviar-app/assets/icon-passenger.png',
+    splash: './kaviar-app/assets/splash-passenger.png',
+    adaptiveIcon: './kaviar-app/assets/adaptive-icon-passenger.png',
     scheme: 'kaviar-passenger',
     projectId: '23cab91b-82a5-4d92-9709-017279a2539d'
   }
@@ -27,6 +27,7 @@ const variantConfig = config[variant];
 
 export default {
   expo: {
+    owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
     version: '1.0.0',

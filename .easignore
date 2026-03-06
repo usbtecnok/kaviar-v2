@@ -1,0 +1,62 @@
+# Diretórios do monorepo (não relacionados ao app mobile)
+api/
+audit-final/
+backend/
+data/
+database/
+docs/
+frontend/
+frontend-app/
+infra/
+legacy/
+lib/
+scripts/
+tests/
+webhooks/
+apps/
+driver-pwa/
+
+# Git
+.git/
+.github/
+
+# Documentos
+*.md
+!README.md
+
+# Scripts
+*.sh
+
+# SQL
+*.sql
+
+# Logs
+*.log
+
+# Backups
+backup-*.sql
+*-compliance-*.log
+diagnostico-*.log
+evidencias-run-*.log
+fix-offer-status-*.log
+
+# Env files da raiz (não do app)
+.env
+rds.env
+aws-resources.env
+
+# Arquivos temporários
+*.bak
+*.tmp
+.DS_Store
+
+# Node modules da raiz (se existir)
+node_modules/
+
+# Manter apenas o necessário (explícito)
+!.nvmrc
+!app.config.js
+!eas.json
+!package.json
+!package-lock.json
+!kaviar-app/

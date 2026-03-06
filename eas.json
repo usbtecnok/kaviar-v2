@@ -5,20 +5,20 @@
   },
   "build": {
     "driver-apk": {
+      "node": "20.19.4",
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
       },
       "env": {
         "APP_VARIANT": "driver"
       }
     },
     "passenger-apk": {
+      "node": "20.19.4",
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "buildType": "apk"
       },
       "env": {
         "APP_VARIANT": "passenger"
