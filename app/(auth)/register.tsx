@@ -18,6 +18,13 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [documentCpf, setDocumentCpf] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  
+  // Dados do veículo
+  const [vehicleColor, setVehicleColor] = useState('');
+  const [vehicleModel, setVehicleModel] = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
   
   // Território
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -35,12 +42,35 @@ export default function Register() {
       Alert.alert('Erro', 'Senha deve ter pelo menos 6 caracteres');
       return;
     }
+    
+    // Validar CPF
+    const cpfClean = documentCpf.replace(/\D/g, '');
+    if (!cpfClean || cpfClean.length !== 11) {
+      Alert.alert('Erro', 'CPF deve ter 11 dígitos');
+      return;
+    }
+    
+    // Validar termos
+    if (!acceptedTerms) {
+      Alert.alert('Erro', 'Você deve aceitar os termos de uso e política de privacidade');
+      return;
+    }
+    
     setStep(2);
+  };
+
+  // Passo 2: Dados do veículo
+  const handleStep2 = () => {
+    if (!vehicleColor) {
+      Alert.alert('Erro', 'Informe a cor do veículo');
+      return;
+    }
+    setStep(3);
   };
 
   // Passo 2: Solicitar localização
   useEffect(() => {
-    if (step === 2) {
+    if (step === 3) {
       requestLocation();
     }
   }, [step]);
@@ -174,7 +204,12 @@ export default function Register() {
         name,
         email,
         phone,
-        password, // ✅ Agora envia password no endpoint correto
+        password,
+        document_cpf: documentCpf.replace(/\D/g, ''), // Remove formatação
+        accepted_terms: true,
+        vehicle_color: vehicleColor,
+        vehicle_model: vehicleModel || null,
+        vehicle_plate: vehiclePlate || null,
       };
 
       // ✅ KAVIAR: Só envia neighborhoodId se existir
@@ -191,6 +226,8 @@ export default function Register() {
         registerPayload.verificationMethod = 'MANUAL_SELECTION';
       }
 
+      console.log('[performRegister] Payload:', JSON.stringify(registerPayload, null, 2));
+
       // ✅ Endpoint público (sem token)
       const registerResponse = await fetch(`${API_URL}/api/auth/driver/register`, {
         method: 'POST',
@@ -199,6 +236,7 @@ export default function Register() {
       });
 
       const registerJson = await registerResponse.json();
+      console.log('[performRegister] Response:', registerJson);
 
       if (!registerResponse.ok || !registerJson?.success) {
         Alert.alert('Erro', registerJson?.error || 'Falha no cadastro');
@@ -207,7 +245,8 @@ export default function Register() {
 
       // ✅ Auto-login com token retornado
       await authStore.setAuth(registerJson.token, registerJson.user);
-      router.replace('/(driver)/online');      // Mensagem de sucesso
+
+      // Mensagem de sucesso
       const territoryMsg = selectedNeighborhood
         ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
         : 'Território pode ser definido depois';
@@ -223,7 +262,7 @@ export default function Register() {
         ]
       );
     } catch (error) {
-      console.error('Erro ao cadastrar:', error);
+      console.error('[performRegister] Erro:', error);
       Alert.alert('Erro', 'Não foi possível completar o cadastro');
     } finally {
       setLoading(false);
@@ -245,7 +284,7 @@ export default function Register() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Cadastro de Motorista</Text>
-          <Text style={styles.subtitle}>Passo {step} de 2</Text>
+          <Text style={styles.subtitle}>Passo {step} de 3</Text>
         </View>
 
         {/* Passo 1: Dados Básicos */}
@@ -279,6 +318,16 @@ export default function Register() {
               keyboardType="phone-pad"
             />
 
+            <Text style={styles.label}>CPF</Text>
+            <TextInput
+              style={styles.input}
+              value={documentCpf}
+              onChangeText={setDocumentCpf}
+              placeholder="000.000.000-00"
+              keyboardType="number-pad"
+              maxLength={14}
+            />
+
             <Text style={styles.label}>Senha</Text>
             <TextInput
               style={styles.input}
@@ -288,14 +337,74 @@ export default function Register() {
               secureTextEntry
             />
 
+            <View style={styles.checkboxRow}>
+              <TouchableOpacity
+                style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}
+                onPress={() => setAcceptedTerms(!acceptedTerms)}
+              >
+                {acceptedTerms && <Ionicons name="checkmark" size={18} color="#FFF" />}
+              </TouchableOpacity>
+              <Text style={styles.checkboxLabel}>
+                Aceito os termos de uso e política de privacidade
+              </Text>
+            </View>
+
             <TouchableOpacity style={styles.button} onPress={handleStep1}>
               <Text style={styles.buttonText}>Continuar</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Passo 2: Território */}
+        {/* Passo 2: Dados do Veículo */}
         {step === 2 && (
+          <View style={styles.form}>
+            <Text style={styles.label}>Cor do Veículo *</Text>
+            <TextInput
+              style={styles.input}
+              value={vehicleColor}
+              onChangeText={setVehicleColor}
+              placeholder="Ex: Branco, Preto, Prata"
+              autoCapitalize="words"
+            />
+
+            <Text style={styles.label}>Modelo do Veículo (opcional)</Text>
+            <TextInput
+              style={styles.input}
+              value={vehicleModel}
+              onChangeText={setVehicleModel}
+              placeholder="Ex: Gol, Uno, HB20"
+              autoCapitalize="words"
+            />
+
+            <Text style={styles.label}>Placa do Veículo (opcional)</Text>
+            <TextInput
+              style={styles.input}
+              value={vehiclePlate}
+              onChangeText={setVehiclePlate}
+              placeholder="Ex: ABC-1234"
+              autoCapitalize="characters"
+              maxLength={8}
+            />
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonSecondary]}
+                onPress={() => setStep(1)}
+              >
+                <Text style={styles.buttonSecondaryText}>Voltar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.buttonPrimary]}
+                onPress={handleStep2}
+              >
+                <Text style={styles.buttonText}>Continuar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Passo 3: Território */}
+        {step === 3 && (
           <View style={styles.form}>
             {detectedNeighborhood && (
               <View style={styles.detectedBox}>
@@ -350,7 +459,7 @@ export default function Register() {
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={[styles.button, styles.buttonSecondary]}
-                onPress={() => setStep(1)}
+                onPress={() => setStep(2)}
               >
                 <Text style={styles.buttonSecondaryText}>Voltar</Text>
               </TouchableOpacity>
@@ -521,6 +630,30 @@ const styles = StyleSheet.create({
   },
   neighborhoodType: {
     fontSize: 11,
+    color: '#666',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#FF6B35',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: '#FF6B35',
+  },
+  checkboxLabel: {
+    flex: 1,
+    fontSize: 14,
     color: '#666',
   },
   loadingText: {

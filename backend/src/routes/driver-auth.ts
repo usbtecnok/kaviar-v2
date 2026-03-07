@@ -21,6 +21,13 @@ const driverRegisterSchema = z.object({
   email: z.string().email('Email inválido'),
   phone: z.string().min(10, 'Telefone inválido'),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
+  document_cpf: z.string().min(11, 'CPF deve ter 11 dígitos').max(11, 'CPF deve ter 11 dígitos'),
+  accepted_terms: z.boolean().refine(val => val === true, {
+    message: 'Você deve aceitar os termos de uso'
+  }),
+  vehicle_color: z.string().min(2, 'Cor do veículo é obrigatória'),
+  vehicle_model: z.string().optional(),
+  vehicle_plate: z.string().optional(),
   neighborhoodId: z.string().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
@@ -80,11 +87,41 @@ router.post('/driver/register', async (req, res) => {
         phone: data.phone,
         password_hash,
         status: 'pending',
+        document_cpf: data.document_cpf,
+        vehicle_color: data.vehicle_color,
+        vehicle_model: data.vehicle_model || null,
+        vehicle_plate: data.vehicle_plate || null,
         neighborhood_id: data.neighborhoodId || null,
         territory_type: territoryType,
         territory_verified_at: data.neighborhoodId ? new Date() : null,
         territory_verification_method: data.verificationMethod || null,
         created_at: new Date(),
+        updated_at: new Date()
+      }
+    });
+
+    // Registrar consent LGPD
+    await prisma.consents.create({
+      data: {
+        id: `consent_${driver.id}_lgpd_${Date.now()}`,
+        user_id: driver.id,
+        subject_type: 'DRIVER',
+        subject_id: driver.id,
+        type: 'lgpd',
+        accepted: true,
+        accepted_at: new Date(),
+        ip_address: req.ip,
+        user_agent: req.headers['user-agent'] || null
+      }
+    });
+
+    // Criar registro de verificação
+    await prisma.driver_verifications.create({
+      data: {
+        id: `verification_${driver.id}`,
+        driver_id: driver.id,
+        community_id: null,
+        status: 'PENDING',
         updated_at: new Date()
       }
     });
