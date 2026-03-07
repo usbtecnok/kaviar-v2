@@ -60,6 +60,10 @@ export class AdminService {
           suspension_reason: true,
           suspended_at: true,
           last_active_at: true,
+          document_cpf: true,
+          vehicle_color: true,
+          vehicle_model: true,
+          vehicle_plate: true,
           created_at: true,
           _count: {
             select: { rides: true },
