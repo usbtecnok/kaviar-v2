@@ -1,7 +1,9 @@
 # Fix: Metro Bundling - createBundleReleaseJsAndAssets
 
-## Build ID
-4d87c6d0-c3cb-45be-8a2f-9f3856a0dba8
+## Build IDs
+- 4d87c6d0-c3cb-45be-8a2f-9f3856a0dba8
+- 3ae29789-da2d-4bf2-83b0-7e793d9a68d3
+- (continuou após fix expo doctor)
 
 ## Erro Identificado
 
@@ -13,47 +15,37 @@ Error: Unable to resolve module ../../src/api/driver.api from /home/expo/working
 ```
 
 **Causa raiz:** 
-Após mover `app/`, `assets/` e `src/` para a raiz, o `.easignore` ainda referenciava `!kaviar-app/`, fazendo com que `src/` não fosse incluído no archive do EAS.
+O `.easignore` usava `!src/` que só inclui o diretório, não o conteúdo recursivo. Padrões de negação em gitignore/easignore precisam de `**` para incluir subdiretórios.
 
 ## Correção Aplicada
 
-### 1. Atualizado `.easignore`
+### Atualizado `.easignore` com padrões recursivos
 ```diff
-- !kaviar-app/
-+ !app/
-+ !assets/
-+ !src/
-+ !tsconfig.json
+-!app/
+-!assets/
+-!src/
++!app/**
++!assets/**
++!src/**
 ```
 
-### 2. Copiado `tsconfig.json` para raiz
-```bash
-cp kaviar-app/tsconfig.json .
-```
+## Verificação
 
-### 3. Atualizado `.gitignore`
-```diff
- *.json
-+!package.json
-+!package-lock.json
-+!tsconfig.json
-+!app.json
-+!eas.json
-```
+✅ `src/api/driver.api.ts` existe
+✅ Versionado no Git
+✅ Import correto em `accept-ride.tsx`: `from '../../src/api/driver.api'`
 
 ## Arquivos Modificados (staged)
 
 ```
 M  .easignore
-M  .gitignore
-A  tsconfig.json
 ```
 
 ## Próximo Passo
 
 **Commitar:**
 ```bash
-git commit -m "fix: atualizar .easignore para incluir app/assets/src da raiz"
+git commit -m "fix: usar padrões recursivos no .easignore (app/** assets/** src/**)"
 ```
 
 **Build:**
@@ -63,4 +55,4 @@ eas build --platform android --profile driver-apk
 
 ## Expectativa
 
-Metro bundler encontra `src/api/driver.api.ts` e completa o bundle JS corretamente.
+Metro bundler encontra todos os arquivos em `src/**` recursivamente e completa o bundle JS sem erros.
