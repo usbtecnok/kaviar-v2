@@ -4,8 +4,9 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { authStore } from '../../src/auth/auth.store';
+import Constants from 'expo-constants';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || 'https://api.kaviar.com.br';
 
 export default function Register() {
   const router = useRouter();
@@ -78,20 +79,37 @@ export default function Register() {
 
   const loadSmartNeighborhoods = async (coords: { lat: number; lng: number }) => {
     try {
-      const response = await fetch(
-        `${API_URL}/api/neighborhoods/smart-list?lat=${coords.lat}&lng=${coords.lng}`
-      );
+      const url = `${API_URL}/api/neighborhoods/smart-list?lat=${coords.lat}&lng=${coords.lng}`;
+      console.log('[loadSmartNeighborhoods] URL:', url);
+      console.log('[loadSmartNeighborhoods] Coords:', coords);
+      
+      const response = await fetch(url);
+      console.log('[loadSmartNeighborhoods] Status:', response.status);
+      
       const data = await response.json();
+      console.log('[loadSmartNeighborhoods] Response:', JSON.stringify(data).substring(0, 200));
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       
       if (data.success) {
+        // Detectado via GPS
         if (data.detected) {
+          console.log('[loadSmartNeighborhoods] Detected:', data.detected.name);
           setDetectedNeighborhood(data.detected);
           setSelectedNeighborhood(data.detected);
         }
-        setNeighborhoods(data.nearby.length > 0 ? data.nearby : data.data);
+        
+        // Usar nearby se existir, senão usar data
+        const neighborhoodList = (data.nearby && data.nearby.length > 0) ? data.nearby : (data.data || []);
+        console.log('[loadSmartNeighborhoods] Neighborhoods count:', neighborhoodList.length);
+        setNeighborhoods(neighborhoodList);
+      } else {
+        throw new Error(data.error || 'Resposta sem success');
       }
     } catch (error) {
-      console.error('Erro ao buscar bairros:', error);
+      console.error('[loadSmartNeighborhoods] Erro:', error);
       // Fallback: tentar carregar lista completa
       await loadNeighborhoods();
     }
@@ -99,13 +117,27 @@ export default function Register() {
 
   const loadNeighborhoods = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/neighborhoods/smart-list`);
+      const url = `${API_URL}/api/neighborhoods/smart-list`;
+      console.log('[loadNeighborhoods] URL:', url);
+      
+      const response = await fetch(url);
+      console.log('[loadNeighborhoods] Status:', response.status);
+      
       const data = await response.json();
-      if (data.success) {
+      console.log('[loadNeighborhoods] Response:', JSON.stringify(data).substring(0, 200));
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      if (data.success && data.data) {
+        console.log('[loadNeighborhoods] Neighborhoods count:', data.data.length);
         setNeighborhoods(data.data);
+      } else {
+        throw new Error(data.error || 'Resposta sem data');
       }
     } catch (error) {
-      console.error('Erro ao buscar bairros:', error);
+      console.error('[loadNeighborhoods] Erro:', error);
       // Fallback final: permitir continuar sem bairros
       Alert.alert(
         'Aviso',

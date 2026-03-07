@@ -56,7 +56,8 @@ export default {
     extra: {
       eas: {
         projectId: variantConfig.projectId
-      }
+      },
+      EXPO_PUBLIC_API_URL: 'https://api.kaviar.com.br'
     }
   }
 };
