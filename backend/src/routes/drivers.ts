@@ -116,6 +116,36 @@ router.post('/me/online', authenticateDriver, async (req: Request, res: Response
   }
 });
 
+// GET /api/drivers/me/documents
+router.get('/me/documents', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).userId || (req as any).user?.id || (req as any).driver?.id;
+    
+    if (!driverId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Não autenticado'
+      });
+    }
+
+    const documents = await prisma.driver_documents.findMany({
+      where: { driver_id: driverId },
+      orderBy: { created_at: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      data: documents
+    });
+  } catch (error) {
+    console.error('Error getting driver documents:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar documentos'
+    });
+  }
+});
+
 // POST /api/drivers/me/documents (multi-file upload)
 router.post('/me/documents', authenticateDriver, uploadToS3.fields([
   { name: 'cpf', maxCount: 1 },
