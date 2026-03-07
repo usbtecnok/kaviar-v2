@@ -253,11 +253,11 @@ export default function Register() {
 
       Alert.alert(
         'Cadastro Realizado!',
-        `${territoryMsg}\n\nAguarde aprovação do admin.`,
+        `${territoryMsg}\n\nAgora envie seus documentos para aprovação.`,
         [
           {
-            text: 'OK',
-            onPress: () => router.replace('/(driver)/online')
+            text: 'Enviar Documentos',
+            onPress: () => router.replace('/(driver)/documents')
           }
         ]
       );

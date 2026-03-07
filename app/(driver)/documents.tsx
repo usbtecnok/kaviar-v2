@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import DocumentCard from '../components/DocumentCard';
-import { uploadDocuments, getMyDocuments, DocumentUpload, DocumentStatus } from '../services/documentApi';
+import { uploadDocuments, getMyDocuments, DocumentStatus } from '../services/documentApi';
+import type { DocumentUpload as DocumentUploadPayload } from '../services/documentApi';
 
 const DOCUMENT_TYPES = [
   { type: 'cpf', label: 'CPF', required: true },
@@ -147,7 +148,7 @@ export default function DocumentUpload() {
   };
 
   const handleUpload = async () => {
-    const toUpload: DocumentUpload[] = [];
+    const toUpload: DocumentUploadPayload[] = [];
     
     Object.entries(documents).forEach(([type, doc]) => {
       if (doc && doc.status === 'selected') {

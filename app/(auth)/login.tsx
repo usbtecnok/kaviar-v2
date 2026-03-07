@@ -39,54 +39,7 @@ export default function Login() {
   };
 
   const handleForgotPassword = () => {
-    Alert.prompt(
-      'Esqueci minha senha',
-      'Digite seu email e nova senha',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Redefinir',
-          onPress: async (input) => {
-            if (!input) return;
-            
-            const [emailInput, newPassword] = input.split(',').map(s => s.trim());
-            
-            if (!emailInput || !newPassword) {
-              Alert.alert('Erro', 'Digite: email, nova_senha');
-              return;
-            }
-
-            if (newPassword.length < 6) {
-              Alert.alert('Erro', 'Senha deve ter no mínimo 6 caracteres');
-              return;
-            }
-
-            try {
-              const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
-              const response = await fetch(`${API_URL}/api/auth/driver/set-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: emailInput, password: newPassword })
-              });
-
-              const data = await response.json();
-
-              if (response.ok) {
-                Alert.alert('Sucesso', 'Senha redefinida! Faça login com a nova senha.');
-                setEmail(emailInput);
-              } else {
-                Alert.alert('Erro', data.error || 'Erro ao redefinir senha');
-              }
-            } catch (error) {
-              Alert.alert('Erro', 'Não foi possível redefinir a senha');
-            }
-          }
-        }
-      ],
-      'plain-text',
-      '',
-      'email-address'
-    );
+    router.push('/(auth)/forgot-password');
   };
 
   const handleRegister = () => {
