@@ -9,7 +9,7 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "latest"
+        "image": "latest",
       },
       "env": {
         "APP_VARIANT": "driver"
@@ -20,7 +20,7 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "latest"
+        "image": "latest",
       },
       "env": {
         "APP_VARIANT": "passenger"
