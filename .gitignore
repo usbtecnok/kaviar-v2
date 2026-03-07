@@ -95,4 +95,3 @@ backend/audit/
 # evidências locais
 evidencias-prod-*/
 *.json
-
