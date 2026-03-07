@@ -31,7 +31,9 @@ const driverRegisterSchema = z.object({
   neighborhoodId: z.string().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
-  verificationMethod: z.enum(['GPS_AUTO', 'MANUAL_SELECTION']).optional()
+  verificationMethod: z.enum(['GPS_AUTO', 'MANUAL_SELECTION']).optional(),
+  familyBonusAccepted: z.boolean().optional(),
+  familyProfile: z.enum(['individual', 'familiar']).optional()
 });
 
 // POST /api/auth/driver/register - Cadastro público (sem token)
@@ -95,6 +97,8 @@ router.post('/driver/register', async (req, res) => {
         territory_type: territoryType,
         territory_verified_at: data.neighborhoodId ? new Date() : null,
         territory_verification_method: data.verificationMethod || null,
+        family_bonus_accepted: data.familyBonusAccepted || false,
+        family_bonus_profile: data.familyProfile || 'individual',
         created_at: new Date(),
         updated_at: new Date()
       }

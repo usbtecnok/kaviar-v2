@@ -26,6 +26,9 @@ export default function Register() {
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
   
+  // Bônus familiar
+  const [familyBonusAccepted, setFamilyBonusAccepted] = useState(false);
+  
   // Território
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
@@ -210,6 +213,8 @@ export default function Register() {
         vehicle_color: vehicleColor,
         vehicle_model: vehicleModel || null,
         vehicle_plate: vehiclePlate || null,
+        familyBonusAccepted: familyBonusAccepted,
+        familyProfile: familyBonusAccepted ? 'familiar' : 'individual',
       };
 
       // ✅ KAVIAR: Só envia neighborhoodId se existir
@@ -385,6 +390,25 @@ export default function Register() {
               autoCapitalize="characters"
               maxLength={8}
             />
+
+            <View style={styles.bonusSection}>
+              <Text style={styles.bonusTitle}>Bônus Familiar</Text>
+              <Text style={styles.bonusDescription}>
+                Compartilhe ganhos com sua família (50% para você, 50% para indicado)
+              </Text>
+              
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setFamilyBonusAccepted(!familyBonusAccepted)}
+              >
+                <View style={[styles.checkbox, familyBonusAccepted && styles.checkboxChecked]}>
+                  {familyBonusAccepted && <Ionicons name="checkmark" size={18} color="#FFF" />}
+                </View>
+                <Text style={styles.checkboxLabel}>
+                  Quero participar do programa de bônus familiar
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.buttonRow}>
               <TouchableOpacity
@@ -631,6 +655,25 @@ const styles = StyleSheet.create({
   neighborhoodType: {
     fontSize: 11,
     color: '#666',
+  },
+  bonusSection: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#FFF5F2',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE0D6',
+  },
+  bonusTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  bonusDescription: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 12,
   },
   checkboxRow: {
     flexDirection: 'row',
