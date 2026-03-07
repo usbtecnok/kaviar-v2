@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authStore } from '../../src/auth/auth.store';
 import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || 'https://api.kaviar.com.br';
@@ -20,7 +20,7 @@ export interface DocumentStatus {
 
 export async function uploadDocuments(documents: DocumentUpload[]): Promise<{ success: boolean; error?: string }> {
   try {
-    const token = await AsyncStorage.getItem('driver_token');
+    const token = authStore.getToken();
     if (!token) throw new Error('Não autenticado');
 
     const formData = new FormData();
@@ -55,7 +55,7 @@ export async function uploadDocuments(documents: DocumentUpload[]): Promise<{ su
 
 export async function getMyDocuments(): Promise<{ success: boolean; data?: DocumentStatus[]; error?: string }> {
   try {
-    const token = await AsyncStorage.getItem('driver_token');
+    const token = authStore.getToken();
     if (!token) throw new Error('Não autenticado');
 
     const response = await fetch(`${API_URL}/api/drivers/me/documents`, {
