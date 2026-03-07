@@ -56,7 +56,11 @@ node_modules/
 # Manter apenas o necessário (explícito)
 !.nvmrc
 !app.config.js
+!app.json
 !eas.json
 !package.json
 !package-lock.json
-!kaviar-app/
+!tsconfig.json
+!app/
+!assets/
+!src/

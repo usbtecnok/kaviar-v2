@@ -95,3 +95,8 @@ backend/audit/
 # evidências locais
 evidencias-prod-*/
 *.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!app.json
+!eas.json
