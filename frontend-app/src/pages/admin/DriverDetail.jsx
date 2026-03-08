@@ -331,9 +331,9 @@ export default function AdminDriverDetail() {
               }
 
               const familyProfile = driver.family_bonus_profile || 'individual';
-              const bonusPercent = 50; // Default
+              const bonusPercent = 50;
               const bonusAmount = (100 * bonusPercent) / 100;
-              const acceptedAt = driver.approved_at || driver.created_at;
+              const acceptedAt = driver.created_at;
 
               return (
                 <Box sx={{ bgcolor: 'grey.100', p: 2, borderRadius: 1 }}>
