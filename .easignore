@@ -32,6 +32,8 @@ driver-pwa/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-error.log*
 
 # Backups
 backup-*.sql
@@ -49,6 +51,16 @@ aws-resources.env
 *.bak
 *.tmp
 .DS_Store
+tmp/
+temp/
+.cache/
+coverage/
+
+# Build/cache local
+.expo/
+dist/
+android/
+ios/
 
 # Node modules da raiz (se existir)
 node_modules/

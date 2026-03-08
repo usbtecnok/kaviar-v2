@@ -122,6 +122,8 @@ export class AdminService {
         where: { id: driver_id },
         data: { 
           status: 'approved',
+          approved_at: new Date(),
+          approved_by: 'system',
           suspension_reason: null,
           suspended_at: null,
           suspended_by: null,
