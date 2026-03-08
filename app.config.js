@@ -57,7 +57,8 @@ export default {
       eas: {
         projectId: variantConfig.projectId
       },
-      EXPO_PUBLIC_API_URL: 'https://api.kaviar.com.br'
+      EXPO_PUBLIC_API_URL: 'https://api.kaviar.com.br',
+      APP_VARIANT: variant
     }
   }
 };

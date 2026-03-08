@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { authApi } from '../../src/api/auth.api';
 import { authStore } from '../../src/auth/auth.store';
+
+const APP_VARIANT = Constants.expoConfig?.extra?.APP_VARIANT || 'driver';
 
 // Tela de login
 export default function Login() {
@@ -12,7 +15,9 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState<'PASSENGER' | 'DRIVER'>('PASSENGER');
+  const [userType, setUserType] = useState<'PASSENGER' | 'DRIVER'>(
+    APP_VARIANT === 'passenger' ? 'PASSENGER' : 'DRIVER'
+  );
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -50,25 +55,27 @@ export default function Login() {
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
       
-      <View style={styles.typeSelector}>
-        <TouchableOpacity
-          style={[styles.typeButton, userType === 'PASSENGER' && styles.typeButtonActive]}
-          onPress={() => setUserType('PASSENGER')}
-        >
-          <Text style={[styles.typeText, userType === 'PASSENGER' && styles.typeTextActive]}>
-            Passageiro
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.typeButton, userType === 'DRIVER' && styles.typeButtonActive]}
-          onPress={() => setUserType('DRIVER')}
-        >
-          <Text style={[styles.typeText, userType === 'DRIVER' && styles.typeTextActive]}>
-            Motorista
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {APP_VARIANT === 'passenger' && (
+        <View style={styles.typeSelector}>
+          <TouchableOpacity
+            style={[styles.typeButton, userType === 'PASSENGER' && styles.typeButtonActive]}
+            onPress={() => setUserType('PASSENGER')}
+          >
+            <Text style={[styles.typeText, userType === 'PASSENGER' && styles.typeTextActive]}>
+              Passageiro
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.typeButton, userType === 'DRIVER' && styles.typeButtonActive]}
+            onPress={() => setUserType('DRIVER')}
+          >
+            <Text style={[styles.typeText, userType === 'DRIVER' && styles.typeTextActive]}>
+              Motorista
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       
       <Input
         placeholder="Email"
