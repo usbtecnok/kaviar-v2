@@ -180,20 +180,30 @@ router.post('/driver/login', async (req, res) => {
 
     const { email, password } = driverLoginSchema.parse(req.body);
 
+    console.log(`[LOGIN] Tentativa de login: ${email}`);
+
     const driver = await prisma.drivers.findUnique({ where: { email } });
 
     if (!driver || !driver.password_hash) {
+      console.log(`[LOGIN] Driver não encontrado ou sem password_hash: ${email}`);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
+    console.log(`[LOGIN] Driver encontrado: ${driver.id}, status: ${driver.status}`);
+    console.log(`[LOGIN] Hash no banco: ${driver.password_hash.substring(0, 20)}...`);
+
     const isValid = await bcrypt.compare(password, driver.password_hash);
+    console.log(`[LOGIN] bcrypt.compare result: ${isValid}`);
+
     if (!isValid) {
+      console.log(`[LOGIN] Senha inválida para: ${email}`);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
     // ✅ MODO KAVIAR: Autenticação permite pending, autorização restringe funcionalidades
     // Apenas bloqueia rejected/suspended
     if (['rejected', 'suspended'].includes(driver.status)) {
+      console.log(`[LOGIN] Status bloqueado: ${driver.status}`);
       return res.status(403).json({ error: 'Conta suspensa ou rejeitada' });
     }
 
@@ -208,6 +218,8 @@ router.post('/driver/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
+    console.log(`[LOGIN] Login bem-sucedido: ${email}`);
+
     res.json({
       token,
       user: {
@@ -221,6 +233,7 @@ router.post('/driver/login', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('[LOGIN] Erro:', error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: 'Dados inválidos' });
     }
