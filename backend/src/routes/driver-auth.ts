@@ -244,23 +244,27 @@ router.post('/driver/login', async (req, res) => {
 router.post('/driver/set-password', async (req, res) => {
   try {
     const { email, password } = driverSetPasswordSchema.parse(req.body);
+    console.log(`[SET-PASSWORD] Email: ${email}, Senha recebida: ${password.substring(0, 3)}...`);
 
     const driver = await prisma.drivers.findUnique({ where: { email } });
 
     if (!driver) {
-      // Segurança: não revelar se email existe
+      console.log(`[SET-PASSWORD] Driver não encontrado: ${email}`);
       return res.json({ success: true, message: 'Se o email existir, a senha será atualizada' });
     }
 
     const password_hash = await bcrypt.hash(password, 10);
+    console.log(`[SET-PASSWORD] Novo hash gerado: ${password_hash.substring(0, 20)}...`);
 
     await prisma.drivers.update({
       where: { email },
       data: { password_hash }
     });
 
+    console.log(`[SET-PASSWORD] Hash atualizado no banco para: ${email}`);
     res.json({ success: true, message: 'Senha atualizada com sucesso' });
   } catch (error) {
+    console.log(`[SET-PASSWORD] Erro:`, error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }
