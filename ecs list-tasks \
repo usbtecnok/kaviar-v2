@@ -1,0 +1,32 @@
+{
+    "desired": 1,
+    "running": 1,
+    "taskDef": "arn:aws:ecs:us-east-2:847895361928:task-definition/kaviar-backend:168",
+    "events": [
+        {
+            "id": "9cf1e442-c7b0-412c-9769-582e57fc056f",
+            "createdAt": "2026-03-08T17:55:12.140000-03:00",
+            "message": "(service kaviar-backend-service) has reached a steady state."
+        },
+        {
+            "id": "ff0b94e0-2584-4308-a013-c26e2fd8e24b",
+            "createdAt": "2026-03-08T17:55:12.139000-03:00",
+            "message": "(service kaviar-backend-service) (deployment ecs-svc/2079811507721869194) deployment completed."
+        },
+        {
+            "id": "df5adc7a-20dc-401e-918c-67f282fc8fb6",
+            "createdAt": "2026-03-08T17:54:09.850000-03:00",
+            "message": "(service kaviar-backend-service, taskSet ecs-svc/9139027054082023036) has begun draining connections on 1 tasks."
+        },
+        {
+            "id": "c383ae74-cafc-46df-a1ff-200b44b59f1c",
+            "createdAt": "2026-03-08T17:54:09.845000-03:00",
+            "message": "(service kaviar-backend-service) deregistered 1 targets in (target-group arn:aws:elasticloadbalancing:us-east-2:847895361928:targetgroup/kaviar-backend-tg/323fe3a4ccfef4cd)"
+        },
+        {
+            "id": "f0f27786-7ac9-42b7-9e39-748059c9c4a8",
+            "createdAt": "2026-03-08T17:54:00.681000-03:00",
+            "message": "(service kaviar-backend-service) has stopped 1 running tasks: (task 905083e1bbe4428fbfaeea71f0ce78c7)."
+        }
+    ]
+}
