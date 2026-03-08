@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
@@ -138,7 +138,7 @@ router.post('/reset-password', async (req, res) => {
     const { userId, userType } = decoded;
 
     // Hash new password
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     // Update password based on user type
     let updatedUser = null;
