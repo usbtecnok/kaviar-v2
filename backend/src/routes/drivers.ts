@@ -94,18 +94,40 @@ router.post('/me/online', authenticateDriver, async (req: Request, res: Response
   try {
     const driverId = (req as any).userId;
 
+    // Verificar se motorista está aprovado
+    const driver = await prisma.drivers.findUnique({
+      where: { id: driverId },
+      select: { status: true }
+    });
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        error: 'Motorista não encontrado'
+      });
+    }
+
+    if (driver.status !== 'approved') {
+      return res.status(403).json({
+        success: false,
+        error: 'Apenas motoristas aprovados podem ficar online',
+        currentStatus: driver.status
+      });
+    }
+
+    // Atualizar campo correto (available, não status)
     await prisma.drivers.update({
       where: { id: driverId },
       data: {
-        status: 'online',
-        last_active_at: new Date(),
-        updated_at: new Date()
+        available: true,
+        available_updated_at: new Date(),
+        last_active_at: new Date()
       }
     });
 
     res.json({
       success: true,
-      status: 'online'
+      available: true
     });
   } catch (error) {
     console.error('Error setting driver online:', error);

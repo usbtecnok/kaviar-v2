@@ -97,8 +97,8 @@ router.post('/driver/register', async (req, res) => {
         territory_type: territoryType,
         territory_verified_at: data.neighborhoodId ? new Date() : null,
         territory_verification_method: data.verificationMethod || null,
-        family_bonus_accepted: data.familyBonusAccepted || false,
-        family_bonus_profile: data.familyProfile || 'individual',
+        family_bonus_accepted: data.familyBonusAccepted ?? false,
+        family_bonus_profile: data.familyProfile ?? 'individual',
         created_at: new Date(),
         updated_at: new Date()
       }
