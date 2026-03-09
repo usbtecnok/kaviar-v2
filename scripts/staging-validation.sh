@@ -8,21 +8,48 @@ set -e
 echo "🚀 Iniciando deploy e validação em staging..."
 echo ""
 
-# Configuração
-STAGING_API="https://staging-api.kaviar.com.br"
-STAGING_DB="postgresql://user:pass@staging-db:5432/kaviar"
-
 # Cores
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Configuração do banco de dados
+DB_URL="${STAGING_DB:-$DATABASE_URL}"
+
+if [ -z "$DB_URL" ]; then
+  echo -e "${RED}❌ Erro: Nenhuma conexão de banco configurada${NC}"
+  echo ""
+  echo "Defina uma das variáveis de ambiente:"
+  echo "  export STAGING_DB='postgresql://user:pass@host:5432/db'"
+  echo "  ou"
+  echo "  export DATABASE_URL='postgresql://user:pass@host:5432/db'"
+  echo ""
+  exit 1
+fi
+
+# Validar se não é placeholder
+if echo "$DB_URL" | grep -qE "staging-db|user:pass|localhost|127.0.0.1"; then
+  echo -e "${RED}❌ Erro: URL de banco contém placeholder ou localhost${NC}"
+  echo "URL detectada: ${DB_URL:0:50}..."
+  echo ""
+  echo "Use uma URL real de staging/produção."
+  exit 1
+fi
+
+echo -e "${GREEN}✓${NC} Usando banco: ${DB_URL:0:50}..."
+echo ""
+
+# Configuração da API
+STAGING_API="${STAGING_API:-http://localhost:3001}"
+echo -e "${GREEN}✓${NC} Usando API: $STAGING_API"
+echo ""
+
 # ============================================
 # 1. EXECUTAR MIGRATION
 # ============================================
 echo "📦 1. Executando migration de normalização..."
-psql "$STAGING_DB" < backend/prisma/migrations/20260309_normalize_drivers.sql
+psql "$DB_URL" < backend/prisma/migrations/20260309_normalize_drivers.sql
 
 if [ $? -eq 0 ]; then
   echo -e "${GREEN}✅ Migration executada com sucesso${NC}"
@@ -39,7 +66,7 @@ echo ""
 echo "📱 2. Testando cadastro via app..."
 
 # Buscar um neighborhood real
-NEIGHBORHOOD_ID=$(psql "$STAGING_DB" -t -c "SELECT id FROM neighborhoods WHERE is_active = true LIMIT 1;" | xargs)
+NEIGHBORHOOD_ID=$(psql "$DB_URL" -t -c "SELECT id FROM neighborhoods WHERE is_active = true LIMIT 1;" | xargs)
 
 if [ -z "$NEIGHBORHOOD_ID" ]; then
   echo -e "${RED}❌ Nenhum neighborhood ativo encontrado${NC}"
@@ -49,7 +76,7 @@ fi
 echo "   Usando neighborhood: $NEIGHBORHOOD_ID"
 
 # Buscar uma community real
-COMMUNITY_ID=$(psql "$STAGING_DB" -t -c "SELECT id FROM communities WHERE neighborhood_id = '$NEIGHBORHOOD_ID' LIMIT 1;" | xargs)
+COMMUNITY_ID=$(psql "$DB_URL" -t -c "SELECT id FROM communities WHERE neighborhood_id = '$NEIGHBORHOOD_ID' LIMIT 1;" | xargs)
 
 if [ -z "$COMMUNITY_ID" ]; then
   echo -e "${YELLOW}⚠️  Nenhuma community encontrada, continuando sem community${NC}"
@@ -143,7 +170,7 @@ echo "🔍 4. Validando registros auxiliares..."
 
 # Validar driver do app
 echo "   Validando driver do app ($APP_DRIVER_ID)..."
-APP_VALIDATION=$(psql "$STAGING_DB" -t -c "
+APP_VALIDATION=$(psql "$DB_URL" -t -c "
   SELECT 
     d.id,
     d.document_cpf IS NOT NULL as has_cpf,
@@ -162,7 +189,7 @@ echo "$APP_VALIDATION"
 
 # Validar driver da web
 echo "   Validando driver da web ($WEB_DRIVER_ID)..."
-WEB_VALIDATION=$(psql "$STAGING_DB" -t -c "
+WEB_VALIDATION=$(psql "$DB_URL" -t -c "
   SELECT 
     d.id,
     d.document_cpf IS NOT NULL as has_cpf,
@@ -208,10 +235,10 @@ echo ""
 echo "📋 5. Validando campos obrigatórios..."
 
 # App
-APP_CPF=$(psql "$STAGING_DB" -t -c "SELECT document_cpf FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
-APP_VEHICLE=$(psql "$STAGING_DB" -t -c "SELECT vehicle_color FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
-APP_TERRITORY=$(psql "$STAGING_DB" -t -c "SELECT territory_type FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
-APP_VERIFICATION_METHOD=$(psql "$STAGING_DB" -t -c "SELECT territory_verification_method FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
+APP_CPF=$(psql "$DB_URL" -t -c "SELECT document_cpf FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
+APP_VEHICLE=$(psql "$DB_URL" -t -c "SELECT vehicle_color FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
+APP_TERRITORY=$(psql "$DB_URL" -t -c "SELECT territory_type FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
+APP_VERIFICATION_METHOD=$(psql "$DB_URL" -t -c "SELECT territory_verification_method FROM drivers WHERE id = '$APP_DRIVER_ID';" | xargs)
 
 echo "   App:"
 echo "     CPF: $APP_CPF"
@@ -227,10 +254,10 @@ else
 fi
 
 # Web
-WEB_CPF=$(psql "$STAGING_DB" -t -c "SELECT document_cpf FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
-WEB_VEHICLE=$(psql "$STAGING_DB" -t -c "SELECT vehicle_color FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
-WEB_TERRITORY=$(psql "$STAGING_DB" -t -c "SELECT territory_type FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
-WEB_VERIFICATION_METHOD=$(psql "$STAGING_DB" -t -c "SELECT territory_verification_method FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
+WEB_CPF=$(psql "$DB_URL" -t -c "SELECT document_cpf FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
+WEB_VEHICLE=$(psql "$DB_URL" -t -c "SELECT vehicle_color FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
+WEB_TERRITORY=$(psql "$DB_URL" -t -c "SELECT territory_type FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
+WEB_VERIFICATION_METHOD=$(psql "$DB_URL" -t -c "SELECT territory_verification_method FROM drivers WHERE id = '$WEB_DRIVER_ID';" | xargs)
 
 echo "   Web:"
 echo "     CPF: $WEB_CPF"
