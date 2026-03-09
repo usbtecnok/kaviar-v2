@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import { driverRegistrationService } from '../services/driver-registration.service';
 
 const router = Router();
 
@@ -28,7 +29,8 @@ const driverRegisterSchema = z.object({
   vehicle_color: z.string().min(2, 'Cor do veículo é obrigatória'),
   vehicle_model: z.string().optional(),
   vehicle_plate: z.string().optional(),
-  neighborhoodId: z.string().optional(),
+  neighborhoodId: z.string().min(1, 'Bairro é obrigatório'),
+  communityId: z.string().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
   verificationMethod: z.enum(['GPS_AUTO', 'MANUAL_SELECTION']).optional(),
@@ -41,118 +43,46 @@ router.post('/driver/register', async (req, res) => {
   try {
     const data = driverRegisterSchema.parse(req.body);
 
-    // Verificar se email já existe
-    const existingDriver = await prisma.drivers.findUnique({ where: { email: data.email } });
-    if (existingDriver) {
-      return res.status(409).json({
+    // Chamar service única
+    const result = await driverRegistrationService.register({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      document_cpf: data.document_cpf,
+      vehicle_color: data.vehicle_color,
+      vehicle_model: data.vehicle_model,
+      vehicle_plate: data.vehicle_plate,
+      accepted_terms: data.accepted_terms,
+      neighborhoodId: data.neighborhoodId,
+      communityId: data.communityId,
+      lat: data.lat,
+      lng: data.lng,
+      verificationMethod: data.verificationMethod,
+      familyBonusAccepted: data.familyBonusAccepted,
+      familyProfile: data.familyProfile,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || undefined
+    });
+
+    if (!result.success) {
+      return res.status(400).json({
         success: false,
-        error: 'Email já cadastrado'
+        error: result.error
       });
     }
-
-    // Validar neighborhoodId se fornecido
-    let territoryType = null;
-    if (data.neighborhoodId) {
-      const neighborhood = await prisma.neighborhoods.findUnique({
-        where: { id: data.neighborhoodId },
-        include: { neighborhood_geofences: true }
-      });
-
-      if (!neighborhood) {
-        return res.status(400).json({
-          success: false,
-          error: 'Bairro não encontrado'
-        });
-      }
-
-      if (!neighborhood.is_active) {
-        return res.status(400).json({
-          success: false,
-          error: 'Bairro não está ativo'
-        });
-      }
-
-      const geofences = neighborhood.neighborhood_geofences || [];
-      const hasGeofence = Array.isArray(geofences) && geofences.length > 0;
-      territoryType = hasGeofence ? 'OFFICIAL' : 'FALLBACK_800M';
-    }
-
-    // Hash password
-    const password_hash = await bcrypt.hash(data.password, 10);
-
-    // Criar motorista
-    const driver = await prisma.drivers.create({
-      data: {
-        id: `driver_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        password_hash,
-        status: 'pending',
-        document_cpf: data.document_cpf,
-        vehicle_color: data.vehicle_color,
-        vehicle_model: data.vehicle_model || null,
-        vehicle_plate: data.vehicle_plate || null,
-        neighborhood_id: data.neighborhoodId || null,
-        territory_type: territoryType,
-        territory_verified_at: data.neighborhoodId ? new Date() : null,
-        territory_verification_method: data.verificationMethod || null,
-        family_bonus_accepted: data.familyBonusAccepted ?? false,
-        family_bonus_profile: data.familyProfile ?? 'individual',
-        created_at: new Date(),
-        updated_at: new Date()
-      }
-    });
-
-    // Registrar consent LGPD
-    await prisma.consents.create({
-      data: {
-        id: `consent_${driver.id}_lgpd_${Date.now()}`,
-        user_id: driver.id,
-        subject_type: 'DRIVER',
-        subject_id: driver.id,
-        type: 'lgpd',
-        accepted: true,
-        accepted_at: new Date(),
-        ip_address: req.ip,
-        user_agent: req.headers['user-agent'] || null
-      }
-    });
-
-    // Criar registro de verificação
-    await prisma.driver_verifications.create({
-      data: {
-        id: `verification_${driver.id}`,
-        driver_id: driver.id,
-        community_id: null,
-        status: 'PENDING',
-        updated_at: new Date()
-      }
-    });
-
-    // Gerar token (auto-login)
-    const token = jwt.sign(
-      {
-        userId: driver.id,
-        userType: 'DRIVER',
-        email: driver.email,
-        status: driver.status
-      },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '24h' }
-    );
 
     res.status(201).json({
       success: true,
-      token,
+      token: result.token,
       user: {
-        id: driver.id,
-        name: driver.name,
-        email: driver.email,
-        phone: driver.phone,
-        status: driver.status,
+        id: result.driver!.id,
+        name: result.driver!.name,
+        email: result.driver!.email,
+        phone: result.driver!.phone,
+        status: result.driver!.status,
         user_type: 'DRIVER',
-        isPending: true
+        isPending: result.driver!.isPending
       }
     });
   } catch (error) {

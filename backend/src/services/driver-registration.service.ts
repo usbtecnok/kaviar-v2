@@ -1,0 +1,280 @@
+import { prisma } from '../lib/prisma';
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
+
+interface DriverRegistrationInput {
+  // Obrigatórios
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  document_cpf: string;
+  vehicle_color: string;
+  accepted_terms: boolean;
+  neighborhoodId: string;
+  
+  // Opcionais
+  vehicle_model?: string;
+  vehicle_plate?: string;
+  communityId?: string; // UUID ou slug
+  lat?: number;
+  lng?: number;
+  verificationMethod?: 'GPS_AUTO' | 'MANUAL_SELECTION';
+  familyBonusAccepted?: boolean;
+  familyProfile?: 'individual' | 'familiar';
+  
+  // Metadata
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+interface DriverRegistrationResult {
+  success: boolean;
+  driver?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    status: string;
+    neighborhood_id: string;
+    community_id: string | null;
+    territory_type: string | null;
+    territory_verification_method: string | null;
+    isPending: boolean;
+  };
+  token?: string;
+  error?: string;
+}
+
+export class DriverRegistrationService {
+  async register(input: DriverRegistrationInput): Promise<DriverRegistrationResult> {
+    try {
+      // 1. Validar phone não vazio
+      if (!input.phone || input.phone.trim() === '') {
+        return { success: false, error: 'Telefone é obrigatório' };
+      }
+
+      // 2. Validar email único
+      const existing = await prisma.drivers.findUnique({
+        where: { email: input.email }
+      });
+      
+      if (existing) {
+        return { success: false, error: 'Email já cadastrado' };
+      }
+      
+      // 3. Validar neighborhoodId
+      const neighborhood = await this.validateNeighborhood(input.neighborhoodId);
+      if (!neighborhood) {
+        return { success: false, error: 'Bairro não encontrado ou inativo' };
+      }
+      
+      // 4. Validar communityId (se fornecido)
+      let validatedCommunityId: string | null = null;
+      if (input.communityId) {
+        validatedCommunityId = await this.validateCommunity(
+          input.communityId, 
+          input.neighborhoodId
+        );
+        if (!validatedCommunityId) {
+          return { success: false, error: 'Comunidade inválida para este bairro' };
+        }
+      }
+      
+      // 5. Determinar territory_type e verification_method
+      const { territoryType, verificationMethod } = await this.determineTerritoryInfo(
+        neighborhood,
+        input.lat,
+        input.lng,
+        input.verificationMethod
+      );
+      
+      // 6. Hash password
+      const password_hash = await bcrypt.hash(input.password, 10);
+      
+      // 7. Criar driver (transação)
+      const driver = await prisma.$transaction(async (tx) => {
+        // 7.1 Criar driver
+        const newDriver = await tx.drivers.create({
+          data: {
+            id: `driver_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: input.name,
+            email: input.email,
+            phone: input.phone,
+            password_hash,
+            status: 'pending',
+            document_cpf: input.document_cpf,
+            vehicle_color: input.vehicle_color,
+            vehicle_model: input.vehicle_model || null,
+            vehicle_plate: input.vehicle_plate || null,
+            neighborhood_id: input.neighborhoodId,
+            community_id: validatedCommunityId,
+            territory_type: territoryType,
+            territory_verified_at: new Date(),
+            territory_verification_method: verificationMethod,
+            family_bonus_accepted: input.familyBonusAccepted ?? false,
+            family_bonus_profile: input.familyProfile ?? 'individual',
+            created_at: new Date(),
+            updated_at: new Date()
+          }
+        });
+        
+        // 7.2 Criar consent LGPD
+        await tx.consents.create({
+          data: {
+            id: `consent_${newDriver.id}_lgpd_${Date.now()}`,
+            user_id: newDriver.id,
+            subject_type: 'DRIVER',
+            subject_id: newDriver.id,
+            type: 'lgpd',
+            accepted: true,
+            accepted_at: new Date(),
+            ip_address: input.ipAddress || null,
+            user_agent: input.userAgent || null
+          }
+        });
+        
+        // 7.3 Criar driver_verification
+        await tx.driver_verifications.create({
+          data: {
+            id: `verification_${newDriver.id}`,
+            driver_id: newDriver.id,
+            community_id: validatedCommunityId,
+            status: 'PENDING',
+            updated_at: new Date()
+          }
+        });
+        
+        return newDriver;
+      });
+      
+      // 8. Gerar token
+      const token = jwt.sign(
+        {
+          userId: driver.id,
+          userType: 'DRIVER',
+          email: driver.email,
+          status: driver.status
+        },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '24h' }
+      );
+      
+      return {
+        success: true,
+        driver: {
+          id: driver.id,
+          name: driver.name,
+          email: driver.email,
+          phone: driver.phone,
+          status: driver.status,
+          neighborhood_id: driver.neighborhood_id,
+          community_id: driver.community_id,
+          territory_type: driver.territory_type,
+          territory_verification_method: driver.territory_verification_method,
+          isPending: true
+        },
+        token
+      };
+    } catch (error) {
+      console.error('[DriverRegistrationService] Error:', error);
+      return {
+        success: false,
+        error: 'Erro ao realizar cadastro'
+      };
+    }
+  }
+  
+  private async validateNeighborhood(id: string) {
+    return prisma.neighborhoods.findFirst({
+      where: { id, is_active: true },
+      include: { neighborhood_geofences: true }
+    });
+  }
+  
+  private async validateCommunity(communityIdOrSlug: string, neighborhoodId: string): Promise<string | null> {
+    // Validar por id ou slug (não name)
+    const community = await prisma.communities.findFirst({
+      where: {
+        OR: [
+          { id: communityIdOrSlug },
+          { slug: communityIdOrSlug }
+        ],
+        neighborhood_id: neighborhoodId
+      }
+    });
+    return community?.id || null;
+  }
+  
+  private async determineTerritoryInfo(
+    neighborhood: any, 
+    lat?: number, 
+    lng?: number,
+    requestedMethod?: string
+  ): Promise<{ territoryType: string; verificationMethod: string }> {
+    const hasGeofence = neighborhood.neighborhood_geofences?.length > 0;
+    
+    // Se tem GPS e geofence, validar ponto
+    if (lat && lng && hasGeofence) {
+      const isInside = await this.checkPointInGeofence(
+        lat, 
+        lng, 
+        neighborhood.neighborhood_geofences
+      );
+      
+      return {
+        territoryType: isInside ? 'OFFICIAL' : 'FALLBACK_800M',
+        verificationMethod: requestedMethod || 'GPS_AUTO'
+      };
+    }
+    
+    // Sem GPS ou sem geofence
+    return {
+      territoryType: hasGeofence ? 'OFFICIAL' : 'FALLBACK_800M',
+      verificationMethod: requestedMethod || 'MANUAL_SELECTION'
+    };
+  }
+  
+  private async checkPointInGeofence(
+    lat: number, 
+    lng: number, 
+    geofences: any[]
+  ): Promise<boolean> {
+    // Implementação real de point-in-polygon usando ray casting
+    for (const geofence of geofences) {
+      if (!geofence.coordinates || !Array.isArray(geofence.coordinates)) {
+        continue;
+      }
+      
+      // GeoJSON: coordinates é array de [lng, lat]
+      const polygon = geofence.coordinates;
+      
+      if (this.pointInPolygon(lat, lng, polygon)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  private pointInPolygon(lat: number, lng: number, polygon: number[][]): boolean {
+    // Ray casting algorithm
+    let inside = false;
+    
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][1]; // lat
+      const yi = polygon[i][0]; // lng
+      const xj = polygon[j][1]; // lat
+      const yj = polygon[j][0]; // lng
+      
+      const intersect = ((yi > lng) !== (yj > lng)) &&
+        (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+      
+      if (intersect) inside = !inside;
+    }
+    
+    return inside;
+  }
+}
+
+export const driverRegistrationService = new DriverRegistrationService();

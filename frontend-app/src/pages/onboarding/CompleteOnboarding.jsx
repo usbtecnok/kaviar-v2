@@ -44,6 +44,10 @@ export default function CompleteOnboarding() {
     phone: '',
     password: '',
     confirmPassword: '',
+    document_cpf: '',
+    vehicle_color: '',
+    vehicle_model: '',
+    vehicle_plate: '',
     neighborhoodId: '',
     communityId: '',
     // Driver specific
@@ -55,7 +59,9 @@ export default function CompleteOnboarding() {
     alsoDriver: false,
     // Family bonus
     familyProfile: 'individual', // individual | familiar
-    familyBonusAccepted: false
+    familyBonusAccepted: false,
+    // Terms
+    acceptedTerms: false
   });
   const [neighborhoods, setNeighborhoods] = useState([]);
   const [communities, setCommunities] = useState([]);
@@ -101,6 +107,10 @@ export default function CompleteOnboarding() {
     phone: formData.phone ?? '',
     password: formData.password ?? '',
     confirmPassword: formData.confirmPassword ?? '',
+    document_cpf: formData.document_cpf ?? '',
+    vehicle_color: formData.vehicle_color ?? '',
+    vehicle_model: formData.vehicle_model ?? '',
+    vehicle_plate: formData.vehicle_plate ?? '',
     neighborhoodId: formData.neighborhoodId ?? '',
     communityId: formData.communityId ?? '',
     pixKey: formData.pixKey ?? '',
@@ -110,6 +120,7 @@ export default function CompleteOnboarding() {
     alsoDriver: !!formData.alsoDriver,
     familyProfile: formData.familyProfile ?? 'individual',
     familyBonusAccepted: !!formData.familyBonusAccepted,
+    acceptedTerms: !!formData.acceptedTerms,
   };
 
   const handleNext = () => {
@@ -162,8 +173,23 @@ export default function CompleteOnboarding() {
         setLoading(false);
         return;
       }
+      if (!clean.document_cpf || clean.document_cpf.replace(/\D/g, '').length !== 11) {
+        setError('CPF deve ter 11 dígitos.');
+        setLoading(false);
+        return;
+      }
+      if (!clean.vehicle_color) {
+        setError('Cor do veículo é obrigatória.');
+        setLoading(false);
+        return;
+      }
       if (!clean.neighborhoodId) {
         setError('Selecione um bairro.');
+        setLoading(false);
+        return;
+      }
+      if (!clean.acceptedTerms) {
+        setError('Você deve aceitar os termos de uso.');
         setLoading(false);
         return;
       }
@@ -241,8 +267,13 @@ export default function CompleteOnboarding() {
             email: clean.email,
             phone: clean.phone,
             password: clean.password,
+            document_cpf: clean.document_cpf.replace(/\D/g, ''),
+            vehicle_color: clean.vehicle_color,
+            vehicle_model: clean.vehicle_model || undefined,
+            vehicle_plate: clean.vehicle_plate || undefined,
+            accepted_terms: true,
             neighborhoodId: clean.neighborhoodId,
-            communityId: clean.communityId || undefined, // Backend aceita UUID ou slug
+            communityId: clean.communityId || undefined,
             familyBonusAccepted: clean.familyBonusAccepted,
             familyProfile: clean.familyProfile
           })
@@ -258,30 +289,39 @@ export default function CompleteOnboarding() {
 
         userId = registerData.data.id;
 
-        // 2. Fazer login automático
-        try {
-          const loginResponse = await api.post('/api/auth/driver/login', {
-            email: clean.email,
-            password: clean.password
-          });
+        // 2. Auto-login com token retornado
+        if (registerData.token) {
+          localStorage.setItem('kaviar_driver_token', registerData.token);
+          localStorage.setItem('kaviar_driver_data', JSON.stringify(registerData.data));
 
-          const token = loginResponse.data.token;
-          const user = loginResponse.data.user;
-          
-          localStorage.setItem('kaviar_driver_token', token);
-          localStorage.setItem('kaviar_driver_data', JSON.stringify(user));
-
-          // ✅ Login bem-sucedido, redirecionar para área do motorista
           setCompleted(true);
           setTimeout(() => {
             navigate('/motorista/status');
           }, 2000);
-        } catch (loginError) {
-          // Se login falhar, mostrar erro
-          console.error('Erro no login automático:', loginError);
-          setError(loginError.response?.data?.error || 'Erro ao fazer login');
-          setLoading(false);
-          return;
+        } else {
+          // Fallback: fazer login manual
+          try {
+            const loginResponse = await api.post('/api/auth/driver/login', {
+              email: clean.email,
+              password: clean.password
+            });
+
+            const token = loginResponse.data.token;
+            const user = loginResponse.data.user;
+            
+            localStorage.setItem('kaviar_driver_token', token);
+            localStorage.setItem('kaviar_driver_data', JSON.stringify(user));
+
+            setCompleted(true);
+            setTimeout(() => {
+              navigate('/motorista/status');
+            }, 2000);
+          } catch (loginError) {
+            console.error('Erro no login automático:', loginError);
+            setError(loginError.response?.data?.error || 'Erro ao fazer login');
+            setLoading(false);
+            return;
+          }
         }
       } else if (userType === 'guide') {
         const response = await api.post('/api/governance/guide', {
@@ -436,6 +476,58 @@ export default function CompleteOnboarding() {
             {/* Campos específicos para motorista */}
             {userType === 'driver' && (
               <>
+                <TextField
+                  label="CPF *"
+                  value={clean.document_cpf}
+                  onChange={(e) => setFormData(prev => ({ ...prev, document_cpf: e.target.value }))}
+                  required
+                  fullWidth
+                  placeholder="000.000.000-00"
+                  helperText="CPF é obrigatório"
+                  sx={{ mt: 2 }}
+                />
+
+                <TextField
+                  label="Cor do Veículo *"
+                  value={clean.vehicle_color}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vehicle_color: e.target.value }))}
+                  required
+                  fullWidth
+                  placeholder="Ex: Branco, Preto, Prata"
+                  helperText="Cor do veículo é obrigatória"
+                  sx={{ mt: 2 }}
+                />
+
+                <TextField
+                  label="Modelo do Veículo (opcional)"
+                  value={clean.vehicle_model}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vehicle_model: e.target.value }))}
+                  fullWidth
+                  placeholder="Ex: Gol, Uno, HB20"
+                  sx={{ mt: 2 }}
+                />
+
+                <TextField
+                  label="Placa do Veículo (opcional)"
+                  value={clean.vehicle_plate}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vehicle_plate: e.target.value }))}
+                  fullWidth
+                  placeholder="Ex: ABC-1234"
+                  sx={{ mt: 2 }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={clean.acceptedTerms}
+                      onChange={(e) => setFormData(prev => ({ ...prev, acceptedTerms: e.target.checked }))}
+                      required
+                    />
+                  }
+                  label="Aceito os termos de uso e política de privacidade *"
+                  sx={{ mt: 2 }}
+                />
+
                 <Typography variant="h6" sx={{ mt: 2 }}>Informações Adicionais</Typography>
                 
                 <Typography variant="body2" sx={{ mb: 1, mt: 2 }}>

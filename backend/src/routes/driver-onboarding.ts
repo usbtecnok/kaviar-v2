@@ -1,83 +1,69 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../lib/prisma';
-import bcrypt from 'bcrypt';
 import { z } from 'zod';
+import { driverRegistrationService } from '../services/driver-registration.service';
 
 const router = Router();
 
 const driverOnboardingSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   email: z.string().email('Email inválido'),
-  phone: z.string().optional(),
+  phone: z.string().min(10, 'Telefone é obrigatório'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  document_cpf: z.string().min(11, 'CPF deve ter 11 dígitos').max(11, 'CPF deve ter 11 dígitos'),
+  vehicle_color: z.string().min(2, 'Cor do veículo é obrigatória'),
+  vehicle_model: z.string().optional(),
+  vehicle_plate: z.string().optional(),
+  accepted_terms: z.boolean().refine(val => val === true, {
+    message: 'Você deve aceitar os termos de uso'
+  }),
   neighborhoodId: z.string().min(1, 'Bairro é obrigatório'),
-  communityId: z.string().optional(), // Aceita UUID ou slug
+  communityId: z.string().optional(),
   familyBonusAccepted: z.boolean().optional(),
   familyProfile: z.string().optional()
 });
 
-// Helper: resolver communityId (UUID ou slug) para UUID
-async function resolveCommunityId(input: string | null | undefined): Promise<string | null> {
-  if (!input) return null;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(input)) return input;
-  const community = await prisma.communities.findFirst({
-    where: { name: { equals: input, mode: 'insensitive' } },
-    select: { id: true }
-  });
-  return community?.id || null;
-}
-
-// POST /api/driver/onboarding - Cadastro público de motorista
+// POST /api/driver/onboarding - Cadastro público de motorista (web)
 router.post('/onboarding', async (req: Request, res: Response) => {
   try {
     const data = driverOnboardingSchema.parse(req.body);
 
-    // Resolver communityId (UUID ou slug)
-    const communityId = await resolveCommunityId(data.communityId);
-
-    // Verificar se email já existe
-    const existing = await prisma.drivers.findUnique({
-      where: { email: data.email }
+    // Chamar mesma service do endpoint do app
+    const result = await driverRegistrationService.register({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      document_cpf: data.document_cpf,
+      vehicle_color: data.vehicle_color,
+      vehicle_model: data.vehicle_model,
+      vehicle_plate: data.vehicle_plate,
+      accepted_terms: data.accepted_terms,
+      neighborhoodId: data.neighborhoodId,
+      communityId: data.communityId,
+      familyBonusAccepted: data.familyBonusAccepted,
+      familyProfile: data.familyProfile as 'individual' | 'familiar' | undefined,
+      verificationMethod: 'MANUAL_SELECTION', // Web sempre manual
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || undefined
     });
 
-    if (existing) {
+    if (!result.success) {
       return res.status(400).json({
         success: false,
-        error: 'Email já cadastrado'
+        error: result.error
       });
     }
-
-    // Hash da senha
-    const passwordHash = await bcrypt.hash(data.password, 10);
-
-    // Criar motorista com status pending
-    const driver = await prisma.drivers.create({
-      data: {
-        id: `driver-${Date.now()}`,
-        name: data.name,
-        email: data.email,
-        phone: data.phone || null,
-        password_hash: passwordHash,
-        neighborhood_id: data.neighborhoodId,
-        community_id: communityId,
-        family_bonus_accepted: data.familyBonusAccepted || false,
-        family_bonus_profile: data.familyProfile || null,
-        status: 'pending',
-        created_at: new Date(),
-        updated_at: new Date()
-      }
-    });
 
     res.json({
       success: true,
       message: 'Cadastro realizado com sucesso',
       data: {
-        id: driver.id,
-        name: driver.name,
-        email: driver.email,
-        status: driver.status
-      }
+        id: result.driver!.id,
+        name: result.driver!.name,
+        email: result.driver!.email,
+        status: result.driver!.status
+      },
+      token: result.token
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

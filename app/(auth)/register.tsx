@@ -34,6 +34,8 @@ export default function Register() {
   const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<any>(null);
   const [detectedNeighborhood, setDetectedNeighborhood] = useState<any>(null);
+  const [communities, setCommunities] = useState<any[]>([]);
+  const [selectedCommunity, setSelectedCommunity] = useState<any>(null);
 
   // Passo 1: Dados básicos
   const handleStep1 = () => {
@@ -132,6 +134,9 @@ export default function Register() {
           console.log('[loadSmartNeighborhoods] Detected:', data.detected.name);
           setDetectedNeighborhood(data.detected);
           setSelectedNeighborhood(data.detected);
+          
+          // Carregar comunidades do bairro detectado
+          await loadCommunitiesForNeighborhood(data.detected.id);
         }
         
         // Usar nearby se existir, senão usar data
@@ -145,6 +150,26 @@ export default function Register() {
       console.error('[loadSmartNeighborhoods] Erro:', error);
       // Fallback: tentar carregar lista completa
       await loadNeighborhoods();
+    }
+  };
+
+  const loadCommunitiesForNeighborhood = async (neighborhoodId: string) => {
+    try {
+      const url = `${API_URL}/api/communities?neighborhoodId=${neighborhoodId}`;
+      console.log('[loadCommunities] URL:', url);
+      
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        console.log('[loadCommunities] Communities count:', data.data.length);
+        setCommunities(data.data);
+      } else {
+        setCommunities([]);
+      }
+    } catch (error) {
+      console.error('[loadCommunities] Erro:', error);
+      setCommunities([]);
     }
   };
 
@@ -220,6 +245,11 @@ export default function Register() {
       // ✅ KAVIAR: Só envia neighborhoodId se existir
       if (selectedNeighborhood) {
         registerPayload.neighborhoodId = selectedNeighborhood.id;
+      }
+
+      // ✅ KAVIAR: Só envia communityId se existir
+      if (selectedCommunity) {
+        registerPayload.communityId = selectedCommunity.id;
       }
 
       // ✅ KAVIAR: Só envia localização se existir
@@ -457,7 +487,10 @@ export default function Register() {
                     styles.neighborhoodItem,
                     selectedNeighborhood?.id === n.id && styles.neighborhoodItemSelected,
                   ]}
-                  onPress={() => setSelectedNeighborhood(n)}
+                  onPress={() => {
+                    setSelectedNeighborhood(n);
+                    loadCommunitiesForNeighborhood(n.id);
+                  }}
                 >
                   <View style={styles.neighborhoodInfo}>
                     <Text style={styles.neighborhoodName}>{n.name}</Text>
@@ -479,6 +512,36 @@ export default function Register() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
+
+            {/* Comunidade (opcional) */}
+            {communities.length > 0 && (
+              <>
+                <Text style={styles.label}>Comunidade (opcional):</Text>
+                <ScrollView style={styles.communityList}>
+                  <TouchableOpacity
+                    style={[
+                      styles.communityItem,
+                      !selectedCommunity && styles.communityItemSelected,
+                    ]}
+                    onPress={() => setSelectedCommunity(null)}
+                  >
+                    <Text style={styles.communityName}>Nenhuma</Text>
+                  </TouchableOpacity>
+                  {communities.map((c) => (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[
+                        styles.communityItem,
+                        selectedCommunity?.id === c.id && styles.communityItemSelected,
+                      ]}
+                      onPress={() => setSelectedCommunity(c)}
+                    >
+                      <Text style={styles.communityName}>{c.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            )}
 
             <View style={styles.buttonRow}>
               <TouchableOpacity
@@ -703,5 +766,27 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#666',
+  },
+  communityList: {
+    maxHeight: 200,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  communityItem: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    marginBottom: 8,
+    backgroundColor: '#FFF',
+  },
+  communityItemSelected: {
+    borderColor: '#FF6B35',
+    borderWidth: 2,
+    backgroundColor: '#FFF5F0',
+  },
+  communityName: {
+    fontSize: 14,
+    color: '#333',
   },
 });
