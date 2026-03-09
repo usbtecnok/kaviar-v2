@@ -19,7 +19,15 @@ export default function Index() {
       if (userType === 'PASSENGER') {
         router.replace('/(passenger)/map');
       } else if (userType === 'DRIVER') {
-        router.replace('/(driver)/online');
+        // Verificar status do motorista antes de redirecionar
+        const user = await authStore.getUser();
+        if (user?.status === 'pending') {
+          router.replace('/(driver)/pending-approval');
+        } else if (user?.status === 'approved') {
+          router.replace('/(driver)/online');
+        } else {
+          router.replace('/(driver)/online');
+        }
       }
     } else {
       router.replace('/(auth)/login');

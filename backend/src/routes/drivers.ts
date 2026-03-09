@@ -8,6 +8,50 @@ import { uploadToS3 } from '../config/s3-upload';
 const router = Router();
 const geoResolveService = new GeoResolveService();
 
+// GET /api/drivers/me - Retornar dados do motorista autenticado
+router.get('/me', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).userId;
+
+    const driver = await prisma.drivers.findUnique({
+      where: { id: driverId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        status: true,
+        available: true,
+        vehicle_color: true,
+        vehicle_model: true,
+        vehicle_plate: true,
+        neighborhood_id: true,
+        community_id: true,
+        created_at: true,
+        approved_at: true,
+      }
+    });
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        error: 'Motorista não encontrado'
+      });
+    }
+
+    res.json({
+      success: true,
+      driver
+    });
+  } catch (error) {
+    console.error('Error fetching driver:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar dados do motorista'
+    });
+  }
+});
+
 const completeProfileSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').optional(),
   phone: z.string().min(1, 'Telefone é obrigatório').optional(),

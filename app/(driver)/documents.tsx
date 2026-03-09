@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import DocumentCard from '../components/DocumentCard';
@@ -26,6 +27,7 @@ interface LocalDocument {
 }
 
 export default function DocumentUpload() {
+  const router = useRouter();
   const [documents, setDocuments] = useState<Record<DocType, LocalDocument | null>>({
     cpf: null,
     rg: null,
@@ -166,12 +168,33 @@ export default function DocumentUpload() {
       return;
     }
 
+    // Validar se TODOS os documentos obrigatórios foram selecionados
+    const allRequiredDocs = DOCUMENT_TYPES.filter(d => d.required).map(d => d.type);
+    const uploadedOrSelected = Object.entries(documents)
+      .filter(([_, doc]) => doc && (doc.status === 'uploaded' || doc.status === 'verified' || doc.status === 'selected'))
+      .map(([type, _]) => type);
+    
+    const missingDocs = allRequiredDocs.filter(type => !uploadedOrSelected.includes(type));
+    
+    if (missingDocs.length > 0) {
+      const missingLabels = DOCUMENT_TYPES
+        .filter(d => missingDocs.includes(d.type))
+        .map(d => d.label)
+        .join(', ');
+      
+      Alert.alert(
+        'Documentos Incompletos',
+        `Você precisa enviar TODOS os documentos obrigatórios antes de prosseguir.\n\nFaltam: ${missingLabels}`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setUploading(true);
     const result = await uploadDocuments(toUpload);
     setUploading(false);
 
     if (result.success) {
-      Alert.alert('Sucesso', 'Documentos enviados para análise!');
       // Atualizar status local
       const newDocs = { ...documents };
       toUpload.forEach(doc => {
@@ -180,6 +203,18 @@ export default function DocumentUpload() {
         }
       });
       setDocuments(newDocs);
+      
+      // Redirecionar para tela de aguardando aprovação
+      Alert.alert(
+        'Documentos Enviados!',
+        'Seus documentos foram enviados para análise. Você será notificado quando forem aprovados.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.replace('/(driver)/pending-approval')
+          }
+        ]
+      );
     } else {
       Alert.alert('Erro', result.error || 'Erro ao enviar documentos');
     }

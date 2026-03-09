@@ -34,7 +34,14 @@ export default function Login() {
       if (userType === 'PASSENGER') {
         router.replace('/(passenger)/map');
       } else {
-        router.replace('/(driver)/online');
+        // Verificar status do motorista
+        if (user.status === 'pending') {
+          router.replace('/(driver)/pending-approval');
+        } else if (user.status === 'approved') {
+          router.replace('/(driver)/online');
+        } else {
+          router.replace('/(driver)/online');
+        }
       }
     } catch (error: any) {
       Alert.alert('Erro', error.response?.data?.error || 'Erro ao fazer login');
