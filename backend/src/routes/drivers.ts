@@ -344,13 +344,14 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
       });
     }
 
-    // Construir URLs dos arquivos (S3 keys)
-    const cpfUrl = (files.cpf[0] as any).key;
-    const rgUrl = (files.rg[0] as any).key;
-    const cnhUrl = (files.cnh[0] as any).key;
-    const proofOfAddressUrl = (files.proofOfAddress[0] as any).key;
-    const vehiclePhotoUrls = files.vehiclePhoto.map((f: any) => f.key);
-    const backgroundCheckUrl = (files.backgroundCheck[0] as any).key;
+    // Construir URLs dos arquivos (S3 key ou local filename)
+    const fileUrl = (f: any) => f.key || `certidoes/${f.filename}`;
+    const cpfUrl = fileUrl(files.cpf[0]);
+    const rgUrl = fileUrl(files.rg[0]);
+    const cnhUrl = fileUrl(files.cnh[0]);
+    const proofOfAddressUrl = fileUrl(files.proofOfAddress[0]);
+    const vehiclePhotoUrls = files.vehiclePhoto.map((f: any) => fileUrl(f));
+    const backgroundCheckUrl = fileUrl(files.backgroundCheck[0]);
 
     // Extrair dados adicionais do body (aceitar ambos formatos)
     const vehicleColor = req.body.vehicleColor || req.body.vehicle_color;

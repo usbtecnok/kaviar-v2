@@ -1,16 +1,51 @@
 import { apiClient } from './client';
+import { Ride, RideOffer } from '../types/ride';
 
-// API de motorista
 export const driverApi = {
-  setOnline: async (): Promise<void> => {
-    await apiClient.post('/drivers/me/online');
+  // v2: Disponibilidade
+  setAvailability: (availability: 'online' | 'offline') =>
+    apiClient.post('/api/v2/drivers/me/availability', { availability }),
+
+  goOnline: () => apiClient.post('/api/v2/drivers/me/availability', { availability: 'online' }),
+  goOffline: () => apiClient.post('/api/v2/drivers/me/availability', { availability: 'offline' }),
+
+  // v2: Localização
+  sendLocation: (lat: number, lng: number) =>
+    apiClient.post('/api/v2/drivers/me/location', { lat, lng }),
+
+  // v2: Ofertas
+  getOffers: async (): Promise<RideOffer[]> => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/offers');
+    return data.data || [];
   },
 
-  acceptRide: async (rideId: string): Promise<void> => {
-    await apiClient.put(`/rides/${rideId}/accept`);
+  acceptOffer: async (offerId: string): Promise<{ ride_id: string }> => {
+    const { data } = await apiClient.post(`/api/v2/drivers/offers/${offerId}/accept`);
+    return data.data;
   },
 
-  completeRide: async (rideId: string): Promise<void> => {
-    await apiClient.put(`/rides/${rideId}/complete`);
+  rejectOffer: (offerId: string) =>
+    apiClient.post(`/api/v2/drivers/offers/${offerId}/reject`),
+
+  // v2: Corrida ativa
+  getCurrentRide: async (): Promise<Ride | null> => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/current-ride');
+    return data.data || null;
+  },
+
+  // v2: Lifecycle da corrida
+  arrived: (rideId: string) =>
+    apiClient.post(`/api/v2/rides/${rideId}/arrived`),
+
+  startRide: (rideId: string) =>
+    apiClient.post(`/api/v2/rides/${rideId}/start`),
+
+  completeRide: (rideId: string) =>
+    apiClient.post(`/api/v2/rides/${rideId}/complete`),
+
+  // v1: Perfil (não tem v2 equivalente)
+  getMe: async () => {
+    const { data } = await apiClient.get('/api/drivers/me');
+    return data;
   },
 };

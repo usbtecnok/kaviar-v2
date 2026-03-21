@@ -4,7 +4,11 @@ import { GetObjectCommand } from '@aws-sdk/client-s3';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
 import path from 'path';
+import fs from 'fs';
 import { Request } from 'express';
+import { getUploadsPaths } from './uploads';
+
+const USE_LOCAL = process.env.NODE_ENV === 'development' && !process.env.AWS_ACCESS_KEY_ID;
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-east-2'
@@ -12,31 +16,51 @@ const s3Client = new S3Client({
 
 const bucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-1769655575';
 
-// Multer S3 storage
-export const uploadToS3 = multer({
-  storage: multerS3({
-    s3: s3Client,
-    bucket,
-    metadata: (req: Request, file: Express.Multer.File, cb: any) => {
-      cb(null, { fieldName: file.fieldname });
-    },
-    key: (req: Request, file: Express.Multer.File, cb: any) => {
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
-      const ext = path.extname(file.originalname);
-      cb(null, `certidoes/${uniqueSuffix}${ext}`);
-    }
-  }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-  fileFilter: (req: Request, file: Express.Multer.File, cb: any) => {
-    const allowedTypes = /jpeg|jpg|png|pdf/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    
-    if (mimetype && extname) {
-      return cb(null, true);
-    }
-    cb(new Error('Apenas imagens (JPEG, PNG) e PDF são permitidos'));
+const fileFilter = (req: Request, file: Express.Multer.File, cb: any) => {
+  const allowedTypes = /jpeg|jpg|png|pdf/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+  if (mimetype && extname) return cb(null, true);
+  cb(new Error('Apenas imagens (JPEG, PNG) e PDF são permitidos'));
+};
+
+// Local disk storage fallback
+const localStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const { certidoesDir } = getUploadsPaths();
+    cb(null, certidoesDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    const ext = path.extname(file.originalname);
+    cb(null, `${uniqueSuffix}${ext}`);
   }
+});
+
+// S3 storage
+const s3Storage = multerS3({
+  s3: s3Client,
+  bucket,
+  metadata: (req: Request, file: Express.Multer.File, cb: any) => {
+    cb(null, { fieldName: file.fieldname });
+  },
+  key: (req: Request, file: Express.Multer.File, cb: any) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    const ext = path.extname(file.originalname);
+    cb(null, `certidoes/${uniqueSuffix}${ext}`);
+  }
+});
+
+if (USE_LOCAL) {
+  console.log('📁 Upload mode: LOCAL DISK (S3 fallback)');
+} else {
+  console.log('☁️  Upload mode: AWS S3');
+}
+
+export const uploadToS3 = multer({
+  storage: USE_LOCAL ? localStorage : s3Storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter
 });
 
 // Generate presigned URL for download

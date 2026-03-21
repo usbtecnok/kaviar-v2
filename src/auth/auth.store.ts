@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, UserType } from '../types/user';
 
-// Store de autenticação
+type AuthListener = () => void;
+
 class AuthStore {
   private token: string | null = null;
   private user: User | null = null;
+  private listeners: AuthListener[] = [];
 
   async init() {
     this.token = await AsyncStorage.getItem('auth_token');
@@ -36,10 +38,17 @@ class AuthStore {
     this.user = null;
     await AsyncStorage.removeItem('auth_token');
     await AsyncStorage.removeItem('auth_user');
+    this.listeners.forEach(fn => fn());
   }
 
   isAuthenticated(): boolean {
     return !!this.token;
+  }
+
+  /** Subscribe to logout events (e.g. 401 interceptor). Returns unsubscribe fn. */
+  onLogout(fn: AuthListener): () => void {
+    this.listeners.push(fn);
+    return () => { this.listeners = this.listeners.filter(l => l !== fn); };
   }
 }
 

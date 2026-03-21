@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -234,9 +235,9 @@ export default function DocumentUpload() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#d32f2f" />
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -244,7 +245,7 @@ export default function DocumentUpload() {
   const hasSelected = Object.values(documents).some(doc => doc?.status === 'selected');
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Enviar Documentos</Text>
         <Text style={styles.subtitle}>
@@ -281,7 +282,7 @@ export default function DocumentUpload() {
           </TouchableOpacity>
         </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -293,7 +294,6 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#d32f2f',
     padding: 20,
-    paddingTop: 60,
   },
   title: {
     fontSize: 24,

@@ -111,6 +111,24 @@ router.post('/', requirePassenger, async (req: Request, res: Response) => {
   }
 });
 
+// Passageiro consulta corrida por ID
+router.get('/:ride_id', requirePassenger, async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: req.params.ride_id },
+      include: { driver: { select: { name: true, phone: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true } } }
+    });
+    if (!ride || ride.passenger_id !== passengerId) {
+      return res.status(404).json({ error: 'Ride not found' });
+    }
+    res.json({ success: true, data: ride });
+  } catch (error: any) {
+    console.error('[RIDE_GET_ERROR]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // 5.2 Passageiro cancela corrida
 router.post('/:ride_id/cancel', requirePassenger, async (req: Request, res: Response) => {
   try {

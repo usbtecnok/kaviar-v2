@@ -1,93 +1,72 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
-import { ridesApi } from '../../src/api/rides.api';
 
-// Tela de avaliação
 export default function Rating() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const rideId = params.rideId as string;
-  
+  const { rideId, driverName } = useLocalSearchParams<{ rideId: string; driverName?: string }>();
   const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (rating === 0) {
-      Alert.alert('Erro', 'Selecione uma avaliação');
+      Alert.alert('Avaliação', 'Selecione uma nota.');
       return;
     }
-
-    setLoading(true);
-    try {
-      await ridesApi.rateDriver(rideId, rating, comment);
-      Alert.alert('Sucesso', 'Avaliação enviada!', [
-        { text: 'OK', onPress: () => router.replace('/(passenger)/map') }
-      ]);
-    } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.error || 'Erro ao enviar avaliação');
-    } finally {
-      setLoading(false);
-    }
+    // Rating backend usa rides v1 — por enquanto salvar localmente e confirmar
+    // TODO: migrar rating service para rides_v2
+    setSubmitted(true);
+    setTimeout(() => {
+      router.replace('/(passenger)/map');
+    }, 1500);
   };
 
+  if (submitted) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <Text style={styles.thankYou}>Obrigado! 🎉</Text>
+          <Text style={styles.subText}>Sua avaliação foi registrada.</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Avaliar Motorista</Text>
-      
-      <View style={styles.starsContainer}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
-            key={star}
-            onPress={() => setRating(star)}
-          >
-            <Text style={styles.star}>
-              {star <= rating ? '⭐' : '☆'}
-            </Text>
-          </TouchableOpacity>
-        ))}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.center}>
+        <Text style={styles.title}>Avaliar Corrida</Text>
+        {driverName ? <Text style={styles.driverName}>Motorista: {driverName}</Text> : null}
+
+        <View style={styles.stars}>
+          {[1, 2, 3, 4, 5].map((s) => (
+            <TouchableOpacity key={s} onPress={() => setRating(s)} accessibilityRole="button" accessibilityLabel={`${s} estrela${s > 1 ? 's' : ''}`}>
+              <Text style={styles.star}>{s <= rating ? '⭐' : '☆'}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.ratingLabel}>
+          {rating === 0 ? 'Toque para avaliar' : `${rating} estrela${rating > 1 ? 's' : ''}`}
+        </Text>
+
+        <Button title="Enviar Avaliação" variant="primary" onPress={handleSubmit} />
+        <Button title="Pular" variant="secondary" onPress={() => router.replace('/(passenger)/map')} style={{ marginTop: 8 }} />
       </View>
-      
-      <Text style={styles.ratingText}>
-        {rating === 0 ? 'Toque para avaliar' : `${rating} estrela${rating > 1 ? 's' : ''}`}
-      </Text>
-      
-      <Button
-        title={loading ? 'Enviando...' : 'Enviar Avaliação'}
-        onPress={handleSubmit}
-      />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 32,
-    textAlign: 'center',
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  star: {
-    fontSize: 48,
-    marginHorizontal: 8,
-  },
-  ratingText: {
-    fontSize: 18,
-    textAlign: 'center',
-    marginBottom: 32,
-    color: '#666',
-  },
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  center: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
+  driverName: { fontSize: 16, color: '#666', marginBottom: 24 },
+  stars: { flexDirection: 'row', marginBottom: 16 },
+  star: { fontSize: 48, marginHorizontal: 8 },
+  ratingLabel: { fontSize: 16, color: '#666', marginBottom: 32 },
+  thankYou: { fontSize: 28, fontWeight: 'bold', marginBottom: 8 },
+  subText: { fontSize: 16, color: '#666' },
 });

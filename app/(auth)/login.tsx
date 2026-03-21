@@ -44,7 +44,9 @@ export default function Login() {
         }
       }
     } catch (error: any) {
-      Alert.alert('Erro', error.response?.data?.error || 'Erro ao fazer login');
+      const msg = error.response?.data?.error
+        || (error.message === 'Network Error' ? 'Sem conexão com o servidor' : 'Erro ao fazer login');
+      Alert.alert('Erro', msg);
     } finally {
       setLoading(false);
     }
@@ -100,6 +102,7 @@ export default function Login() {
       <Button
         title={loading ? 'Entrando...' : 'Entrar'}
         onPress={handleLogin}
+        loading={loading}
       />
 
       <TouchableOpacity onPress={handleForgotPassword} style={styles.linkButton}>

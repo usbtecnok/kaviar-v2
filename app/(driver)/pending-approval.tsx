@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authStore } from '../../src/auth/auth.store';
-import Constants from 'expo-constants';
-
-const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || 'https://api.kaviar.com.br';
+import { driverApi } from '../../src/api/driver.api';
 
 export default function PendingApproval() {
   const router = useRouter();
@@ -15,29 +14,18 @@ export default function PendingApproval() {
 
   useEffect(() => {
     checkStatus();
-    const interval = setInterval(checkStatus, 30000); // Verificar a cada 30s
+    const interval = setInterval(checkStatus, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const checkStatus = async () => {
     try {
-      const token = authStore.getToken();
-      if (!token) {
+      if (!authStore.isAuthenticated()) {
         router.replace('/(auth)/login');
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/drivers/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao verificar status');
-      }
-
-      const data = await response.json();
+      const data = await driverApi.getMe();
       const status = data.driver?.status || data.status;
       const name = data.driver?.name || data.name;
 
@@ -90,14 +78,14 @@ export default function PendingApproval() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#d32f2f" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color="#FF9800" />
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <Ionicons name="time-outline" size={80} color="#FF9800" />
         
@@ -134,7 +122,7 @@ export default function PendingApproval() {
           <Text style={styles.logoutButtonText}>Sair</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -1,17 +1,15 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ENV } from '../config/env';
+import { authStore } from '../auth/auth.store';
 
-// Cliente HTTP base
 export const apiClient = axios.create({
   baseURL: ENV.API_URL,
   timeout: ENV.API_TIMEOUT,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// Interceptor para adicionar token
+// Request: attach token
 apiClient.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('auth_token');
   if (token) {
@@ -19,3 +17,17 @@ apiClient.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+// Response: handle 401 (session expired)
+let isLoggingOut = false;
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401 && !isLoggingOut) {
+      isLoggingOut = true;
+      await authStore.clearAuth(); // triggers onLogout listeners
+      isLoggingOut = false;
+    }
+    return Promise.reject(error);
+  }
+);

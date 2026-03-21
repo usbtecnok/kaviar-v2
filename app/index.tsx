@@ -9,6 +9,10 @@ export default function Index() {
 
   useEffect(() => {
     checkAuth();
+    const unsub = authStore.onLogout(() => {
+      router.replace('/(auth)/login');
+    });
+    return unsub;
   }, []);
 
   const checkAuth = async () => {
