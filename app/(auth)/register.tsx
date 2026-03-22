@@ -307,7 +307,7 @@ export default function Register() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
         <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
@@ -462,7 +462,7 @@ export default function Register() {
           <View style={styles.form}>
             {detectedNeighborhood && (
               <View style={styles.detectedBox}>
-                <Ionicons name="location" size={24} color="#FF6B35" />
+                <Ionicons name="location" size={24} color={COLORS.accent} />
                 <View style={styles.detectedInfo}>
                   <Text style={styles.detectedTitle}>Bairro Detectado</Text>
                   <Text style={styles.detectedName}>{detectedNeighborhood.name}</Text>
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textSecondary,
   },
   form: {
     backgroundColor: '#FFF',
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   button: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: COLORS.accent,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -631,13 +631,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: COLORS.accent,
   },
   buttonPrimary: {
     flex: 1,
   },
   buttonSecondaryText: {
-    color: '#FF6B35',
+    color: COLORS.accent,
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: COLORS.accent,
   },
   detectedInfo: {
     marginLeft: 12,
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
   },
   detectedType: {
     fontSize: 14,
-    color: '#FF6B35',
+    color: COLORS.accent,
   },
   neighborhoodList: {
     maxHeight: 300,
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   neighborhoodItemSelected: {
-    borderColor: '#FF6B35',
+    borderColor: COLORS.accent,
     borderWidth: 2,
     backgroundColor: '#FFF5F0',
   },
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
   neighborhoodFee: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6B35',
+    color: COLORS.accent,
   },
   neighborhoodType: {
     fontSize: 11,
@@ -749,13 +749,13 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#FF6B35',
+    borderColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   checkboxChecked: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: COLORS.accent,
   },
   checkboxLabel: {
     flex: 1,
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
   },
   communityItemSelected: {
-    borderColor: '#FF6B35',
+    borderColor: COLORS.accent,
     borderWidth: 2,
     backgroundColor: '#FFF5F0',
   },

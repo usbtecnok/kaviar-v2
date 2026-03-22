@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Input } from '../../src/components/Input';
@@ -8,6 +8,7 @@ import { passengerApi } from '../../src/api/passenger.api';
 import { authStore } from '../../src/auth/auth.store';
 import { Ride, RideStatus, RIDE_STATUS_LABEL } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
+import { COLORS } from '../../src/config/colors';
 
 const POLL_INTERVAL = 3000;
 
@@ -127,7 +128,9 @@ export default function PassengerMap() {
           <Input placeholder="Destino (ex: Glória)" value={destText} onChangeText={setDestText} />
           <Button title="Solicitar Corrida" variant="primary" loading={loading} onPress={handleRequest} />
         </View>
-        <Button title="Sair" variant="danger" onPress={handleLogout} style={{ marginHorizontal: 20 }} />
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -144,7 +147,7 @@ export default function PassengerMap() {
 
       <View style={styles.center}>
         {!ride ? (
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color={COLORS.primary} />
         ) : (
           <View style={styles.card}>
             <View style={[styles.chip, { backgroundColor: chipColor(status!) }]}>
@@ -184,7 +187,7 @@ export default function PassengerMap() {
 
             {['requested', 'offered'].includes(status!) && (
               <View style={styles.waitingRow}>
-                <ActivityIndicator size="small" color="#999" />
+                <ActivityIndicator size="small" color={COLORS.textMuted} />
                 <Text style={styles.waitingText}>Buscando motorista...</Text>
               </View>
             )}
@@ -201,27 +204,29 @@ export default function PassengerMap() {
 
 function chipColor(status: RideStatus): string {
   const map: Partial<Record<RideStatus, string>> = {
-    requested: '#FF9800', offered: '#FF9800',
-    accepted: '#2196F3', arrived: '#2196F3',
-    in_progress: '#4CAF50', completed: '#4CAF50',
-    canceled_by_passenger: '#999', canceled_by_driver: '#999', no_driver: '#999',
+    requested: COLORS.warning, offered: COLORS.warning,
+    accepted: COLORS.primary, arrived: COLORS.primary,
+    in_progress: COLORS.success, completed: COLORS.success,
+    canceled_by_passenger: COLORS.textMuted, canceled_by_driver: COLORS.textMuted, no_driver: COLORS.textMuted,
   };
-  return map[status] || '#999';
+  return map[status] || COLORS.textMuted;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   header: { padding: 20, paddingBottom: 0 },
   title: { fontSize: 22, fontWeight: 'bold' },
-  subtitle: { fontSize: 16, color: '#666', marginBottom: 20, textAlign: 'center' },
+  subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 20, textAlign: 'center' },
   center: { flex: 1, padding: 20, justifyContent: 'center' },
-  card: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, elevation: 2 },
+  card: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, elevation: 2 },
   chip: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16, marginBottom: 16 },
   chipText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
   row: { marginBottom: 10 },
-  label: { fontSize: 13, color: '#999' },
+  label: { fontSize: 13, color: COLORS.textMuted },
   value: { fontSize: 16, fontWeight: '600', marginTop: 2 },
-  divider: { height: 1, backgroundColor: '#EEE', marginVertical: 10 },
+  divider: { height: 1, backgroundColor: COLORS.divider, marginVertical: 10 },
   waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-  waitingText: { fontSize: 14, color: '#999', marginLeft: 8 },
+  waitingText: { fontSize: 14, color: COLORS.textMuted, marginLeft: 8 },
+  logoutBtn: { alignItems: 'center', padding: 16, marginHorizontal: 20 },
+  logoutText: { color: COLORS.danger, fontSize: 16, fontWeight: '600' },
 });

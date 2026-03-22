@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authStore } from '../src/auth/auth.store';
+import { COLORS } from '../src/config/colors';
 
 // Tela inicial - Redireciona baseado em autenticação
 export default function Index() {
@@ -40,8 +41,8 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#007AFF" />
-      <Text style={styles.text}>Carregando...</Text>
+      <Text style={styles.brand}>KAVIAR</Text>
+      <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 24 }} />
     </View>
   );
 }
@@ -51,11 +52,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
-  text: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
+  brand: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: COLORS.textPrimary,
+    letterSpacing: 4,
   },
 });

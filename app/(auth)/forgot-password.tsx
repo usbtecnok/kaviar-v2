@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import Constants from 'expo-constants';
+import { ENV } from '../../src/config/env';
+import { COLORS } from '../../src/config/colors';
 
-const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || 'https://api.kaviar.com.br';
+const API_URL = ENV.API_URL;
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -96,7 +97,7 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: COLORS.background,
   },
   content: {
     flex: 1,
@@ -106,31 +107,31 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.textPrimary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginBottom: 32,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.textPrimary,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: COLORS.border,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
   },
   button: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: COLORS.accent,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backText: {
-    color: '#007AFF',
+    color: COLORS.primary,
     fontSize: 14,
   },
 });

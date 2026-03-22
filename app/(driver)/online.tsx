@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Button } from '../../src/components/Button';
@@ -7,6 +7,7 @@ import { driverApi } from '../../src/api/driver.api';
 import { authStore } from '../../src/auth/auth.store';
 import { RideOffer } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
+import { COLORS } from '../../src/config/colors';
 
 const POLL_INTERVAL = 5000;
 const LOCATION_INTERVAL = 15000;
@@ -19,12 +20,29 @@ export default function DriverOnline() {
   const [pendingOffer, setPendingOffer] = useState<RideOffer | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const locationRef = useRef<NodeJS.Timeout | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadUser();
     checkCurrentRide();
     return () => { stopAll(); };
   }, []);
+
+  // Pulsação do dot quando online e aguardando
+  useEffect(() => {
+    if (isOnline && !pendingOffer) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isOnline, pendingOffer]);
 
   const loadUser = () => {
     const user = authStore.getUser();
@@ -130,7 +148,7 @@ export default function DriverOnline() {
       {userName ? <Text style={styles.userName}>{userName}</Text> : null}
 
       <View style={styles.statusContainer}>
-        <View style={[styles.statusDot, isOnline && styles.statusDotOnline]} />
+        <Animated.View style={[styles.statusDot, isOnline && styles.statusDotOnline, isOnline && { opacity: pulseAnim }]} />
         <Text style={[styles.statusText, isOnline && styles.statusOnline]}>
           {isOnline ? 'ONLINE' : 'OFFLINE'}
         </Text>
@@ -166,30 +184,33 @@ export default function DriverOnline() {
       ) : null}
 
       {!isOnline && !pendingOffer && (
-        <Button title="Sair" onPress={handleLogout} style={styles.logoutBtn} />
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>Sair</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#F5F5F5', justifyContent: 'center' },
+  container: { flex: 1, padding: 20, backgroundColor: COLORS.background, justifyContent: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
-  userName: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 24 },
+  userName: { fontSize: 16, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 24 },
   statusContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
-  statusDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#CCC', marginRight: 8 },
-  statusDotOnline: { backgroundColor: '#4CAF50' },
-  statusText: { fontSize: 28, fontWeight: 'bold', color: '#999' },
-  statusOnline: { color: '#4CAF50' },
-  waitingText: { fontSize: 16, color: '#999', textAlign: 'center', marginBottom: 24 },
-  offerCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: '#4CAF50' },
+  statusDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.statusOffline, marginRight: 8 },
+  statusDotOnline: { backgroundColor: COLORS.statusOnline },
+  statusText: { fontSize: 28, fontWeight: 'bold', color: COLORS.textMuted },
+  statusOnline: { color: COLORS.statusOnline },
+  waitingText: { fontSize: 16, color: COLORS.textMuted, textAlign: 'center', marginBottom: 24 },
+  offerCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: COLORS.success },
   offerTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  offerText: { fontSize: 16, color: '#333' },
-  offerArrow: { fontSize: 20, textAlign: 'center', color: '#999', marginVertical: 4 },
-  offerPassenger: { fontSize: 14, color: '#666', marginTop: 8 },
+  offerText: { fontSize: 16, color: COLORS.textPrimary },
+  offerArrow: { fontSize: 20, textAlign: 'center', color: COLORS.textMuted, marginVertical: 4 },
+  offerPassenger: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8 },
   offerButtons: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  acceptBtn: { flex: 1, backgroundColor: '#4CAF50' },
-  rejectBtn: { flex: 1, backgroundColor: '#F44336' },
-  offlineBtn: { backgroundColor: '#FF9800' },
-  logoutBtn: { backgroundColor: '#FF3B30', marginTop: 20 },
+  acceptBtn: { flex: 1, backgroundColor: COLORS.success },
+  rejectBtn: { flex: 1, backgroundColor: COLORS.danger },
+  offlineBtn: { backgroundColor: COLORS.warning },
+  logoutBtn: { marginTop: 20, alignItems: 'center', padding: 16 },
+  logoutText: { color: COLORS.danger, fontSize: 16, fontWeight: '600' },
 });

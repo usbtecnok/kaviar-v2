@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { COLORS } from '../../src/config/colors';
 
 interface DocumentCardProps {
   type: 'cpf' | 'rg' | 'cnh' | 'proofOfAddress' | 'vehiclePhoto' | 'backgroundCheck';
@@ -11,11 +12,11 @@ interface DocumentCardProps {
 }
 
 const STATUS_CONFIG = {
-  pending: { icon: '📄', color: '#999', text: 'Não enviado' },
-  selected: { icon: '📸', color: '#2196F3', text: 'Selecionado' },
-  uploaded: { icon: '⏳', color: '#FF9800', text: 'Em análise' },
-  verified: { icon: '✅', color: '#4CAF50', text: 'Aprovado' },
-  rejected: { icon: '❌', color: '#F44336', text: 'Rejeitado' },
+  pending: { icon: '📄', color: COLORS.textMuted, text: 'Não enviado' },
+  selected: { icon: '📸', color: COLORS.primary, text: 'Selecionado' },
+  uploaded: { icon: '⏳', color: COLORS.warning, text: 'Em análise' },
+  verified: { icon: '✅', color: COLORS.success, text: 'Aprovado' },
+  rejected: { icon: '❌', color: COLORS.danger, text: 'Rejeitado' },
 };
 
 export default function DocumentCard({ type, label, status, uri, rejectReason, onPress }: DocumentCardProps) {
@@ -46,12 +47,12 @@ export default function DocumentCard({ type, label, status, uri, rejectReason, o
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.surface,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: COLORS.border,
   },
   header: {
     flexDirection: 'row',
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.textPrimary,
   },
   status: {
     fontSize: 14,

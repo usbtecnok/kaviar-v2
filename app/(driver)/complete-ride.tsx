@@ -5,11 +5,12 @@ import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
 import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
+import { COLORS } from '../../src/config/colors';
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
-  accepted:    { label: 'Indo ao passageiro', color: '#2196F3', icon: '🚗' },
-  arrived:     { label: 'Aguardando embarque', color: '#FF9800', icon: '📍' },
-  in_progress: { label: 'Corrida em andamento', color: '#4CAF50', icon: '🛣️' },
+  accepted:    { label: 'Indo ao passageiro', color: COLORS.primary, icon: '🚗' },
+  arrived:     { label: 'Aguardando embarque', color: COLORS.warning, icon: '📍' },
+  in_progress: { label: 'Corrida em andamento', color: COLORS.success, icon: '🛣️' },
 };
 
 export default function CompleteRide() {
@@ -71,7 +72,7 @@ export default function CompleteRide() {
   if (fetching) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -103,26 +104,26 @@ export default function CompleteRide() {
       </View>
 
       {rideStatus === 'accepted' && (
-        <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: '#2196F3' }} />
+        <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: COLORS.primary }} />
       )}
       {rideStatus === 'arrived' && (
-        <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: '#FF9800' }} />
+        <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: COLORS.warning }} />
       )}
       {rideStatus === 'in_progress' && (
-        <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: '#4CAF50' }} />
+        <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: COLORS.success }} />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#F5F5F5', justifyContent: 'center' },
+  container: { flex: 1, padding: 20, backgroundColor: COLORS.background, justifyContent: 'center' },
   statusBadge: { alignItems: 'center', marginBottom: 24 },
   statusIcon: { fontSize: 48 },
   statusLabel: { fontSize: 20, fontWeight: 'bold', marginTop: 8 },
-  card: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, marginBottom: 24 },
-  sectionTitle: { fontSize: 12, color: '#999', textTransform: 'uppercase', marginTop: 12 },
-  address: { fontSize: 18, fontWeight: '600', color: '#333', marginTop: 4 },
-  arrow: { fontSize: 24, textAlign: 'center', color: '#CCC', marginVertical: 8 },
-  passengerName: { fontSize: 16, color: '#333', marginTop: 4 },
+  card: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, marginBottom: 24 },
+  sectionTitle: { fontSize: 12, color: COLORS.textMuted, textTransform: 'uppercase', marginTop: 12 },
+  address: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 4 },
+  arrow: { fontSize: 24, textAlign: 'center', color: COLORS.statusOffline, marginVertical: 8 },
+  passengerName: { fontSize: 16, color: COLORS.textPrimary, marginTop: 4 },
 });

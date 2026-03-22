@@ -7,6 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import DocumentCard from '../components/DocumentCard';
 import { uploadDocuments, getMyDocuments, DocumentStatus } from '../services/documentApi';
 import type { DocumentUpload as DocumentUploadPayload } from '../services/documentApi';
+import { COLORS } from '../../src/config/colors';
 
 const DOCUMENT_TYPES = [
   { type: 'cpf', label: 'CPF', required: true },
@@ -236,7 +237,7 @@ export default function DocumentUpload() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#d32f2f" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </SafeAreaView>
     );
   }
@@ -289,10 +290,10 @@ export default function DocumentUpload() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
   },
   header: {
-    backgroundColor: '#d32f2f',
+    backgroundColor: COLORS.primary,
     padding: 20,
   },
   title: {
@@ -314,12 +315,12 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.surface,
     borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopColor: COLORS.border,
   },
   uploadButton: {
-    backgroundColor: '#d32f2f',
+    backgroundColor: COLORS.primary,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',

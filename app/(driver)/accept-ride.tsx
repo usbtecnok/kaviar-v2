@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
 import { friendlyError } from '../../src/utils/errorMessage';
+import { COLORS } from '../../src/config/colors';
 
 export default function AcceptRide() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function AcceptRide() {
   if (fetching) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -100,14 +101,14 @@ export default function AcceptRide() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#F5F5F5', justifyContent: 'center' },
+  container: { flex: 1, padding: 20, backgroundColor: COLORS.background, justifyContent: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 24 },
-  card: { backgroundColor: '#FFF', borderRadius: 12, padding: 20, marginBottom: 24 },
-  sectionTitle: { fontSize: 12, color: '#999', textTransform: 'uppercase', marginTop: 12 },
-  address: { fontSize: 18, fontWeight: '600', color: '#333', marginTop: 4 },
-  arrow: { fontSize: 24, textAlign: 'center', color: '#CCC', marginVertical: 8 },
-  passengerName: { fontSize: 16, color: '#333', marginTop: 4 },
-  type: { fontSize: 14, color: '#666', marginTop: 16, textAlign: 'right' },
-  acceptBtn: { backgroundColor: '#4CAF50' },
-  rejectBtn: { backgroundColor: '#F44336' },
+  card: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, marginBottom: 24 },
+  sectionTitle: { fontSize: 12, color: COLORS.textMuted, textTransform: 'uppercase', marginTop: 12 },
+  address: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary, marginTop: 4 },
+  arrow: { fontSize: 24, textAlign: 'center', color: COLORS.statusOffline, marginVertical: 8 },
+  passengerName: { fontSize: 16, color: COLORS.textPrimary, marginTop: 4 },
+  type: { fontSize: 14, color: COLORS.textSecondary, marginTop: 16, textAlign: 'right' },
+  acceptBtn: { backgroundColor: COLORS.success },
+  rejectBtn: { backgroundColor: COLORS.danger },
 });

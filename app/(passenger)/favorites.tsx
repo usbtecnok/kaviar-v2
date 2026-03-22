@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert,
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '../../src/api/client';
+import { COLORS } from '../../src/config/colors';
 
 interface Favorite {
   id: string;
@@ -148,7 +149,7 @@ export default function Favorites() {
   if (loading && favorites.length === 0) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#FF6B35" />
+        <ActivityIndicator size="large" color={COLORS.accent} />
         <Text style={styles.loadingText}>Carregando...</Text>
       </View>
     );
@@ -173,7 +174,7 @@ export default function Favorites() {
                   'location'
                 }
                 size={24}
-                color="#FF6B35"
+                color={COLORS.accent}
               />
             </View>
             <View style={styles.favoriteInfo}>
@@ -186,7 +187,7 @@ export default function Favorites() {
               style={styles.removeButton}
               onPress={() => handleRemoveFavorite(fav.id)}
             >
-              <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+              <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
             </TouchableOpacity>
           </View>
         ))}
@@ -254,7 +255,7 @@ export default function Favorites() {
 
             <Text style={styles.label}>Localização</Text>
             <TouchableOpacity style={styles.locationButton} onPress={getCurrentLocation}>
-              <Ionicons name="navigate" size={20} color="#FF6B35" />
+              <Ionicons name="navigate" size={20} color={COLORS.accent} />
               <Text style={styles.locationButtonText}>
                 {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Usar minha localização atual'}
               </Text>
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FF6B35',
+    backgroundColor: COLORS.accent,
     padding: 16,
     borderRadius: 12,
     marginTop: 8,
@@ -413,7 +414,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   typeButtonActive: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: COLORS.accent,
   },
   typeButtonText: {
     fontSize: 14,
@@ -430,13 +431,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FF6B35',
+    borderColor: COLORS.accent,
     gap: 8,
   },
   locationButtonText: {
     flex: 1,
     fontSize: 14,
-    color: '#FF6B35',
+    color: COLORS.accent,
   },
   formButtons: {
     flexDirection: 'row',
@@ -450,7 +451,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonPrimary: {
-    backgroundColor: '#FF6B35',
+    backgroundColor: COLORS.accent,
   },
   buttonSecondary: {
     backgroundColor: '#F5F5F5',

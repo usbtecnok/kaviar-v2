@@ -7,6 +7,7 @@ import { Button } from '../../src/components/Button';
 import { authApi } from '../../src/api/auth.api';
 import { authStore } from '../../src/auth/auth.store';
 import { friendlyError } from '../../src/utils/errorMessage';
+import { COLORS } from '../../src/config/colors';
 
 const APP_VARIANT = Constants.expoConfig?.extra?.APP_VARIANT || 'driver';
 
@@ -139,15 +140,15 @@ const styles = StyleSheet.create({
   typeButton: {
     flex: 1,
     padding: 12,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: COLORS.border,
     alignItems: 'center',
   },
   typeButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: COLORS.primary,
   },
   typeText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textSecondary,
   },
   typeTextActive: {
     color: '#FFFFFF',
@@ -158,7 +159,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#007AFF',
+    color: COLORS.primary,
     fontSize: 14,
   },
   registerButton: {
@@ -166,11 +167,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   registerText: {
-    color: '#666',
+    color: COLORS.textSecondary,
     fontSize: 14,
   },
   registerTextBold: {
-    color: '#007AFF',
+    color: COLORS.primary,
     fontWeight: '600',
   },
 });

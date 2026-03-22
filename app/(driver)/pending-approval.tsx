@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authStore } from '../../src/auth/auth.store';
 import { driverApi } from '../../src/api/driver.api';
+import { COLORS } from '../../src/config/colors';
 
 export default function PendingApproval() {
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function PendingApproval() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color="#FF9800" />
+        <ActivityIndicator size="large" color={COLORS.warning} />
       </SafeAreaView>
     );
   }
@@ -88,7 +89,7 @@ export default function PendingApproval() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Ionicons name="time-outline" size={80} color="#FF9800" />
+        <Ionicons name="time-outline" size={80} color={COLORS.warning} />
         
         <Text style={styles.title}>Aguardando Aprovação</Text>
         
@@ -101,7 +102,7 @@ export default function PendingApproval() {
         </Text>
         
         <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={24} color="#2196F3" />
+          <Ionicons name="information-circle-outline" size={24} color={COLORS.primary} />
           <Text style={styles.infoText}>
             O processo de aprovação pode levar até 48 horas. Você receberá uma notificação assim que sua conta for aprovada.
           </Text>
@@ -134,7 +135,7 @@ export default function PendingApproval() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background,
   },
   content: {
     flex: 1,
@@ -145,20 +146,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: COLORS.textPrimary,
     marginTop: 24,
     marginBottom: 8,
     textAlign: 'center',
   },
   userName: {
     fontSize: 18,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginBottom: 16,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#2196F3',
+    borderColor: COLORS.primary,
   },
   infoText: {
     flex: 1,
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   statusBox: {
-    backgroundColor: '#FFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 20,
     marginBottom: 24,
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.textSecondary,
     marginBottom: 8,
   },
   statusValue: {
@@ -202,11 +203,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statusPending: {
-    color: '#FF9800',
+    color: COLORS.warning,
   },
   refreshButton: {
     flexDirection: 'row',
-    backgroundColor: '#2196F3',
+    backgroundColor: COLORS.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   logoutButtonText: {
-    color: '#d32f2f',
+    color: COLORS.danger,
     fontSize: 16,
     fontWeight: '600',
   },

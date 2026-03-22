@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, ViewStyle } from 'react-native';
+import { COLORS } from '../config/colors';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'success';
 
@@ -13,10 +14,10 @@ interface ButtonProps {
 }
 
 const BG: Record<ButtonVariant, string> = {
-  primary: '#007AFF',
-  secondary: '#FF9800',
-  danger: '#FF3B30',
-  success: '#4CAF50',
+  primary: COLORS.primary,
+  secondary: COLORS.warning,
+  danger: COLORS.danger,
+  success: COLORS.success,
 };
 
 export const Button: React.FC<ButtonProps> = ({
