@@ -4,9 +4,10 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { authStore } from '../../src/auth/auth.store';
-import Constants from 'expo-constants';
+import { ENV } from '../../src/config/env';
+import { COLORS } from '../../src/config/colors';
 
-const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || 'https://api.kaviar.com.br';
+const API_URL = ENV.API_URL;
 
 export default function Register() {
   const router = useRouter();
@@ -320,6 +321,9 @@ export default function Register() {
         <View style={styles.header}>
           <Text style={styles.title}>Cadastro de Motorista</Text>
           <Text style={styles.subtitle}>Passo {step} de 3</Text>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${(step / 3) * 100}%` }]} />
+          </View>
         </View>
 
         {/* Passo 1: Dados Básicos */}
@@ -584,6 +588,18 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: COLORS.textSecondary,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: COLORS.border,
+    borderRadius: 2,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
   },
   form: {
     backgroundColor: '#FFF',

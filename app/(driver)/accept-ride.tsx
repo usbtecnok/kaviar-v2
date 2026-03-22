@@ -12,6 +12,7 @@ export default function AcceptRide() {
   const [loading, setLoading] = useState(false);
   const [offerData, setOfferData] = useState<any>(null);
   const [fetching, setFetching] = useState(true);
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     loadOffer();
@@ -23,8 +24,12 @@ export default function AcceptRide() {
       const offer = offers.find(o => o.id === offerId);
       if (offer) {
         setOfferData(offer);
+      } else {
+        setExpired(true);
       }
-    } catch {} finally { setFetching(false); }
+    } catch {
+      setExpired(true);
+    } finally { setFetching(false); }
   };
 
   const handleAccept = async () => {
@@ -55,6 +60,17 @@ export default function AcceptRide() {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (expired) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.expiredIcon}>⏰</Text>
+        <Text style={styles.expiredTitle}>Oferta expirada</Text>
+        <Text style={styles.expiredText}>Esta corrida não está mais disponível.</Text>
+        <Button title="Voltar" onPress={() => router.replace('/(driver)/online')} style={{ marginTop: 24 }} />
       </View>
     );
   }
@@ -111,4 +127,7 @@ const styles = StyleSheet.create({
   type: { fontSize: 14, color: COLORS.textSecondary, marginTop: 16, textAlign: 'right' },
   acceptBtn: { backgroundColor: COLORS.success },
   rejectBtn: { backgroundColor: COLORS.danger },
+  expiredIcon: { fontSize: 48, textAlign: 'center', marginBottom: 16 },
+  expiredTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: COLORS.textPrimary },
+  expiredText: { fontSize: 16, textAlign: 'center', color: COLORS.textSecondary, marginTop: 8 },
 });

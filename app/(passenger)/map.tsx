@@ -44,8 +44,10 @@ export default function PassengerMap() {
               { text: 'Fechar', onPress: resetToIdle },
             ]);
           } else if (updated.status === 'no_driver') {
-            Alert.alert('Sem motoristas', 'Não encontramos motoristas disponíveis. Tente novamente.');
-            resetToIdle();
+            Alert.alert('Sem motoristas', 'Não encontramos motoristas disponíveis no momento.', [
+              { text: 'Tentar novamente', onPress: () => handleRetry() },
+              { text: 'Cancelar', style: 'cancel', onPress: resetToIdle },
+            ]);
           }
         }
       } catch {
@@ -67,6 +69,14 @@ export default function PassengerMap() {
   };
 
   // --- Actions ---
+  const handleRetry = () => {
+    stopPolling();
+    setRide(null);
+    setScreen('idle');
+    // Mantém originText e destText para o usuário não precisar redigitar
+    setTimeout(() => handleRequest(), 100);
+  };
+
   const handleRequest = async () => {
     if (!originText.trim() || !destText.trim()) {
       Alert.alert('Preencha os campos', 'Informe origem e destino.');
