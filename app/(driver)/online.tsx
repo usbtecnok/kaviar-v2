@@ -6,6 +6,7 @@ import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
 import { authStore } from '../../src/auth/auth.store';
 import { RideOffer } from '../../src/types/ride';
+import { friendlyError } from '../../src/utils/errorMessage';
 
 const POLL_INTERVAL = 5000;
 const LOCATION_INTERVAL = 15000;
@@ -25,8 +26,8 @@ export default function DriverOnline() {
     return () => { stopAll(); };
   }, []);
 
-  const loadUser = async () => {
-    const user = await authStore.getUser();
+  const loadUser = () => {
+    const user = authStore.getUser();
     if (user?.name) setUserName(user.name);
   };
 
@@ -81,7 +82,7 @@ export default function DriverOnline() {
       await startLocationTracking();
       startPolling();
     } catch (e: any) {
-      Alert.alert('Erro', e.response?.data?.error || 'Erro ao ficar online');
+      Alert.alert('Erro', friendlyError(e, 'Erro ao ficar online'));
     } finally { setLoading(false); }
   };
 
@@ -93,7 +94,7 @@ export default function DriverOnline() {
       setIsOnline(false);
       setPendingOffer(null);
     } catch (e: any) {
-      Alert.alert('Erro', e.message === 'Network Error' ? 'Sem conexão' : 'Erro ao ficar offline');
+      Alert.alert('Erro', friendlyError(e, 'Erro ao ficar offline'));
     } finally { setLoading(false); }
   };
 
@@ -164,7 +165,9 @@ export default function DriverOnline() {
         </>
       ) : null}
 
-      <Button title="Sair" onPress={handleLogout} style={styles.logoutBtn} />
+      {!isOnline && !pendingOffer && (
+        <Button title="Sair" onPress={handleLogout} style={styles.logoutBtn} />
+      )}
     </View>
   );
 }

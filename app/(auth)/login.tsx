@@ -6,6 +6,7 @@ import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { authApi } from '../../src/api/auth.api';
 import { authStore } from '../../src/auth/auth.store';
+import { friendlyError } from '../../src/utils/errorMessage';
 
 const APP_VARIANT = Constants.expoConfig?.extra?.APP_VARIANT || 'driver';
 
@@ -44,9 +45,7 @@ export default function Login() {
         }
       }
     } catch (error: any) {
-      const msg = error.response?.data?.error
-        || (error.message === 'Network Error' ? 'Sem conexão com o servidor' : 'Erro ao fazer login');
-      Alert.alert('Erro', msg);
+      Alert.alert('Erro', friendlyError(error, 'Erro ao fazer login'));
     } finally {
       setLoading(false);
     }

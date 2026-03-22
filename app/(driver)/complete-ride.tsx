@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
 import { Ride, RideStatus } from '../../src/types/ride';
+import { friendlyError } from '../../src/utils/errorMessage';
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
   accepted:    { label: 'Indo ao passageiro', color: '#2196F3', icon: '🚗' },
@@ -41,7 +42,7 @@ export default function CompleteRide() {
       await driverApi.arrived(params.rideId!);
       setRideStatus('arrived');
     } catch (e: any) {
-      Alert.alert('Erro', e.response?.data?.error || 'Erro');
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível confirmar chegada'));
     } finally { setLoading(false); }
   };
 
@@ -51,7 +52,7 @@ export default function CompleteRide() {
       await driverApi.startRide(params.rideId!);
       setRideStatus('in_progress');
     } catch (e: any) {
-      Alert.alert('Erro', e.response?.data?.error || 'Erro');
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível iniciar a corrida'));
     } finally { setLoading(false); }
   };
 
@@ -63,7 +64,7 @@ export default function CompleteRide() {
         { text: 'OK', onPress: () => router.replace('/(driver)/online') }
       ]);
     } catch (e: any) {
-      Alert.alert('Erro', e.response?.data?.error || 'Erro');
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível finalizar a corrida'));
     } finally { setLoading(false); }
   };
 

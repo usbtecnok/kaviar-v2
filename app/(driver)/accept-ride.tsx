@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
+import { friendlyError } from '../../src/utils/errorMessage';
 
 export default function AcceptRide() {
   const router = useRouter();
@@ -34,8 +35,7 @@ export default function AcceptRide() {
         { text: 'OK', onPress: () => router.replace(`/(driver)/complete-ride?rideId=${result.ride_id}&status=accepted`) }
       ]);
     } catch (e: any) {
-      const msg = e.response?.data?.error || 'Erro ao aceitar corrida';
-      Alert.alert('Erro', msg);
+      Alert.alert('Erro', friendlyError(e, 'Erro ao aceitar corrida'));
     } finally { setLoading(false); }
   };
 

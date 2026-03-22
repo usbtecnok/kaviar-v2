@@ -7,6 +7,7 @@ import { Button } from '../../src/components/Button';
 import { passengerApi } from '../../src/api/passenger.api';
 import { authStore } from '../../src/auth/auth.store';
 import { Ride, RideStatus, RIDE_STATUS_LABEL } from '../../src/types/ride';
+import { friendlyError } from '../../src/utils/errorMessage';
 
 const POLL_INTERVAL = 3000;
 
@@ -82,7 +83,7 @@ export default function PassengerMap() {
       setScreen('tracking');
       startPolling(result.ride_id);
     } catch (e: any) {
-      Alert.alert('Erro', e.response?.data?.error || 'Não foi possível solicitar a corrida.');
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível solicitar a corrida.'));
     } finally { setLoading(false); }
   };
 
@@ -96,7 +97,7 @@ export default function PassengerMap() {
           Alert.alert('Corrida cancelada');
           resetToIdle();
         } catch (e: any) {
-          Alert.alert('Erro', e.response?.data?.error || 'Não foi possível cancelar.');
+          Alert.alert('Erro', friendlyError(e, 'Não foi possível cancelar.'));
         }
       }},
     ]);

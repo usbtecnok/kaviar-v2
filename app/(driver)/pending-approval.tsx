@@ -9,6 +9,7 @@ import { driverApi } from '../../src/api/driver.api';
 export default function PendingApproval() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [driverStatus, setDriverStatus] = useState<string>('pending');
   const [userName, setUserName] = useState('');
 
@@ -113,9 +114,13 @@ export default function PendingApproval() {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.refreshButton} onPress={checkStatus}>
-          <Ionicons name="refresh" size={20} color="#FFF" />
-          <Text style={styles.refreshButtonText}>Atualizar Status</Text>
+        <TouchableOpacity style={styles.refreshButton} onPress={async () => { setRefreshing(true); await checkStatus(); setRefreshing(false); }} disabled={refreshing}>
+          {refreshing ? (
+            <ActivityIndicator size="small" color="#FFF" />
+          ) : (
+            <Ionicons name="refresh" size={20} color="#FFF" />
+          )}
+          <Text style={styles.refreshButtonText}>{refreshing ? 'Verificando...' : 'Atualizar Status'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>

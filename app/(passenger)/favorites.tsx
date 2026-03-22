@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+import { apiClient } from '../../src/api/client';
 
 interface Favorite {
   id: string;
@@ -31,24 +30,19 @@ export default function Favorites() {
   const loadFavorites = async () => {
     try {
       setLoading(true);
-      const token = ''; // TODO: Get from auth context/storage
-      
-      const response = await fetch(`${API_URL}/api/passenger/favorites`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
-      const data = await response.json();
+      const { data } = await apiClient.get('/api/passenger/favorites');
       
       if (data.success) {
         setFavorites(data.favorites);
-      } else if (response.status === 403) {
-        Alert.alert('Recurso Indisponível', data.error || 'Feature not available');
       } else {
         Alert.alert('Erro', data.error || 'Erro ao carregar favoritos');
       }
-    } catch (error) {
-      console.error('Erro ao carregar favoritos:', error);
-      Alert.alert('Erro', 'Não foi possível carregar favoritos');
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        Alert.alert('Recurso Indisponível', error.response.data?.error || 'Feature not available');
+      } else {
+        Alert.alert('Erro', 'Não foi possível carregar favoritos');
+      }
     } finally {
       setLoading(false);
     }
@@ -92,23 +86,12 @@ export default function Favorites() {
 
     try {
       setLoading(true);
-      const token = ''; // TODO: Get from auth context/storage
-      
-      const response = await fetch(`${API_URL}/api/passenger/favorites`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          label: label.trim(),
-          type,
-          lat: location.lat,
-          lng: location.lng,
-        }),
+      const { data } = await apiClient.post('/api/passenger/favorites', {
+        label: label.trim(),
+        type,
+        lat: location.lat,
+        lng: location.lng,
       });
-
-      const data = await response.json();
 
       if (data.success) {
         Alert.alert('Sucesso', 'Favorito adicionado!');
@@ -117,14 +100,15 @@ export default function Favorites() {
         setType('OTHER');
         setLocation(null);
         loadFavorites();
-      } else if (response.status === 403) {
-        Alert.alert('Recurso Indisponível', data.error || 'Feature not available');
       } else {
         Alert.alert('Erro', data.error || 'Erro ao adicionar favorito');
       }
-    } catch (error) {
-      console.error('Erro ao adicionar favorito:', error);
-      Alert.alert('Erro', 'Não foi possível adicionar favorito');
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        Alert.alert('Recurso Indisponível', error.response.data?.error || 'Feature not available');
+      } else {
+        Alert.alert('Erro', 'Não foi possível adicionar favorito');
+      }
     } finally {
       setLoading(false);
     }
@@ -142,14 +126,7 @@ export default function Favorites() {
           onPress: async () => {
             try {
               setLoading(true);
-              const token = ''; // TODO: Get from auth context/storage
-              
-              const response = await fetch(`${API_URL}/api/passenger/favorites/${id}`, {
-                method: 'DELETE',
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              const data = await response.json();
+              const { data } = await apiClient.delete(`/api/passenger/favorites/${id}`);
 
               if (data.success) {
                 Alert.alert('Sucesso', 'Favorito removido');
@@ -158,7 +135,6 @@ export default function Favorites() {
                 Alert.alert('Erro', data.error || 'Erro ao remover favorito');
               }
             } catch (error) {
-              console.error('Erro ao remover favorito:', error);
               Alert.alert('Erro', 'Não foi possível remover favorito');
             } finally {
               setLoading(false);

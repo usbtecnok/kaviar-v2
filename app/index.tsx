@@ -24,7 +24,7 @@ export default function Index() {
         router.replace('/(passenger)/map');
       } else if (userType === 'DRIVER') {
         // Verificar status do motorista antes de redirecionar
-        const user = await authStore.getUser();
+        const user = authStore.getUser();
         if (user?.status === 'pending') {
           router.replace('/(driver)/pending-approval');
         } else if (user?.status === 'approved') {
