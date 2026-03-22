@@ -100,3 +100,5 @@ evidencias-prod-*/
 !tsconfig.json
 !app.json
 !eas.json
+
+docs/aws/BACKUP_ENV_VARS_PRODUCAO_2026-03-15.md
