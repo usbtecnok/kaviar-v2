@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { rankDriversByFavorites } from './favorites-matching.service';
 
 interface DriverCandidate {
   driver_id: string;
@@ -7,6 +8,8 @@ interface DriverCandidate {
   score: number;
   same_neighborhood: boolean;
   same_geofence?: boolean;
+  lat?: number;
+  lng?: number;
 }
 
 export class DispatcherService {
@@ -270,7 +273,9 @@ export class DispatcherService {
         distance_km: distance,
         score,
         same_neighborhood: sameNeighborhood,
-        same_geofence: sameGeofence
+        same_geofence: sameGeofence,
+        lat: Number(location.lat),
+        lng: Number(location.lng),
       });
     }
 
@@ -279,6 +284,29 @@ export class DispatcherService {
 
     // Ordenar por score (menor primeiro)
     candidates.sort((a, b) => a.score - b.score);
+
+    // Apply favorites matching reranking (if enabled for this passenger)
+    if (candidates.length > 1 && ride.passenger_id) {
+      try {
+        const pickup = { lat: Number(ride.origin_lat), lng: Number(ride.origin_lng) };
+        const driverObjects = candidates.map(c => ({ id: c.driver_id, last_lat: c.lat, last_lng: c.lng }));
+        const ranked = await rankDriversByFavorites(driverObjects, ride.passenger_id, pickup);
+        
+        // If favorites reranking changed order, apply it
+        if (ranked.length > 0 && ranked[0].score !== undefined) {
+          const idOrder = ranked.map((r: any) => r.id);
+          const reordered = idOrder
+            .map((id: string) => candidates.find(c => c.driver_id === id))
+            .filter(Boolean) as DriverCandidate[];
+          if (reordered.length === candidates.length) {
+            console.log(`[FAVORITES_RERANK] ride_id=${ride.id} passenger_id=${ride.passenger_id} applied=true order=${JSON.stringify(idOrder)}`);
+            return reordered;
+          }
+        }
+      } catch (err: any) {
+        console.log(`[FAVORITES_RERANK] ride_id=${ride.id} error=${err.message} fallback=distance_score`);
+      }
+    }
 
     return candidates;
   }

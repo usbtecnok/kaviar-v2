@@ -16,8 +16,10 @@ const driverOnboardingSchema = z.object({
   accepted_terms: z.boolean().refine(val => val === true, {
     message: 'Você deve aceitar os termos de uso'
   }),
-  neighborhoodId: z.string().min(1, 'Bairro é obrigatório'),
+  neighborhoodId: z.string().optional(),
   communityId: z.string().optional(),
+  lat: z.number({ required_error: 'Localização GPS é obrigatória' }),
+  lng: z.number({ required_error: 'Localização GPS é obrigatória' }),
   familyBonusAccepted: z.boolean().optional(),
   familyProfile: z.string().optional()
 });
@@ -40,9 +42,11 @@ router.post('/onboarding', async (req: Request, res: Response) => {
       accepted_terms: data.accepted_terms,
       neighborhoodId: data.neighborhoodId,
       communityId: data.communityId,
+      lat: data.lat,
+      lng: data.lng,
       familyBonusAccepted: data.familyBonusAccepted,
       familyProfile: data.familyProfile as 'individual' | 'familiar' | undefined,
-      verificationMethod: 'MANUAL_SELECTION', // Web sempre manual
+      verificationMethod: 'GPS_AUTO',
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] || undefined
     });

@@ -4,7 +4,10 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
+import { GeoResolveService } from '../services/geo-resolve';
+
 const router = Router();
+const geoResolveService = new GeoResolveService();
 
 const passengerLoginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -16,13 +19,15 @@ const passengerRegisterSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   phone: z.string().min(10, 'Telefone inválido'),
+  lat: z.number({ required_error: 'Localização obrigatória' }),
+  lng: z.number({ required_error: 'Localização obrigatória' }),
   lgpdAccepted: z.boolean().optional().default(true)
 });
 
 // POST /api/auth/passenger/register
 router.post('/passenger/register', async (req, res) => {
   try {
-    const { name, email, password, phone, lgpdAccepted } = passengerRegisterSchema.parse(req.body);
+    const { name, email, password, phone, lat, lng, lgpdAccepted } = passengerRegisterSchema.parse(req.body);
     
     // Check if email already exists
     const existingPassenger = await prisma.passengers.findUnique({
@@ -36,6 +41,19 @@ router.post('/passenger/register', async (req, res) => {
       });
     }
 
+    // Resolve territory from GPS
+    let neighborhoodId: string | null = null;
+    let territoryName: string | null = null;
+    try {
+      const geoResult = await geoResolveService.resolveCoordinates(lat, lng);
+      if (geoResult.match && geoResult.resolvedArea) {
+        neighborhoodId = geoResult.resolvedArea.id;
+        territoryName = geoResult.resolvedArea.name;
+      }
+    } catch (geoErr) {
+      console.error('[PASSENGER_REGISTER] geo-resolve failed, continuing without territory:', geoErr);
+    }
+
     // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
@@ -47,10 +65,16 @@ router.post('/passenger/register', async (req, res) => {
         email,
         password_hash,
         phone,
+        neighborhood_id: neighborhoodId,
+        last_lat: lat,
+        last_lng: lng,
+        last_location_updated_at: new Date(),
         status: 'ACTIVE',
         updated_at: new Date()
       }
     });
+
+    console.log(`[PASSENGER_REGISTERED] id=${passenger.id} email=${email} neighborhood_id=${neighborhoodId || 'null'} territory=${territoryName || 'none'}`);
 
     // Create LGPD consent if accepted
     if (lgpdAccepted) {

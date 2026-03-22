@@ -57,7 +57,7 @@ export default function Login() {
   };
 
   const handleRegister = () => {
-    router.push('/(auth)/register');
+    router.push(userType === 'PASSENGER' ? '/(auth)/register-passenger' : '/(auth)/register');
   };
 
   return (

@@ -170,26 +170,33 @@ export default function DocumentUpload() {
       return;
     }
 
-    // Validar se TODOS os documentos obrigatórios foram selecionados
-    const allRequiredDocs = DOCUMENT_TYPES.filter(d => d.required).map(d => d.type);
-    const uploadedOrSelected = Object.entries(documents)
-      .filter(([_, doc]) => doc && (doc.status === 'uploaded' || doc.status === 'verified' || doc.status === 'selected'))
-      .map(([type, _]) => type);
-    
-    const missingDocs = allRequiredDocs.filter(type => !uploadedOrSelected.includes(type));
-    
-    if (missingDocs.length > 0) {
-      const missingLabels = DOCUMENT_TYPES
-        .filter(d => missingDocs.includes(d.type))
-        .map(d => d.label)
-        .join(', ');
+    // Verificar se é primeiro envio ou reenvio
+    const hasExistingDocs = Object.values(documents).some(
+      doc => doc && (doc.status === 'uploaded' || doc.status === 'verified' || doc.status === 'rejected')
+    );
+
+    // Primeiro envio: exigir todos. Reenvio: aceitar parcial.
+    if (!hasExistingDocs) {
+      const allRequiredDocs = DOCUMENT_TYPES.filter(d => d.required).map(d => d.type);
+      const uploadedOrSelected = Object.entries(documents)
+        .filter(([_, doc]) => doc && (doc.status === 'uploaded' || doc.status === 'verified' || doc.status === 'selected'))
+        .map(([type, _]) => type);
       
-      Alert.alert(
-        'Documentos Incompletos',
-        `Você precisa enviar TODOS os documentos obrigatórios antes de prosseguir.\n\nFaltam: ${missingLabels}`,
-        [{ text: 'OK' }]
-      );
-      return;
+      const missingDocs = allRequiredDocs.filter(type => !uploadedOrSelected.includes(type));
+      
+      if (missingDocs.length > 0) {
+        const missingLabels = DOCUMENT_TYPES
+          .filter(d => missingDocs.includes(d.type))
+          .map(d => d.label)
+          .join(', ');
+        
+        Alert.alert(
+          'Documentos Incompletos',
+          `Você precisa enviar TODOS os documentos obrigatórios antes de prosseguir.\n\nFaltam: ${missingLabels}`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
     }
 
     setUploading(true);
@@ -244,14 +251,18 @@ export default function DocumentUpload() {
 
   const progress = getProgress();
   const hasSelected = Object.values(documents).some(doc => doc?.status === 'selected');
+  const isResubmit = Object.values(documents).some(
+    doc => doc && (doc.status === 'uploaded' || doc.status === 'verified' || doc.status === 'rejected')
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Enviar Documentos</Text>
+        <Text style={styles.title}>{isResubmit ? 'Revisar Documentos' : 'Enviar Documentos'}</Text>
         <Text style={styles.subtitle}>
           {progress.completed}/{progress.total} documentos enviados
         </Text>
+        <Text style={styles.formatHint}>Formatos aceitos: JPG, PNG ou PDF (máx. 5MB)</Text>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -283,6 +294,14 @@ export default function DocumentUpload() {
           </TouchableOpacity>
         </View>
       )}
+
+      {isResubmit && !hasSelected && (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(driver)/pending-approval')}>
+            <Text style={styles.backButtonText}>Voltar para aprovação</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -307,6 +326,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     opacity: 0.9,
   },
+  formatHint: {
+    fontSize: 12,
+    color: '#fff',
+    marginTop: 8,
+    opacity: 0.7,
+  },
   scroll: {
     flex: 1,
   },
@@ -330,6 +355,15 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  backButton: {
+    alignItems: 'center',
+    padding: 16,
+  },
+  backButtonText: {
+    color: COLORS.primary,
     fontSize: 16,
     fontWeight: '600',
   },

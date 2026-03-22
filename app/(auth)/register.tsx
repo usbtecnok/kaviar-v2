@@ -88,9 +88,12 @@ export default function Register() {
       
       if (status !== 'granted') {
         Alert.alert(
-          'Localização Negada',
-          'Você pode escolher seu bairro manualmente',
-          [{ text: 'OK', onPress: loadNeighborhoods }]
+          'Localização Obrigatória',
+          'O KAVIAR usa sua localização para definir seu território de atuação. Sem ela, não é possível concluir o cadastro.\n\nVá em Configurações > Kaviar > Localização e permita o acesso.',
+          [
+            { text: 'Tentar Novamente', onPress: requestLocation },
+            { text: 'Voltar', onPress: () => setStep(2), style: 'cancel' }
+          ]
         );
         return;
       }
@@ -197,25 +200,19 @@ export default function Register() {
       }
     } catch (error) {
       console.error('[loadNeighborhoods] Erro:', error);
-      // Fallback final: permitir continuar sem bairros
-      Alert.alert(
-        'Aviso',
-        'Não consegui carregar bairros agora. Você pode continuar sem escolher bairro e definir depois.',
-        [{ text: 'OK' }]
-      );
+      // Sem bairros carregados, mas GPS já garante território via geo-resolve
       setNeighborhoods([]);
     }
   };
 
   const handleRegister = async () => {
-    // ✅ KAVIAR: Território é opcional, não bloqueia cadastro
-    if (!selectedNeighborhood && neighborhoods.length > 0) {
+    // GPS obrigatório
+    if (!location) {
       Alert.alert(
-        'Aviso',
-        'Você não selecionou um bairro. Deseja continuar mesmo assim? O território pode ser definido depois.',
+        'Localização Obrigatória',
+        'Precisamos da sua localização para definir seu território. Toque em "Tentar Novamente" para ativar o GPS.',
         [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Continuar', onPress: () => performRegister() }
+          { text: 'Tentar Novamente', onPress: requestLocation },
         ]
       );
       return;
@@ -243,7 +240,7 @@ export default function Register() {
         familyProfile: familyBonusAccepted ? 'familiar' : 'individual',
       };
 
-      // ✅ KAVIAR: Só envia neighborhoodId se existir
+      // ✅ KAVIAR: Só envia neighborhoodId se existir (backend resolve via geo-resolve)
       if (selectedNeighborhood) {
         registerPayload.neighborhoodId = selectedNeighborhood.id;
       }
@@ -253,14 +250,10 @@ export default function Register() {
         registerPayload.communityId = selectedCommunity.id;
       }
 
-      // ✅ KAVIAR: Só envia localização se existir
-      if (location) {
-        registerPayload.lat = location.lat;
-        registerPayload.lng = location.lng;
-        registerPayload.verificationMethod = 'GPS_AUTO';
-      } else if (selectedNeighborhood) {
-        registerPayload.verificationMethod = 'MANUAL_SELECTION';
-      }
+      // GPS é obrigatório neste ponto (validado em handleRegister)
+      registerPayload.lat = location!.lat;
+      registerPayload.lng = location!.lng;
+      registerPayload.verificationMethod = 'GPS_AUTO';
 
       console.log('[performRegister] Payload:', JSON.stringify(registerPayload, null, 2));
 

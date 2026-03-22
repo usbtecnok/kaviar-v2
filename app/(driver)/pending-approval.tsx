@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authStore } from '../../src/auth/auth.store';
 import { driverApi } from '../../src/api/driver.api';
+import { getMyDocuments } from '../services/documentApi';
 import { COLORS } from '../../src/config/colors';
 
 export default function PendingApproval() {
@@ -12,6 +13,7 @@ export default function PendingApproval() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [driverStatus, setDriverStatus] = useState<string>('pending');
+  const [hasRejectedDoc, setHasRejectedDoc] = useState(false);
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
@@ -53,6 +55,14 @@ export default function PendingApproval() {
           [{ text: 'OK' }]
         );
       }
+
+      // Verificar documentos rejeitados (reusa o ciclo existente)
+      try {
+        const docsResult = await getMyDocuments();
+        if (docsResult.success && docsResult.data) {
+          setHasRejectedDoc(docsResult.data.some(d => d.status === 'rejected' || d.status === 'REJECTED'));
+        }
+      } catch {}
     } catch (error) {
       console.error('Erro ao verificar status:', error);
     } finally {
@@ -107,6 +117,22 @@ export default function PendingApproval() {
             O processo de aprovação pode levar até 48 horas. Você receberá uma notificação assim que sua conta for aprovada.
           </Text>
         </View>
+
+        {hasRejectedDoc && (
+          <View style={styles.rejectBox}>
+            <Ionicons name="alert-circle" size={24} color={COLORS.danger} />
+            <Text style={styles.rejectText}>
+              Um ou mais documentos foram rejeitados. Revise e reenvie para continuar.
+            </Text>
+          </View>
+        )}
+
+        {hasRejectedDoc && (
+          <TouchableOpacity style={styles.reviewButton} onPress={() => router.push('/(driver)/documents')}>
+            <Ionicons name="document-text-outline" size={20} color="#FFF" />
+            <Text style={styles.reviewButtonText}>Revisar documentos</Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.statusBox}>
           <Text style={styles.statusLabel}>Status atual:</Text>
@@ -204,6 +230,38 @@ const styles = StyleSheet.create({
   },
   statusPending: {
     color: COLORS.warning,
+  },
+  rejectBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFEBEE',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.danger,
+  },
+  rejectText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#C62828',
+    marginLeft: 12,
+    lineHeight: 20,
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.danger,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 12,
+  },
+  reviewButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   refreshButton: {
     flexDirection: 'row',

@@ -30,6 +30,18 @@ router.post('/favorites', authenticatePassenger, async (req: Request, res: Respo
       });
     }
 
+    // Validate limit
+    const count = await prisma.passenger_favorite_locations.count({
+      where: { passenger_id: passenger.id }
+    });
+    if (count >= 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'FAVORITES_LIMIT_REACHED',
+        message: 'Limite de 3 favoritos atingido',
+      });
+    }
+
     // Create favorite
     const favorite = await prisma.passenger_favorite_locations.create({
       data: {

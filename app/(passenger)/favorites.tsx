@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { apiClient } from '../../src/api/client';
 import { COLORS } from '../../src/config/colors';
 
@@ -15,6 +16,7 @@ interface Favorite {
 }
 
 export default function Favorites() {
+  const router = useRouter();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -286,6 +288,10 @@ export default function Favorites() {
             </View>
           </View>
         )}
+
+        <TouchableOpacity style={styles.doneButton} onPress={() => router.replace('/(passenger)/map')}>
+          <Text style={styles.doneButtonText}>Concluir</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -463,6 +469,16 @@ const styles = StyleSheet.create({
   },
   buttonSecondaryText: {
     color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  doneButton: {
+    alignItems: 'center',
+    padding: 16,
+    marginTop: 20,
+  },
+  doneButtonText: {
+    color: COLORS.primary,
     fontSize: 16,
     fontWeight: '600',
   },

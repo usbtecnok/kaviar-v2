@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { dispatcherService } from '../services/dispatcher.service';
+import { GeoResolveService } from '../services/geo-resolve';
 import { Decimal } from '@prisma/client/runtime/library';
 import jwt from 'jsonwebtoken';
 
 const router = Router();
+const geoResolveService = new GeoResolveService();
 
 // Middleware de autenticação JWT (compatível com token real do sistema)
 const requirePassenger = (req: Request, res: Response, next: Function) => {
@@ -100,6 +102,20 @@ router.post('/', requirePassenger, async (req: Request, res: Response) => {
     });
 
     console.log(`[RIDE_CREATED] ride_id=${ride.id} passenger_id=${passengerId} origin=[${origin.lat},${origin.lng}] dest=[${destination.lat},${destination.lng}]`);
+
+    // Resolver território da origem via geofence (não bloqueia criação)
+    try {
+      const geoResult = await geoResolveService.resolveCoordinates(origin.lat, origin.lng);
+      if (geoResult.match && geoResult.resolvedArea) {
+        await prisma.rides_v2.update({
+          where: { id: ride.id },
+          data: { origin_neighborhood_id: geoResult.resolvedArea.id }
+        });
+        console.log(`[RIDE_GEO_RESOLVED] ride_id=${ride.id} origin_neighborhood_id=${geoResult.resolvedArea.id} name=${geoResult.resolvedArea.name}`);
+      }
+    } catch (geoErr) {
+      console.error(`[RIDE_GEO_RESOLVE_FAILED] ride_id=${ride.id}`, geoErr);
+    }
 
     // Acionar dispatcher (async, não bloqueia resposta)
     setImmediate(() => dispatcherService.dispatchRide(ride.id));

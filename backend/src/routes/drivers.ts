@@ -66,14 +66,11 @@ const completeProfileSchema = z.object({
 router.post('/me/complete-profile', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).userId;
-    console.log('[complete-profile] Driver ID:', driverId);
     
     const data = completeProfileSchema.parse(req.body);
-    console.log('[complete-profile] Data validated');
 
     // Resolve geolocation to neighborhood
     const geoResult = await geoResolveService.resolveCoordinates(data.latitude, data.longitude);
-    console.log('[complete-profile] Geo result:', geoResult);
 
     // Prepare update data - only include name/phone if provided
     const updateData: any = {
@@ -91,7 +88,6 @@ router.post('/me/complete-profile', authenticateDriver, async (req: Request, res
       where: { id: driverId },
       data: updateData
     });
-    console.log('[complete-profile] Driver updated');
 
     // Store consent in dedicated table
     await prisma.driver_consents.upsert({
@@ -108,7 +104,6 @@ router.post('/me/complete-profile', authenticateDriver, async (req: Request, res
         terms_version: data.terms_version
       }
     });
-    console.log('[complete-profile] Consent saved');
 
     res.json({
       success: true,
@@ -263,10 +258,6 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
       }
     }
 
-    console.log('[UPLOAD] Driver ID:', driverId);
-    console.log('[UPLOAD] Files received:', req.files ? Object.keys(req.files) : 'NONE');
-    console.log('[UPLOAD] Body keys:', Object.keys(req.body));
-    
     if (!driverId) {
       return res.status(401).json({
         success: false,
@@ -308,13 +299,6 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
       }
     }
 
-    // Log detalhado dos arquivos
-    if (files) {
-      Object.entries(files).forEach(([key, fileArray]) => {
-        console.log(`[UPLOAD] ${key}:`, fileArray.map(f => `${f.originalname} (${f.size} bytes)`));
-      });
-    }
-
     // Alias temporário: certidao -> backgroundCheck
     if ((!files?.backgroundCheck || files.backgroundCheck.length === 0) && files?.certidao?.length) {
       files.backgroundCheck = files.certidao;
@@ -322,36 +306,79 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
 
     // Validar arquivos obrigatórios
     const missing: string[] = [];
+    // Verificar se é reenvio (já tem documentos no banco)
+    const existingDocs = await prisma.driver_documents.findMany({
+      where: { driver_id: driverId },
+      select: { type: true }
+    });
+    const isResubmit = existingDocs.length > 0;
+
     const requireOne = (key: string) => {
       if (!files?.[key] || files[key].length === 0) {
         missing.push(key);
       }
     };
 
-    requireOne('cpf');
-    requireOne('rg');
-    requireOne('cnh');
-    requireOne('proofOfAddress');
-    requireOne('vehiclePhoto');
-    requireOne('backgroundCheck');
+    // Primeiro envio: exigir todos. Reenvio: aceitar parcial.
+    if (!isResubmit) {
+      requireOne('cpf');
+      requireOne('rg');
+      requireOne('cnh');
+      requireOne('proofOfAddress');
+      requireOne('vehiclePhoto');
+      requireOne('backgroundCheck');
 
-    if (missing.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'MISSING_FILES',
-        message: 'Documentos obrigatórios pendentes',
-        missingFiles: missing
-      });
+      if (missing.length > 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'MISSING_FILES',
+          message: 'Documentos obrigatórios pendentes',
+          missingFiles: missing
+        });
+      }
+    } else {
+      // Reenvio: precisa de pelo menos 1 arquivo
+      const sentKeys = files ? Object.keys(files).filter(k => files[k]?.length > 0) : [];
+      if (sentKeys.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'NO_FILES',
+          message: 'Envie pelo menos um documento'
+        });
+      }
+      console.log(JSON.stringify({
+        level: 'info',
+        action: 'upload_resubmit',
+        driverId,
+        files: sentKeys,
+        timestamp: new Date().toISOString()
+      }));
     }
 
     // Construir URLs dos arquivos (S3 key ou local filename)
     const fileUrl = (f: any) => f.key || `certidoes/${f.filename}`;
-    const cpfUrl = fileUrl(files.cpf[0]);
-    const rgUrl = fileUrl(files.rg[0]);
-    const cnhUrl = fileUrl(files.cnh[0]);
-    const proofOfAddressUrl = fileUrl(files.proofOfAddress[0]);
-    const vehiclePhotoUrls = files.vehiclePhoto.map((f: any) => fileUrl(f));
-    const backgroundCheckUrl = fileUrl(files.backgroundCheck[0]);
+
+    // Construir lista de documentos a persistir (só os enviados)
+    const docTypesToUpsert: Array<{ type: string; url: string }> = [];
+    const typeMap: Record<string, string> = {
+      cpf: 'CPF', rg: 'RG', cnh: 'CNH',
+      proofOfAddress: 'PROOF_OF_ADDRESS',
+      vehiclePhoto: 'VEHICLE_PHOTO',
+      backgroundCheck: 'BACKGROUND_CHECK',
+      certidao: 'BACKGROUND_CHECK',
+    };
+
+    if (files) {
+      // Alias: certidao -> backgroundCheck
+      if ((!files.backgroundCheck || files.backgroundCheck.length === 0) && files.certidao?.length) {
+        files.backgroundCheck = files.certidao;
+      }
+      for (const [key, fileArray] of Object.entries(files)) {
+        if (fileArray?.length > 0 && typeMap[key]) {
+          docTypesToUpsert.push({ type: typeMap[key], url: fileUrl(fileArray[0]) });
+        }
+      }
+    }
 
     // Extrair dados adicionais do body (aceitar ambos formatos)
     const vehicleColor = req.body.vehicleColor || req.body.vehicle_color;
@@ -359,20 +386,14 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
     const vehicleModel = req.body.vehicleModel || req.body.vehicle_model;
     const { pix_key, pix_key_type, communityId, lgpdAccepted, termsAccepted } = req.body;
 
-    console.log('[DOCS] vehicleColor incoming:', vehicleColor);
-    console.log('[DOCS] vehiclePlate incoming:', vehiclePlate);
-    console.log('[DOCS] vehicleModel incoming:', vehicleModel);
-    console.log('[DOCS] Full body keys:', Object.keys(req.body));
-
     // Persistir documentos em transação
     let upsertedCount = 0;
     try {
       await prisma.$transaction(async (tx) => {
-        // 1. Atualizar driver (campos legacy)
-        const updateData: any = {
-          certidao_nada_consta_url: backgroundCheckUrl,
-          updated_at: new Date()
-        };
+        // 1. Atualizar driver (campos legacy — só se enviados)
+        const updateData: any = { updated_at: new Date() };
+        const bgDoc = docTypesToUpsert.find(d => d.type === 'BACKGROUND_CHECK');
+        if (bgDoc) updateData.certidao_nada_consta_url = bgDoc.url;
 
         if (pix_key) updateData.pix_key = pix_key;
         if (pix_key_type) updateData.pix_key_type = pix_key_type;
@@ -385,19 +406,9 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
           where: { id: driverId },
           data: updateData
         });
-        console.log(`  ✓ Updated driver ${driverId} with vehicle_color:`, vehicleColor);
 
-        // 2. Persistir em driver_documents (para validação de aprovação)
-        const docTypes = [
-          { type: 'CPF', url: cpfUrl },
-          { type: 'RG', url: rgUrl },
-          { type: 'CNH', url: cnhUrl },
-          { type: 'PROOF_OF_ADDRESS', url: proofOfAddressUrl },
-          { type: 'VEHICLE_PHOTO', url: vehiclePhotoUrls[0] }, // primeira foto
-          { type: 'BACKGROUND_CHECK', url: backgroundCheckUrl }
-        ];
-
-        for (const doc of docTypes) {
+        // 2. Persistir em driver_documents (só os enviados)
+        for (const doc of docTypesToUpsert) {
           await tx.driver_documents.upsert({
             where: {
               driver_id_type: { driver_id: driverId, type: doc.type }
@@ -415,29 +426,32 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
               file_url: doc.url,
               status: 'SUBMITTED',
               submitted_at: new Date(),
+              rejected_at: null,
+              rejected_by_admin_id: null,
+              reject_reason: null,
               updated_at: new Date()
             }
           });
-          console.log(`  ✓ Upserted driver_document: ${doc.type}`);
           upsertedCount++;
         }
 
-        // 3. Persistir BACKGROUND_CHECK em driver_compliance_documents (para Admin/Compliance)
-        await tx.driver_compliance_documents.create({
-          data: {
-            id: `compliance_${driverId}_${Date.now()}`,
-            driver_id: driverId,
-            type: 'criminal_record',
-            file_url: backgroundCheckUrl,
-            status: 'pending',
-            lgpd_consent_accepted: lgpdAccepted === 'true' || lgpdAccepted === true,
-            lgpd_consent_ip: (req as any).ip || req.headers['x-forwarded-for'] || 'unknown',
-            lgpd_consent_at: new Date(),
-            created_at: new Date(),
-            updated_at: new Date()
-          }
-        });
-        console.log(`  ✓ Created driver_compliance_document`);
+        // 3. Persistir BACKGROUND_CHECK em compliance (só se enviado)
+        if (bgDoc) {
+          await tx.driver_compliance_documents.create({
+            data: {
+              id: `compliance_${driverId}_${Date.now()}`,
+              driver_id: driverId,
+              type: 'criminal_record',
+              file_url: bgDoc.url,
+              status: 'pending',
+              lgpd_consent_accepted: lgpdAccepted === 'true' || lgpdAccepted === true,
+              lgpd_consent_ip: (req as any).ip || req.headers['x-forwarded-for'] || 'unknown',
+              lgpd_consent_at: new Date(),
+              created_at: new Date(),
+              updated_at: new Date()
+            }
+          });
+        }
 
         // 4. Sync LGPD consent to consents table (required by approval validation)
         if (lgpdAccepted === 'true' || lgpdAccepted === true) {
@@ -467,7 +481,6 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
               user_agent: req.headers['user-agent'] || 'unknown'
             }
           });
-          console.log(`  ✓ Synced LGPD consent to consents table`);
         }
 
         // 5. Sync community to driver_verifications (required by approval validation)
@@ -487,7 +500,6 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
               updated_at: new Date()
             }
           });
-          console.log(`  ✓ Synced community to driver_verifications`);
         }
       });
     } catch (txError) {
@@ -495,45 +507,24 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
       throw txError; // Re-throw para ser capturado pelo catch externo
     }
 
-    // ✅ Log sucesso com evidência
-    console.log(`✅ Documents uploaded for driver ${driverId}:`);
-    console.log(`   Files received: ${Object.keys(files).join(', ')}`);
-    console.log(`   driver_documents upserted: ${upsertedCount}`);
-    console.log(`   driver_compliance_documents created: 1`);
-
     // ✅ LOG ESTRUTURADO: Sucesso
+    const uploadedTypes = docTypesToUpsert.map(d => d.type);
     console.log(JSON.stringify({
       level: 'info',
       action: 'upload_success',
       driverId,
-      filesReceived: Object.keys(files),
-      s3Keys: {
-        cpf: cpfUrl,
-        rg: rgUrl,
-        cnh: cnhUrl,
-        proofOfAddress: proofOfAddressUrl,
-        vehiclePhotos: vehiclePhotoUrls,
-        backgroundCheck: backgroundCheckUrl
-      },
+      isResubmit,
+      uploadedTypes,
       savedDriverDocuments: upsertedCount,
-      savedComplianceDocs: 1,
       timestamp: new Date().toISOString()
     }));
 
     res.json({
       success: true,
       message: 'Documentos enviados com sucesso',
-      received: Object.keys(files),
+      received: uploadedTypes,
       savedDriverDocuments: upsertedCount,
-      savedComplianceDocs: 1,
-      data: {
-        cpf: cpfUrl,
-        rg: rgUrl,
-        cnh: cnhUrl,
-        proofOfAddress: proofOfAddressUrl,
-        vehiclePhotos: vehiclePhotoUrls,
-        backgroundCheck: backgroundCheckUrl
-      }
+      data: Object.fromEntries(docTypesToUpsert.map(d => [d.type, d.url]))
     });
   } catch (error) {
     const driverId = (req as any).userId;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { passengerApi } from '../../src/api/passenger.api';
@@ -40,7 +41,7 @@ export default function PassengerMap() {
           stopPolling();
           if (updated.status === 'completed') {
             Alert.alert('Corrida Finalizada!', 'Obrigado por usar o Kaviar.', [
-              { text: 'Avaliar', onPress: () => router.push({ pathname: '/(passenger)/rating', params: { rideId: updated.id, driverName: updated.driver?.name || '' } }) },
+              { text: 'Avaliar', onPress: () => router.push({ pathname: '/(passenger)/rating', params: { rideId: updated.id, driverName: updated.driver?.name || '', driverId: updated.driver?.id || '' } }) },
               { text: 'Fechar', onPress: resetToIdle },
             ]);
           } else if (updated.status === 'no_driver') {
@@ -131,6 +132,9 @@ export default function PassengerMap() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>{userName ? `Olá, ${userName}` : 'Kaviar'}</Text>
+          <TouchableOpacity onPress={() => router.push('/(passenger)/favorites')} accessibilityLabel="Meus locais favoritos">
+            <Ionicons name="star-outline" size={24} color={COLORS.primary} />
+          </TouchableOpacity>
         </View>
         <View style={styles.center}>
           <Text style={styles.subtitle}>Para onde você vai?</Text>
@@ -224,7 +228,7 @@ function chipColor(status: RideStatus): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { padding: 20, paddingBottom: 0 },
+  header: { padding: 20, paddingBottom: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: 22, fontWeight: 'bold' },
   subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 20, textAlign: 'center' },
   center: { flex: 1, padding: 20, justifyContent: 'center' },

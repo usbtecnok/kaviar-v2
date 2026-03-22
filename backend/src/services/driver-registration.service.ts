@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
+import { GeoResolveService } from './geo-resolve';
 
 interface DriverRegistrationInput {
   // Obrigatórios
@@ -11,14 +12,14 @@ interface DriverRegistrationInput {
   document_cpf: string;
   vehicle_color: string;
   accepted_terms: boolean;
-  neighborhoodId: string;
+  lat: number;
+  lng: number;
   
   // Opcionais
+  neighborhoodId?: string;
   vehicle_model?: string;
   vehicle_plate?: string;
-  communityId?: string; // UUID ou slug
-  lat?: number;
-  lng?: number;
+  communityId?: string;
   verificationMethod?: 'GPS_AUTO' | 'MANUAL_SELECTION';
   familyBonusAccepted?: boolean;
   familyProfile?: 'individual' | 'familiar';
@@ -63,18 +64,29 @@ export class DriverRegistrationService {
         return { success: false, error: 'Email já cadastrado' };
       }
       
-      // 3. Validar neighborhoodId
-      const neighborhood = await this.validateNeighborhood(input.neighborhoodId);
-      if (!neighborhood) {
-        return { success: false, error: 'Bairro não encontrado ou inativo' };
+      // 3. Resolver território via GPS (fonte primária) ou neighborhoodId (fallback)
+      let resolvedNeighborhoodId = input.neighborhoodId;
+      
+      if (!resolvedNeighborhoodId) {
+        const geoResolve = new GeoResolveService();
+        const geoResult = await geoResolve.resolveCoordinates(input.lat, input.lng);
+        if (geoResult.match && geoResult.resolvedArea) {
+          resolvedNeighborhoodId = geoResult.resolvedArea.id;
+          console.log(`[DriverRegistration] Geo-resolved: ${geoResult.resolvedArea.name} (${resolvedNeighborhoodId})`);
+        }
+      }
+      
+      let neighborhood: any = null;
+      if (resolvedNeighborhoodId) {
+        neighborhood = await this.validateNeighborhood(resolvedNeighborhoodId);
       }
       
       // 4. Validar communityId (se fornecido)
       let validatedCommunityId: string | null = null;
-      if (input.communityId) {
+      if (input.communityId && resolvedNeighborhoodId) {
         validatedCommunityId = await this.validateCommunity(
           input.communityId, 
-          input.neighborhoodId
+          resolvedNeighborhoodId
         );
         if (!validatedCommunityId) {
           return { success: false, error: 'Comunidade inválida para este bairro' };
@@ -107,7 +119,7 @@ export class DriverRegistrationService {
             vehicle_color: input.vehicle_color,
             vehicle_model: input.vehicle_model || null,
             vehicle_plate: input.vehicle_plate || null,
-            neighborhood_id: input.neighborhoodId,
+            neighborhood_id: resolvedNeighborhoodId || null,
             community_id: validatedCommunityId,
             territory_type: territoryType,
             territory_verified_at: new Date(),
@@ -166,9 +178,9 @@ export class DriverRegistrationService {
           id: driver.id,
           name: driver.name,
           email: driver.email,
-          phone: driver.phone,
+          phone: driver.phone ?? '',
           status: driver.status,
-          neighborhood_id: driver.neighborhood_id,
+          neighborhood_id: driver.neighborhood_id ?? '',
           community_id: driver.community_id,
           territory_type: driver.territory_type,
           territory_verification_method: driver.territory_verification_method,
@@ -192,15 +204,15 @@ export class DriverRegistrationService {
     });
   }
   
-  private async validateCommunity(communityIdOrSlug: string, neighborhoodId: string): Promise<string | null> {
-    // Validar por id ou slug (não name)
+  private async validateCommunity(communityIdOrSlug: string, _neighborhoodId: string): Promise<string | null> {
+    // Validar por id ou name
     const community = await prisma.communities.findFirst({
       where: {
         OR: [
           { id: communityIdOrSlug },
-          { slug: communityIdOrSlug }
+          { name: communityIdOrSlug }
         ],
-        neighborhood_id: neighborhoodId
+        is_active: true
       }
     });
     return community?.id || null;
@@ -212,14 +224,21 @@ export class DriverRegistrationService {
     lng?: number,
     requestedMethod?: string
   ): Promise<{ territoryType: string; verificationMethod: string }> {
-    const hasGeofence = neighborhood.neighborhood_geofences?.length > 0;
+    if (!neighborhood) {
+      return {
+        territoryType: 'FALLBACK_800M',
+        verificationMethod: requestedMethod || 'GPS_AUTO'
+      };
+    }
+
+    const hasGeofence = !!neighborhood.neighborhood_geofences;
     
     // Se tem GPS e geofence, validar ponto
     if (lat && lng && hasGeofence) {
       const isInside = await this.checkPointInGeofence(
         lat, 
         lng, 
-        neighborhood.neighborhood_geofences
+        [neighborhood.neighborhood_geofences]
       );
       
       return {
@@ -246,10 +265,10 @@ export class DriverRegistrationService {
         continue;
       }
       
-      // GeoJSON: coordinates é array de [lng, lat]
-      const polygon = geofence.coordinates;
+      // GeoJSON Polygon: coordinates = [[[lng, lat], ...]]
+      const ring = geofence.geofence_type === 'Polygon' ? geofence.coordinates[0] : geofence.coordinates;
       
-      if (this.pointInPolygon(lat, lng, polygon)) {
+      if (this.pointInPolygon(lat, lng, ring)) {
         return true;
       }
     }
