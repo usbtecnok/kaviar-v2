@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } fr
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { passengerApi } from '../../src/api/passenger.api';
@@ -23,11 +24,13 @@ export default function PassengerMap() {
   const [loading, setLoading] = useState(false);
   const [ride, setRide] = useState<Ride | null>(null);
   const [userName, setUserName] = useState('');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const user = authStore.getUser();
     if (user?.name) setUserName(user.name);
+    acquireLocation();
     return () => stopPolling();
   }, []);
 
@@ -69,6 +72,21 @@ export default function PassengerMap() {
     setDestText('');
   };
 
+  // --- Location ---
+  const acquireLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Localização necessária', 'Ative a localização para solicitar corridas.');
+      return;
+    }
+    try {
+      const loc = await Location.getCurrentPositionAsync({});
+      setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+    } catch {
+      Alert.alert('Erro de GPS', 'Não foi possível obter sua localização. Tente novamente.');
+    }
+  };
+
   // --- Actions ---
   const handleRetry = () => {
     stopPolling();
@@ -83,12 +101,16 @@ export default function PassengerMap() {
       Alert.alert('Preencha os campos', 'Informe origem e destino.');
       return;
     }
+    if (!userLocation) {
+      Alert.alert('Localização indisponível', 'Aguarde o GPS ou verifique as permissões.');
+      await acquireLocation();
+      return;
+    }
     setLoading(true);
     try {
-      // Coordenadas fixas para MVP local (Centro RJ)
       const result = await passengerApi.requestRide({
-        origin: { lat: -22.9100, lng: -43.1750, text: originText.trim() },
-        destination: { lat: -22.9200, lng: -43.1800, text: destText.trim() },
+        origin: { lat: userLocation.lat, lng: userLocation.lng, text: originText.trim() },
+        destination: { lat: userLocation.lat + 0.005, lng: userLocation.lng + 0.005, text: destText.trim() },
       });
       const rideData = await passengerApi.getRide(result.ride_id);
       setRide(rideData);
