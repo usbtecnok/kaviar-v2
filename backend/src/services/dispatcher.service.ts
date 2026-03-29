@@ -14,7 +14,7 @@ interface DriverCandidate {
 
 export class DispatcherService {
   private readonly MAX_ATTEMPTS = 5;
-  private readonly OFFER_TIMEOUT_SECONDS = 15;
+  private readonly OFFER_TIMEOUT_SECONDS = 30;
   private readonly MAX_DISTANCE_KM = 10;
   private readonly LOCATION_FRESHNESS_SECONDS = process.env.NODE_ENV === 'production' ? 30 : 3600; // DEV: 1h
 
