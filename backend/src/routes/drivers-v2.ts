@@ -170,4 +170,55 @@ router.post('/offers/:offer_id/reject', requireDriver, async (req: Request, res:
   }
 });
 
+// GET /api/v2/drivers/me/offers — ofertas pendentes para o motorista
+router.get('/me/offers', requireDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+
+    const offers = await prisma.ride_offers.findMany({
+      where: { driver_id: driverId, status: 'pending' },
+      orderBy: { sent_at: 'desc' },
+      include: {
+        ride: {
+          select: {
+            id: true, status: true, ride_type: true,
+            origin_lat: true, origin_lng: true, origin_text: true,
+            dest_lat: true, dest_lng: true, destination_text: true,
+            requested_at: true,
+            passenger: { select: { name: true } }
+          }
+        }
+      }
+    });
+
+    res.json({ success: true, data: offers });
+  } catch (error: any) {
+    console.error('[DRIVER_OFFERS_ERROR]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/v2/drivers/me/current-ride — corrida ativa do motorista
+router.get('/me/current-ride', requireDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+
+    const ride = await prisma.rides_v2.findFirst({
+      where: {
+        driver_id: driverId,
+        status: { in: ['accepted', 'arrived', 'in_progress'] }
+      },
+      orderBy: { updated_at: 'desc' },
+      include: {
+        passenger: { select: { name: true, phone: true } }
+      }
+    });
+
+    res.json({ success: true, data: ride || null });
+  } catch (error: any) {
+    console.error('[DRIVER_CURRENT_RIDE_ERROR]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
