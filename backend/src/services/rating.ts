@@ -22,15 +22,21 @@ export class RatingService {
     try {
       // If rideId provided, validate ride exists and is completed
       if (data.rideId) {
-        const ride = await prisma.rides.findUnique({
-          where: { id: data.rideId }
-        });
+        // Try rides_v2 first, then legacy rides
+        let rideStatus: string | null = null;
+        const rideV2 = await prisma.rides_v2.findUnique({ where: { id: data.rideId }, select: { status: true } });
+        if (rideV2) {
+          rideStatus = rideV2.status;
+        } else {
+          const ride = await prisma.rides.findUnique({ where: { id: data.rideId }, select: { status: true } });
+          if (ride) rideStatus = ride.status;
+        }
 
-        if (!ride) {
+        if (rideStatus === null) {
           return { success: false, error: 'RIDE_NOT_FOUND' };
         }
 
-        if (ride.status !== 'completed') {
+        if (rideStatus !== 'completed') {
           return { 
             success: false, 
             error: 'RIDE_NOT_COMPLETED'
@@ -193,40 +199,55 @@ export class RatingService {
    */
   async getPendingRatingRide(passengerId: string): Promise<any | null> {
     try {
+      // Try rides_v2 first
+      const rideV2 = await prisma.rides_v2.findFirst({
+        where: {
+          passenger_id: passengerId,
+          status: 'completed'
+        },
+        orderBy: { updated_at: 'desc' }
+      });
+
+      if (rideV2) {
+        const existingRating = await prisma.ratings.findFirst({
+          where: { ride_id: rideV2.id, user_id: passengerId }
+        });
+        if (!existingRating) {
+          const driver = rideV2.driver_id ? await prisma.drivers.findUnique({
+            where: { id: rideV2.driver_id },
+            select: { id: true, name: true, phone: true }
+          }) : null;
+          return {
+            id: rideV2.id,
+            origin: rideV2.origin_text,
+            destination: rideV2.destination_text,
+            price: null,
+            status: rideV2.status,
+            completedAt: rideV2.updated_at,
+            driver: driver ? { id: driver.id, name: driver.name, phone: driver.phone } : null
+          };
+        }
+      }
+
+      // Fallback to legacy rides
       const ride = await prisma.rides.findFirst({
         where: {
           passenger_id: passengerId,
           status: 'completed'
         },
-        orderBy: {
-          updated_at: 'desc'
-        }
+        orderBy: { updated_at: 'desc' }
       });
 
-      if (!ride) {
-        return null;
-      }
+      if (!ride) return null;
 
-      // Check if already rated
       const existingRating = await prisma.ratings.findFirst({
-        where: {
-          ride_id: ride.id,
-          user_id: passengerId
-        }
+        where: { ride_id: ride.id, user_id: passengerId }
       });
+      if (existingRating) return null;
 
-      if (existingRating) {
-        return null;
-      }
-
-      // Get driver info
       const driver = ride.driver_id ? await prisma.drivers.findUnique({
         where: { id: ride.driver_id },
-        select: {
-          id: true,
-          name: true,
-          phone: true
-        }
+        select: { id: true, name: true, phone: true }
       }) : null;
 
       return {
@@ -236,11 +257,7 @@ export class RatingService {
         price: ride.price,
         status: ride.status,
         completedAt: ride.updated_at,
-        driver: driver ? {
-          id: driver.id,
-          name: driver.name,
-          phone: driver.phone
-        } : null
+        driver: driver ? { id: driver.id, name: driver.name, phone: driver.phone } : null
       };
 
     } catch (error) {
