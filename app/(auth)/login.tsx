@@ -17,9 +17,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [userType, setUserType] = useState<'PASSENGER' | 'DRIVER'>(
-    APP_VARIANT === 'passenger' ? 'PASSENGER' : 'DRIVER'
-  );
+  const isDriver = APP_VARIANT === 'driver';
+  const userType = isDriver ? 'DRIVER' : 'PASSENGER';
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -62,29 +61,7 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      
-      {APP_VARIANT === 'passenger' && (
-        <View style={styles.typeSelector}>
-          <TouchableOpacity
-            style={[styles.typeButton, userType === 'PASSENGER' && styles.typeButtonActive]}
-            onPress={() => setUserType('PASSENGER')}
-          >
-            <Text style={[styles.typeText, userType === 'PASSENGER' && styles.typeTextActive]}>
-              Passageiro
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.typeButton, userType === 'DRIVER' && styles.typeButtonActive]}
-            onPress={() => setUserType('DRIVER')}
-          >
-            <Text style={[styles.typeText, userType === 'DRIVER' && styles.typeTextActive]}>
-              Motorista
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <Text style={styles.title}>{isDriver ? 'Kaviar Motorista' : 'Kaviar Passageiro'}</Text>
       
       <Input
         placeholder="Email"
@@ -111,7 +88,9 @@ export default function Login() {
 
       <TouchableOpacity onPress={handleRegister} style={styles.registerButton}>
         <Text style={styles.registerText}>
-          Não tem conta? <Text style={styles.registerTextBold}>Cadastre-se</Text>
+          Não tem conta? <Text style={styles.registerTextBold}>
+            {isDriver ? 'Cadastre-se como motorista' : 'Cadastre-se'}
+          </Text>
         </Text>
       </TouchableOpacity>
     </View>
@@ -130,29 +109,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 32,
     textAlign: 'center',
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  typeButton: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: COLORS.border,
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    backgroundColor: COLORS.primary,
-  },
-  typeText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
-  typeTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
   },
   linkButton: {
     marginTop: 16,
