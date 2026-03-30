@@ -346,7 +346,7 @@ export default function Turismo() {
                 <Button
                   fullWidth
                   variant="contained"
-                  href="https://expo.dev/artifacts/eas/feeV61ZsmK2vxhShNDvWww.apk"
+                  href="https://expo.dev/artifacts/eas/jfJT9vmucwVrkvSvVCDWo5.apk"
                   target="_blank"
                   sx={{
                     bgcolor: '#FFD700', color: '#0a0a0a', py: 1.5, fontWeight: 700, fontSize: '1rem',
@@ -378,7 +378,7 @@ export default function Turismo() {
                 <Button
                   fullWidth
                   variant="contained"
-                  href="https://expo.dev/artifacts/eas/rWBbFBWhDc9dJUtKZcpnuh.apk"
+                  href="https://expo.dev/artifacts/eas/g9ypwvA3VimRenGr1JC2Cw.apk"
                   target="_blank"
                   sx={{
                     bgcolor: '#00FFFF', color: '#0a0a0a', py: 1.5, fontWeight: 700, fontSize: '1rem',
