@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
 import { authStore } from '../../src/auth/auth.store';
@@ -28,7 +30,6 @@ export default function DriverOnline() {
     return () => { stopAll(); };
   }, []);
 
-  // Pulsação do dot quando online e aguardando
   useEffect(() => {
     if (isOnline && !pendingOffer) {
       const loop = Animated.loop(
@@ -143,74 +144,126 @@ export default function DriverOnline() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Kaviar Motorista</Text>
-      {userName ? <Text style={styles.userName}>{userName}</Text> : null}
-
-      <View style={styles.statusContainer}>
-        <Animated.View style={[styles.statusDot, isOnline && styles.statusDotOnline, isOnline && { opacity: pulseAnim }]} />
-        <Text style={[styles.statusText, isOnline && styles.statusOnline]}>
-          {isOnline ? 'ONLINE' : 'OFFLINE'}
-        </Text>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.brand}>KAVIAR</Text>
+          {userName ? <Text style={styles.userName}>{userName}</Text> : null}
+        </View>
+        {!isOnline && (
+          <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      {pendingOffer && (
-        <View style={styles.offerCard}>
-          <Text style={styles.offerTitle}>🚗 Nova corrida!</Text>
-          <Text style={styles.offerText}>
-            {pendingOffer.ride.origin_text || 'Origem não informada'}
-          </Text>
-          <Text style={styles.offerArrow}>↓</Text>
-          <Text style={styles.offerText}>
-            {pendingOffer.ride.destination_text || 'Destino não informado'}
-          </Text>
-          {pendingOffer.ride.passenger?.name && (
-            <Text style={styles.offerPassenger}>Passageiro: {pendingOffer.ride.passenger.name}</Text>
-          )}
-          <View style={styles.offerButtons}>
-            <Button title="Aceitar" onPress={handleAcceptOffer} style={styles.acceptBtn} />
-            <Button title="Recusar" onPress={handleRejectOffer} style={styles.rejectBtn} />
-          </View>
+      {/* Status */}
+      <View style={styles.center}>
+        <View style={styles.statusRing}>
+          <Animated.View style={[
+            styles.statusDot,
+            { backgroundColor: isOnline ? COLORS.statusOnline : COLORS.statusOffline },
+            isOnline && !pendingOffer && { opacity: pulseAnim },
+          ]} />
         </View>
-      )}
+        <Text style={[styles.statusText, isOnline && { color: COLORS.statusOnline }]}>
+          {isOnline ? 'ONLINE' : 'OFFLINE'}
+        </Text>
 
-      {!isOnline ? (
-        <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} disabled={loading} />
-      ) : !pendingOffer ? (
-        <>
-          <Text style={styles.waitingText}>Aguardando corridas...</Text>
-          <Button title="Ficar Offline" onPress={handleGoOffline} style={styles.offlineBtn} disabled={loading} />
-        </>
-      ) : null}
+        {/* Offer card */}
+        {pendingOffer && (
+          <View style={styles.offerCard}>
+            <View style={styles.offerHeader}>
+              <Ionicons name="car-sport" size={22} color={COLORS.primary} />
+              <Text style={styles.offerTitle}>Nova corrida!</Text>
+            </View>
 
-      {!isOnline && !pendingOffer && (
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Sair</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+            <View style={styles.routeRow}>
+              <View style={styles.routeDots}>
+                <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
+                <View style={styles.dotLine} />
+                <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
+              </View>
+              <View style={styles.routeTexts}>
+                <Text style={styles.routeText}>{pendingOffer.ride.origin_text || 'Origem não informada'}</Text>
+                <Text style={styles.routeText}>{pendingOffer.ride.destination_text || 'Destino não informado'}</Text>
+              </View>
+            </View>
+
+            {pendingOffer.ride.passenger?.name && (
+              <Text style={styles.offerPassenger}>
+                <Ionicons name="person-outline" size={14} color={COLORS.textSecondary} />{' '}
+                {pendingOffer.ride.passenger.name}
+              </Text>
+            )}
+
+            <View style={styles.offerButtons}>
+              <Button title="Aceitar" variant="success" onPress={handleAcceptOffer} style={{ flex: 1 }} />
+              <View style={{ width: 12 }} />
+              <Button title="Recusar" variant="danger" onPress={handleRejectOffer} style={{ flex: 1 }} />
+            </View>
+          </View>
+        )}
+
+        {/* Actions */}
+        {!isOnline ? (
+          <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
+        ) : !pendingOffer ? (
+          <>
+            <View style={styles.waitingBox}>
+              <Ionicons name="radio-outline" size={20} color={COLORS.textMuted} />
+              <Text style={styles.waitingText}>Aguardando corridas...</Text>
+            </View>
+            <Button title="Ficar Offline" variant="outline" onPress={handleGoOffline} loading={loading} />
+          </>
+        ) : null}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: COLORS.background, justifyContent: 'center' },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
-  userName: { fontSize: 16, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 24 },
-  statusContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 32 },
-  statusDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.statusOffline, marginRight: 8 },
-  statusDotOnline: { backgroundColor: COLORS.statusOnline },
-  statusText: { fontSize: 28, fontWeight: 'bold', color: COLORS.textMuted },
-  statusOnline: { color: COLORS.statusOnline },
-  waitingText: { fontSize: 16, color: COLORS.textMuted, textAlign: 'center', marginBottom: 24 },
-  offerCard: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, marginBottom: 20, borderLeftWidth: 4, borderLeftColor: COLORS.success },
-  offerTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
-  offerText: { fontSize: 16, color: COLORS.textPrimary },
-  offerArrow: { fontSize: 20, textAlign: 'center', color: COLORS.textMuted, marginVertical: 4 },
-  offerPassenger: { fontSize: 14, color: COLORS.textSecondary, marginTop: 8 },
-  offerButtons: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  acceptBtn: { flex: 1, backgroundColor: COLORS.success },
-  rejectBtn: { flex: 1, backgroundColor: COLORS.danger },
-  offlineBtn: { backgroundColor: COLORS.warning },
-  logoutBtn: { marginTop: 20, alignItems: 'center', padding: 16 },
-  logoutText: { color: COLORS.danger, fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 24, paddingTop: 12, paddingBottom: 8,
+  },
+  brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
+  userName: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
+  center: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+
+  // Status
+  statusRing: {
+    width: 80, height: 80, borderRadius: 40,
+    borderWidth: 3, borderColor: COLORS.border,
+    justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginBottom: 12,
+  },
+  statusDot: { width: 36, height: 36, borderRadius: 18 },
+  statusText: {
+    fontSize: 28, fontWeight: '800', color: COLORS.textMuted,
+    textAlign: 'center', letterSpacing: 4, marginBottom: 32,
+  },
+
+  // Offer
+  offerCard: {
+    backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 24,
+    borderLeftWidth: 4, borderLeftColor: COLORS.primary,
+  },
+  offerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  offerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginLeft: 10 },
+  routeRow: { flexDirection: 'row', marginBottom: 12 },
+  routeDots: { alignItems: 'center', marginRight: 12, paddingTop: 4 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  dotLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 2 },
+  routeTexts: { flex: 1, justifyContent: 'space-between', gap: 14 },
+  routeText: { fontSize: 15, color: COLORS.textPrimary },
+  offerPassenger: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 },
+  offerButtons: { flexDirection: 'row' },
+
+  // Waiting
+  waitingBox: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+  },
+  waitingText: { fontSize: 15, color: COLORS.textMuted, marginLeft: 8 },
 });

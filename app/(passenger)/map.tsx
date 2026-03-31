@@ -34,7 +34,6 @@ export default function PassengerMap() {
     return () => stopPolling();
   }, []);
 
-  // --- Polling ---
   const startPolling = (rideId: string) => {
     pollRef.current = setInterval(async () => {
       try {
@@ -54,9 +53,7 @@ export default function PassengerMap() {
             ]);
           }
         }
-      } catch {
-        // Polling silencioso — erros de rede transientes são esperados
-      }
+      } catch {}
     }, POLL_INTERVAL);
   };
 
@@ -72,7 +69,6 @@ export default function PassengerMap() {
     setDestText('');
   };
 
-  // --- Location ---
   const acquireLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -87,12 +83,10 @@ export default function PassengerMap() {
     }
   };
 
-  // --- Actions ---
   const handleRetry = () => {
     stopPolling();
     setRide(null);
     setScreen('idle');
-    // Mantém originText e destText para o usuário não precisar redigitar
     setTimeout(() => handleRequest(), 100);
   };
 
@@ -148,34 +142,49 @@ export default function PassengerMap() {
     ]);
   };
 
-  // --- Render: Idle ---
+  // --- Idle ---
   if (screen === 'idle') {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>{userName ? `Olá, ${userName}` : 'Kaviar'}</Text>
+          <View>
+            <Text style={styles.brand}>KAVIAR</Text>
+            <Text style={styles.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
+          </View>
+          <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
+          </TouchableOpacity>
         </View>
+
         <View style={styles.center}>
-          <Text style={styles.subtitle}>Para onde você vai?</Text>
-          <Input placeholder="Origem (ex: Lapa)" value={originText} onChangeText={setOriginText} />
-          <Input placeholder="Destino (ex: Glória)" value={destText} onChangeText={setDestText} />
-          <Button title="Solicitar Corrida" variant="primary" loading={loading} onPress={handleRequest} />
+          <Text style={styles.question}>Para onde você vai?</Text>
+
+          <View style={styles.routeInputs}>
+            <View style={styles.routeDots}>
+              <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
+              <View style={styles.dotLine} />
+              <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
+            </View>
+            <View style={styles.inputsCol}>
+              <Input placeholder="Origem (ex: Lapa)" value={originText} onChangeText={setOriginText} icon="ellipse" />
+              <Input placeholder="Destino (ex: Glória)" value={destText} onChangeText={setDestText} icon="location" />
+            </View>
+          </View>
+
+          <Button title="Solicitar Corrida" loading={loading} onPress={handleRequest} />
         </View>
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-          <Text style={styles.logoutText}>Sair</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     );
   }
 
-  // --- Render: Tracking ---
+  // --- Tracking ---
   const status = ride?.status as RideStatus | undefined;
   const canCancel = status && ['requested', 'offered'].includes(status);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Sua Corrida</Text>
+        <Text style={styles.brand}>KAVIAR</Text>
       </View>
 
       <View style={styles.center}>
@@ -187,32 +196,44 @@ export default function PassengerMap() {
               <Text style={styles.chipText}>{RIDE_STATUS_LABEL[status!] || status}</Text>
             </View>
 
-            <View style={styles.row}>
-              <Text style={styles.label}>📍 Origem</Text>
-              <Text style={styles.value}>{ride.origin_text || 'Carregando...'}</Text>
-            </View>
-            <View style={styles.row}>
-              <Text style={styles.label}>🏁 Destino</Text>
-              <Text style={styles.value}>{ride.destination_text || 'Carregando...'}</Text>
+            <View style={styles.routeSection}>
+              <View style={styles.routeDots}>
+                <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
+                <View style={styles.dotLine} />
+                <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
+              </View>
+              <View style={styles.routeTextsCol}>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Origem</Text>
+                  <Text style={styles.value}>{ride.origin_text || 'Carregando...'}</Text>
+                </View>
+                <View style={styles.row}>
+                  <Text style={styles.label}>Destino</Text>
+                  <Text style={styles.value}>{ride.destination_text || 'Carregando...'}</Text>
+                </View>
+              </View>
             </View>
 
             {ride.driver && (
               <>
                 <View style={styles.divider} />
-                <View style={styles.row}>
-                  <Text style={styles.label}>Motorista</Text>
-                  <Text style={styles.value}>{ride.driver.name}</Text>
+                <View style={styles.driverRow}>
+                  <View style={styles.driverAvatar}>
+                    <Ionicons name="person" size={20} color={COLORS.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.driverName}>{ride.driver.name}</Text>
+                    {(ride.driver as any).vehicle_model && (
+                      <Text style={styles.driverVehicle}>
+                        {(ride.driver as any).vehicle_model} {(ride.driver as any).vehicle_color} • {(ride.driver as any).vehicle_plate}
+                      </Text>
+                    )}
+                  </View>
                 </View>
                 {ride.driver.phone && (
                   <View style={styles.row}>
                     <Text style={styles.label}>Telefone</Text>
                     <Text style={styles.value}>{ride.driver.phone}</Text>
-                  </View>
-                )}
-                {(ride.driver as any).vehicle_model && (
-                  <View style={styles.row}>
-                    <Text style={styles.label}>Veículo</Text>
-                    <Text style={styles.value}>{(ride.driver as any).vehicle_model} {(ride.driver as any).vehicle_color} • {(ride.driver as any).vehicle_plate}</Text>
                   </View>
                 )}
               </>
@@ -238,7 +259,7 @@ export default function PassengerMap() {
 function chipColor(status: RideStatus): string {
   const map: Partial<Record<RideStatus, string>> = {
     requested: COLORS.warning, offered: COLORS.warning,
-    accepted: COLORS.primary, arrived: COLORS.primary,
+    accepted: COLORS.accent, arrived: COLORS.accent,
     in_progress: COLORS.success, completed: COLORS.success,
     canceled_by_passenger: COLORS.textMuted, canceled_by_driver: COLORS.textMuted, no_driver: COLORS.textMuted,
   };
@@ -247,19 +268,44 @@ function chipColor(status: RideStatus): string {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { padding: 20, paddingBottom: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold' },
-  subtitle: { fontSize: 16, color: COLORS.textSecondary, marginBottom: 20, textAlign: 'center' },
-  center: { flex: 1, padding: 20, justifyContent: 'center' },
-  card: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, elevation: 2 },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 24, paddingTop: 12, paddingBottom: 8,
+  },
+  brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
+  greeting: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
+  center: { flex: 1, padding: 24, justifyContent: 'center' },
+  question: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 24 },
+
+  // Route inputs
+  routeInputs: { flexDirection: 'row', marginBottom: 8 },
+  routeDots: { alignItems: 'center', marginRight: 12, paddingTop: 16 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  dotLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 2 },
+  inputsCol: { flex: 1 },
+
+  // Card
+  card: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, elevation: 2 },
   chip: { alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16, marginBottom: 16 },
   chipText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
-  row: { marginBottom: 10 },
-  label: { fontSize: 13, color: COLORS.textMuted },
-  value: { fontSize: 16, fontWeight: '600', marginTop: 2 },
-  divider: { height: 1, backgroundColor: COLORS.divider, marginVertical: 10 },
+
+  routeSection: { flexDirection: 'row', marginBottom: 12 },
+  routeTextsCol: { flex: 1, justifyContent: 'space-between', gap: 8 },
+
+  row: { marginBottom: 8 },
+  label: { fontSize: 12, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginTop: 2 },
+  divider: { height: 1, backgroundColor: COLORS.divider, marginVertical: 12 },
+
+  // Driver
+  driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  driverAvatar: {
+    width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight,
+    justifyContent: 'center', alignItems: 'center', marginRight: 12,
+  },
+  driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
+  driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+
   waitingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   waitingText: { fontSize: 14, color: COLORS.textMuted, marginLeft: 8 },
-  logoutBtn: { alignItems: 'center', padding: 16, marginHorizontal: 20 },
-  logoutText: { color: COLORS.danger, fontSize: 16, fontWeight: '600' },
 });
