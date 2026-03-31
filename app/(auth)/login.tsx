@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Input } from '../../src/components/Input';
@@ -11,7 +12,6 @@ import { COLORS } from '../../src/config/colors';
 
 const APP_VARIANT = Constants.expoConfig?.extra?.APP_VARIANT || 'driver';
 
-// Tela de login
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -25,24 +25,15 @@ export default function Login() {
       Alert.alert('Erro', 'Preencha todos os campos');
       return;
     }
-
     setLoading(true);
     try {
       const loginFn = userType === 'PASSENGER' ? authApi.loginPassenger : authApi.loginDriver;
       const { token, user } = await loginFn(email, password);
       await authStore.setAuth(token, user);
-      
       if (userType === 'PASSENGER') {
         router.replace('/(passenger)/map');
       } else {
-        // Verificar status do motorista
-        if (user.status === 'pending') {
-          router.replace('/(driver)/pending-approval');
-        } else if (user.status === 'approved') {
-          router.replace('/(driver)/online');
-        } else {
-          router.replace('/(driver)/online');
-        }
+        router.replace(user.status === 'pending' ? '/(driver)/pending-approval' : '/(driver)/online');
       }
     } catch (error: any) {
       Alert.alert('Erro', friendlyError(error, 'Erro ao fazer login'));
@@ -51,83 +42,117 @@ export default function Login() {
     }
   };
 
-  const handleForgotPassword = () => {
-    router.push('/(auth)/forgot-password');
-  };
-
-  const handleRegister = () => {
-    router.push(userType === 'PASSENGER' ? '/(auth)/register-passenger' : '/(auth)/register');
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{isDriver ? 'Kaviar Motorista' : 'Kaviar Passageiro'}</Text>
-      
-      <Input
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-      />
-      
-      <Input
-        placeholder="Senha"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      
-      <Button
-        title={loading ? 'Entrando...' : 'Entrar'}
-        onPress={handleLogin}
-        loading={loading}
-      />
-
-      <TouchableOpacity onPress={handleForgotPassword} style={styles.linkButton}>
-        <Text style={styles.linkText}>Esqueci minha senha</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={handleRegister} style={styles.registerButton}>
-        <Text style={styles.registerText}>
-          Não tem conta? <Text style={styles.registerTextBold}>
-            {isDriver ? 'Cadastre-se como motorista' : 'Cadastre-se'}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView style={styles.inner} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* Brand */}
+        <View style={styles.brandArea}>
+          <Text style={styles.brand}>KAVIAR</Text>
+          <View style={styles.line} />
+          <Text style={styles.subtitle}>
+            {isDriver ? 'Motorista' : 'Passageiro'}
           </Text>
-        </Text>
-      </TouchableOpacity>
-    </View>
+        </View>
+
+        {/* Form */}
+        <View style={styles.form}>
+          <Input
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            icon="mail-outline"
+            keyboardType="email-address"
+          />
+          <Input
+            placeholder="Senha"
+            value={password}
+            onChangeText={setPassword}
+            icon="lock-closed-outline"
+            secureTextEntry
+          />
+
+          <Button
+            title={loading ? 'Entrando...' : 'Entrar'}
+            onPress={handleLogin}
+            loading={loading}
+          />
+
+          <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={styles.linkBtn}>
+            <Text style={styles.linkText}>Esqueci minha senha</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer */}
+        <TouchableOpacity
+          onPress={() => router.push(userType === 'PASSENGER' ? '/(auth)/register-passenger' : '/(auth)/register')}
+          style={styles.registerBtn}
+        >
+          <Text style={styles.registerText}>
+            Não tem conta?{' '}
+            <Text style={styles.registerBold}>
+              {isDriver ? 'Cadastre-se como motorista' : 'Cadastre-se'}
+            </Text>
+          </Text>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  inner: {
+    flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#F5F5F5',
+    padding: 24,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 32,
-    textAlign: 'center',
+  brandArea: {
+    alignItems: 'center',
+    marginBottom: 48,
   },
-  linkButton: {
+  brand: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: COLORS.primary,
+    letterSpacing: 6,
+  },
+  line: {
+    width: 32,
+    height: 3,
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
+    marginVertical: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+  },
+  form: {
+    marginBottom: 24,
+  },
+  linkBtn: {
     marginTop: 16,
     alignItems: 'center',
   },
   linkText: {
-    color: COLORS.primary,
-    fontSize: 14,
-  },
-  registerButton: {
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  registerText: {
     color: COLORS.textSecondary,
     fontSize: 14,
   },
-  registerTextBold: {
+  registerBtn: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  registerText: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+  },
+  registerBold: {
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
