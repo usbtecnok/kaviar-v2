@@ -213,17 +213,41 @@ export default function DocumentUpload() {
       });
       setDocuments(newDocs);
       
-      // Redirecionar para tela de aguardando aprovação
-      Alert.alert(
-        'Documentos Enviados!',
-        'Seus documentos foram enviados para análise. Você será notificado quando forem aprovados.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(driver)/pending-approval')
-          }
-        ]
-      );
+      // Verificar se TODOS os obrigatórios já foram enviados
+      const allRequiredTypes = DOCUMENT_TYPES.filter(d => d.required).map(d => d.type);
+      const allComplete = allRequiredTypes.every(type => {
+        const doc = newDocs[type];
+        return doc && (doc.status === 'uploaded' || doc.status === 'verified');
+      });
+
+      if (allComplete) {
+        // Todos enviados — redirecionar para aguardando aprovação
+        Alert.alert(
+          'Documentos Enviados!',
+          'Seus documentos foram enviados para análise. Você será notificado quando forem aprovados.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/(driver)/pending-approval')
+            }
+          ]
+        );
+      } else {
+        // Ainda faltam documentos — manter na tela
+        const missing = allRequiredTypes.filter(type => {
+          const doc = newDocs[type];
+          return !doc || (doc.status !== 'uploaded' && doc.status !== 'verified');
+        });
+        const missingLabels = DOCUMENT_TYPES
+          .filter(d => missing.includes(d.type))
+          .map(d => d.label)
+          .join(', ');
+        Alert.alert(
+          'Enviado com sucesso!',
+          `Ainda faltam: ${missingLabels}\n\nSelecione e envie os documentos restantes.`,
+          [{ text: 'OK' }]
+        );
+      }
     } else {
       Alert.alert('Erro', result.error || 'Erro ao enviar documentos');
     }
