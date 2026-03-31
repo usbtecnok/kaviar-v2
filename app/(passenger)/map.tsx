@@ -154,9 +154,6 @@ export default function PassengerMap() {
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>{userName ? `Olá, ${userName}` : 'Kaviar'}</Text>
-          <TouchableOpacity onPress={() => router.push('/(passenger)/favorites')} accessibilityLabel="Meus locais favoritos">
-            <Ionicons name="star-outline" size={24} color={COLORS.primary} />
-          </TouchableOpacity>
         </View>
         <View style={styles.center}>
           <Text style={styles.subtitle}>Para onde você vai?</Text>

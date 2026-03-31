@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,8 @@ export default function RegisterPassenger() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const handleCaptureLocation = async () => {
     setLocating(true);
@@ -50,6 +52,10 @@ export default function RegisterPassenger() {
       Alert.alert('Localização obrigatória', 'Capture sua localização antes de continuar.');
       return;
     }
+    if (!acceptedTerms) {
+      Alert.alert('Termos obrigatórios', 'Leia e aceite os termos de uso e política de privacidade.');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -60,14 +66,9 @@ export default function RegisterPassenger() {
         lgpdAccepted: true,
       });
       await authStore.setAuth(token, user);
-      Alert.alert(
-        'Cadastro realizado!',
-        'Quer configurar seus locais frequentes (casa, trabalho)? Isso ajuda a encontrar motoristas mais próximos.',
-        [
-          { text: 'Configurar agora', onPress: () => router.replace('/(passenger)/favorites') },
-          { text: 'Depois', style: 'cancel', onPress: () => router.replace('/(passenger)/map') },
-        ]
-      );
+      Alert.alert('Cadastro realizado!', 'Bem-vindo ao Kaviar!', [
+        { text: 'Continuar', onPress: () => router.replace('/(passenger)/map') },
+      ]);
     } catch (e: any) {
       Alert.alert('Erro', friendlyError(e, 'Não foi possível completar o cadastro'));
     } finally {
@@ -107,17 +108,99 @@ export default function RegisterPassenger() {
       <Input placeholder="Telefone (com DDD)" value={phone} onChangeText={setPhone} />
       <Input placeholder="Senha (mín. 6 caracteres)" value={password} onChangeText={setPassword} secureTextEntry />
 
+      <View style={styles.checkboxRow}>
+        <TouchableOpacity
+          style={[styles.checkbox, acceptedTerms && styles.checkboxChecked]}
+          onPress={() => setAcceptedTerms(!acceptedTerms)}
+        >
+          {acceptedTerms && <Ionicons name="checkmark" size={18} color="#FFF" />}
+        </TouchableOpacity>
+        <Text style={styles.checkboxLabel}>
+          Aceito os{' '}
+          <Text style={{ color: COLORS.primary, textDecorationLine: 'underline' }} onPress={() => setShowTermsModal(true)}>
+            termos de uso e política de privacidade
+          </Text>
+        </Text>
+      </View>
+
       <Button
         title="Cadastrar"
         onPress={handleRegister}
         loading={loading}
-        disabled={!location}
+        disabled={!location || !acceptedTerms}
         style={styles.registerBtn}
       />
 
       <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
         <Text style={styles.backText}>Já tem conta? Fazer login</Text>
       </TouchableOpacity>
+
+      <Modal visible={showTermsModal} animationType="slide" onRequestClose={() => setShowTermsModal(false)}>
+        <View style={{ flex: 1, backgroundColor: '#FFF' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#DDD' }}>
+            <TouchableOpacity onPress={() => setShowTermsModal(false)} style={{ padding: 4, marginRight: 12 }}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333', flex: 1 }}>Termos de Uso</Text>
+          </View>
+          <ScrollView style={{ flex: 1, padding: 20 }}>
+            <Text style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+              Versão: 2026-01 | Última atualização: Janeiro de 2026
+            </Text>
+            <Text style={styles.termsText}>
+              Ao prosseguir com o cadastro e utilizar a plataforma KAVIAR, o passageiro declara que leu, compreendeu e concorda integralmente com os termos abaixo.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>1. OBJETO DA PLATAFORMA</Text>{'\n'}
+              A KAVIAR é uma plataforma tecnológica que conecta passageiros a motoristas independentes para prestação de serviços de transporte privado, não estabelecendo vínculo empregatício entre as partes.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>2. OBRIGAÇÕES DO PASSAGEIRO</Text>{'\n'}
+              O passageiro se compromete a fornecer informações verdadeiras, manter comportamento respeitoso com motoristas, utilizar a plataforma de boa-fé, não ceder sua conta a terceiros e responder civil e criminalmente por seus atos.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>3. GEOLOCALIZAÇÃO</Text>{'\n'}
+              Ao utilizar a KAVIAR, o passageiro autoriza expressamente a coleta de sua localização geográfica para correspondência de corridas e segurança operacional. Sem a localização ativa, o serviço poderá ser limitado ou indisponível.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>4. PAGAMENTOS</Text>{'\n'}
+              O valor da corrida é informado antes da confirmação. O passageiro é responsável pelo pagamento conforme modalidade acordada.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>5. CANCELAMENTOS</Text>{'\n'}
+              O passageiro pode cancelar corridas conforme as regras da plataforma. Cancelamentos recorrentes podem resultar em restrições temporárias.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>6. SUSPENSÃO E CANCELAMENTO</Text>{'\n'}
+              A KAVIAR poderá suspender ou encerrar o acesso do passageiro em caso de violação destes termos, reclamações recorrentes, suspeita de fraude ou atividades ilegais.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>7. LIMITAÇÃO DE RESPONSABILIDADE</Text>{'\n'}
+              A KAVIAR não garante disponibilidade de motoristas, não se responsabiliza por conflitos entre motorista e passageiro e atua como intermediadora tecnológica.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>8. ALTERAÇÕES DOS TERMOS</Text>{'\n'}
+              Estes termos podem ser atualizados a qualquer momento. O passageiro será notificado e deverá aceitar a nova versão para continuar utilizando a plataforma.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>9. FORO</Text>{'\n'}
+              Fica eleito o foro da comarca de domicílio da KAVIAR para dirimir quaisquer controvérsias.
+            </Text>
+            <View style={{ height: 1, backgroundColor: '#DDD', marginVertical: 16 }} />
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>POLÍTICA DE PRIVACIDADE (LGPD)</Text>{'\n'}
+              A KAVIAR coleta e trata dados pessoais conforme a Lei Geral de Proteção de Dados (LGPD). Os dados coletados incluem: nome, endereço, telefone, e-mail, localização em tempo real e histórico de corridas. Estes dados são utilizados exclusivamente para operação da plataforma, segurança e cumprimento de obrigações legais. O passageiro pode solicitar acesso, correção ou exclusão de seus dados a qualquer momento através dos canais oficiais da KAVIAR.
+            </Text>
+            <View style={{ height: 20 }} />
+          </ScrollView>
+          <TouchableOpacity
+            style={{ padding: 16, backgroundColor: COLORS.accent, alignItems: 'center', marginBottom: 20 }}
+            onPress={() => setShowTermsModal(false)}
+          >
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>Fechar e Voltar ao Cadastro</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -138,4 +221,10 @@ const styles = StyleSheet.create({
   registerBtn: { marginTop: 16 },
   backBtn: { marginTop: 20, alignItems: 'center', padding: 12 },
   backText: { color: COLORS.primary, fontSize: 14 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 4 },
+  checkbox: { width: 24, height: 24, borderRadius: 4, borderWidth: 2, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  checkboxChecked: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  checkboxLabel: { flex: 1, fontSize: 14, color: COLORS.textSecondary },
+  termsText: { fontSize: 14, color: '#444', lineHeight: 22, marginBottom: 12 },
+  termsBold: { fontWeight: 'bold', color: '#222' },
 });
