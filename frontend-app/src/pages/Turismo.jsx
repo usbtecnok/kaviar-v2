@@ -346,7 +346,7 @@ export default function Turismo() {
                 <Button
                   fullWidth
                   variant="contained"
-                  href="https://expo.dev/artifacts/eas/tdoDwVwuzsAHJcpnCuRo4M.apk"
+                  href="https://downloads.kaviar.com.br/kaviar-motorista.apk"
                   target="_blank"
                   sx={{
                     bgcolor: '#FFD700', color: '#0a0a0a', py: 1.5, fontWeight: 700, fontSize: '1rem',
@@ -378,7 +378,7 @@ export default function Turismo() {
                 <Button
                   fullWidth
                   variant="contained"
-                  href="https://expo.dev/artifacts/eas/bNrTEMTYy1BbezAJRXMyjU.apk"
+                  href="https://downloads.kaviar.com.br/kaviar-passageiro.apk"
                   target="_blank"
                   sx={{
                     bgcolor: '#00FFFF', color: '#0a0a0a', py: 1.5, fontWeight: 700, fontSize: '1rem',

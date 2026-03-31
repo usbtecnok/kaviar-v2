@@ -236,7 +236,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://expo.dev/artifacts/eas/pcQVLTjviTJRSKEiAMxHDG.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
@@ -259,7 +259,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://expo.dev/artifacts/eas/5wDK6QLF5GpV37jsRsFnLj.apk"
+                href="https://downloads.kaviar.com.br/kaviar-passageiro.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
