@@ -217,6 +217,64 @@ function Home() {
           </Button>
         </Box>
 
+        {/* Seção Download APKs */}
+        <Box sx={{ mt: 10, pt: 6, borderTop: '1px solid', borderColor: 'divider' }} id="download">
+          <Typography variant="h4" sx={{ fontWeight: 800, color: 'primary.main', mb: 1, fontSize: { xs: '1.8rem', md: '2.2rem' } }}>
+            Baixe o app KAVIAR
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 5, fontSize: '1.1rem' }}>
+            Escolha a versão ideal para você e instale agora mesmo no seu celular Android.
+          </Typography>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, maxWidth: 600, mx: 'auto' }}>
+            {/* Card Motorista */}
+            <Box sx={{ bgcolor: '#fff', borderRadius: 3, p: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid', borderColor: 'divider', textAlign: 'left' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>🚗 KAVIAR Motorista</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+                Receba corridas, acompanhe solicitações e gerencie sua operação com praticidade.
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                href="https://expo.dev/artifacts/eas/pcQVLTjviTJRSKEiAMxHDG.apk"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  py: 1.5, borderRadius: 2, fontWeight: 700, fontSize: '0.95rem', textTransform: 'none',
+                  backgroundColor: '#2e7d32',
+                  '&:hover': { backgroundColor: '#1b5e20', transform: 'translateY(-1px)' },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Baixar App do Motorista
+              </Button>
+            </Box>
+
+            {/* Card Passageiro */}
+            <Box sx={{ bgcolor: '#fff', borderRadius: 3, p: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.08)', border: '1px solid', borderColor: 'divider', textAlign: 'left' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>👤 KAVIAR Passageiro</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
+                Solicite corridas com rapidez, acompanhe sua viagem e tenha mais praticidade no dia a dia.
+              </Typography>
+              <Button
+                variant="contained"
+                fullWidth
+                href="https://expo.dev/artifacts/eas/5wDK6QLF5GpV37jsRsFnLj.apk"
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  py: 1.5, borderRadius: 2, fontWeight: 700, fontSize: '0.95rem', textTransform: 'none',
+                  backgroundColor: '#1976d2',
+                  '&:hover': { backgroundColor: '#1565c0', transform: 'translateY(-1px)' },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Baixar App do Passageiro
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+
         <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.7 }}>
             © 2026 KAVIAR - Transformando mobilidade urbana
