@@ -11,8 +11,8 @@ const driverOnboardingSchema = z.object({
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   document_cpf: z.string().min(11, 'CPF deve ter 11 dígitos').max(11, 'CPF deve ter 11 dígitos'),
   vehicle_color: z.string().min(2, 'Cor do veículo é obrigatória'),
-  vehicle_model: z.string().optional(),
-  vehicle_plate: z.string().optional(),
+  vehicle_model: z.string().nullable().optional(),
+  vehicle_plate: z.string().nullable().optional(),
   accepted_terms: z.boolean().refine(val => val === true, {
     message: 'Você deve aceitar os termos de uso'
   }),
@@ -37,8 +37,8 @@ router.post('/onboarding', async (req: Request, res: Response) => {
       password: data.password,
       document_cpf: data.document_cpf,
       vehicle_color: data.vehicle_color,
-      vehicle_model: data.vehicle_model,
-      vehicle_plate: data.vehicle_plate,
+      vehicle_model: data.vehicle_model ?? undefined,
+      vehicle_plate: data.vehicle_plate ?? undefined,
       accepted_terms: data.accepted_terms,
       neighborhoodId: data.neighborhoodId,
       communityId: data.communityId,

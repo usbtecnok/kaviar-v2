@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Modal, SafeAreaView } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -21,6 +21,7 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [documentCpf, setDocumentCpf] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   
   // Dados do veículo
   const [vehicleColor, setVehicleColor] = useState('');
@@ -37,6 +38,9 @@ export default function Register() {
   const [detectedNeighborhood, setDetectedNeighborhood] = useState<any>(null);
   const [communities, setCommunities] = useState<any[]>([]);
   const [selectedCommunity, setSelectedCommunity] = useState<any>(null);
+  const [neighborhoodSearch, setNeighborhoodSearch] = useState('');
+  const [manualNeighborhood, setManualNeighborhood] = useState('');
+  const [neighborhoodsLoadFailed, setNeighborhoodsLoadFailed] = useState(false);
 
   // Passo 1: Dados básicos
   const handleStep1 = () => {
@@ -143,15 +147,17 @@ export default function Register() {
           await loadCommunitiesForNeighborhood(data.detected.id);
         }
         
-        // Usar nearby se existir, senão usar data
+        // Usar nearby se existir, senão usar data (lista completa)
         const neighborhoodList = (data.nearby && data.nearby.length > 0) ? data.nearby : (data.data || []);
         console.log('[loadSmartNeighborhoods] Neighborhoods count:', neighborhoodList.length);
         setNeighborhoods(neighborhoodList);
+        setNeighborhoodsLoadFailed(neighborhoodList.length === 0 && !data.detected);
       } else {
         throw new Error(data.error || 'Resposta sem success');
       }
     } catch (error) {
       console.error('[loadSmartNeighborhoods] Erro:', error);
+      setNeighborhoodsLoadFailed(true);
       // Fallback: tentar carregar lista completa
       await loadNeighborhoods();
     }
@@ -195,11 +201,13 @@ export default function Register() {
       if (data.success && data.data) {
         console.log('[loadNeighborhoods] Neighborhoods count:', data.data.length);
         setNeighborhoods(data.data);
+        if (data.data.length === 0) setNeighborhoodsLoadFailed(true);
       } else {
         throw new Error(data.error || 'Resposta sem data');
       }
     } catch (error) {
       console.error('[loadNeighborhoods] Erro:', error);
+      setNeighborhoodsLoadFailed(true);
       // Sem bairros carregados, mas GPS já garante território via geo-resolve
       setNeighborhoods([]);
     }
@@ -215,6 +223,12 @@ export default function Register() {
           { text: 'Tentar Novamente', onPress: requestLocation },
         ]
       );
+      return;
+    }
+
+    // Bairro: precisa ter selecionado da lista OU digitado manualmente
+    if (!selectedNeighborhood && !manualNeighborhood.trim() && !detectedNeighborhood) {
+      Alert.alert('Bairro Obrigatório', 'Selecione ou digite o nome do seu bairro para continuar.');
       return;
     }
 
@@ -243,6 +257,11 @@ export default function Register() {
       // ✅ KAVIAR: Só envia neighborhoodId se existir (backend resolve via geo-resolve)
       if (selectedNeighborhood) {
         registerPayload.neighborhoodId = selectedNeighborhood.id;
+      }
+
+      // Fallback manual: enviar nome digitado para o backend resolver
+      if (!selectedNeighborhood && manualNeighborhood.trim()) {
+        registerPayload.neighborhoodName = manualNeighborhood.trim();
       }
 
       // ✅ KAVIAR: Só envia communityId se existir
@@ -377,7 +396,13 @@ export default function Register() {
                 {acceptedTerms && <Ionicons name="checkmark" size={18} color="#FFF" />}
               </TouchableOpacity>
               <Text style={styles.checkboxLabel}>
-                Aceito os termos de uso e política de privacidade
+                Aceito os{' '}
+                <Text
+                  style={{ color: COLORS.primary, textDecorationLine: 'underline' }}
+                  onPress={() => setShowTermsModal(true)}
+                >
+                  termos de uso e política de privacidade
+                </Text>
               </Text>
             </View>
 
@@ -476,39 +501,79 @@ export default function Register() {
               {detectedNeighborhood ? 'Ou escolha outro bairro:' : 'Escolha seu bairro:'}
             </Text>
 
-            <ScrollView style={styles.neighborhoodList}>
-              {neighborhoods.map((n) => (
-                <TouchableOpacity
-                  key={n.id}
-                  style={[
-                    styles.neighborhoodItem,
-                    selectedNeighborhood?.id === n.id && styles.neighborhoodItemSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedNeighborhood(n);
-                    loadCommunitiesForNeighborhood(n.id);
-                  }}
-                >
-                  <View style={styles.neighborhoodInfo}>
-                    <Text style={styles.neighborhoodName}>{n.name}</Text>
-                    {n.zone && <Text style={styles.neighborhoodZone}>{n.zone}</Text>}
-                    {n.distance && (
-                      <Text style={styles.neighborhoodDistance}>
-                        📍 {(n.distance / 1000).toFixed(1)}km
+            {/* Campo de busca/filtro */}
+            <TextInput
+              style={styles.input}
+              value={neighborhoodSearch}
+              onChangeText={setNeighborhoodSearch}
+              placeholder="Buscar bairro pelo nome..."
+              autoCapitalize="none"
+            />
+
+            {neighborhoods.length > 0 ? (
+              <ScrollView style={styles.neighborhoodList}>
+                {neighborhoods
+                  .filter((n) =>
+                    !neighborhoodSearch ||
+                    n.name.toLowerCase().includes(neighborhoodSearch.toLowerCase())
+                  )
+                  .map((n) => (
+                  <TouchableOpacity
+                    key={n.id}
+                    style={[
+                      styles.neighborhoodItem,
+                      selectedNeighborhood?.id === n.id && styles.neighborhoodItemSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedNeighborhood(n);
+                      setManualNeighborhood('');
+                      loadCommunitiesForNeighborhood(n.id);
+                    }}
+                  >
+                    <View style={styles.neighborhoodInfo}>
+                      <Text style={styles.neighborhoodName}>{n.name}</Text>
+                      {n.zone && <Text style={styles.neighborhoodZone}>{n.zone}</Text>}
+                      {n.distance && (
+                        <Text style={styles.neighborhoodDistance}>
+                          📍 {(n.distance / 1000).toFixed(1)}km
+                        </Text>
+                      )}
+                    </View>
+                    <View style={styles.neighborhoodBadge}>
+                      <Text style={styles.neighborhoodFee}>
+                        {n.hasGeofence ? '7%' : '12%'}
                       </Text>
-                    )}
-                  </View>
-                  <View style={styles.neighborhoodBadge}>
-                    <Text style={styles.neighborhoodFee}>
-                      {n.hasGeofence ? '7%' : '12%'}
-                    </Text>
-                    <Text style={styles.neighborhoodType}>
-                      {n.hasGeofence ? 'Oficial' : 'Virtual'}
-                    </Text>
-                  </View>
+                      <Text style={styles.neighborhoodType}>
+                        {n.hasGeofence ? 'Oficial' : 'Virtual'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.manualFallback}>
+                <Text style={styles.manualFallbackText}>
+                  Não foi possível carregar a lista de bairros.
+                </Text>
+                <Text style={styles.label}>Digite o nome do seu bairro:</Text>
+                <TextInput
+                  style={styles.input}
+                  value={manualNeighborhood}
+                  onChangeText={(text) => {
+                    setManualNeighborhood(text);
+                    setSelectedNeighborhood(null);
+                  }}
+                  placeholder="Ex: Copacabana, Botafogo, Tijuca..."
+                  autoCapitalize="words"
+                />
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={() => location ? loadSmartNeighborhoods(location) : loadNeighborhoods()}
+                >
+                  <Text style={styles.retryButtonText}>Tentar carregar lista novamente</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              </View>
+            )}
 
             {/* Comunidade (opcional) */}
             {communities.length > 0 && (
@@ -557,6 +622,81 @@ export default function Register() {
           </View>
         )}
       </View>
+
+      {/* Modal de Termos de Uso */}
+      <Modal visible={showTermsModal} animationType="slide" onRequestClose={() => setShowTermsModal(false)}>
+        <View style={{ flex: 1, backgroundColor: '#FFF' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#DDD' }}>
+            <TouchableOpacity onPress={() => setShowTermsModal(false)} style={{ padding: 4, marginRight: 12 }}>
+              <Ionicons name="arrow-back" size={24} color="#333" />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333', flex: 1 }}>Termos de Uso</Text>
+          </View>
+          <ScrollView style={{ flex: 1, padding: 20 }}>
+            <Text style={{ fontSize: 12, color: '#666', marginBottom: 16 }}>
+              Versão: 2026-01 | Última atualização: Janeiro de 2026
+            </Text>
+            <Text style={{ fontSize: 11, color: '#999', marginBottom: 20 }}>
+              KAVIAR é uma plataforma operada por USB Tecnok Manutenção e Instalação de Computadores Ltda.
+            </Text>
+            <Text style={styles.termsText}>
+              Ao prosseguir com o cadastro e utilizar a plataforma KAVIAR, o motorista declara que leu, compreendeu e concorda integralmente com os termos abaixo.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>1. OBJETO DA PLATAFORMA</Text>{'\n'}
+              A KAVIAR é uma plataforma tecnológica que conecta passageiros a motoristas independentes para prestação de serviços de transporte privado, não estabelecendo vínculo empregatício entre as partes.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>2. REQUISITOS PARA MOTORISTAS</Text>{'\n'}
+              Para utilizar a plataforma como motorista, o usuário declara que possui capacidade civil plena, é legalmente habilitado para dirigir, possui documentação válida exigida por lei e fornece informações verdadeiras, completas e atualizadas.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>3. OBRIGAÇÕES DO MOTORISTA</Text>{'\n'}
+              O motorista se compromete a manter comportamento respeitoso com passageiros, cumprir as leis de trânsito e normas locais, não realizar atividades ilícitas, utilizar a plataforma de boa-fé, manter seus dados atualizados, não ceder sua conta a terceiros e responder civil e criminalmente por seus atos.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>4. GEOLOCALIZAÇÃO</Text>{'\n'}
+              Ao utilizar a KAVIAR, o motorista autoriza expressamente a coleta de sua localização geográfica em tempo real para correspondência de corridas, segurança operacional, auditoria e prevenção de fraudes. Sem a localização ativa, o serviço poderá ser limitado ou indisponível.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>5. PAGAMENTOS E CHAVE PIX</Text>{'\n'}
+              A KAVIAR poderá utilizar chave PIX informada para repasses financeiros. O motorista é responsável pela veracidade da chave informada. A KAVIAR não se responsabiliza por erros decorrentes de dados incorretos.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>6. CERTIDÃO "NADA CONSTA"</Text>{'\n'}
+              A KAVIAR poderá solicitar, a qualquer momento, certidões negativas criminais ("Nada Consta") e outros documentos de idoneidade. O envio poderá ser obrigatório para continuidade na plataforma.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>7. SUSPENSÃO E CANCELAMENTO</Text>{'\n'}
+              A KAVIAR poderá suspender ou encerrar o acesso do motorista, a qualquer tempo, em caso de violação destes termos, reclamações recorrentes, suspeita de fraude, atividades ilegais ou descumprimento de políticas internas.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>8. LIMITAÇÃO DE RESPONSABILIDADE</Text>{'\n'}
+              A KAVIAR não garante volume mínimo de corridas, não se responsabiliza por conflitos entre motorista e passageiro e atua como intermediadora tecnológica.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>9. ALTERAÇÕES DOS TERMOS</Text>{'\n'}
+              Estes termos podem ser atualizados a qualquer momento. O motorista será notificado e deverá aceitar a nova versão para continuar utilizando a plataforma.
+            </Text>
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>10. FORO</Text>{'\n'}
+              Fica eleito o foro da comarca de domicílio da KAVIAR, para dirimir quaisquer controvérsias decorrentes destes termos.
+            </Text>
+            <View style={{ height: 1, backgroundColor: '#DDD', marginVertical: 16 }} />
+            <Text style={styles.termsText}>
+              <Text style={styles.termsBold}>POLÍTICA DE PRIVACIDADE (LGPD)</Text>{'\n'}
+              A KAVIAR coleta e trata dados pessoais conforme a Lei Geral de Proteção de Dados (LGPD). Os dados coletados incluem: nome, CPF, RG, CNH, endereço, telefone, e-mail, localização em tempo real, histórico de corridas e informações de pagamento. Estes dados são utilizados exclusivamente para operação da plataforma, segurança, auditoria e cumprimento de obrigações legais. O motorista pode solicitar acesso, correção ou exclusão de seus dados a qualquer momento através dos canais oficiais da KAVIAR.
+            </Text>
+            <View style={{ height: 20 }} />
+          </ScrollView>
+          <TouchableOpacity
+            style={{ padding: 16, backgroundColor: COLORS.accent, alignItems: 'center', marginBottom: 20 }}
+            onPress={() => setShowTermsModal(false)}
+          >
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>Fechar e Voltar ao Cadastro</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -797,5 +937,37 @@ const styles = StyleSheet.create({
   communityName: {
     fontSize: 14,
     color: '#333',
+  },
+  manualFallback: {
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: '#FFF8F0',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE0C0',
+  },
+  manualFallbackText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  retryButton: {
+    marginTop: 12,
+    padding: 10,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  termsText: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: '#333',
+    marginBottom: 12,
+  },
+  termsBold: {
+    fontWeight: 'bold',
   },
 });

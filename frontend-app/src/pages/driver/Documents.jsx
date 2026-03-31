@@ -422,6 +422,9 @@ export default function DriverDocuments() {
           <Typography variant="caption" display="block" gutterBottom>
             Versão: 2026-01 | Última atualização: Janeiro de 2026
           </Typography>
+          <Typography variant="caption" display="block" sx={{ color: 'text.disabled', mb: 2 }}>
+            KAVIAR é uma plataforma operada por USB Tecnok Manutenção e Instalação de Computadores Ltda.
+          </Typography>
           
           <Typography variant="body2" paragraph sx={{ mt: 2 }}>
             Ao prosseguir com o cadastro e utilizar a plataforma KAVIAR, o motorista declara que leu, compreendeu e concorda integralmente com os termos abaixo.

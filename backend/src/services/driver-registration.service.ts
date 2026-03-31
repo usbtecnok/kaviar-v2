@@ -17,6 +17,7 @@ interface DriverRegistrationInput {
   
   // Opcionais
   neighborhoodId?: string;
+  neighborhoodName?: string;
   vehicle_model?: string;
   vehicle_plate?: string;
   communityId?: string;
@@ -73,6 +74,21 @@ export class DriverRegistrationService {
         if (geoResult.match && geoResult.resolvedArea) {
           resolvedNeighborhoodId = geoResult.resolvedArea.id;
           console.log(`[DriverRegistration] Geo-resolved: ${geoResult.resolvedArea.name} (${resolvedNeighborhoodId})`);
+        }
+      }
+
+      // 3b. Fallback: buscar por nome digitado manualmente
+      if (!resolvedNeighborhoodId && input.neighborhoodName) {
+        const byName = await prisma.neighborhoods.findFirst({
+          where: {
+            is_active: true,
+            name: { contains: input.neighborhoodName, mode: 'insensitive' },
+          },
+          select: { id: true, name: true },
+        });
+        if (byName) {
+          resolvedNeighborhoodId = byName.id;
+          console.log(`[DriverRegistration] Name-resolved: ${byName.name} (${byName.id})`);
         }
       }
       

@@ -152,6 +152,7 @@ export default function RegisterPassenger() {
             </View>
             <ScrollView style={{ flex: 1, padding: 20 }}>
               <Text style={styles.termsVersion}>Versão: 2026-01 | Última atualização: Janeiro de 2026</Text>
+              <Text style={{ fontSize: 11, color: '#999', marginBottom: 16 }}>KAVIAR é uma plataforma operada por USB Tecnok Manutenção e Instalação de Computadores Ltda.</Text>
               <Text style={styles.termsText}>
                 Ao prosseguir com o cadastro e utilizar a plataforma KAVIAR, o passageiro declara que leu, compreendeu e concorda integralmente com os termos abaixo.
               </Text>

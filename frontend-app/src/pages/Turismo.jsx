@@ -1020,7 +1020,7 @@ export default function Turismo() {
             </Grid>
             <Grid item xs={12} md={8}>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', textAlign: { xs: 'center', md: 'right' } }}>
-                © {new Date().getFullYear()} Kaviar Mobilidade. Todos os direitos reservados.
+                © {new Date().getFullYear()} KAVIAR — uma plataforma USB Tecnok Manutenção e Instalação de Computadores Ltda.
               </Typography>
             </Grid>
           </Grid>
