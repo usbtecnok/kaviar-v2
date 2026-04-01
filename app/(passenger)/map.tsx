@@ -261,7 +261,7 @@ export default function PassengerMap() {
       </SafeAreaView>
 
       {/* Map */}
-      {initialRegion && hasDriver ? (
+      {initialRegion ? (
         <MapView ref={mapRef} style={styles.map} initialRegion={initialRegion} showsUserLocation showsMyLocationButton={false}>
           {mapTarget && (
             <Marker coordinate={{ latitude: mapTarget.lat, longitude: mapTarget.lng }}
