@@ -346,7 +346,7 @@ export default function Turismo() {
                 <Button
                   fullWidth
                   variant="contained"
-                  href="https://downloads.kaviar.com.br/kaviar-motorista.apk"
+                  href="https://downloads.kaviar.com.br/kaviar-motorista-v2.apk"
                   target="_blank"
                   sx={{
                     bgcolor: '#FFD700', color: '#0a0a0a', py: 1.5, fontWeight: 700, fontSize: '1rem',
