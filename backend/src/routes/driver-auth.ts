@@ -111,10 +111,13 @@ router.post('/driver/login', async (req, res) => {
     }
 
     const { email, password } = driverLoginSchema.parse(req.body);
+    const normalizedEmail = email.trim().toLowerCase();
 
-    console.log(`[LOGIN] Tentativa de login: ${email}`);
+    console.log(`[LOGIN] Tentativa de login: ${normalizedEmail}`);
 
-    const driver = await prisma.drivers.findUnique({ where: { email } });
+    const driver = await prisma.drivers.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    });
 
     if (!driver || !driver.password_hash) {
       console.log(`[LOGIN] Driver não encontrado ou sem password_hash: ${email}`);
@@ -176,24 +179,26 @@ router.post('/driver/login', async (req, res) => {
 router.post('/driver/set-password', async (req, res) => {
   try {
     const { email, password } = driverSetPasswordSchema.parse(req.body);
-    console.log(`[SET-PASSWORD] Email: ${email}, Senha recebida: ${password.substring(0, 3)}...`);
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log(`[SET-PASSWORD] Email: ${normalizedEmail}`);
 
-    const driver = await prisma.drivers.findUnique({ where: { email } });
+    const driver = await prisma.drivers.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    });
 
     if (!driver) {
-      console.log(`[SET-PASSWORD] Driver não encontrado: ${email}`);
-      return res.json({ success: true, message: 'Se o email existir, a senha será atualizada' });
+      console.log(`[SET-PASSWORD] Driver não encontrado: ${normalizedEmail}`);
+      return res.status(404).json({ success: false, error: 'Email não encontrado. Verifique o email digitado.' });
     }
 
     const password_hash = await bcrypt.hash(password, 10);
-    console.log(`[SET-PASSWORD] Novo hash gerado: ${password_hash.substring(0, 20)}...`);
 
     await prisma.drivers.update({
-      where: { email },
+      where: { id: driver.id },
       data: { password_hash }
     });
 
-    console.log(`[SET-PASSWORD] Hash atualizado no banco para: ${email}`);
+    console.log(`[SET-PASSWORD] Hash atualizado para: ${normalizedEmail}`);
     res.json({ success: true, message: 'Senha atualizada com sucesso' });
   } catch (error) {
     console.log(`[SET-PASSWORD] Erro:`, error);

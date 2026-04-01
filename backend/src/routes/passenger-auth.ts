@@ -232,12 +232,17 @@ const passengerSetPasswordSchema = z.object({
 router.post('/passenger/set-password', async (req, res) => {
   try {
     const { email, password } = passengerSetPasswordSchema.parse(req.body);
-    const passenger = await prisma.passengers.findUnique({ where: { email } });
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const passenger = await prisma.passengers.findFirst({
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+    });
+
     if (!passenger) {
-      return res.json({ success: true, message: 'Se o email existir, a senha será atualizada' });
+      return res.status(404).json({ success: false, error: 'Email não encontrado. Verifique o email digitado.' });
     }
     const password_hash = await bcrypt.hash(password, 10);
-    await prisma.passengers.update({ where: { email }, data: { password_hash } });
+    await prisma.passengers.update({ where: { id: passenger.id }, data: { password_hash } });
     res.json({ success: true, message: 'Senha atualizada com sucesso' });
   } catch (error) {
     if (error instanceof z.ZodError) {
