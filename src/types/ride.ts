@@ -24,6 +24,7 @@ export interface Ride {
   started_at?: string;
   completed_at?: string;
   passenger?: { name: string; phone?: string };
+  driver?: { name: string; phone?: string; vehicle_model?: string; vehicle_plate?: string; vehicle_color?: string; id?: string };
 }
 
 export interface RideOffer {

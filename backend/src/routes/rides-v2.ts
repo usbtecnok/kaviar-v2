@@ -139,7 +139,13 @@ router.get('/:ride_id', requirePassenger, async (req: Request, res: Response) =>
     if (!ride || ride.passenger_id !== passengerId) {
       return res.status(404).json({ error: 'Ride not found' });
     }
-    res.json({ success: true, data: ride });
+    res.json({ success: true, data: {
+      ...ride,
+      origin_lat: Number(ride.origin_lat),
+      origin_lng: Number(ride.origin_lng),
+      dest_lat: Number(ride.dest_lat),
+      dest_lng: Number(ride.dest_lng),
+    } });
   } catch (error: any) {
     console.error('[RIDE_GET_ERROR]', error);
     res.status(500).json({ error: 'Internal server error' });
