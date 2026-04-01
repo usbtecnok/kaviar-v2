@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
@@ -9,6 +10,7 @@ import { ENV } from '../../src/config/env';
 import { COLORS } from '../../src/config/colors';
 
 const API_URL = ENV.API_URL;
+const APP_VARIANT = Constants.expoConfig?.extra?.APP_VARIANT || 'driver';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -26,9 +28,13 @@ export default function ForgotPassword() {
       return;
     }
 
+    const endpoint = APP_VARIANT === 'passenger'
+      ? '/api/auth/passenger/set-password'
+      : '/api/auth/driver/set-password';
+
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/driver/set-password`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: newPassword })

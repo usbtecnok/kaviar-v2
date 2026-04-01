@@ -223,4 +223,28 @@ router.post('/passenger/login', async (req, res) => {
   }
 });
 
+// POST /api/auth/passenger/set-password
+const passengerSetPasswordSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
+});
+
+router.post('/passenger/set-password', async (req, res) => {
+  try {
+    const { email, password } = passengerSetPasswordSchema.parse(req.body);
+    const passenger = await prisma.passengers.findUnique({ where: { email } });
+    if (!passenger) {
+      return res.json({ success: true, message: 'Se o email existir, a senha será atualizada' });
+    }
+    const password_hash = await bcrypt.hash(password, 10);
+    await prisma.passengers.update({ where: { email }, data: { password_hash } });
+    res.json({ success: true, message: 'Senha atualizada com sucesso' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
+    res.status(400).json({ error: 'Erro ao atualizar senha' });
+  }
+});
+
 export { router as passengerAuthRoutes };
