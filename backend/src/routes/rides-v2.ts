@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { dispatcherService } from '../services/dispatcher.service';
 import { GeoResolveService } from '../services/geo-resolve';
 import { Decimal } from '@prisma/client/runtime/library';
+import { realTimeService } from '../services/realtime.service';
 import jwt from 'jsonwebtoken';
 
 const router = Router();
@@ -302,6 +303,46 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_COMPLETE_ERROR]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Driver location update during ride
+router.post('/:ride_id/location', requireDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+    const { ride_id } = req.params;
+    const { lat, lng } = req.body;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ error: 'lat and lng required' });
+    }
+
+    // Verify ride belongs to driver and is active
+    const ride = await prisma.rides_v2.findFirst({
+      where: { id: ride_id, driver_id: driverId, status: { in: ['accepted', 'arrived', 'in_progress'] } }
+    });
+
+    if (!ride) {
+      return res.status(404).json({ error: 'Active ride not found' });
+    }
+
+    // Update driver location
+    await prisma.drivers.update({
+      where: { id: driverId },
+      data: { last_lat: lat, last_lng: lng, last_location_updated_at: new Date() }
+    });
+
+    // Emit to passenger via SSE
+    realTimeService.emitToRide(ride_id, {
+      type: 'driver_location',
+      lat, lng,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[RIDE_LOCATION_ERROR]', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

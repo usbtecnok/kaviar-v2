@@ -43,6 +43,10 @@ export const driverApi = {
   completeRide: (rideId: string) =>
     apiClient.post(`/api/v2/rides/${rideId}/complete`),
 
+  // v2: Location update durante corrida (emite SSE para passageiro)
+  sendRideLocation: (rideId: string, lat: number, lng: number) =>
+    apiClient.post(`/api/v2/rides/${rideId}/location`, { lat, lng }),
+
   // v1: Perfil (não tem v2 equivalente)
   getMe: async () => {
     const { data } = await apiClient.get('/api/drivers/me');

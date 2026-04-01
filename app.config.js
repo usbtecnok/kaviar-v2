@@ -50,7 +50,12 @@ export default {
         foregroundImage: variantConfig.adaptiveIcon,
         backgroundColor: '#1a1a1a'
       },
-      package: variantConfig.package
+      package: variantConfig.package,
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyA50GYLlH7L5Iq5HpJ1MAALYOXN4PYlswc'
+        }
+      }
     },
     plugins: [],
     extra: {
