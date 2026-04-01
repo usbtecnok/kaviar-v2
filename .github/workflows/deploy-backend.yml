@@ -53,6 +53,8 @@ jobs:
             # Remove TWILIO_* env vars and GIT_COMMIT to avoid duplicates (but keep secrets intact)
             .containerDefinitions[0].environment = [.containerDefinitions[0].environment[]? | select(.name | startswith("TWILIO_") | not) | select(.name != "GIT_COMMIT")] |
             .containerDefinitions[0].environment += [{"name": "GIT_COMMIT", "value": $COMMIT}] |
+            # Feature flag: WhatsApp enabled
+            .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_ENABLED", "value": "true"}] |
             # Only add TWILIO env vars that are NOT already in secrets (ACCOUNT_SID and AUTH_TOKEN come from SSM)
             .containerDefinitions[0].environment += (
               if $TWILIO_WHATSAPP_FROM != "" then [{"name": "TWILIO_WHATSAPP_FROM", "value": $TWILIO_WHATSAPP_FROM}] else [] end +
