@@ -214,7 +214,13 @@ router.get('/me/current-ride', requireDriver, async (req: Request, res: Response
       }
     });
 
-    res.json({ success: true, data: ride || null });
+    res.json({ success: true, data: ride ? {
+      ...ride,
+      origin_lat: Number(ride.origin_lat),
+      origin_lng: Number(ride.origin_lng),
+      dest_lat: Number(ride.dest_lat),
+      dest_lng: Number(ride.dest_lng),
+    } : null });
   } catch (error: any) {
     console.error('[DRIVER_CURRENT_RIDE_ERROR]', error);
     res.status(500).json({ error: 'Internal server error' });
