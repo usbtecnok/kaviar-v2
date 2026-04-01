@@ -231,29 +231,6 @@ export default function Turismo() {
             <Button
               size="large"
               variant="contained"
-              onClick={() => document.getElementById('download-apps')?.scrollIntoView({ behavior: 'smooth' })}
-              sx={{
-                bgcolor: '#00FFFF',
-                color: '#0a0a0a',
-                px: 4,
-                py: 2,
-                fontSize: '1.125rem',
-                fontWeight: 700,
-                borderRadius: 50,
-                boxShadow: '0 0 20px rgba(0,255,255,0.3)',
-                '&:hover': {
-                  bgcolor: '#00CCCC',
-                  transform: 'scale(1.05)',
-                  boxShadow: '0 0 30px rgba(0,255,255,0.5)'
-                },
-                transition: 'all 0.3s'
-              }}
-            >
-              BAIXAR O APP
-            </Button>
-            <Button
-              size="large"
-              variant="contained"
               onClick={() => navigate('/premium-tourism')}
               sx={{
                 bgcolor: '#9C27B0',
@@ -294,106 +271,6 @@ export default function Turismo() {
               CONHECER ROTEIROS
             </Button>
           </Box>
-        </Container>
-      </Box>
-
-      {/* Download Apps Section */}
-      <Box id="download-apps" sx={{ py: 10, bgcolor: '#0f0f0f', borderBottom: '1px solid rgba(255,215,0,0.1)' }}>
-        <Container maxWidth="sm">
-          <Box sx={{ textAlign: 'center', mb: 5 }}>
-            <Typography
-              sx={{
-                fontSize: { xs: '3.5rem', md: '5rem' },
-                fontWeight: 900,
-                fontFamily: '"Playfair Display", serif',
-                fontStyle: 'italic',
-                background: 'linear-gradient(135deg, #FFD700 0%, #FFC700 40%, #B8860B 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                lineHeight: 1,
-                mb: 2,
-                textShadow: '0 0 40px rgba(255,215,0,0.15)'
-              }}
-            >
-              K
-            </Typography>
-            <Typography variant="h4" sx={{ color: 'white', fontWeight: 700, fontFamily: '"Playfair Display", serif', mb: 1 }}>
-              Baixe os apps do KAVIAR
-            </Typography>
-            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.5)', mt: 1 }}>
-              Instalação para Android via APK
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Motorista */}
-            <Card
-              sx={{
-                bgcolor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,215,0,0.15)',
-                borderRadius: 3,
-                transition: 'all 0.3s',
-                '&:hover': { borderColor: 'rgba(255,215,0,0.4)', transform: 'translateY(-2px)' }
-              }}
-            >
-              <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>
-                  🚗 Kaviar Motorista
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 2 }}>
-                  Para motoristas parceiros que vão dirigir e aceitar corridas
-                </Typography>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  href="https://downloads.kaviar.com.br/kaviar-motorista-v2.apk"
-                  target="_blank"
-                  sx={{
-                    bgcolor: '#FFD700', color: '#0a0a0a', py: 1.5, fontWeight: 700, fontSize: '1rem',
-                    '&:hover': { bgcolor: '#FFC700' }
-                  }}
-                >
-                  BAIXAR APK MOTORISTA
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Passageiro */}
-            <Card
-              sx={{
-                bgcolor: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(0,255,255,0.15)',
-                borderRadius: 3,
-                transition: 'all 0.3s',
-                '&:hover': { borderColor: 'rgba(0,255,255,0.4)', transform: 'translateY(-2px)' }
-              }}
-            >
-              <CardContent sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="h6" sx={{ color: 'white', fontWeight: 700, mb: 0.5 }}>
-                  👤 Kaviar Passageiro
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mb: 2 }}>
-                  Para passageiros que querem solicitar corridas
-                </Typography>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  href="https://downloads.kaviar.com.br/kaviar-passageiro.apk"
-                  target="_blank"
-                  sx={{
-                    bgcolor: '#00FFFF', color: '#0a0a0a', py: 1.5, fontWeight: 700, fontSize: '1rem',
-                    '&:hover': { bgcolor: '#00CCCC' }
-                  }}
-                >
-                  BAIXAR APK PASSAGEIRO
-                </Button>
-              </CardContent>
-            </Card>
-          </Box>
-
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.3)', display: 'block', textAlign: 'center', mt: 3 }}>
-            Ao baixar, permita a instalação de fontes desconhecidas no seu Android
-          </Typography>
         </Container>
       </Box>
 
