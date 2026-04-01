@@ -47,6 +47,11 @@ fix-offer-status-*.log
 rds.env
 aws-resources.env
 
+# APKs locais e ferramentas
+apks/
+.wrangler/
+*.tar.gz
+
 # Arquivos temporários
 *.bak
 *.tmp
