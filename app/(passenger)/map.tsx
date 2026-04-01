@@ -4,13 +4,13 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import MapView, { Marker, Region } from 'react-native-maps';
+import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { passengerApi } from '../../src/api/passenger.api';
 import { authStore } from '../../src/auth/auth.store';
-import { Ride, RideStatus, RIDE_STATUS_LABEL } from '../../src/types/ride';
+import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { ENV } from '../../src/config/env';
@@ -25,7 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   in_progress:{ label: 'Corrida em andamento',   color: COLORS.success, icon: '🛣️' },
 };
 
-type Screen = 'idle' | 'requesting' | 'tracking';
+type Screen = 'idle' | 'tracking';
 
 export default function PassengerMap() {
   const router = useRouter();
@@ -47,6 +47,20 @@ export default function PassengerMap() {
     acquireLocation();
     return () => stopAll();
   }, []);
+
+  const acquireLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Localização necessária', 'Ative a localização para solicitar corridas.');
+      return;
+    }
+    try {
+      const loc = await Location.getCurrentPositionAsync({});
+      setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+    } catch {
+      Alert.alert('Erro de GPS', 'Não foi possível obter sua localização. Tente novamente.');
+    }
+  };
 
   const startPolling = (rideId: string) => {
     pollRef.current = setInterval(async () => {
@@ -85,64 +99,22 @@ export default function PassengerMap() {
           }
         } catch {}
       };
-      es.onerror = () => {}; // polling is fallback
+      es.onerror = () => {};
       sseRef.current = es;
     } catch {}
   };
 
-  const stopSSE = () => {
-    if (sseRef.current) { sseRef.current.close(); sseRef.current = null; }
-    setDriverLocation(null);
-  };
+  const stopSSE = () => { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } setDriverLocation(null); };
+  const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  const stopAll = () => { stopPolling(); stopSSE(); };
 
-  const stopAll = () => {
-    stopPolling();
-    stopSSE();
-  };
+  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setOriginText(''); setDestText(''); };
 
-  const stopPolling = () => {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
-  };
-
-  const resetToIdle = () => {
-    stopAll();
-    setRide(null);
-    setScreen('idle');
-    setOriginText('');
-    setDestText('');
-  };
-
-  const acquireLocation = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Localização necessária', 'Ative a localização para solicitar corridas.');
-      return;
-    }
-    try {
-      const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-    } catch {
-      Alert.alert('Erro de GPS', 'Não foi possível obter sua localização. Tente novamente.');
-    }
-  };
-
-  const handleRetry = () => {
-    stopPolling();
-    setRide(null);
-    setScreen('idle');
-    setTimeout(() => handleRequest(), 100);
-  };
+  const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setTimeout(() => handleRequest(), 100); };
 
   const handleRequest = async () => {
-    if (!originText.trim() || !destText.trim()) {
-      Alert.alert('Preencha os campos', 'Informe origem e destino.');
-      return;
-    }
-    if (!userLocation) {
-      Alert.alert('Localização indisponível', 'Aguarde o GPS ou verifique as permissões.');
-      await acquireLocation();
-      return;
-    }
+    if (!originText.trim() || !destText.trim()) { Alert.alert('Preencha os campos', 'Informe origem e destino.'); return; }
+    if (!userLocation) { Alert.alert('Localização indisponível', 'Aguarde o GPS ou verifique as permissões.'); await acquireLocation(); return; }
     setLoading(true);
     try {
       const result = await passengerApi.requestRide({
@@ -164,13 +136,8 @@ export default function PassengerMap() {
     Alert.alert('Cancelar corrida?', 'Deseja realmente cancelar?', [
       { text: 'Não', style: 'cancel' },
       { text: 'Sim, cancelar', style: 'destructive', onPress: async () => {
-        try {
-          await passengerApi.cancelRide(ride.id);
-          Alert.alert('Corrida cancelada');
-          resetToIdle();
-        } catch (e: any) {
-          Alert.alert('Erro', friendlyError(e, 'Não foi possível cancelar.'));
-        }
+        try { await passengerApi.cancelRide(ride.id); Alert.alert('Corrida cancelada'); resetToIdle(); }
+        catch (e: any) { Alert.alert('Erro', friendlyError(e, 'Não foi possível cancelar.')); }
       }},
     ]);
   };
@@ -178,69 +145,23 @@ export default function PassengerMap() {
   const handleLogout = () => {
     Alert.alert('Sair', 'Deseja sair?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: async () => {
-        stopPolling();
-        await authStore.clearAuth();
-        router.replace('/(auth)/login');
-      }},
+      { text: 'Sair', style: 'destructive', onPress: async () => { stopAll(); await authStore.clearAuth(); router.replace('/(auth)/login'); }},
     ]);
   };
 
-  // --- Idle ---
-  if (screen === 'idle') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.brand}>KAVIAR</Text>
-            <Text style={styles.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.center}>
-          <Text style={styles.question}>Para onde você vai?</Text>
-
-          <View style={styles.routeInputs}>
-            <View style={styles.routeDots}>
-              <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
-              <View style={styles.dotLine} />
-              <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
-            </View>
-            <View style={styles.inputsCol}>
-              <Input placeholder="Origem (ex: Lapa)" value={originText} onChangeText={setOriginText} icon="ellipse" />
-              <Input placeholder="Destino (ex: Glória)" value={destText} onChangeText={setDestText} icon="location" />
-            </View>
-          </View>
-
-          <Button title="Solicitar Corrida" loading={loading} onPress={handleRequest} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // --- Tracking ---
+  // --- Map region ---
   const status = ride?.status as RideStatus | undefined;
-  const canCancel = status && ['requested', 'offered'].includes(status);
-  const info = status ? STATUS_CONFIG[status] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
-  const hasDriver = status && ['accepted', 'arrived', 'in_progress'].includes(status);
-
-  // Map target: origin (pickup) when driver coming, destination when in_progress
   const mapTarget = ride ? (
     status === 'in_progress'
       ? { lat: Number(ride.dest_lat), lng: Number(ride.dest_lng), label: ride.destination_text || 'Destino' }
       : { lat: Number(ride.origin_lat), lng: Number(ride.origin_lng), label: ride.origin_text || 'Origem' }
   ) : null;
 
-  const initialRegion: Region | undefined = mapTarget ? {
-    latitude: mapTarget.lat, longitude: mapTarget.lng,
-    latitudeDelta: 0.02, longitudeDelta: 0.02,
-  } : (userLocation ? {
-    latitude: userLocation.lat, longitude: userLocation.lng,
-    latitudeDelta: 0.02, longitudeDelta: 0.02,
-  } : undefined);
+  const regionCenter = mapTarget || userLocation;
+  const region: Region | undefined = regionCenter ? {
+    latitude: regionCenter.lat, longitude: regionCenter.lng,
+    latitudeDelta: 0.015, longitudeDelta: 0.015,
+  } : undefined;
 
   const fitMarkers = () => {
     if (!mapRef.current || !driverLocation || !mapTarget) return;
@@ -250,20 +171,25 @@ export default function PassengerMap() {
     );
   };
 
-  // Fit when driver location updates
   useEffect(() => { if (driverLocation && mapTarget) fitMarkers(); }, [driverLocation]);
+
+  // --- Tracking UI pieces ---
+  const canCancel = status && ['requested', 'offered'].includes(status);
+  const info = status ? STATUS_CONFIG[status] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
 
   return (
     <View style={styles.container}>
-      {/* Status bar */}
-      <SafeAreaView edges={['top']} style={[styles.statusBar, { backgroundColor: info.color }]}>
-        <Text style={styles.statusText}>{info.icon} {info.label}</Text>
-      </SafeAreaView>
-
-      {/* Map */}
-      {initialRegion ? (
-        <MapView ref={mapRef} style={styles.map} initialRegion={initialRegion} showsUserLocation showsMyLocationButton={false}>
-          {mapTarget && (
+      {/* Map — always visible */}
+      {region ? (
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_GOOGLE}
+          style={StyleSheet.absoluteFillObject}
+          initialRegion={region}
+          showsUserLocation
+          showsMyLocationButton={false}
+        >
+          {screen === 'tracking' && mapTarget && (
             <Marker coordinate={{ latitude: mapTarget.lat, longitude: mapTarget.lng }}
               title={status === 'in_progress' ? 'Destino' : 'Embarque'} description={mapTarget.label}
               pinColor={status === 'in_progress' ? COLORS.success : COLORS.primary} />
@@ -274,79 +200,122 @@ export default function PassengerMap() {
           )}
         </MapView>
       ) : (
-        <View style={styles.mapPlaceholder}>
+        <View style={styles.mapLoading}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.mapPlaceholderText}>{info.icon} {info.label}</Text>
+          <Text style={styles.mapLoadingText}>Obtendo localização...</Text>
         </View>
       )}
 
-      {/* Bottom sheet */}
-      <View style={styles.bottomSheet}>
-        {ride?.driver && (
-          <View style={styles.driverRow}>
-            <View style={styles.driverAvatar}>
-              <Ionicons name="person" size={20} color={COLORS.primary} />
+      {/* Overlay: idle */}
+      {screen === 'idle' && (
+        <>
+          <SafeAreaView edges={['top']} style={styles.topBar}>
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.brand}>KAVIAR</Text>
+                <Text style={styles.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
+              </View>
+              <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
+              </TouchableOpacity>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.driverName}>{ride.driver.name}</Text>
-              {ride.driver.vehicle_model && (
-                <Text style={styles.driverVehicle}>
-                  {ride.driver.vehicle_model} {ride.driver.vehicle_color} • {ride.driver.vehicle_plate}
-                </Text>
-              )}
+          </SafeAreaView>
+
+          <View style={styles.bottomCard}>
+            <Text style={styles.question}>Para onde você vai?</Text>
+            <View style={styles.routeInputs}>
+              <View style={styles.routeDots}>
+                <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
+                <View style={styles.dotLine} />
+                <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
+              </View>
+              <View style={styles.inputsCol}>
+                <Input placeholder="Origem (ex: Lapa)" value={originText} onChangeText={setOriginText} icon="ellipse" />
+                <Input placeholder="Destino (ex: Glória)" value={destText} onChangeText={setDestText} icon="location" />
+              </View>
             </View>
+            <Button title="Solicitar Corrida" loading={loading} onPress={handleRequest} />
           </View>
-        )}
+        </>
+      )}
 
-        <View style={styles.routeCompact}>
-          <Text style={styles.label}>{status === 'in_progress' ? 'Destino' : 'Origem'}</Text>
-          <Text style={styles.value} numberOfLines={1}>{mapTarget?.label || '—'}</Text>
-        </View>
+      {/* Overlay: tracking */}
+      {screen === 'tracking' && (
+        <>
+          <SafeAreaView edges={['top']} style={[styles.statusBar, { backgroundColor: info.color }]}>
+            <Text style={styles.statusText}>{info.icon} {info.label}</Text>
+          </SafeAreaView>
 
-        {canCancel && (
-          <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
-        )}
-      </View>
+          <View style={styles.bottomSheet}>
+            {ride?.driver && (
+              <View style={styles.driverRow}>
+                <View style={styles.driverAvatar}>
+                  <Ionicons name="person" size={20} color={COLORS.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.driverName}>{ride.driver.name}</Text>
+                  {ride.driver.vehicle_model && (
+                    <Text style={styles.driverVehicle}>
+                      {ride.driver.vehicle_model} {ride.driver.vehicle_color} • {ride.driver.vehicle_plate}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            )}
+            <View style={styles.routeCompact}>
+              <Text style={styles.label}>{status === 'in_progress' ? 'Destino' : 'Origem'}</Text>
+              <Text style={styles.value} numberOfLines={1}>{mapTarget?.label || '—'}</Text>
+            </View>
+            {canCancel && (
+              <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
+            )}
+          </View>
+        </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
+
+  // Map loading fallback
+  mapLoading: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+  mapLoadingText: { color: COLORS.textMuted, fontSize: 14, marginTop: 12 },
+
+  // Idle overlay
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.92)' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 24, paddingTop: 12, paddingBottom: 8,
+    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10,
   },
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
-  greeting: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
-  center: { flex: 1, padding: 24, justifyContent: 'center' },
-  question: { fontSize: 22, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 24 },
-
-  // Route inputs
+  greeting: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  bottomCard: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
+    backgroundColor: COLORS.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    padding: 20, paddingBottom: 28,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 10,
+  },
+  question: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 },
   routeInputs: { flexDirection: 'row', marginBottom: 8 },
   routeDots: { alignItems: 'center', marginRight: 12, paddingTop: 16 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   dotLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 2 },
   inputsCol: { flex: 1 },
 
-  // Map tracking
-  statusBar: { paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center' },
+  // Tracking overlay
+  statusBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, paddingTop: 48, paddingBottom: 10, paddingHorizontal: 16, alignItems: 'center' },
   statusText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  map: { flex: 1 },
-  mapPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  mapPlaceholderText: { color: COLORS.textMuted, fontSize: 16 },
   bottomSheet: {
+    position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
     backgroundColor: COLORS.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16,
     padding: 16, paddingBottom: 24,
     shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8,
   },
   routeCompact: { marginBottom: 4 },
-
-  // Shared
   label: { fontSize: 12, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   value: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginTop: 2 },
-
-  // Driver
   driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   driverAvatar: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight,
