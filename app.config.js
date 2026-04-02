@@ -34,7 +34,7 @@ export default {
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
-    newArchEnabled: true,
+    newArchEnabled: false,
     scheme: variantConfig.scheme,
     splash: {
       image: variantConfig.splash,
