@@ -147,7 +147,7 @@ export default function PassengerMap() {
           } else if (updated.status === 'no_driver') {
             Alert.alert(
               'Ainda não encontramos um motorista',
-              'Estamos procurando por motoristas próximos, mas no momento ninguém está disponível na sua região. Tente novamente em alguns instantes.\n\nConhece alguém que dirige na sua região? Indique o app Kaviar. Se a indicação for aprovada, você pode receber por isso.',
+              'Estamos procurando por motoristas próximos, mas no momento ninguém está disponível na sua região. Conhece alguém que dirige por aí? Toque em "Indicar motorista".',
               [
                 { text: 'Tentar novamente', onPress: () => handleRetry() },
                 { text: 'Indicar motorista', onPress: () => Linking.openURL('https://kaviar.com.br/#motoristas') },
