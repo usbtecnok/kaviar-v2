@@ -183,7 +183,7 @@ export default function PassengerMap() {
       {region ? (
         <MapView
           ref={mapRef}
-          style={StyleSheet.absoluteFillObject}
+          style={styles.map}
           initialRegion={region}
           showsUserLocation
           showsMyLocationButton={false}
@@ -279,7 +279,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
 
   // Map loading fallback
-  mapLoading: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+  map: { flex: 1 },
+  mapLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   mapLoadingText: { color: COLORS.textMuted, fontSize: 14, marginTop: 12 },
 
   // Idle overlay
