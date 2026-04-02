@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, FlatList, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,100 +25,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   in_progress:{ label: 'Corrida em andamento',   color: COLORS.success, icon: '🛣️' },
 };
 
-// --- Place types ---
 interface Place { text: string; lat: number; lng: number; placeId: string }
 interface Prediction { place_id: string; description: string }
 
-// --- PlaceInput component ---
-function PlaceInput({ placeholder, icon, value, onSelect, userLocation }: {
-  placeholder: string; icon: string; value: string;
-  onSelect: (place: Place) => void; userLocation: { lat: number; lng: number } | null;
-}) {
-  const [text, setText] = useState(value);
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [showList, setShowList] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => { setText(value); }, [value]);
-
-  const search = useCallback((input: string) => {
-    if (input.length < 3) { setPredictions([]); setShowList(false); return; }
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(async () => {
-      try {
-        const loc = userLocation ? `&location=${userLocation.lat},${userLocation.lng}&radius=30000` : '';
-        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${PLACES_KEY}&components=country:br&language=pt-BR${loc}`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.status === 'OK') { setPredictions(data.predictions); setShowList(true); }
-      } catch {}
-    }, 350);
-  }, [userLocation]);
-
-  const pick = useCallback(async (p: Prediction) => {
-    setShowList(false); setText(p.description); Keyboard.dismiss();
-    try {
-      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=geometry&key=${PLACES_KEY}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.status === 'OK') {
-        const loc = data.result.geometry.location;
-        onSelect({ text: p.description, lat: loc.lat, lng: loc.lng, placeId: p.place_id });
-      }
-    } catch {}
-  }, [onSelect]);
-
-  return (
-    <View style={piStyles.container}>
-      <View style={piStyles.row}>
-        <Ionicons name={icon as any} size={16} color={COLORS.textMuted} style={piStyles.icon} />
-        <TextInput
-          style={piStyles.input}
-          placeholder={placeholder}
-          placeholderTextColor={COLORS.textMuted}
-          value={text}
-          onChangeText={(t) => { setText(t); search(t); }}
-          onFocus={() => { if (predictions.length > 0) setShowList(true); }}
-        />
-        {text.length > 0 && (
-          <TouchableOpacity onPress={() => { setText(''); setPredictions([]); setShowList(false); }}>
-            <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        )}
-      </View>
-      {showList && predictions.length > 0 && (
-        <View style={piStyles.list}>
-          {predictions.map((p) => (
-            <TouchableOpacity key={p.place_id} style={piStyles.item} onPress={() => pick(p)}>
-              <Ionicons name="location-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 8 }} />
-              <Text style={piStyles.itemText} numberOfLines={2}>{p.description}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
-const piStyles = StyleSheet.create({
-  container: { marginBottom: 10 },
-  row: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surfaceLight, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 12,
-  },
-  icon: { marginRight: 8 },
-  input: { flex: 1, paddingVertical: 12, fontSize: 15, color: COLORS.textPrimary },
-  list: {
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10,
-    marginTop: 4, maxHeight: 200, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
-  },
-  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  itemText: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
-});
-
-// --- Main screen ---
-type Screen = 'idle' | 'tracking';
+type Screen = 'idle' | 'search' | 'tracking';
 
 export default function PassengerMap() {
   const router = useRouter();
@@ -129,10 +39,19 @@ export default function PassengerMap() {
   const [ride, setRide] = useState<Ride | null>(null);
   const [userName, setUserName] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userAddress, setUserAddress] = useState('Minha localização');
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Search state
+  const [searchText, setSearchText] = useState('');
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [searchingFor, setSearchingFor] = useState<'origin' | 'destination'>('destination');
+
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sseRef = useRef<any>(null);
   const mapRef = useRef<MapView>(null);
+  const searchRef = useRef<TextInput>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const user = authStore.getUser();
@@ -146,10 +65,72 @@ export default function PassengerMap() {
     if (status !== 'granted') { Alert.alert('Localização necessária', 'Ative a localização para solicitar corridas.'); return; }
     try {
       const loc = await Location.getCurrentPositionAsync({});
-      setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      const coords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
+      setUserLocation(coords);
+      // Set origin to current location by default
+      setOrigin({ text: 'Minha localização', lat: coords.lat, lng: coords.lng, placeId: 'current' });
+      // Reverse geocode for display
+      try {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${PLACES_KEY}&language=pt-BR`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK' && data.results[0]) {
+          const addr = data.results[0].formatted_address.split(',').slice(0, 2).join(',');
+          setUserAddress(addr);
+          setOrigin(prev => prev ? { ...prev, text: addr } : null);
+        }
+      } catch {}
     } catch { Alert.alert('Erro de GPS', 'Não foi possível obter sua localização.'); }
   };
 
+  // --- Search ---
+  const openSearch = (target: 'origin' | 'destination') => {
+    setSearchingFor(target);
+    setSearchText('');
+    setPredictions([]);
+    setScreen('search');
+    setTimeout(() => searchRef.current?.focus(), 100);
+  };
+
+  const searchPlaces = useCallback((input: string) => {
+    setSearchText(input);
+    if (input.length < 3) { setPredictions([]); return; }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const loc = userLocation ? `&location=${userLocation.lat},${userLocation.lng}&radius=30000` : '';
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${PLACES_KEY}&components=country:br&language=pt-BR${loc}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK') setPredictions(data.predictions);
+      } catch {}
+    }, 300);
+  }, [userLocation]);
+
+  const selectPlace = useCallback(async (p: Prediction) => {
+    Keyboard.dismiss();
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=geometry&key=${PLACES_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.status === 'OK') {
+        const loc = data.result.geometry.location;
+        const place: Place = { text: p.description, lat: loc.lat, lng: loc.lng, placeId: p.place_id };
+        if (searchingFor === 'origin') setOrigin(place);
+        else setDestination(place);
+      }
+    } catch {}
+    setScreen('idle');
+  }, [searchingFor]);
+
+  const useCurrentLocation = () => {
+    if (userLocation) {
+      setOrigin({ text: userAddress, lat: userLocation.lat, lng: userLocation.lng, placeId: 'current' });
+    }
+    setScreen('idle');
+  };
+
+  // --- Ride ---
   const startPolling = (rideId: string) => {
     pollRef.current = setInterval(async () => {
       try {
@@ -187,12 +168,12 @@ export default function PassengerMap() {
   const stopSSE = () => { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } setDriverLocation(null); };
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   const stopAll = () => { stopPolling(); stopSSE(); };
-  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setOrigin(null); setDestination(null); };
+  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); };
   const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setTimeout(() => handleRequest(), 100); };
 
   const handleRequest = async () => {
-    if (!origin) { Alert.alert('Selecione a origem', 'Digite e selecione um endereço de origem.'); return; }
-    if (!destination) { Alert.alert('Selecione o destino', 'Digite e selecione um endereço de destino.'); return; }
+    if (!origin) { Alert.alert('Origem indisponível', 'Aguarde o GPS ou selecione um endereço.'); return; }
+    if (!destination) { Alert.alert('Selecione o destino', 'Para onde você vai?'); return; }
     setLoading(true);
     try {
       const result = await passengerApi.requestRide({
@@ -228,9 +209,9 @@ export default function PassengerMap() {
   };
 
   // --- Map region ---
-  const status = ride?.status as RideStatus | undefined;
+  const rideStatus = ride?.status as RideStatus | undefined;
   const mapTarget = ride ? (
-    status === 'in_progress'
+    rideStatus === 'in_progress'
       ? { lat: Number(ride.dest_lat), lng: Number(ride.dest_lng), label: ride.destination_text || 'Destino' }
       : { lat: Number(ride.origin_lat), lng: Number(ride.origin_lng), label: ride.origin_text || 'Origem' }
   ) : null;
@@ -241,64 +222,121 @@ export default function PassengerMap() {
     latitudeDelta: 0.015, longitudeDelta: 0.015,
   } : undefined;
 
-  const fitMarkers = () => {
-    if (!mapRef.current || !driverLocation || !mapTarget) return;
-    mapRef.current.fitToCoordinates(
-      [{ latitude: driverLocation.lat, longitude: driverLocation.lng }, { latitude: mapTarget.lat, longitude: mapTarget.lng }],
-      { edgePadding: { top: 80, right: 80, bottom: 260, left: 80 }, animated: true }
-    );
-  };
+  useEffect(() => {
+    if (driverLocation && mapTarget && mapRef.current) {
+      mapRef.current.fitToCoordinates(
+        [{ latitude: driverLocation.lat, longitude: driverLocation.lng }, { latitude: mapTarget.lat, longitude: mapTarget.lng }],
+        { edgePadding: { top: 80, right: 80, bottom: 260, left: 80 }, animated: true }
+      );
+    }
+  }, [driverLocation]);
 
-  useEffect(() => { if (driverLocation && mapTarget) fitMarkers(); }, [driverLocation]);
-
-  // Fit origin+destination pins when both selected
   useEffect(() => {
     if (origin && destination && mapRef.current && screen === 'idle') {
       mapRef.current.fitToCoordinates(
         [{ latitude: origin.lat, longitude: origin.lng }, { latitude: destination.lat, longitude: destination.lng }],
-        { edgePadding: { top: 120, right: 60, bottom: 320, left: 60 }, animated: true }
+        { edgePadding: { top: 120, right: 60, bottom: 280, left: 60 }, animated: true }
       );
     }
   }, [origin, destination]);
 
-  const canCancel = status && ['requested', 'offered'].includes(status);
-  const info = status ? STATUS_CONFIG[status] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
+  const canCancel = rideStatus && ['requested', 'offered'].includes(rideStatus);
+  const info = rideStatus ? STATUS_CONFIG[rideStatus] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
 
+  // === SEARCH SCREEN ===
+  if (screen === 'search') {
+    return (
+      <SafeAreaView style={s.searchContainer}>
+        {/* Header */}
+        <View style={s.searchHeader}>
+          <TouchableOpacity onPress={() => setScreen('idle')} style={s.searchBack}>
+            <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+          </TouchableOpacity>
+          <Text style={s.searchTitle}>{searchingFor === 'destination' ? 'Para onde?' : 'Ponto de embarque'}</Text>
+        </View>
+
+        {/* Input */}
+        <View style={s.searchInputWrap}>
+          <Ionicons name="search" size={18} color={COLORS.textMuted} />
+          <TextInput
+            ref={searchRef}
+            style={s.searchInput}
+            placeholder="Digite o endereço..."
+            placeholderTextColor={COLORS.textMuted}
+            value={searchText}
+            onChangeText={searchPlaces}
+            autoFocus
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => { setSearchText(''); setPredictions([]); }}>
+              <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Current location option (only for origin) */}
+        {searchingFor === 'origin' && userLocation && (
+          <TouchableOpacity style={s.searchItem} onPress={useCurrentLocation}>
+            <Ionicons name="navigate" size={20} color={COLORS.primary} style={s.searchItemIcon} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.searchItemTitle}>Minha localização atual</Text>
+              <Text style={s.searchItemSub} numberOfLines={1}>{userAddress}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Results */}
+        <ScrollView style={s.searchResults} keyboardShouldPersistTaps="handled">
+          {predictions.map((p) => (
+            <TouchableOpacity key={p.place_id} style={s.searchItem} onPress={() => selectPlace(p)}>
+              <Ionicons name="location-outline" size={20} color={COLORS.textMuted} style={s.searchItemIcon} />
+              <Text style={s.searchItemTitle} numberOfLines={2}>{p.description}</Text>
+            </TouchableOpacity>
+          ))}
+          {searchText.length >= 3 && predictions.length === 0 && (
+            <Text style={s.searchEmpty}>Nenhum resultado encontrado</Text>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // === MAP + IDLE/TRACKING ===
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       {/* Map */}
       {region ? (
-        <MapView ref={mapRef} style={styles.map} initialRegion={region} showsUserLocation showsMyLocationButton={false}>
-          {screen === 'idle' && origin && (
-            <Marker coordinate={{ latitude: origin.lat, longitude: origin.lng }} title="Origem" description={origin.text} pinColor={COLORS.success} />
+        <MapView ref={mapRef} style={s.map} initialRegion={region} showsUserLocation showsMyLocationButton={false}>
+          {screen === 'idle' && origin && origin.placeId !== 'current' && (
+            <Marker coordinate={{ latitude: origin.lat, longitude: origin.lng }} title="Origem" pinColor={COLORS.success} />
           )}
           {screen === 'idle' && destination && (
             <Marker coordinate={{ latitude: destination.lat, longitude: destination.lng }} title="Destino" description={destination.text} pinColor={COLORS.danger} />
           )}
           {screen === 'tracking' && mapTarget && (
             <Marker coordinate={{ latitude: mapTarget.lat, longitude: mapTarget.lng }}
-              title={status === 'in_progress' ? 'Destino' : 'Embarque'} description={mapTarget.label}
-              pinColor={status === 'in_progress' ? COLORS.success : COLORS.primary} />
+              title={rideStatus === 'in_progress' ? 'Destino' : 'Embarque'} description={mapTarget.label}
+              pinColor={rideStatus === 'in_progress' ? COLORS.success : COLORS.primary} />
           )}
           {driverLocation && (
             <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }} title="Motorista" pinColor={COLORS.warning} />
           )}
         </MapView>
       ) : (
-        <View style={styles.mapLoading}>
+        <View style={s.mapLoading}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.mapLoadingText}>Obtendo localização...</Text>
+          <Text style={s.mapLoadingText}>Obtendo localização...</Text>
         </View>
       )}
 
-      {/* Idle overlay */}
+      {/* IDLE overlay */}
       {screen === 'idle' && (
         <>
-          <SafeAreaView edges={['top']} style={styles.topBar}>
-            <View style={styles.header}>
+          <SafeAreaView edges={['top']} style={s.topBar}>
+            <View style={s.header}>
               <View>
-                <Text style={styles.brand}>KAVIAR</Text>
-                <Text style={styles.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
+                <Text style={s.brand}>KAVIAR</Text>
+                <Text style={s.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
               </View>
               <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                 <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
@@ -306,41 +344,62 @@ export default function PassengerMap() {
             </View>
           </SafeAreaView>
 
-          <View style={styles.bottomCard}>
-            <Text style={styles.question}>Para onde você vai?</Text>
-            <PlaceInput placeholder="Origem (endereço)" icon="ellipse" value={origin?.text || ''} onSelect={setOrigin} userLocation={userLocation} />
-            <PlaceInput placeholder="Destino (endereço)" icon="location" value={destination?.text || ''} onSelect={setDestination} userLocation={userLocation} />
-            <Button title="Solicitar Corrida" loading={loading} onPress={handleRequest} />
+          <View style={s.bottomCard}>
+            <Text style={s.question}>Para onde você vai?</Text>
+
+            {/* Origin row — tap to change */}
+            <TouchableOpacity style={s.addressRow} onPress={() => openSearch('origin')}>
+              <View style={[s.dot, { backgroundColor: COLORS.success }]} />
+              <View style={s.addressInfo}>
+                <Text style={s.addressLabel}>EMBARQUE</Text>
+                <Text style={s.addressText} numberOfLines={1}>{origin?.text || 'Obtendo localização...'}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            {/* Destination row — tap to search */}
+            <TouchableOpacity style={[s.addressRow, s.addressRowLast]} onPress={() => openSearch('destination')}>
+              <View style={[s.dot, { backgroundColor: COLORS.danger }]} />
+              <View style={s.addressInfo}>
+                <Text style={s.addressLabel}>DESTINO</Text>
+                <Text style={[s.addressText, !destination && s.addressPlaceholder]} numberOfLines={1}>
+                  {destination?.text || 'Toque para buscar endereço'}
+                </Text>
+              </View>
+              <Ionicons name="search" size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            <Button title="Solicitar Corrida" loading={loading} onPress={handleRequest} style={{ marginTop: 14 }} />
           </View>
         </>
       )}
 
-      {/* Tracking overlay */}
+      {/* TRACKING overlay */}
       {screen === 'tracking' && (
         <>
-          <SafeAreaView edges={['top']} style={[styles.statusBar, { backgroundColor: info.color }]}>
-            <Text style={styles.statusText}>{info.icon} {info.label}</Text>
+          <SafeAreaView edges={['top']} style={[s.statusBar, { backgroundColor: info.color }]}>
+            <Text style={s.statusText}>{info.icon} {info.label}</Text>
           </SafeAreaView>
 
-          <View style={styles.bottomSheet}>
+          <View style={s.bottomSheet}>
             {ride?.driver && (
-              <View style={styles.driverRow}>
-                <View style={styles.driverAvatar}>
+              <View style={s.driverRow}>
+                <View style={s.driverAvatar}>
                   <Ionicons name="person" size={20} color={COLORS.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.driverName}>{ride.driver.name}</Text>
+                  <Text style={s.driverName}>{ride.driver.name}</Text>
                   {ride.driver.vehicle_model && (
-                    <Text style={styles.driverVehicle}>
+                    <Text style={s.driverVehicle}>
                       {ride.driver.vehicle_model} {ride.driver.vehicle_color} • {ride.driver.vehicle_plate}
                     </Text>
                   )}
                 </View>
               </View>
             )}
-            <View style={styles.routeCompact}>
-              <Text style={styles.label}>{status === 'in_progress' ? 'Destino' : 'Origem'}</Text>
-              <Text style={styles.value} numberOfLines={1}>{mapTarget?.label || '—'}</Text>
+            <View style={s.routeCompact}>
+              <Text style={s.label}>{rideStatus === 'in_progress' ? 'Destino' : 'Origem'}</Text>
+              <Text style={s.value} numberOfLines={1}>{mapTarget?.label || '—'}</Text>
             </View>
             {canCancel && (
               <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
@@ -352,22 +411,57 @@ export default function PassengerMap() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   map: { flex: 1 },
   mapLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   mapLoadingText: { color: COLORS.textMuted, fontSize: 14, marginTop: 12 },
+
+  // Top bar
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.92)' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
   greeting: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+
+  // Bottom card (idle)
   bottomCard: {
     position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
     backgroundColor: COLORS.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 20, paddingBottom: 28,
     shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 10,
   },
-  question: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 },
+  question: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 14 },
+
+  // Address rows
+  addressRow: {
+    flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  addressRowLast: { borderBottomWidth: 0 },
+  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
+  addressInfo: { flex: 1 },
+  addressLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 1, marginBottom: 2 },
+  addressText: { fontSize: 15, color: COLORS.textPrimary },
+  addressPlaceholder: { color: COLORS.textMuted },
+
+  // Search screen
+  searchContainer: { flex: 1, backgroundColor: COLORS.surface },
+  searchHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
+  searchBack: { marginRight: 12, padding: 4 },
+  searchTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
+  searchInputWrap: {
+    flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 8,
+    backgroundColor: COLORS.surfaceLight, borderRadius: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.border,
+  },
+  searchInput: { flex: 1, paddingVertical: 14, paddingHorizontal: 10, fontSize: 16, color: COLORS.textPrimary },
+  searchResults: { flex: 1 },
+  searchItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  searchItemIcon: { marginRight: 14 },
+  searchItemTitle: { flex: 1, fontSize: 15, color: COLORS.textPrimary },
+  searchItemSub: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
+  searchEmpty: { textAlign: 'center', color: COLORS.textMuted, marginTop: 40, fontSize: 15 },
+
+  // Tracking
   statusBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, paddingTop: 48, paddingBottom: 10, paddingHorizontal: 16, alignItems: 'center' },
   statusText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   bottomSheet: {
