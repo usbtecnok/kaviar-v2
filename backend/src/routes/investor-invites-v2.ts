@@ -42,7 +42,7 @@ const generateInviteToken = (userId: string, userType: string) => {
   return jwt.sign(
     { userId, userType, type: 'password_reset' },
     config.jwtSecret,
-    { expiresIn: '15m' }
+    { expiresIn: '120m' }
   );
 };
 
@@ -150,17 +150,17 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
     await emailService.sendMail({
       to: admin.email,
       subject: 'KAVIAR - Convite para Acesso',
-      text: `Convite para Acesso ao Sistema KAVIAR\n\nOlá ${displayName},\n\nVocê foi convidado para acessar o sistema KAVIAR como ${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'}.\n\nPara configurar sua senha e acessar o sistema, acesse: ${inviteUrl}\n\nEste link expira em 15 minutos.\n\nApós configurar sua senha, acesse: ${config.frontendUrl}/admin/login\n\nEquipe KAVIAR`,
+      text: `Você foi convidado para acessar o sistema KAVIAR como ${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'}.\n\nPara configurar sua senha e ativar seu acesso, toque no link:\n${inviteUrl}\n\nEste link expira em 2 horas.\n\nDepois de definir sua senha, você será direcionado ao painel automaticamente.\nSe precisar de acesso novamente no futuro, solicite um novo convite à equipe KAVIAR.\n\nEquipe KAVIAR`,
       html: `
         <h2>Convite para Acesso ao Sistema KAVIAR</h2>
-        <p>Olá ${displayName},</p>
         <p>Você foi convidado para acessar o sistema KAVIAR como <strong>${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'}</strong>.</p>
-        <p>Para configurar sua senha e acessar o sistema, clique no link abaixo:</p>
+        <p>Para configurar sua senha e ativar seu acesso, toque no link:</p>
         <p><a href="${inviteUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Configurar Senha</a></p>
         <p>Ou copie e cole este link no navegador:</p>
         <p>${inviteUrl}</p>
-        <p>Este link expira em 15 minutos.</p>
-        <p>Após configurar sua senha, acesse: <a href="${config.frontendUrl}/admin/login">${config.frontendUrl}/admin/login</a></p>
+        <p>Este link expira em 2 horas.</p>
+        <p>Depois de definir sua senha, você será direcionado ao painel automaticamente.</p>
+        <p>Se precisar de acesso novamente no futuro, solicite um novo convite à equipe KAVIAR.</p>
         <br>
         <p>Equipe KAVIAR</p>
       `
