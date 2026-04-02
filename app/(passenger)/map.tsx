@@ -141,7 +141,7 @@ export default function PassengerMap() {
           stopAll();
           if (updated.status === 'completed') {
             Alert.alert('Corrida Finalizada!', 'Obrigado por usar o Kaviar.', [
-              { text: 'Avaliar', onPress: () => router.push({ pathname: '/(passenger)/rating', params: { rideId: updated.id, driverName: updated.driver?.name || '', driverId: updated.driver?.id || '' } }) },
+              { text: 'Avaliar', onPress: () => router.push({ pathname: '/(passenger)/rating', params: { rideId: updated.id, driverName: updated.driver?.name || '', driverId: updated.driver?.id || updated.driver_id || '' } }) },
               { text: 'Fechar', onPress: resetToIdle },
             ]);
           } else if (updated.status === 'no_driver') {
