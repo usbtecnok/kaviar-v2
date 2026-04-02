@@ -146,8 +146,8 @@ router.post('/reset-password', async (req, res) => {
       case 'admin':
         updatedUser = await prisma.admins.update({
           where: { id: userId },
-          data: { password: passwordHash },
-          select: { id: true, email: true, name: true }
+          data: { password: passwordHash, must_change_password: false },
+          select: { id: true, email: true, name: true, role: true }
         });
         break;
       case 'driver':
@@ -180,7 +180,17 @@ router.post('/reset-password', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Senha redefinida com sucesso'
+      message: 'Senha redefinida com sucesso',
+      ...(userType === 'admin' && updatedUser ? {
+        data: {
+          token: jwt.sign(
+            { userId: updatedUser.id, userType: 'ADMIN', email: updatedUser.email, role: (updatedUser as any).role },
+            config.jwtSecret,
+            { expiresIn: '24h' }
+          ),
+          user: updatedUser
+        }
+      } : {})
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
