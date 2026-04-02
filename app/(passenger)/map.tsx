@@ -5,14 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import MapView, { Marker, Region } from 'react-native-maps';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from '../../src/components/Button';
 import { passengerApi } from '../../src/api/passenger.api';
 import { authStore } from '../../src/auth/auth.store';
 import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
-import { ENV } from '../../src/config/env';
 
 const POLL_INTERVAL = 3000;
 const PLACES_KEY = 'AIzaSyA50GYLlH7L5Iq5HpJ1MAALYOXN4PYlswc';
@@ -48,7 +46,6 @@ export default function PassengerMap() {
   const [searchingFor, setSearchingFor] = useState<'origin' | 'destination'>('destination');
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const sseRef = useRef<any>(null);
   const mapRef = useRef<MapView>(null);
   const searchRef = useRef<TextInput>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -136,6 +133,10 @@ export default function PassengerMap() {
       try {
         const updated = await passengerApi.getRide(rideId);
         setRide(updated);
+        // Update driver location from polling
+        if (updated.driver?.last_lat && updated.driver?.last_lng) {
+          setDriverLocation({ lat: updated.driver.last_lat, lng: updated.driver.last_lng });
+        }
         if (['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(updated.status)) {
           stopAll();
           if (updated.status === 'completed') {
@@ -154,20 +155,8 @@ export default function PassengerMap() {
     }, POLL_INTERVAL);
   };
 
-  const startSSE = async (rideId: string) => {
-    try {
-      const token = await AsyncStorage.getItem('auth_token');
-      if (!token) return;
-      const es = new EventSource(`${ENV.API_URL}/api/realtime/rides/${rideId}`, { headers: { Authorization: `Bearer ${token}` } } as any);
-      es.onmessage = (event: any) => { try { const d = JSON.parse(event.data); if (d.type === 'driver_location' && d.lat && d.lng) setDriverLocation({ lat: Number(d.lat), lng: Number(d.lng) }); } catch {} };
-      es.onerror = () => {};
-      sseRef.current = es;
-    } catch {}
-  };
-
-  const stopSSE = () => { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } setDriverLocation(null); };
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
-  const stopAll = () => { stopPolling(); stopSSE(); };
+  const stopAll = () => { stopPolling(); setDriverLocation(null); };
   const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); };
   const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setTimeout(() => handleRequest(), 100); };
 
@@ -184,7 +173,6 @@ export default function PassengerMap() {
       setRide(rideData);
       setScreen('tracking');
       startPolling(result.ride_id);
-      startSSE(result.ride_id);
     } catch (e: any) {
       Alert.alert('Erro', friendlyError(e, 'Não foi possível solicitar a corrida.'));
     } finally { setLoading(false); }
