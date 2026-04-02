@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, FlatList, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import MapView, { Marker, Region } from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { passengerApi } from '../../src/api/passenger.api';
 import { authStore } from '../../src/auth/auth.store';
@@ -16,6 +15,7 @@ import { COLORS } from '../../src/config/colors';
 import { ENV } from '../../src/config/env';
 
 const POLL_INTERVAL = 3000;
+const PLACES_KEY = 'AIzaSyA50GYLlH7L5Iq5HpJ1MAALYOXN4PYlswc';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   requested:  { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
@@ -25,13 +25,106 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   in_progress:{ label: 'Corrida em andamento',   color: COLORS.success, icon: '🛣️' },
 };
 
+// --- Place types ---
+interface Place { text: string; lat: number; lng: number; placeId: string }
+interface Prediction { place_id: string; description: string }
+
+// --- PlaceInput component ---
+function PlaceInput({ placeholder, icon, value, onSelect, userLocation }: {
+  placeholder: string; icon: string; value: string;
+  onSelect: (place: Place) => void; userLocation: { lat: number; lng: number } | null;
+}) {
+  const [text, setText] = useState(value);
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [showList, setShowList] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => { setText(value); }, [value]);
+
+  const search = useCallback((input: string) => {
+    if (input.length < 3) { setPredictions([]); setShowList(false); return; }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      try {
+        const loc = userLocation ? `&location=${userLocation.lat},${userLocation.lng}&radius=30000` : '';
+        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${PLACES_KEY}&components=country:br&language=pt-BR${loc}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status === 'OK') { setPredictions(data.predictions); setShowList(true); }
+      } catch {}
+    }, 350);
+  }, [userLocation]);
+
+  const pick = useCallback(async (p: Prediction) => {
+    setShowList(false); setText(p.description); Keyboard.dismiss();
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=geometry&key=${PLACES_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.status === 'OK') {
+        const loc = data.result.geometry.location;
+        onSelect({ text: p.description, lat: loc.lat, lng: loc.lng, placeId: p.place_id });
+      }
+    } catch {}
+  }, [onSelect]);
+
+  return (
+    <View style={piStyles.container}>
+      <View style={piStyles.row}>
+        <Ionicons name={icon as any} size={16} color={COLORS.textMuted} style={piStyles.icon} />
+        <TextInput
+          style={piStyles.input}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.textMuted}
+          value={text}
+          onChangeText={(t) => { setText(t); search(t); }}
+          onFocus={() => { if (predictions.length > 0) setShowList(true); }}
+        />
+        {text.length > 0 && (
+          <TouchableOpacity onPress={() => { setText(''); setPredictions([]); setShowList(false); }}>
+            <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        )}
+      </View>
+      {showList && predictions.length > 0 && (
+        <View style={piStyles.list}>
+          {predictions.map((p) => (
+            <TouchableOpacity key={p.place_id} style={piStyles.item} onPress={() => pick(p)}>
+              <Ionicons name="location-outline" size={16} color={COLORS.textMuted} style={{ marginRight: 8 }} />
+              <Text style={piStyles.itemText} numberOfLines={2}>{p.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const piStyles = StyleSheet.create({
+  container: { marginBottom: 10 },
+  row: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.surfaceLight, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, paddingHorizontal: 12,
+  },
+  icon: { marginRight: 8 },
+  input: { flex: 1, paddingVertical: 12, fontSize: 15, color: COLORS.textPrimary },
+  list: {
+    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10,
+    marginTop: 4, maxHeight: 200, overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 4,
+  },
+  item: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  itemText: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
+});
+
+// --- Main screen ---
 type Screen = 'idle' | 'tracking';
 
 export default function PassengerMap() {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>('idle');
-  const [originText, setOriginText] = useState('');
-  const [destText, setDestText] = useState('');
+  const [origin, setOrigin] = useState<Place | null>(null);
+  const [destination, setDestination] = useState<Place | null>(null);
   const [loading, setLoading] = useState(false);
   const [ride, setRide] = useState<Ride | null>(null);
   const [userName, setUserName] = useState('');
@@ -50,16 +143,11 @@ export default function PassengerMap() {
 
   const acquireLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Localização necessária', 'Ative a localização para solicitar corridas.');
-      return;
-    }
+    if (status !== 'granted') { Alert.alert('Localização necessária', 'Ative a localização para solicitar corridas.'); return; }
     try {
       const loc = await Location.getCurrentPositionAsync({});
       setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-    } catch {
-      Alert.alert('Erro de GPS', 'Não foi possível obter sua localização. Tente novamente.');
-    }
+    } catch { Alert.alert('Erro de GPS', 'Não foi possível obter sua localização.'); }
   };
 
   const startPolling = (rideId: string) => {
@@ -89,16 +177,8 @@ export default function PassengerMap() {
     try {
       const token = await AsyncStorage.getItem('auth_token');
       if (!token) return;
-      const url = `${ENV.API_URL}/api/realtime/rides/${rideId}`;
-      const es = new EventSource(url, { headers: { Authorization: `Bearer ${token}` } } as any);
-      es.onmessage = (event: any) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'driver_location' && data.lat && data.lng) {
-            setDriverLocation({ lat: Number(data.lat), lng: Number(data.lng) });
-          }
-        } catch {}
-      };
+      const es = new EventSource(`${ENV.API_URL}/api/realtime/rides/${rideId}`, { headers: { Authorization: `Bearer ${token}` } } as any);
+      es.onmessage = (event: any) => { try { const d = JSON.parse(event.data); if (d.type === 'driver_location' && d.lat && d.lng) setDriverLocation({ lat: Number(d.lat), lng: Number(d.lng) }); } catch {} };
       es.onerror = () => {};
       sseRef.current = es;
     } catch {}
@@ -107,19 +187,17 @@ export default function PassengerMap() {
   const stopSSE = () => { if (sseRef.current) { sseRef.current.close(); sseRef.current = null; } setDriverLocation(null); };
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   const stopAll = () => { stopPolling(); stopSSE(); };
-
-  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setOriginText(''); setDestText(''); };
-
+  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setOrigin(null); setDestination(null); };
   const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setTimeout(() => handleRequest(), 100); };
 
   const handleRequest = async () => {
-    if (!originText.trim() || !destText.trim()) { Alert.alert('Preencha os campos', 'Informe origem e destino.'); return; }
-    if (!userLocation) { Alert.alert('Localização indisponível', 'Aguarde o GPS ou verifique as permissões.'); await acquireLocation(); return; }
+    if (!origin) { Alert.alert('Selecione a origem', 'Digite e selecione um endereço de origem.'); return; }
+    if (!destination) { Alert.alert('Selecione o destino', 'Digite e selecione um endereço de destino.'); return; }
     setLoading(true);
     try {
       const result = await passengerApi.requestRide({
-        origin: { lat: userLocation.lat, lng: userLocation.lng, text: originText.trim() },
-        destination: { lat: userLocation.lat + 0.005, lng: userLocation.lng + 0.005, text: destText.trim() },
+        origin: { lat: origin.lat, lng: origin.lng, text: origin.text },
+        destination: { lat: destination.lat, lng: destination.lng, text: destination.text },
       });
       const rideData = await passengerApi.getRide(result.ride_id);
       setRide(rideData);
@@ -157,7 +235,7 @@ export default function PassengerMap() {
       : { lat: Number(ride.origin_lat), lng: Number(ride.origin_lng), label: ride.origin_text || 'Origem' }
   ) : null;
 
-  const regionCenter = mapTarget || userLocation;
+  const regionCenter = mapTarget || (destination ? { lat: destination.lat, lng: destination.lng } : null) || userLocation;
   const region: Region | undefined = regionCenter ? {
     latitude: regionCenter.lat, longitude: regionCenter.lng,
     latitudeDelta: 0.015, longitudeDelta: 0.015,
@@ -173,29 +251,37 @@ export default function PassengerMap() {
 
   useEffect(() => { if (driverLocation && mapTarget) fitMarkers(); }, [driverLocation]);
 
-  // --- Tracking UI pieces ---
+  // Fit origin+destination pins when both selected
+  useEffect(() => {
+    if (origin && destination && mapRef.current && screen === 'idle') {
+      mapRef.current.fitToCoordinates(
+        [{ latitude: origin.lat, longitude: origin.lng }, { latitude: destination.lat, longitude: destination.lng }],
+        { edgePadding: { top: 120, right: 60, bottom: 320, left: 60 }, animated: true }
+      );
+    }
+  }, [origin, destination]);
+
   const canCancel = status && ['requested', 'offered'].includes(status);
   const info = status ? STATUS_CONFIG[status] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
 
   return (
     <View style={styles.container}>
-      {/* Map — always visible */}
+      {/* Map */}
       {region ? (
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={region}
-          showsUserLocation
-          showsMyLocationButton={false}
-        >
+        <MapView ref={mapRef} style={styles.map} initialRegion={region} showsUserLocation showsMyLocationButton={false}>
+          {screen === 'idle' && origin && (
+            <Marker coordinate={{ latitude: origin.lat, longitude: origin.lng }} title="Origem" description={origin.text} pinColor={COLORS.success} />
+          )}
+          {screen === 'idle' && destination && (
+            <Marker coordinate={{ latitude: destination.lat, longitude: destination.lng }} title="Destino" description={destination.text} pinColor={COLORS.danger} />
+          )}
           {screen === 'tracking' && mapTarget && (
             <Marker coordinate={{ latitude: mapTarget.lat, longitude: mapTarget.lng }}
               title={status === 'in_progress' ? 'Destino' : 'Embarque'} description={mapTarget.label}
               pinColor={status === 'in_progress' ? COLORS.success : COLORS.primary} />
           )}
           {driverLocation && (
-            <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }}
-              title="Motorista" pinColor={COLORS.warning} />
+            <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }} title="Motorista" pinColor={COLORS.warning} />
           )}
         </MapView>
       ) : (
@@ -205,7 +291,7 @@ export default function PassengerMap() {
         </View>
       )}
 
-      {/* Overlay: idle */}
+      {/* Idle overlay */}
       {screen === 'idle' && (
         <>
           <SafeAreaView edges={['top']} style={styles.topBar}>
@@ -222,23 +308,14 @@ export default function PassengerMap() {
 
           <View style={styles.bottomCard}>
             <Text style={styles.question}>Para onde você vai?</Text>
-            <View style={styles.routeInputs}>
-              <View style={styles.routeDots}>
-                <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
-                <View style={styles.dotLine} />
-                <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
-              </View>
-              <View style={styles.inputsCol}>
-                <Input placeholder="Origem (ex: Lapa)" value={originText} onChangeText={setOriginText} icon="ellipse" />
-                <Input placeholder="Destino (ex: Glória)" value={destText} onChangeText={setDestText} icon="location" />
-              </View>
-            </View>
+            <PlaceInput placeholder="Origem (endereço)" icon="ellipse" value={origin?.text || ''} onSelect={setOrigin} userLocation={userLocation} />
+            <PlaceInput placeholder="Destino (endereço)" icon="location" value={destination?.text || ''} onSelect={setDestination} userLocation={userLocation} />
             <Button title="Solicitar Corrida" loading={loading} onPress={handleRequest} />
           </View>
         </>
       )}
 
-      {/* Overlay: tracking */}
+      {/* Tracking overlay */}
       {screen === 'tracking' && (
         <>
           <SafeAreaView edges={['top']} style={[styles.statusBar, { backgroundColor: info.color }]}>
@@ -277,18 +354,11 @@ export default function PassengerMap() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-
-  // Map loading fallback
   map: { flex: 1 },
   mapLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   mapLoadingText: { color: COLORS.textMuted, fontSize: 14, marginTop: 12 },
-
-  // Idle overlay
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.92)' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10,
-  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
   greeting: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   bottomCard: {
@@ -298,13 +368,6 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 10,
   },
   question: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 16 },
-  routeInputs: { flexDirection: 'row', marginBottom: 8 },
-  routeDots: { alignItems: 'center', marginRight: 12, paddingTop: 16 },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  dotLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 2 },
-  inputsCol: { flex: 1 },
-
-  // Tracking overlay
   statusBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, paddingTop: 48, paddingBottom: 10, paddingHorizontal: 16, alignItems: 'center' },
   statusText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   bottomSheet: {
@@ -317,10 +380,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   value: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginTop: 2 },
   driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  driverAvatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight,
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
-  },
+  driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 });
