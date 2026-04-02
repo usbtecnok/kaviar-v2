@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -145,10 +145,15 @@ export default function PassengerMap() {
               { text: 'Fechar', onPress: resetToIdle },
             ]);
           } else if (updated.status === 'no_driver') {
-            Alert.alert('Sem motoristas', 'Não encontramos motoristas disponíveis no momento.', [
-              { text: 'Tentar novamente', onPress: () => handleRetry() },
-              { text: 'Cancelar', style: 'cancel', onPress: resetToIdle },
-            ]);
+            Alert.alert(
+              'Ainda não encontramos um motorista',
+              'Estamos procurando por motoristas próximos, mas no momento ninguém está disponível na sua região. Tente novamente em alguns instantes.\n\nConhece alguém que dirige na sua região? Indique o app Kaviar. Se a indicação for aprovada, você pode receber por isso.',
+              [
+                { text: 'Tentar novamente', onPress: () => handleRetry() },
+                { text: 'Indicar motorista', onPress: () => Linking.openURL('https://kaviar.com.br/#motoristas') },
+                { text: 'Fechar', style: 'cancel', onPress: resetToIdle },
+              ],
+            );
           }
         }
       } catch {}
