@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
+import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
@@ -22,12 +23,14 @@ export default function DriverOnline() {
   const [pendingOffer, setPendingOffer] = useState<RideOffer | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const locationRef = useRef<NodeJS.Timeout | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: true });
     loadUser();
     checkCurrentRide();
-    return () => { stopAll(); };
+    return () => { stopAll(); soundRef.current?.unloadAsync(); };
   }, []);
 
   useEffect(() => {
@@ -65,6 +68,14 @@ export default function DriverOnline() {
         const offers = await driverApi.getOffers();
         if (offers.length > 0 && !pendingOffer) {
           setPendingOffer(offers[0]);
+          try {
+            await soundRef.current?.unloadAsync();
+            const { sound } = await Audio.Sound.createAsync(
+              require('../../assets/sounds/new-ride.wav')
+            );
+            soundRef.current = sound;
+            await sound.playAsync();
+          } catch {}
         }
       } catch {}
     }, POLL_INTERVAL);

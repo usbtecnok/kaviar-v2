@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma';
 
 export async function acceptOfferInternal(offerId: string, driverId: string) {
-  return await prisma.$transaction(async (tx) => {
+  const ride = await prisma.$transaction(async (tx) => {
     const offer = await tx.ride_offers.findUnique({
       where: { id: offerId },
       include: { ride: true }
@@ -46,4 +46,29 @@ export async function acceptOfferInternal(offerId: string, driverId: string) {
 
     return offer.ride;
   });
+
+  // WhatsApp: notificar passageiro que motorista foi atribuído (fire-and-forget)
+  // ⚠️ SEGURADO: ativar via WA_RIDE_ASSIGNED_ENABLED=true após confirmar body do template no Twilio
+  if (process.env.WA_RIDE_ASSIGNED_ENABLED === 'true') {
+    try {
+      const [passenger, driver] = await Promise.all([
+        prisma.passengers.findUnique({ where: { id: ride.passenger_id }, select: { phone: true, name: true } }),
+        prisma.drivers.findUnique({ where: { id: driverId }, select: { name: true, vehicle_model: true, vehicle_plate: true } }),
+      ]);
+      if (passenger?.phone) {
+        const { whatsappEvents } = require('../modules/whatsapp');
+        whatsappEvents.rideDriverAssigned(passenger.phone, {
+          passenger_name: passenger.name || 'Passageiro',
+          driver_name: driver?.name || 'Motorista',
+          car_model: driver?.vehicle_model || '',
+          plate: driver?.vehicle_plate || '',
+          dropoff: ride.destination_text || 'Destino não informado',
+        }).catch((e: any) => console.error('[WA_FAIL] rideDriverAssigned', e.message));
+      }
+    } catch (e: any) {
+      console.error('[WA_LOOKUP_FAIL] acceptOffer', e.message);
+    }
+  }
+
+  return ride;
 }
