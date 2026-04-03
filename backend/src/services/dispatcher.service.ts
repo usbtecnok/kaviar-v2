@@ -16,7 +16,7 @@ interface DriverCandidate {
 export class DispatcherService {
   private readonly MAX_ATTEMPTS = 5;
   private readonly OFFER_TIMEOUT_SECONDS = 30;
-  private readonly MAX_DISTANCE_KM = 20;
+  private readonly MAX_DISTANCE_KM = 12;
   private readonly LOCATION_FRESHNESS_SECONDS = process.env.NODE_ENV === 'production' ? 30 : 3600; // DEV: 1h
 
   async dispatchRide(rideId: string): Promise<void> {
