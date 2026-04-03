@@ -26,7 +26,7 @@ function ConsultorForm() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const msg = `*Quero ser Consultor Kaviar*%0A%0ANome: ${encodeURIComponent(form.nome)}%0AWhatsApp: ${encodeURIComponent(form.whatsapp)}%0ABairro/Região: ${encodeURIComponent(form.bairro)}%0ACidade: ${encodeURIComponent(form.cidade)}%0AMotoristas que posso indicar: ${encodeURIComponent(form.qtd || 'não informado')}%0AObservações: ${encodeURIComponent(form.obs || 'nenhuma')}`;
-    window.open(`https://wa.me/5521980669989?text=${msg}`, '_blank');
+    window.open(`https://wa.me/5521968648777?text=${msg}`, '_blank');
     setSent(true);
   };
 
