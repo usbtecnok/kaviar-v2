@@ -214,8 +214,8 @@ export default function RideDetail() {
   };
 
   const calculateFinancials = (price) => {
-    const grossValue = parseFloat(price);
-    const platformFee = grossValue * 0.15; // 15% taxa da plataforma
+    const grossValue = parseFloat(price) || 0;
+    const platformFee = grossValue * 0.15;
     const driverAmount = grossValue - platformFee;
     
     return {

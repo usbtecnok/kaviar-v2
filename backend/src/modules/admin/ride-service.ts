@@ -103,9 +103,15 @@ export class RideAdminService {
       prisma.rides_v2.count({ where }),
     ]);
 
-    // Normalize relation names for frontend compatibility
+    // Normalize for frontend compatibility (rides_v2 → rides field names)
     const normalized = rides.map(r => ({
       ...r,
+      origin: r.origin_text,
+      destination: r.destination_text,
+      type: r.ride_type,
+      price: null,
+      driver: r.driver,
+      passenger: r.passenger,
       drivers: r.driver,
       passengers: r.passenger,
     }));
@@ -152,7 +158,17 @@ export class RideAdminService {
       throw new Error('Corrida não encontrada');
     }
 
-    return { ...ride, drivers: ride.driver, passengers: ride.passenger };
+    return {
+      ...ride,
+      origin: ride.origin_text,
+      destination: ride.destination_text,
+      type: ride.ride_type,
+      price: null,
+      driver: ride.driver,
+      passenger: ride.passenger,
+      drivers: ride.driver,
+      passengers: ride.passenger,
+    };
   }
 
   // Update ride status (atomic with concurrency protection)
