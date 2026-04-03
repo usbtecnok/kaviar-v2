@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +39,7 @@ export default function PassengerMap() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [userAddress, setUserAddress] = useState('Minha localização');
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showNoDriver, setShowNoDriver] = useState(false);
 
   // Search state
   const [searchText, setSearchText] = useState('');
@@ -145,15 +146,7 @@ export default function PassengerMap() {
               { text: 'Fechar', onPress: resetToIdle },
             ]);
           } else if (updated.status === 'no_driver') {
-            Alert.alert(
-              'Ainda não encontramos um motorista',
-              'Estamos procurando por motoristas próximos, mas no momento ninguém está disponível na sua região. Conhece alguém que dirige por aí? Toque em "Indicar motorista".',
-              [
-                { text: 'Tentar novamente', onPress: () => handleRetry() },
-                { text: 'Indicar motorista', onPress: () => Linking.openURL('https://kaviar.com.br/#motoristas') },
-                { text: 'Fechar', style: 'cancel', onPress: resetToIdle },
-              ],
-            );
+            setShowNoDriver(true);
           }
         }
       } catch {}
@@ -400,6 +393,36 @@ export default function PassengerMap() {
           </View>
         </>
       )}
+      {/* NO DRIVER MODAL */}
+      <Modal visible={showNoDriver} transparent animationType="fade" onRequestClose={() => { setShowNoDriver(false); resetToIdle(); }}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalIcon}>🔍</Text>
+            <Text style={s.modalTitle}>Ainda não encontramos um motorista disponível no momento.</Text>
+            <Text style={s.modalBody}>
+              Estamos expandindo nossa rede de motoristas na sua região. Seja um Consultor Kaviar e tenha uma renda extra indicando novos motoristas.
+            </Text>
+
+            {/* Primary CTAs */}
+            <TouchableOpacity style={s.ctaPrimary} onPress={() => { setShowNoDriver(false); handleRetry(); }}>
+              <Text style={s.ctaPrimaryText}>Tentar novamente</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.ctaSecondaryHighlight} onPress={() => Linking.openURL('https://kaviar.com.br/#consultor')}>
+              <Text style={s.ctaSecondaryHighlightText}>Quero ser consultor</Text>
+            </TouchableOpacity>
+
+            {/* Secondary CTAs */}
+            <View style={s.ctaRow}>
+              <TouchableOpacity style={s.ctaLink} onPress={() => Linking.openURL('https://kaviar.com.br/#saiba-mais')}>
+                <Text style={s.ctaLinkText}>Saber mais</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.ctaLink} onPress={() => { setShowNoDriver(false); resetToIdle(); }}>
+                <Text style={s.ctaLinkText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -470,4 +493,18 @@ const s = StyleSheet.create({
   driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+
+  // No driver modal
+  modalOverlay: { flex: 1, backgroundColor: COLORS.overlay, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { backgroundColor: COLORS.surface, borderRadius: 20, padding: 28, width: '100%', maxWidth: 360, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
+  modalIcon: { fontSize: 40, marginBottom: 12 },
+  modalTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center', lineHeight: 24, marginBottom: 12 },
+  modalBody: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  ctaPrimary: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, width: '100%', alignItems: 'center', marginBottom: 10 },
+  ctaPrimaryText: { color: COLORS.textDark, fontSize: 16, fontWeight: '800' },
+  ctaSecondaryHighlight: { backgroundColor: 'transparent', borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.primary, paddingVertical: 12, width: '100%', alignItems: 'center', marginBottom: 16 },
+  ctaSecondaryHighlightText: { color: COLORS.primary, fontSize: 15, fontWeight: '700' },
+  ctaRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  ctaLink: { paddingVertical: 8, paddingHorizontal: 12 },
+  ctaLinkText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '500' },
 });
