@@ -425,7 +425,7 @@ export default function RideDetail() {
                   color="error"
                   startIcon={<Cancel />}
                   onClick={() => setCancelModal(true)}
-                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)}
+                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Cancelar Corrida
@@ -436,7 +436,7 @@ export default function RideDetail() {
                   color="success"
                   startIcon={<CheckCircle />}
                   onClick={() => setForceCompleteModal(true)}
-                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)}
+                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Forçar Finalização
@@ -446,6 +446,7 @@ export default function RideDetail() {
                   variant="outlined"
                   startIcon={<Edit />}
                   onClick={() => setStatusModal(true)}
+                  disabled={['completed', 'canceled_by_passenger', 'canceled_by_driver', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Corrigir Status
@@ -554,12 +555,17 @@ export default function RideDetail() {
               label="Novo Status"
               onChange={(e) => setNewStatus(e.target.value)}
             >
-              <MenuItem value="requested">Solicitada</MenuItem>
-              <MenuItem value="accepted">Aceita</MenuItem>
-              <MenuItem value="arrived">Chegou</MenuItem>
-              <MenuItem value="started">Iniciada</MenuItem>
-              <MenuItem value="completed">Concluída</MenuItem>
-              <MenuItem value="paid">Paga</MenuItem>
+              {(() => {
+                const transitions = {
+                  requested: [['accepted', 'Aceita']],
+                  accepted: [['arrived', 'Chegou']],
+                  arrived: [['started', 'Iniciada']],
+                  started: [['completed', 'Concluída']],
+                };
+                const options = transitions[ride.status] || [];
+                if (options.length === 0) return <MenuItem disabled>Nenhuma transição disponível</MenuItem>;
+                return options.map(([val, label]) => <MenuItem key={val} value={val}>{label}</MenuItem>);
+              })()}
             </Select>
           </FormControl>
           
