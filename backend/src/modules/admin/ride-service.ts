@@ -62,10 +62,10 @@ export class RideAdminService {
     
     if (search) {
       where.OR = [
-        { drivers: { name: { contains: search, mode: 'insensitive' } } },
-        { passengers: { name: { contains: search, mode: 'insensitive' } } },
-        { origin: { contains: search, mode: 'insensitive' } },
-        { destination: { contains: search, mode: 'insensitive' } },
+        { driver: { name: { contains: search, mode: 'insensitive' } } },
+        { passenger: { name: { contains: search, mode: 'insensitive' } } },
+        { origin_text: { contains: search, mode: 'insensitive' } },
+        { destination_text: { contains: search, mode: 'insensitive' } },
       ];
     }
     
@@ -76,13 +76,13 @@ export class RideAdminService {
     }
 
     const [rides, total] = await Promise.all([
-      prisma.rides.findMany({
+      prisma.rides_v2.findMany({
         where,
         skip,
         take: limit,
         orderBy: { [sortBy]: sortOrder },
         include: {
-          drivers: {
+          driver: {
             select: {
               id: true,
               name: true,
@@ -90,7 +90,7 @@ export class RideAdminService {
               phone: true,
             },
           },
-          passengers: {
+          passenger: {
             select: {
               id: true,
               name: true,
@@ -100,11 +100,18 @@ export class RideAdminService {
           },
         },
       }),
-      prisma.rides.count({ where }),
+      prisma.rides_v2.count({ where }),
     ]);
 
+    // Normalize relation names for frontend compatibility
+    const normalized = rides.map(r => ({
+      ...r,
+      drivers: r.driver,
+      passengers: r.passenger,
+    }));
+
     return {
-      data: rides,
+      data: normalized,
       pagination: {
         page,
         limit,
@@ -116,10 +123,10 @@ export class RideAdminService {
 
   // Get ride details
   async getRideById(id: string) {
-    const ride = await prisma.rides.findUnique({
+    const ride = await prisma.rides_v2.findUnique({
       where: { id },
       include: {
-        drivers: {
+        driver: {
           select: {
             id: true,
             name: true,
@@ -127,7 +134,7 @@ export class RideAdminService {
             phone: true,
           },
         },
-        passengers: {
+        passenger: {
           select: {
             id: true,
             name: true,
@@ -135,11 +142,8 @@ export class RideAdminService {
             phone: true,
           },
         },
-        ride_status_history: {
+        offers: {
           orderBy: { created_at: 'asc' },
-        },
-        ride_admin_actions: {
-          orderBy: { created_at: 'desc' },
         },
       },
     });
@@ -148,7 +152,7 @@ export class RideAdminService {
       throw new Error('Corrida não encontrada');
     }
 
-    return ride;
+    return { ...ride, drivers: ride.driver, passengers: ride.passenger };
   }
 
   // Update ride status (atomic with concurrency protection)
