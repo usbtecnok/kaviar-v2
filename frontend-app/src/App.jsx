@@ -69,31 +69,26 @@ function Home() {
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
       <Container maxWidth="md" sx={{ textAlign: "center", py: 4 }}>
         <Box sx={{ mb: 6 }}>
-          <img
-            src="/kaviar-logo.jpg"
-            alt="Kaviar"
-            style={{
-              width: 120,
-              height: 'auto',
-              marginBottom: 32,
-              borderRadius: 12,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.12)'
-            }}
-          />
-          <Typography
-            variant="h1"
-            component="h1"
-            gutterBottom
-            sx={{
-              fontWeight: 800,
-              color: 'primary.main',
-              letterSpacing: '-0.03em',
-              mb: 3,
-              fontSize: { xs: '2.5rem', md: '3.5rem' }
-            }}
-          >
-            KAVIAR
-          </Typography>
+          <Box sx={{
+            bgcolor: '#000',
+            borderRadius: 5,
+            px: { xs: 3, md: 6 },
+            py: { xs: 4, md: 5 },
+            mb: 5,
+            boxShadow: '0 16px 48px rgba(0,0,0,0.3)',
+            display: 'inline-block',
+          }}>
+            <img
+              src="/kaviar-logo-oficial.png"
+              alt="Kaviar — Sua Viagem Começa Aqui"
+              style={{
+                width: '100%',
+                maxWidth: 420,
+                height: 'auto',
+                display: 'block',
+              }}
+            />
+          </Box>
           <Typography
             variant="h4"
             color="text.primary"
@@ -332,7 +327,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-motorista-v4.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista-v6.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
