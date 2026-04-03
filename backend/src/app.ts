@@ -57,6 +57,7 @@ import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
 import driverTerritoryRoutes from './routes/driver-territory';
 import { publicRoutes } from './routes/public';
 import adminPresignRoutes from './routes/admin-presign';
+import consultantLeadsRoutes from './routes/consultant-leads';
 import ridesV2Routes from './routes/rides-v2';
 import driversV2Routes from './routes/drivers-v2';
 import realtimeRoutes from './routes/realtime';
@@ -273,6 +274,8 @@ if (config.legacy.enableLegacy) {
 
 // Geo routes
 app.use('/api/public', publicRoutes); // ✅ Public endpoints (no auth)
+app.use('/api/public', consultantLeadsRoutes); // ✅ Consultant leads (public POST)
+app.use('/api/admin', consultantLeadsRoutes); // ✅ Consultant leads (admin GET/PATCH)
 app.use('/api/geo', geoRoutes);
 // app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);

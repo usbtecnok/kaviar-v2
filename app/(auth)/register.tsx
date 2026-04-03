@@ -300,14 +300,15 @@ export default function Register() {
         : 'Território pode ser definido depois';
 
       Alert.alert(
-        'Cadastro Realizado!',
-        `${territoryMsg}\n\nAgora envie seus documentos para aprovação.`,
+        'Dados Salvos!',
+        'Agora envie seus documentos obrigatórios para completar o cadastro.',
         [
           {
             text: 'Enviar Documentos',
             onPress: () => router.replace('/(driver)/documents')
           }
-        ]
+        ],
+        { cancelable: false }
       );
     } catch (error) {
       console.error('[performRegister] Erro:', error);

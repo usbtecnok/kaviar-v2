@@ -171,201 +171,84 @@ export class RideAdminService {
     };
   }
 
-  // Update ride status (atomic with concurrency protection)
-  async updateRideStatus(rideId: string, data: UpdateStatusData, admin_id: string) {
-    return prisma.$transaction(async (tx) => {
-      const now = new Date();
-      const ride_id = rideId;
-      // Get current ride state within transaction for consistency
-      const ride = await tx.rides.findUnique({
-        where: { id: rideId },
-        select: { status: true, price: true, updated_at: true }
-      });
-
-      if (!ride) {
-        throw new Error('Corrida não encontrada');
-      }
-
-      // Validate transition
-      if (!this.validateStatusTransition(ride.status, data.status)) {
-        throw new Error(`Transição inválida: ${ride.status} → ${data.status}`);
-      }
-
-      // Calculate financials if completing
-      let updateData: any = { status: data.status };
-      
-      if (data.status === 'completed') {
-        const financials = this.calculateFinancials(Number(ride.price));
-        updateData.platform_fee = financials.platform_fee;
-        updateData.driver_amount = financials.driver_amount;
-      }
-
-      // Atomic update with optimistic locking check
-      const updatedRide = await tx.rides.updateMany({
-        where: { 
-          id: ride_id,
-          status: ride.status, // Ensure status hasn't changed since we read it
-          updated_at: ride.updated_at // Optimistic locking
-        },
-        data: updateData,
-      });
-
-      // Check if update actually happened (concurrency protection)
-      if (updatedRide.count === 0) {
-        throw new Error('CONCURRENT_MODIFICATION');
-      }
-
-      // Get updated ride for return
-      const finalRide = await tx.rides.findUnique({
-        where: { id: ride_id }
-      });
-
-      // Add status history
-      await tx.ride_status_history.create({
-        data: {
-          id: crypto.randomUUID(),
-          ride_id,
-          status: data.status,
-          created_at: now,
-        },
-      });
-
-      // Log admin action
-      await tx.ride_admin_actions.create({
-        data: {
-          id: crypto.randomUUID(),
-          ride_id,
-          admin_id,
-          action: 'status_update',
-          reason: data.reason,
-          old_value: ride.status,
-          new_value: data.status,
-          created_at: now,
-        },
-      });
-
-      return finalRide;
-    });
-  }
 
   // Cancel ride administratively (atomic with concurrency protection)
   async cancelRide(ride_id: string, data: CancelRideData, admin_id: string) {
-    return prisma.$transaction(async (tx) => {
-      const now = new Date();
-      // Get current ride state within transaction
-      const ride = await tx.rides.findUnique({
-        where: { id: ride_id },
-        select: { status: true, updated_at: true }
-      });
-
-      if (!ride) {
-        throw new Error('Corrida não encontrada');
-      }
-
-      if (['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)) {
-        throw new Error('Corrida já foi finalizada ou cancelada');
-      }
-
-      // Atomic update with optimistic locking
-      const updatedRideCount = await tx.rides.updateMany({
-        where: { 
-          id: ride_id,
-          status: ride.status, // Ensure status hasn't changed
-          updated_at: ride.updated_at // Optimistic locking
-        },
-        data: {
-          status: 'cancelled_by_admin',
-          cancel_reason: data.reason,
-          cancelled_by: admin_id,
-          cancelled_at: new Date(),
-        },
-      });
-
-      // Check if update actually happened (concurrency protection)
-      if (updatedRideCount.count === 0) {
-        throw new Error('CONCURRENT_MODIFICATION');
-      }
-
-      // Get updated ride for return
-      const updatedRide = await tx.rides.findUnique({
-        where: { id: ride_id }
-      });
-
-      await tx.ride_status_history.create({
-        data: {
-          id: `${ride_id}-status-${Date.now()}`,
-          ride_id,
-          status: 'cancelled_by_admin',
-        },
-      });
-
-      await tx.ride_admin_actions.create({
-        data: {
-          id: `${ride_id}-action-${Date.now()}`,
-          ride_id,
-          admin_id,
-          action: 'cancel',
-          reason: data.reason,
-        },
-      });
-
-      return updatedRide;
-    });
-  }
-
-  // Force complete ride (SUPER_ADMIN only)
-  async forceCompleteRide(ride_id: string, data: ForceCompleteRideData, admin_id: string) {
-    const ride = await prisma.rides.findUnique({
+    const ride = await prisma.rides_v2.findUnique({
       where: { id: ride_id },
-      select: { status: true, price: true }
+      select: { status: true }
     });
 
     if (!ride) {
       throw new Error('Corrida não encontrada');
     }
 
-    if (['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)) {
+    if (['completed', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)) {
+      throw new Error('Corrida já foi finalizada ou cancelada');
+    }
+
+    const updatedRide = await prisma.rides_v2.update({
+      where: { id: ride_id },
+      data: {
+        status: 'canceled_by_driver', // closest available status for admin cancel
+        canceled_at: new Date(),
+      },
+    });
+
+    return updatedRide;
+  }
+
+  // Force complete ride (SUPER_ADMIN only)
+  async forceCompleteRide(ride_id: string, data: ForceCompleteRideData, admin_id: string) {
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: ride_id },
+      select: { status: true }
+    });
+
+    if (!ride) {
+      throw new Error('Corrida não encontrada');
+    }
+
+    if (['completed', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)) {
       throw new Error('Corrida já foi finalizada');
     }
 
-    return prisma.$transaction(async (tx) => {
-      const now = new Date();
-      const financials = this.calculateFinancials(Number(ride.price));
-      
-      const updatedRide = await tx.rides.update({
-        where: { id: ride_id },
-        data: {
-          status: 'completed',
-          platform_fee: financials.platform_fee,
-          driver_amount: financials.driver_amount,
-          forced_completed_by: admin_id,
-          forced_completed_at: new Date(),
-        },
-      });
-
-      await tx.ride_status_history.create({
-        data: {
-          id: `${ride_id}-status-${Date.now()}`,
-          ride_id,
-          status: 'completed',
-        },
-      });
-
-      await tx.ride_admin_actions.create({
-        data: {
-          id: `${ride_id}-action-${Date.now()}`,
-          ride_id,
-          admin_id,
-          action: 'force_complete',
-          reason: data.reason,
-        },
-      });
-
-      // Handle diamond completion
-//       await this.diamondService.handleRideComplete(ride_id, updatedRide.driver_id || undefined);
-
-      return updatedRide;
+    const updatedRide = await prisma.rides_v2.update({
+      where: { id: ride_id },
+      data: {
+        status: 'completed',
+        completed_at: new Date(),
+      },
     });
+
+    return updatedRide;
+  }
+
+  // Update ride status (admin)
+  async updateRideStatus(rideId: string, data: UpdateStatusData, admin_id: string) {
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: rideId },
+      select: { status: true }
+    });
+
+    if (!ride) {
+      throw new Error('Corrida não encontrada');
+    }
+
+    if (!this.validateStatusTransition(ride.status, data.status)) {
+      throw new Error(`Transição inválida: ${ride.status} → ${data.status}`);
+    }
+
+    const updatedRide = await prisma.rides_v2.update({
+      where: { id: rideId },
+      data: {
+        status: data.status as any,
+        ...(data.status === 'completed' && { completed_at: new Date() }),
+        ...(data.status.startsWith('cancel') && { canceled_at: new Date() }),
+      },
+    });
+
+    return updatedRide;
   }
 
   // Get audit logs

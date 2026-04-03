@@ -31,6 +31,7 @@ import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ChangePassword from "../../pages/admin/ChangePassword";
 import ForgotPassword from "../../pages/admin/ForgotPassword";
 import InvestorInvites from "../../pages/admin/InvestorInvites";
+import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import { useState, useEffect } from 'react';
 
 
@@ -600,6 +601,27 @@ function AdminHome() {
               </Card>
             </Grid>
           )}
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <PersonAdd sx={{ fontSize: 40, color: '#FFD700', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Interessados Consultor
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Leads via WhatsApp
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  sx={{ bgcolor: '#FFD700', color: '#000' }}
+                  href="/admin/consultant-leads"
+                >
+                  Acessar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
       </Box>
 
@@ -656,6 +678,14 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <InvestorInvites />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/consultant-leads" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <ConsultantLeads />
               </Container>
             </ProtectedAdminRoute>
           } />

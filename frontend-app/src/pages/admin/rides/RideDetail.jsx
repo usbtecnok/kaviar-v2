@@ -111,7 +111,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/cancel`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -142,7 +142,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/force-complete`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/force-complete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -173,7 +173,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
