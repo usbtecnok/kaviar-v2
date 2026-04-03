@@ -117,8 +117,12 @@ export default function CompleteRide() {
   const handleComplete = async () => {
     setLoading(true);
     try {
-      await driverApi.completeRide(params.rideId!);
-      Alert.alert('Corrida finalizada!', 'Obrigado pela viagem.', [
+      const result = await driverApi.completeRide(params.rideId!);
+      const credit = result?.credit;
+      const creditMsg = credit
+        ? `\n${credit.cost} crédito${credit.cost > 1 ? 's' : ''} consumido${credit.cost > 1 ? 's' : ''} (corrida ${credit.matchType === 'LOCAL' ? 'local' : 'externa'})`
+        : '';
+      Alert.alert('Corrida finalizada!', `Obrigado pela viagem.${creditMsg}`, [
         { text: 'OK', onPress: () => router.replace('/(driver)/online') }
       ]);
     } catch (e: any) {

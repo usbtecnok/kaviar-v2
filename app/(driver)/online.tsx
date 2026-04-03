@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
@@ -20,6 +20,7 @@ export default function DriverOnline() {
   const [loading, setLoading] = useState(false);
   const [userName, setUserName] = useState('');
   const [pendingOffer, setPendingOffer] = useState<RideOffer | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const locationRef = useRef<NodeJS.Timeout | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -27,8 +28,12 @@ export default function DriverOnline() {
   useEffect(() => {
     loadUser();
     checkCurrentRide();
+    loadCredits();
     return () => { stopAll(); };
   }, []);
+
+  // Refresh credits when screen regains focus (e.g. after completing a ride)
+  useFocusEffect(useCallback(() => { loadCredits(); }, []));
 
   useEffect(() => {
     if (isOnline && !pendingOffer) {
@@ -48,6 +53,13 @@ export default function DriverOnline() {
   const loadUser = () => {
     const user = authStore.getUser();
     if (user?.name) setUserName(user.name);
+  };
+
+  const loadCredits = async () => {
+    try {
+      const { balance } = await driverApi.getCredits();
+      setCreditBalance(balance);
+    } catch {}
   };
 
   const checkCurrentRide = async () => {
@@ -151,12 +163,36 @@ export default function DriverOnline() {
           <Text style={styles.brand}>KAVIAR</Text>
           {userName ? <Text style={styles.userName}>{userName}</Text> : null}
         </View>
-        {!isOnline && (
-          <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        )}
+        <View style={{ alignItems: 'flex-end' }}>
+          {creditBalance !== null && (
+            <View style={[styles.creditBadge, creditBalance < 5 && styles.creditBadgeLow]}>
+              <Ionicons name="wallet-outline" size={14} color={creditBalance < 5 ? '#fff' : COLORS.primary} />
+              <Text style={[styles.creditText, creditBalance < 5 && { color: '#fff' }]}>
+                {creditBalance} crédito{creditBalance !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+          {!isOnline && (
+            <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={{ marginTop: 8 }}>
+              <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      {/* Low credit alert */}
+      {creditBalance !== null && creditBalance < 5 && creditBalance > 0 && (
+        <View style={styles.creditAlert}>
+          <Ionicons name="warning-outline" size={16} color={COLORS.warning} />
+          <Text style={styles.creditAlertText}>Seus créditos estão acabando. Recarregue para continuar recebendo corridas.</Text>
+        </View>
+      )}
+      {creditBalance !== null && creditBalance === 0 && (
+        <View style={[styles.creditAlert, { backgroundColor: '#fde8e8' }]}>
+          <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
+          <Text style={[styles.creditAlertText, { color: COLORS.danger }]}>Sem créditos. Você não receberá ofertas de corrida.</Text>
+        </View>
+      )}
 
       {/* Status */}
       <View style={styles.center}>
@@ -266,4 +302,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
   },
   waitingText: { fontSize: 15, color: COLORS.textMuted, marginLeft: 8 },
+
+  // Credits
+  creditBadge: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface,
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 4,
+  },
+  creditBadgeLow: { backgroundColor: COLORS.danger },
+  creditText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  creditAlert: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1',
+    marginHorizontal: 24, marginBottom: 8, padding: 10, borderRadius: 8, gap: 8,
+  },
+  creditAlertText: { fontSize: 13, color: COLORS.textSecondary, flex: 1 },
 });
