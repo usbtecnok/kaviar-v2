@@ -11,6 +11,7 @@ import { authStore } from '../../src/auth/auth.store';
 import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
+import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 
 const POLL_INTERVAL = 3000;
 const PLACES_KEY = 'AIzaSyA50GYLlH7L5Iq5HpJ1MAALYOXN4PYlswc';
@@ -41,6 +42,19 @@ export default function PassengerMap() {
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showNoDriver, setShowNoDriver] = useState(false);
 
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [userPhone, setUserPhone] = useState('');
+
+  const drawerItems: DrawerItem[] = [
+    { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(passenger)/profile') },
+    { key: 'history', label: 'Histórico de corridas', icon: 'time-outline', onPress: () => router.push('/(passenger)/history') },
+    { key: 'favorites', label: 'Favoritos', icon: 'heart-outline', onPress: () => router.push('/(passenger)/favorites') },
+    { key: 'tourism', label: 'Turismo Premium', icon: 'diamond-outline', badge: '✦', onPress: () => router.push('/(passenger)/tourism') },
+    { key: 'help', label: 'Ajuda', icon: 'help-circle-outline', onPress: () => router.push('/(passenger)/help') },
+    { key: 'logout', label: 'Sair', icon: 'log-out-outline', danger: true, onPress: () => handleLogout() },
+  ];
+
   // Search state
   const [searchText, setSearchText] = useState('');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -54,6 +68,7 @@ export default function PassengerMap() {
   useEffect(() => {
     const user = authStore.getUser();
     if (user?.name) setUserName(user.name);
+    if (user?.phone) setUserPhone(user.phone);
     acquireLocation();
     return () => stopAll();
   }, []);
@@ -320,13 +335,13 @@ export default function PassengerMap() {
         <>
           <SafeAreaView edges={['top']} style={s.topBar}>
             <View style={s.header}>
-              <View>
+              <TouchableOpacity onPress={() => setDrawerOpen(true)} style={s.menuBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Ionicons name="menu" size={26} color={COLORS.textDark} />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
                 <Text style={s.brand}>KAVIAR</Text>
                 <Text style={s.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
               </View>
-              <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
-              </TouchableOpacity>
             </View>
           </SafeAreaView>
 
@@ -423,6 +438,15 @@ export default function PassengerMap() {
           </View>
         </View>
       </Modal>
+
+      {/* Drawer */}
+      <DrawerMenu
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userName={userName}
+        userPhone={userPhone}
+        items={drawerItems}
+      />
     </View>
   );
 }
@@ -435,7 +459,8 @@ const s = StyleSheet.create({
 
   // Top bar
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.92)' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
+  menuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
   greeting: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 
