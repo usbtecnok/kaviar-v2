@@ -42,6 +42,9 @@ export default function PassengerMap() {
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showNoDriver, setShowNoDriver] = useState(false);
 
+  // Emergency
+  const [showEmergency, setShowEmergency] = useState(false);
+
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userPhone, setUserPhone] = useState('');
@@ -405,9 +408,35 @@ export default function PassengerMap() {
             {canCancel && (
               <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
             )}
+            {rideStatus === 'in_progress' && (
+              <TouchableOpacity style={s.emergencyBtn} onPress={() => setShowEmergency(true)}>
+                <Ionicons name="shield-outline" size={16} color={COLORS.danger} />
+                <Text style={s.emergencyBtnText}>Emergência</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </>
       )}
+      {/* EMERGENCY MODAL */}
+      <Modal visible={showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Ionicons name="shield-checkmark" size={40} color={COLORS.danger} style={{ alignSelf: 'center', marginBottom: 12 }} />
+            <Text style={[s.modalTitle, { textAlign: 'center' }]}>Ajuda urgente</Text>
+            <Text style={[s.modalBody, { textAlign: 'center', marginBottom: 20 }]}>Escolha uma opção abaixo para pedir ajuda imediatamente.</Text>
+            <TouchableOpacity style={[s.ctaPrimary, { backgroundColor: COLORS.danger }]} onPress={() => { setShowEmergency(false); Linking.openURL('tel:190'); }}>
+              <Text style={s.ctaPrimaryText}>Ligar 190 — Polícia</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.ctaPrimary, { backgroundColor: '#E67E22', marginTop: 10 }]} onPress={() => { setShowEmergency(false); Linking.openURL('tel:192'); }}>
+              <Text style={s.ctaPrimaryText}>Ligar 192 — SAMU</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 16 }]} onPress={() => setShowEmergency(false)}>
+              <Text style={s.ctaLinkText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* NO DRIVER MODAL */}
       <Modal visible={showNoDriver} transparent animationType="fade" onRequestClose={() => { setShowNoDriver(false); resetToIdle(); }}>
         <View style={s.modalOverlay}>
@@ -532,4 +561,6 @@ const s = StyleSheet.create({
   ctaRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   ctaLink: { paddingVertical: 8, paddingHorizontal: 12 },
   ctaLinkText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '500' },
+  emergencyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger },
+  emergencyBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.danger },
 });
