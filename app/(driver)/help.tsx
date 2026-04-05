@@ -37,7 +37,7 @@ export default function DriverHelp() {
       <View style={s.content}>
         {option('logo-whatsapp', 'Falar com suporte', 'Atendimento via WhatsApp', () => Linking.openURL(SUPPORT_WHATSAPP))}
         {option('globe-outline', 'Site Kaviar', 'kaviar.com.br', () => Linking.openURL(SITE_URL))}
-        {option('information-circle-outline', 'Sobre o Kaviar', 'Versão 1.0.0', () => {})}
+        {option('information-circle-outline', 'Sobre o Kaviar', 'Versão 1.0.0', () => Linking.openURL(SITE_URL))}
       </View>
     </SafeAreaView>
   );
