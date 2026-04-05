@@ -265,7 +265,8 @@ function Home() {
         </Box>
 
         {/* Seção Consultor Kaviar */}
-        <Box sx={{ mt: 10, pt: 6, borderTop: '1px solid', borderColor: 'divider' }} id="saiba-mais">
+        <Box sx={{ mt: 10, pt: 6, borderTop: '1px solid', borderColor: 'divider' }} id="consultor">
+          <span id="saiba-mais" />
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#FFD700', mb: 1, fontSize: { xs: '1.8rem', md: '2.2rem' } }}>
             Seja um Consultor Kaviar
           </Typography>
