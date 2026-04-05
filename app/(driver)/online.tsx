@@ -121,7 +121,7 @@ export default function DriverOnline() {
     try {
       const [credRes, histRes] = await Promise.allSettled([
         driverApi.getCredits(),
-        apiClient.get('/rides/history'),
+        apiClient.get('/api/v2/rides/history'),
       ]);
       if (credRes.status === 'fulfilled') setCreditBalance(credRes.value.balance);
       if (histRes.status === 'fulfilled') {
