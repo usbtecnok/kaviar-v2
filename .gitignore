@@ -102,3 +102,22 @@ evidencias-prod-*/
 !eas.json
 
 docs/aws/BACKUP_ENV_VARS_PRODUCAO_2026-03-15.md
+
+# === Limpeza sync 2026-04-05 ===
+# Expo cache (gerado pelo build)
+.expo/
+
+# Wrangler local state (dev only)
+.wrangler/
+
+# Kotlin compiler sessions
+android/.kotlin/
+
+# APKs binários (devem ir para R2/S3, não Git)
+apks/
+
+# Backend bundle zip (artefato de deploy)
+backend/backend-bundle.zip
+
+# Android debug keystore (não versionar)
+android/app/debug.keystore
