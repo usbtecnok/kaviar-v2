@@ -70,6 +70,14 @@ function ConsultorForm() {
 }
 
 function Home() {
+  React.useEffect(() => {
+    if (window.location.hash) {
+      setTimeout(() => {
+        const el = document.querySelector(window.location.hash);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  }, []);
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
       <Container maxWidth="md" sx={{ textAlign: "center", py: 4 }}>
@@ -306,7 +314,7 @@ function Home() {
           </Box>
 
           {/* Formulário de cadastro */}
-          <Box sx={{ maxWidth: 480, mx: 'auto' }} id="consultor">
+          <Box sx={{ maxWidth: 480, mx: 'auto' }}>
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: 'primary.main' }}>
               Quero ser Consultor Kaviar
             </Typography>

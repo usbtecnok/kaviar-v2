@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,6 +41,9 @@ export default function PassengerMap() {
   const [userAddress, setUserAddress] = useState('Minha localização');
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showNoDriver, setShowNoDriver] = useState(false);
+
+  // Emergency
+  const [showEmergency, setShowEmergency] = useState(false);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -405,9 +408,57 @@ export default function PassengerMap() {
             {canCancel && (
               <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
             )}
+            {rideStatus === 'in_progress' && (
+              <TouchableOpacity style={s.emergencyBtn} onPress={() => setShowEmergency(true)}>
+                <Ionicons name="shield-outline" size={16} color={COLORS.danger} />
+                <Text style={s.emergencyBtnText}>Emergência</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </>
       )}
+      {/* EMERGENCY MODAL */}
+      <Modal visible={showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Ionicons name="shield-checkmark" size={36} color={COLORS.danger} style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={[s.modalTitle, { textAlign: 'center' }]}>Ajuda urgente</Text>
+            <Text style={[s.modalBody, { textAlign: 'center', marginBottom: 18, fontSize: 13 }]}>Em situação de risco imediato, ligue para a emergência pública.</Text>
+
+            <TouchableOpacity style={[s.ctaPrimary, { backgroundColor: COLORS.danger }]} onPress={() => { setShowEmergency(false); Linking.openURL('tel:190'); }}>
+              <Text style={s.ctaPrimaryText}>Ligar 190 — Polícia</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.ctaPrimary, { backgroundColor: '#E67E22', marginTop: 8 }]} onPress={() => { setShowEmergency(false); Linking.openURL('tel:192'); }}>
+              <Text style={s.ctaPrimaryText}>Ligar 192 — SAMU</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[s.ctaPrimary, { backgroundColor: '#2E86C1', marginTop: 8 }]} onPress={() => {
+              setShowEmergency(false);
+              const loc = userLocation ? `https://maps.google.com/?q=${userLocation.lat},${userLocation.lng}` : '';
+              const driverInfo = ride?.driver ? `Motorista: ${ride.driver.name} • ${ride.driver.vehicle_model || ''} ${ride.driver.vehicle_color || ''} • Placa: ${ride.driver.vehicle_plate || ''}` : '';
+              Share.share({ message: `🚨 Preciso de ajuda!\n${driverInfo}\n${loc ? `Minha localização: ${loc}` : ''}`.trim() });
+            }}>
+              <Text style={s.ctaPrimaryText}>Contato de confiança</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.emergencySecondary} onPress={() => {
+              setShowEmergency(false);
+              const loc = userLocation ? `${userLocation.lat},${userLocation.lng}` : 'indisponível';
+              const driverInfo = ride?.driver ? `Motorista: ${ride.driver.name}, Placa: ${ride.driver.vehicle_plate || 'N/A'}` : '';
+              const msg = `⚠️ Registro de emergência\nPassageiro: ${userName || 'N/A'}\nCorrida: ${ride?.id || 'N/A'}\n${driverInfo}\nLocalização: ${loc}`;
+              Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(msg)}`);
+            }}>
+              <Ionicons name="document-text-outline" size={15} color={COLORS.textSecondary} />
+              <Text style={s.emergencySecondaryText}>Registrar com a Kaviar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => setShowEmergency(false)}>
+              <Text style={s.ctaLinkText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* NO DRIVER MODAL */}
       <Modal visible={showNoDriver} transparent animationType="fade" onRequestClose={() => { setShowNoDriver(false); resetToIdle(); }}>
         <View style={s.modalOverlay}>
@@ -532,4 +583,8 @@ const s = StyleSheet.create({
   ctaRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   ctaLink: { paddingVertical: 8, paddingHorizontal: 12 },
   ctaLinkText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '500' },
+  emergencyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger },
+  emergencyBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.danger },
+  emergencySecondary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border },
+  emergencySecondaryText: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
 });
