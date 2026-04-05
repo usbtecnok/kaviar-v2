@@ -53,7 +53,7 @@ export default {
       package: variantConfig.package,
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyA50GYLlH7L5Iq5HpJ1MAALYOXN4PYlswc'
+          apiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_PLACES_KEY || ''
         }
       }
     },
