@@ -297,6 +297,8 @@ app.use('/api/auth', guideAuthRoutes);
 // SPEC_RIDE_FLOW_V1 routes
 app.use('/api/v2/rides', ridesV2Routes);
 app.use('/api/v2/drivers', driversV2Routes);
+import geoProxyRoutes from './routes/geo-proxy';
+app.use('/api/geo-proxy', geoProxyRoutes);
 app.use('/api/realtime', realtimeRoutes);
 console.log('✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/*');
 

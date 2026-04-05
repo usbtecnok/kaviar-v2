@@ -12,5 +12,4 @@ export const ENV = {
     ? (Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || DEV_API_URL)
     : PROD_API_URL,
   API_TIMEOUT: 10000,
-  PLACES_KEY: Constants.expoConfig?.extra?.EXPO_PUBLIC_PLACES_KEY || '',
 };

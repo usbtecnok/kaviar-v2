@@ -14,9 +14,9 @@ import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 
 import { ENV } from '../../src/config/env';
+import { apiClient } from '../../src/api/client';
 
 const POLL_INTERVAL = 3000;
-const PLACES_KEY = ENV.PLACES_KEY;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   requested:  { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
@@ -89,9 +89,9 @@ export default function PassengerMap() {
       setOrigin({ text: 'Minha localização', lat: coords.lat, lng: coords.lng, placeId: 'current' });
       // Reverse geocode for display
       try {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.lat},${coords.lng}&key=${PLACES_KEY}&language=pt-BR`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const url = `/api/geo-proxy/reverse?lat=${coords.lat}&lng=${coords.lng}`;
+        const res = await apiClient.get(url);
+        const data = res.data;
         if (data.status === 'OK' && data.results[0]) {
           const addr = data.results[0].formatted_address.split(',').slice(0, 2).join(',');
           setUserAddress(addr);
@@ -116,10 +116,10 @@ export default function PassengerMap() {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       try {
-        const loc = userLocation ? `&location=${userLocation.lat},${userLocation.lng}&radius=30000` : '';
-        const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${PLACES_KEY}&components=country:br&language=pt-BR${loc}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const loc = userLocation ? `&lat=${userLocation.lat}&lng=${userLocation.lng}` : '';
+        const url = `/api/geo-proxy/autocomplete?input=${encodeURIComponent(input)}${loc}`;
+        const res = await apiClient.get(url);
+        const data = res.data;
         if (data.status === 'OK') setPredictions(data.predictions);
       } catch {}
     }, 300);
@@ -128,9 +128,9 @@ export default function PassengerMap() {
   const selectPlace = useCallback(async (p: Prediction) => {
     Keyboard.dismiss();
     try {
-      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=geometry&key=${PLACES_KEY}`;
-      const res = await fetch(url);
-      const data = await res.json();
+      const url = `/api/geo-proxy/place-details?place_id=${p.place_id}`;
+      const res = await apiClient.get(url);
+      const data = res.data;
       if (data.status === 'OK') {
         const loc = data.result.geometry.location;
         const place: Place = { text: p.description, lat: loc.lat, lng: loc.lng, placeId: p.place_id };
