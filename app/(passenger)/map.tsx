@@ -583,7 +583,7 @@ const s = StyleSheet.create({
   ctaRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   ctaLink: { paddingVertical: 8, paddingHorizontal: 12 },
   ctaLinkText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '500' },
-  emergencyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger },
+  emergencyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 18, marginBottom: 12, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.danger },
   emergencyBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.danger },
   emergencySecondary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border },
   emergencySecondaryText: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
