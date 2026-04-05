@@ -11,6 +11,7 @@ import { authStore } from '../../src/auth/auth.store';
 import { RideOffer } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
+import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 
 const POLL_INTERVAL = 5000;
 const LOCATION_INTERVAL = 15000;
@@ -26,6 +27,20 @@ export default function DriverOnline() {
   const locationRef = useRef<NodeJS.Timeout | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [userPhone, setUserPhone] = useState('');
+
+  const drawerItems: DrawerItem[] = [
+    { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
+    { key: 'summary', label: 'Resumo', icon: 'stats-chart-outline', onPress: () => router.push('/(driver)/summary') },
+    { key: 'history', label: 'Histórico de corridas', icon: 'time-outline', onPress: () => router.push('/(driver)/history') },
+    { key: 'credits', label: 'Créditos', icon: 'wallet-outline', onPress: () => router.push('/(driver)/credits') },
+    { key: 'documents', label: 'Documentos', icon: 'document-text-outline', onPress: () => router.push('/(driver)/documents') },
+    { key: 'help', label: 'Ajuda', icon: 'help-circle-outline', onPress: () => router.push('/(driver)/help') },
+    { key: 'logout', label: 'Sair', icon: 'log-out-outline', danger: true, onPress: () => handleLogout() },
+  ];
 
   useEffect(() => {
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: true });
@@ -56,6 +71,7 @@ export default function DriverOnline() {
   const loadUser = () => {
     const user = authStore.getUser();
     if (user?.name) setUserName(user.name);
+    if (user?.phone) setUserPhone(user.phone);
   };
 
   const loadCredits = async () => {
@@ -170,22 +186,22 @@ export default function DriverOnline() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>KAVIAR</Text>
-          {userName ? <Text style={styles.userName}>{userName}</Text> : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.menuBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Ionicons name="menu" size={26} color={COLORS.textDark} />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.brand}>KAVIAR</Text>
+            {userName ? <Text style={styles.userName}>{userName}</Text> : null}
+          </View>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           {creditBalance !== null && (
-            <View style={[styles.creditBadge, creditBalance < 5 && styles.creditBadgeLow]}>
+            <TouchableOpacity style={[styles.creditBadge, creditBalance < 5 && styles.creditBadgeLow]} onPress={() => router.push('/(driver)/credits')}>
               <Ionicons name="wallet-outline" size={14} color={creditBalance < 5 ? '#fff' : COLORS.primary} />
               <Text style={[styles.creditText, creditBalance < 5 && { color: '#fff' }]}>
                 {creditBalance} crédito{creditBalance !== 1 ? 's' : ''}
               </Text>
-            </View>
-          )}
-          {!isOnline && (
-            <TouchableOpacity onPress={handleLogout} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={{ marginTop: 8 }}>
-              <Ionicons name="log-out-outline" size={24} color={COLORS.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -193,16 +209,16 @@ export default function DriverOnline() {
 
       {/* Low credit alert */}
       {creditBalance !== null && creditBalance < 5 && creditBalance > 0 && (
-        <View style={styles.creditAlert}>
+        <TouchableOpacity style={styles.creditAlert} onPress={() => router.push('/(driver)/credits')}>
           <Ionicons name="warning-outline" size={16} color={COLORS.warning} />
-          <Text style={styles.creditAlertText}>Seus créditos estão acabando. Recarregue para continuar recebendo corridas.</Text>
-        </View>
+          <Text style={styles.creditAlertText}>Seus créditos estão acabando. <Text style={{ fontWeight: '700' }}>Comprar créditos</Text></Text>
+        </TouchableOpacity>
       )}
       {creditBalance !== null && creditBalance === 0 && (
-        <View style={[styles.creditAlert, { backgroundColor: '#fde8e8' }]}>
+        <TouchableOpacity style={[styles.creditAlert, { backgroundColor: '#fde8e8' }]} onPress={() => router.push('/(driver)/credits')}>
           <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
-          <Text style={[styles.creditAlertText, { color: COLORS.danger }]}>Sem créditos. Você não receberá ofertas de corrida.</Text>
-        </View>
+          <Text style={[styles.creditAlertText, { color: COLORS.danger }]}>Sem créditos. <Text style={{ fontWeight: '700' }}>Toque para comprar</Text></Text>
+        </TouchableOpacity>
       )}
 
       {/* Status */}
@@ -266,6 +282,15 @@ export default function DriverOnline() {
           </>
         ) : null}
       </View>
+
+      {/* Drawer */}
+      <DrawerMenu
+        visible={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userName={userName}
+        userPhone={userPhone}
+        items={drawerItems}
+      />
     </SafeAreaView>
   );
 }
@@ -277,6 +302,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24, paddingTop: 12, paddingBottom: 8,
   },
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
+  menuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
   userName: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
   center: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
 
