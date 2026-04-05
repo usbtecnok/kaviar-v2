@@ -40,12 +40,20 @@ export const driverApi = {
   startRide: (rideId: string) =>
     apiClient.post(`/api/v2/rides/${rideId}/start`),
 
-  completeRide: (rideId: string) =>
-    apiClient.post(`/api/v2/rides/${rideId}/complete`),
+  completeRide: async (rideId: string) => {
+    const { data } = await apiClient.post(`/api/v2/rides/${rideId}/complete`);
+    return data;
+  },
 
   // v2: Location update durante corrida (emite SSE para passageiro)
   sendRideLocation: (rideId: string, lat: number, lng: number) =>
     apiClient.post(`/api/v2/rides/${rideId}/location`, { lat, lng }),
+
+  // v2: Créditos
+  getCredits: async (): Promise<{ balance: number }> => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/credits');
+    return data.data;
+  },
 
   // v1: Perfil (não tem v2 equivalente)
   getMe: async () => {

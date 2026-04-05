@@ -39,7 +39,7 @@ const PassengerHome = () => {
   const [careNeedsEscort, setCareNeedsEscort] = useState(false);
 
   // WhatsApp do suporte (pode configurar por env VITE_SUPPORT_WHATSAPP)
-  const SUPPORT_WHATSAPP = import.meta.env.VITE_SUPPORT_WHATSAPP || '5521980669989';
+  const SUPPORT_WHATSAPP = import.meta.env.VITE_SUPPORT_WHATSAPP || '5521968648777';
 
   const openCareWhatsApp = () => {
     const msg = [

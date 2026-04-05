@@ -1,64 +1,12 @@
 import { Router } from 'express';
 import { pool } from '../db';
 import { authenticateAdmin } from '../middlewares/auth';
+import { applyCreditDelta } from '../services/credit.service';
 
 const router = Router();
 
 // Apply authentication to all routes in this router
 router.use(authenticateAdmin);
-
-// Transactional and idempotent credit adjustment
-async function applyCreditDelta(
-  driverId: string,
-  delta: number,
-  reason: string,
-  adminUserId: string,
-  idempotencyKey?: string
-) {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    // Check idempotency
-    if (idempotencyKey) {
-      const existing = await client.query(
-        'SELECT id, balance_after FROM driver_credit_ledger WHERE idempotency_key = $1',
-        [idempotencyKey]
-      );
-      if (existing.rows.length > 0) {
-        await client.query('COMMIT');
-        return { alreadyProcessed: true, balance: existing.rows[0].balance_after };
-      }
-    }
-
-    // Upsert balance
-    const balanceResult = await client.query(
-      `INSERT INTO credit_balance (driver_id, balance, updated_at)
-       VALUES ($1, $2, CURRENT_TIMESTAMP)
-       ON CONFLICT (driver_id) DO UPDATE
-       SET balance = credit_balance.balance + $2, updated_at = CURRENT_TIMESTAMP
-       RETURNING balance`,
-      [driverId, delta]
-    );
-
-    const newBalance = parseFloat(balanceResult.rows[0].balance);
-
-    // Insert ledger entry
-    await client.query(
-      `INSERT INTO driver_credit_ledger (driver_id, delta, balance_after, reason, admin_user_id, idempotency_key)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [driverId, delta, newBalance, reason, adminUserId, idempotencyKey]
-    );
-
-    await client.query('COMMIT');
-    return { alreadyProcessed: false, balance: newBalance };
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-}
 
 // GET /api/admin/drivers/:driverId/credits/balance
 router.get('/:driverId/credits/balance', async (req, res) => {
@@ -131,7 +79,7 @@ router.post('/:driverId/credits/adjust', async (req, res) => {
 
   try {
     const { driverId } = req.params;
-    const { delta, reason, idempotencyKey } = req.body;
+    const { delta, reason, idempotencyKey, referredBy } = req.body;
     const adminUserId = (req as any).adminId || (req as any).admin?.id;
 
     if (!adminUserId) {
@@ -144,6 +92,26 @@ router.post('/:driverId/credits/adjust', async (req, res) => {
     }
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({ error: 'Reason is required' });
+    }
+
+    // Record referral on first credit purchase (auditable, immutable)
+    if (referredBy && parseFloat(delta) > 0) {
+      const driver = await pool.query(
+        'SELECT referred_by FROM drivers WHERE id = $1',
+        [driverId]
+      );
+      if (driver.rows.length > 0 && !driver.rows[0].referred_by) {
+        await pool.query(
+          'UPDATE drivers SET referred_by = $1, referred_at = CURRENT_TIMESTAMP WHERE id = $2',
+          [referredBy.trim(), driverId]
+        );
+        await pool.query(
+          `INSERT INTO driver_referral_log (driver_id, referred_by, source)
+           VALUES ($1, $2, 'first_credit_purchase')`,
+          [driverId, referredBy.trim()]
+        );
+        console.log(`[REFERRAL] driver=${driverId} referred_by=${referredBy.trim()}`);
+      }
     }
 
     const result = await applyCreditDelta(

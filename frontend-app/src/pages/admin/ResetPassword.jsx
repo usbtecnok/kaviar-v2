@@ -51,6 +51,10 @@ export default function ResetPassword() {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        if (data.data?.token) {
+          localStorage.setItem('kaviar_admin_token', data.data.token);
+          localStorage.setItem('kaviar_admin_data', JSON.stringify(data.data.user));
+        }
         setSuccess(true);
         setTimeout(() => {
           navigate('/admin', { replace: true });

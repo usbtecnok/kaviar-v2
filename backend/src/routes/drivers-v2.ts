@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { dispatcherService } from '../services/dispatcher.service';
 import { acceptOfferInternal } from '../services/offer-acceptance.service';
+import { getCreditBalance } from '../services/credit.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import jwt from 'jsonwebtoken';
 
@@ -199,6 +200,19 @@ router.get('/me/offers', requireDriver, async (req: Request, res: Response) => {
 });
 
 // GET /api/v2/drivers/me/current-ride — corrida ativa do motorista
+
+// GET /api/v2/drivers/me/credits — saldo de créditos do motorista
+router.get('/me/credits', requireDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+    const balance = await getCreditBalance(driverId);
+    res.json({ success: true, data: { balance } });
+  } catch (error: any) {
+    console.error('[DRIVER_CREDITS_ERROR]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.get('/me/current-ride', requireDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;

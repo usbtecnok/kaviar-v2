@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { rankDriversByFavorites } from './favorites-matching.service';
+import { getCreditBalance } from './credit.service';
 
 interface DriverCandidate {
   driver_id: string;
@@ -15,7 +16,7 @@ interface DriverCandidate {
 export class DispatcherService {
   private readonly MAX_ATTEMPTS = 5;
   private readonly OFFER_TIMEOUT_SECONDS = 30;
-  private readonly MAX_DISTANCE_KM = 10;
+  private readonly MAX_DISTANCE_KM = 12;
   private readonly LOCATION_FRESHNESS_SECONDS = process.env.NODE_ENV === 'production' ? 30 : 3600; // DEV: 1h
 
   async dispatchRide(rideId: string): Promise<void> {
@@ -208,7 +209,8 @@ export class DispatcherService {
     const droppedReasons: { [key: string]: number } = {
       no_location: 0,
       stale_location: 0,
-      too_far: 0
+      too_far: 0,
+      no_credits: 0
     };
 
     const candidates: DriverCandidate[] = [];
@@ -240,6 +242,19 @@ export class DispatcherService {
         continue;
       }
       withinDistanceCount++;
+
+      // Credit gate: driver must have >= 2 credits (enough for any ride type)
+      if (process.env.CREDIT_GATE_ENABLED === 'true') {
+        try {
+          const balance = await getCreditBalance(ds.driver_id);
+          if (balance < 2) {
+            droppedReasons.no_credits++;
+            continue;
+          }
+        } catch {
+          // If credit check fails, allow driver through (fail-open)
+        }
+      }
 
       const sameNeighborhood = ride.origin_neighborhood_id && 
                                ds.driver.neighborhood_id === ride.origin_neighborhood_id;

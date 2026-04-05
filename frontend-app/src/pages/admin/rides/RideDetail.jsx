@@ -111,7 +111,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/cancel`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -142,7 +142,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/force-complete`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/force-complete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -173,7 +173,7 @@ export default function RideDetail() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('kaviar_admin_token');
-      const response = await fetch(`${API_BASE_URL}/api/rides/${id}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/rides/${id}/status`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -214,8 +214,8 @@ export default function RideDetail() {
   };
 
   const calculateFinancials = (price) => {
-    const grossValue = parseFloat(price);
-    const platformFee = grossValue * 0.15; // 15% taxa da plataforma
+    const grossValue = parseFloat(price) || 0;
+    const platformFee = grossValue * 0.15;
     const driverAmount = grossValue - platformFee;
     
     return {
@@ -425,7 +425,7 @@ export default function RideDetail() {
                   color="error"
                   startIcon={<Cancel />}
                   onClick={() => setCancelModal(true)}
-                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)}
+                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Cancelar Corrida
@@ -436,7 +436,7 @@ export default function RideDetail() {
                   color="success"
                   startIcon={<CheckCircle />}
                   onClick={() => setForceCompleteModal(true)}
-                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)}
+                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Forçar Finalização
@@ -446,6 +446,7 @@ export default function RideDetail() {
                   variant="outlined"
                   startIcon={<Edit />}
                   onClick={() => setStatusModal(true)}
+                  disabled={['completed', 'canceled_by_passenger', 'canceled_by_driver', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Corrigir Status
@@ -554,12 +555,17 @@ export default function RideDetail() {
               label="Novo Status"
               onChange={(e) => setNewStatus(e.target.value)}
             >
-              <MenuItem value="requested">Solicitada</MenuItem>
-              <MenuItem value="accepted">Aceita</MenuItem>
-              <MenuItem value="arrived">Chegou</MenuItem>
-              <MenuItem value="started">Iniciada</MenuItem>
-              <MenuItem value="completed">Concluída</MenuItem>
-              <MenuItem value="paid">Paga</MenuItem>
+              {(() => {
+                const transitions = {
+                  requested: [['accepted', 'Aceita']],
+                  accepted: [['arrived', 'Chegou']],
+                  arrived: [['started', 'Iniciada']],
+                  started: [['completed', 'Concluída']],
+                };
+                const options = transitions[ride.status] || [];
+                if (options.length === 0) return <MenuItem disabled>Nenhuma transição disponível</MenuItem>;
+                return options.map(([val, label]) => <MenuItem key={val} value={val}>{label}</MenuItem>);
+              })()}
             </Select>
           </FormControl>
           

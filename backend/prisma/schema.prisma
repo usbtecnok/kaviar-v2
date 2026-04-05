@@ -844,6 +844,19 @@ model driver_status {
   driver       drivers            @relation(fields: [driver_id], references: [id], onDelete: Cascade)
 }
 
+model consultant_leads {
+  id         String   @id @default(uuid())
+  name       String
+  phone      String
+  source     String   @default("whatsapp")
+  status     String   @default("new") // new, contacted, converted, dismissed
+  notes      String?
+  created_at DateTime @default(now())
+
+  @@index([status])
+  @@index([created_at(sort: Desc)])
+}
+
 model driver_locations {
   driver_id  String   @id
   lat        Decimal  @db.Decimal(10, 8)
