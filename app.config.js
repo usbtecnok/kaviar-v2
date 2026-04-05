@@ -63,6 +63,7 @@ export default {
         projectId: variantConfig.projectId
       },
       EXPO_PUBLIC_API_URL: 'https://api.kaviar.com.br',
+      EXPO_PUBLIC_PLACES_KEY: process.env.EXPO_PUBLIC_PLACES_KEY || '',
       APP_VARIANT: variant
     }
   }

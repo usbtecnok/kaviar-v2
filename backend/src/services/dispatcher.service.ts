@@ -62,26 +62,24 @@ export class DispatcherService {
     // Pegar o melhor candidato
     const bestCandidate = candidates[0];
 
-    // Criar oferta
+    // Criar oferta + atualizar ride atomicamente
     const expiresAt = new Date(Date.now() + this.OFFER_TIMEOUT_SECONDS * 1000);
     
-    const offer = await prisma.ride_offers.create({
-      data: {
-        ride_id: rideId,
-        driver_id: bestCandidate.driver_id,
-        status: 'pending',
-        expires_at: expiresAt,
-        rank_score: new Decimal(bestCandidate.score)
-      }
-    });
-
-    // Atualizar ride para offered
-    await prisma.rides_v2.update({
-      where: { id: rideId },
-      data: {
-        status: 'offered',
-        offered_at: new Date()
-      }
+    const offer = await prisma.$transaction(async (tx) => {
+      const o = await tx.ride_offers.create({
+        data: {
+          ride_id: rideId,
+          driver_id: bestCandidate.driver_id,
+          status: 'pending',
+          expires_at: expiresAt,
+          rank_score: new Decimal(bestCandidate.score)
+        }
+      });
+      await tx.rides_v2.update({
+        where: { id: rideId },
+        data: { status: 'offered', offered_at: new Date() }
+      });
+      return o;
     });
 
     console.log(`[OFFER_SENT] ride_id=${rideId} offer_id=${offer.id} driver_id=${bestCandidate.driver_id} expires_at=${expiresAt.toISOString()} score=${bestCandidate.score}`);

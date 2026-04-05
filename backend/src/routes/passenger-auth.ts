@@ -107,7 +107,7 @@ router.post('/passenger/register', async (req, res) => {
         userType: 'PASSENGER',
         email: passenger.email 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 
@@ -199,7 +199,7 @@ router.post('/passenger/login', async (req, res) => {
         userType: 'PASSENGER',
         email: passenger.email 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 

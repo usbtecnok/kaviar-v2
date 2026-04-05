@@ -13,8 +13,10 @@ import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 
+import { ENV } from '../../src/config/env';
+
 const POLL_INTERVAL = 3000;
-const PLACES_KEY = 'AIzaSyA50GYLlH7L5Iq5HpJ1MAALYOXN4PYlswc';
+const PLACES_KEY = ENV.PLACES_KEY;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   requested:  { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },

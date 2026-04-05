@@ -27,7 +27,7 @@ export class AuthService {
         email: admin.email,
         role: admin.role,
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '24h' }
     );
 

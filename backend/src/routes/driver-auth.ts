@@ -218,7 +218,7 @@ router.post('/driver/location', async (req, res) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     
     if (decoded.userType !== 'DRIVER') {
       return res.status(403).json({ error: 'Acesso negado' });

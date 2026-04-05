@@ -56,7 +56,7 @@ router.post('/guide/login', async (req, res) => {
         userType: 'GUIDE',
         email: guide.email 
       },
-      process.env.JWT_SECRET || 'fallback-secret',
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 

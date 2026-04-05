@@ -17,7 +17,7 @@ const requireDriver = (req: Request, res: Response, next: Function) => {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
 
     const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
     const userId = decoded.userId || decoded.id;

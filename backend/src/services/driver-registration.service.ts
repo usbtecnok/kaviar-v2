@@ -184,7 +184,7 @@ export class DriverRegistrationService {
           email: driver.email,
           status: driver.status
         },
-        process.env.JWT_SECRET || 'fallback-secret',
+        process.env.JWT_SECRET!,
         { expiresIn: '24h' }
       );
       

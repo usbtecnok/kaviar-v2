@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../src/config/colors';
 
-const SUPPORT_WHATSAPP = 'https://wa.me/5521999999999?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Kaviar%20(motorista)';
+const SUPPORT_WHATSAPP = 'https://wa.me/5521968648777?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Kaviar%20(motorista)';
 const SITE_URL = 'https://kaviar.com.br';
 
 export default function DriverHelp() {

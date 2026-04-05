@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../src/config/colors';
 
-const TOURISM_WHATSAPP = 'https://wa.me/5521999999999?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Turismo%20Premium%20Kaviar';
+const TOURISM_WHATSAPP = 'https://wa.me/5521968648777?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Turismo%20Premium%20Kaviar';
 
 export default function TourismPremium() {
   const router = useRouter();

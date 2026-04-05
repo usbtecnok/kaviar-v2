@@ -22,7 +22,7 @@ const requirePassenger = (req: Request, res: Response, next: Function) => {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
 
     // payload novo (userType/userId) + legado (role/id)
     const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
@@ -48,7 +48,7 @@ const requireDriver = (req: Request, res: Response, next: Function) => {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
 
     const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
     const userId = decoded.userId || decoded.id;
@@ -453,6 +453,37 @@ router.post('/:ride_id/location', requireDriver, async (req: Request, res: Respo
   } catch (error: any) {
     console.error('[RIDE_LOCATION_ERROR]', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /history — ride history for passenger or driver
+router.get('/history', async (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const decoded = jwt.verify(authHeader.substring(7), process.env.JWT_SECRET!) as any;
+    const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
+    const userId = decoded.userId || decoded.id;
+    if (!userId) return res.status(401).json({ error: 'Invalid token' });
+
+    const where = userType === 'DRIVER'
+      ? { driver_id: userId, status: { in: ['completed', 'canceled_by_passenger', 'canceled_by_driver'] as any } }
+      : { passenger_id: userId, status: { in: ['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'] as any } };
+
+    const rides = await prisma.rides_v2.findMany({
+      where,
+      orderBy: { requested_at: 'desc' },
+      take: 50,
+      select: {
+        id: true, status: true, origin_text: true, destination_text: true,
+        requested_at: true, completed_at: true, ride_type: true,
+        driver: { select: { name: true, vehicle_model: true, vehicle_plate: true } },
+        passenger: { select: { name: true } },
+      },
+    });
+    res.json({ rides });
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
   }
 });
 

@@ -31,7 +31,7 @@ export default function History() {
 
   const loadHistory = async () => {
     try {
-      const res = await apiClient.get('/rides/history');
+      const res = await apiClient.get('/api/v2/rides/history');
       setRides(res.data?.rides || res.data || []);
     } catch { /* empty history */ }
     finally { setLoading(false); }

@@ -35,10 +35,10 @@ export async function applyCreditDelta(
       [driverId]
     );
 
-    // Apply delta atomically
+    // Apply delta atomically (prevent negative balance on deductions)
     const balanceResult = await client.query(
       `UPDATE credit_balance
-       SET balance = balance + $2, updated_at = CURRENT_TIMESTAMP
+       SET balance = CASE WHEN balance + $2 < 0 THEN 0 ELSE balance + $2 END, updated_at = CURRENT_TIMESTAMP
        WHERE driver_id = $1
        RETURNING balance`,
       [driverId, delta]

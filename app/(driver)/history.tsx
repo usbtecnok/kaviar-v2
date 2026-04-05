@@ -31,7 +31,7 @@ export default function DriverHistory() {
 
   const load = async () => {
     try {
-      const res = await apiClient.get('/rides/history');
+      const res = await apiClient.get('/api/v2/rides/history');
       setRides(res.data?.rides || res.data || []);
     } catch {}
     finally { setLoading(false); }
