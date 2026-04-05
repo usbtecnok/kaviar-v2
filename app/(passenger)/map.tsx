@@ -559,7 +559,7 @@ const s = StyleSheet.create({
   bottomSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
     backgroundColor: COLORS.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16,
-    padding: 16, paddingBottom: 24,
+    padding: 16, paddingBottom: 40,
     shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8,
   },
   routeCompact: { marginBottom: 4 },
