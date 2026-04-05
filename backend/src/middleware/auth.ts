@@ -50,12 +50,14 @@ export const authenticatePassenger = (req: Request, res: Response, next: NextFun
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    
-    if (decoded.role !== 'PASSENGER') {
+    const role = String(decoded.role || decoded.userType || decoded.user_type || '').toUpperCase();
+    const id = decoded.id || decoded.userId;
+
+    if (role !== 'PASSENGER' || !id) {
       return res.status(403).json({ error: 'Passenger access required' });
     }
 
-    (req as any).passengerId = decoded.id;
+    (req as any).passengerId = id;
     (req as any).user = decoded;
     next();
   } catch (error) {
@@ -72,12 +74,14 @@ export const authenticateDriver = (req: Request, res: Response, next: NextFuncti
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    
-    if (decoded.role !== 'DRIVER') {
+    const role = String(decoded.role || decoded.userType || decoded.user_type || '').toUpperCase();
+    const id = decoded.id || decoded.userId;
+
+    if (role !== 'DRIVER' || !id) {
       return res.status(403).json({ error: 'Driver access required' });
     }
 
-    (req as any).driverId = decoded.id;
+    (req as any).driverId = id;
     (req as any).user = decoded;
     next();
   } catch (error) {
