@@ -7,6 +7,7 @@ import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
+import { apiClient } from '../../src/api/client';
 import { authStore } from '../../src/auth/auth.store';
 import { RideOffer } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
@@ -16,6 +17,14 @@ import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 const POLL_INTERVAL = 5000;
 const LOCATION_INTERVAL = 15000;
 
+const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
 export default function DriverOnline() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(false);
@@ -23,6 +32,11 @@ export default function DriverOnline() {
   const [userName, setUserName] = useState('');
   const [pendingOffer, setPendingOffer] = useState<RideOffer | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [todayRides, setTodayRides] = useState(0);
+  const [gpsEnabled, setGpsEnabled] = useState(true);
+  const [locationPermission, setLocationPermission] = useState(true);
+  const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [offerCountdown, setOfferCountdown] = useState('');
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const locationRef = useRef<NodeJS.Timeout | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -46,12 +60,17 @@ export default function DriverOnline() {
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: true });
     loadUser();
     checkCurrentRide();
-    loadCredits();
+    loadDashboard();
+    checkGps();
+    checkLocationPermission();
     return () => { stopAll(); soundRef.current?.unloadAsync(); };
   }, []);
 
-  // Refresh credits when screen regains focus (e.g. after completing a ride)
-  useFocusEffect(useCallback(() => { loadCredits(); }, []));
+  useFocusEffect(useCallback(() => {
+    loadDashboard();
+    checkGps();
+    checkLocationPermission();
+  }, []));
 
   useEffect(() => {
     if (isOnline && !pendingOffer) {
@@ -68,16 +87,48 @@ export default function DriverOnline() {
     }
   }, [isOnline, pendingOffer]);
 
+  // Offer expiration countdown
+  useEffect(() => {
+    if (!pendingOffer?.expires_at) { setOfferCountdown(''); return; }
+    const tick = () => {
+      const left = Math.max(0, Math.floor((new Date(pendingOffer.expires_at).getTime() - Date.now()) / 1000));
+      setOfferCountdown(`${left}s`);
+      if (left === 0) setPendingOffer(null);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [pendingOffer]);
+
   const loadUser = () => {
     const user = authStore.getUser();
     if (user?.name) setUserName(user.name);
     if (user?.phone) setUserPhone(user.phone);
   };
 
-  const loadCredits = async () => {
+  const checkGps = async () => {
+    try { setGpsEnabled(await Location.hasServicesEnabledAsync()); } catch {}
+  };
+
+  const checkLocationPermission = async () => {
     try {
-      const { balance } = await driverApi.getCredits();
-      setCreditBalance(balance);
+      const { status } = await Location.getForegroundPermissionsAsync();
+      setLocationPermission(status === 'granted');
+    } catch {}
+  };
+
+  const loadDashboard = async () => {
+    try {
+      const [credRes, histRes] = await Promise.allSettled([
+        driverApi.getCredits(),
+        apiClient.get('/rides/history'),
+      ]);
+      if (credRes.status === 'fulfilled') setCreditBalance(credRes.value.balance);
+      if (histRes.status === 'fulfilled') {
+        const rides = histRes.value.data?.rides || histRes.value.data || [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        setTodayRides(rides.filter((r: any) => r.status === 'completed' && r.created_at?.slice(0, 10) === todayStr).length);
+      }
     } catch {}
   };
 
@@ -112,12 +163,15 @@ export default function DriverOnline() {
   const startLocationTracking = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
+      setLocationPermission(false);
       Alert.alert('Erro', 'Permissão de localização negada');
       return;
     }
+    setLocationPermission(true);
     const send = async () => {
       try {
         const loc = await Location.getCurrentPositionAsync({});
+        setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
         await driverApi.sendLocation(loc.coords.latitude, loc.coords.longitude);
       } catch {}
     };
@@ -182,6 +236,15 @@ export default function DriverOnline() {
     ]);
   };
 
+  // Derived states
+  const noCredits = creditBalance !== null && creditBalance === 0;
+  const lowCredits = creditBalance !== null && creditBalance > 0 && creditBalance < 5;
+  const hasOperationalIssue = !gpsEnabled || !locationPermission || noCredits;
+
+  const distanceToPickup = pendingOffer && currentCoords
+    ? haversineKm(currentCoords.lat, currentCoords.lng, pendingOffer.ride.origin_lat, pendingOffer.ride.origin_lng)
+    : null;
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -207,17 +270,29 @@ export default function DriverOnline() {
         </View>
       </View>
 
-      {/* Low credit alert */}
-      {creditBalance !== null && creditBalance < 5 && creditBalance > 0 && (
-        <TouchableOpacity style={styles.creditAlert} onPress={() => router.push('/(driver)/credits')}>
-          <Ionicons name="warning-outline" size={16} color={COLORS.warning} />
-          <Text style={styles.creditAlertText}>Seus créditos estão acabando. <Text style={{ fontWeight: '700' }}>Comprar créditos</Text></Text>
+      {/* Operational status banners */}
+      {!gpsEnabled && (
+        <View style={styles.banner}>
+          <Ionicons name="navigate-outline" size={16} color={COLORS.warning} />
+          <Text style={styles.bannerText}>GPS desligado. Ative a localização para receber corridas.</Text>
+        </View>
+      )}
+      {!locationPermission && gpsEnabled && (
+        <View style={styles.banner}>
+          <Ionicons name="location-outline" size={16} color={COLORS.warning} />
+          <Text style={styles.bannerText}>Permissão de localização negada. Ative nas configurações.</Text>
+        </View>
+      )}
+      {noCredits && (
+        <TouchableOpacity style={[styles.banner, { backgroundColor: '#fde8e8' }]} onPress={() => router.push('/(driver)/credits')}>
+          <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
+          <Text style={[styles.bannerText, { color: COLORS.danger }]}>Sem créditos. Você não receberá corridas. <Text style={{ fontWeight: '700' }}>Comprar</Text></Text>
         </TouchableOpacity>
       )}
-      {creditBalance !== null && creditBalance === 0 && (
-        <TouchableOpacity style={[styles.creditAlert, { backgroundColor: '#fde8e8' }]} onPress={() => router.push('/(driver)/credits')}>
-          <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
-          <Text style={[styles.creditAlertText, { color: COLORS.danger }]}>Sem créditos. <Text style={{ fontWeight: '700' }}>Toque para comprar</Text></Text>
+      {lowCredits && (
+        <TouchableOpacity style={styles.banner} onPress={() => router.push('/(driver)/credits')}>
+          <Ionicons name="warning-outline" size={16} color={COLORS.warning} />
+          <Text style={styles.bannerText}>Créditos acabando. <Text style={{ fontWeight: '700' }}>Comprar créditos</Text></Text>
         </TouchableOpacity>
       )}
 
@@ -234,12 +309,33 @@ export default function DriverOnline() {
           {isOnline ? 'ONLINE' : 'OFFLINE'}
         </Text>
 
+        {/* Mini-resumo when offline */}
+        {!isOnline && !pendingOffer && (
+          <View style={styles.quickStats}>
+            <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/summary')}>
+              <Ionicons name="today-outline" size={20} color={COLORS.accent} />
+              <Text style={styles.quickStatValue}>{todayRides}</Text>
+              <Text style={styles.quickStatLabel}>Hoje</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/credits')}>
+              <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.quickStatValue}>{creditBalance ?? '—'}</Text>
+              <Text style={styles.quickStatLabel}>Créditos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/help')}>
+              <Ionicons name="help-circle-outline" size={20} color={COLORS.textSecondary} />
+              <Text style={styles.quickStatLabel}>Ajuda</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Offer card */}
         {pendingOffer && (
           <View style={styles.offerCard}>
             <View style={styles.offerHeader}>
               <Ionicons name="car-sport" size={22} color={COLORS.primary} />
               <Text style={styles.offerTitle}>Nova corrida!</Text>
+              {offerCountdown ? <Text style={styles.offerTimer}>{offerCountdown}</Text> : null}
             </View>
 
             <View style={styles.routeRow}>
@@ -253,6 +349,13 @@ export default function DriverOnline() {
                 <Text style={styles.routeText}>{pendingOffer.ride.destination_text || 'Destino não informado'}</Text>
               </View>
             </View>
+
+            {distanceToPickup !== null && (
+              <View style={styles.offerMeta}>
+                <Ionicons name="location-outline" size={14} color={COLORS.textMuted} />
+                <Text style={styles.offerMetaText}>{distanceToPickup.toFixed(1)} km até o embarque</Text>
+              </View>
+            )}
 
             {pendingOffer.ride.passenger?.name && (
               <Text style={styles.offerPassenger}>
@@ -271,7 +374,11 @@ export default function DriverOnline() {
 
         {/* Actions */}
         {!isOnline ? (
-          <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
+          noCredits ? (
+            <Button title="Comprar créditos para começar" onPress={() => router.push('/(driver)/credits')} />
+          ) : (
+            <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
+          )
         ) : !pendingOffer ? (
           <>
             <View style={styles.waitingBox}>
@@ -306,6 +413,13 @@ const styles = StyleSheet.create({
   userName: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
   center: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
 
+  // Banners
+  banner: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1',
+    marginHorizontal: 24, marginBottom: 6, padding: 10, borderRadius: 8, gap: 8,
+  },
+  bannerText: { fontSize: 13, color: COLORS.textSecondary, flex: 1 },
+
   // Status
   statusRing: {
     width: 80, height: 80, borderRadius: 40,
@@ -318,19 +432,36 @@ const styles = StyleSheet.create({
     textAlign: 'center', letterSpacing: 4, marginBottom: 32,
   },
 
+  // Quick stats
+  quickStats: {
+    flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 32,
+  },
+  quickStatItem: {
+    backgroundColor: COLORS.surface, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18,
+    alignItems: 'center', minWidth: 80, borderWidth: 1, borderColor: COLORS.border,
+  },
+  quickStatValue: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginTop: 6 },
+  quickStatLabel: { fontSize: 11, color: COLORS.textMuted, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 },
+
   // Offer
   offerCard: {
     backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 24,
     borderLeftWidth: 4, borderLeftColor: COLORS.primary,
   },
   offerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  offerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginLeft: 10 },
+  offerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginLeft: 10, flex: 1 },
+  offerTimer: {
+    fontSize: 15, fontWeight: '800', color: COLORS.warning,
+    backgroundColor: COLORS.surfaceLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+  },
   routeRow: { flexDirection: 'row', marginBottom: 12 },
   routeDots: { alignItems: 'center', marginRight: 12, paddingTop: 4 },
   dot: { width: 10, height: 10, borderRadius: 5 },
   dotLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 2 },
   routeTexts: { flex: 1, justifyContent: 'space-between', gap: 14 },
   routeText: { fontSize: 15, color: COLORS.textPrimary },
+  offerMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  offerMetaText: { fontSize: 13, color: COLORS.textMuted },
   offerPassenger: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 },
   offerButtons: { flexDirection: 'row' },
 
@@ -347,9 +478,4 @@ const styles = StyleSheet.create({
   },
   creditBadgeLow: { backgroundColor: COLORS.danger },
   creditText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
-  creditAlert: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1',
-    marginHorizontal: 24, marginBottom: 8, padding: 10, borderRadius: 8, gap: 8,
-  },
-  creditAlertText: { fontSize: 13, color: COLORS.textSecondary, flex: 1 },
 });
