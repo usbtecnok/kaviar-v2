@@ -11,7 +11,7 @@ interface RideHistory {
   status: string;
   origin_text?: string;
   destination_text?: string;
-  created_at: string;
+  requested_at: string;
   final_price?: number;
 }
 
@@ -49,7 +49,7 @@ export default function History() {
     return (
       <View style={s.card}>
         <View style={s.cardHeader}>
-          <Text style={s.date}>{formatDate(item.created_at)}</Text>
+          <Text style={s.date}>{formatDate(item.requested_at)}</Text>
           <Text style={[s.status, { color: st.color }]}>{st.text}</Text>
         </View>
         {item.origin_text && (

@@ -38,6 +38,14 @@ async function startServer() {
     // Start offer timeout job (SPEC_RIDE_FLOW_V1)
     startOfferTimeoutJob();
 
+    // One-time migrations (idempotent)
+    prisma.$executeRawUnsafe(`
+      INSERT INTO feature_flags (key, enabled, rollout_percentage, updated_at, created_at)
+      VALUES ('passenger_favorites_matching', true, 100, NOW(), NOW())
+      ON CONFLICT (key) DO UPDATE SET enabled = true, rollout_percentage = 100, updated_at = NOW()
+    `).then(() => console.log('✅ Feature flag: passenger_favorites_matching enabled'))
+      .catch((e: any) => console.warn('⚠️ Feature flag migration skipped:', e.message));
+
     // Test database connection (non-blocking startup)
     try {
       await Promise.race([
