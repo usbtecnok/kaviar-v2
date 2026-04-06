@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { requireAdmin } from '../middleware/auth';
+import { authenticateAdmin, requireRole } from '../middlewares/auth';
 
 const router = Router();
+const allowLeadAccess = [authenticateAdmin, requireRole(['SUPER_ADMIN', 'LEAD_AGENT', 'ANGEL_VIEWER'])];
 
 // Resolver região pelo DDD do telefone
 function resolveRegion(phone: string): string {
@@ -88,7 +89,7 @@ router.post('/consultant-lead', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/consultant-leads/performance — funil por funcionário
-router.get('/consultant-leads/performance', requireAdmin, async (_req: Request, res: Response) => {
+router.get('/consultant-leads/performance', ...allowLeadAccess, async (req: Request, res: Response) => {
   try {
     // Todos os leads (exceto dismissed)
     const leads = await prisma.consultant_leads.findMany({
@@ -172,10 +173,13 @@ router.get('/consultant-leads/performance', requireAdmin, async (_req: Request, 
   }
 });
 
-// GET /api/admin/consultant-leads — admin only
-router.get('/consultant-leads', requireAdmin, async (_req: Request, res: Response) => {
+// GET /api/admin/consultant-leads — admin only (LEAD_AGENT sees own leads)
+router.get('/consultant-leads', ...allowLeadAccess, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+    const where = admin.role === 'LEAD_AGENT' ? { assigned_to: admin.id } : {};
     const leads = await prisma.consultant_leads.findMany({
+      where,
       orderBy: { created_at: 'desc' },
     });
     return res.json({ success: true, data: leads });
@@ -186,8 +190,18 @@ router.get('/consultant-leads', requireAdmin, async (_req: Request, res: Respons
 });
 
 // PATCH /api/admin/consultant-leads/:id — atualizar status/notes/assigned_to
-router.patch('/consultant-leads/:id', requireAdmin, async (req: Request, res: Response) => {
+router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+
+    // LEAD_AGENT can only update own leads
+    if (admin.role === 'LEAD_AGENT') {
+      const lead = await prisma.consultant_leads.findUnique({ where: { id: req.params.id } });
+      if (!lead || lead.assigned_to !== admin.id) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+    }
+
     const { status, notes, assigned_to } = req.body;
 
     const data: any = {};
