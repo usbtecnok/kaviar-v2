@@ -872,6 +872,7 @@ model referral_agents {
   email        String?
   pix_key      String?
   pix_key_type String?
+  referral_code String?   @unique
   is_active    Boolean    @default(true)
   created_at   DateTime   @default(now())
   updated_at   DateTime   @updatedAt
@@ -897,6 +898,7 @@ model referrals {
   payment_ref           String?
   payment_canceled_at   DateTime?
   payment_cancel_reason String?
+  source                String    @default("admin_manual")
   created_at            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
   agent                 referral_agents @relation(fields: [agent_id], references: [id])

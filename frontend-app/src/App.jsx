@@ -13,6 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminResetPassword from "./pages/admin/ResetPassword";
 import SetPassword from "./pages/driver/SetPassword";
+import MotoristaReferral from "./pages/MotoristaReferral";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./context/RideContext";
 import { DriverProvider } from "./context/DriverContext";
@@ -412,6 +413,7 @@ export default function App() {
             }
           />
           
+          <Route path="/motorista" element={<MotoristaReferral />} />
           {/* First access motorista */}
           <Route path="/motorista/definir-senha" element={<SetPassword />} />
 

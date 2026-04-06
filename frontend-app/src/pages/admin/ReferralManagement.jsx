@@ -183,6 +183,13 @@ export default function ReferralManagement() {
                     <Box>
                       <Typography variant="subtitle2" fontWeight={700}>{r.agent?.name || '—'}</Typography>
                       <Typography variant="caption" color="text.secondary">{r.agent?.phone}</Typography>
+                      {r.agent?.referral_code && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Chip label={r.agent.referral_code} size="small" sx={{ bgcolor: '#FFF8E1', fontWeight: 700, fontFamily: 'monospace' }} />
+                          <IconButton size="small" onClick={() => copyPix(r.agent.referral_code)}><ContentCopy sx={{ fontSize: 12 }} /></IconButton>
+                          <IconButton size="small" onClick={() => copyPix(`https://kaviar.com.br/motorista?ref=${r.agent.referral_code}`)}><Tooltip title="Copiar link"><Search sx={{ fontSize: 12 }} /></Tooltip></IconButton>
+                        </Box>
+                      )}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <Chip label={sc.label} color={sc.color} size="small" />
@@ -229,6 +236,18 @@ export default function ReferralManagement() {
               <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>INDICADOR</Typography>
               <Typography>Nome: {selected.agent?.name}</Typography>
               <Typography>Telefone: {selected.agent?.phone}</Typography>
+              {selected.agent?.referral_code && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                  <Typography>Código: <b style={{ fontFamily: 'monospace' }}>{selected.agent.referral_code}</b></Typography>
+                  <IconButton size="small" onClick={() => copyPix(selected.agent.referral_code)}><ContentCopy sx={{ fontSize: 14 }} /></IconButton>
+                </Box>
+              )}
+              {selected.agent?.referral_code && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                  <Typography variant="body2" color="text.secondary">Link: kaviar.com.br/motorista?ref={selected.agent.referral_code}</Typography>
+                  <IconButton size="small" onClick={() => copyPix(`https://kaviar.com.br/motorista?ref=${selected.agent.referral_code}`)}><ContentCopy sx={{ fontSize: 14 }} /></IconButton>
+                </Box>
+              )}
               {selected.agent?.email && <Typography>Email: {selected.agent.email}</Typography>}
               {selected.agent?.pix_key ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>

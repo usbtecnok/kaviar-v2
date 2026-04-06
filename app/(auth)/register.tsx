@@ -25,6 +25,7 @@ export default function Register() {
   
   // Dados do veículo
   const [vehicleColor, setVehicleColor] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
   
@@ -259,6 +260,12 @@ export default function Register() {
         registerPayload.neighborhoodId = selectedNeighborhood.id;
       }
 
+      // Código de indicação
+      if (referralCode.trim()) {
+        registerPayload.referral_code = referralCode.trim().toUpperCase();
+        registerPayload.referral_source = 'manual_code';
+      }
+
       // Fallback manual: enviar nome digitado para o backend resolver
       if (!selectedNeighborhood && manualNeighborhood.trim()) {
         registerPayload.neighborhoodName = manualNeighborhood.trim();
@@ -443,6 +450,21 @@ export default function Register() {
               autoCapitalize="characters"
               maxLength={8}
             />
+
+            <View style={styles.bonusSection}>
+              <Text style={styles.bonusTitle}>Código de Indicação</Text>
+              <Text style={styles.bonusDescription}>
+                Se alguém te indicou, informe o código aqui (opcional)
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={referralCode}
+                onChangeText={setReferralCode}
+                placeholder="Ex: MARI7K2P"
+                autoCapitalize="characters"
+                maxLength={8}
+              />
+            </View>
 
             <View style={styles.bonusSection}>
               <Text style={styles.bonusTitle}>Bônus Familiar</Text>

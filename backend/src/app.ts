@@ -288,6 +288,7 @@ app.use('/api/public', consultantLeadsRoutes); // ✅ Consultant leads (public P
 app.use('/api/admin', consultantLeadsRoutes); // ✅ Consultant leads (admin GET/PATCH)
 app.use('/api/admin/staff', adminStaffRoutes); // ✅ Staff CRUD (SUPER_ADMIN only)
 app.use('/api/admin', adminReferralRoutes); // ✅ Referral system (SUPER_ADMIN only)
+app.use('/api/public', adminReferralRoutes); // ✅ Referral public (validate code)
 app.use('/api/geo', geoRoutes);
 // app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);

@@ -87,6 +87,30 @@ router.post('/driver/register', async (req, res) => {
         isPending: result.driver!.isPending
       }
     });
+
+    // Auto-create referral if referral_code provided (non-blocking)
+    try {
+      const referralCode = req.body.referral_code?.toUpperCase();
+      if (referralCode && result.driver?.phone) {
+        const agent = await prisma.referral_agents.findFirst({
+          where: { referral_code: referralCode, is_active: true },
+        });
+        if (agent) {
+          const existing = await prisma.referrals.findFirst({
+            where: { OR: [{ driver_phone: result.driver.phone }, { driver_id: result.driver.id }] },
+          });
+          if (!existing) {
+            const source = req.body.referral_source === 'link' ? 'link' : 'manual_code';
+            await prisma.referrals.create({
+              data: { agent_id: agent.id, driver_phone: result.driver.phone, driver_id: result.driver.id, source },
+            });
+            console.log(`[REFERRAL_AUTO] code=${referralCode} agent=${agent.id} driver=${result.driver.id} source=${source}`);
+          }
+        }
+      }
+    } catch (refErr) {
+      console.error('[REFERRAL_AUTO_ERROR] Non-blocking:', refErr);
+    }
   } catch (error) {
     console.error('Error in driver register:', error);
 
