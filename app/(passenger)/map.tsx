@@ -484,7 +484,17 @@ export default function PassengerMap() {
             }}>
               <Text style={s.ctaPrimaryText}>Avaliar motorista</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => { setShowCompleted(false); resetToIdle(); }}>
+            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => {
+              setShowCompleted(false);
+              const driverName = completedRide?.driver?.name || 'não informado';
+              const rideTime = completedRide?.requested_at ? new Date(completedRide.requested_at).toLocaleString('pt-BR') : 'não informado';
+              const msg = `📦 Esqueci um objeto no carro\n\nMotorista: ${driverName}\nHorário: ${rideTime}\nCorrida: ${completedRide?.id || 'N/A'}`;
+              Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(msg)}`);
+            }}>
+              <Ionicons name="bag-outline" size={14} color={COLORS.textSecondary} />
+              <Text style={[s.ctaLinkText, { marginLeft: 4 }]}>Esqueci um objeto</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 8 }]} onPress={() => { setShowCompleted(false); resetToIdle(); }}>
               <Text style={s.ctaLinkText}>Fechar</Text>
             </TouchableOpacity>
           </View>
