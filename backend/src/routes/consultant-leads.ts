@@ -7,13 +7,21 @@ const router = Router();
 // POST /api/public/consultant-lead — sem auth (chamado pelo fluxo WhatsApp)
 router.post('/consultant-lead', async (req: Request, res: Response) => {
   try {
-    const { name, phone, source } = req.body;
+    const { name, phone, source, notes } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'name e phone obrigatórios' });
     }
 
+    // Prevent duplicate by phone+source
+    const existing = await prisma.consultant_leads.findFirst({
+      where: { phone, status: { not: 'dismissed' } },
+    });
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'Este contato já foi indicado' });
+    }
+
     const lead = await prisma.consultant_leads.create({
-      data: { name, phone, source: source || 'whatsapp' },
+      data: { name, phone, source: source || 'whatsapp', notes },
     });
 
     return res.json({ success: true, data: lead });
