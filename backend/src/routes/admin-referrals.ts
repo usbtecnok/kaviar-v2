@@ -148,6 +148,23 @@ router.get('/referrals', ...adminAuth, async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/referrals/backfill-codes — generate codes for agents without one
+router.post('/referrals/backfill-codes', ...adminAuth, async (_req: Request, res: Response) => {
+  try {
+    const agents = await prisma.referral_agents.findMany({ where: { referral_code: null } });
+    let count = 0;
+    for (const a of agents) {
+      const code = await uniqueCode(a.name);
+      await prisma.referral_agents.update({ where: { id: a.id }, data: { referral_code: code } });
+      count++;
+    }
+    return res.json({ success: true, data: { backfilled: count } });
+  } catch (err) {
+    console.error('[REFERRAL] backfill error:', err);
+    return res.status(500).json({ success: false, error: 'Erro no backfill' });
+  }
+});
+
 // POST /api/admin/referrals
 router.post('/referrals', ...adminAuth, async (req: Request, res: Response) => {
   try {
@@ -224,23 +241,6 @@ router.patch('/referrals/:id', ...adminAuth, async (req: Request, res: Response)
   } catch (err) {
     console.error('[REFERRALS] action error:', err);
     return res.status(500).json({ success: false, error: 'Erro ao processar ação' });
-  }
-});
-
-// POST /api/admin/referrals/backfill-codes — generate codes for agents without one
-router.post('/referrals/backfill-codes', ...adminAuth, async (_req: Request, res: Response) => {
-  try {
-    const agents = await prisma.referral_agents.findMany({ where: { referral_code: null } });
-    let count = 0;
-    for (const a of agents) {
-      const code = await uniqueCode(a.name);
-      await prisma.referral_agents.update({ where: { id: a.id }, data: { referral_code: code } });
-      count++;
-    }
-    return res.json({ success: true, data: { backfilled: count } });
-  } catch (err) {
-    console.error('[REFERRAL] backfill error:', err);
-    return res.status(500).json({ success: false, error: 'Erro no backfill' });
   }
 });
 
