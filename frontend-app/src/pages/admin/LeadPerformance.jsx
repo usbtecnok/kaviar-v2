@@ -12,7 +12,7 @@ export default function LeadPerformance() {
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('kaviar_admin_token');
       const res = await fetch(`${API_BASE_URL}/api/admin/consultant-leads/performance`, {
         headers: { Authorization: `Bearer ${token}` },
       });
