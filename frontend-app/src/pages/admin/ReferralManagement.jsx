@@ -33,6 +33,7 @@ export default function ReferralManagement() {
   const [actionDialog, setActionDialog] = useState({ open: false, action: '', ref: null });
   const [actionInput, setActionInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState('');
 
   // New referral form
   const [agents, setAgents] = useState([]);
@@ -233,21 +234,42 @@ export default function ReferralManagement() {
           <>
             <DialogTitle>Indicação — {selected.agent?.name}</DialogTitle>
             <DialogContent>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>INDICADOR</Typography>
+              {/* Share Card */}
+              {selected.agent?.referral_code && (
+                <Box sx={{ bgcolor: '#1a1a1a', borderRadius: 3, p: 3, mb: 3, border: '1px solid #FFD700', textAlign: 'center' }}>
+                  <Typography sx={{ color: '#FFD700', fontWeight: 900, letterSpacing: 4, fontSize: 14, mb: 1 }}>KAVIAR</Typography>
+                  <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 18, mb: 0.5 }}>{selected.agent.name}</Typography>
+                  <Typography sx={{ color: '#999', fontSize: 13, mb: 2 }}>{selected.agent.phone}</Typography>
+                  <Chip label={selected.agent.referral_code} sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, fontFamily: 'monospace', fontSize: 18, py: 2.5, px: 1, borderRadius: 2 }} />
+                  <Typography sx={{ color: '#666', fontSize: 12, mt: 1.5, fontFamily: 'monospace' }}>kaviar.com.br/motorista?ref={selected.agent.referral_code}</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 2 }}>
+                    <Button size="small" variant="outlined" sx={{ color: '#FFD700', borderColor: '#FFD700' }}
+                      onClick={() => { navigator.clipboard.writeText(selected.agent.referral_code); setError(''); setCopied('código'); setTimeout(() => setCopied(''), 2000); }}>
+                      Copiar código
+                    </Button>
+                    <Button size="small" variant="outlined" sx={{ color: '#FFD700', borderColor: '#FFD700' }}
+                      onClick={() => { navigator.clipboard.writeText(`https://kaviar.com.br/motorista?ref=${selected.agent.referral_code}`); setCopied('link'); setTimeout(() => setCopied(''), 2000); }}>
+                      Copiar link
+                    </Button>
+                    <Button size="small" variant="contained" sx={{ bgcolor: '#FFD700', color: '#000' }}
+                      onClick={() => {
+                        const text = `Seja motorista KAVIAR! 🚗\n\nCadastre-se usando o código: ${selected.agent.referral_code}\nLink: https://kaviar.com.br/motorista?ref=${selected.agent.referral_code}\n\nBaixe o app e comece a dirigir na sua região.`;
+                        if (navigator.share) {
+                          navigator.share({ title: 'KAVIAR — Indicação de motorista', text }).catch(() => {});
+                        } else {
+                          navigator.clipboard.writeText(text); setCopied('mensagem'); setTimeout(() => setCopied(''), 2000);
+                        }
+                      }}>
+                      Compartilhar
+                    </Button>
+                  </Box>
+                  {copied && <Typography sx={{ color: '#4caf50', fontSize: 12, mt: 1 }}>✅ {copied} copiado!</Typography>}
+                </Box>
+              )}
+
+              <Typography variant="subtitle2" color="text.secondary">INDICADOR</Typography>
               <Typography>Nome: {selected.agent?.name}</Typography>
               <Typography>Telefone: {selected.agent?.phone}</Typography>
-              {selected.agent?.referral_code && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                  <Typography>Código: <b style={{ fontFamily: 'monospace' }}>{selected.agent.referral_code}</b></Typography>
-                  <IconButton size="small" onClick={() => copyPix(selected.agent.referral_code)}><ContentCopy sx={{ fontSize: 14 }} /></IconButton>
-                </Box>
-              )}
-              {selected.agent?.referral_code && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                  <Typography variant="body2" color="text.secondary">Link: kaviar.com.br/motorista?ref={selected.agent.referral_code}</Typography>
-                  <IconButton size="small" onClick={() => copyPix(`https://kaviar.com.br/motorista?ref=${selected.agent.referral_code}`)}><ContentCopy sx={{ fontSize: 14 }} /></IconButton>
-                </Box>
-              )}
               {selected.agent?.email && <Typography>Email: {selected.agent.email}</Typography>}
               {selected.agent?.pix_key ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
