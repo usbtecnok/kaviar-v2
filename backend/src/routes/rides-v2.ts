@@ -148,7 +148,7 @@ router.get('/history', async (req: Request, res: Response) => {
     const rides = await prisma.rides_v2.findMany({
       where,
       orderBy: { requested_at: 'desc' },
-      take: 50,
+      take: 30,
       select: {
         id: true, status: true, origin_text: true, destination_text: true,
         requested_at: true, completed_at: true, ride_type: true,

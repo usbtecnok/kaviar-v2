@@ -13,6 +13,7 @@ interface RideHistory {
   destination_text?: string;
   requested_at: string;
   final_price?: number;
+  passenger?: { name: string };
 }
 
 const STATUS_LABELS: Record<string, { text: string; color: string }> = {
@@ -52,6 +53,7 @@ export default function DriverHistory() {
           <Text style={s.date}>{formatDate(item.requested_at)}</Text>
           <Text style={[s.status, { color: st.color }]}>{st.text}</Text>
         </View>
+        {item.passenger?.name && <Text style={s.passengerName}>{item.passenger.name}</Text>}
         {item.origin_text && (
           <View style={s.route}>
             <View style={[s.dot, { backgroundColor: COLORS.success }]} />
@@ -103,6 +105,7 @@ const s = StyleSheet.create({
   emptyText: { color: COLORS.textMuted, fontSize: 15, marginTop: 12 },
   card: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  passengerName: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 8 },
   date: { fontSize: 12, color: COLORS.textMuted },
   status: { fontSize: 12, fontWeight: '700' },
   route: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },

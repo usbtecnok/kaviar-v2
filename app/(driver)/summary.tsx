@@ -29,8 +29,8 @@ export default function DriverSummary() {
         const weekAgo = new Date(now.getTime() - 7 * 86400000);
         const completed = rides.filter((r: any) => r.status === 'completed');
         setStats({
-          today: completed.filter((r: any) => r.created_at?.slice(0, 10) === todayStr).length,
-          week: completed.filter((r: any) => new Date(r.created_at) >= weekAgo).length,
+          today: completed.filter((r: any) => r.requested_at?.slice(0, 10) === todayStr).length,
+          week: completed.filter((r: any) => new Date(r.requested_at) >= weekAgo).length,
           total: completed.length,
         });
       }
