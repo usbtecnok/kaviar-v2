@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import { ENV } from '../config/env';
 import { authStore } from '../auth/auth.store';
 
@@ -25,7 +26,8 @@ apiClient.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401 && !isLoggingOut) {
       isLoggingOut = true;
-      await authStore.clearAuth(); // triggers onLogout listeners
+      Alert.alert('Sessão expirada', 'Sua sessão expirou. Faça login novamente.');
+      await authStore.clearAuth();
       isLoggingOut = false;
     }
     return Promise.reject(error);
