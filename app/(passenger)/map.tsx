@@ -487,6 +487,7 @@ export default function PassengerMap() {
             </TouchableOpacity>
             <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => {
               setShowCompleted(false);
+              resetToIdle();
               const driverName = completedRide?.driver?.name || 'não informado';
               const rideTime = completedRide?.requested_at ? new Date(completedRide.requested_at).toLocaleString('pt-BR') : 'não informado';
               const msg = `📦 Esqueci um objeto no carro\n\nMotorista: ${driverName}\nHorário: ${rideTime}\nCorrida: ${completedRide?.id || 'N/A'}`;
