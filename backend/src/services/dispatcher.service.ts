@@ -295,10 +295,15 @@ export class DispatcherService {
     // Log de diagnóstico
     console.log(`[DISPATCHER_FILTER] ride_id=${ride.id} online=${onlineDriversCount} with_location=${withLocationCount} fresh_location=${withFreshLocationCount} within_distance=${withinDistanceCount} final_candidates=${candidates.length} dropped=${JSON.stringify(droppedReasons)}`);
 
-    // Ordenar por score (menor primeiro)
-    candidates.sort((a, b) => a.score - b.score);
+    // Ordenar: território primeiro, depois score (menor primeiro)
+    // Motoristas do mesmo bairro SEMPRE ficam acima dos de fora
+    candidates.sort((a, b) => {
+      if (a.same_neighborhood && !b.same_neighborhood) return -1;
+      if (!a.same_neighborhood && b.same_neighborhood) return 1;
+      return a.score - b.score;
+    });
 
-    // Hybrid scoring: blend distance score with favorites affinity
+    // Hybrid scoring: favorites refine ranking WITHIN each territorial tier
     const favWeight = parseFloat(process.env.FAVORITES_WEIGHT || '0');
     if (favWeight > 0 && candidates.length > 1 && ride.passenger_id) {
       try {
@@ -307,22 +312,26 @@ export class DispatcherService {
         const ranked = await rankDriversByFavorites(driverObjects, ride.passenger_id, pickup);
 
         if (ranked.length > 0 && ranked[0].score !== undefined) {
-          const maxFavScore = 20; // theoretical max from favorites-matching (5 + 15)
+          const maxFavScore = 20;
           const maxDistScore = Math.max(...candidates.map(c => c.score), 1);
 
           for (const c of candidates) {
             const favResult = ranked.find((r: any) => r.id === c.driver_id);
             const favNorm = favResult ? (favResult.score / maxFavScore) : 1;
             const distNorm = c.score / maxDistScore;
-            const oldScore = c.score;
             c.score = distNorm * (1 - favWeight) + favNorm * favWeight;
-            console.log(`[HYBRID_SCORE] driver=${c.driver_id} dist=${oldScore.toFixed(2)} fav=${favResult?.score ?? 'N/A'} hybrid=${c.score.toFixed(3)} weight=${favWeight}`);
           }
-          candidates.sort((a, b) => a.score - b.score);
-          console.log(`[HYBRID_RANK] ride_id=${ride.id} weight=${favWeight} top=${candidates.slice(0, 3).map(c => c.driver_id).join(',')}`);
+
+          // Re-sort preserving territorial priority
+          candidates.sort((a, b) => {
+            if (a.same_neighborhood && !b.same_neighborhood) return -1;
+            if (!a.same_neighborhood && b.same_neighborhood) return 1;
+            return a.score - b.score;
+          });
+          console.log(`[HYBRID_RANK] ride_id=${ride.id} weight=${favWeight} territory_first=true top=${candidates.slice(0, 3).map(c => `${c.driver_id}(n=${c.same_neighborhood})`).join(',')}`);
         }
       } catch (err: any) {
-        console.log(`[HYBRID_SCORE_ERROR] ride_id=${ride.id} error=${err.message} fallback=distance_only`);
+        console.log(`[HYBRID_SCORE_ERROR] ride_id=${ride.id} error=${err.message} fallback=territory+distance`);
       }
     }
 
