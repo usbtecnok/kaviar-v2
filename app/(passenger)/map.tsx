@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, Tex
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Button } from '../../src/components/Button';
@@ -24,6 +25,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string
   accepted:   { label: 'Motorista a caminho',   color: COLORS.accent,  icon: '🚗' },
   arrived:    { label: 'Motorista chegou!',      color: COLORS.primary, icon: '📍' },
   in_progress:{ label: 'Corrida em andamento',   color: COLORS.success, icon: '🛣️' },
+  completed:  { label: 'Corrida finalizada',     color: COLORS.success, icon: '✅' },
 };
 
 interface Place { text: string; lat: number; lng: number; placeId: string }
@@ -152,6 +154,8 @@ export default function PassengerMap() {
   };
 
   // --- Ride ---
+  const lastStatusRef = useRef('');
+
   const startPolling = (rideId: string) => {
     pollRef.current = setInterval(async () => {
       try {
@@ -161,9 +165,17 @@ export default function PassengerMap() {
         if (updated.driver?.last_lat && updated.driver?.last_lng) {
           setDriverLocation({ lat: updated.driver.last_lat, lng: updated.driver.last_lng });
         }
+        // Feedback tátil nas transições importantes
+        if (updated.status !== lastStatusRef.current) {
+          if (['accepted', 'arrived', 'in_progress'].includes(updated.status)) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          }
+          lastStatusRef.current = updated.status;
+        }
         if (['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(updated.status)) {
           stopAll();
           if (updated.status === 'completed') {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             Alert.alert('Corrida Finalizada!', 'Obrigado por usar o Kaviar.', [
               { text: 'Avaliar', onPress: () => router.push({ pathname: '/(passenger)/rating', params: { rideId: updated.id, driverName: updated.driver?.name || '', driverId: updated.driver?.id || updated.driver_id || '' } }) },
               { text: 'Fechar', onPress: resetToIdle },

@@ -285,6 +285,13 @@ router.post('/:ride_id/arrived', requireDriver, async (req: Request, res: Respon
 
     console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=arrived driver_id=${driverId}`);
 
+    // SSE: notificar passageiro imediatamente
+    realTimeService.emitToRide(ride_id, {
+      type: 'ride.status.changed',
+      status: 'arrived',
+      timestamp: new Date().toISOString()
+    });
+
     // WhatsApp: notificar passageiro que motorista chegou
     try {
       const [passenger, driver] = await Promise.all([
@@ -384,6 +391,13 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
     });
 
     console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=completed driver_id=${driverId}`);
+
+    // SSE: notificar passageiro imediatamente
+    realTimeService.emitToRide(ride_id, {
+      type: 'ride.status.changed',
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    });
 
     // WhatsApp: notificar passageiro e motorista que corrida concluiu
     // ⚠️ SEGURADO: ativar via WA_RIDE_COMPLETE_ENABLED=true quando pricing estiver conectado

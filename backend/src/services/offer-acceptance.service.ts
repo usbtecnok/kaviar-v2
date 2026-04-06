@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { realTimeService } from './realtime.service';
 
 export async function acceptOfferInternal(offerId: string, driverId: string) {
   const ride = await prisma.$transaction(async (tx) => {
@@ -45,6 +46,14 @@ export async function acceptOfferInternal(offerId: string, driverId: string) {
     console.log(`[RIDE_STATUS_CHANGED] ride_id=${offer.ride_id} status=accepted driver_id=${driverId}`);
 
     return offer.ride;
+  });
+
+  // SSE: notificar passageiro imediatamente
+  realTimeService.emitToRide(ride.id, {
+    type: 'ride.status.changed',
+    status: 'accepted',
+    driver_id: driverId,
+    timestamp: new Date().toISOString()
   });
 
   // WhatsApp: notificar passageiro que motorista foi atribuído (fire-and-forget)
