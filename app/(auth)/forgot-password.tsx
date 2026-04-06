@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { ENV } from '../../src/config/env';
+import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 
 const API_URL = ENV.API_URL;
@@ -48,7 +49,7 @@ export default function ForgotPassword() {
         Alert.alert('Erro', data.error || 'Erro ao redefinir senha');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível redefinir a senha');
+      Alert.alert('Erro', friendlyError(error, 'Não foi possível redefinir a senha'));
     } finally {
       setLoading(false);
     }

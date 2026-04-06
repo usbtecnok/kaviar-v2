@@ -227,7 +227,7 @@ export default function DriverOnline() {
       await driverApi.rejectOffer(pendingOffer.id);
       setPendingOffer(null);
     } catch (e: any) {
-      Alert.alert('Erro', 'Não foi possível recusar a oferta');
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível recusar a oferta'));
     }
   };
 

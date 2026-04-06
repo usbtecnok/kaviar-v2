@@ -139,7 +139,7 @@ export default function PassengerMap() {
       }
     } catch (e) {
       console.warn('[Map] selectPlace failed:', e);
-      Alert.alert('Erro', 'Não foi possível selecionar o endereço. Tente novamente.');
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível selecionar o endereço. Tente novamente.'));
     }
     setScreen('idle');
   }, [searchingFor]);

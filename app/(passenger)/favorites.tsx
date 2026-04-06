@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { apiClient } from '../../src/api/client';
+import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 
 interface Favorite { id: string; label: string; type: string; lat: number; lng: number; }
@@ -21,7 +22,7 @@ export default function Favorites() {
       if (data.success) setFavorites(data.favorites || []);
     } catch (e: any) {
       if (e.response?.status !== 401) {
-        Alert.alert('Erro', e.response?.data?.error || 'Não foi possível carregar favoritos');
+        Alert.alert('Erro', friendlyError(e, 'Não foi possível carregar favoritos'));
       }
     } finally { setLoading(false); }
   };
@@ -33,7 +34,7 @@ export default function Favorites() {
         try {
           await apiClient.delete(`/api/passenger/favorites/${id}`);
           setFavorites(f => f.filter(x => x.id !== id));
-        } catch { Alert.alert('Erro', 'Não foi possível remover'); }
+        } catch (e) { Alert.alert('Erro', friendlyError(e, 'Não foi possível remover')); }
       }},
     ]);
   };

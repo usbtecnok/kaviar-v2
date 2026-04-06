@@ -1,4 +1,5 @@
 import { authStore } from '../../src/auth/auth.store';
+import { friendlyError } from '../../src/utils/errorMessage';
 import Constants from 'expo-constants';
 
 const API_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || 'https://api.kaviar.com.br';
@@ -49,7 +50,7 @@ export async function uploadDocuments(documents: DocumentUpload[]): Promise<{ su
 
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: friendlyError(error, 'Erro ao enviar documentos') };
   }
 }
 
@@ -72,6 +73,6 @@ export async function getMyDocuments(): Promise<{ success: boolean; data?: Docum
 
     return { success: true, data: result.data || [] };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return { success: false, error: friendlyError(error, 'Erro ao buscar documentos') };
   }
 }

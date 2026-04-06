@@ -43,7 +43,7 @@ export default function CompleteRide() {
       }
     } catch (e: any) {
       if (e.response?.status !== 401) {
-        Alert.alert('Erro', 'Não foi possível carregar a corrida.');
+        Alert.alert('Erro', friendlyError(e, 'Não foi possível carregar a corrida.'));
       }
     } finally { setFetching(false); }
   };
