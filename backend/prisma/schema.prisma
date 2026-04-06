@@ -865,6 +865,48 @@ model consultant_leads {
   @@index([region])
 }
 
+model referral_agents {
+  id           String     @id @default(uuid())
+  name         String
+  phone        String     @unique
+  email        String?
+  pix_key      String?
+  pix_key_type String?
+  is_active    Boolean    @default(true)
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  referrals    referrals[]
+}
+
+model referrals {
+  id                    String    @id @default(uuid())
+  agent_id              String
+  driver_id             String?
+  driver_phone          String    @unique
+  lead_id               String?
+  status                String    @default("pending")
+  reward_amount         Decimal   @default(20.00) @db.Decimal(10, 2)
+  qualified_at          DateTime?
+  rejected_at           DateTime?
+  rejection_reason      String?
+  payment_status        String    @default("pending_pix")
+  payment_approved_at   DateTime?
+  payment_approved_by   String?
+  payment_paid_at       DateTime?
+  payment_paid_by       String?
+  payment_ref           String?
+  payment_canceled_at   DateTime?
+  payment_cancel_reason String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+  agent                 referral_agents @relation(fields: [agent_id], references: [id])
+
+  @@index([agent_id])
+  @@index([status])
+  @@index([payment_status])
+  @@index([driver_id])
+}
+
 model driver_locations {
   driver_id  String   @id
   lat        Decimal  @db.Decimal(10, 8)

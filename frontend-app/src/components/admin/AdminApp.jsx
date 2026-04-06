@@ -34,6 +34,7 @@ import InvestorInvites from "../../pages/admin/InvestorInvites";
 import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import LeadPerformance from "../../pages/admin/LeadPerformance";
 import StaffManagement from "../../pages/admin/StaffManagement";
+import ReferralManagement from "../../pages/admin/ReferralManagement";
 import { useState, useEffect } from 'react';
 
 
@@ -637,6 +638,14 @@ function AdminHome() {
                 >
                   Equipe
                 </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  sx={{ ml: 1, borderColor: '#FFD700', color: '#B8860B' }}
+                  href="/admin/referrals"
+                >
+                  Indicações
+                </Button>
               </CardContent>
             </Card>
           </Grid>
@@ -717,6 +726,12 @@ export default function AdminApp() {
             <ProtectedAdminRoute>
               <AdminHeader />
               <StaffManagement />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/referrals" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <AdminHeader />
+              <ReferralManagement />
             </ProtectedAdminRoute>
           } />
           <Route path="/" element={
