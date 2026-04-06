@@ -24,15 +24,18 @@ function ConsultorForm() {
   const [sent, setSent] = React.useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const msg = `*Quero ser Consultor Kaviar*%0A%0ANome: ${encodeURIComponent(form.nome)}%0AWhatsApp: ${encodeURIComponent(form.whatsapp)}%0ABairro/Região: ${encodeURIComponent(form.bairro)}%0ACidade: ${encodeURIComponent(form.cidade)}%0AMotoristas que posso indicar: ${encodeURIComponent(form.qtd || 'não informado')}%0AObservações: ${encodeURIComponent(form.obs || 'nenhuma')}`;
     window.open(`https://wa.me/5521968648777?text=${msg}`, '_blank');
-    fetch('https://api.kaviar.com.br/api/public/consultant-lead', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: form.nome, phone: form.whatsapp }),
-    }).catch(() => {});
+    try {
+      const notes = `Bairro: ${form.bairro} | Cidade: ${form.cidade} | Qtd motoristas: ${form.qtd || 'N/I'} | Obs: ${form.obs || 'nenhuma'}`;
+      await fetch('https://api.kaviar.com.br/api/public/consultant-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.nome, phone: form.whatsapp, source: 'site-consultor', notes }),
+      });
+    } catch {}
     setSent(true);
   };
 
