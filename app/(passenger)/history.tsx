@@ -27,6 +27,7 @@ export default function History() {
   const router = useRouter();
   const [rides, setRides] = useState<RideHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => { loadHistory(); }, []);
 
@@ -34,7 +35,11 @@ export default function History() {
     try {
       const res = await apiClient.get('/api/v2/rides/history');
       setRides(res.data?.rides || res.data || []);
-    } catch { /* empty history */ }
+      setLoadError(false);
+    } catch (e) {
+      console.warn('[History] loadHistory failed:', e);
+      setLoadError(true);
+    }
     finally { setLoading(false); }
   };
 
@@ -85,6 +90,14 @@ export default function History() {
 
       {loading ? (
         <View style={s.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+      ) : loadError ? (
+        <View style={s.center}>
+          <Ionicons name="cloud-offline-outline" size={48} color={COLORS.textMuted} />
+          <Text style={s.emptyText}>Não foi possível carregar o histórico</Text>
+          <TouchableOpacity onPress={() => { setLoading(true); setLoadError(false); loadHistory(); }} style={{ marginTop: 12 }}>
+            <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
       ) : rides.length === 0 ? (
         <View style={s.center}>
           <Ionicons name="car-outline" size={48} color={COLORS.textMuted} />

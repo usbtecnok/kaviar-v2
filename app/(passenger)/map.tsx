@@ -137,7 +137,10 @@ export default function PassengerMap() {
         if (searchingFor === 'origin') setOrigin(place);
         else setDestination(place);
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[Map] selectPlace failed:', e);
+      Alert.alert('Erro', 'Não foi possível selecionar o endereço. Tente novamente.');
+    }
     setScreen('idle');
   }, [searchingFor]);
 
@@ -169,7 +172,9 @@ export default function PassengerMap() {
             setShowNoDriver(true);
           }
         }
-      } catch {}
+      } catch (e) {
+        console.warn('[Map] ride polling failed:', e);
+      }
     }, POLL_INTERVAL);
   };
 

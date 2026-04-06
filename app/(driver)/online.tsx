@@ -138,7 +138,9 @@ export default function DriverOnline() {
       if (ride) {
         router.replace(`/(driver)/complete-ride?rideId=${ride.id}&status=${ride.status}`);
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[Driver] checkCurrentRide failed:', e);
+    }
   };
 
   const startPolling = () => {
@@ -156,7 +158,9 @@ export default function DriverOnline() {
             await sound.playAsync();
           } catch {}
         }
-      } catch {}
+      } catch (e) {
+        console.warn('[Driver] offer polling failed:', e);
+      }
     }, POLL_INTERVAL);
   };
 
@@ -173,7 +177,9 @@ export default function DriverOnline() {
         const loc = await Location.getCurrentPositionAsync({});
         setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
         await driverApi.sendLocation(loc.coords.latitude, loc.coords.longitude);
-      } catch {}
+      } catch (e) {
+        console.warn('[Driver] sendLocation failed:', e);
+      }
     };
     await send();
     locationRef.current = setInterval(send, LOCATION_INTERVAL);

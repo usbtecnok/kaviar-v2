@@ -10,6 +10,7 @@ import { COLORS } from '../../src/config/colors';
 export default function DriverSummary() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
   const [stats, setStats] = useState<{ today: number; week: number; total: number }>({ today: 0, week: 0, total: 0 });
 
@@ -34,7 +35,10 @@ export default function DriverSummary() {
           total: completed.length,
         });
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[Summary] loadData failed:', e);
+      setLoadError(true);
+    }
     finally { setLoading(false); }
   };
 
@@ -58,6 +62,14 @@ export default function DriverSummary() {
 
       {loading ? (
         <View style={s.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+      ) : loadError ? (
+        <View style={s.center}>
+          <Ionicons name="cloud-offline-outline" size={48} color={COLORS.textMuted} />
+          <Text style={{ color: COLORS.textMuted, fontSize: 15, marginTop: 12 }}>Não foi possível carregar o resumo</Text>
+          <TouchableOpacity onPress={() => { setLoading(true); setLoadError(false); loadData(); }} style={{ marginTop: 12 }}>
+            <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <View style={s.content}>
           <View style={s.row}>
