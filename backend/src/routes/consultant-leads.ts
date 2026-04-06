@@ -23,11 +23,13 @@ function resolveRegion(phone: string): string {
 
 // Round-robin: próximo funcionário da região
 async function autoAssign(region: string): Promise<string | null> {
-  const staff = await prisma.admins.findMany({
-    where: { is_active: true, lead_regions: { contains: region } },
-    select: { id: true },
+  const regionUpper = region.toUpperCase();
+  const allStaff = await prisma.admins.findMany({
+    where: { is_active: true, lead_regions: { not: null } },
+    select: { id: true, lead_regions: true },
     orderBy: { id: 'asc' },
   });
+  const staff = allStaff.filter(s => s.lead_regions!.toUpperCase().includes(regionUpper));
 
   if (staff.length === 0) return null;
 
@@ -228,6 +230,49 @@ router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, r
   } catch (err) {
     console.error('[CONSULTANT_LEADS] update error:', err);
     return res.status(500).json({ success: false, error: 'Erro ao atualizar lead' });
+  }
+});
+
+// POST /api/admin/consultant-leads/reprocess — reprocessar leads sem atribuição (SUPER_ADMIN)
+router.post('/consultant-leads/reprocess', authenticateAdmin, requireRole(['SUPER_ADMIN']), async (_req: Request, res: Response) => {
+  try {
+    const unassigned = await prisma.consultant_leads.findMany({
+      where: { assigned_to: null, status: { not: 'dismissed' } },
+    });
+
+    const results: { id: string; phone: string; region: string | null; assigned_to: string | null; action: string }[] = [];
+
+    for (const lead of unassigned) {
+      const region = lead.region || resolveRegion(lead.phone);
+      const assignedTo = await autoAssign(region);
+
+      await prisma.consultant_leads.update({
+        where: { id: lead.id },
+        data: {
+          region: region,
+          assigned_to: assignedTo,
+          assigned_at: assignedTo ? new Date() : null,
+        },
+      });
+
+      results.push({
+        id: lead.id,
+        phone: lead.phone,
+        region,
+        assigned_to: assignedTo,
+        action: assignedTo ? 'assigned' : 'no_staff_available',
+      });
+    }
+
+    const assigned = results.filter(r => r.action === 'assigned').length;
+    const noStaff = results.filter(r => r.action === 'no_staff_available').length;
+
+    console.log(`[LEADS_REPROCESS] total=${results.length} assigned=${assigned} no_staff=${noStaff}`);
+
+    return res.json({ success: true, data: { total: results.length, assigned, no_staff: noStaff, details: results } });
+  } catch (err) {
+    console.error('[CONSULTANT_LEADS] reprocess error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao reprocessar leads' });
   }
 });
 
