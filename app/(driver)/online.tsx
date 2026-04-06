@@ -127,7 +127,7 @@ export default function DriverOnline() {
       if (histRes.status === 'fulfilled') {
         const rides = histRes.value.data?.rides || histRes.value.data || [];
         const todayStr = new Date().toISOString().slice(0, 10);
-        setTodayRides(rides.filter((r: any) => r.status === 'completed' && r.created_at?.slice(0, 10) === todayStr).length);
+        setTodayRides(rides.filter((r: any) => r.status === 'completed' && r.requested_at?.slice(0, 10) === todayStr).length);
       }
     } catch {}
   };

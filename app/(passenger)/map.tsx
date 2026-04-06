@@ -246,7 +246,7 @@ export default function PassengerMap() {
     }
   }, [origin, destination]);
 
-  const canCancel = rideStatus && ['requested', 'offered'].includes(rideStatus);
+  const canCancel = rideStatus && ['requested', 'offered', 'accepted', 'arrived'].includes(rideStatus);
   const info = rideStatus ? STATUS_CONFIG[rideStatus] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
 
   // === SEARCH SCREEN ===
