@@ -119,6 +119,11 @@ export const requireSuperAdmin = requireRole(['SUPER_ADMIN']);
  */
 export const allowReadAccess = requireRole(['SUPER_ADMIN', 'ANGEL_VIEWER']);
 
+/**
+ * Middleware para acesso financeiro (SUPER_ADMIN ou FINANCE)
+ */
+export const allowFinanceAccess = requireRole(['SUPER_ADMIN', 'FINANCE']);
+
 export async function authenticateDriver(req: Request, res: Response, next: NextFunction) {
   try {
     if (!JWT_SECRET) {

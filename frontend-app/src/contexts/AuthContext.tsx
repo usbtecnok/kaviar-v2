@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface Admin {
   id: string;
   email: string;
-  role: 'SUPER_ADMIN' | 'OPERATOR' | 'ANGEL_VIEWER';
+  role: 'SUPER_ADMIN' | 'OPERATOR' | 'ANGEL_VIEWER' | 'FINANCE';
 }
 
 interface AuthContextType {

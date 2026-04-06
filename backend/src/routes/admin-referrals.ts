@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin, allowFinanceAccess } from '../middlewares/auth';
 
 const router = Router();
 
@@ -37,10 +37,15 @@ router.get('/referral-agent/:code', async (req: Request, res: Response) => {
 });
 
 // === ADMIN ROUTES ===
-const adminAuth = [authenticateAdmin, requireSuperAdmin];
+
+// --- Leitura: SUPER_ADMIN + FINANCE ---
+const financeAuth = [authenticateAdmin, allowFinanceAccess];
+
+// --- Escrita comercial: SUPER_ADMIN only ---
+const superAuth = [authenticateAdmin, requireSuperAdmin];
 
 // GET /api/admin/referral-agents
-router.get('/referral-agents', ...adminAuth, async (_req: Request, res: Response) => {
+router.get('/referral-agents', ...financeAuth, async (_req: Request, res: Response) => {
   try {
     const agents = await prisma.referral_agents.findMany({
       include: { referrals: { select: { id: true, status: true, payment_status: true } } },
@@ -53,8 +58,8 @@ router.get('/referral-agents', ...adminAuth, async (_req: Request, res: Response
   }
 });
 
-// POST /api/admin/referral-agents
-router.post('/referral-agents', ...adminAuth, async (req: Request, res: Response) => {
+// POST /api/admin/referral-agents — SUPER_ADMIN only (operação comercial)
+router.post('/referral-agents', ...superAuth, async (req: Request, res: Response) => {
   try {
     const { name, phone, email, pix_key, pix_key_type } = req.body;
     if (!name || !phone) return res.status(400).json({ success: false, error: 'Nome e telefone obrigatórios' });
@@ -72,17 +77,35 @@ router.post('/referral-agents', ...adminAuth, async (req: Request, res: Response
   }
 });
 
-// PATCH /api/admin/referral-agents/:id
-router.patch('/referral-agents/:id', ...adminAuth, async (req: Request, res: Response) => {
+// PATCH /api/admin/referral-agents/:id — FINANCE: só PIX | SUPER_ADMIN: tudo
+router.patch('/referral-agents/:id', ...financeAuth, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+    const isFinance = admin.role === 'FINANCE';
+
     const { name, phone, email, pix_key, pix_key_type, is_active } = req.body;
     const data: any = {};
-    if (name !== undefined) data.name = name;
-    if (phone !== undefined) data.phone = phone;
-    if (email !== undefined) data.email = email;
-    if (pix_key !== undefined) data.pix_key = pix_key;
-    if (pix_key_type !== undefined) data.pix_key_type = pix_key_type;
-    if (is_active !== undefined) data.is_active = is_active;
+
+    if (isFinance) {
+      // FINANCE: só pode alterar PIX
+      if (name !== undefined || phone !== undefined || email !== undefined || is_active !== undefined) {
+        return res.status(403).json({ success: false, error: 'Financeiro pode alterar apenas dados PIX do indicador.' });
+      }
+      if (pix_key !== undefined) data.pix_key = pix_key;
+      if (pix_key_type !== undefined) data.pix_key_type = pix_key_type;
+    } else {
+      // SUPER_ADMIN: tudo
+      if (name !== undefined) data.name = name;
+      if (phone !== undefined) data.phone = phone;
+      if (email !== undefined) data.email = email;
+      if (pix_key !== undefined) data.pix_key = pix_key;
+      if (pix_key_type !== undefined) data.pix_key_type = pix_key_type;
+      if (is_active !== undefined) data.is_active = is_active;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhum campo para atualizar' });
+    }
 
     const agent = await prisma.referral_agents.update({ where: { id: req.params.id }, data });
 
@@ -103,8 +126,8 @@ router.patch('/referral-agents/:id', ...adminAuth, async (req: Request, res: Res
 
 // === REFERRALS ===
 
-// GET /api/admin/referrals
-router.get('/referrals', ...adminAuth, async (req: Request, res: Response) => {
+// GET /api/admin/referrals — SUPER_ADMIN + FINANCE
+router.get('/referrals', ...financeAuth, async (req: Request, res: Response) => {
   try {
     const { status, payment_status, has_pix, search } = req.query;
     const where: any = {};
@@ -148,8 +171,8 @@ router.get('/referrals', ...adminAuth, async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/referrals/backfill-codes — generate codes for agents without one
-router.post('/referrals/backfill-codes', ...adminAuth, async (_req: Request, res: Response) => {
+// POST /api/admin/referrals/backfill-codes — SUPER_ADMIN only (operação técnica)
+router.post('/referrals/backfill-codes', ...superAuth, async (_req: Request, res: Response) => {
   try {
     const agents = await prisma.referral_agents.findMany({ where: { referral_code: null } });
     let count = 0;
@@ -165,8 +188,8 @@ router.post('/referrals/backfill-codes', ...adminAuth, async (_req: Request, res
   }
 });
 
-// POST /api/admin/referrals
-router.post('/referrals', ...adminAuth, async (req: Request, res: Response) => {
+// POST /api/admin/referrals — SUPER_ADMIN only (operação comercial)
+router.post('/referrals', ...superAuth, async (req: Request, res: Response) => {
   try {
     const { agent_id, driver_phone, driver_id, lead_id, reward_amount, source } = req.body;
     if (!agent_id || !driver_phone) return res.status(400).json({ success: false, error: 'agent_id e driver_phone obrigatórios' });
@@ -185,11 +208,21 @@ router.post('/referrals', ...adminAuth, async (req: Request, res: Response) => {
   }
 });
 
+// Ações financeiras permitidas para FINANCE
+const FINANCE_ALLOWED_ACTIONS = ['approve_payment', 'mark_paid', 'cancel_payment'];
+
 // PATCH /api/admin/referrals/:id — ações de status
-router.patch('/referrals/:id', ...adminAuth, async (req: Request, res: Response) => {
+router.patch('/referrals/:id', ...financeAuth, async (req: Request, res: Response) => {
   try {
     const { action, payment_ref, rejection_reason } = req.body;
     const admin = (req as any).admin;
+    const isFinance = admin.role === 'FINANCE';
+
+    // FINANCE: bloqueado para ações comerciais (reject)
+    if (isFinance && !FINANCE_ALLOWED_ACTIONS.includes(action)) {
+      return res.status(403).json({ success: false, error: 'Ação não permitida para o perfil financeiro.' });
+    }
+
     const referral = await prisma.referrals.findUnique({ where: { id: req.params.id }, include: { agent: true } });
     if (!referral) return res.status(404).json({ success: false, error: 'Indicação não encontrada' });
 
@@ -236,7 +269,7 @@ router.patch('/referrals/:id', ...adminAuth, async (req: Request, res: Response)
     }
 
     const updated = await prisma.referrals.update({ where: { id: req.params.id }, data, include: { agent: true } });
-    console.log(`[REFERRAL_ACTION] id=${referral.id} action=${action} by=${admin.id}`);
+    console.log(`[REFERRAL_ACTION] id=${referral.id} action=${action} by=${admin.id} role=${admin.role}`);
     return res.json({ success: true, data: updated });
   } catch (err) {
     console.error('[REFERRALS] action error:', err);

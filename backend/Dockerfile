@@ -19,6 +19,7 @@ RUN rm -rf node_modules/.prisma node_modules/@prisma/client
 # Gerar Prisma Client para Debian (linux-gnu)
 RUN npx prisma generate
 
+RUN rm -rf dist
 RUN npm run build
 
 FROM node:20-slim

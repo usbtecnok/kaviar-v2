@@ -35,7 +35,15 @@ import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import LeadPerformance from "../../pages/admin/LeadPerformance";
 import StaffManagement from "../../pages/admin/StaffManagement";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
+import FinancePayments from "../../pages/admin/FinancePayments";
 import { useState, useEffect } from 'react';
+
+function FinanceHomeRedirect() {
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const admin = adminData ? JSON.parse(adminData) : null;
+  if (admin?.role === 'FINANCE') return <FinancePayments />;
+  return <AdminHome />;
+}
 
 
 function AdminHeader() {
@@ -729,14 +737,19 @@ export default function AdminApp() {
             </ProtectedAdminRoute>
           } />
           <Route path="/referrals" element={
-            <ProtectedAdminRoute requireSuperAdmin>
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN']}>
               <AdminHeader />
               <ReferralManagement />
             </ProtectedAdminRoute>
           } />
+          <Route path="/finance-payments" element={
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'FINANCE']}>
+              <FinancePayments />
+            </ProtectedAdminRoute>
+          } />
           <Route path="/" element={
             <ProtectedAdminRoute>
-              <AdminHome />
+              <FinanceHomeRedirect />
             </ProtectedAdminRoute>
           } />
           <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
