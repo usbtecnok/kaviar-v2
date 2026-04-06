@@ -15,39 +15,24 @@ router.get('/metrics', allowReadAccess, async (req: Request, res: Response) => {
       ridesToday,
       driversOnline,
       driversTotal,
-      revenueToday,
       passengersTotal
     ] = await Promise.all([
-      // Total rides
-      prisma.rides.count(),
+      // Total rides (v2 — fonte real de operação)
+      prisma.rides_v2.count(),
       
       // Rides hoje
-      prisma.rides.count({
-        where: { created_at: { gte: today } }
+      prisma.rides_v2.count({
+        where: { requested_at: { gte: today } }
       }),
       
-      // Drivers online (usando last_active_at como proxy)
-      prisma.drivers.count({
-        where: { 
-          status: 'approved',
-          last_active_at: {
-            gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // últimas 24h
-          }
-        }
+      // Drivers online (usando driver_status)
+      prisma.driver_status.count({
+        where: { availability: 'online' }
       }),
       
       // Total drivers
       prisma.drivers.count({
         where: { status: 'approved' }
-      }),
-      
-      // Revenue hoje
-      prisma.rides.aggregate({
-        where: {
-          created_at: { gte: today },
-          status: 'completed'
-        },
-        _sum: { platform_fee: true }
       }),
       
       // Total passengers
@@ -65,9 +50,6 @@ router.get('/metrics', allowReadAccess, async (req: Request, res: Response) => {
           online: driversOnline,
           total: driversTotal,
           offline: driversTotal - driversOnline
-        },
-        revenue: {
-          today: Number(revenueToday._sum.platform_fee || 0)
         },
         passengers: {
           total: passengersTotal

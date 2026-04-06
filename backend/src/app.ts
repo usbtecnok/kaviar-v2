@@ -230,8 +230,6 @@ app.use('/api/passenger/onboarding', passengerOnboardingRoutes); // ✅ GPS-firs
 app.use('/api/driver', driverOnboardingRoutes); // ✅ Driver onboarding (public)
 app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
 app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
-app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
-app.use('/api/drivers', driverAvailabilityRoutes); // ✅ Availability toggle
 app.use('/api/rides', passengerRidesRoutes); // ✅ Passenger ride actions
 app.use('/api/admin', adminAuditRoutes); // ✅ Audit logs
 app.use('/api/temp', rolloutRoutes); // 🔧 TEMPORARY - Phase 2 rollout
