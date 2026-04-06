@@ -17,6 +17,7 @@ model admins {
   is_active            Boolean             @default(true)
   must_change_password Boolean             @default(true)
   password_changed_at  DateTime?
+  lead_regions         String?
   created_at           DateTime            @default(now())
   updated_at           DateTime            @updatedAt
   community_leaders    community_leaders[]
@@ -845,16 +846,22 @@ model driver_status {
 }
 
 model consultant_leads {
-  id         String   @id @default(uuid())
-  name       String
-  phone      String
-  source     String   @default("whatsapp")
-  status     String   @default("new") // new, contacted, converted, dismissed
-  notes      String?
-  created_at DateTime @default(now())
+  id              String    @id @default(uuid())
+  name            String
+  phone           String
+  source          String    @default("whatsapp")
+  status          String    @default("new") // new, contacted, converted, dismissed
+  notes           String?
+  assigned_to     String?
+  assigned_at     DateTime?
+  region          String?
+  last_contact_at DateTime?
+  created_at      DateTime  @default(now())
 
   @@index([status])
   @@index([created_at(sort: Desc)])
+  @@index([assigned_to])
+  @@index([region])
 }
 
 model driver_locations {
