@@ -87,6 +87,91 @@ router.post('/consultant-lead', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/consultant-leads/performance — funil por funcionário
+router.get('/consultant-leads/performance', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    // Todos os leads (exceto dismissed)
+    const leads = await prisma.consultant_leads.findMany({
+      where: { status: { not: 'dismissed' } },
+      select: { assigned_to: true, status: true, phone: true, region: true, created_at: true },
+    });
+
+    // Motoristas aprovados/ativos — cruzar por telefone
+    const leadPhones = [...new Set(leads.map(l => l.phone))];
+    const drivers = leadPhones.length > 0
+      ? await prisma.drivers.findMany({
+          where: { phone: { in: leadPhones } },
+          select: { phone: true, status: true, created_at: true },
+        })
+      : [];
+    const driverByPhone = new Map(drivers.map(d => [d.phone, d]));
+
+    // Corridas completadas por motorista (pra medir "ativado")
+    const activeDriverPhones = drivers.filter(d => d.status === 'approved').map(d => d.phone!);
+    const ridesCount = activeDriverPhones.length > 0
+      ? await prisma.rides.groupBy({
+          by: ['driver_id'],
+          where: { status: 'completed', driver_id: { in: drivers.map(d => d.phone!).filter(Boolean) } },
+          _count: true,
+        })
+      : [];
+    // Build set of driver phones that completed at least 1 ride
+    const driverIdsWithRides = new Set(ridesCount.map(r => r.driver_id));
+    // Map driver id → phone for lookup
+    const driversById = await (activeDriverPhones.length > 0
+      ? prisma.drivers.findMany({ where: { status: 'approved', phone: { in: leadPhones } }, select: { id: true, phone: true } })
+      : Promise.resolve([]));
+    const activatedPhones = new Set(driversById.filter(d => driverIdsWithRides.has(d.id)).map(d => d.phone));
+
+    // Funcionários com regiões
+    const staff = await prisma.admins.findMany({
+      where: { is_active: true, lead_regions: { not: null } },
+      select: { id: true, name: true, email: true, lead_regions: true },
+    });
+
+    // Agregar por funcionário
+    const performance = staff.map(s => {
+      const myLeads = leads.filter(l => l.assigned_to === s.id);
+      const contacted = myLeads.filter(l => l.status === 'contacted' || l.status === 'converted');
+      const converted = myLeads.filter(l => l.status === 'converted');
+      const approved = myLeads.filter(l => {
+        const d = driverByPhone.get(l.phone);
+        return d && d.status === 'approved';
+      });
+      const activated = myLeads.filter(l => activatedPhones.has(l.phone));
+      const total = myLeads.length;
+
+      return {
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        regions: s.lead_regions,
+        total,
+        contacted: contacted.length,
+        converted: converted.length,
+        approved: approved.length,
+        activated: activated.length,
+        conversionRate: total > 0 ? Math.round((activated.length / total) * 100) : 0,
+      };
+    });
+
+    // Leads sem dono
+    const unassigned = leads.filter(l => !l.assigned_to);
+
+    return res.json({
+      success: true,
+      data: {
+        staff: performance,
+        unassigned: unassigned.length,
+        totalLeads: leads.length,
+      },
+    });
+  } catch (err) {
+    console.error('[CONSULTANT_LEADS] performance error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao calcular performance' });
+  }
+});
+
 // GET /api/admin/consultant-leads — admin only
 router.get('/consultant-leads', requireAdmin, async (_req: Request, res: Response) => {
   try {

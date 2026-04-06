@@ -32,6 +32,7 @@ import ChangePassword from "../../pages/admin/ChangePassword";
 import ForgotPassword from "../../pages/admin/ForgotPassword";
 import InvestorInvites from "../../pages/admin/InvestorInvites";
 import ConsultantLeads from "../../pages/admin/ConsultantLeads";
+import LeadPerformance from "../../pages/admin/LeadPerformance";
 import { useState, useEffect } from 'react';
 
 
@@ -619,6 +620,14 @@ function AdminHome() {
                 >
                   Acessar
                 </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  sx={{ ml: 1 }}
+                  href="/admin/lead-performance"
+                >
+                  Performance
+                </Button>
               </CardContent>
             </Card>
           </Grid>
@@ -687,6 +696,12 @@ export default function AdminApp() {
                 <AdminHeader />
                 <ConsultantLeads />
               </Container>
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/lead-performance" element={
+            <ProtectedAdminRoute>
+              <AdminHeader />
+              <LeadPerformance />
             </ProtectedAdminRoute>
           } />
           <Route path="/" element={
