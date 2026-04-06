@@ -33,6 +33,7 @@ import ForgotPassword from "../../pages/admin/ForgotPassword";
 import InvestorInvites from "../../pages/admin/InvestorInvites";
 import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import LeadPerformance from "../../pages/admin/LeadPerformance";
+import StaffManagement from "../../pages/admin/StaffManagement";
 import { useState, useEffect } from 'react';
 
 
@@ -628,6 +629,14 @@ function AdminHome() {
                 >
                   Performance
                 </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  sx={{ ml: 1 }}
+                  href="/admin/staff"
+                >
+                  Equipe
+                </Button>
               </CardContent>
             </Card>
           </Grid>
@@ -702,6 +711,12 @@ export default function AdminApp() {
             <ProtectedAdminRoute>
               <AdminHeader />
               <LeadPerformance />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/staff" element={
+            <ProtectedAdminRoute>
+              <AdminHeader />
+              <StaffManagement />
             </ProtectedAdminRoute>
           } />
           <Route path="/" element={
