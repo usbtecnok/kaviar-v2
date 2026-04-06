@@ -21,7 +21,7 @@ router.get('/overview', async (req: Request, res: Response) => {
       prisma.drivers.count({ where: { status: 'APPROVED' } }),
       prisma.drivers.count({ where: { status: 'PENDING' } }),
       prisma.passengers.count(),
-      Promise.resolve(0), // trips - tabela não existe
+      prisma.rides_v2.count(), // corridas reais (v2)
       prisma.neighborhoods.count(),
       prisma.neighborhoods.count({ where: { is_active: true } }),
       prisma.$queryRaw<Array<{ city: string; count: bigint }>>`
