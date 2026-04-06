@@ -124,6 +124,39 @@ export const allowReadAccess = requireRole(['SUPER_ADMIN', 'ANGEL_VIEWER']);
  */
 export const allowFinanceAccess = requireRole(['SUPER_ADMIN', 'FINANCE']);
 
+/**
+ * Middleware genérico: verifica JWT válido, seta req.user
+ */
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = getBearerToken(req);
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const decoded = jwt.verify(token, JWT_SECRET!) as any;
+    (req as any).user = decoded;
+    next();
+  } catch (_err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
+/**
+ * Middleware: verifica JWT + role ADMIN ou SUPER_ADMIN
+ */
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  try {
+    const token = getBearerToken(req);
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    const decoded = jwt.verify(token, JWT_SECRET!) as any;
+    if (decoded.role !== 'ADMIN' && decoded.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    (req as any).user = decoded;
+    next();
+  } catch (_err) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+}
+
 export async function authenticateDriver(req: Request, res: Response, next: NextFunction) {
   try {
     if (!JWT_SECRET) {
@@ -151,6 +184,7 @@ export async function authenticateDriver(req: Request, res: Response, next: Next
 
     (req as any).driver = driver;
     (req as any).userId = decoded.userId;
+    (req as any).driverId = decoded.userId; // alias de compatibilidade
 
     return next();
   } catch (_err) {
@@ -185,6 +219,7 @@ export async function authenticatePassenger(req: Request, res: Response, next: N
 
     (req as any).passenger = passenger;
     (req as any).userId = decoded.userId;
+    (req as any).passengerId = decoded.userId; // alias de compatibilidade
 
     return next();
   } catch (_err) {

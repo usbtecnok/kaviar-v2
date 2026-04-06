@@ -5,9 +5,9 @@ import { getUploadsPaths } from './config/uploads';
 import { errorHandler, notFound } from './middlewares/error';
 import { handleFeatureDisabledError, handleStatusTransitionError } from './middlewares/premium-tourism-flag';
 import { prisma } from './lib/prisma';
-import investorView from './middleware/investorView';
-import { requestIdMiddleware } from './middleware/request-id';
-import { structuredLogger } from './middleware/structured-logger';
+import investorView from './middlewares/investorView';
+import { requestIdMiddleware } from './middlewares/request-id';
+import { structuredLogger } from './middlewares/structured-logger';
 
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';

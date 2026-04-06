@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { allowReadAccess } from '../middleware/rbac';
+import { allowReadAccess } from '../middlewares/auth';
 
 const router = Router();
 

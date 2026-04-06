@@ -6,7 +6,7 @@ import {
   updateMatchConfig,
   getMatchStats 
 } from '../services/territorial-match';
-import { requireAuth, requireAdmin } from '../middleware/auth';
+import { requireAuth, requireAdmin } from '../middlewares/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
