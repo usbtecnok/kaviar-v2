@@ -298,26 +298,31 @@ export class DispatcherService {
     // Ordenar por score (menor primeiro)
     candidates.sort((a, b) => a.score - b.score);
 
-    // Apply favorites matching reranking (if enabled for this passenger)
-    if (candidates.length > 1 && ride.passenger_id) {
+    // Hybrid scoring: blend distance score with favorites affinity
+    const favWeight = parseFloat(process.env.FAVORITES_WEIGHT || '0');
+    if (favWeight > 0 && candidates.length > 1 && ride.passenger_id) {
       try {
         const pickup = { lat: Number(ride.origin_lat), lng: Number(ride.origin_lng) };
         const driverObjects = candidates.map(c => ({ id: c.driver_id, last_lat: c.lat, last_lng: c.lng }));
         const ranked = await rankDriversByFavorites(driverObjects, ride.passenger_id, pickup);
-        
-        // If favorites reranking changed order, apply it
+
         if (ranked.length > 0 && ranked[0].score !== undefined) {
-          const idOrder = ranked.map((r: any) => r.id);
-          const reordered = idOrder
-            .map((id: string) => candidates.find(c => c.driver_id === id))
-            .filter(Boolean) as DriverCandidate[];
-          if (reordered.length === candidates.length) {
-            console.log(`[FAVORITES_RERANK] ride_id=${ride.id} passenger_id=${ride.passenger_id} applied=true order=${JSON.stringify(idOrder)}`);
-            return reordered;
+          const maxFavScore = 20; // theoretical max from favorites-matching (5 + 15)
+          const maxDistScore = Math.max(...candidates.map(c => c.score), 1);
+
+          for (const c of candidates) {
+            const favResult = ranked.find((r: any) => r.id === c.driver_id);
+            const favNorm = favResult ? (favResult.score / maxFavScore) : 1;
+            const distNorm = c.score / maxDistScore;
+            const oldScore = c.score;
+            c.score = distNorm * (1 - favWeight) + favNorm * favWeight;
+            console.log(`[HYBRID_SCORE] driver=${c.driver_id} dist=${oldScore.toFixed(2)} fav=${favResult?.score ?? 'N/A'} hybrid=${c.score.toFixed(3)} weight=${favWeight}`);
           }
+          candidates.sort((a, b) => a.score - b.score);
+          console.log(`[HYBRID_RANK] ride_id=${ride.id} weight=${favWeight} top=${candidates.slice(0, 3).map(c => c.driver_id).join(',')}`);
         }
       } catch (err: any) {
-        console.log(`[FAVORITES_RERANK] ride_id=${ride.id} error=${err.message} fallback=distance_score`);
+        console.log(`[HYBRID_SCORE_ERROR] ride_id=${ride.id} error=${err.message} fallback=distance_only`);
       }
     }
 
