@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,6 +45,14 @@ export default function PassengerMap() {
   const [userAddress, setUserAddress] = useState('Minha localização');
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showNoDriver, setShowNoDriver] = useState(false);
+
+  // Accepted banner
+  const [showAcceptedBanner, setShowAcceptedBanner] = useState(false);
+  const bannerOpacity = useRef(new Animated.Value(0)).current;
+
+  // Completed modal
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [completedRide, setCompletedRide] = useState<Ride | null>(null);
 
   // Emergency
   const [showEmergency, setShowEmergency] = useState(false);
@@ -170,16 +178,22 @@ export default function PassengerMap() {
           if (['accepted', 'arrived', 'in_progress'].includes(updated.status)) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
+          if (updated.status === 'accepted') {
+            setShowAcceptedBanner(true);
+            Animated.sequence([
+              Animated.timing(bannerOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+              Animated.delay(4000),
+              Animated.timing(bannerOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+            ]).start(() => setShowAcceptedBanner(false));
+          }
           lastStatusRef.current = updated.status;
         }
         if (['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(updated.status)) {
           stopAll();
           if (updated.status === 'completed') {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert('Corrida Finalizada!', 'Obrigado por usar o Kaviar.', [
-              { text: 'Avaliar', onPress: () => router.push({ pathname: '/(passenger)/rating', params: { rideId: updated.id, driverName: updated.driver?.name || '', driverId: updated.driver?.id || updated.driver_id || '' } }) },
-              { text: 'Fechar', onPress: resetToIdle },
-            ]);
+            setCompletedRide(updated);
+            setShowCompleted(true);
           } else if (updated.status === 'no_driver') {
             setShowNoDriver(true);
           }
@@ -436,6 +450,47 @@ export default function PassengerMap() {
           </View>
         </>
       )}
+
+      {/* ACCEPTED BANNER */}
+      {showAcceptedBanner && ride?.driver && (
+        <Animated.View style={[s.acceptedBanner, { opacity: bannerOpacity }]}>
+          <Ionicons name="checkmark-circle" size={22} color="#fff" />
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={s.acceptedBannerTitle}>{ride.driver.name} está a caminho!</Text>
+            {ride.driver.vehicle_model && (
+              <Text style={s.acceptedBannerSub}>{ride.driver.vehicle_model} {ride.driver.vehicle_color} • {ride.driver.vehicle_plate}</Text>
+            )}
+          </View>
+        </Animated.View>
+      )}
+
+      {/* COMPLETED MODAL */}
+      <Modal visible={showCompleted} transparent animationType="fade" onRequestClose={() => { setShowCompleted(false); resetToIdle(); }}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 8 }}>✅</Text>
+            <Text style={s.modalTitle}>Corrida finalizada!</Text>
+            {completedRide?.driver?.name && (
+              <Text style={s.modalBody}>Motorista: {completedRide.driver.name}</Text>
+            )}
+            {completedRide?.final_price != null && (
+              <Text style={{ fontSize: 24, fontWeight: '800', color: COLORS.primary, textAlign: 'center', marginBottom: 16 }}>
+                R$ {Number(completedRide.final_price).toFixed(2)}
+              </Text>
+            )}
+            <TouchableOpacity style={s.ctaPrimary} onPress={() => {
+              setShowCompleted(false);
+              router.push({ pathname: '/(passenger)/rating', params: { rideId: completedRide?.id || '', driverName: completedRide?.driver?.name || '', driverId: completedRide?.driver?.id || completedRide?.driver_id || '' } });
+            }}>
+              <Text style={s.ctaPrimaryText}>Avaliar motorista</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => { setShowCompleted(false); resetToIdle(); }}>
+              <Text style={s.ctaLinkText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* EMERGENCY MODAL */}
       <Modal visible={showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
         <View style={s.modalOverlay}>
@@ -606,4 +661,14 @@ const s = StyleSheet.create({
   emergencyBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.danger },
   emergencySecondary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border },
   emergencySecondaryText: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },
+
+  // Accepted banner
+  acceptedBanner: {
+    position: 'absolute', top: 100, left: 20, right: 20, zIndex: 20,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.success, borderRadius: 14, padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 10,
+  },
+  acceptedBannerTitle: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  acceptedBannerSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
 });
