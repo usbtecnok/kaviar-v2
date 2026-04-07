@@ -76,22 +76,21 @@ export default function KaviarLanding() {
       {/* ─── Header ─── */}
       <Box sx={sx.header}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 3, md: 5 }, py: 2.5 }}>
-          <Box component={Link} to="/" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', bgcolor: 'rgba(10,10,10,0.6)', border: '1px solid rgba(212,175,55,0.12)', borderRadius: 3, px: 3.5, py: 1.5, boxShadow: '0 0 40px rgba(212,175,55,0.05), 0 1px 3px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
+          <Box component={Link} to="/" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', bgcolor: 'rgba(10,10,10,0.6)', border: '1px solid rgba(212,175,55,0.18)', borderRadius: 3, px: 3.5, py: 1.5, boxShadow: '0 0 50px rgba(212,175,55,0.1), 0 0 15px rgba(212,175,55,0.04), 0 1px 3px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
             <Typography sx={{
               fontSize: 30,
               fontFamily: '"Cormorant Garamond", "Playfair Display", "Georgia", serif',
               fontWeight: 600,
               letterSpacing: '0.22em',
               color: 'transparent',
-              background: 'linear-gradient(170deg, #F5E6A3 0%, #D4AF37 35%, #B8962E 55%, #D4AF37 75%, #F5E6A3 100%)',
+              background: 'linear-gradient(170deg, #FFF8DC 0%, #F5D76E 18%, #D4AF37 38%, #C5A028 50%, #D4AF37 62%, #F5D76E 82%, #FFF8DC 100%)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               lineHeight: 1,
-              textShadow: 'none',
-              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
+              filter: 'drop-shadow(0 0 6px rgba(212,175,55,0.25)) drop-shadow(0 1px 2px rgba(0,0,0,0.4))',
             }}>KAVIAR</Typography>
-            <Typography sx={{ fontSize: 8.5, letterSpacing: '0.35em', color: 'rgba(212,175,55,0.38)', mt: 0.7, textTransform: 'uppercase', fontWeight: 500, fontFamily: '"Inter", "Helvetica Neue", sans-serif' }}>Mobilidade local brasileira</Typography>
+            <Typography sx={{ fontSize: 8.5, letterSpacing: '0.35em', color: 'rgba(212,175,55,0.32)', mt: 0.7, textTransform: 'uppercase', fontWeight: 500, fontFamily: '"Inter", "Helvetica Neue", sans-serif' }}>Mobilidade local brasileira</Typography>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
             {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#downloads', 'Downloads']].map(([href, label]) => (
