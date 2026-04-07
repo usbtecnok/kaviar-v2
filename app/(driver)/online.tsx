@@ -37,9 +37,11 @@ export default function DriverOnline() {
   const [locationPermission, setLocationPermission] = useState(true);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [offerCountdown, setOfferCountdown] = useState('');
+  const [soundMuted, setSoundMuted] = useState(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const locationRef = useRef<NodeJS.Timeout | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const pendingOfferRef = useRef<RideOffer | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Drawer state
@@ -57,6 +59,14 @@ export default function DriverOnline() {
     { key: 'logout', label: 'Sair', icon: 'log-out-outline', danger: true, onPress: () => handleLogout() },
   ];
 
+  const stopSound = async () => {
+    try {
+      await soundRef.current?.stopAsync();
+      await soundRef.current?.unloadAsync();
+    } catch {}
+    soundRef.current = null;
+  };
+
   useEffect(() => {
     Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: true });
     loadUser();
@@ -64,7 +74,7 @@ export default function DriverOnline() {
     loadDashboard();
     checkGps();
     checkLocationPermission();
-    return () => { stopAll(); soundRef.current?.unloadAsync(); };
+    return () => { stopAll(); stopSound(); };
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -94,7 +104,7 @@ export default function DriverOnline() {
     const tick = () => {
       const left = Math.max(0, Math.floor((new Date(pendingOffer.expires_at).getTime() - Date.now()) / 1000));
       setOfferCountdown(`${left}s`);
-      if (left === 0) setPendingOffer(null);
+      if (left === 0) { setPendingOffer(null); pendingOfferRef.current = null; stopSound(); setSoundMuted(false); }
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -148,10 +158,12 @@ export default function DriverOnline() {
     pollRef.current = setInterval(async () => {
       try {
         const offers = await driverApi.getOffers();
-        if (offers.length > 0 && !pendingOffer) {
+        if (offers.length > 0 && !pendingOfferRef.current) {
+          pendingOfferRef.current = offers[0];
           setPendingOffer(offers[0]);
+          setSoundMuted(false);
           try {
-            await soundRef.current?.unloadAsync();
+            await stopSound();
             const { sound } = await Audio.Sound.createAsync(
               require('../../assets/sounds/new-ride.wav')
             );
@@ -209,24 +221,32 @@ export default function DriverOnline() {
     setLoading(true);
     try {
       stopAll();
+      await stopSound();
       await driverApi.setAvailability('offline');
       setIsOnline(false);
       setPendingOffer(null);
+      pendingOfferRef.current = null;
+      setSoundMuted(false);
     } catch (e: any) {
       Alert.alert('Erro', friendlyError(e, 'Erro ao ficar offline'));
     } finally { setLoading(false); }
   };
 
-  const handleAcceptOffer = () => {
+  const handleAcceptOffer = async () => {
     if (!pendingOffer) return;
+    await stopSound();
+    pendingOfferRef.current = null;
     router.push(`/(driver)/accept-ride?offerId=${pendingOffer.id}&rideId=${pendingOffer.ride.id}`);
   };
 
   const handleRejectOffer = async () => {
     if (!pendingOffer) return;
     try {
+      await stopSound();
       await driverApi.rejectOffer(pendingOffer.id);
       setPendingOffer(null);
+      pendingOfferRef.current = null;
+      setSoundMuted(false);
     } catch (e: any) {
       Alert.alert('Erro', friendlyError(e, 'Não foi possível recusar a oferta'));
     }
@@ -376,6 +396,16 @@ export default function DriverOnline() {
               <View style={{ width: 12 }} />
               <Button title="Recusar" variant="danger" onPress={handleRejectOffer} style={{ flex: 1 }} />
             </View>
+            {!soundMuted && (
+              <TouchableOpacity
+                style={styles.muteBtn}
+                onPress={() => { stopSound(); setSoundMuted(true); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="volume-mute-outline" size={16} color={COLORS.textMuted} />
+                <Text style={styles.muteBtnText}>Silenciar alerta</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
@@ -471,6 +501,11 @@ const styles = StyleSheet.create({
   offerMetaText: { fontSize: 13, color: COLORS.textMuted },
   offerPassenger: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 },
   offerButtons: { flexDirection: 'row' },
+  muteBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    marginTop: 12, paddingVertical: 6, gap: 6,
+  },
+  muteBtnText: { fontSize: 13, color: COLORS.textMuted },
 
   // Waiting
   waitingBox: {
