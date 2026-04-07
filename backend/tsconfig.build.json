@@ -1,8 +1,6 @@
 {
   "extends": "./tsconfig.json",
 
-  // IMPORTANTE: se o tsconfig base tiver "files" ou "references",
-  // isso IGNORA exclude. Aqui a gente zera.
   "files": [],
   "references": [],
 
@@ -23,13 +21,6 @@
 
     "src/scripts/**",
     "src/**/trips-integration-example.ts",
-
-    "**/*.BACKUP.ts",
-    "**/*.backup.ts",
-    "**/*.bak.ts",
-
-    "src/routes/governance.ts",
-    "src/routes/Governance.ts",
     "src/services/compliance-notifications.service.ts"
   ]
 }

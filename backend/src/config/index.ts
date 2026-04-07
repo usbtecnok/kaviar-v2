@@ -66,10 +66,6 @@ export const config = {
     enableTwilioWhatsapp: process.env.ENABLE_TWILIO_WHATSAPP !== 'false', // Default true
   },
 
-  legacy: {
-    enableLegacy: process.env.ENABLE_LEGACY === 'true', // Default false
-  },
-
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
 

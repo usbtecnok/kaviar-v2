@@ -16,18 +16,11 @@ import { adminRoutes } from './routes/admin';
 import complianceRoutes from './routes/compliance';
 import dashboardRoutes from './routes/dashboard';
 import matchRoutes from './routes/match';
-// import { adminManagementRoutes } from './routes/admin-management'; // DISABLED - legacy
-// import { elderlyRoutes } from './routes/elderly'; // DISABLED - legacy
-// import { governanceRoutes } from './routes/governance'; // DISABLED - legacy
-// import { userAuthRoutes } from './routes/user-auth'; // DISABLED - legacy
-// import { passwordResetRoutes } from './routes/password-reset'; // DISABLED - legacy
 
 // Feature-based routes
 import { integrationsRoutes } from './routes/integrations';
 import { premiumTourismRoutes } from './routes/premium-tourism';
-import { legacyRoutes } from './routes/legacy';
 import geoRoutes from './routes/geo';
-// import adminGeofenceRoutes from './routes/admin-geofence';
 import ridesRoutes from './routes/rides';
 import { governanceRoutes } from './routes/governance';
 import { passengerAuthRoutes } from './routes/passenger-auth';
@@ -190,7 +183,6 @@ app.get('/api/health/ready', async (req, res) => {
     features: {
       twilio_whatsapp: config.integrations.enableTwilioWhatsapp,
       premium_tourism: config.premiumTourism.enablePremiumTourism,
-      legacy: config.legacy.enableLegacy
     },
     timestamp: new Date().toISOString(),
   });
@@ -246,8 +238,6 @@ console.log('   - /api/drivers/*');
 console.log('   - /api/drivers/:id/dashboard (driver stats)');
 console.log('   - /api/ratings/*');
 console.log('   - /api/trips/* (fee calculation)');
-// app.use('/api/auth', userAuthRoutes); // DISABLED - legacy
-// app.use('/api/auth', passwordResetRoutes); // DISABLED - legacy
 
 // Feature-based route mounting with logging
 console.log('🚀 Mounting routes based on feature flags:');
@@ -268,20 +258,6 @@ if (config.premiumTourism.enablePremiumTourism) {
   console.log('❌ Premium Tourism: DISABLED');
 }
 
-// Legacy APIs
-if (config.legacy.enableLegacy) {
-  app.use('/api/legacy', legacyRoutes);
-  console.log('✅ Legacy: /api/legacy/* (Admin auth required)');
-} else {
-  console.log('❌ Legacy: DISABLED');
-}
-
-// Core admin/governance routes (filtered by feature flags internally)
-// app.use('/api/admin', adminRoutes); // DISABLED - legacy
-// app.use('/api/admin', adminManagementRoutes); // DISABLED - legacy
-// app.use('/api/admin/elderly', elderlyRoutes); // DISABLED - legacy
-// app.use('/api/governance', governanceRoutes); // DISABLED - legacy
-
 // Geo routes
 app.use('/api/public', publicRoutes); // ✅ Public endpoints (no auth)
 app.use('/api/public', consultantLeadsRoutes); // ✅ Consultant leads (public POST)
@@ -290,7 +266,6 @@ app.use('/api/admin/staff', adminStaffRoutes); // ✅ Staff CRUD (SUPER_ADMIN on
 app.use('/api/admin', adminReferralRoutes); // ✅ Referral system (SUPER_ADMIN only)
 app.use('/api/public', adminReferralRoutes); // ✅ Referral public (validate code)
 app.use('/api/geo', geoRoutes);
-// app.use('/api/admin/geofence', adminGeofenceRoutes); // DISABLED - legacy geofence routes
 app.use('/api/rides', ridesRoutes);
 app.use('/api/governance', governanceRoutes);
 app.use('/api/auth', passengerAuthRoutes);
@@ -307,18 +282,11 @@ console.log('✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/rea
 
 console.log('✅ Geo: /api/public/*, /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
 
-console.log('✅ Core: Pricing & Rides enabled, legacy routes disabled');
+console.log('✅ Core: Pricing & Rides enabled');
 
 // Feature disabled handler for disabled routes
 app.use((req, res, next) => {
   console.log(`Request: ${req.method} ${req.path}`);
-  
-  if (req.path.startsWith('/api/legacy') && !config.legacy.enableLegacy) {
-    return res.status(404).json({
-      error: 'FEATURE_DISABLED',
-      feature: 'LEGACY'
-    });
-  }
   
   if (req.path.startsWith('/webhooks') && !config.integrations.enableTwilioWhatsapp) {
     return res.status(404).json({
