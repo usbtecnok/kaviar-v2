@@ -10,15 +10,21 @@ const bg = '#070707';
 const sx = {
   page: { minHeight: '100vh', bgcolor: bg, color: '#fff', position: 'relative' },
   glow: { position: 'absolute', inset: 0, background: 'radial-gradient(circle at top, rgba(212,175,55,0.18), transparent 32%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.07), transparent 22%)', pointerEvents: 'none' },
-  header: { position: 'relative', zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(20px)' },
+  header: { position: 'relative', zIndex: 10, borderBottom: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(24px)' },
   section: { position: 'relative', zIndex: 10, maxWidth: 1200, mx: 'auto', px: { xs: 3, md: 5 } },
-  card: { borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(8px)' },
+  card: { borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' },
   input: {
     '& .MuiOutlinedInput-root': { color: '#fff', borderRadius: 3, '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' }, '&:hover fieldset': { borderColor: gold }, '&.Mui-focused fieldset': { borderColor: gold } },
     '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.45)' },
     '& .MuiInputLabel-root.Mui-focused': { color: gold },
   },
-  goldBtn: { bgcolor: gold, color: '#000', fontWeight: 700, borderRadius: 3, textTransform: 'none', py: 1.8, px: 4, fontSize: '0.9rem', '&:hover': { bgcolor: '#e1be52', transform: 'translateY(-1px)' }, transition: 'all 0.2s' },
+  goldBtn: {
+    background: 'linear-gradient(180deg, #f0d060 0%, #D4AF37 50%, #b8962e 100%)',
+    color: '#000', fontWeight: 700, borderRadius: 3, textTransform: 'none', py: 1.8, px: 4, fontSize: '0.9rem',
+    boxShadow: '0 4px 20px rgba(212,175,55,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
+    '&:hover': { background: 'linear-gradient(180deg, #f5da70 0%, #e1be52 50%, #c5a028 100%)', transform: 'translateY(-1px)', boxShadow: '0 6px 28px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.25)' },
+    transition: 'all 0.2s',
+  },
   outlineBtn: { border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600, borderRadius: 3, textTransform: 'none', py: 1.8, px: 4, fontSize: '0.9rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', transform: 'translateY(-1px)' }, transition: 'all 0.2s' },
 };
 
@@ -80,7 +86,7 @@ export default function KaviarLanding() {
             {/* Glow */}
             <Box sx={{ position: 'absolute', inset: '-12px -16px', borderRadius: '34px', background: 'radial-gradient(circle at 30%, rgba(212,175,55,0.18), transparent 60%)', filter: 'blur(18px)', zIndex: 0, pointerEvents: 'none' }} />
             {/* Symbol */}
-            <img src="/kaviar-logo-k.png" alt="" style={{ height: 56, width: 56, borderRadius: 12, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 12px rgba(212,175,55,0.15))' }} />
+            <img src="/kaviar-logo-k.png" alt="" style={{ height: 60, width: 60, borderRadius: 12, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 14px rgba(212,175,55,0.18))' }} />
             {/* Wordmark */}
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <Typography sx={{
@@ -117,7 +123,7 @@ export default function KaviarLanding() {
             </Box>
 
             <Typography variant="h2" sx={{ fontWeight: 600, lineHeight: 1.05, letterSpacing: '-0.02em', fontSize: { xs: '2.2rem', md: '3.5rem' } }}>
-              Motoristas da sua região.{' '}<Box component="span" sx={{ color: gold }}>Corridas da sua comunidade.</Box>
+              Motoristas da sua região.{' '}<Box component="span" sx={{ color: 'transparent', backgroundImage: 'linear-gradient(180deg, #f3d57a, #D4AF37, #b88913)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Corridas da sua comunidade.</Box>
             </Typography>
 
             <Typography sx={{ mt: 3, fontSize: { xs: 16, md: 18 }, lineHeight: 1.7, color: 'rgba(255,255,255,0.68)', maxWidth: 640 }}>
@@ -150,7 +156,7 @@ export default function KaviarLanding() {
 
           {/* Side card */}
           <Box sx={{ ...sx.card, p: { xs: 3, md: 3.5 }, display: { xs: 'none', lg: 'block' } }}>
-            <Box sx={{ borderRadius: 5, border: '1px solid rgba(255,255,255,0.1)', background: 'linear-gradient(to bottom, #141414, #0b0b0b)', p: 3 }}>
+            <Box sx={{ borderRadius: 5, border: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(to bottom, rgba(20,20,20,0.9), rgba(11,11,11,0.95))', backdropFilter: 'blur(16px)', p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                 <Box>
                   <Typography sx={{ fontSize: 10, letterSpacing: '0.3em', color: gold, textTransform: 'uppercase' }}>Visão da marca</Typography>
