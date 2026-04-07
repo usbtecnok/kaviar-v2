@@ -15,6 +15,7 @@ import AdminResetPassword from "./pages/admin/ResetPassword";
 import SetPassword from "./pages/driver/SetPassword";
 import MotoristaReferral from "./pages/MotoristaReferral";
 import ConsultorOnboarding from "./pages/ConsultorOnboarding";
+import KaviarLanding from "./pages/KaviarLanding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
 import { DriverProvider } from "./contexts/DriverContext";
@@ -400,7 +401,7 @@ export default function App() {
     <RideProvider>
       <DriverProvider>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<KaviarLanding />} />
 
           {/* Tela de escolha */}
           <Route path="/login" element={<Login />} />
