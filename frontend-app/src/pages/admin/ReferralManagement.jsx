@@ -241,19 +241,19 @@ export default function ReferralManagement() {
                   <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 18, mb: 0.5 }}>{selected.agent.name}</Typography>
                   <Typography sx={{ color: '#999', fontSize: 13, mb: 2 }}>{selected.agent.phone}</Typography>
                   <Chip label={selected.agent.referral_code} sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, fontFamily: 'monospace', fontSize: 18, py: 2.5, px: 1, borderRadius: 2 }} />
-                  <Typography sx={{ color: '#666', fontSize: 12, mt: 1.5, fontFamily: 'monospace' }}>kaviar.com.br/motorista?ref={selected.agent.referral_code}</Typography>
+                  <Typography sx={{ color: '#666', fontSize: 12, mt: 1.5, fontFamily: 'monospace' }}>kaviar.com.br/consultor/{selected.agent.referral_code}</Typography>
                   <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 2 }}>
                     <Button size="small" variant="outlined" sx={{ color: '#FFD700', borderColor: '#FFD700' }}
                       onClick={() => { navigator.clipboard.writeText(selected.agent.referral_code); setError(''); setCopied('código'); setTimeout(() => setCopied(''), 2000); }}>
                       Copiar código
                     </Button>
                     <Button size="small" variant="outlined" sx={{ color: '#FFD700', borderColor: '#FFD700' }}
-                      onClick={() => { navigator.clipboard.writeText(`https://kaviar.com.br/motorista?ref=${selected.agent.referral_code}`); setCopied('link'); setTimeout(() => setCopied(''), 2000); }}>
-                      Copiar link
+                      onClick={() => { navigator.clipboard.writeText(`https://kaviar.com.br/consultor/${selected.agent.referral_code}`); setCopied('link'); setTimeout(() => setCopied(''), 2000); }}>
+                      Copiar link consultor
                     </Button>
                     <Button size="small" variant="contained" sx={{ bgcolor: '#FFD700', color: '#000' }}
                       onClick={() => {
-                        const text = `Seja motorista KAVIAR! 🚗\n\nCadastre-se usando o código: ${selected.agent.referral_code}\nLink: https://kaviar.com.br/motorista?ref=${selected.agent.referral_code}\n\nBaixe o app e comece a dirigir na sua região.`;
+                        const text = `Bem-vindo ao programa de indicação KAVIAR! 🚗\n\nAcesse seu painel de consultor:\nhttps://kaviar.com.br/consultor/${selected.agent.referral_code}\n\nLá você encontra seu código, link de indicação e pode completar seu cadastro.`;
                         if (navigator.share) {
                           navigator.share({ title: 'KAVIAR — Indicação de motorista', text }).catch(() => {});
                         } else {

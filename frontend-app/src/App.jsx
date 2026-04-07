@@ -14,6 +14,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminResetPassword from "./pages/admin/ResetPassword";
 import SetPassword from "./pages/driver/SetPassword";
 import MotoristaReferral from "./pages/MotoristaReferral";
+import ConsultorOnboarding from "./pages/ConsultorOnboarding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
 import { DriverProvider } from "./contexts/DriverContext";
@@ -416,6 +417,7 @@ export default function App() {
             }
           />
           
+          <Route path="/consultor/:code" element={<ConsultorOnboarding />} />
           <Route path="/motorista" element={<MotoristaReferral />} />
           {/* First access motorista */}
           <Route path="/motorista/definir-senha" element={<SetPassword />} />

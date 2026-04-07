@@ -868,18 +868,20 @@ model consultant_leads {
 }
 
 model referral_agents {
-  id                String             @id @default(uuid())
-  name              String
-  phone             String             @unique
-  email             String?
-  pix_key           String?
-  pix_key_type      String?
-  referral_code     String?            @unique
-  is_active         Boolean            @default(true)
-  created_at        DateTime           @default(now())
-  updated_at        DateTime           @updatedAt
-  referrals         referrals[]
-  consultant_leads  consultant_leads[]
+  id                  String             @id @default(uuid())
+  name                String
+  phone               String             @unique
+  email               String?
+  pix_key             String?
+  pix_key_type        String?
+  referral_code       String?            @unique
+  is_active           Boolean            @default(true)
+  terms_accepted_at   DateTime?
+  terms_accepted_ip   String?
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+  referrals           referrals[]
+  consultant_leads    consultant_leads[]
 }
 
 model referrals {

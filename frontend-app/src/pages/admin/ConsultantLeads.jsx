@@ -83,16 +83,16 @@ export default function ConsultantLeads() {
                       <Box sx={{ bgcolor: '#111', borderRadius: 2, p: 1.5, mt: 1.5, border: '1px solid #FFD700', textAlign: 'center' }}>
                         <Chip label={lead.referral_agent.referral_code} size="small" sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, fontFamily: 'monospace', fontSize: 13 }} />
                         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', mt: 1 }}>
-                          <Tooltip title="Copiar link">
+                          <Tooltip title="Copiar link do consultor">
                             <IconButton size="small" sx={{ color: '#FFD700' }}
-                              onClick={() => navigator.clipboard.writeText(`https://kaviar.com.br/motorista?ref=${lead.referral_agent.referral_code}`)}>
+                              onClick={() => navigator.clipboard.writeText(`https://kaviar.com.br/consultor/${lead.referral_agent.referral_code}`)}>
                               <ContentCopy sx={{ fontSize: 14 }} />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Compartilhar via WhatsApp">
                             <IconButton size="small" sx={{ color: '#25D366' }}
                               onClick={() => {
-                                const text = `Seja motorista KAVIAR! 🚗\n\nCadastre-se usando o código: ${lead.referral_agent.referral_code}\nLink: https://kaviar.com.br/motorista?ref=${lead.referral_agent.referral_code}`;
+                                const text = `Bem-vindo ao programa de indicação KAVIAR! 🚗\n\nAcesse seu painel de consultor:\nhttps://kaviar.com.br/consultor/${lead.referral_agent.referral_code}\n\nLá você encontra seu código, link de indicação e pode completar seu cadastro.`;
                                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                               }}>
                               <Share sx={{ fontSize: 14 }} />

@@ -7,17 +7,61 @@ const router = Router();
 
 // === PUBLIC ROUTES (no auth) ===
 
-// GET /api/public/referral-agent/:code — validate code
+// GET /api/public/referral-agent/:code — validate code + onboarding data
 router.get('/referral-agent/:code', async (req: Request, res: Response) => {
   try {
     const agent = await prisma.referral_agents.findFirst({
       where: { referral_code: req.params.code.toUpperCase(), is_active: true },
-      select: { id: true, name: true, referral_code: true },
+      select: { id: true, name: true, phone: true, email: true, pix_key: true, pix_key_type: true, referral_code: true, terms_accepted_at: true },
     });
     if (!agent) return res.status(404).json({ success: false, error: 'Código inválido' });
     return res.json({ success: true, data: agent });
   } catch (err) {
     return res.status(500).json({ success: false, error: 'Erro ao validar código' });
+  }
+});
+
+// PATCH /api/public/referral-agent/:code/onboarding — consultor completa cadastro
+router.patch('/referral-agent/:code/onboarding', async (req: Request, res: Response) => {
+  try {
+    const agent = await prisma.referral_agents.findFirst({
+      where: { referral_code: req.params.code.toUpperCase(), is_active: true },
+    });
+    if (!agent) return res.status(404).json({ success: false, error: 'Código inválido' });
+
+    const { name, phone, email, pix_key, pix_key_type, terms_accepted } = req.body;
+    if (!email || !pix_key || !pix_key_type) {
+      return res.status(400).json({ success: false, error: 'Email, chave PIX e tipo da chave são obrigatórios' });
+    }
+    if (!terms_accepted) {
+      return res.status(400).json({ success: false, error: 'Aceite dos termos é obrigatório' });
+    }
+
+    const data: any = { email, pix_key, pix_key_type };
+    if (name) data.name = name;
+    if (phone) data.phone = normalizePhone(phone);
+    if (!agent.terms_accepted_at) {
+      data.terms_accepted_at = new Date();
+      data.terms_accepted_ip = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip || 'unknown';
+    }
+
+    const updated = await prisma.referral_agents.update({
+      where: { id: agent.id },
+      data,
+      select: { id: true, name: true, phone: true, email: true, pix_key: true, pix_key_type: true, referral_code: true, terms_accepted_at: true },
+    });
+
+    // Auto-transition referrals: pending_pix → pending_approval
+    await prisma.referrals.updateMany({
+      where: { agent_id: agent.id, status: 'qualified', payment_status: 'pending_pix' },
+      data: { payment_status: 'pending_approval', updated_at: new Date() },
+    });
+
+    console.log(`[CONSULTANT_ONBOARDING] agent=${agent.id} code=${agent.referral_code} ip=${data.terms_accepted_ip || 'existing'}`);
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error('[CONSULTANT_ONBOARDING] error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao salvar dados' });
   }
 });
 
