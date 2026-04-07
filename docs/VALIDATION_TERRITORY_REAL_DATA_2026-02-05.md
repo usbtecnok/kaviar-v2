@@ -162,5 +162,5 @@ tail -f /tmp/validate_territory_*.log
 ## 🔗 Referências
 
 - Script: `scripts/validate_territory_real_data.sh`
-- Documentação: `EXPLICACAO_SISTEMA_KAVIAR.md`
-- Implementação: `IMPLEMENTACAO_TERRITORIO_INTELIGENTE.md`
+- Documentação: `docs/archive/misc/EXPLICACAO_SISTEMA_KAVIAR.md`
+- Implementação: `docs/archive/implementation/IMPLEMENTACAO_TERRITORIO_INTELIGENTE.md`
