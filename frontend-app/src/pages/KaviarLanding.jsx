@@ -19,10 +19,10 @@ const sx = {
     '& .MuiInputLabel-root.Mui-focused': { color: gold },
   },
   goldBtn: {
-    background: 'linear-gradient(180deg, #f0d060 0%, #D4AF37 50%, #b8962e 100%)',
+    background: 'linear-gradient(180deg, #eece55 0%, #D4AF37 50%, #b8962e 100%)',
     color: '#000', fontWeight: 700, borderRadius: 3, textTransform: 'none', py: 1.8, px: 4, fontSize: '0.9rem',
-    boxShadow: '0 4px 20px rgba(212,175,55,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
-    '&:hover': { background: 'linear-gradient(180deg, #f5da70 0%, #e1be52 50%, #c5a028 100%)', transform: 'translateY(-1px)', boxShadow: '0 6px 28px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.25)' },
+    boxShadow: '0 4px 16px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
+    '&:hover': { background: 'linear-gradient(180deg, #f3d660 0%, #e1be52 50%, #c5a028 100%)', transform: 'translateY(-1px)', boxShadow: '0 6px 24px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.2)' },
     transition: 'all 0.2s',
   },
   outlineBtn: { border: '1px solid rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600, borderRadius: 3, textTransform: 'none', py: 1.8, px: 4, fontSize: '0.9rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)', transform: 'translateY(-1px)' }, transition: 'all 0.2s' },
@@ -82,13 +82,13 @@ export default function KaviarLanding() {
       {/* ─── Header ─── */}
       <Box sx={sx.header}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 3, md: 5 }, py: 2.5 }}>
-          <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 2.5, textDecoration: 'none', position: 'relative' }}>
+          <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none', position: 'relative' }}>
             {/* Glow */}
             <Box sx={{ position: 'absolute', inset: '-12px -16px', borderRadius: '34px', background: 'radial-gradient(circle at 30%, rgba(212,175,55,0.18), transparent 60%)', filter: 'blur(18px)', zIndex: 0, pointerEvents: 'none' }} />
             {/* Symbol */}
             <img src="/kaviar-logo-k.png" alt="" style={{ height: 60, width: 60, borderRadius: 12, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 0 14px rgba(212,175,55,0.18))' }} />
             {/* Wordmark */}
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <Typography sx={{
                 fontSize: 28,
                 fontFamily: '"Cormorant Garamond", "Playfair Display", "Georgia", serif',
@@ -171,7 +171,7 @@ export default function KaviarLanding() {
                 ['Renda por indicação', 'Consultores locais podem apresentar novos motoristas e participar do crescimento do KAVIAR na comunidade.'],
                 ['Diálogo com lideranças', 'Expansão com conversa, respeito ao território e abertura para parceria com associações de moradores.'],
               ].map(([t, d]) => (
-                <Box key={t} sx={{ borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(0,0,0,0.3)', p: 2, mb: 1.5 }}>
+                <Box key={t} sx={{ borderRadius: 3, border: '1px solid rgba(255,255,255,0.07)', bgcolor: 'rgba(0,0,0,0.25)', backdropFilter: 'blur(8px)', p: 2, mb: 1.5 }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.9)' }}>{t}</Typography>
                   <Typography sx={{ mt: 1, fontSize: 12.5, lineHeight: 1.6, color: 'rgba(255,255,255,0.55)' }}>{d}</Typography>
                 </Box>
