@@ -1,132 +1,41 @@
-import React, { useEffect } from 'react';
-import { Container, Grid, Card, CardContent, Typography, Button, Stack } from '@mui/material';
-import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Box, Typography, Button } from '@mui/material';
+import { Link } from 'react-router-dom';
+
+const gold = '#D4AF37';
 
 export default function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Detect demo mode
-  useEffect(() => {
-    const urlParams = new URLSearchParams(location.search);
-    if (urlParams.get('demo') === '1') {
-      sessionStorage.setItem('kaviar_demo_mode', 'true');
-    }
-  }, [location.search]);
-
   return (
-    <Container maxWidth="md" sx={{ py: 6 }}>
-      <Typography variant="h4" fontWeight={800} gutterBottom>
-        Acesso ao sistema
-      </Typography>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#070707', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <Box sx={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at top, rgba(212,175,55,0.15), transparent 40%)', pointerEvents: 'none' }} />
 
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        Escolha como você quer entrar. (Admin é separado do Passageiro/Motorista)
-      </Typography>
+      <Box sx={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 420, mx: 'auto', px: 3, py: 6, textAlign: 'center' }}>
+        {/* Logo */}
+        <Box sx={{ mb: 5 }}>
+          <Box sx={{ width: 56, height: 56, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 3, border: `1px solid ${gold}40`, bgcolor: '#111', color: gold, fontWeight: 800, fontSize: 22, boxShadow: '0 0 30px rgba(212,175,55,0.15)', mb: 2 }}>K</Box>
+          <Typography sx={{ fontSize: 12, letterSpacing: '0.35em', color: gold, textTransform: 'uppercase' }}>KAVIAR</Typography>
+          <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>Acesse sua conta</Typography>
+        </Box>
 
-      <Grid container spacing={2}>
-        {/* PASSAGEIRO */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} gutterBottom>
-                Passageiro
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Solicitar corrida, escolher serviço (inclui CARE), acompanhar status e avaliar motorista.
-              </Typography>
+        {/* Options */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Button component={Link} to="/auth/form" variant="contained" fullWidth sx={{ bgcolor: gold, color: '#000', fontWeight: 700, borderRadius: 3, textTransform: 'none', py: 2, fontSize: '0.95rem', '&:hover': { bgcolor: '#e1be52' } }}>
+            Entrar como Passageiro
+          </Button>
 
-              <Stack spacing={1}>
-                <Button
-                  onClick={() => navigate('/auth/form')}
+          <Button component={Link} to="/cadastro" variant="outlined" fullWidth sx={{ borderColor: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 600, borderRadius: 3, textTransform: 'none', py: 2, fontSize: '0.95rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' } }}>
+            Entrar como Motorista
+          </Button>
 
-                  variant="contained"
-                  fullWidth
-                >
-                  Entrar como Passageiro
-                </Button>
-                
-                <Button
-                  component={RouterLink}
-                  to="/cadastro?type=passageiro"
-                  variant="outlined"
-                  fullWidth
-                >
-                  Cadastrar Passageiro
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
+          <Button component={Link} to="/admin/login" variant="outlined" fullWidth sx={{ borderColor: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', fontWeight: 500, borderRadius: 3, textTransform: 'none', py: 1.5, fontSize: '0.85rem', '&:hover': { bgcolor: 'rgba(255,255,255,0.05)', color: '#fff' } }}>
+            Painel administrativo
+          </Button>
+        </Box>
 
-        {/* MOTORISTA */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} gutterBottom>
-                Motorista
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Cadastro, envio de documentos e corridas (área protegida).
-              </Typography>
-
-              <Stack spacing={1}>
-                <Button
-                  component={RouterLink}
-                  to="/cadastro"
-                  variant="contained"
-                  fullWidth
-                >
-                  Cadastrar / Completar Cadastro
-                </Button>
-
-                <Button
-                  component={RouterLink}
-                  to="/motorista/documents"
-                  variant="outlined"
-                  fullWidth
-                >
-                  Enviar Documentos
-                </Button>
-              </Stack>
-
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-                Obs.: A área do motorista exige autenticação. Se não tiver login ainda, ela vai te mandar para esta tela.
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* ADMIN */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="h6" fontWeight={700} gutterBottom>
-                Administrador
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Painel admin (Premium Tourism, aprovações, etc).
-              </Typography>
-
-              <Stack spacing={1}>
-                <Button
-                  component={RouterLink}
-                  to="/admin/login"
-                  variant="contained"
-                  color="secondary"
-                  fullWidth
-                >
-                  Entrar como Admin
-                </Button>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3 }}>
-        Dica: o serviço CARE aparece dentro de Passageiro → “Escolha seu serviço”.
-      </Typography>
-    </Container>
+        <Button component={Link} to="/" sx={{ mt: 4, color: 'rgba(255,255,255,0.4)', textTransform: 'none', fontSize: 13, '&:hover': { color: '#fff' } }}>
+          ← Voltar para a home
+        </Button>
+      </Box>
+    </Box>
   );
 }
