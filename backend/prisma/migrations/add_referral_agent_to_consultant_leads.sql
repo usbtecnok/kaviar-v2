@@ -2,7 +2,7 @@
 -- Vincula consultant_leads ao referral_agent criado na conversão
 
 ALTER TABLE "consultant_leads"
-  ADD COLUMN "referral_agent_id" TEXT;
+  ADD COLUMN "referral_agent_id" UUID;
 
 ALTER TABLE "consultant_leads"
   ADD CONSTRAINT "consultant_leads_referral_agent_id_fkey"
