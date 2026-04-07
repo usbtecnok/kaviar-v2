@@ -76,12 +76,9 @@ export default function KaviarLanding() {
       {/* ─── Header ─── */}
       <Box sx={sx.header}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 3, md: 5 }, py: 2.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <img src="/kaviar-logo-oficial.png" alt="KAVIAR" style={{ height: 40, width: 'auto', borderRadius: 8 }} />
-            <Box>
-              <Typography sx={{ fontSize: 14, letterSpacing: '0.3em', color: gold, textTransform: 'uppercase', fontWeight: 700 }}>KAVIAR</Typography>
-              <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Mobilidade local brasileira</Typography>
-            </Box>
+          <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none' }}>
+            <img src="/kaviar-logo-oficial.png" alt="KAVIAR" style={{ height: 44, width: 'auto', borderRadius: 8 }} />
+            <Typography sx={{ fontSize: 20, letterSpacing: '0.3em', color: gold, textTransform: 'uppercase', fontWeight: 800 }}>KAVIAR</Typography>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
             {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#downloads', 'Downloads']].map(([href, label]) => (
@@ -96,11 +93,7 @@ export default function KaviarLanding() {
       <Box sx={{ ...sx.section, py: { xs: 8, md: 12 } }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.15fr 0.85fr' }, gap: 6, alignItems: 'center' }}>
           <Box>
-            <Box sx={{ display: 'inline-block', bgcolor: '#000', borderRadius: 4, px: 3, py: 2, mb: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-              <img src="/kaviar-logo-oficial.png" alt="KAVIAR" style={{ height: 48, width: 'auto', display: 'block' }} />
-            </Box>
-
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, borderRadius: 5, border: `1px solid ${gold}25`, bgcolor: `${gold}15`, px: 2, py: 0.8, mb: 3, ml: { xs: 0, md: 0 } }}>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, borderRadius: 5, border: `1px solid ${gold}25`, bgcolor: `${gold}15`, px: 2, py: 0.8, mb: 3 }}>
               <Typography sx={{ fontSize: 11, fontWeight: 500, color: goldLight }}>Plataforma brasileira • foco em comunidade • expansão local</Typography>
             </Box>
 
