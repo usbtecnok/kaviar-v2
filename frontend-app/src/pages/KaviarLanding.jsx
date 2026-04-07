@@ -77,8 +77,8 @@ export default function KaviarLanding() {
       <Box sx={sx.header}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 3, md: 5 }, py: 2.5 }}>
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none' }}>
-            <img src="/kaviar-logo-oficial.png" alt="KAVIAR" style={{ height: 44, width: 'auto', borderRadius: 8 }} />
-            <Typography sx={{ fontSize: 20, letterSpacing: '0.3em', color: gold, textTransform: 'uppercase', fontWeight: 800 }}>KAVIAR</Typography>
+            <img src="/kaviar-logo-oficial.png" alt="KAVIAR" style={{ height: 52, width: 'auto', borderRadius: 10 }} />
+            <Typography sx={{ fontSize: 24, letterSpacing: '0.28em', color: gold, textTransform: 'uppercase', fontWeight: 800 }}>KAVIAR</Typography>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
             {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#downloads', 'Downloads']].map(([href, label]) => (
