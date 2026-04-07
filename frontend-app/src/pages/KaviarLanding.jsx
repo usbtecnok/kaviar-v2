@@ -210,12 +210,7 @@ export default function KaviarLanding() {
             <Box sx={{ mt: 3, display: 'inline-flex', borderRadius: 5, border: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.03)', px: 2, py: 1 }}>
               <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>Para associações de moradores e lideranças locais</Typography>
             </Box>
-            <Box sx={{ mt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-              <Button variant="contained" href="https://wa.me/5521968648777?text=Ol%C3%A1%2C%20represento%20uma%20associa%C3%A7%C3%A3o%20de%20moradores%20e%20gostaria%20de%20conversar%20sobre%20parceria%20com%20o%20KAVIAR." target="_blank" sx={{ bgcolor: '#fff', color: '#000', fontWeight: 700, borderRadius: 3, textTransform: 'none', py: 1.5, px: 3, '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' } }}>
-                Quero conversar sobre parceria comunitária
-              </Button>
-            </Box>
-            <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+            <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', gap: 1.2 }}>
               <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
                 Parcerias e marca: <Box component="a" href="mailto:contato@kaviar.com.br" sx={{ color: gold, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>contato@kaviar.com.br</Box>
               </Typography>
