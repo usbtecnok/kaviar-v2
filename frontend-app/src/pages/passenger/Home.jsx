@@ -27,7 +27,7 @@ import MapComponent from '../../components/common/MapComponent';
 import RideStatusCard from '../../components/common/RideStatusCard';
 import { FadeInCard, premiumButtonStyles } from '../../components/common/Animations';
 import { useNavigate } from 'react-router-dom';
-import { useRide } from '../../context/RideContext';
+import { useRide } from '../../contexts/RideContext';
 
 const PassengerHome = () => {
   const [pickup, setPickup] = useState('');

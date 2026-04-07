@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { Star, Send, ArrowBack } from '@mui/icons-material';
 import Layout from '../../components/common/Layout';
-import { useRide } from '../../context/RideContext';
+import { useRide } from '../../contexts/RideContext';
 import { useNavigate } from 'react-router-dom';
 
 const RideRating = () => {

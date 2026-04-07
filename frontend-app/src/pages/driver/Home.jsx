@@ -21,7 +21,7 @@ import DriverRideCard from '../../components/common/DriverRideCard';
 import FamilyBonusCard from '../../components/driver/FamilyBonusCard';
 import NeighborhoodStatsCard from '../../components/driver/NeighborhoodStatsCard';
 import FenceStatusCard from '../../components/driver/FenceStatusCard';
-import { useDriver } from '../../context/DriverContext';
+import { useDriver } from '../../contexts/DriverContext';
 
 const DriverHome = () => {
   const { driverStatus, driverEarnings, goOnline, goOffline, finishRideAndGoOnline } = useDriver();

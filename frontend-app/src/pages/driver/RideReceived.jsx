@@ -10,7 +10,7 @@ import {
 import { ArrowBack, DirectionsCar } from '@mui/icons-material';
 import Layout from '../../components/common/Layout';
 import DriverRideCard from '../../components/common/DriverRideCard';
-import { useDriver } from '../../context/DriverContext';
+import { useDriver } from '../../contexts/DriverContext';
 import { useNavigate } from 'react-router-dom';
 
 const RideReceived = () => {

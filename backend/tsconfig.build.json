@@ -19,8 +19,6 @@
     "**/*.test.ts",
     "**/*.spec.ts",
 
-    "src/scripts/**",
-    "src/**/trips-integration-example.ts",
-    "src/services/compliance-notifications.service.ts"
+    "src/scripts/**"
   ]
 }

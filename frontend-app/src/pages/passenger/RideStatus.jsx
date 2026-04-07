@@ -15,7 +15,7 @@ import {
 import { ArrowBack } from '@mui/icons-material';
 import Layout from '../../components/common/Layout';
 import RideStatusCard from '../../components/common/RideStatusCard';
-import { useRide } from '../../context/RideContext';
+import { useRide } from '../../contexts/RideContext';
 import { useNavigate } from 'react-router-dom';
 import { normalizeStatusForDisplay, getStatusLabel } from '../../utils/statusMapping';
 

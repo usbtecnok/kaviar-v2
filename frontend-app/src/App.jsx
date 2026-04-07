@@ -15,8 +15,8 @@ import AdminResetPassword from "./pages/admin/ResetPassword";
 import SetPassword from "./pages/driver/SetPassword";
 import MotoristaReferral from "./pages/MotoristaReferral";
 import ProtectedRoute from "./routes/ProtectedRoute";
-import { RideProvider } from "./context/RideContext";
-import { DriverProvider } from "./context/DriverContext";
+import { RideProvider } from "./contexts/RideContext";
+import { DriverProvider } from "./contexts/DriverContext";
 import { AuthProvider } from "./contexts/AuthContext";
 
 function ConsultorForm() {

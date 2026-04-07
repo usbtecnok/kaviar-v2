@@ -149,7 +149,7 @@ export class ComplianceNotificationsService {
     const validUntilStr = validUntil.toLocaleDateString('pt-BR');
     const message = `✅ Kaviar - Documento Aprovado\n\nOlá ${driver.name},\n\nSeu atestado de antecedentes foi aprovado!\n\nVálido até: ${validUntilStr}\n\nVocê está liberado para trabalhar.`;
 
-    return await this.sendWhatsApp(driver.phone, message, driverId, 'approved');
+    return await this.sendWhatsApp(driver.phone!, message, driverId, 'approved');
   }
 
   /**
@@ -165,7 +165,7 @@ export class ComplianceNotificationsService {
 
     const message = `❌ Kaviar - Documento Rejeitado\n\nOlá ${driver.name},\n\nSeu atestado foi rejeitado.\n\nMotivo: ${reason}\n\nEnvie um novo documento corrigido o quanto antes.`;
 
-    return await this.sendWhatsApp(driver.phone, message, driverId, 'rejected');
+    return await this.sendWhatsApp(driver.phone!, message, driverId, 'rejected');
   }
 
   /**

@@ -1,6 +1,6 @@
 import { Box, Card, CardContent, Typography, Button, LinearProgress, Avatar, Chip } from "@mui/material";
 import { DirectionsCar, Star, Phone, Message, Cancel, CheckCircle } from "@mui/icons-material";
-import { useRide } from "../../context/RideContext";
+import { useRide } from "../../contexts/RideContext";
 import { FadeInCard, premiumButtonStyles, SuccessAnimation } from "./Animations";
 import { RideCardSkeleton } from "./SkeletonLoaders";
 import { normalizeStatusForDisplay, getStatusLabel, getStatusColor } from "../../utils/statusMapping";

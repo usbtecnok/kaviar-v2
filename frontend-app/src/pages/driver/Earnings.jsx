@@ -19,7 +19,7 @@ import {
   AccessTime
 } from '@mui/icons-material';
 import Layout from '../../components/common/Layout';
-import { useDriver } from '../../context/DriverContext';
+import { useDriver } from '../../contexts/DriverContext';
 
 const DriverEarnings = () => {
   const { driverEarnings } = useDriver();
