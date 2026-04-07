@@ -46,9 +46,15 @@ export class DispatcherService {
     }
 
     // Buscar candidatos
-    const candidates = await this.findCandidates(ride);
+    const allCandidates = await this.findCandidates(ride);
+
+    // Excluir motoristas que já receberam oferta para esta corrida (expired/rejected)
+    const excludedDriverIds = new Set(
+      ride.offers.filter((o: any) => o.status === 'expired' || o.status === 'rejected').map((o: any) => o.driver_id)
+    );
+    const candidates = allCandidates.filter(c => !excludedDriverIds.has(c.driver_id));
     
-    console.log(`[DISPATCH_CANDIDATES] ride_id=${rideId} attempt=${attemptCount + 1} candidates=${candidates.length} top3=${JSON.stringify(candidates.slice(0, 3))}`);
+    console.log(`[DISPATCH_CANDIDATES] ride_id=${rideId} attempt=${attemptCount + 1} candidates=${candidates.length} excluded=${excludedDriverIds.size} top3=${JSON.stringify(candidates.slice(0, 3))}`);
 
     if (candidates.length === 0) {
       console.log(`[DISPATCHER] No candidates for ride ${rideId}, setting no_driver`);
