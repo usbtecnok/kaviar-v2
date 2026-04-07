@@ -341,6 +341,13 @@ router.post('/:ride_id/start', requireDriver, async (req: Request, res: Response
 
     console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=in_progress driver_id=${driverId}`);
 
+    // SSE: notificar passageiro imediatamente
+    realTimeService.emitToRide(ride_id, {
+      type: 'ride.status.changed',
+      status: 'in_progress',
+      timestamp: new Date().toISOString()
+    });
+
     // WhatsApp: notificar passageiro que corrida iniciou
     try {
       const passenger = await prisma.passengers.findUnique({ where: { id: ride.passenger_id }, select: { phone: true, name: true } });
