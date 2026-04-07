@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { uniqueCode, normalizePhone } from '../utils/referral';
+import { whatsappEvents } from '../modules/whatsapp';
+import { WHATSAPP_ENV } from '../modules/whatsapp/whatsapp-client';
+import { WHATSAPP_TEMPLATES } from '../modules/whatsapp/whatsapp-templates';
 
 const router = Router();
 const allowLeadAccess = [authenticateAdmin, requireRole(['SUPER_ADMIN', 'LEAD_AGENT', 'ANGEL_VIEWER'])];
@@ -183,7 +186,7 @@ router.get('/consultant-leads', ...allowLeadAccess, async (req: Request, res: Re
     const where = admin.role === 'LEAD_AGENT' ? { assigned_to: admin.id } : {};
     const leads = await prisma.consultant_leads.findMany({
       where,
-      include: { referral_agent: { select: { id: true, name: true, referral_code: true, phone: true } } },
+      include: { referral_agent: { select: { id: true, name: true, referral_code: true, phone: true, welcome_sent_at: true, welcome_sent_status: true } } },
       orderBy: { created_at: 'desc' },
     });
     return res.json({ success: true, data: leads });
@@ -248,6 +251,34 @@ router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, r
           where: { id: lead.id },
           data: { referral_agent_id: agent.id },
         });
+
+        // Auto-send welcome WhatsApp (fire-and-forget, non-blocking)
+        if (!agent.welcome_sent_at) {
+          let welcomeStatus = 'failed';
+          try {
+            if (!WHATSAPP_ENV.enabled) {
+              welcomeStatus = 'skipped_disabled';
+            } else if (!WHATSAPP_TEMPLATES.kaviar_consultant_welcome_v1) {
+              welcomeStatus = 'skipped_no_template';
+            } else {
+              const link = `https://kaviar.com.br/consultor/${agent.referral_code}`;
+              await whatsappEvents.consultantWelcome(`+55${agent.phone}`, {
+                '1': agent.name,
+                '2': link,
+                '3': agent.referral_code,
+              });
+              welcomeStatus = 'sent';
+            }
+          } catch (waErr) {
+            console.error(`[LEAD_CONVERTED] WhatsApp send failed for agent=${agent.id}:`, waErr);
+            welcomeStatus = 'failed';
+          }
+          await prisma.referral_agents.update({
+            where: { id: agent.id },
+            data: { welcome_sent_at: new Date(), welcome_sent_status: welcomeStatus },
+          });
+          console.log(`[LEAD_CONVERTED] welcome_sent_status=${welcomeStatus} agent=${agent.id}`);
+        }
       } catch (err) {
         console.error(`[LEAD_CONVERTED] failed to create/link referral_agent for lead=${lead.id}:`, err);
         // Non-blocking: conversion already saved, agent creation is best-effort
@@ -261,7 +292,7 @@ router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, r
     // Re-fetch with referral_agent data for frontend
     const updated = await prisma.consultant_leads.findUnique({
       where: { id: lead.id },
-      include: { referral_agent: { select: { id: true, name: true, referral_code: true, phone: true } } },
+      include: { referral_agent: { select: { id: true, name: true, referral_code: true, phone: true, welcome_sent_at: true, welcome_sent_status: true } } },
     });
 
     return res.json({ success: true, data: updated });

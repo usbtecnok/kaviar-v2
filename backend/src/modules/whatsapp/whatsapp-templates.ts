@@ -13,6 +13,7 @@ export const WHATSAPP_TEMPLATES = {
   kaviar_invites_investor_v1: process.env.TWILIO_TEMPLATE_INVITE_INVESTOR || "",
   kaviar_rides_driver_arrived_v1: "HX1ec498822ddee9172cbdddafb53d3dc8",
   kaviar_payment_receipt_v1: "HXb1cf76a5d9693227510cca86728884ca",
+  kaviar_consultant_welcome_v1: process.env.TWILIO_TEMPLATE_CONSULTANT_WELCOME || "",
   copy_kaviar_auth_password_reset_v1: "HX514417adf01e3725e58c93beaa245b5c",
   copy_kaviar_auth_verification_code_v1: "HX4023e87b9f17b542c8a02d0e939a0a91",
 } as const;

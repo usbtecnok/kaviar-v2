@@ -59,6 +59,10 @@ export class WhatsAppEvents {
     return this.wa.sendTemplate({ to, template: "kaviar_payment_receipt_v1", variables: vars });
   }
 
+  consultantWelcome(to: string, vars: Record<string, any>) {
+    return this.wa.sendTemplate({ to, template: "kaviar_consultant_welcome_v1", variables: vars });
+  }
+
   authPasswordReset(to: string, vars: Record<string, any>) {
     return this.wa.sendTemplate({ to, template: "copy_kaviar_auth_password_reset_v1", variables: vars });
   }

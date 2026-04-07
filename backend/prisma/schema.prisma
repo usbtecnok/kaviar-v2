@@ -878,6 +878,8 @@ model referral_agents {
   is_active           Boolean            @default(true)
   terms_accepted_at   DateTime?
   terms_accepted_ip   String?
+  welcome_sent_at     DateTime?
+  welcome_sent_status String?   // sent, skipped_disabled, skipped_no_template, failed
   created_at          DateTime           @default(now())
   updated_at          DateTime           @updatedAt
   referrals           referrals[]

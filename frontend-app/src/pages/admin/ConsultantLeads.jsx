@@ -82,6 +82,15 @@ export default function ConsultantLeads() {
                     {lead.referral_agent?.referral_code && (
                       <Box sx={{ bgcolor: '#111', borderRadius: 2, p: 1.5, mt: 1.5, border: '1px solid #FFD700', textAlign: 'center' }}>
                         <Chip label={lead.referral_agent.referral_code} size="small" sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, fontFamily: 'monospace', fontSize: 13 }} />
+                        {lead.referral_agent.welcome_sent_status && (
+                          <Typography sx={{ fontSize: 10, mt: 0.5, color:
+                            lead.referral_agent.welcome_sent_status === 'sent' ? '#66BB6A' :
+                            lead.referral_agent.welcome_sent_status === 'failed' ? '#f44336' : '#888' }}>
+                            {lead.referral_agent.welcome_sent_status === 'sent' ? '✅ Link enviado automaticamente' :
+                             lead.referral_agent.welcome_sent_status === 'failed' ? '❌ Falha no envio automático' :
+                             '⏳ Envio automático indisponível'}
+                          </Typography>
+                        )}
                         <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', mt: 1 }}>
                           <Tooltip title="Copiar link do consultor">
                             <IconButton size="small" sx={{ color: '#FFD700' }}
