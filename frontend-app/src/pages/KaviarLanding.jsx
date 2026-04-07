@@ -76,21 +76,31 @@ export default function KaviarLanding() {
       {/* ─── Header ─── */}
       <Box sx={sx.header}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 3, md: 5 }, py: 2.5 }}>
-          <Box component={Link} to="/" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', bgcolor: 'rgba(10,10,10,0.6)', border: '1px solid rgba(212,175,55,0.18)', borderRadius: 3, px: 3.5, py: 1.5, boxShadow: '0 0 50px rgba(212,175,55,0.1), 0 0 15px rgba(212,175,55,0.04), 0 1px 3px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
-            <Typography sx={{
-              fontSize: 30,
-              fontFamily: '"Cormorant Garamond", "Playfair Display", "Georgia", serif',
-              fontWeight: 600,
-              letterSpacing: '0.22em',
-              color: 'transparent',
-              background: 'linear-gradient(170deg, #FFF8DC 0%, #F5D76E 18%, #D4AF37 38%, #C5A028 50%, #D4AF37 62%, #F5D76E 82%, #FFF8DC 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              lineHeight: 1,
-              filter: 'drop-shadow(0 0 6px rgba(212,175,55,0.25)) drop-shadow(0 1px 2px rgba(0,0,0,0.4))',
-            }}>KAVIAR</Typography>
-            <Typography sx={{ fontSize: 8.5, letterSpacing: '0.35em', color: 'rgba(212,175,55,0.32)', mt: 0.7, textTransform: 'uppercase', fontWeight: 500, fontFamily: '"Inter", "Helvetica Neue", sans-serif' }}>Mobilidade local brasileira</Typography>
+          <Box component={Link} to="/" sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textDecoration: 'none', position: 'relative' }}>
+            {/* Outer glow */}
+            <Box sx={{ position: 'absolute', inset: '-14px -20px', borderRadius: '34px', background: 'radial-gradient(circle at left, rgba(212,175,55,0.22), transparent 58%)', filter: 'blur(22px)', zIndex: 0 }} />
+            {/* Container */}
+            <Box sx={{ position: 'relative', zIndex: 1, borderRadius: '28px', border: '1px solid rgba(212,175,55,0.22)', background: 'linear-gradient(180deg, #0d0d0d 0%, #090909 45%, #050505 100%)', px: 3.5, py: 2, boxShadow: '0 0 0 1px rgba(255,255,255,0.03), 0 18px 50px rgba(0,0,0,0.45), 0 0 32px rgba(212,175,55,0.10)', overflow: 'hidden' }}>
+              {/* Top highlight line */}
+              <Box sx={{ position: 'absolute', left: 24, right: 24, top: 0, height: '1px', background: 'linear-gradient(to right, transparent, rgba(246,222,139,0.65), transparent)', pointerEvents: 'none' }} />
+              {/* Specular streak */}
+              <Box sx={{ position: 'absolute', left: 32, top: 12, width: 80, height: 2, transform: 'rotate(-8deg)', background: 'linear-gradient(to right, transparent, rgba(255,255,255,0.45), transparent)', filter: 'blur(1px)', pointerEvents: 'none' }} />
+              <Typography sx={{
+                fontSize: 30,
+                fontFamily: '"Cormorant Garamond", "Playfair Display", "Georgia", serif',
+                fontWeight: 600,
+                letterSpacing: '0.34em',
+                lineHeight: 1,
+                color: 'transparent',
+                backgroundImage: 'linear-gradient(180deg, #fff3bf 0%, #f3d57a 18%, #d4af37 42%, #fff1a8 52%, #b88913 78%, #f0cf67 100%)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                WebkitTextStroke: '0.35px rgba(255,235,170,0.18)',
+                filter: 'drop-shadow(0 0 10px rgba(212,175,55,0.18)) drop-shadow(0 0 18px rgba(212,175,55,0.10))',
+              }}>KAVIAR</Typography>
+              <Typography sx={{ mt: 1, fontSize: 9, letterSpacing: '0.22em', color: 'rgba(200,169,74,0.75)', textTransform: 'uppercase', fontWeight: 500, fontFamily: '"Inter", "Helvetica Neue", sans-serif' }}>Mobilidade local brasileira</Typography>
+            </Box>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
             {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#downloads', 'Downloads']].map(([href, label]) => (
