@@ -76,11 +76,9 @@ export default function KaviarLanding() {
       {/* ─── Header ─── */}
       <Box sx={sx.header}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: { xs: 3, md: 5 }, py: 2.5 }}>
-          <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 2.5, textDecoration: 'none' }}>
-            <Box sx={{ bgcolor: '#0a0a0a', borderRadius: 3, p: '6px', border: `1px solid ${gold}30`, boxShadow: `0 0 24px rgba(212,175,55,0.12), 0 2px 8px rgba(0,0,0,0.4)` }}>
-              <img src="/kaviar-logo-oficial.png" alt="KAVIAR" style={{ height: 56, width: 'auto', display: 'block', borderRadius: 8 }} />
-            </Box>
-            <Typography sx={{ fontSize: 28, letterSpacing: '0.25em', color: gold, textTransform: 'uppercase', fontWeight: 800, textShadow: '0 0 20px rgba(212,175,55,0.15)' }}>KAVIAR</Typography>
+          <Box component={Link} to="/" sx={{ display: 'flex', flexDirection: 'column', textDecoration: 'none', bgcolor: 'rgba(255,255,255,0.02)', border: `1px solid ${gold}18`, borderRadius: 3, px: 3, py: 1.2, boxShadow: '0 0 28px rgba(212,175,55,0.06), 0 1px 4px rgba(0,0,0,0.3)' }}>
+            <Typography sx={{ fontSize: 26, letterSpacing: '0.32em', color: gold, fontWeight: 700, lineHeight: 1 }}>KAVIAR</Typography>
+            <Typography sx={{ fontSize: 10, letterSpacing: '0.18em', color: 'rgba(212,175,55,0.45)', mt: 0.5, textTransform: 'uppercase', fontWeight: 500 }}>Mobilidade local brasileira</Typography>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
             {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#downloads', 'Downloads']].map(([href, label]) => (
