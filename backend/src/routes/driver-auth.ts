@@ -137,32 +137,22 @@ router.post('/driver/login', async (req, res) => {
     const { email, password } = driverLoginSchema.parse(req.body);
     const normalizedEmail = email.trim().toLowerCase();
 
-    console.log(`[LOGIN] Tentativa de login: ${normalizedEmail}`);
-
     const driver = await prisma.drivers.findFirst({
       where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
     });
 
     if (!driver || !driver.password_hash) {
-      console.log(`[LOGIN] Driver não encontrado ou sem password_hash: ${email}`);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
-
-    console.log(`[LOGIN] Driver encontrado: ${driver.id}, status: ${driver.status}`);
-    console.log(`[LOGIN] Hash no banco: ${driver.password_hash.substring(0, 20)}...`);
 
     const isValid = await bcrypt.compare(password, driver.password_hash);
-    console.log(`[LOGIN] bcrypt.compare result: ${isValid}`);
 
     if (!isValid) {
-      console.log(`[LOGIN] Senha inválida para: ${email}`);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
-    // ✅ MODO KAVIAR: Autenticação permite pending, autorização restringe funcionalidades
     // Apenas bloqueia rejected/suspended
     if (['rejected', 'suspended'].includes(driver.status)) {
-      console.log(`[LOGIN] Status bloqueado: ${driver.status}`);
       return res.status(403).json({ error: 'Conta suspensa ou rejeitada' });
     }
 
@@ -171,13 +161,11 @@ router.post('/driver/login', async (req, res) => {
         userId: driver.id, 
         userType: 'DRIVER', 
         email: driver.email,
-        status: driver.status // ✅ JWT carrega status
+        status: driver.status
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
-
-    console.log(`[LOGIN] Login bem-sucedido: ${email}`);
 
     res.json({
       token,
@@ -204,14 +192,12 @@ router.post('/driver/set-password', async (req, res) => {
   try {
     const { email, password } = driverSetPasswordSchema.parse(req.body);
     const normalizedEmail = email.trim().toLowerCase();
-    console.log(`[SET-PASSWORD] Email: ${normalizedEmail}`);
 
     const driver = await prisma.drivers.findFirst({
       where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
     });
 
     if (!driver) {
-      console.log(`[SET-PASSWORD] Driver não encontrado: ${normalizedEmail}`);
       return res.status(404).json({ success: false, error: 'Email não encontrado. Verifique o email digitado.' });
     }
 
@@ -222,10 +208,9 @@ router.post('/driver/set-password', async (req, res) => {
       data: { password_hash }
     });
 
-    console.log(`[SET-PASSWORD] Hash atualizado para: ${normalizedEmail}`);
     res.json({ success: true, message: 'Senha atualizada com sucesso' });
   } catch (error) {
-    console.log(`[SET-PASSWORD] Erro:`, error);
+    console.error('[SET-PASSWORD] Erro:', error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.errors[0].message });
     }

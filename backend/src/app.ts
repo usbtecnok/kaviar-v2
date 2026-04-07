@@ -68,10 +68,9 @@ app.use(requestIdMiddleware);
 // ✅ Structured logging (segundo middleware)
 app.use(structuredLogger);
 
-// ✅ CORS - Manual headers BEFORE any middleware
+// CORS
 app.use((req, res, next) => {
   const origin = req.headers.origin as string | undefined;
-  console.log(`🔍 CORS middleware: ${req.method} ${req.path} | Origin: ${origin}`);
 
   const allowedOrigins = new Set([
     'https://app.kaviar.com.br',
@@ -83,25 +82,16 @@ app.use((req, res, next) => {
     'http://localhost:4174',
   ]);
 
-  // ✅ evita cache/proxy devolver preflight errado sem ACAO
   res.header('Vary', 'Origin');
-  console.log(`📤 Set Vary: Origin`);
 
-  // ✅ Healthcheck ALB sem Origin (server-to-server) deve passar
-  if (!origin && (req.path === '/api/health' || req.originalUrl?.startsWith('/api/health'))) {
-    return next();
-  }
-
-  // ✅ Requests sem Origin (server-to-server) devem ser permitidos
+  // Healthcheck ALB e requests server-to-server (sem Origin)
   if (!origin) {
     return next();
   }
 
   if (allowedOrigins.has(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
-    console.log(`✅ Set Access-Control-Allow-Origin: ${origin}`);
   } else {
-    console.log(`❌ Origin not allowed: ${origin}`);
     return res.status(403).json({ success: false, error: 'CORS origin not allowed' });
   }
 
@@ -111,7 +101,6 @@ app.use((req, res, next) => {
   res.header('Access-Control-Max-Age', '600');
 
   if (req.method === 'OPTIONS') {
-    console.log(`🔚 Responding to OPTIONS with 204`);
     return res.status(204).send('');
   }
 
@@ -189,7 +178,6 @@ app.get('/api/health/ready', async (req, res) => {
 });
 
 // Core routes (always enabled)
-console.log('📍 Mounting core routes...');
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin/auth', passwordResetRoutes);
 
@@ -200,71 +188,53 @@ app.use('/api/admin/investors', investorInvitesRoutes);
 // Demo Mode / Investor View Middleware (read-only)
 app.use('/api', investorView);
 
-app.use('/api/admin/dashboard', dashboardRoutes); // ✅ Dashboard overview
-app.use('/api/match', matchRoutes); // ✅ Territorial match system
-app.use('/api/admin', adminApprovalRoutes); // ✅ FONTE ÚNICA: drivers
+app.use('/api/admin/dashboard', dashboardRoutes);
+app.use('/api/match', matchRoutes);
+app.use('/api/admin', adminApprovalRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/admin', adminDriversRoutes); // ✅ Driver details + documents
-app.use('/api/admin', adminPresignRoutes); // ✅ Presigned URLs for S3 documents
-app.use('/api/admin/dashboard', adminDashboardMetricsRoutes); // ✅ Real-time metrics
-app.use('/api/admin/community-leaders', communityLeadersRoutes); // ✅ Community leaders management
-app.use('/api', complianceRoutes); // ✅ Compliance routes (driver + admin)
+app.use('/api/admin', adminDriversRoutes);
+app.use('/api/admin', adminPresignRoutes);
+app.use('/api/admin/dashboard', adminDashboardMetricsRoutes);
+app.use('/api/admin/community-leaders', communityLeadersRoutes);
+app.use('/api', complianceRoutes);
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/drivers', driversRoutes);
-app.use('/api/drivers', driverDashboardRoutes); // ✅ Driver dashboard
-app.use('/api/drivers', driverTerritoryRoutes); // ✅ Territory & badges
-app.use('/api/drivers', notificationsRoutes); // ✅ Notifications
-app.use('/api/drivers', driverEarningsRoutes); // ✅ Earnings report
-app.use('/api/drivers', driverAvailabilityRoutes); // ✅ Availability toggle
-app.use('/api/neighborhoods', neighborhoodsSmartRoutes); // ✅ Smart neighborhood list
-app.use('/api/passengers', passengerLocationsRoutes); // ✅ Frequent locations
-app.use('/api/passengers', passengerProfileRoutes); // ✅ Profile management
-app.use('/api/passenger', passengerFavoritesRoutes); // ✅ Favorite locations (beta)
-app.use('/api/passenger/onboarding', passengerOnboardingRoutes); // ✅ GPS-first onboarding
-app.use('/api/driver', driverOnboardingRoutes); // ✅ Driver onboarding (public)
-app.use('/api/trips', feeCalculationRoutes); // ✅ Fee calculation system
-app.use('/api', neighborhoodStatsRoutes); // ✅ Neighborhood stats & ranking
-app.use('/api/rides', passengerRidesRoutes); // ✅ Passenger ride actions
-app.use('/api/admin', adminAuditRoutes); // ✅ Audit logs
-app.use('/api/temp', rolloutRoutes); // 🔧 TEMPORARY - Phase 2 rollout
-console.log('✅ Core routes mounted:');
-console.log('   - /api/admin/auth/*');
-console.log('   - /api/admin/dashboard/* (overview)');
-console.log('   - /api/match/* (territorial match system)');
-console.log('   - /api/admin/drivers/* (approval + details + documents)');
-console.log('   - /api/admin/compliance/* (documents pending/expiring/approve/reject)');
-console.log('   - /api/drivers/me/compliance/* (driver compliance)');
-console.log('   - /api/drivers/*');
-console.log('   - /api/drivers/:id/dashboard (driver stats)');
-console.log('   - /api/ratings/*');
-console.log('   - /api/trips/* (fee calculation)');
+app.use('/api/drivers', driverDashboardRoutes);
+app.use('/api/drivers', driverTerritoryRoutes);
+app.use('/api/drivers', notificationsRoutes);
+app.use('/api/drivers', driverEarningsRoutes);
+app.use('/api/drivers', driverAvailabilityRoutes);
+app.use('/api/neighborhoods', neighborhoodsSmartRoutes);
+app.use('/api/passengers', passengerLocationsRoutes);
+app.use('/api/passengers', passengerProfileRoutes);
+app.use('/api/passenger', passengerFavoritesRoutes);
+app.use('/api/passenger/onboarding', passengerOnboardingRoutes);
+app.use('/api/driver', driverOnboardingRoutes);
+app.use('/api/trips', feeCalculationRoutes);
+app.use('/api', neighborhoodStatsRoutes);
+app.use('/api/rides', passengerRidesRoutes);
+app.use('/api/admin', adminAuditRoutes);
+app.use('/api/temp', rolloutRoutes);
 
-// Feature-based route mounting with logging
-console.log('🚀 Mounting routes based on feature flags:');
+// Feature-based routes
 
 // Integrations (Twilio/WhatsApp) - Default ON
 if (config.integrations.enableTwilioWhatsapp) {
   app.use('/webhooks', integrationsRoutes);
-  console.log('✅ Integrations: /webhooks/* (Twilio WhatsApp)');
-} else {
-  console.log('❌ Integrations: DISABLED');
 }
 
 // Premium Tourism
 if (config.premiumTourism.enablePremiumTourism) {
   app.use('/api', premiumTourismRoutes);
-  console.log('✅ Premium Tourism: /api/admin/tour-*, /api/governance/tour-*');
-} else {
-  console.log('❌ Premium Tourism: DISABLED');
 }
 
-// Geo routes
-app.use('/api/public', publicRoutes); // ✅ Public endpoints (no auth)
-app.use('/api/public', consultantLeadsRoutes); // ✅ Consultant leads (public POST)
-app.use('/api/admin', consultantLeadsRoutes); // ✅ Consultant leads (admin GET/PATCH)
-app.use('/api/admin/staff', adminStaffRoutes); // ✅ Staff CRUD (SUPER_ADMIN only)
-app.use('/api/admin', adminReferralRoutes); // ✅ Referral system (SUPER_ADMIN only)
-app.use('/api/public', adminReferralRoutes); // ✅ Referral public (validate code)
+// Public + admin routes
+app.use('/api/public', publicRoutes);
+app.use('/api/public', consultantLeadsRoutes);
+app.use('/api/admin', consultantLeadsRoutes);
+app.use('/api/admin/staff', adminStaffRoutes);
+app.use('/api/admin', adminReferralRoutes);
+app.use('/api/public', adminReferralRoutes);
 app.use('/api/geo', geoRoutes);
 app.use('/api/rides', ridesRoutes);
 app.use('/api/governance', governanceRoutes);
@@ -272,22 +242,15 @@ app.use('/api/auth', passengerAuthRoutes);
 app.use('/api/auth', driverAuthRoutes);
 app.use('/api/auth', guideAuthRoutes);
 
-// SPEC_RIDE_FLOW_V1 routes
+// V2 routes
 app.use('/api/v2/rides', ridesV2Routes);
 app.use('/api/v2/drivers', driversV2Routes);
 import geoProxyRoutes from './routes/geo-proxy';
 app.use('/api/geo-proxy', geoProxyRoutes);
 app.use('/api/realtime', realtimeRoutes);
-console.log('✅ SPEC_RIDE_FLOW_V1: /api/v2/rides/*, /api/v2/drivers/*, /api/realtime/*');
 
-console.log('✅ Geo: /api/public/*, /api/geo/*, /api/rides/*, /api/governance/*, /api/auth/*');
-
-console.log('✅ Core: Pricing & Rides enabled');
-
-// Feature disabled handler for disabled routes
+// Feature disabled handler
 app.use((req, res, next) => {
-  console.log(`Request: ${req.method} ${req.path}`);
-  
   if (req.path.startsWith('/webhooks') && !config.integrations.enableTwilioWhatsapp) {
     return res.status(404).json({
       error: 'FEATURE_DISABLED',
@@ -298,12 +261,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ Serve uploaded files (must be BEFORE 404 handler)
+// Serve uploaded files (must be BEFORE 404 handler)
 const { uploadsBaseDir } = getUploadsPaths();
 app.use('/uploads', express.static(uploadsBaseDir));
-console.log(`✅ Static files: /uploads -> ${uploadsBaseDir}`);
 
-// ✅ S3 presigned URL endpoint (fallback for files not found locally)
+// S3 presigned URL endpoint (fallback for files not found locally)
 import { getPresignedUrl, extractS3Key } from './config/s3-upload';
 
 app.get('/uploads/*', async (req, res, next) => {
