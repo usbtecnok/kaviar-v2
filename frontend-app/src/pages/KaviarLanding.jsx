@@ -119,7 +119,7 @@ export default function KaviarLanding() {
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1.15fr 0.85fr' }, gap: 6, alignItems: 'center' }}>
           <Box>
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, borderRadius: 5, border: `1px solid ${gold}25`, bgcolor: `${gold}15`, px: 2, py: 0.8, mb: 3 }}>
-              <Typography sx={{ fontSize: 11, fontWeight: 500, color: goldLight }}>Plataforma brasileira • foco em comunidade • expansão local</Typography>
+              <Typography sx={{ fontSize: 11, fontWeight: 500, color: goldLight }}>Plataforma brasileira • mobilidade local • confiança para o dia e para a noite</Typography>
             </Box>
 
             <Typography variant="h2" sx={{ fontWeight: 600, lineHeight: 1.05, letterSpacing: '-0.02em', fontSize: { xs: '2.2rem', md: '3.5rem' } }}>
