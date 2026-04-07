@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Container, Typography, Box, Card, CardContent, Grid, Chip, IconButton, TextField, CircularProgress, Alert } from '@mui/material';
-import { Phone, CheckCircle, Close, ChatBubble } from '@mui/icons-material';
+import { Container, Typography, Box, Card, CardContent, Grid, Chip, IconButton, TextField, CircularProgress, Alert, Button, Tooltip } from '@mui/material';
+import { Phone, CheckCircle, Close, ChatBubble, ContentCopy, Share } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const STATUS_MAP = {
@@ -79,6 +79,28 @@ export default function ConsultantLeads() {
                     <Typography variant="caption" sx={{ color: '#888' }}>
                       {new Date(lead.created_at).toLocaleString('pt-BR')} · via {lead.source}
                     </Typography>
+                    {lead.referral_agent?.referral_code && (
+                      <Box sx={{ bgcolor: '#111', borderRadius: 2, p: 1.5, mt: 1.5, border: '1px solid #FFD700', textAlign: 'center' }}>
+                        <Chip label={lead.referral_agent.referral_code} size="small" sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, fontFamily: 'monospace', fontSize: 13 }} />
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', mt: 1 }}>
+                          <Tooltip title="Copiar link">
+                            <IconButton size="small" sx={{ color: '#FFD700' }}
+                              onClick={() => navigator.clipboard.writeText(`https://kaviar.com.br/motorista?ref=${lead.referral_agent.referral_code}`)}>
+                              <ContentCopy sx={{ fontSize: 14 }} />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Compartilhar via WhatsApp">
+                            <IconButton size="small" sx={{ color: '#25D366' }}
+                              onClick={() => {
+                                const text = `Seja motorista KAVIAR! 🚗\n\nCadastre-se usando o código: ${lead.referral_agent.referral_code}\nLink: https://kaviar.com.br/motorista?ref=${lead.referral_agent.referral_code}`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                              }}>
+                              <Share sx={{ fontSize: 14 }} />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    )}
                     <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
                       <IconButton size="small" title="Marcar contatado" sx={{ color: '#4FC3F7' }}
                         onClick={() => updateLead(lead.id, { status: 'contacted' })}>

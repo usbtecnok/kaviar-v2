@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
+import { uniqueCode, normalizePhone } from '../utils/referral';
 
 const router = Router();
 const allowLeadAccess = [authenticateAdmin, requireRole(['SUPER_ADMIN', 'LEAD_AGENT', 'ANGEL_VIEWER'])];
@@ -182,6 +183,7 @@ router.get('/consultant-leads', ...allowLeadAccess, async (req: Request, res: Re
     const where = admin.role === 'LEAD_AGENT' ? { assigned_to: admin.id } : {};
     const leads = await prisma.consultant_leads.findMany({
       where,
+      include: { referral_agent: { select: { id: true, name: true, referral_code: true, phone: true } } },
       orderBy: { created_at: 'desc' },
     });
     return res.json({ success: true, data: leads });
@@ -222,11 +224,47 @@ router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, r
       data,
     });
 
+    // Auto-create referral_agent on conversion
+    if (status === 'converted' && !lead.referral_agent_id) {
+      try {
+        const phone = normalizePhone(lead.phone);
+        let agent = await prisma.referral_agents.findUnique({ where: { phone } });
+        if (!agent) {
+          agent = await prisma.referral_agents.create({
+            data: { name: lead.name, phone, referral_code: await uniqueCode(lead.name) },
+          });
+          console.log(`[LEAD_CONVERTED] created referral_agent id=${agent.id} code=${agent.referral_code} for lead=${lead.id}`);
+        } else {
+          // Ensure existing agent has a code
+          if (!agent.referral_code) {
+            agent = await prisma.referral_agents.update({
+              where: { id: agent.id },
+              data: { referral_code: await uniqueCode(agent.name) },
+            });
+          }
+          console.log(`[LEAD_CONVERTED] linked existing referral_agent id=${agent.id} code=${agent.referral_code} for lead=${lead.id}`);
+        }
+        await prisma.consultant_leads.update({
+          where: { id: lead.id },
+          data: { referral_agent_id: agent.id },
+        });
+      } catch (err) {
+        console.error(`[LEAD_CONVERTED] failed to create/link referral_agent for lead=${lead.id}:`, err);
+        // Non-blocking: conversion already saved, agent creation is best-effort
+      }
+    }
+
     if (assigned_to !== undefined) {
       console.log(`[LEAD_REASSIGNED] id=${lead.id} assigned_to=${assigned_to || 'UNASSIGNED'}`);
     }
 
-    return res.json({ success: true, data: lead });
+    // Re-fetch with referral_agent data for frontend
+    const updated = await prisma.consultant_leads.findUnique({
+      where: { id: lead.id },
+      include: { referral_agent: { select: { id: true, name: true, referral_code: true, phone: true } } },
+    });
+
+    return res.json({ success: true, data: updated });
   } catch (err) {
     console.error('[CONSULTANT_LEADS] update error:', err);
     return res.status(500).json({ success: false, error: 'Erro ao atualizar lead' });

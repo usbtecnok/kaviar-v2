@@ -1,24 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin, allowFinanceAccess } from '../middlewares/auth';
+import { uniqueCode, normalizePhone } from '../utils/referral';
 
 const router = Router();
-
-// === CODE GENERATION ===
-const CHARS = '0123456789ABCDEFGHJKMNPQRSTUVWXYZ'; // no O/I/L
-function generateCode(name: string): string {
-  const prefix = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
-  const suffix = Array.from({ length: 4 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
-  return prefix + suffix;
-}
-async function uniqueCode(name: string): Promise<string> {
-  for (let i = 0; i < 10; i++) {
-    const code = generateCode(name);
-    const exists = await prisma.referral_agents.findFirst({ where: { referral_code: code } });
-    if (!exists) return code;
-  }
-  throw new Error('Failed to generate unique referral code');
-}
 
 // === PUBLIC ROUTES (no auth) ===
 
@@ -61,7 +46,8 @@ router.get('/referral-agents', ...financeAuth, async (_req: Request, res: Respon
 // POST /api/admin/referral-agents — SUPER_ADMIN only (operação comercial)
 router.post('/referral-agents', ...superAuth, async (req: Request, res: Response) => {
   try {
-    const { name, phone, email, pix_key, pix_key_type } = req.body;
+    const { name, email, pix_key, pix_key_type } = req.body;
+    const phone = req.body.phone ? normalizePhone(req.body.phone) : '';
     if (!name || !phone) return res.status(400).json({ success: false, error: 'Nome e telefone obrigatórios' });
 
     const existing = await prisma.referral_agents.findUnique({ where: { phone } });
