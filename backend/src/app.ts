@@ -245,6 +245,10 @@ app.use('/api/auth', guideAuthRoutes);
 // V2 routes
 app.use('/api/v2/rides', ridesV2Routes);
 app.use('/api/v2/drivers', driversV2Routes);
+import driverCreditsPurchaseRoutes from './routes/driver-credits-purchase';
+app.use('/api/v2/drivers', driverCreditsPurchaseRoutes);
+import webhooksAsaasRoutes from './routes/webhooks-asaas';
+app.use('/api/webhooks', webhooksAsaasRoutes);
 import geoProxyRoutes from './routes/geo-proxy';
 app.use('/api/geo-proxy', geoProxyRoutes);
 app.use('/api/realtime', realtimeRoutes);
