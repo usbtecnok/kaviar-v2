@@ -55,6 +55,21 @@ export const driverApi = {
     return data.data;
   },
 
+  getCreditPackages: async (): Promise<{ id: string; credits: number; price: number; priceCents: number }[]> => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/credits/packages');
+    return data.data || [];
+  },
+
+  purchaseCredits: async (packageId: string) => {
+    const { data } = await apiClient.post('/api/v2/drivers/me/credits/purchase', { packageId });
+    return data.data;
+  },
+
+  getCreditPurchases: async () => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/credits/purchases');
+    return data.data || [];
+  },
+
   // v1: Perfil (não tem v2 equivalente)
   getMe: async () => {
     const { data } = await apiClient.get('/api/drivers/me');
