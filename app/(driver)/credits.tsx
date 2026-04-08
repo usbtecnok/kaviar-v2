@@ -99,6 +99,14 @@ export default function DriverCredits() {
 
           <Text style={s.pixInstructions}>Abra o app do seu banco, escolha Pix e cole o código ou escaneie o QR Code acima.</Text>
 
+          <View style={s.pixInfoBox}>
+            <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.pixInfoMain}>Os créditos entram automaticamente após a confirmação do pagamento.</Text>
+              <Text style={s.pixInfoSub}>Após o Pix ser confirmado, seu saldo será atualizado no app.</Text>
+            </View>
+          </View>
+
           <TouchableOpacity style={s.doneBtn} onPress={handlePixDone}>
             <Text style={s.doneBtnText}>Já paguei</Text>
           </TouchableOpacity>
@@ -208,4 +216,7 @@ const s = StyleSheet.create({
   doneBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, marginTop: 20 },
   doneBtnText: { fontSize: 16, fontWeight: '700', color: '#000' },
   pixNote: { fontSize: 11, color: COLORS.textMuted, textAlign: 'center', marginTop: 12 },
+  pixInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#f0f7ff', borderRadius: 12, padding: 14, marginTop: 16, width: '100%', borderWidth: 1, borderColor: '#d6e8f7' },
+  pixInfoMain: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, lineHeight: 18 },
+  pixInfoSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3, lineHeight: 17 },
 });
