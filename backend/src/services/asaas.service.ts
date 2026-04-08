@@ -51,16 +51,27 @@ export async function createPixPayment(customerId: string, amountCents: number, 
     value: amountCents / 100,
     description,
     externalReference: externalRef,
-    dueDate: new Date(Date.now() + 30 * 60 * 1000).toISOString().split('T')[0], // today
+    dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   });
 
-  const qr = await asaasRequest('GET', `/payments/${payment.id}/pixQrCode`);
+  let qrCode = '';
+  let copyPaste = '';
+  let expirationDate = '';
+  try {
+    const qr = await asaasRequest('GET', `/payments/${payment.id}/pixQrCode`);
+    qrCode = qr.encodedImage || '';
+    copyPaste = qr.payload || '';
+    expirationDate = qr.expirationDate || '';
+  } catch (qrErr: any) {
+    console.warn(`[ASAAS] QR code unavailable for ${payment.id}: ${qrErr.message}`);
+  }
 
   return {
     paymentId: payment.id as string,
     status: payment.status as string,
-    qrCode: qr.encodedImage as string,
-    copyPaste: qr.payload as string,
-    expirationDate: qr.expirationDate as string,
+    invoiceUrl: payment.invoiceUrl as string || '',
+    qrCode,
+    copyPaste,
+    expirationDate,
   };
 }

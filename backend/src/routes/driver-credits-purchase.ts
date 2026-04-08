@@ -60,6 +60,7 @@ router.post('/me/credits/purchase', authenticateDriver, async (req: Request, res
         amountCents: priceCents,
         credits,
         pix: { qrCode: pix.qrCode, copyPaste: pix.copyPaste, expiresAt: pix.expirationDate },
+        invoiceUrl: pix.invoiceUrl,
       },
     });
   } catch (err: any) {
