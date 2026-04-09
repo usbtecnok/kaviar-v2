@@ -7,6 +7,7 @@ import { realTimeService } from '../services/realtime.service';
 import { calculateCreditCost } from '../services/credit-cost.service';
 import { applyCreditDelta } from '../services/credit.service';
 import { whatsappEvents } from '../modules/whatsapp';
+import * as pricingEngine from '../services/pricing-engine';
 import jwt from 'jsonwebtoken';
 
 const router = Router();
@@ -107,24 +108,54 @@ router.post('/', requirePassenger, async (req: Request, res: Response) => {
 
     console.log(`[RIDE_CREATED] ride_id=${ride.id} passenger_id=${passengerId} origin=[${origin.lat},${origin.lng}] dest=[${destination.lat},${destination.lng}]`);
 
-    // Resolver território da origem via geofence (não bloqueia criação)
+    // Resolver território origem + destino via geofence
+    let originNeighborhoodId: string | null = null;
+    let destNeighborhoodId: string | null = null;
     try {
-      const geoResult = await geoResolveService.resolveCoordinates(origin.lat, origin.lng);
-      if (geoResult.match && geoResult.resolvedArea) {
-        await prisma.rides_v2.update({
-          where: { id: ride.id },
-          data: { origin_neighborhood_id: geoResult.resolvedArea.id }
-        });
-        console.log(`[RIDE_GEO_RESOLVED] ride_id=${ride.id} origin_neighborhood_id=${geoResult.resolvedArea.id} name=${geoResult.resolvedArea.name}`);
+      const [originGeo, destGeo] = await Promise.all([
+        geoResolveService.resolveCoordinates(origin.lat, origin.lng),
+        geoResolveService.resolveCoordinates(destination.lat, destination.lng),
+      ]);
+      if (originGeo.match && originGeo.resolvedArea) {
+        originNeighborhoodId = originGeo.resolvedArea.id;
       }
+      if (destGeo.match && destGeo.resolvedArea) {
+        destNeighborhoodId = destGeo.resolvedArea.id;
+      }
+      await prisma.rides_v2.update({
+        where: { id: ride.id },
+        data: {
+          origin_neighborhood_id: originNeighborhoodId,
+          dest_neighborhood_id: destNeighborhoodId,
+        }
+      });
     } catch (geoErr) {
       console.error(`[RIDE_GEO_RESOLVE_FAILED] ride_id=${ride.id}`, geoErr);
+    }
+
+    // Pricing: quote + lock (V1: confirmação implícita)
+    let quoteResult: any = null;
+    try {
+      quoteResult = await pricingEngine.quote(
+        ride.id, origin.lat, origin.lng, destination.lat, destination.lng,
+        originNeighborhoodId, destNeighborhoodId
+      );
+    } catch (priceErr) {
+      console.error(`[PRICING_QUOTE_FAILED] ride_id=${ride.id}`, priceErr);
     }
 
     // Acionar dispatcher (async, não bloqueia resposta)
     setImmediate(() => dispatcherService.dispatchRide(ride.id));
 
-    res.json({ success: true, data: { ride_id: ride.id, status: ride.status } });
+    res.json({
+      success: true,
+      data: {
+        ride_id: ride.id,
+        status: ride.status,
+        quoted_price: quoteResult?.quoted_price ?? null,
+        territory: quoteResult?.route_territory ?? null,
+      }
+    });
   } catch (error: any) {
     console.error('[RIDE_CREATE_ERROR]', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -406,9 +437,17 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
       timestamp: new Date().toISOString()
     });
 
+    // Pricing: settle (fechar economia — idempotente)
+    let settlement: any = null;
+    try {
+      settlement = await pricingEngine.settle(ride_id);
+    } catch (settleErr) {
+      console.error(`[PRICING_SETTLE_FAILED] ride_id=${ride_id}`, settleErr);
+    }
+
     // WhatsApp: notificar passageiro e motorista que corrida concluiu
-    // ⚠️ SEGURADO: ativar via WA_RIDE_COMPLETE_ENABLED=true quando pricing estiver conectado
-    if (process.env.WA_RIDE_COMPLETE_ENABLED === 'true') {
+    // Usa dados do settlement (preço real) — variáveis posicionais conforme Twilio
+    if (process.env.WA_RIDE_COMPLETE_ENABLED === 'true' && settlement) {
       try {
         const [passenger, driver] = await Promise.all([
           prisma.passengers.findUnique({ where: { id: ride.passenger_id }, select: { phone: true, name: true } }),
@@ -416,46 +455,43 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
         ]);
         const pickup = ride.origin_text || 'Origem não informada';
         const dropoff = ride.destination_text || 'Destino não informado';
-        const price = (ride as any).price != null ? String((ride as any).price) : '0,00';
+        const price = String(settlement.final_price);
         if (passenger?.phone) {
+          // Template: {{1}}=passenger_name {{2}}=driver_name {{3}}=pickup {{4}}=dropoff {{5}}=price
           whatsappEvents.ridePassengerCompleted(passenger.phone, {
-            passenger_name: passenger.name || 'Passageiro',
-            driver_name: driver?.name || 'Motorista',
-            pickup,
-            dropoff,
-            price,
+            '1': passenger.name || 'Passageiro',
+            '2': driver?.name || 'Motorista',
+            '3': pickup,
+            '4': dropoff,
+            '5': price,
           }).catch((e: any) => console.error('[WA_FAIL] ridePassengerCompleted', e.message));
         }
         if (driver?.phone) {
+          // Template: {{1}}=driver_name {{2}}=pickup {{3}}=dropoff {{4}}=price {{5}}=fee_percent {{6}}=driver_earnings
           whatsappEvents.rideDriverCompleted(driver.phone, {
-            driver_name: driver.name || 'Motorista',
-            pickup,
-            dropoff,
-            price,
-            fee_percent: '0',
-            driver_earnings: price,
+            '1': driver.name || 'Motorista',
+            '2': pickup,
+            '3': dropoff,
+            '4': price,
+            '5': String(settlement.fee_percent),
+            '6': String(settlement.driver_earnings),
           }).catch((e: any) => console.error('[WA_FAIL] rideDriverCompleted', e.message));
         }
       } catch (e: any) { console.error('[WA_LOOKUP_FAIL] complete', e.message); }
     }
 
-    // Credit consumption (post-transaction, never blocks ride completion)
+    // Credit consumption via settlement (idempotente via applyCreditDelta key)
     let creditResult: { cost: number; matchType: string } | null = null;
-    if (process.env.CREDIT_CONSUME_ENABLED === 'true') {
+    if (process.env.CREDIT_CONSUME_ENABLED === 'true' && settlement) {
       try {
-        const cost = await calculateCreditCost(
-          driverId,
-          Number(ride.origin_lat), Number(ride.origin_lng),
-          Number(ride.dest_lat), Number(ride.dest_lng)
-        );
         const delta = await applyCreditDelta(
-          driverId, -cost.cost,
-          `ride:${cost.matchType}:${ride_id}`,
+          driverId, -settlement.credit_cost,
+          `ride:${settlement.credit_match_type}:${ride_id}`,
           'system',
           `ride_${ride_id}`
         );
-        creditResult = cost;
-        console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${cost.cost} type=${cost.matchType} balance=${delta.balance} alreadyProcessed=${delta.alreadyProcessed}`);
+        creditResult = { cost: settlement.credit_cost, matchType: settlement.credit_match_type };
+        console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${settlement.credit_cost} type=${settlement.credit_match_type} balance=${delta.balance} alreadyProcessed=${delta.alreadyProcessed}`);
       } catch (creditErr) {
         console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
       }

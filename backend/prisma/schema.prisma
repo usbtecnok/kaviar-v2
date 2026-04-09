@@ -796,6 +796,15 @@ model rides_v2 {
   dest_neighborhood_id   String?
   ride_type              String       @default("normal")
   idempotency_key        String?
+  // Pricing (cache operacional — fonte de verdade é ride_settlements)
+  pricing_profile_id     String?      @db.Uuid
+  quoted_price           Decimal?     @db.Decimal(8, 2)
+  locked_price           Decimal?     @db.Decimal(8, 2)
+  final_price            Decimal?     @db.Decimal(8, 2)
+  platform_fee           Decimal?     @db.Decimal(8, 2)
+  driver_earnings        Decimal?     @db.Decimal(8, 2)
+  territory_match        String?
+  // Timestamps
   requested_at           DateTime     @default(now())
   offered_at             DateTime?
   accepted_at            DateTime?
@@ -810,6 +819,7 @@ model rides_v2 {
   origin_neighborhood    neighborhoods? @relation("RideOriginV2", fields: [origin_neighborhood_id], references: [id])
   dest_neighborhood      neighborhoods? @relation("RideDestV2", fields: [dest_neighborhood_id], references: [id])
   offers                 ride_offers[]
+  settlement             ride_settlements?
 
   @@map("rides_v2")
   @@index([status])
@@ -926,4 +936,106 @@ model driver_locations {
   driver     drivers  @relation(fields: [driver_id], references: [id], onDelete: Cascade)
 
   @@index([updated_at(sort: Desc)])
+}
+
+// ─── Pricing ────────────────────────────────────────────────────────────────
+
+model pricing_profiles {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                 String   @unique
+  name                 String
+
+  // Fórmula base
+  base_fare            Decimal  @db.Decimal(8, 2)
+  per_km               Decimal  @db.Decimal(8, 2)
+  per_minute           Decimal  @db.Decimal(8, 2)
+  minimum_fare         Decimal  @db.Decimal(8, 2)
+
+  // Taxa plataforma por camada territorial
+  fee_local            Decimal  @default(7)  @db.Decimal(5, 2)
+  fee_adjacent         Decimal  @default(12) @db.Decimal(5, 2)
+  fee_external         Decimal  @default(20) @db.Decimal(5, 2)
+
+  // Custo de crédito por camada territorial
+  credit_cost_local    Int      @default(1)
+  credit_cost_external Int      @default(2)
+
+  // Raio operacional
+  max_dispatch_km      Decimal  @default(12) @db.Decimal(6, 2)
+
+  // Geometria de cobertura
+  center_lat           Decimal? @db.Decimal(10, 8)
+  center_lng           Decimal? @db.Decimal(11, 8)
+  radius_km            Decimal? @db.Decimal(8, 2)
+
+  is_default           Boolean  @default(false)
+  is_active            Boolean  @default(true)
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  settlements          ride_settlements[]
+
+  @@map("pricing_profiles")
+}
+
+model ride_settlements {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ride_id                 String   @unique
+
+  // Perfil usado (snapshot)
+  pricing_profile_id      String   @db.Uuid
+  pricing_profile_slug    String
+
+  // Território resolvido
+  origin_neighborhood_id  String?
+  origin_neighborhood     String?
+  dest_neighborhood_id    String?
+  dest_neighborhood       String?
+  driver_neighborhood_id  String?
+  driver_neighborhood     String?
+
+  // Classificação territorial (sem ambiguidade)
+  route_territory         String   // rota sem motorista
+  driver_territory        String?  // com motorista (preenchido no refine)
+  settlement_territory    String?  // usado para fee/crédito final (preenchido no settle)
+
+  // Inputs
+  distance_km             Decimal  @db.Decimal(8, 2)
+  duration_min            Decimal? @db.Decimal(8, 2)
+
+  // Parâmetros snapshot (imutável)
+  base_fare_used          Decimal  @db.Decimal(8, 2)
+  per_km_used             Decimal  @db.Decimal(8, 2)
+  per_minute_used         Decimal  @db.Decimal(8, 2)
+  minimum_fare_used       Decimal  @db.Decimal(8, 2)
+
+  // Preços (ciclo de vida)
+  quoted_price            Decimal  @db.Decimal(8, 2)
+  locked_price            Decimal  @db.Decimal(8, 2)
+  final_price             Decimal? @db.Decimal(8, 2)
+
+  // Taxa e ganho
+  fee_percent             Decimal  @db.Decimal(5, 2)
+  fee_amount              Decimal  @db.Decimal(8, 2)
+  driver_earnings         Decimal  @db.Decimal(8, 2)
+
+  // Crédito
+  credit_cost             Int?
+  credit_match_type       String?
+
+  // Timestamps
+  quoted_at               DateTime
+  locked_at               DateTime?
+  refined_at              DateTime?
+  settled_at              DateTime?
+
+  created_at              DateTime @default(now())
+
+  // Relations
+  ride                    rides_v2         @relation(fields: [ride_id], references: [id])
+  pricing_profile         pricing_profiles @relation(fields: [pricing_profile_id], references: [id])
+
+  @@index([pricing_profile_id])
+  @@index([settled_at])
+  @@map("ride_settlements")
 }

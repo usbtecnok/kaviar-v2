@@ -12,7 +12,9 @@ if (!process.env.DATABASE_URL) {
 // Remove sslmode=require da connection string pois vamos configurar SSL manualmente
 const connectionString = process.env.DATABASE_URL.replace(/[?&]sslmode=require/, '');
 
+const isLocalDb = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+
 export const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false }
+  ...(isLocalDb ? {} : { ssl: { rejectUnauthorized: false } })
 });
