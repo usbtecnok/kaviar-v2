@@ -36,6 +36,7 @@ import LeadPerformance from "../../pages/admin/LeadPerformance";
 import StaffManagement from "../../pages/admin/StaffManagement";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
 import FinancePayments from "../../pages/admin/FinancePayments";
+import CreditPurchases from "../../pages/admin/CreditPurchases";
 import { useState, useEffect } from 'react';
 
 function FinanceHomeRedirect() {
@@ -428,6 +429,23 @@ function AdminHome() {
               </CardContent>
             </Card>
           </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Analytics sx={{ fontSize: 40, color: '#FFD700', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Compras de Créditos
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Purchases, webhooks e saldos
+                </Typography>
+                <Button variant="contained" sx={{ bgcolor: '#FFD700', color: '#000' }} component={Link} to="/admin/credit-purchases">
+                  Acessar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
           
           <Grid item xs={12} sm={6} md={4}>
             <Card>
@@ -700,6 +718,21 @@ function AdminElderlyWrapper() {
   );
 }
 
+function AdminCreditPurchasesWrapper() {
+  return (
+    <Container maxWidth="lg" sx={{ mt: 2 }}>
+      <AdminHeader />
+      <DomainHeader 
+        domain="admin" 
+        title="Compras de Créditos"
+        breadcrumbs={["Compras de Créditos"]}
+        backUrl="/admin"
+      />
+      <CreditPurchases />
+    </Container>
+  );
+}
+
 export default function AdminApp() {
   return (
     <AdminErrorBoundary>
@@ -745,6 +778,11 @@ export default function AdminApp() {
           <Route path="/finance-payments" element={
             <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'FINANCE']}>
               <FinancePayments />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/credit-purchases" element={
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'FINANCE']}>
+              <AdminCreditPurchasesWrapper />
             </ProtectedAdminRoute>
           } />
           <Route path="/" element={

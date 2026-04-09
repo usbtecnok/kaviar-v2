@@ -12,6 +12,7 @@ import * as driverSecondaryBaseController from '../controllers/admin/driverSecon
 import * as featureFlagsController from '../controllers/admin/featureFlags.controller';
 import * as betaMonitorController from '../controllers/admin/betaMonitor.controller';
 import adminDriverCreditsRoutes from './admin-driver-credits';
+import adminCreditPurchasesRoutes from './admin-credit-purchases';
 
 const router = Router();
 const rideController = new RideAdminController();
@@ -20,6 +21,9 @@ router.use(authenticateAdmin);
 
 // Driver credits routes
 router.use('/drivers', adminDriverCreditsRoutes);
+
+// Credit purchases visibility
+router.use('/credit-purchases', adminCreditPurchasesRoutes);
 
 // GET /api/admin/admins
 router.get('/admins', requireSuperAdmin, async (req, res) => {
