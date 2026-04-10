@@ -9,6 +9,8 @@ export const WHATSAPP_TEMPLATES = {
   kaviar_rides_passenger_cancelled_v1: "HX8af4d584b2f063a5898fbf7d9dd4fb85",
   kaviar_rides_destination_changed_v1: "HX5015a4ab34b3a231427e89835ad29415",
   kaviar_rides_driver_assigned_v1: "HX4beee38698df27b25822ce87cb5c9905",
+  // v2: segurança passageiro — {{1}}=passenger_name {{2}}=driver_name {{3}}=vehicle_model {{4}}=vehicle_color {{5}}=vehicle_plate
+  kaviar_rides_passenger_driver_assigned_v2: "HX8aefeb21caaca7f73a2f85be9298e208",
   kaviar_rides_driver_cancelled_v1: "HX3f5789f32a05ea805735351720c6b0a3",
   kaviar_rides_passenger_completed_v1: "HXb370f31ef271b85e0abf17e921ef16db",
   kaviar_invites_driver_v1: "HXd4fb99531949db1ac1a4bd232f387bf6",
@@ -17,7 +19,7 @@ export const WHATSAPP_TEMPLATES = {
   kaviar_payment_receipt_v1: "HXb1cf76a5d9693227510cca86728884ca",
   kaviar_consultant_welcome_v1: process.env.TWILIO_TEMPLATE_CONSULTANT_WELCOME || "",
   copy_kaviar_auth_password_reset_v1: "HX514417adf01e3725e58c93beaa245b5c",
-  copy_kaviar_auth_verification_code_v1: "HX4023e87b9f17b542c8a02d0e939a0a91",
+  copy_kaviar_auth_verification_code_v1: "HXaa4b418e3e844c9d52249371c6fef8a3",
 } as const;
 
 export type WhatsAppTemplateName = keyof typeof WHATSAPP_TEMPLATES;

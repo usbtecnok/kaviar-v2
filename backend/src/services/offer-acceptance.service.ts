@@ -80,12 +80,12 @@ export async function acceptOfferInternal(offerId: string, driverId: string) {
     ]);
     if (passenger?.phone) {
       const { whatsappEvents } = require('../modules/whatsapp');
-      const vehicle = [driver?.vehicle_color, driver?.vehicle_model].filter(Boolean).join(' ') || 'Não informado';
       whatsappEvents.rideDriverAssigned(passenger.phone, {
         '1': passenger.name || 'Passageiro',
         '2': driver?.name || 'Motorista',
-        '3': vehicle,
-        '4': driver?.vehicle_plate || 'Não informada',
+        '3': driver?.vehicle_model || 'Não informado',
+        '4': driver?.vehicle_color || 'Não informada',
+        '5': driver?.vehicle_plate || 'Não informada',
       }).catch((e: any) => console.error('[WA_FAIL] rideDriverAssigned', e.message));
     }
   } catch (e: any) {

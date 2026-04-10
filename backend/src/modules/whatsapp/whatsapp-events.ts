@@ -8,7 +8,7 @@ export class WhatsAppEvents {
   }
 
   rideDriverAssigned(to: string, vars: Record<string, any>) {
-    return this.wa.sendTemplate({ to, template: "kaviar_rides_driver_assigned_v1", variables: vars });
+    return this.wa.sendTemplate({ to, template: "kaviar_rides_passenger_driver_assigned_v2", variables: vars });
   }
 
   rideStarted(to: string, vars: Record<string, any>) {
