@@ -1,6 +1,8 @@
 export const WHATSAPP_TEMPLATES = {
   kaviar_ops_driver_alert_v1: "HXc467b5bba6e16cd1d30358a5f51799f0",
   kaviar_rides_driver_completed_v1: "HX2e57c7eed10ee237d6176d694243a249",
+  // v2: modelo créditos — {{1}}=name {{2}}=pickup {{3}}=dropoff {{4}}=price {{5}}=credits_consumed {{6}}=credit_balance
+  kaviar_rides_driver_completed_v2: "HX631024ba73ffcd00f964584802c88460",
   kaviar_rides_passenger_driver_arriving_v1: "HX04bf3d321655f3ebd3051d1fb50c119a",
   kaviar_rides_started_v1: "HX057acbb5854296d16b7eb4e670ba6303",
   kaviar_rides_cancelled_v1: "Hxed80850e97e7ee739b09767b09b1a3f6",

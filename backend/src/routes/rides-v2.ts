@@ -445,8 +445,24 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
       console.error(`[PRICING_SETTLE_FAILED] ride_id=${ride_id}`, settleErr);
     }
 
+    // Credit consumption ANTES do WhatsApp (precisamos do saldo atualizado para a mensagem)
+    let creditResult: { cost: number; matchType: string; balance: number } | null = null;
+    if (process.env.CREDIT_CONSUME_ENABLED === 'true' && settlement) {
+      try {
+        const delta = await applyCreditDelta(
+          driverId, -settlement.credit_cost,
+          `ride:${settlement.credit_match_type}:${ride_id}`,
+          'system',
+          `ride_${ride_id}`
+        );
+        creditResult = { cost: settlement.credit_cost, matchType: settlement.credit_match_type, balance: delta.balance };
+        console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${settlement.credit_cost} type=${settlement.credit_match_type} balance=${delta.balance} alreadyProcessed=${delta.alreadyProcessed}`);
+      } catch (creditErr) {
+        console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
+      }
+    }
+
     // WhatsApp: notificar passageiro e motorista que corrida concluiu
-    // Usa dados do settlement (preço real) — variáveis posicionais conforme Twilio
     if (process.env.WA_RIDE_COMPLETE_ENABLED === 'true' && settlement) {
       try {
         const [passenger, driver] = await Promise.all([
@@ -467,34 +483,17 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
           }).catch((e: any) => console.error('[WA_FAIL] ridePassengerCompleted', e.message));
         }
         if (driver?.phone) {
-          // Template: {{1}}=driver_name {{2}}=pickup {{3}}=dropoff {{4}}=price {{5}}=fee_percent {{6}}=driver_earnings
+          // Template v2: {{1}}=name {{2}}=pickup {{3}}=dropoff {{4}}=price {{5}}=credits_consumed {{6}}=credit_balance
           whatsappEvents.rideDriverCompleted(driver.phone, {
             '1': driver.name || 'Motorista',
             '2': pickup,
             '3': dropoff,
             '4': price,
-            '5': String(settlement.fee_percent),
-            '6': String(settlement.driver_earnings),
+            '5': String(creditResult?.cost ?? settlement.credit_cost),
+            '6': String(creditResult?.balance ?? 0),
           }).catch((e: any) => console.error('[WA_FAIL] rideDriverCompleted', e.message));
         }
       } catch (e: any) { console.error('[WA_LOOKUP_FAIL] complete', e.message); }
-    }
-
-    // Credit consumption via settlement (idempotente via applyCreditDelta key)
-    let creditResult: { cost: number; matchType: string } | null = null;
-    if (process.env.CREDIT_CONSUME_ENABLED === 'true' && settlement) {
-      try {
-        const delta = await applyCreditDelta(
-          driverId, -settlement.credit_cost,
-          `ride:${settlement.credit_match_type}:${ride_id}`,
-          'system',
-          `ride_${ride_id}`
-        );
-        creditResult = { cost: settlement.credit_cost, matchType: settlement.credit_match_type };
-        console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${settlement.credit_cost} type=${settlement.credit_match_type} balance=${delta.balance} alreadyProcessed=${delta.alreadyProcessed}`);
-      } catch (creditErr) {
-        console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
-      }
     }
 
     res.json({ success: true, credit: creditResult });

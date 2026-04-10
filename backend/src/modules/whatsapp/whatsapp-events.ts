@@ -24,7 +24,7 @@ export class WhatsAppEvents {
   }
 
   rideDriverCompleted(to: string, vars: Record<string, any>) {
-    return this.wa.sendTemplate({ to, template: "kaviar_rides_driver_completed_v1", variables: vars });
+    return this.wa.sendTemplate({ to, template: "kaviar_rides_driver_completed_v2", variables: vars });
   }
 
   ridePassengerCompleted(to: string, vars: Record<string, any>) {
