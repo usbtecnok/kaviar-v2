@@ -2,6 +2,7 @@ import app from './app';
 import { config } from './config';
 import { prisma } from './lib/prisma';
 import { startOfferTimeoutJob } from './jobs/offer-timeout.job';
+import { startStaleDriverCleanupJob } from './jobs/stale-driver-cleanup.job';
 
 async function startServer() {
   try {
@@ -14,6 +15,7 @@ async function startServer() {
 
     // Start offer timeout job (SPEC_RIDE_FLOW_V1)
     startOfferTimeoutJob();
+    startStaleDriverCleanupJob();
 
     // One-time migrations (idempotent)
     prisma.$executeRawUnsafe(`

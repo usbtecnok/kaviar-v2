@@ -77,7 +77,7 @@ export default function DriverOnline() {
     loadDashboard();
     checkGps();
     checkLocationPermission();
-    return () => { stopAll(); stopSound(); };
+    return () => { stopAll(); stopSound(); driverApi.setAvailability('offline').catch(() => {}); };
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -282,6 +282,7 @@ export default function DriverOnline() {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sair', style: 'destructive', onPress: async () => {
         stopAll();
+        await driverApi.setAvailability('offline').catch(() => {});
         await authStore.clearAuth();
         router.replace('/(auth)/login');
       }}
