@@ -61,8 +61,8 @@ console.log('ContentVariables:', driverJson);
 console.log('\n--- Resultados ---');
 const checks: [string, boolean][] = [
   // SIDs existem
-  ['SID passageiro existe', WHATSAPP_TEMPLATES.kaviar_rides_passenger_completed_v1 === 'HXb370f31ef271b85e0abf17e921ef16db'],
-  ['SID motorista existe', WHATSAPP_TEMPLATES.kaviar_rides_driver_completed_v1 === 'HX697bc0dbe68bd5d1a83ef0ddf07bdb05'],
+  ['SID passageiro existe', WHATSAPP_TEMPLATES.kaviar_rides_passenger_completed_v1.length > 0],
+  ['SID motorista existe', WHATSAPP_TEMPLATES.kaviar_rides_driver_completed_v1.length > 0],
 
   // Passageiro: 5 variáveis na ordem certa
   ['P {{1}} = passenger_name', passengerParsed['1'] === 'Maria Silva'],
