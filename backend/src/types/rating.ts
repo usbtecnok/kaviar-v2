@@ -15,6 +15,7 @@ export interface RatingData {
   raterType: RaterType;
   score: number; // 1-5
   comment?: string;
+  tags?: string;
 }
 
 export interface RatingStats {

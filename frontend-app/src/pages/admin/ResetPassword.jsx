@@ -56,8 +56,11 @@ export default function ResetPassword() {
           localStorage.setItem('kaviar_admin_data', JSON.stringify(data.data.user));
         }
         setSuccess(true);
+        const dest = data.userType === 'driver' ? '/motorista/login'
+          : data.userType === 'passenger' ? '/login'
+          : '/admin';
         setTimeout(() => {
-          navigate('/admin', { replace: true });
+          navigate(dest, { replace: true });
         }, 3000);
       } else {
         setError(data.error || 'Erro ao redefinir senha');

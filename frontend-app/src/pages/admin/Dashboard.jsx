@@ -15,40 +15,49 @@ import {
   LocationCity, 
   Tour,
   PendingActions,
-  CheckCircle
+  CheckCircle,
+  Home,
+  MyLocation,
+  NearMe,
+  PublicOff
 } from '@mui/icons-material';
 
 import { API_BASE_URL } from '../../config/api';
 
 export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
+  const [territoryData, setTerritoryData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
+    fetchTerritoryData();
   }, []);
 
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('kaviar_admin_token');
       const response = await fetch(`${API_BASE_URL}/api/admin/dashboard/overview`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
       const data = await response.json();
-      if (response.ok) {
-        setDashboardData(data);
-      } else {
-        setError(data.error || 'Erro ao carregar dashboard');
-      }
+      if (response.ok) setDashboardData(data);
+      else setError(data.error || 'Erro ao carregar dashboard');
     } catch (error) {
       setError('Erro de conexão');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
+  };
+
+  const fetchTerritoryData = async () => {
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const response = await fetch(`${API_BASE_URL}/api/admin/dashboard/territory`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) setTerritoryData(data.data);
+    } catch {}
   };
 
   if (loading) {
@@ -220,6 +229,71 @@ export default function AdminDashboard() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Operação Territorial */}
+      {territoryData && territoryData.total > 0 && (
+        <>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Operação Territorial
+          </Typography>
+          <Grid container spacing={2} sx={{ mb: 4 }}>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                  <Home sx={{ color: '#2e7d32', mb: 0.5 }} />
+                  <Typography variant="h5" fontWeight="800">{territoryData.homebound}</Typography>
+                  <Typography variant="caption" color="text.secondary">Retorno casa</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                  <Typography sx={{ fontSize: 20, mb: 0.5 }}>💰</Typography>
+                  <Typography variant="h5" fontWeight="800" color="#b8960c">{territoryData.homeboundReduced}</Typography>
+                  <Typography variant="caption" color="text.secondary">Taxa reduzida</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                  <MyLocation sx={{ color: 'primary.main', mb: 0.5 }} />
+                  <Typography variant="h5" fontWeight="800">{territoryData.local}</Typography>
+                  <Typography variant="caption" color="text.secondary">Mesma região</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                  <NearMe sx={{ color: 'warning.main', mb: 0.5 }} />
+                  <Typography variant="h5" fontWeight="800">{territoryData.adjacent}</Typography>
+                  <Typography variant="caption" color="text.secondary">Bairro vizinho</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                  <PublicOff sx={{ color: 'text.secondary', mb: 0.5 }} />
+                  <Typography variant="h5" fontWeight="800">{territoryData.external}</Typography>
+                  <Typography variant="caption" color="text.secondary">Fora território</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                  <DirectionsCar sx={{ color: 'success.main', mb: 0.5 }} />
+                  <Typography variant="h5" fontWeight="800">{territoryData.total}</Typography>
+                  <Typography variant="caption" color="text.secondary">Total corridas</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </>
+      )}
 
       {/* Menu de Navegação */}
       <Typography variant="h6" sx={{ mb: 2 }}>

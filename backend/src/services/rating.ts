@@ -81,6 +81,7 @@ export class RatingService {
           rating: data.score,
           score: data.score,
           comment: data.comment || null,
+          tags: data.tags || null,
           created_at: new Date()
         }
       });
@@ -142,6 +143,7 @@ export class RatingService {
         select: {
           rating: true,
           comment: true,
+          tags: true,
           created_at: true
         }
       });
@@ -174,6 +176,7 @@ export class RatingService {
         recentRatings: recentRatings.map(r => ({
           rating: r.rating,
           comment: r.comment || undefined,
+          tags: r.tags || undefined,
           createdAt: r.created_at
         }))
       };

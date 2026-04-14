@@ -7,4 +7,6 @@ export interface User {
   email: string;
   phone?: string;
   user_type: UserType;
+  status?: string;
+  phone_verified_at?: string | null;
 }

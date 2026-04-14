@@ -13,6 +13,8 @@ import { RideOffer } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
+import { startBackgroundLocation, stopBackgroundLocation } from '../../src/services/background-location';
+import { ENV } from '../../src/config/env';
 
 const POLL_INTERVAL = 5000;
 const LOCATION_INTERVAL = 15000;
@@ -35,6 +37,7 @@ export default function DriverOnline() {
   const [todayRides, setTodayRides] = useState(0);
   const [gpsEnabled, setGpsEnabled] = useState(true);
   const [locationPermission, setLocationPermission] = useState(true);
+  const [backgroundDenied, setBackgroundDenied] = useState(false);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [offerCountdown, setOfferCountdown] = useState('');
   const [soundMuted, setSoundMuted] = useState(false);
@@ -118,14 +121,18 @@ export default function DriverOnline() {
   };
 
   const checkGps = async () => {
-    try { setGpsEnabled(await Location.hasServicesEnabledAsync()); } catch {}
+    try { setGpsEnabled(await Location.hasServicesEnabledAsync()); } catch {
+      setGpsEnabled(false);
+    }
   };
 
   const checkLocationPermission = async () => {
     try {
       const { status } = await Location.getForegroundPermissionsAsync();
       setLocationPermission(status === 'granted');
-    } catch {}
+    } catch {
+      setLocationPermission(false);
+    }
   };
 
   const loadDashboard = async () => {
@@ -140,7 +147,9 @@ export default function DriverOnline() {
         const todayStr = new Date().toISOString().slice(0, 10);
         setTodayRides(rides.filter((r: any) => r.status === 'completed' && r.requested_at?.slice(0, 10) === todayStr).length);
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[Driver] loadDashboard failed:', e);
+    }
   };
 
   const checkCurrentRide = async () => {
@@ -177,25 +186,40 @@ export default function DriverOnline() {
     }, POLL_INTERVAL);
   };
 
-  const startLocationTracking = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      setLocationPermission(false);
-      Alert.alert('Erro', 'Permissão de localização negada');
-      return;
-    }
-    setLocationPermission(true);
-    const send = async () => {
-      try {
-        const loc = await Location.getCurrentPositionAsync({});
-        setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-        await driverApi.sendLocation(loc.coords.latitude, loc.coords.longitude);
-      } catch (e) {
-        console.warn('[Driver] sendLocation failed:', e);
+  const startLocationTracking = async (): Promise<void> => {
+    try {
+      const mode = await startBackgroundLocation(ENV.API_URL);
+      setLocationPermission(true);
+      if (mode === 'foreground') {
+        // Background denied — fallback to foreground polling
+        setBackgroundDenied(true);
+        const send = async () => {
+          try {
+            const loc = await Location.getCurrentPositionAsync({});
+            setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+            await driverApi.sendLocation(loc.coords.latitude, loc.coords.longitude);
+          } catch (e) {
+            console.warn('[Driver] sendLocation failed:', e);
+          }
+        };
+        await send();
+        locationRef.current = setInterval(send, LOCATION_INTERVAL);
+      } else {
+        setBackgroundDenied(false);
+        // Get initial coords for UI
+        try {
+          const loc = await Location.getCurrentPositionAsync({});
+          setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        } catch {}
       }
-    };
-    await send();
-    locationRef.current = setInterval(send, LOCATION_INTERVAL);
+    } catch (e: any) {
+      if (e.message === 'FOREGROUND_DENIED') {
+        setLocationPermission(false);
+        Alert.alert('Erro', 'Permissão de localização negada');
+      } else {
+        console.warn('[Driver] startLocationTracking error:', e);
+      }
+    }
   };
 
   const stopAll = () => {
@@ -203,6 +227,7 @@ export default function DriverOnline() {
     if (locationRef.current) clearInterval(locationRef.current);
     pollRef.current = null;
     locationRef.current = null;
+    stopBackgroundLocation().catch(() => {});
   };
 
   const handleGoOnline = async () => {
@@ -322,6 +347,12 @@ export default function DriverOnline() {
           <Text style={styles.bannerText}>Créditos acabando. <Text style={{ fontWeight: '700' }}>Comprar créditos</Text></Text>
         </TouchableOpacity>
       )}
+      {backgroundDenied && isOnline && (
+        <View style={styles.banner}>
+          <Ionicons name="navigate-outline" size={16} color={COLORS.warning} />
+          <Text style={styles.bannerText}>Localização em segundo plano negada. Ao usar Waze ou minimizar, sua posição não será atualizada.</Text>
+        </View>
+      )}
 
       {/* Status */}
       <View style={styles.center}>
@@ -359,6 +390,29 @@ export default function DriverOnline() {
         {/* Offer card */}
         {pendingOffer && (
           <View style={styles.offerCard}>
+            {/* Badge territorial — homebound tem prioridade visual */}
+            {pendingOffer.ride.is_homebound ? (
+              <View style={[styles.territoryBadge, { backgroundColor: '#e8f5e9' }]}>
+                <Text style={[styles.territoryBadgeText, { color: '#2e7d32' }]}>🏠 Retorno para casa</Text>
+                <Text style={styles.territorySubtext}>Taxa reduzida — passageiro da sua região voltando para casa</Text>
+              </View>
+            ) : pendingOffer.territory_tier === 'COMMUNITY' ? (
+              <View style={[styles.territoryBadge, { backgroundColor: '#e3f2fd' }]}>
+                <Text style={[styles.territoryBadgeText, { color: '#1565c0' }]}>Da sua comunidade</Text>
+                <Text style={styles.territorySubtext}>Prioridade territorial por comunidade</Text>
+              </View>
+            ) : pendingOffer.territory_tier === 'NEIGHBORHOOD' ? (
+              <View style={[styles.territoryBadge, { backgroundColor: '#fff3e0' }]}>
+                <Text style={[styles.territoryBadgeText, { color: '#e65100' }]}>Do seu bairro</Text>
+                <Text style={styles.territorySubtext}>Prioridade territorial por bairro</Text>
+              </View>
+            ) : pendingOffer.territory_tier === 'OUTSIDE' ? (
+              <View style={[styles.territoryBadge, { backgroundColor: '#f5f5f5' }]}>
+                <Text style={[styles.territoryBadgeText, { color: '#616161' }]}>Região próxima</Text>
+                <Text style={styles.territorySubtext}>Corrida fora do seu território principal</Text>
+              </View>
+            ) : null}
+
             <View style={styles.offerHeader}>
               <Ionicons name="car-sport" size={22} color={COLORS.primary} />
               <Text style={styles.offerTitle}>Nova corrida!</Text>
@@ -381,6 +435,13 @@ export default function DriverOnline() {
               <View style={styles.offerMeta}>
                 <Ionicons name="location-outline" size={14} color={COLORS.textMuted} />
                 <Text style={styles.offerMetaText}>{distanceToPickup.toFixed(1)} km até o embarque</Text>
+              </View>
+            )}
+
+            {(pendingOffer.ride as any).quoted_price != null && (
+              <View style={styles.offerMeta}>
+                <Ionicons name="cash-outline" size={14} color={COLORS.primary} />
+                <Text style={[styles.offerMetaText, { color: COLORS.primary, fontWeight: '700' }]}>Estimativa R$ {Number((pendingOffer.ride as any).quoted_price).toFixed(2)}</Text>
               </View>
             )}
 
@@ -484,6 +545,15 @@ const styles = StyleSheet.create({
   offerCard: {
     backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 24,
     borderLeftWidth: 4, borderLeftColor: COLORS.primary,
+  },
+  territoryBadge: {
+    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 12,
+  },
+  territoryBadgeText: {
+    fontSize: 15, fontWeight: '700',
+  },
+  territorySubtext: {
+    fontSize: 12, color: COLORS.textMuted, marginTop: 2,
   },
   offerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
   offerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginLeft: 10, flex: 1 },

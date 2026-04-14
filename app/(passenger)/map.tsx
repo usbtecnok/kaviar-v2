@@ -46,6 +46,10 @@ export default function PassengerMap() {
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showNoDriver, setShowNoDriver] = useState(false);
 
+  // Price estimate
+  const [estimate, setEstimate] = useState<{ price: number; distance_km: number } | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(false);
+
   // Accepted banner
   const [showAcceptedBanner, setShowAcceptedBanner] = useState(false);
   const bannerOpacity = useRef(new Animated.Value(0)).current;
@@ -56,6 +60,24 @@ export default function PassengerMap() {
 
   // Emergency
   const [showEmergency, setShowEmergency] = useState(false);
+
+  // Search microcopy rotation
+  const SEARCH_PHRASES = [
+    'Procurando motoristas da sua região...',
+    'Priorizando quem conhece seu bairro...',
+    'Conectando você à comunidade...',
+    'Quase lá...',
+  ];
+  const [searchPhraseIdx, setSearchPhraseIdx] = useState(0);
+
+  // ETA helper
+  const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -89,6 +111,16 @@ export default function PassengerMap() {
     return () => stopAll();
   }, []);
 
+  // Q2: Rotate search phrases while looking for driver
+  useEffect(() => {
+    const rideStatus = ride?.status as RideStatus | undefined;
+    if (screen === 'tracking' && (rideStatus === 'requested' || rideStatus === 'offered')) {
+      const id = setInterval(() => setSearchPhraseIdx(i => (i + 1) % SEARCH_PHRASES.length), 4000);
+      return () => clearInterval(id);
+    }
+    setSearchPhraseIdx(0);
+  }, [screen, ride?.status]);
+
   const acquireLocation = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Localização necessária', 'Ative a localização para solicitar corridas.'); return; }
@@ -108,7 +140,9 @@ export default function PassengerMap() {
           setUserAddress(addr);
           setOrigin(prev => prev ? { ...prev, text: addr } : null);
         }
-      } catch {}
+      } catch (e) {
+        console.warn('[Map] reverse geocode failed, using default label:', e);
+      }
     } catch { Alert.alert('Erro de GPS', 'Não foi possível obter sua localização.'); }
   };
 
@@ -132,7 +166,10 @@ export default function PassengerMap() {
         const res = await apiClient.get(url);
         const data = res.data;
         if (data.status === 'OK') setPredictions(data.predictions);
-      } catch {}
+      } catch (e) {
+        console.warn('[Map] autocomplete failed:', e);
+        setPredictions([]);
+      }
     }, 300);
   }, [userLocation]);
 
@@ -161,6 +198,18 @@ export default function PassengerMap() {
     }
     setScreen('idle');
   };
+
+  // --- Estimate ---
+  useEffect(() => {
+    if (!origin || !destination) { setEstimate(null); return; }
+    setEstimateLoading(true);
+    apiClient.post('/api/v2/rides/estimate', {
+      origin: { lat: origin.lat, lng: origin.lng },
+      destination: { lat: destination.lat, lng: destination.lng },
+    }).then(r => setEstimate(r.data?.data || null))
+      .catch(() => {})
+      .finally(() => setEstimateLoading(false));
+  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng]);
 
   // --- Ride ---
   const lastStatusRef = useRef('');
@@ -207,8 +256,8 @@ export default function PassengerMap() {
 
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   const stopAll = () => { stopPolling(); setDriverLocation(null); };
-  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); };
-  const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setTimeout(() => handleRequest(), 100); };
+  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); };
+  const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); };
 
   const handleRequest = async () => {
     if (!origin) { Alert.alert('Origem indisponível', 'Aguarde o GPS ou selecione um endereço.'); return; }
@@ -407,7 +456,16 @@ export default function PassengerMap() {
               <Ionicons name="search" size={18} color={COLORS.textMuted} />
             </TouchableOpacity>
 
-            <Button title="Solicitar Corrida" loading={loading} onPress={handleRequest} style={{ marginTop: 14 }} />
+            {estimate && (
+              <View style={s.estimateRow}>
+                <Text style={s.estimateText}>~{estimate.distance_km.toFixed(1)} km</Text>
+                <Text style={s.estimatePrice}>Estimativa R$ {estimate.price.toFixed(2)}</Text>
+              </View>
+            )}
+            {estimateLoading && !estimate && destination && (
+              <Text style={s.estimateLoading}>Calculando estimativa...</Text>
+            )}
+            <Button title="Pedir Kaviar" loading={loading} onPress={handleRequest} style={{ marginTop: 14 }} />
           </View>
         </>
       )}
@@ -416,23 +474,48 @@ export default function PassengerMap() {
       {screen === 'tracking' && (
         <>
           <SafeAreaView edges={['top']} style={[s.statusBar, { backgroundColor: info.color }]}>
-            <Text style={s.statusText}>{info.icon} {info.label}</Text>
+            <Text style={s.statusText}>
+              {rideStatus === 'requested' || rideStatus === 'offered'
+                ? `🔍 ${SEARCH_PHRASES[searchPhraseIdx]}`
+                : rideStatus === 'arrived' && ride?.driver
+                  ? `📍 Seu motorista chegou! Procure o ${ride.driver.vehicle_model || 'veículo'} ${ride.driver.vehicle_color || ''}`
+                  : `${info.icon} ${info.label}`}
+            </Text>
           </SafeAreaView>
 
           <View style={s.bottomSheet}>
             {ride?.driver && (
-              <View style={s.driverRow}>
-                <View style={s.driverAvatar}>
-                  <Ionicons name="person" size={20} color={COLORS.primary} />
+              <View style={s.driverCard}>
+                <View style={s.driverRow}>
+                  <View style={s.driverAvatar}>
+                    <Ionicons name="person" size={20} color={COLORS.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.driverName}>{ride.driver.name}</Text>
+                    {ride.driver.vehicle_model && (
+                      <Text style={s.driverVehicle}>
+                        {ride.driver.vehicle_model} {ride.driver.vehicle_color} • {ride.driver.vehicle_plate}
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.driverName}>{ride.driver.name}</Text>
-                  {ride.driver.vehicle_model && (
-                    <Text style={s.driverVehicle}>
-                      {ride.driver.vehicle_model} {ride.driver.vehicle_color} • {ride.driver.vehicle_plate}
-                    </Text>
-                  )}
+                <View style={s.safetyTip}>
+                  <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.accent} />
+                  <Text style={s.safetyTipText}>Confira a placa e a cor do veículo antes de entrar. Em caso de emergência, use o botão abaixo.</Text>
                 </View>
+              </View>
+            )}
+            {/* Q3: ETA do motorista */}
+            {rideStatus === 'accepted' && driverLocation && ride && (
+              <View style={s.etaRow}>
+                <Ionicons name="time-outline" size={15} color={COLORS.accent} />
+                <Text style={s.etaText}>
+                  {(() => {
+                    const km = haversineKm(driverLocation.lat, driverLocation.lng, Number(ride.origin_lat), Number(ride.origin_lng));
+                    const min = Math.max(1, Math.round(km / 30 * 60));
+                    return min <= 1 ? 'Chegando!' : `~${min} min para chegar`;
+                  })()}
+                </Text>
               </View>
             )}
             <View style={s.routeCompact}>
@@ -442,7 +525,7 @@ export default function PassengerMap() {
             {canCancel && (
               <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
             )}
-            {rideStatus === 'in_progress' && (
+            {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
               <TouchableOpacity style={s.emergencyBtn} onPress={() => setShowEmergency(true)}>
                 <Ionicons name="shield-outline" size={16} color={COLORS.danger} />
                 <Text style={s.emergencyBtnText}>Emergência</Text>
@@ -475,10 +558,11 @@ export default function PassengerMap() {
               <Text style={s.modalBody}>Motorista: {completedRide.driver.name}</Text>
             )}
             {completedRide?.final_price != null && (
-              <Text style={{ fontSize: 24, fontWeight: '800', color: COLORS.primary, textAlign: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 24, fontWeight: '800', color: COLORS.primary, textAlign: 'center', marginBottom: 8 }}>
                 R$ {Number(completedRide.final_price).toFixed(2)}
               </Text>
             )}
+            <Text style={s.communityMsg}>Sua corrida fortalece a mobilidade da sua comunidade 🏘️</Text>
             <TouchableOpacity style={s.ctaPrimary} onPress={() => {
               setShowCompleted(false);
               router.push({ pathname: '/(passenger)/rating', params: { rideId: completedRide?.id || '', driverName: completedRide?.driver?.name || '', driverId: completedRide?.driver?.id || completedRide?.driver_id || '' } });
@@ -651,7 +735,17 @@ const s = StyleSheet.create({
   routeCompact: { marginBottom: 4 },
   label: { fontSize: 12, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   value: { fontSize: 16, fontWeight: '600', color: COLORS.textPrimary, marginTop: 2 },
-  driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  driverCard: { backgroundColor: COLORS.surfaceLight, borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  safetyTip: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  safetyTipText: { fontSize: 12, color: COLORS.textSecondary, flex: 1 },
+  etaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, paddingHorizontal: 4 },
+  etaText: { fontSize: 14, fontWeight: '600', color: COLORS.accent },
+  communityMsg: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 16, lineHeight: 18 },
+  estimateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surfaceLight, borderRadius: 10, padding: 12, marginTop: 12, borderWidth: 1, borderColor: COLORS.border },
+  estimateText: { fontSize: 13, color: COLORS.textSecondary },
+  estimatePrice: { fontSize: 16, fontWeight: '700', color: COLORS.primary },
+  estimateLoading: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginTop: 12 },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },

@@ -1,15 +1,14 @@
 import { Router } from 'express';
 import { pool } from '../db';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, allowReadAccess, allowFinanceAccess } from '../middlewares/auth';
 import { applyCreditDelta } from '../services/credit.service';
 
 const router = Router();
 
-// Apply authentication to all routes in this router
 router.use(authenticateAdmin);
 
 // GET /api/admin/drivers/:driverId/credits/balance
-router.get('/:driverId/credits/balance', async (req, res) => {
+router.get('/:driverId/credits/balance', allowReadAccess, async (req, res) => {
   try {
     const { driverId } = req.params;
     const result = await pool.query(
@@ -29,7 +28,7 @@ router.get('/:driverId/credits/balance', async (req, res) => {
 });
 
 // GET /api/admin/drivers/:driverId/credits/ledger
-router.get('/:driverId/credits/ledger', async (req, res) => {
+router.get('/:driverId/credits/ledger', allowReadAccess, async (req, res) => {
   try {
     const { driverId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
@@ -64,7 +63,7 @@ router.get('/:driverId/credits/ledger', async (req, res) => {
 });
 
 // POST /api/admin/drivers/:driverId/credits/adjust
-router.post('/:driverId/credits/adjust', async (req, res) => {
+router.post('/:driverId/credits/adjust', allowFinanceAccess, async (req, res) => {
   console.log('🔍 [CREDITS_ADJUST] POST recebido:', {
     driverId: req.params.driverId,
     headers: {

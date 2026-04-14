@@ -13,26 +13,19 @@ interface AuditLogData {
 
 export async function createAuditLog(data: AuditLogData) {
   try {
-    // Sanitizar dados sensíveis antes de logar
-    const sanitizedOldValue = sanitizeAuditData(data.oldValue);
-    const sanitizedNewValue = sanitizeAuditData(data.newValue);
-
-    console.log(`[AUDIT] ${data.action} by admin ${data.adminId} on ${data.entityType}:${data.entityId}`, {
-      timestamp: new Date().toISOString(),
-      action: data.action,
-      entityType: data.entityType,
-      entityId: data.entityId,
-      reason: data.reason,
-      ipAddress: data.ipAddress
-      // Não logar oldValue/newValue para evitar dados sensíveis nos logs
-    });
-
-    // Em produção, salvar em tabela de auditoria
-    // await prisma.auditLog.create({ data: ... });
-    
+    const { pool } = require('../db');
+    await pool.query(
+      `INSERT INTO admin_audit_logs (admin_id, action, entity_type, entity_id, old_value, new_value, reason, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [data.adminId, data.action, data.entityType, data.entityId,
+       data.oldValue ? JSON.stringify(sanitizeAuditData(data.oldValue)) : null,
+       data.newValue ? JSON.stringify(sanitizeAuditData(data.newValue)) : null,
+       data.reason || null, data.ipAddress || null]
+    );
   } catch (error) {
-    console.error('[AUDIT ERROR]', error);
-    // Não falhar a operação principal se auditoria falhar
+    // Fallback: log only, never fail the main operation
+    console.error('[AUDIT_PERSIST_ERROR]', error);
+    console.log(`[AUDIT] ${data.action} by ${data.adminId} on ${data.entityType}:${data.entityId}`);
   }
 }
 

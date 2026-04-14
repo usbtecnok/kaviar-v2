@@ -3,44 +3,20 @@ import { prisma } from '../lib/prisma';
 import { dispatcherService } from '../services/dispatcher.service';
 import { acceptOfferInternal } from '../services/offer-acceptance.service';
 import { getCreditBalance } from '../services/credit.service';
+import { getDriverFinancialSummary } from '../services/financial-summary.service';
 import { Decimal } from '@prisma/client/runtime/library';
-import jwt from 'jsonwebtoken';
+import { authenticateDriver } from '../middlewares/auth';
 
 const router = Router();
 
-const requireDriver = (req: Request, res: Response, next: Function) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const token = authHeader.substring(7);
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-
-    const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
-    const userId = decoded.userId || decoded.id;
-
-    if (userType !== 'DRIVER' || !userId) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    (req as any).driverId = userId;
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-};
-
 // 5.3 Driver online/offline
-router.post('/me/availability', requireDriver, async (req: Request, res: Response) => {
+router.post('/me/availability', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { availability } = req.body;
 
     if (!['offline', 'online', 'busy'].includes(availability)) {
-      return res.status(400).json({ error: 'Invalid availability' });
+      return res.status(400).json({ error: 'Status de disponibilidade inválido' });
     }
 
     await prisma.driver_status.upsert({
@@ -59,18 +35,18 @@ router.post('/me/availability', requireDriver, async (req: Request, res: Respons
     res.json({ success: true });
   } catch (error: any) {
     console.error('[DRIVER_AVAILABILITY_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // 5.4 Driver envia localização
-router.post('/me/location', requireDriver, async (req: Request, res: Response) => {
+router.post('/me/location', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { lat, lng, heading, speed } = req.body;
 
     if (!lat || !lng) {
-      return res.status(400).json({ error: 'Invalid location' });
+      return res.status(400).json({ error: 'Localização inválida' });
     }
 
     await prisma.driver_locations.upsert({
@@ -93,12 +69,12 @@ router.post('/me/location', requireDriver, async (req: Request, res: Response) =
     res.json({ success: true });
   } catch (error: any) {
     console.error('[DRIVER_LOCATION_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // 5.5 Driver aceita oferta
-router.post('/offers/:offer_id/accept', requireDriver, async (req: Request, res: Response) => {
+router.post('/offers/:offer_id/accept', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { offer_id } = req.params;
@@ -110,21 +86,21 @@ router.post('/offers/:offer_id/accept', requireDriver, async (req: Request, res:
     console.error('[OFFER_ACCEPT_ERROR]', error);
     
     if (error.message === 'Offer not found') {
-      return res.status(404).json({ error: 'Offer not found' });
+      return res.status(404).json({ error: 'Oferta não encontrada' });
     }
     if (error.message === 'Forbidden') {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Acesso negado' });
     }
     if (error.message === 'Offer not pending' || error.message === 'Offer expired') {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ error: 'Oferta já expirou ou foi respondida' });
     }
     
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // 5.6 Driver rejeita oferta
-router.post('/offers/:offer_id/reject', requireDriver, async (req: Request, res: Response) => {
+router.post('/offers/:offer_id/reject', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { offer_id } = req.params;
@@ -134,15 +110,15 @@ router.post('/offers/:offer_id/reject', requireDriver, async (req: Request, res:
     });
 
     if (!offer) {
-      return res.status(404).json({ error: 'Offer not found' });
+      return res.status(404).json({ error: 'Oferta não encontrada' });
     }
 
     if (offer.driver_id !== driverId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Acesso negado' });
     }
 
     if (offer.status !== 'pending') {
-      return res.status(400).json({ error: 'Offer not pending' });
+      return res.status(400).json({ error: 'Oferta já expirou ou foi respondida' });
     }
 
     await prisma.ride_offers.update({
@@ -167,12 +143,12 @@ router.post('/offers/:offer_id/reject', requireDriver, async (req: Request, res:
     res.json({ success: true });
   } catch (error: any) {
     console.error('[OFFER_REJECT_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // GET /api/v2/drivers/me/offers — ofertas pendentes para o motorista
-router.get('/me/offers', requireDriver, async (req: Request, res: Response) => {
+router.get('/me/offers', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
 
@@ -185,6 +161,7 @@ router.get('/me/offers', requireDriver, async (req: Request, res: Response) => {
             id: true, status: true, ride_type: true,
             origin_lat: true, origin_lng: true, origin_text: true,
             dest_lat: true, dest_lng: true, destination_text: true,
+            is_homebound: true, quoted_price: true,
             requested_at: true,
             passenger: { select: { name: true } }
           }
@@ -195,25 +172,38 @@ router.get('/me/offers', requireDriver, async (req: Request, res: Response) => {
     res.json({ success: true, data: offers });
   } catch (error: any) {
     console.error('[DRIVER_OFFERS_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // GET /api/v2/drivers/me/current-ride — corrida ativa do motorista
 
 // GET /api/v2/drivers/me/credits — saldo de créditos do motorista
-router.get('/me/credits', requireDriver, async (req: Request, res: Response) => {
+router.get('/me/credits', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const balance = await getCreditBalance(driverId);
     res.json({ success: true, data: { balance } });
   } catch (error: any) {
     console.error('[DRIVER_CREDITS_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
-router.get('/me/current-ride', requireDriver, async (req: Request, res: Response) => {
+// GET /api/v2/drivers/me/financial-summary
+router.get('/me/financial-summary', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+    const period = (req.query.period as string) || '30d';
+    const data = await getDriverFinancialSummary(driverId, period);
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('[DRIVER_FINANCIAL_SUMMARY_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
+router.get('/me/current-ride', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
 
@@ -237,7 +227,7 @@ router.get('/me/current-ride', requireDriver, async (req: Request, res: Response
     } : null });
   } catch (error: any) {
     console.error('[DRIVER_CURRENT_RIDE_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 

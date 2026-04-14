@@ -12,7 +12,7 @@ router.get('/referral-agent/:code', async (req: Request, res: Response) => {
   try {
     const agent = await prisma.referral_agents.findFirst({
       where: { referral_code: req.params.code.toUpperCase(), is_active: true },
-      select: { id: true, name: true, phone: true, email: true, pix_key: true, pix_key_type: true, referral_code: true, terms_accepted_at: true },
+      select: { id: true, name: true, referral_code: true, terms_accepted_at: true },
     });
     if (!agent) return res.status(404).json({ success: false, error: 'Código inválido' });
     return res.json({ success: true, data: agent });

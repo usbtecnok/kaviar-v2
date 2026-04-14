@@ -1,7 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db';
+import { authenticateAdmin, allowFinanceAccess } from '../middlewares/auth';
 
 const router = Router();
+
+router.use(authenticateAdmin);
+router.use(allowFinanceAccess);
 
 // GET /api/admin/credit-purchases
 router.get('/', async (req: Request, res: Response) => {

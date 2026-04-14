@@ -31,7 +31,9 @@ export default function DriverCredits() {
       if (cred.status === 'fulfilled') setBalance(cred.value.balance);
       if (pkgs.status === 'fulfilled') setPackages(pkgs.value);
       if (hist.status === 'fulfilled') setPurchases(hist.value);
-    } catch {} finally { setLoading(false); setRefreshing(false); }
+    } catch (e) {
+      console.warn('[Credits] load failed:', e);
+    } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);

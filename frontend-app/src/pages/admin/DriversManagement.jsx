@@ -27,9 +27,6 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { MatchSimulatorCard } from '../../components/admin/MatchSimulatorCard';
-
-
 const isSuperAdmin = () => {
   const data = localStorage.getItem('kaviar_admin_data');
   return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
@@ -175,7 +172,7 @@ export default function DriversManagement() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
+      <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: '#f0f4f8' }}>
         Gerenciamento de Motoristas
       </Typography>
 
@@ -185,11 +182,20 @@ export default function DriversManagement() {
         </Alert>
       )}
 
-      {/* Match Simulator Card (T2 MVP) */}
-      <MatchSimulatorCard />
-
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Tabs value={currentTab} onChange={(e, newValue) => setCurrentTab(newValue)}>
+      <Box sx={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3,
+        bgcolor: '#0d1117', borderRadius: 2, border: '1px solid #1a2332',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.2)', px: 2, py: 1,
+      }}>
+        <Tabs
+          value={currentTab}
+          onChange={(e, newValue) => setCurrentTab(newValue)}
+          sx={{
+            '& .MuiTab-root': { color: '#7a8a9a', fontWeight: 600, fontSize: 13, textTransform: 'none', minHeight: 44 },
+            '& .Mui-selected': { color: '#FFD700 !important' },
+            '& .MuiTabs-indicator': { bgcolor: '#FFD700', height: 2 },
+          }}
+        >
           <Tab label="Aprovados" value="approved" />
           <Tab label="Pendentes" value="pending" />
           <Tab label="Rejeitados" value="rejected" />
@@ -200,6 +206,10 @@ export default function DriversManagement() {
           variant="outlined" 
           onClick={fetchNeighborhoodMetrics}
           size="small"
+          sx={{
+            borderColor: '#2a3a4a', color: '#c0c8d0', fontWeight: 600, fontSize: 12,
+            '&:hover': { borderColor: '#FFD700', color: '#FFD700', bgcolor: 'rgba(255,215,0,0.05)' },
+          }}
         >
           {showMetrics ? 'Ocultar Métricas' : 'Ver Métricas por Bairro'}
         </Button>

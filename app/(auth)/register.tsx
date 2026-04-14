@@ -9,6 +9,34 @@ import { COLORS } from '../../src/config/colors';
 
 const API_URL = ENV.API_URL;
 
+const maskCpf = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+};
+
+const maskPhone = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+const isValidCpf = (cpf: string) => {
+  const d = cpf.replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(d[i]) * (10 - i);
+  let rest = (sum * 10) % 11; if (rest >= 10) rest = 0;
+  if (rest !== parseInt(d[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(d[i]) * (11 - i);
+  rest = (sum * 10) % 11; if (rest >= 10) rest = 0;
+  return rest === parseInt(d[10]);
+};
+
 export default function Register() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -54,10 +82,16 @@ export default function Register() {
       return;
     }
     
+    // Validar telefone
+    const phoneClean = phone.replace(/\D/g, '');
+    if (phoneClean.length < 10 || phoneClean.length > 11) {
+      Alert.alert('Erro', 'Telefone deve ter DDD + número (10 ou 11 dígitos)');
+      return;
+    }
+
     // Validar CPF
-    const cpfClean = documentCpf.replace(/\D/g, '');
-    if (!cpfClean || cpfClean.length !== 11) {
-      Alert.alert('Erro', 'CPF deve ter 11 dígitos');
+    if (!isValidCpf(documentCpf)) {
+      Alert.alert('Erro', 'CPF inválido. Verifique os dígitos.');
       return;
     }
     
@@ -244,7 +278,7 @@ export default function Register() {
       const registerPayload: any = {
         name,
         email,
-        phone,
+        phone: phone.replace(/\D/g, ''),
         password,
         document_cpf: documentCpf.replace(/\D/g, ''), // Remove formatação
         accepted_terms: true,
@@ -372,16 +406,17 @@ export default function Register() {
             <TextInput
               style={styles.input}
               value={phone}
-              onChangeText={setPhone}
-              placeholder="+5521999999999"
+              onChangeText={(v) => setPhone(maskPhone(v))}
+              placeholder="(21) 99999-9999"
               keyboardType="phone-pad"
+              maxLength={15}
             />
 
             <Text style={styles.label}>CPF</Text>
             <TextInput
               style={styles.input}
               value={documentCpf}
-              onChangeText={setDocumentCpf}
+              onChangeText={(v) => setDocumentCpf(maskCpf(v))}
               placeholder="000.000.000-00"
               keyboardType="number-pad"
               maxLength={14}

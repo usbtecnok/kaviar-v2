@@ -25,12 +25,30 @@ const config = {
 
 const variantConfig = config[variant];
 
+// Permissões base (ambos os apps)
+const basePermissions = [
+  'ACCESS_COARSE_LOCATION',
+  'ACCESS_FINE_LOCATION',
+  'INTERNET',
+  'VIBRATE',
+];
+
+// Motorista: precisa de background location para tracking durante corrida
+const driverPermissions = [
+  ...basePermissions,
+  'ACCESS_BACKGROUND_LOCATION',
+  'FOREGROUND_SERVICE',
+  'FOREGROUND_SERVICE_LOCATION',
+];
+
+const passengerPermissions = [...basePermissions];
+
 export default {
   expo: {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.0.0',
+    version: '1.3.2',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
@@ -43,7 +61,15 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: variantConfig.package
+      bundleIdentifier: variantConfig.package,
+      infoPlist: {
+        NSLocationAlwaysAndWhenInUseUsageDescription: variant === 'driver'
+          ? 'O Kaviar Motorista usa sua localização em segundo plano para enviar sua posição ao passageiro durante a corrida.'
+          : undefined,
+        NSLocationWhenInUseUsageDescription: variant === 'driver'
+          ? 'O Kaviar Motorista usa sua localização para encontrar corridas próximas e navegar até o passageiro.'
+          : 'O Kaviar usa sua localização para encontrar motoristas próximos e acompanhar sua corrida.',
+      }
     },
     android: {
       adaptiveIcon: {
@@ -51,13 +77,28 @@ export default {
         backgroundColor: '#1a1a1a'
       },
       package: variantConfig.package,
+      permissions: variant === 'driver' ? driverPermissions : passengerPermissions,
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_PLACES_KEY || ''
         }
       }
     },
-    plugins: [],
+    plugins: [
+      [
+        'expo-location',
+        {
+          locationAlwaysAndWhenInUsePermission: variant === 'driver'
+            ? 'O Kaviar Motorista usa sua localização em segundo plano para enviar sua posição ao passageiro durante a corrida.'
+            : undefined,
+          locationWhenInUsePermission: variant === 'driver'
+            ? 'O Kaviar Motorista usa sua localização para encontrar corridas próximas.'
+            : 'O Kaviar usa sua localização para encontrar motoristas próximos.',
+          isAndroidBackgroundLocationEnabled: variant === 'driver',
+          isAndroidForegroundServiceEnabled: variant === 'driver',
+        }
+      ],
+    ],
     extra: {
       eas: {
         projectId: variantConfig.projectId

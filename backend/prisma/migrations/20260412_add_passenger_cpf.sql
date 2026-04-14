@@ -1,0 +1,1 @@
+ALTER TABLE passengers ADD COLUMN IF NOT EXISTS document_cpf VARCHAR(11);

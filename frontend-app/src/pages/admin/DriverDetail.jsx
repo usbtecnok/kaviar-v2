@@ -23,6 +23,9 @@ import { VirtualFenceCenterCard } from '../../components/admin/VirtualFenceCente
 import { SecondaryBaseCard } from '../../components/admin/SecondaryBaseCard';
 import { DriverPremiumEligibilityCard } from '../../components/admin/DriverPremiumEligibilityCard';
 import { DriverCreditsCard } from '../../components/admin/DriverCreditsCard';
+import { DriverReputationCard } from '../../components/admin/DriverReputationCard';
+import { DriverFinancialCard } from '../../components/admin/DriverFinancialCard';
+import { DriverEditCard } from '../../components/admin/DriverEditCard';
 
 
 const isSuperAdmin = () => {
@@ -437,9 +440,24 @@ export default function AdminDriverDetail() {
         )}
       </Paper>
 
+      {/* Driver Edit Card */}
+      <Box sx={{ mt: 3 }}>
+        <DriverEditCard driverId={id} driver={driver} onUpdated={loadDriver} />
+      </Box>
+
+      {/* Driver Financial Summary */}
+      <Box sx={{ mt: 3 }}>
+        <DriverFinancialCard driverId={id} />
+      </Box>
+
       {/* Driver Credits Card */}
       <Box sx={{ mt: 3 }}>
         <DriverCreditsCard driverId={id} />
+      </Box>
+
+      {/* Driver Reputation Card */}
+      <Box sx={{ mt: 3 }}>
+        <DriverReputationCard driverId={id} />
       </Box>
 
       {/* Premium Eligibility Card */}

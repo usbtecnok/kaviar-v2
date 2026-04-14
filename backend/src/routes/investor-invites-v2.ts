@@ -40,8 +40,8 @@ const inviteRateLimit = rateLimit({
 
 const generateInviteToken = (userId: string, userType: string) => {
   return jwt.sign(
-    { userId, userType, type: 'password_reset' },
-    config.jwtSecret,
+    { userId, userType, purpose: 'password_reset' },
+    config.jwtResetSecret,
     { expiresIn: '120m' }
   );
 };

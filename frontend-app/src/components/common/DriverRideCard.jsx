@@ -149,6 +149,20 @@ const DriverRideCard = () => {
                 </Box>
               </Alert>
 
+              {/* Badge territorial */}
+              {currentRide.homebound ? (
+                <Alert severity="success" sx={{ mb: 2, py: 0.5 }}>
+                  <Typography variant="body2" fontWeight={600}>🏠 Retorno para casa</Typography>
+                  <Typography variant="caption">Passageiro da sua região voltando para casa</Typography>
+                </Alert>
+              ) : currentRide.territory_tier === 'COMMUNITY' ? (
+                <Chip label="Da sua comunidade" color="primary" size="small" sx={{ mb: 2, fontWeight: 600 }} />
+              ) : currentRide.territory_tier === 'NEIGHBORHOOD' ? (
+                <Chip label="Do seu bairro" color="warning" size="small" sx={{ mb: 2, fontWeight: 600 }} />
+              ) : currentRide.territory_tier === 'OUTSIDE' ? (
+                <Chip label="Região próxima" size="small" sx={{ mb: 2, fontWeight: 600, bgcolor: 'grey.200' }} />
+              ) : null}
+
               {/* Informações do passageiro */}
               <Box sx={{ 
                 display: 'flex', 

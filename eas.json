@@ -9,10 +9,11 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "latest",
+        "image": "latest"
       },
       "env": {
-        "APP_VARIANT": "driver"
+        "APP_VARIANT": "driver",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       }
     },
     "passenger-apk": {
@@ -20,10 +21,45 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "image": "latest",
+        "image": "latest"
       },
       "env": {
-        "APP_VARIANT": "passenger"
+        "APP_VARIANT": "passenger",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+      }
+    },
+    "driver-release": {
+      "node": "20.19.4",
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle",
+        "image": "latest"
+      },
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "driver",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+      }
+    },
+    "passenger-release": {
+      "node": "20.19.4",
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle",
+        "image": "latest"
+      },
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "passenger",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./play-store-key.json",
+        "track": "internal"
       }
     }
   }

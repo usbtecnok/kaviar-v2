@@ -19,7 +19,7 @@ import { resolveTerritory, TerritoryResolution } from './territory-resolver.serv
 
 // --- Types ---
 
-interface PricingProfile {
+export interface PricingProfile {
   id: string;
   slug: string;
   base_fare: number;
@@ -29,6 +29,7 @@ interface PricingProfile {
   fee_local: number;
   fee_adjacent: number;
   fee_external: number;
+  fee_homebound: number | null;
   credit_cost_local: number;
   credit_cost_external: number;
   max_dispatch_km: number;
@@ -63,7 +64,7 @@ export interface SettlementResult {
 
 const EARTH_RADIUS_KM = 6371;
 
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
@@ -93,7 +94,10 @@ function classifyWithDriver(
   return 'external';
 }
 
-function feeForTerritory(profile: PricingProfile, territory: TerritoryType): number {
+export function feeForTerritory(profile: PricingProfile, territory: TerritoryType, homebound = false): number {
+  if (homebound && (territory === 'local' || territory === 'adjacent') && profile.fee_homebound != null) {
+    return profile.fee_homebound;
+  }
   if (territory === 'local') return profile.fee_local;
   if (territory === 'adjacent') return profile.fee_adjacent;
   return profile.fee_external;
@@ -112,7 +116,7 @@ function round2(n: number): number {
 
 // --- Profile resolution ---
 
-async function resolveProfile(lat: number, lng: number): Promise<PricingProfile> {
+export async function resolveProfile(lat: number, lng: number): Promise<PricingProfile> {
   // Try to find a regional profile by proximity
   const regional = await pool.query(
     `SELECT * FROM pricing_profiles
@@ -156,6 +160,7 @@ function toProfile(row: any): PricingProfile {
     fee_local: Number(row.fee_local),
     fee_adjacent: Number(row.fee_adjacent),
     fee_external: Number(row.fee_external),
+    fee_homebound: row.fee_homebound != null ? Number(row.fee_homebound) : null,
     credit_cost_local: Number(row.credit_cost_local),
     credit_cost_external: Number(row.credit_cost_external),
     max_dispatch_km: Number(row.max_dispatch_km),
@@ -287,10 +292,14 @@ export async function refine(rideId: string, driverNeighborhoodId: string | null
   if (!profile.rows[0]) return;
   const p = toProfile(profile.rows[0]);
 
+  // Check if ride is homebound
+  const rideRow = await pool.query('SELECT is_homebound FROM rides_v2 WHERE id = $1', [rideId]);
+  const isHomebound = rideRow.rows[0]?.is_homebound === true;
+
   const driver_territory = classifyWithDriver(
     driverNeighborhoodId, s.origin_neighborhood_id, s.dest_neighborhood_id
   );
-  const fee_percent = feeForTerritory(p, driver_territory);
+  const fee_percent = feeForTerritory(p, driver_territory, isHomebound);
   const locked = Number(s.locked_price);
   const fee_amount = round2(locked * fee_percent / 100);
   const driver_earnings = round2(locked - fee_amount);
@@ -319,7 +328,7 @@ export async function refine(rideId: string, driverNeighborhoodId: string | null
     throw err;
   }
 
-  console.log(`[PRICING_REFINE] ride=${rideId} driver_territory=${driver_territory} fee=${fee_percent}% earnings=${driver_earnings}`);
+  console.log(`[PRICING_REFINE] ride=${rideId} driver_territory=${driver_territory} fee=${fee_percent}% earnings=${driver_earnings} homebound=${isHomebound}`);
 }
 
 /**

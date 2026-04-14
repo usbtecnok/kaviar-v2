@@ -1,6 +1,6 @@
 import rateLimit from 'express-rate-limit';
 
-// Rate limiting for login attempts
+// Rate limiting for login attempts (by IP)
 export const loginRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 attempts per window
@@ -10,8 +10,24 @@ export const loginRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // Skip successful requests
   skipSuccessfulRequests: true,
+});
+
+// Rate limiting for login attempts (by email — prevents brute force on a single account)
+export const loginByEmailRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: {
+    success: false,
+    error: 'Muitas tentativas para esta conta. Tente novamente em 15 minutos.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req) => {
+    const email = (req.body?.email || '').toLowerCase().trim();
+    return email || req.ip || 'unknown';
+  },
 });
 
 // Rate limiting for password reset requests

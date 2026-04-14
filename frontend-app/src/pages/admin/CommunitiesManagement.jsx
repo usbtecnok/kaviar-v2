@@ -21,7 +21,6 @@ import Map from '@mui/icons-material/Map';
 import Visibility from '@mui/icons-material/Visibility';
 import LocationCity from '@mui/icons-material/LocationCity';
 import WarningAmber from '@mui/icons-material/WarningAmber';
-import GeofenceMap from '../../components/maps/GeofenceMap';
 import LeafletGeofenceMap from '../../components/maps/LeafletGeofenceMap';
 
 
@@ -170,8 +169,8 @@ export default function CommunitiesManagement() {
       const response = await api.get(`/api/governance/communities/${community.id}/geofence`);
 
       if (response.data.success && response.data.data?.geometry) {
-        const geofenceData = response.data;
-        const geometryType = geofenceData.data.geometry.type;
+        const geofenceData = response.data.data;
+        const geometryType = geofenceData.geometry.type;
         
         // Atualizar status da comunidade localmente
         setCommunities(prev => prev.map(c => 
@@ -183,8 +182,11 @@ export default function CommunitiesManagement() {
         // Transformar para o formato esperado pelo componente
         const communityForMap = {
           ...community,
-          geometry: geofenceData.data.geometry,
-          geofence: community.geofenceData?.geojson || null
+          geometry: geofenceData.geometry,
+          centerLat: geofenceData.centerLat || community.center_lat,
+          centerLng: geofenceData.centerLng || community.center_lng,
+          radiusMeters: geofenceData.radiusMeters || community.radius_meters,
+          geofence: null
         };
         
         setMapDialog({ open: true, community: communityForMap });
@@ -200,7 +202,13 @@ export default function CommunitiesManagement() {
         
         setMapDialog({ 
           open: true, 
-          community: { ...community, geometry: null, geofence: null, hasNoGeofence: true }
+          community: {
+            ...community,
+            geometry: null, geofence: null, hasNoGeofence: true,
+            centerLat: community.center_lat,
+            centerLng: community.center_lng,
+            radiusMeters: community.radius_meters,
+          }
         });
       }
     } catch (error) {
@@ -214,7 +222,7 @@ export default function CommunitiesManagement() {
       // Fallback para outros erros
       setMapDialog({ 
         open: true, 
-        community: { ...community, geometry: null, geofence: null }
+        community: { ...community, geometry: null, geofence: null, centerLat: community.center_lat, centerLng: community.center_lng, radiusMeters: community.radius_meters }
       });
     }
   };
@@ -552,13 +560,9 @@ export default function CommunitiesManagement() {
           {/* Diagnóstico técnico */}
           <Alert severity="info" sx={{ mb: 2, fontSize: '0.75rem' }}>
             <Typography variant="caption" component="div">
-              🔧 <strong>Build:</strong> {__BUILD_HASH__} - {new Date(__BUILD_TIME__).toLocaleString('pt-BR')}<br/>
-              🗺️ <strong>Provider:</strong> {import.meta.env.VITE_GOOGLE_MAPS_API_KEY && 
-                                            import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== 'your_google_maps_api_key_here' 
-                                            ? 'Google Maps' : 'Leaflet + OpenStreetMap'}<br/>
+              🗺️ <strong>Provider:</strong> Leaflet + OpenStreetMap<br/>
               📍 <strong>Community:</strong> {mapDialog.community?.name} ({mapDialog.community?.id?.substring(0, 8)}...)<br/>
-              📏 <strong>Container:</strong> 420px fixo + fitBounds automático<br/>
-              🌐 <strong>Tiles:</strong> https://tile.openstreetmap.org (check Network tab)
+              📏 <strong>Centro:</strong> {mapDialog.community?.centerLat}, {mapDialog.community?.centerLng} | Raio: {mapDialog.community?.radiusMeters}m
             </Typography>
           </Alert>
 
@@ -591,35 +595,15 @@ export default function CommunitiesManagement() {
           
           {mapDialog.community ? (
             <Box sx={{ height: 400, width: '100%' }}>
-              {(() => {
-                const hasValidGoogleKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY && 
-                                         import.meta.env.VITE_GOOGLE_MAPS_API_KEY !== 'your_google_maps_api_key_here';
-                
-                console.log('🗺️ [PROVIDER] Google Maps Key válida:', hasValidGoogleKey);
-                console.log('🗺️ [PROVIDER] Usando:', hasValidGoogleKey ? 'Google Maps' : 'Leaflet + OpenStreetMap');
-                
-                return hasValidGoogleKey ? (
-                  <GeofenceMap
-                    communities={[mapDialog.community]}
-                    selectedCommunity={mapDialog.community}
-                    showGeofenceValidation={false}
-                    editMode={editMode}
-                    onGeofenceChange={handleGeofenceChange}
-                    showSearch={true}
-                    onCenterChange={centerMode ? handleCenterChange : null}
-                  />
-                ) : (
-                  <LeafletGeofenceMap
-                    communities={[mapDialog.community]}
-                    selectedCommunity={mapDialog.community}
-                    showGeofenceValidation={false}
-                    editMode={editMode}
-                    onGeofenceChange={handleGeofenceChange}
-                    showSearch={true}
-                    onCenterChange={centerMode ? handleCenterChange : null}
-                  />
-                );
-              })()}
+              <LeafletGeofenceMap
+                communities={[mapDialog.community]}
+                selectedCommunity={mapDialog.community}
+                showGeofenceValidation={false}
+                editMode={editMode}
+                onGeofenceChange={handleGeofenceChange}
+                showSearch={true}
+                onCenterChange={centerMode ? handleCenterChange : null}
+              />
             </Box>
           ) : null}
         </DialogContent>

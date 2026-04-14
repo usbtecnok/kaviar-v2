@@ -23,6 +23,22 @@ async function startServer() {
     `).then(() => console.log('✅ Feature flag: passenger_favorites_matching enabled'))
       .catch((e: any) => console.warn('⚠️ Feature flag migration skipped:', e.message));
 
+    prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS admin_audit_logs (
+        id SERIAL PRIMARY KEY,
+        admin_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        old_value JSONB,
+        new_value JSONB,
+        reason TEXT,
+        ip_address TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `).then(() => console.log('✅ admin_audit_logs table ready'))
+      .catch((e: any) => console.warn('⚠️ admin_audit_logs migration skipped:', e.message));
+
     // Test database connection (non-blocking startup)
     try {
       await Promise.race([

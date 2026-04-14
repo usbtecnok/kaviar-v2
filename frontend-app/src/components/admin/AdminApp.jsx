@@ -7,7 +7,8 @@ import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
-import BetaMonitor from "../../pages/admin/BetaMonitor";
+// import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
+import OperationsMonitor from "../../pages/admin/OperationsMonitor";
 import MatchMonitor from "../../pages/admin/MatchMonitor";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
 import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
@@ -29,6 +30,7 @@ import TourPartners from "../../pages/admin/premium-tourism/TourPartners";
 import TourReports from "../../pages/admin/premium-tourism/TourReports";
 import TourSettings from "../../pages/admin/premium-tourism/TourSettings";
 import ChangePassword from "../../pages/admin/ChangePassword";
+import WhatsAppCentral from "../../pages/admin/WhatsAppCentral";
 import ForgotPassword from "../../pages/admin/ForgotPassword";
 import InvestorInvites from "../../pages/admin/InvestorInvites";
 import ConsultantLeads from "../../pages/admin/ConsultantLeads";
@@ -112,6 +114,7 @@ function AdminHeader() {
 
 function AdminHome() {
   const [dashboardData, setDashboardData] = useState(null);
+  const [territoryData, setTerritoryData] = useState(null);
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
@@ -135,6 +138,7 @@ function AdminHome() {
     };
     
     fetchDashboardData();
+    fetchTerritoryData();
     
     return () => { window.fetch = originalFetch; };
   }, []);
@@ -206,6 +210,15 @@ function AdminHome() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchTerritoryData = async () => {
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const res = await fetch(`${API_BASE_URL}/api/admin/dashboard/territory`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.success) setTerritoryData(data.data);
+    } catch {}
   };
 
   const { stats = {}, pending = {} } = dashboardData || {};
@@ -381,6 +394,35 @@ function AdminHome() {
         </Box>
       )}
 
+      {/* Operação Territorial */}
+      {territoryData && territoryData.total > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
+            Operação Territorial
+          </Typography>
+          <Grid container spacing={2}>
+            {[
+              { icon: '🏠', value: territoryData.homebound, label: 'Retorno casa', color: '#2e7d32' },
+              { icon: '💰', value: territoryData.homeboundReduced, label: 'Taxa reduzida', color: '#b8960c' },
+              { icon: '📍', value: territoryData.local, label: 'Mesma região', color: '#1976d2' },
+              { icon: '↗️', value: territoryData.adjacent, label: 'Bairro vizinho', color: '#ed6c02' },
+              { icon: '🌐', value: territoryData.external, label: 'Fora território', color: '#666' },
+              { icon: '🚗', value: territoryData.total, label: 'Total corridas', color: '#2e7d32' },
+            ].map((item, i) => (
+              <Grid item xs={6} sm={4} md={2} key={i}>
+                <Card>
+                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
+                    <Typography sx={{ fontSize: 22, mb: 0.5 }}>{item.icon}</Typography>
+                    <Typography variant="h5" fontWeight="800" sx={{ color: item.color }}>{item.value}</Typography>
+                    <Typography variant="caption" color="text.secondary">{item.label}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
       {/* Atalhos de Gerenciamento */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
@@ -441,6 +483,23 @@ function AdminHome() {
                   Purchases, webhooks e saldos
                 </Typography>
                 <Button variant="contained" sx={{ bgcolor: '#FFD700', color: '#000' }} component={Link} to="/admin/credit-purchases">
+                  Acessar
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} sm={6} md={4}>
+            <Card sx={{ bgcolor: '#0B3D2E', border: '1px solid #25D366' }}>
+              <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                <Typography sx={{ fontSize: 40, mb: 1 }}>💬</Typography>
+                <Typography variant="h6" gutterBottom sx={{ color: '#25D366' }}>
+                  Central WhatsApp
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#BFC7D5', mb: 2 }}>
+                  Atendimento, contexto e operação
+                </Typography>
+                <Button variant="contained" sx={{ bgcolor: '#25D366', color: '#fff', fontWeight: 700, '&:hover': { bgcolor: '#1da851' } }} component={Link} to="/admin/whatsapp">
                   Acessar
                 </Button>
               </CardContent>
@@ -587,21 +646,19 @@ function AdminHome() {
             </Card>
           </Grid>
 
+          {/* Beta Monitor — HIBERNADO */}
+
           <Grid item xs={12} sm={6} md={4}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <Analytics sx={{ fontSize: 40, color: 'info.main', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Beta Monitor
+            <Card sx={{ bgcolor: '#0d1117', border: '1px solid #FFD700' }}>
+              <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                <Typography sx={{ fontSize: 40, mb: 1.5 }}>📊</Typography>
+                <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 700, mb: 0.5 }}>
+                  Monitor Operacional
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Checkpoints + logs + runbook
+                <Typography variant="body2" sx={{ color: '#7a8a9a', mb: 2.5, fontSize: 12 }}>
+                  Dispatch, território e performance
                 </Typography>
-                <Button 
-                  variant="contained" 
-                  color="info"
-                  href="/admin/beta-monitor"
-                >
+                <Button variant="outlined" sx={{ borderColor: '#FFD70066', color: '#FFD700', fontWeight: 600, fontSize: 12, px: 3, '&:hover': { borderColor: '#FFD700', bgcolor: '#FFD70010' } }} component={Link} to="/admin/operations">
                   Acessar
                 </Button>
               </CardContent>
@@ -785,6 +842,11 @@ export default function AdminApp() {
               <AdminCreditPurchasesWrapper />
             </ProtectedAdminRoute>
           } />
+          <Route path="/whatsapp" element={
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
+              <WhatsAppCentral />
+            </ProtectedAdminRoute>
+          } />
           <Route path="/" element={
             <ProtectedAdminRoute>
               <FinanceHomeRedirect />
@@ -854,10 +916,17 @@ export default function AdminApp() {
             </ProtectedAdminRoute>
           } />
 
+          {/* Beta Monitor — HIBERNADO
           <Route path="/beta-monitor" element={
             <ProtectedAdminRoute>
               <AdminHeader />
               <BetaMonitor />
+            </ProtectedAdminRoute>
+          } />
+          */}
+          <Route path="/operations" element={
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
+              <OperationsMonitor />
             </ProtectedAdminRoute>
           } />
 

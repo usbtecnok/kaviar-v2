@@ -1,72 +1,42 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { dispatcherService } from '../services/dispatcher.service';
-import { GeoResolveService } from '../services/geo-resolve';
+import { resolveTerritory } from '../services/territory-resolver.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { realTimeService } from '../services/realtime.service';
 import { calculateCreditCost } from '../services/credit-cost.service';
 import { applyCreditDelta } from '../services/credit.service';
 import { whatsappEvents } from '../modules/whatsapp';
 import * as pricingEngine from '../services/pricing-engine';
-import jwt from 'jsonwebtoken';
+import { authenticatePassenger, authenticateDriver, requireAuth } from '../middlewares/auth';
 
 const router = Router();
-const geoResolveService = new GeoResolveService();
 
-// Middleware de autenticação JWT (compatível com token real do sistema)
-const requirePassenger = (req: Request, res: Response, next: Function) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const token = authHeader.substring(7);
-
+// 5.0 Estimativa de preço (sem criar corrida)
+router.post('/estimate', authenticatePassenger, async (req: Request, res: Response) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-
-    // payload novo (userType/userId) + legado (role/id)
-    const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
-    const userId = decoded.userId || decoded.id;
-
-    if (userType !== 'PASSENGER' || !userId) {
-      return res.status(403).json({ error: 'Forbidden' });
+    const { origin, destination } = req.body;
+    if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
+      return res.status(400).json({ error: 'Origem ou destino inválido' });
     }
 
-    (req as any).passengerId = userId;
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+    const distance_km = Math.round(
+      pricingEngine.haversineKm(origin.lat, origin.lng, destination.lat, destination.lng) * 100
+    ) / 100;
+
+    const profile = await pricingEngine.resolveProfile(origin.lat, origin.lng);
+    const raw = profile.base_fare + distance_km * profile.per_km;
+    const price = Math.round(Math.max(raw, profile.minimum_fare) * 100) / 100;
+
+    res.json({ success: true, data: { price, distance_km } });
+  } catch (error: any) {
+    console.error('[RIDE_ESTIMATE_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
-};
-
-const requireDriver = (req: Request, res: Response, next: Function) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  const token = authHeader.substring(7);
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-
-    const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
-    const userId = decoded.userId || decoded.id;
-
-    if (userType !== 'DRIVER' || !userId) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    (req as any).driverId = userId;
-    next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-};
+});
 
 // 5.1 Passageiro solicita corrida
-router.post('/', requirePassenger, async (req: Request, res: Response) => {
+router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
   try {
     const passengerId = (req as any).passengerId;
     const { origin, destination, type = 'normal' } = req.body;
@@ -74,7 +44,7 @@ router.post('/', requirePassenger, async (req: Request, res: Response) => {
 
     // Validação
     if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
-      return res.status(400).json({ error: 'Invalid origin or destination' });
+      return res.status(400).json({ error: 'Origem ou destino inválido' });
     }
 
     // Verificar idempotência
@@ -108,27 +78,44 @@ router.post('/', requirePassenger, async (req: Request, res: Response) => {
 
     console.log(`[RIDE_CREATED] ride_id=${ride.id} passenger_id=${passengerId} origin=[${origin.lat},${origin.lng}] dest=[${destination.lat},${destination.lng}]`);
 
-    // Resolver território origem + destino via geofence
+    // Resolver território origem + destino via geofence (comunidade → bairro → fallback)
     let originNeighborhoodId: string | null = null;
+    let originCommunityId: string | null = null;
     let destNeighborhoodId: string | null = null;
     try {
-      const [originGeo, destGeo] = await Promise.all([
-        geoResolveService.resolveCoordinates(origin.lat, origin.lng),
-        geoResolveService.resolveCoordinates(destination.lat, destination.lng),
+      const [originRes, destRes] = await Promise.all([
+        resolveTerritory(origin.lng, origin.lat),
+        resolveTerritory(destination.lng, destination.lat),
       ]);
-      if (originGeo.match && originGeo.resolvedArea) {
-        originNeighborhoodId = originGeo.resolvedArea.id;
+      if (originRes.neighborhood) {
+        originNeighborhoodId = originRes.neighborhood.id;
       }
-      if (destGeo.match && destGeo.resolvedArea) {
-        destNeighborhoodId = destGeo.resolvedArea.id;
+      if (originRes.community) {
+        originCommunityId = originRes.community.id;
       }
+      if (destRes.neighborhood) {
+        destNeighborhoodId = destRes.neighborhood.id;
+      }
+
+      // Detectar corrida de retorno para casa
+      const passenger = await prisma.passengers.findUnique({
+        where: { id: passengerId },
+        select: { neighborhood_id: true, community_id: true }
+      });
+      const isHomebound = !!(passenger && destNeighborhoodId &&
+        passenger.neighborhood_id === destNeighborhoodId &&
+        originNeighborhoodId !== passenger.neighborhood_id);
+
       await prisma.rides_v2.update({
         where: { id: ride.id },
         data: {
           origin_neighborhood_id: originNeighborhoodId,
+          origin_community_id: originCommunityId,
           dest_neighborhood_id: destNeighborhoodId,
+          is_homebound: isHomebound,
         }
       });
+      console.log(`[RIDE_TERRITORY] ride_id=${ride.id} origin_neighborhood=${originNeighborhoodId} origin_community=${originCommunityId} dest_neighborhood=${destNeighborhoodId} homebound=${isHomebound}`);
     } catch (geoErr) {
       console.error(`[RIDE_GEO_RESOLVE_FAILED] ride_id=${ride.id}`, geoErr);
     }
@@ -158,19 +145,17 @@ router.post('/', requirePassenger, async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[RIDE_CREATE_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // GET /history — ride history for passenger or driver (MUST be before /:ride_id)
-router.get('/history', async (req: Request, res: Response) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
+router.get('/history', requireAuth, async (req: Request, res: Response) => {
   try {
-    const decoded = jwt.verify(authHeader.substring(7), process.env.JWT_SECRET!) as any;
-    const userType = String(decoded.userType || decoded.user_type || decoded.role || '').toUpperCase();
-    const userId = decoded.userId || decoded.id;
-    if (!userId) return res.status(401).json({ error: 'Invalid token' });
+    const user = (req as any).user;
+    const userType = String(user.userType || user.user_type || user.role || '').toUpperCase();
+    const userId = user.userId || user.id;
+    if (!userId) return res.status(401).json({ error: 'Sessão inválida' });
 
     const where = userType === 'DRIVER'
       ? { driver_id: userId, status: { in: ['completed', 'canceled_by_passenger', 'canceled_by_driver'] as any } }
@@ -189,12 +174,12 @@ router.get('/history', async (req: Request, res: Response) => {
     });
     res.json({ rides });
   } catch {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Sessão inválida' });
   }
 });
 
 // Passageiro consulta corrida por ID
-router.get('/:ride_id', requirePassenger, async (req: Request, res: Response) => {
+router.get('/:ride_id', authenticatePassenger, async (req: Request, res: Response) => {
   try {
     const passengerId = (req as any).passengerId;
     const ride = await prisma.rides_v2.findUnique({
@@ -202,7 +187,7 @@ router.get('/:ride_id', requirePassenger, async (req: Request, res: Response) =>
       include: { driver: { select: { id: true, name: true, phone: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, last_lat: true, last_lng: true } } }
     });
     if (!ride || ride.passenger_id !== passengerId) {
-      return res.status(404).json({ error: 'Ride not found' });
+      return res.status(404).json({ error: 'Corrida não encontrada' });
     }
     res.json({ success: true, data: {
       ...ride,
@@ -218,12 +203,12 @@ router.get('/:ride_id', requirePassenger, async (req: Request, res: Response) =>
     } });
   } catch (error: any) {
     console.error('[RIDE_GET_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // 5.2 Passageiro cancela corrida
-router.post('/:ride_id/cancel', requirePassenger, async (req: Request, res: Response) => {
+router.post('/:ride_id/cancel', authenticatePassenger, async (req: Request, res: Response) => {
   try {
     const passengerId = (req as any).passengerId;
     const { ride_id } = req.params;
@@ -231,15 +216,15 @@ router.post('/:ride_id/cancel', requirePassenger, async (req: Request, res: Resp
     const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
     
     if (!ride) {
-      return res.status(404).json({ error: 'Ride not found' });
+      return res.status(404).json({ error: 'Corrida não encontrada' });
     }
 
     if (ride.passenger_id !== passengerId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Acesso negado' });
     }
 
     if (!['requested', 'offered', 'accepted', 'arrived'].includes(ride.status)) {
-      return res.status(400).json({ error: 'Cannot cancel ride in current status' });
+      return res.status(400).json({ error: 'Não é possível cancelar neste momento' });
     }
 
     await prisma.rides_v2.update({
@@ -286,12 +271,38 @@ router.post('/:ride_id/cancel', requirePassenger, async (req: Request, res: Resp
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_CANCEL_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
+// 5.6 Driver cancela corrida
+router.post('/:ride_id/driver-cancel', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+    const { ride_id } = req.params;
+    const { reason } = req.body;
+
+    const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
+    if (!ride || ride.driver_id !== driverId) return res.status(403).json({ error: 'Acesso negado' });
+    if (!['accepted', 'arrived'].includes(ride.status)) return res.status(400).json({ error: 'Não é possível cancelar neste momento' });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.rides_v2.update({ where: { id: ride_id }, data: { status: 'canceled_by_driver', canceled_at: new Date() } });
+      await tx.driver_status.update({ where: { driver_id: driverId }, data: { availability: 'online' } });
+    });
+
+    console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=canceled_by_driver driver_id=${driverId} reason=${reason || 'none'}`);
+    realTimeService.emitToRide(ride_id, { type: 'ride.status.changed', status: 'canceled_by_driver', timestamp: new Date().toISOString() });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[RIDE_DRIVER_CANCEL_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // 5.7 Driver arrived
-router.post('/:ride_id/arrived', requireDriver, async (req: Request, res: Response) => {
+router.post('/:ride_id/arrived', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { ride_id } = req.params;
@@ -299,11 +310,11 @@ router.post('/:ride_id/arrived', requireDriver, async (req: Request, res: Respon
     const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
     
     if (!ride || ride.driver_id !== driverId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Acesso negado' });
     }
 
     if (ride.status !== 'accepted') {
-      return res.status(400).json({ error: 'Invalid status transition' });
+      return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
     }
 
     await prisma.rides_v2.update({
@@ -342,12 +353,12 @@ router.post('/:ride_id/arrived', requireDriver, async (req: Request, res: Respon
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_ARRIVED_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // 5.7 Driver start
-router.post('/:ride_id/start', requireDriver, async (req: Request, res: Response) => {
+router.post('/:ride_id/start', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { ride_id } = req.params;
@@ -355,11 +366,11 @@ router.post('/:ride_id/start', requireDriver, async (req: Request, res: Response
     const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
     
     if (!ride || ride.driver_id !== driverId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Acesso negado' });
     }
 
     if (ride.status !== 'arrived') {
-      return res.status(400).json({ error: 'Invalid status transition' });
+      return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
     }
 
     await prisma.rides_v2.update({
@@ -392,12 +403,12 @@ router.post('/:ride_id/start', requireDriver, async (req: Request, res: Response
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_START_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // 5.7 Driver complete
-router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Response) => {
+router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { ride_id } = req.params;
@@ -405,11 +416,11 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
     const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
     
     if (!ride || ride.driver_id !== driverId) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Acesso negado' });
     }
 
     if (ride.status !== 'in_progress') {
-      return res.status(400).json({ error: 'Invalid status transition' });
+      return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -417,6 +428,7 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
         where: { id: ride_id },
         data: {
           status: 'completed',
+          completed_at: new Date(),
           updated_at: new Date()
         }
       });
@@ -499,19 +511,19 @@ router.post('/:ride_id/complete', requireDriver, async (req: Request, res: Respo
     res.json({ success: true, credit: creditResult });
   } catch (error: any) {
     console.error('[RIDE_COMPLETE_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 
 // Driver location update during ride
-router.post('/:ride_id/location', requireDriver, async (req: Request, res: Response) => {
+router.post('/:ride_id/location', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { ride_id } = req.params;
     const { lat, lng } = req.body;
 
     if (!lat || !lng) {
-      return res.status(400).json({ error: 'lat and lng required' });
+      return res.status(400).json({ error: 'Localização obrigatória' });
     }
 
     // Verify ride belongs to driver and is active
@@ -520,7 +532,7 @@ router.post('/:ride_id/location', requireDriver, async (req: Request, res: Respo
     });
 
     if (!ride) {
-      return res.status(404).json({ error: 'Active ride not found' });
+      return res.status(404).json({ error: 'Corrida ativa não encontrada' });
     }
 
     // Update driver location
@@ -539,7 +551,7 @@ router.post('/:ride_id/location', requireDriver, async (req: Request, res: Respo
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_LOCATION_ERROR]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
 

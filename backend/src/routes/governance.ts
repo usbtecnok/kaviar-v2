@@ -153,7 +153,11 @@ router.get('/communities', async (req, res) => {
     const communities = await prisma.communities.findMany({
       select: {
         id: true,
-        name: true
+        name: true,
+        center_lat: true,
+        center_lng: true,
+        radius_meters: true,
+        is_active: true,
       },
       orderBy: { name: 'asc' }
     });
@@ -168,6 +172,50 @@ router.get('/communities', async (req, res) => {
       success: false,
       error: 'Erro ao buscar comunidades'
     });
+  }
+});
+
+// GET /api/governance/communities/:id/geofence - Community geofence data
+router.get('/communities/:id/geofence', async (req, res) => {
+  try {
+    const community = await prisma.communities.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, center_lat: true, center_lng: true, radius_meters: true },
+    });
+    if (!community) return res.status(404).json({ success: false, error: 'Comunidade não encontrada' });
+
+    // Se tem geofence PostGIS, retornar geometria
+    const geofence = await prisma.community_geofences.findUnique({
+      where: { community_id: req.params.id },
+      select: { geojson: true, center_lat: true, center_lng: true },
+    });
+
+    if (geofence?.geojson) {
+      try {
+        const parsed = JSON.parse(geofence.geojson);
+        const geom = parsed?.type === 'FeatureCollection' ? parsed.features?.[0]?.geometry
+          : parsed?.type === 'Feature' ? parsed.geometry : parsed;
+        return res.json({ success: true, data: { geometry: geom, centerLat: geofence.center_lat, centerLng: geofence.center_lng } });
+      } catch {}
+    }
+
+    // Fallback: retornar centro + raio como Point
+    if (community.center_lat && community.center_lng) {
+      return res.json({
+        success: true,
+        data: {
+          geometry: { type: 'Point', coordinates: [Number(community.center_lng), Number(community.center_lat)] },
+          centerLat: community.center_lat,
+          centerLng: community.center_lng,
+          radiusMeters: community.radius_meters,
+        }
+      });
+    }
+
+    res.json({ success: false, data: null });
+  } catch (error) {
+    console.error('Error fetching community geofence:', error);
+    res.status(500).json({ success: false, error: 'Erro ao buscar geofence' });
   }
 });
 

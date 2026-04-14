@@ -113,6 +113,19 @@ const RideStatusCard = ({ showActions = true }) => {
             />
           )}
 
+          {/* Badge territorial */}
+          {(displayStatus === 'accepted' || displayStatus === 'driver_assigned') && (
+            currentRide?.homebound ? (
+              <Chip label="🏠 Motorista da sua região para seu retorno" color="success" variant="outlined" sx={{ mb: 2, fontWeight: 500 }} />
+            ) : currentRide?.territory_tier === 'COMMUNITY' ? (
+              <Chip label="Motorista da sua comunidade" color="primary" variant="outlined" sx={{ mb: 2, fontWeight: 500 }} />
+            ) : currentRide?.territory_tier === 'NEIGHBORHOOD' ? (
+              <Chip label="Motorista do seu bairro" color="warning" variant="outlined" sx={{ mb: 2, fontWeight: 500 }} />
+            ) : currentRide?.territory_tier === 'OUTSIDE' ? (
+              <Chip label="Motorista de região próxima" variant="outlined" sx={{ mb: 2, fontWeight: 500, borderColor: 'grey.400' }} />
+            ) : null
+          )}
+
           {/* Informações da corrida */}
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>

@@ -1,9 +1,12 @@
 import { Router, Request, Response } from 'express';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
 const PLACES_KEY = process.env.GOOGLE_PLACES_KEY;
 
 if (!PLACES_KEY) console.warn('[GEO_PROXY] GOOGLE_PLACES_KEY not set — geo proxy disabled');
+
+router.use(requireAuth);
 
 // GET /api/geo/reverse?lat=X&lng=Y
 router.get('/reverse', async (req: Request, res: Response) => {

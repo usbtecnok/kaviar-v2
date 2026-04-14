@@ -32,6 +32,7 @@ export interface RideOffer {
   ride_id: string;
   driver_id: string;
   status: OfferStatus;
+  territory_tier?: 'COMMUNITY' | 'NEIGHBORHOOD' | 'OUTSIDE';
   sent_at: string;
   expires_at: string;
   ride: {
@@ -44,6 +45,7 @@ export interface RideOffer {
     dest_lat: number;
     dest_lng: number;
     destination_text?: string;
+    is_homebound?: boolean;
     requested_at: string;
     passenger?: { name: string };
   };

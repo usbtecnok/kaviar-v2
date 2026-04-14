@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { COLORS } from '../../src/config/colors';
 
 const SUPPORT_WHATSAPP = 'https://wa.me/5521968648777?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20Kaviar';
 const SITE_URL = 'https://kaviar.com.br';
+const APP_VERSION = Constants.expoConfig?.version || '1.1.0';
 
 export default function Help() {
   const router = useRouter();
@@ -37,7 +39,7 @@ export default function Help() {
       <View style={s.content}>
         {option('logo-whatsapp', 'Falar com suporte', 'Atendimento via WhatsApp', () => Linking.openURL(SUPPORT_WHATSAPP))}
         {option('globe-outline', 'Site Kaviar', 'kaviar.com.br', () => Linking.openURL(SITE_URL))}
-        {option('information-circle-outline', 'Sobre o Kaviar', 'Versão 1.0.0', () => Linking.openURL(SITE_URL))}
+        {option('information-circle-outline', 'Sobre o Kaviar', `Versão ${APP_VERSION}`, () => Linking.openURL(SITE_URL))}
       </View>
     </SafeAreaView>
   );

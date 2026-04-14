@@ -70,6 +70,12 @@ export const driverApi = {
     return data.data || [];
   },
 
+  // v2: Resumo financeiro
+  getFinancialSummary: async (period: 'today' | '7d' | '30d' = '30d') => {
+    const { data } = await apiClient.get(`/api/v2/drivers/me/financial-summary?period=${period}`);
+    return data.data;
+  },
+
   // v1: Perfil (não tem v2 equivalente)
   getMe: async () => {
     const { data } = await apiClient.get('/api/drivers/me');

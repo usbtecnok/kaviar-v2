@@ -7,6 +7,7 @@ interface DriverCandidate {
   driver_id: string;
   distance_km: number;
   score: number;
+  same_community: boolean;
   same_neighborhood: boolean;
   same_geofence?: boolean;
   lat?: number;
@@ -15,14 +16,17 @@ interface DriverCandidate {
 
 export class DispatcherService {
   private readonly MAX_ATTEMPTS = 5;
-  private readonly OFFER_TIMEOUT_SECONDS = 30;
+  private readonly OFFER_TIMEOUT_SECONDS = 45;
   private readonly MAX_DISTANCE_KM = 12;
-  private readonly LOCATION_FRESHNESS_SECONDS = process.env.NODE_ENV === 'production' ? 30 : 3600; // DEV: 1h
+  private readonly LOCATION_FRESHNESS_SECONDS = process.env.NODE_ENV === 'production' ? 60 : 3600; // DEV: 1h
 
   async dispatchRide(rideId: string): Promise<void> {
     const ride = await prisma.rides_v2.findUnique({
       where: { id: rideId },
-      include: { offers: true }
+      include: {
+        offers: true,
+        passenger: { select: { neighborhood_id: true, community_id: true } }
+      }
     });
 
     if (!ride) {
@@ -67,6 +71,7 @@ export class DispatcherService {
 
     // Pegar o melhor candidato
     const bestCandidate = candidates[0];
+    const matchTier = bestCandidate.same_community ? 'COMMUNITY' : bestCandidate.same_neighborhood ? 'NEIGHBORHOOD' : 'OUTSIDE';
 
     // Criar oferta + atualizar ride atomicamente
     const expiresAt = new Date(Date.now() + this.OFFER_TIMEOUT_SECONDS * 1000);
@@ -77,6 +82,7 @@ export class DispatcherService {
           ride_id: rideId,
           driver_id: bestCandidate.driver_id,
           status: 'pending',
+          territory_tier: matchTier,
           expires_at: expiresAt,
           rank_score: new Decimal(bestCandidate.score)
         }
@@ -88,10 +94,10 @@ export class DispatcherService {
       return o;
     });
 
-    console.log(`[OFFER_SENT] ride_id=${rideId} offer_id=${offer.id} driver_id=${bestCandidate.driver_id} expires_at=${expiresAt.toISOString()} score=${bestCandidate.score}`);
+    console.log(`[OFFER_SENT] ride_id=${rideId} offer_id=${offer.id} driver_id=${bestCandidate.driver_id} tier=${matchTier} distance_km=${bestCandidate.distance_km.toFixed(1)} score=${bestCandidate.score}`);
 
     // Emitir evento real-time para o motorista
-    this.emitOfferToDriver(bestCandidate.driver_id, offer.id, ride);
+    this.emitOfferToDriver(bestCandidate.driver_id, offer.id, ride, matchTier);
 
     // DEV: simular decisão do driver com probabilidades
     if (process.env.NODE_ENV !== 'production' && process.env.DEV_AUTO_ACCEPT === 'true') {
@@ -260,14 +266,23 @@ export class DispatcherService {
         }
       }
 
-      const sameNeighborhood = ride.origin_neighborhood_id && 
-                               ds.driver.neighborhood_id === ride.origin_neighborhood_id;
+      // Referência territorial: residência do passageiro (homebound) ou origem da corrida
+      // Fallback: se a origem não tem community resolvida, usar community do passageiro
+      const refNeighborhood = ride.is_homebound
+        ? ride.passenger?.neighborhood_id
+        : ride.origin_neighborhood_id;
+      const refCommunity = ride.is_homebound
+        ? ride.passenger?.community_id
+        : (ride.origin_community_id || ride.passenger?.community_id);
 
-      // Calcular score (menor é melhor)
+      const sameNeighborhood = refNeighborhood &&
+                               ds.driver.neighborhood_id === refNeighborhood;
+
+      const sameCommunity = refCommunity &&
+                            ds.driver.community_id === refCommunity;
+
+      // Score = distância GPS pura (desempate operacional dentro de cada tier)
       let score = distance;
-      if (sameNeighborhood) {
-        score *= 0.7; // 30% de bônus
-      }
 
       // DEV: Geofence boost (INSIDE coords: -22.965 to -22.975 lat, -43.170 to -43.185 lng)
       let sameGeofence = false;
@@ -291,7 +306,8 @@ export class DispatcherService {
         driver_id: ds.driver_id,
         distance_km: distance,
         score,
-        same_neighborhood: sameNeighborhood,
+        same_community: !!sameCommunity,
+        same_neighborhood: !!sameNeighborhood,
         same_geofence: sameGeofence,
         lat: Number(location.lat),
         lng: Number(location.lng),
@@ -301,13 +317,16 @@ export class DispatcherService {
     // Log de diagnóstico
     console.log(`[DISPATCHER_FILTER] ride_id=${ride.id} online=${onlineDriversCount} with_location=${withLocationCount} fresh_location=${withFreshLocationCount} within_distance=${withinDistanceCount} final_candidates=${candidates.length} dropped=${JSON.stringify(droppedReasons)}`);
 
-    // Ordenar: território primeiro, depois score (menor primeiro)
-    // Motoristas do mesmo bairro SEMPRE ficam acima dos de fora
+    // Ordenar por tier territorial, GPS como desempate dentro de cada tier
+    // Tier 1: mesma comunidade  |  Tier 2: mesmo bairro  |  Tier 3: fora
     candidates.sort((a, b) => {
-      if (a.same_neighborhood && !b.same_neighborhood) return -1;
-      if (!a.same_neighborhood && b.same_neighborhood) return 1;
+      const tierA = a.same_community ? 0 : a.same_neighborhood ? 1 : 2;
+      const tierB = b.same_community ? 0 : b.same_neighborhood ? 1 : 2;
+      if (tierA !== tierB) return tierA - tierB;
       return a.score - b.score;
     });
+
+    console.log(`[DISPATCH_TIERS] ride_id=${ride.id} community=${candidates.filter(c => c.same_community).length} neighborhood=${candidates.filter(c => !c.same_community && c.same_neighborhood).length} outside=${candidates.filter(c => !c.same_community && !c.same_neighborhood).length}`);
 
     // Hybrid scoring: favorites refine ranking WITHIN each territorial tier
     const favWeight = parseFloat(process.env.FAVORITES_WEIGHT || '0');
@@ -328,13 +347,14 @@ export class DispatcherService {
             c.score = distNorm * (1 - favWeight) + favNorm * favWeight;
           }
 
-          // Re-sort preserving territorial priority
+          // Re-sort preserving 3-tier territorial priority
           candidates.sort((a, b) => {
-            if (a.same_neighborhood && !b.same_neighborhood) return -1;
-            if (!a.same_neighborhood && b.same_neighborhood) return 1;
+            const tierA = a.same_community ? 0 : a.same_neighborhood ? 1 : 2;
+            const tierB = b.same_community ? 0 : b.same_neighborhood ? 1 : 2;
+            if (tierA !== tierB) return tierA - tierB;
             return a.score - b.score;
           });
-          console.log(`[HYBRID_RANK] ride_id=${ride.id} weight=${favWeight} territory_first=true top=${candidates.slice(0, 3).map(c => `${c.driver_id}(n=${c.same_neighborhood})`).join(',')}`);
+          console.log(`[HYBRID_RANK] ride_id=${ride.id} weight=${favWeight} territory_first=true top=${candidates.slice(0, 3).map(c => `${c.driver_id}(c=${c.same_community},n=${c.same_neighborhood})`).join(',')}`);
         }
       } catch (err: any) {
         console.log(`[HYBRID_SCORE_ERROR] ride_id=${ride.id} error=${err.message} fallback=territory+distance`);
@@ -393,12 +413,13 @@ export class DispatcherService {
     }
   }
 
-  private emitOfferToDriver(driverId: string, offerId: string, ride: any): void {
+  private emitOfferToDriver(driverId: string, offerId: string, ride: any, tier: string): void {
     const event = {
       type: 'ride.offer.created',
       offer: {
         id: offerId,
         ride_id: ride.id,
+        territory_tier: tier,
         expires_at: new Date(Date.now() + this.OFFER_TIMEOUT_SECONDS * 1000).toISOString()
       },
       ride: {
@@ -411,7 +432,8 @@ export class DispatcherService {
           lat: Number(ride.dest_lat),
           lng: Number(ride.dest_lng),
           text: ride.destination_text
-        }
+        },
+        homebound: ride.is_homebound || false
       }
     };
 

@@ -153,15 +153,24 @@ const LeafletGeofenceMap = ({
       if (community.hasNoGeofence) {
         console.log('📍 [MAP DIAGNOSTIC] Community SEM DADOS:', community.name);
         
-        // Mostrar apenas centro se disponível
+        // Mostrar centro + raio se disponível
         if (community.centerLat && community.centerLng) {
-          window.L.marker([
-            parseFloat(community.centerLat),
-            parseFloat(community.centerLng)
-          ]).addTo(map).bindPopup(`${community.name} - SEM DADOS`);
+          const lat = parseFloat(community.centerLat);
+          const lng = parseFloat(community.centerLng);
+          window.L.marker([lat, lng]).addTo(map).bindPopup(`${community.name}`);
+          
+          if (community.radiusMeters) {
+            window.L.circle([lat, lng], {
+              radius: community.radiusMeters,
+              color: isSelected ? '#1976D2' : '#388E3C',
+              fillColor: isSelected ? '#2196F3' : '#4CAF50',
+              fillOpacity: 0.2,
+              weight: 2
+            }).addTo(map);
+          }
           
           if (isSelected) {
-            map.setView([parseFloat(community.centerLat), parseFloat(community.centerLng)], 15);
+            map.setView([lat, lng], 15);
           }
         }
         return;
@@ -265,23 +274,17 @@ const LeafletGeofenceMap = ({
     );
   }
 
-  if (!isLoaded) {
-    return (
-      <Box sx={{ 
-        height: 400, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        backgroundColor: '#f5f5f5',
-        borderRadius: 1
-      }}>
-        <Typography variant="body1">🗺️ Carregando mapa...</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ height: 420, width: '100%', position: 'relative' }}>
+      {!isLoaded && (
+        <Box sx={{ 
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backgroundColor: '#f5f5f5', borderRadius: 1
+        }}>
+          <Typography variant="body1">🗺️ Carregando mapa...</Typography>
+        </Box>
+      )}
       <div 
         ref={mapRef} 
         style={{ 
@@ -291,12 +294,6 @@ const LeafletGeofenceMap = ({
           minHeight: '420px'
         }} 
       />
-      {/* Container height diagnostic */}
-      {mapRef.current && (
-        <div style={{ display: 'none' }}>
-          {console.log('📏 [MAP DIAGNOSTIC] Container height:', mapRef.current.offsetHeight, 'px')}
-        </div>
-      )}
     </Box>
   );
 };

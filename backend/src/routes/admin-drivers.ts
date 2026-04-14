@@ -1,10 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
 import { ApprovalController } from '../modules/admin/approval-controller';
+import { config } from '../config';
+import { createAuditLog } from '../utils/audit';
+import { getDriverFinancialSummary } from '../services/financial-summary.service';
 
 const router = Router();
 const approvalController = new ApprovalController();
@@ -56,7 +60,14 @@ router.post('/drivers/create', requireSuperAdmin, async (req: Request, res: Resp
         name: driver.name,
         email: driver.email,
         status: driver.status,
-        first_access_link: `/motorista/definir-senha?email=${encodeURIComponent(driver.email)}`
+        first_access_link: (() => {
+          const token = jwt.sign(
+            { userId: driver.id, userType: 'driver', purpose: 'password_reset' },
+            config.jwtResetSecret,
+            { expiresIn: '7d' }
+          );
+          return `${config.frontendUrl}/admin/reset-password?token=${token}`;
+        })()
       }
     });
   } catch (error) {
@@ -604,6 +615,101 @@ router.patch('/drivers/:id/promote-premium-tourism', requireSuperAdmin, async (r
   } catch (error) {
     console.error('Error promoting to premium tourism:', error);
     res.status(500).json({ success: false, error: 'Erro ao promover motorista' });
+  }
+});
+
+// GET /api/admin/drivers/:id/financial-summary
+router.get('/drivers/:id/financial-summary', allowReadAccess, async (req: Request, res: Response) => {
+  try {
+    const data = await getDriverFinancialSummary(req.params.id, (req.query.period as string) || '30d');
+    res.json({ success: true, data });
+  } catch (error: any) {
+    console.error('[ADMIN_DRIVER_FINANCIAL_SUMMARY_ERROR]', error);
+    res.status(500).json({ success: false, error: 'Erro ao carregar resumo financeiro' });
+  }
+});
+
+const driverEditSchema = z.object({
+  phone: z.string().min(10).optional(),
+  email: z.string().email().optional(),
+  vehicle_plate: z.string().optional(),
+  vehicle_model: z.string().optional(),
+  vehicle_color: z.string().optional(),
+  neighborhood_id: z.string().nullable().optional(),
+  community_id: z.string().nullable().optional(),
+  family_bonus_accepted: z.boolean().optional(),
+  family_bonus_profile: z.enum(['individual', 'familiar']).optional(),
+  pix_key: z.string().nullable().optional(),
+  pix_key_type: z.string().nullable().optional(),
+}).strict();
+
+// PATCH /api/admin/drivers/:id — edit driver operational data
+router.patch('/drivers/:id', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const driver = await prisma.drivers.findUnique({ where: { id: req.params.id } });
+    if (!driver) return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+
+    const updates = driverEditSchema.parse(req.body);
+    if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'Nenhum campo para atualizar' });
+
+    // Check email uniqueness if changing
+    if (updates.email && updates.email !== driver.email) {
+      const existing = await prisma.drivers.findUnique({ where: { email: updates.email } });
+      if (existing) return res.status(409).json({ success: false, error: 'Email já cadastrado por outro motorista' });
+    }
+
+    // Build old values for audit (only changed fields)
+    const oldValues: Record<string, any> = {};
+    const newValues: Record<string, any> = {};
+    for (const [key, val] of Object.entries(updates)) {
+      const oldVal = (driver as any)[key];
+      if (String(val ?? '') !== String(oldVal ?? '')) {
+        oldValues[key] = oldVal;
+        newValues[key] = val;
+      }
+    }
+
+    if (Object.keys(newValues).length === 0) return res.json({ success: true, data: driver, message: 'Nenhuma alteração detectada' });
+
+    const updated = await prisma.drivers.update({
+      where: { id: req.params.id },
+      data: { ...newValues, updated_at: new Date() },
+    });
+
+    const adminId = (req as any).adminId || (req as any).admin?.id;
+    await createAuditLog({
+      adminId,
+      action: 'DRIVER_EDIT',
+      entityType: 'driver',
+      entityId: req.params.id,
+      oldValue: oldValues,
+      newValue: newValues,
+      ipAddress: req.ip,
+    });
+
+    console.log(`[ADMIN_DRIVER_EDIT] driver=${req.params.id} by=${adminId} fields=${Object.keys(newValues).join(',')}`);
+    res.json({ success: true, data: updated });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, error: error.errors[0].message });
+    console.error('[ADMIN_DRIVER_EDIT_ERROR]', error);
+    res.status(500).json({ success: false, error: 'Erro ao atualizar motorista' });
+  }
+});
+
+// GET /api/admin/drivers/:id/audit — audit log for a driver
+router.get('/drivers/:id/audit', allowReadAccess, async (req: Request, res: Response) => {
+  try {
+    const { pool } = require('../db');
+    const result = await pool.query(
+      `SELECT id, admin_id, action, old_value, new_value, reason, created_at
+       FROM admin_audit_logs WHERE entity_type = 'driver' AND entity_id = $1
+       ORDER BY created_at DESC LIMIT 50`,
+      [req.params.id]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error: any) {
+    console.error('[ADMIN_DRIVER_AUDIT_ERROR]', error);
+    res.json({ success: true, data: [] });
   }
 });
 

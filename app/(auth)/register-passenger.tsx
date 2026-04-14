@@ -11,11 +11,40 @@ import { authStore } from '../../src/auth/auth.store';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 
+const maskPhone = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+const maskCpf = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+};
+
+const isValidCpf = (cpf: string) => {
+  const d = cpf.replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(d[i]) * (10 - i);
+  let rest = (sum * 10) % 11; if (rest >= 10) rest = 0;
+  if (rest !== parseInt(d[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(d[i]) * (11 - i);
+  rest = (sum * 10) % 11; if (rest >= 10) rest = 0;
+  return rest === parseInt(d[10]);
+};
+
 export default function RegisterPassenger() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -41,12 +70,21 @@ export default function RegisterPassenger() {
   };
 
   const handleRegister = async () => {
-    if (!name || !email || !phone || !password) {
+    if (!name || !email || !phone || !cpf || !password) {
       Alert.alert('Erro', 'Preencha todos os campos');
       return;
     }
     if (password.length < 6) {
       Alert.alert('Erro', 'Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      Alert.alert('Erro', 'Telefone deve ter DDD + número (10 ou 11 dígitos)');
+      return;
+    }
+    if (!isValidCpf(cpf)) {
+      Alert.alert('Erro', 'CPF inválido. Verifique os dígitos.');
       return;
     }
     if (!location) {
@@ -61,7 +99,8 @@ export default function RegisterPassenger() {
     setLoading(true);
     try {
       const { token, user } = await authApi.register({
-        name, email, phone, password,
+        name, email, phone: phone.replace(/\D/g, ''), password,
+        document_cpf: cpf.replace(/\D/g, ''),
         lat: location.lat,
         lng: location.lng,
         lgpdAccepted: true,
@@ -110,7 +149,8 @@ export default function RegisterPassenger() {
 
         <Input placeholder="Nome completo" value={name} onChangeText={setName} icon="person-outline" />
         <Input placeholder="Email" value={email} onChangeText={setEmail} icon="mail-outline" keyboardType="email-address" />
-        <Input placeholder="Telefone (com DDD)" value={phone} onChangeText={setPhone} icon="call-outline" keyboardType="phone-pad" />
+        <Input placeholder="Telefone (com DDD)" value={phone} onChangeText={(v: string) => setPhone(maskPhone(v))} icon="call-outline" keyboardType="phone-pad" maxLength={15} />
+        <Input placeholder="CPF" value={cpf} onChangeText={(v: string) => setCpf(maskCpf(v))} icon="card-outline" keyboardType="number-pad" maxLength={14} />
         <Input placeholder="Senha (mín. 6 caracteres)" value={password} onChangeText={setPassword} icon="lock-closed-outline" secureTextEntry />
 
         {/* Terms */}

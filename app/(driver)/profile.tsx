@@ -1,21 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authStore } from '../../src/auth/auth.store';
+import { PhoneVerifyBadge } from '../../src/components/PhoneVerifyBadge';
 import { COLORS } from '../../src/config/colors';
+import { User } from '../../src/types/user';
 
 export default function DriverProfile() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => { setUser(authStore.getUser()); }, []);
+  const refresh = useCallback(() => { setUser(authStore.getUser()); }, []);
+  useEffect(refresh, []);
 
-  const field = (label: string, value?: string) => (
+  const field = (label: string, value?: string, extra?: React.ReactNode) => (
     <View style={s.field}>
       <Text style={s.label}>{label}</Text>
       <Text style={s.value}>{value || '—'}</Text>
+      {extra}
     </View>
   );
 
@@ -40,7 +44,7 @@ export default function DriverProfile() {
 
       <View style={s.card}>
         {field('Nome', user?.name)}
-        {field('Telefone', user?.phone)}
+        {field('Telefone', user?.phone, user ? <PhoneVerifyBadge user={user} onVerified={refresh} /> : null)}
         {field('E-mail', user?.email)}
         {field('Tipo', 'Motorista')}
         {field('Status', user?.status === 'approved' ? 'Aprovado' : user?.status || '—')}

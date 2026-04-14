@@ -5,9 +5,22 @@ import { applyCreditDelta } from '../services/credit.service';
 const router = Router();
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN || '';
 
+// IPs oficiais do Asaas (https://docs.asaas.com/docs/webhooks)
+const ASAAS_ALLOWED_IPS = new Set([
+  '54.94.19.48', '54.207.148.92', '54.94.145.49',
+  '54.207.47.78', '54.94.171.142', '18.229.231.232',
+]);
+
 // POST /api/webhooks/asaas
 router.post('/asaas', async (req: Request, res: Response) => {
-  // Always respond 200 quickly to avoid Asaas retries
+  // Validar IP de origem
+  const clientIp = (req.ip || req.socket.remoteAddress || '').replace('::ffff:', '');
+  if (process.env.NODE_ENV === 'production' && !ASAAS_ALLOWED_IPS.has(clientIp)) {
+    console.warn(`[ASAAS_WEBHOOK] Blocked IP: ${clientIp}`);
+    return res.status(200).json({ received: true });
+  }
+
+  // Validar token
   const incomingToken = req.headers['asaas-access-token'] as string;
   if (!WEBHOOK_TOKEN || incomingToken !== WEBHOOK_TOKEN) {
     console.warn('[ASAAS_WEBHOOK] Invalid token');

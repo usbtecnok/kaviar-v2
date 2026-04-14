@@ -56,4 +56,22 @@ router.get('/overview', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/dashboard/territory
+router.get('/territory', async (req: Request, res: Response) => {
+  try {
+    const [total, homebound, local, adjacent, external, homeboundReduced] = await Promise.all([
+      prisma.rides_v2.count({ where: { status: 'completed' } }),
+      prisma.rides_v2.count({ where: { status: 'completed', is_homebound: true } }),
+      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'local' } }),
+      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'adjacent' } }),
+      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'external' } }),
+      prisma.rides_v2.count({ where: { status: 'completed', is_homebound: true, territory_match: { in: ['local', 'adjacent'] } } }),
+    ]);
+    res.json({ success: true, data: { total, homebound, local, adjacent, external, homeboundReduced } });
+  } catch (error) {
+    console.error('[DASHBOARD_TERRITORY_ERROR]', error);
+    res.status(500).json({ error: 'Failed to fetch territory metrics' });
+  }
+});
+
 export default router;

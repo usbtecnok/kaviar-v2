@@ -69,8 +69,11 @@ export default function ResetPassword() {
       }
 
       setSuccess(true);
+      const dest = data.userType === 'driver' ? '/motorista/login'
+        : data.userType === 'passenger' ? '/login'
+        : '/login';
       setTimeout(() => {
-        navigate('/login');
+        navigate(dest);
       }, 2000);
     } catch (err) {
       setError(err.message || 'Erro ao redefinir senha. Tente novamente.');

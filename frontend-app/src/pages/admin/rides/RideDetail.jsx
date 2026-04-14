@@ -362,15 +362,34 @@ export default function RideDetail() {
                 <AttachMoney sx={{ fontSize: 20, mr: 0.5 }} />
                 Breakdown Financeiro
               </Typography>
+
+              {/* Territory + Homebound badges */}
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                {ride.is_homebound && (
+                  <Chip label="🏠 Retorno para casa" size="small" sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600 }} />
+                )}
+                {ride.territory_match === 'local' && (
+                  <Chip label="Mesma região" size="small" color="primary" variant="outlined" />
+                )}
+                {ride.territory_match === 'adjacent' && (
+                  <Chip label="Bairro vizinho" size="small" color="warning" variant="outlined" />
+                )}
+                {ride.territory_match === 'external' && (
+                  <Chip label="Fora do território" size="small" color="default" variant="outlined" />
+                )}
+                {ride.is_homebound && ride.territory_match !== 'external' && (
+                  <Chip label="Taxa reduzida" size="small" sx={{ bgcolor: 'rgba(255,215,0,0.15)', color: '#b8960c', fontWeight: 600 }} />
+                )}
+              </Box>
               
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}>
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Valor Bruto
+                      Preço
                     </Typography>
                     <Typography variant="h6" color="primary">
-                      {formatCurrency(financials.gross)}
+                      {ride.final_price ? formatCurrency(ride.final_price) : ride.quoted_price ? formatCurrency(ride.quoted_price) : '—'}
                     </Typography>
                   </Box>
                 </Grid>
@@ -378,10 +397,10 @@ export default function RideDetail() {
                 <Grid item xs={12} sm={4}>
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Taxa Plataforma (15%)
+                      Taxa Plataforma
                     </Typography>
                     <Typography variant="h6" color="warning.main">
-                      {formatCurrency(financials.platformFee)}
+                      {ride.platform_fee != null ? formatCurrency(ride.platform_fee) : '—'}
                     </Typography>
                   </Box>
                 </Grid>
@@ -389,23 +408,14 @@ export default function RideDetail() {
                 <Grid item xs={12} sm={4}>
                   <Box sx={{ textAlign: 'center', p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
                     <Typography variant="subtitle2" color="text.secondary">
-                      Repasse Motorista
+                      Ganho Motorista
                     </Typography>
                     <Typography variant="h6" color="success.main">
-                      {formatCurrency(financials.driverAmount)}
+                      {ride.driver_earnings != null ? formatCurrency(ride.driver_earnings) : '—'}
                     </Typography>
                   </Box>
                 </Grid>
               </Grid>
-
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Método de Pagamento
-                </Typography>
-                <Typography variant="body1">
-                  {ride.paymentMethod || 'Cartão de Crédito'}
-                </Typography>
-              </Box>
             </CardContent>
           </Card>
         </Grid>

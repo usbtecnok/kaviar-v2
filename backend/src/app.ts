@@ -12,6 +12,7 @@ import { structuredLogger } from './middlewares/structured-logger';
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
 import { passwordResetRoutes } from './routes/password-reset';
+import { phoneAuthRoutes } from './routes/phone-auth';
 import { adminRoutes } from './routes/admin';
 import complianceRoutes from './routes/compliance';
 import dashboardRoutes from './routes/dashboard';
@@ -52,6 +53,8 @@ import { publicRoutes } from './routes/public';
 import adminPresignRoutes from './routes/admin-presign';
 import consultantLeadsRoutes from './routes/consultant-leads';
 import adminStaffRoutes from './routes/admin-staff';
+import adminWhatsappRoutes from './routes/admin-whatsapp';
+import adminOperationsRoutes from './routes/admin-operations';
 import adminReferralRoutes from './routes/admin-referrals';
 import ridesV2Routes from './routes/rides-v2';
 import driversV2Routes from './routes/drivers-v2';
@@ -77,9 +80,11 @@ app.use((req, res, next) => {
     'https://kaviar.com.br',
     'https://www.kaviar.com.br',
     'https://d29p7cirgjqbxl.cloudfront.net',
-    'http://localhost:5173',
-    'http://localhost:4173',
-    'http://localhost:4174',
+    ...(process.env.NODE_ENV !== 'production' ? [
+      'http://localhost:5173',
+      'http://localhost:4173',
+      'http://localhost:4174',
+    ] : []),
   ]);
 
   res.header('Vary', 'Origin');
@@ -233,6 +238,8 @@ app.use('/api/public', publicRoutes);
 app.use('/api/public', consultantLeadsRoutes);
 app.use('/api/admin', consultantLeadsRoutes);
 app.use('/api/admin/staff', adminStaffRoutes);
+app.use('/api/admin/whatsapp', adminWhatsappRoutes);
+app.use('/api/admin/operations', adminOperationsRoutes);
 app.use('/api/admin', adminReferralRoutes);
 app.use('/api/public', adminReferralRoutes);
 app.use('/api/geo', geoRoutes);
@@ -241,6 +248,8 @@ app.use('/api/governance', governanceRoutes);
 app.use('/api/auth', passengerAuthRoutes);
 app.use('/api/auth', driverAuthRoutes);
 app.use('/api/auth', guideAuthRoutes);
+app.use('/api/auth', passwordResetRoutes);
+app.use('/api/auth', phoneAuthRoutes);
 
 // V2 routes
 app.use('/api/v2/rides', ridesV2Routes);

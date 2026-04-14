@@ -4,17 +4,13 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { driverRegistrationService } from '../services/driver-registration.service';
+import { loginByEmailRateLimit } from '../middlewares/auth-rate-limit';
 
 const router = Router();
 
 const driverLoginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(1, 'Senha é obrigatória')
-});
-
-const driverSetPasswordSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres')
 });
 
 const driverRegisterSchema = z.object({
@@ -128,7 +124,7 @@ router.post('/driver/register', async (req, res) => {
   }
 });
 
-router.post('/driver/login', async (req, res) => {
+router.post('/driver/login', loginByEmailRateLimit, async (req, res) => {
   try {
     if (!process.env.JWT_SECRET) {
       return res.status(500).json({ error: 'Configuração inválida' });
@@ -176,6 +172,7 @@ router.post('/driver/login', async (req, res) => {
         phone: driver.phone,
         status: driver.status,
         user_type: 'DRIVER',
+        phone_verified_at: driver.phone_verified_at,
         isPending: driver.status === 'pending' // ✅ Flag para frontend
       }
     });
@@ -188,34 +185,12 @@ router.post('/driver/login', async (req, res) => {
   }
 });
 
-router.post('/driver/set-password', async (req, res) => {
-  try {
-    const { email, password } = driverSetPasswordSchema.parse(req.body);
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const driver = await prisma.drivers.findFirst({
-      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
-    });
-
-    if (!driver) {
-      return res.status(404).json({ success: false, error: 'Email não encontrado. Verifique o email digitado.' });
-    }
-
-    const password_hash = await bcrypt.hash(password, 10);
-
-    await prisma.drivers.update({
-      where: { id: driver.id },
-      data: { password_hash }
-    });
-
-    res.json({ success: true, message: 'Senha atualizada com sucesso' });
-  } catch (error) {
-    console.error('[SET-PASSWORD] Erro:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors[0].message });
-    }
-    res.status(400).json({ error: 'Erro ao atualizar senha' });
-  }
+// TOMBSTONE: endpoint inseguro desativado — use POST /api/auth/forgot-password + /api/auth/reset-password
+router.post('/driver/set-password', (_req, res) => {
+  res.status(410).json({
+    success: false,
+    error: 'Este endpoint foi desativado por segurança. Use a recuperação de senha por email ou atualize o app.'
+  });
 });
 
 // POST /api/auth/driver/location - Envio de localização (autenticado)

@@ -15,6 +15,17 @@ function getBearerToken(req: Request): string | null {
   return token.trim();
 }
 
+/**
+ * Check if a session token was issued before the user changed their password.
+ * Returns true if the token is stale and should be rejected.
+ */
+function isTokenStale(tokenIat: number | undefined, passwordChangedAt: Date | null | undefined): boolean {
+  if (!passwordChangedAt || !tokenIat) return false;
+  // password_changed_at in unix seconds, with 2s tolerance for clock skew
+  const changedAtUnix = Math.floor(passwordChangedAt.getTime() / 1000);
+  return tokenIat < changedAtUnix - 2;
+}
+
 export async function authenticateAdmin(req: Request, res: Response, next: NextFunction) {
   try {
     if (!JWT_SECRET) {
@@ -48,6 +59,11 @@ export async function authenticateAdmin(req: Request, res: Response, next: NextF
       return res.status(401).json({ success: false, error: 'Token inválido' });
     }
 
+    // Invalidate sessions issued before password change
+    if (isTokenStale(decoded.iat, admin.password_changed_at)) {
+      return res.status(401).json({ success: false, error: 'Sessão expirada. Faça login novamente.' });
+    }
+
     // Adicionar role ao req.admin
     (req as any).admin = {
       id: admin.id,
@@ -59,16 +75,13 @@ export async function authenticateAdmin(req: Request, res: Response, next: NextF
 
     return next();
   } catch (err) {
-    console.error('❌ [AUTH] Erro ao verificar token:', err);
+    console.error('❌ [AUTH] Erro ao verificar token');
     return res.status(401).json({ success: false, error: 'Token inválido' });
   }
 }
 
 /**
  * Middleware de autorização por papel (role)
- * Uso:
- *   adminRouter.use(authenticateAdmin);
- *   adminRouter.use(requireRole(['SUPER_ADMIN', 'ANGEL_VIEWER']));
  */
 export function requireRole(allowedRoles: string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -95,19 +108,8 @@ export function requireRole(allowedRoles: string[]) {
   };
 }
 
-/**
- * Middleware para exigir SUPER_ADMIN
- */
 export const requireSuperAdmin = requireRole(['SUPER_ADMIN']);
-
-/**
- * Middleware para permitir leitura (SUPER_ADMIN ou ANGEL_VIEWER)
- */
 export const allowReadAccess = requireRole(['SUPER_ADMIN', 'ANGEL_VIEWER']);
-
-/**
- * Middleware para acesso financeiro (SUPER_ADMIN ou FINANCE)
- */
 export const allowFinanceAccess = requireRole(['SUPER_ADMIN', 'FINANCE']);
 
 /**
@@ -168,9 +170,14 @@ export async function authenticateDriver(req: Request, res: Response, next: Next
       return res.status(401).json({ success: false, error: 'Token inválido' });
     }
 
+    // Invalidate sessions issued before password change
+    if (isTokenStale(decoded.iat, driver.password_changed_at)) {
+      return res.status(401).json({ success: false, error: 'Sessão expirada. Faça login novamente.' });
+    }
+
     (req as any).driver = driver;
     (req as any).userId = decoded.userId;
-    (req as any).driverId = decoded.userId; // alias de compatibilidade
+    (req as any).driverId = decoded.userId;
 
     return next();
   } catch (_err) {
@@ -203,9 +210,14 @@ export async function authenticatePassenger(req: Request, res: Response, next: N
       return res.status(401).json({ success: false, error: 'Token inválido' });
     }
 
+    // Invalidate sessions issued before password change
+    if (isTokenStale(decoded.iat, passenger.password_changed_at)) {
+      return res.status(401).json({ success: false, error: 'Sessão expirada. Faça login novamente.' });
+    }
+
     (req as any).passenger = passenger;
     (req as any).userId = decoded.userId;
-    (req as any).passengerId = decoded.userId; // alias de compatibilidade
+    (req as any).passengerId = decoded.userId;
 
     return next();
   } catch (_err) {

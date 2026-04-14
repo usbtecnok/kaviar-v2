@@ -6,7 +6,8 @@ export const createRatingSchema = z.object({
   ratedId: z.string().min(1),
   raterType: z.enum(['DRIVER', 'PASSENGER']),
   score: z.number().int().min(1).max(5),
-  comment: z.string().max(200).optional()
+  comment: z.string().max(200).optional(),
+  tags: z.string().max(500).optional()
 });
 
 export const ratingSummaryParamsSchema = z.object({

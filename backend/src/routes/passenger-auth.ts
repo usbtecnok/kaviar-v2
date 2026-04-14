@@ -5,6 +5,7 @@ import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
 import { GeoResolveService } from '../services/geo-resolve';
+import { loginByEmailRateLimit } from '../middlewares/auth-rate-limit';
 
 const router = Router();
 const geoResolveService = new GeoResolveService();
@@ -19,6 +20,7 @@ const passengerRegisterSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
   phone: z.string().min(10, 'Telefone inválido'),
+  document_cpf: z.string().length(11, 'CPF deve ter 11 dígitos').regex(/^\d{11}$/, 'CPF inválido'),
   lat: z.number({ required_error: 'Localização obrigatória' }),
   lng: z.number({ required_error: 'Localização obrigatória' }),
   lgpdAccepted: z.boolean().optional().default(true)
@@ -27,7 +29,7 @@ const passengerRegisterSchema = z.object({
 // POST /api/auth/passenger/register
 router.post('/passenger/register', async (req, res) => {
   try {
-    const { name, email, password, phone, lat, lng, lgpdAccepted } = passengerRegisterSchema.parse(req.body);
+    const { name, email, password, phone, document_cpf, lat, lng, lgpdAccepted } = passengerRegisterSchema.parse(req.body);
     
     // Check if email already exists
     const existingPassenger = await prisma.passengers.findUnique({
@@ -65,6 +67,7 @@ router.post('/passenger/register', async (req, res) => {
         email,
         password_hash,
         phone,
+        document_cpf,
         neighborhood_id: neighborhoodId,
         last_lat: lat,
         last_lng: lng,
@@ -74,7 +77,7 @@ router.post('/passenger/register', async (req, res) => {
       }
     });
 
-    console.log(`[PASSENGER_REGISTERED] id=${passenger.id} email=${email} neighborhood_id=${neighborhoodId || 'null'} territory=${territoryName || 'none'}`);
+    console.log(`[PASSENGER_REGISTERED] id=${passenger.id} neighborhood_id=${neighborhoodId || 'null'} territory=${territoryName || 'none'}`);
 
     // Create LGPD consent if accepted
     if (lgpdAccepted) {
@@ -140,7 +143,7 @@ router.post('/passenger/register', async (req, res) => {
 });
 
 // POST /api/auth/passenger/login
-router.post('/passenger/login', async (req, res) => {
+router.post('/passenger/login', loginByEmailRateLimit, async (req, res) => {
   try {
     const { email, password } = passengerLoginSchema.parse(req.body);
     
@@ -211,7 +214,8 @@ router.post('/passenger/login', async (req, res) => {
         name: passenger.name,
         email: passenger.email,
         phone: passenger.phone,
-        user_type: 'PASSENGER'
+        user_type: 'PASSENGER',
+        phone_verified_at: passenger.phone_verified_at,
       }
     });
   } catch (error) {
@@ -223,33 +227,12 @@ router.post('/passenger/login', async (req, res) => {
   }
 });
 
-// POST /api/auth/passenger/set-password
-const passengerSetPasswordSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-});
-
-router.post('/passenger/set-password', async (req, res) => {
-  try {
-    const { email, password } = passengerSetPasswordSchema.parse(req.body);
-    const normalizedEmail = email.trim().toLowerCase();
-
-    const passenger = await prisma.passengers.findFirst({
-      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
-    });
-
-    if (!passenger) {
-      return res.status(404).json({ success: false, error: 'Email não encontrado. Verifique o email digitado.' });
-    }
-    const password_hash = await bcrypt.hash(password, 10);
-    await prisma.passengers.update({ where: { id: passenger.id }, data: { password_hash } });
-    res.json({ success: true, message: 'Senha atualizada com sucesso' });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: error.errors[0].message });
-    }
-    res.status(400).json({ error: 'Erro ao atualizar senha' });
-  }
+// TOMBSTONE: endpoint inseguro desativado — use POST /api/auth/forgot-password + /api/auth/reset-password
+router.post('/passenger/set-password', (_req, res) => {
+  res.status(410).json({
+    success: false,
+    error: 'Este endpoint foi desativado por segurança. Use a recuperação de senha por email ou atualize o app.'
+  });
 });
 
 export { router as passengerAuthRoutes };

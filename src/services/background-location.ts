@@ -1,0 +1,124 @@
+import * as TaskManager from 'expo-task-manager';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const TASK_NAME = 'kaviar-driver-location';
+const RIDE_ID_KEY = 'kaviar_active_ride_id';
+const API_URL_KEY = 'kaviar_api_url';
+
+// --- Persistent ride ID ---
+
+export async function setActiveRideId(rideId: string | null): Promise<void> {
+  if (rideId) {
+    await AsyncStorage.setItem(RIDE_ID_KEY, rideId);
+  } else {
+    await AsyncStorage.removeItem(RIDE_ID_KEY);
+  }
+}
+
+export async function getActiveRideId(): Promise<string | null> {
+  return AsyncStorage.getItem(RIDE_ID_KEY);
+}
+
+// --- Task definition (runs outside React) ---
+// MUST be called at module scope — this module must be imported
+// from the app entry point (or a layout that always loads).
+
+let _taskDefined = false;
+
+function ensureTaskDefined() {
+  if (_taskDefined) return;
+  _taskDefined = true;
+
+  TaskManager.defineTask(TASK_NAME, async ({ data, error }) => {
+    if (error) return;
+    if (!data) return;
+
+    const { locations } = data as { locations: Location.LocationObject[] };
+    if (!locations || locations.length === 0) return;
+
+    const token = await AsyncStorage.getItem('auth_token');
+    if (!token) return;
+
+    const apiUrl = (await AsyncStorage.getItem(API_URL_KEY)) || 'https://api.kaviar.com.br';
+    const { latitude: lat, longitude: lng } = locations[locations.length - 1].coords;
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+    // Always send driver location
+    try {
+      await fetch(`${apiUrl}/api/v2/drivers/me/location`, {
+        method: 'POST', headers, body: JSON.stringify({ lat, lng }),
+      });
+    } catch {}
+
+    // If active ride, also send ride location (SSE to passenger)
+    const rideId = await AsyncStorage.getItem(RIDE_ID_KEY);
+    if (rideId) {
+      try {
+        await fetch(`${apiUrl}/api/v2/rides/${rideId}/location`, {
+          method: 'POST', headers, body: JSON.stringify({ lat, lng }),
+        });
+      } catch {}
+    }
+  });
+}
+
+// --- Start / Stop ---
+
+let _running = false;
+
+export async function startBackgroundLocation(apiUrl: string): Promise<'background' | 'foreground'> {
+  // Persist API URL for the task
+  await AsyncStorage.setItem(API_URL_KEY, apiUrl);
+
+  // Ensure task is defined before any TaskManager calls
+  ensureTaskDefined();
+
+  // Guard against double-start
+  const alreadyRunning = await TaskManager.isTaskRegisteredAsync(TASK_NAME);
+  if (alreadyRunning) {
+    _running = true;
+    return 'background';
+  }
+
+  // Foreground permission (required first)
+  const fg = await Location.requestForegroundPermissionsAsync();
+  if (fg.status !== 'granted') {
+    throw new Error('FOREGROUND_DENIED');
+  }
+
+  // Background permission
+  const bg = await Location.requestBackgroundPermissionsAsync();
+  if (bg.status === 'granted') {
+    await Location.startLocationUpdatesAsync(TASK_NAME, {
+      accuracy: Location.Accuracy.High,
+      timeInterval: 15000,
+      distanceInterval: 30,
+      deferredUpdatesInterval: 15000,
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: 'Kaviar Motorista',
+        notificationBody: 'Compartilhando localização',
+        notificationColor: '#D4AF37',
+      },
+    });
+    _running = true;
+    return 'background';
+  }
+
+  // Background denied — caller must set up foreground fallback
+  return 'foreground';
+}
+
+export async function stopBackgroundLocation(): Promise<void> {
+  _running = false;
+  await AsyncStorage.removeItem(RIDE_ID_KEY);
+  const registered = await TaskManager.isTaskRegisteredAsync(TASK_NAME);
+  if (registered) {
+    await Location.stopLocationUpdatesAsync(TASK_NAME);
+  }
+}
+
+export function isBackgroundRunning(): boolean {
+  return _running;
+}
