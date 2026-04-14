@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
+import { auditWrite } from '../middlewares/audit-write';
 import bcrypt from 'bcrypt';
 
 const router = Router();
@@ -24,7 +25,7 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 
 // POST /api/admin/staff
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', auditWrite('create_staff', 'admin'), async (req: Request, res: Response) => {
   try {
     const { name, email, password, phone, lead_regions } = req.body;
     if (!name || !email || !password) {
@@ -53,6 +54,12 @@ router.post('/', async (req: Request, res: Response) => {
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const { name, phone, is_active, lead_regions, password } = req.body;
+
+    const before = await prisma.admins.findUnique({
+      where: { id: req.params.id },
+      select: { name: true, phone: true, is_active: true, lead_regions: true },
+    });
+
     const data: any = {};
     if (name !== undefined) data.name = name;
     if (phone !== undefined) data.phone = phone;
@@ -65,6 +72,10 @@ router.patch('/:id', async (req: Request, res: Response) => {
       data,
       select: { id: true, name: true, email: true, phone: true, role: true, is_active: true, lead_regions: true, created_at: true },
     });
+
+    const { audit, auditCtx } = require('../utils/audit');
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'update_staff', entityType: 'admin', entityId: req.params.id, oldValue: before, newValue: data, ipAddress: ctx.ip, userAgent: ctx.ua });
 
     return res.json({ success: true, data: staff });
   } catch (err) {

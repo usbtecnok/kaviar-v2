@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin, allowFinanceAccess } from '../middlewares/auth';
+import { auditWrite } from '../middlewares/audit-write';
 import { uniqueCode, normalizePhone } from '../utils/referral';
 
 const router = Router();
@@ -88,7 +89,7 @@ router.get('/referral-agents', ...financeAuth, async (_req: Request, res: Respon
 });
 
 // POST /api/admin/referral-agents — SUPER_ADMIN only (operação comercial)
-router.post('/referral-agents', ...superAuth, async (req: Request, res: Response) => {
+router.post('/referral-agents', ...superAuth, auditWrite('create_referral_agent', 'referral_agent'), async (req: Request, res: Response) => {
   try {
     const { name, email, pix_key, pix_key_type } = req.body;
     const phone = req.body.phone ? normalizePhone(req.body.phone) : '';
@@ -108,7 +109,7 @@ router.post('/referral-agents', ...superAuth, async (req: Request, res: Response
 });
 
 // PATCH /api/admin/referral-agents/:id — FINANCE: só PIX | SUPER_ADMIN: tudo
-router.patch('/referral-agents/:id', ...financeAuth, async (req: Request, res: Response) => {
+router.patch('/referral-agents/:id', ...financeAuth, auditWrite('update_referral_agent', 'referral_agent'), async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
     const isFinance = admin.role === 'FINANCE';
@@ -219,7 +220,7 @@ router.post('/referrals/backfill-codes', ...superAuth, async (_req: Request, res
 });
 
 // POST /api/admin/referrals — SUPER_ADMIN only (operação comercial)
-router.post('/referrals', ...superAuth, async (req: Request, res: Response) => {
+router.post('/referrals', ...superAuth, auditWrite('create_referral', 'referral'), async (req: Request, res: Response) => {
   try {
     const { agent_id, driver_phone, driver_id, lead_id, reward_amount, source } = req.body;
     if (!agent_id || !driver_phone) return res.status(400).json({ success: false, error: 'agent_id e driver_phone obrigatórios' });
@@ -242,7 +243,7 @@ router.post('/referrals', ...superAuth, async (req: Request, res: Response) => {
 const FINANCE_ALLOWED_ACTIONS = ['approve_payment', 'mark_paid', 'cancel_payment'];
 
 // PATCH /api/admin/referrals/:id — ações de status
-router.patch('/referrals/:id', ...financeAuth, async (req: Request, res: Response) => {
+router.patch('/referrals/:id', ...financeAuth, auditWrite('update_referral', 'referral'), async (req: Request, res: Response) => {
   try {
     const { action, payment_ref, rejection_reason } = req.body;
     const admin = (req as any).admin;

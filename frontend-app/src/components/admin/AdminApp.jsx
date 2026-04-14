@@ -36,6 +36,7 @@ import InvestorInvites from "../../pages/admin/InvestorInvites";
 import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import LeadPerformance from "../../pages/admin/LeadPerformance";
 import StaffManagement from "../../pages/admin/StaffManagement";
+import AuditLogs from "../../pages/admin/AuditLogs";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
 import FinancePayments from "../../pages/admin/FinancePayments";
 import CreditPurchases from "../../pages/admin/CreditPurchases";
@@ -618,7 +619,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Logs e ações administrativas
                 </Typography>
-                <Button variant="contained" color="warning" href="/admin/rides/audit">
+                <Button variant="contained" color="warning" href="/admin/audit">
                   Acessar
                 </Button>
               </CardContent>
@@ -729,6 +730,14 @@ function AdminHome() {
                 >
                   Indicações
                 </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small"
+                  sx={{ ml: 1, borderColor: '#90caf9', color: '#1565c0' }}
+                  href="/admin/audit"
+                >
+                  Auditoria
+                </Button>
               </CardContent>
             </Card>
           </Grid>
@@ -824,6 +833,12 @@ export default function AdminApp() {
             <ProtectedAdminRoute>
               <AdminHeader />
               <StaffManagement />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/audit" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <AdminHeader />
+              <AuditLogs />
             </ProtectedAdminRoute>
           } />
           <Route path="/referrals" element={

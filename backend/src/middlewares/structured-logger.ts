@@ -5,7 +5,8 @@ export const structuredLogger = (req: Request, res: Response, next: NextFunction
 
   res.on('finish', () => {
     const durationMs = Date.now() - startTime;
-    const log = {
+    const admin = (req as any).admin;
+    const log: any = {
       ts: new Date().toISOString(),
       level: res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info',
       requestId: (req as any).requestId,
@@ -16,6 +17,10 @@ export const structuredLogger = (req: Request, res: Response, next: NextFunction
       ip: req.ip || req.socket.remoteAddress,
       userAgent: req.headers['user-agent'] || 'unknown'
     };
+    if (admin?.id) {
+      log.adminId = admin.id;
+      log.adminEmail = admin.email;
+    }
     console.log(JSON.stringify(log));
   });
 

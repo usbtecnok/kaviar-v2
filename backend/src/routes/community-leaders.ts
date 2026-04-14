@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin } from '../middlewares/auth';
+import { auditWrite } from '../middlewares/audit-write';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -67,7 +68,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /api/admin/community-leaders - Create new leader
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', auditWrite('create_community_leader', 'community_leader'), async (req: AuthRequest, res: Response) => {
   try {
     const {
       name,
@@ -127,7 +128,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/admin/community-leaders/:id/verify - Verify leader
-router.patch('/:id/verify', async (req: AuthRequest, res: Response) => {
+router.patch('/:id/verify', auditWrite('verify_community_leader', 'community_leader'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
@@ -166,7 +167,7 @@ router.patch('/:id/verify', async (req: AuthRequest, res: Response) => {
 });
 
 // PATCH /api/admin/community-leaders/:id - Update leader
-router.patch('/:id', async (req: AuthRequest, res: Response) => {
+router.patch('/:id', auditWrite('update_community_leader', 'community_leader'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, email, phone, neighborhood_id, community_id, is_active } = req.body;
@@ -201,7 +202,7 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // DELETE /api/admin/community-leaders/:id - Delete leader
-router.delete('/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/:id', auditWrite('delete_community_leader', 'community_leader'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 

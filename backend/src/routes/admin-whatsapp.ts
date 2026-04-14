@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
+import { auditWrite } from '../middlewares/audit-write';
 import { getTwilioClient, getWhatsAppFrom, normalizeWhatsAppTo, WHATSAPP_ENV } from '../modules/whatsapp/whatsapp-client';
 
 const router = Router();
@@ -100,7 +101,7 @@ router.get('/conversations/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/admin/whatsapp/conversations/:id/messages
-router.post('/conversations/:id/messages', async (req: Request, res: Response) => {
+router.post('/conversations/:id/messages', auditWrite('send_whatsapp', 'conversation'), async (req: Request, res: Response) => {
   try {
     const { body } = req.body;
     if (!body || !body.trim()) {

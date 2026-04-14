@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess, requireRole } from '../middlewares/auth';
+import { auditWrite } from '../middlewares/audit-write';
 import { prisma } from '../lib/prisma';
 import { RideAdminController } from '../modules/admin/ride-controller';
 import {
@@ -130,13 +131,13 @@ router.get('/rides', allowReadAccess, rideController.getRides);
 router.get('/rides/:id', allowReadAccess, rideController.getRideById);
 
 // PATCH /api/admin/rides/:id/status
-router.patch('/rides/:id/status', requireSuperAdmin, rideController.updateRideStatus);
+router.patch('/rides/:id/status', requireSuperAdmin, auditWrite('update_ride_status', 'ride'), rideController.updateRideStatus);
 
 // POST /api/admin/rides/:id/cancel
-router.post('/rides/:id/cancel', requireSuperAdmin, rideController.cancelRide);
+router.post('/rides/:id/cancel', requireSuperAdmin, auditWrite('cancel_ride', 'ride'), rideController.cancelRide);
 
 // POST /api/admin/rides/:id/force-complete
-router.post('/rides/:id/force-complete', requireSuperAdmin, rideController.forceCompleteRide);
+router.post('/rides/:id/force-complete', requireSuperAdmin, auditWrite('force_complete_ride', 'ride'), rideController.forceCompleteRide);
 
 // GET /api/admin/rides/audit
 router.get('/rides/audit', allowReadAccess, rideController.getAuditLogs);
@@ -148,10 +149,10 @@ const requireOperatorOrSuperAdmin = requireRole(['SUPER_ADMIN', 'OPERATOR']);
 router.get('/drivers/:driverId/virtual-fence-center', allowReadAccess, getVirtualFenceCenter);
 
 // PUT /api/admin/drivers/:driverId/virtual-fence-center
-router.put('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmin, updateVirtualFenceCenter);
+router.put('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmin, auditWrite('update_virtual_fence', 'driver', req => req.params.driverId), updateVirtualFenceCenter);
 
 // DELETE /api/admin/drivers/:driverId/virtual-fence-center
-router.delete('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmin, deleteVirtualFenceCenter);
+router.delete('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperAdmin, auditWrite('delete_virtual_fence', 'driver', req => req.params.driverId), deleteVirtualFenceCenter);
 
 // Passenger Favorite Locations Management
 // GET /api/admin/passengers/:passengerId/favorites
@@ -178,16 +179,16 @@ router.delete('/drivers/:driverId/secondary-base', requireOperatorOrSuperAdmin, 
 router.get('/feature-flags/:key', allowReadAccess, featureFlagsController.getFeatureFlag);
 
 // PUT /api/admin/feature-flags/:key
-router.put('/feature-flags/:key', requireOperatorOrSuperAdmin, featureFlagsController.updateFeatureFlag);
+router.put('/feature-flags/:key', requireOperatorOrSuperAdmin, auditWrite('update_feature_flag', 'feature_flag', req => req.params.key), featureFlagsController.updateFeatureFlag);
 
 // GET /api/admin/feature-flags/:key/allowlist
 router.get('/feature-flags/:key/allowlist', allowReadAccess, featureFlagsController.getAllowlist);
 
 // POST /api/admin/feature-flags/:key/allowlist
-router.post('/feature-flags/:key/allowlist', requireOperatorOrSuperAdmin, featureFlagsController.addToAllowlist);
+router.post('/feature-flags/:key/allowlist', requireOperatorOrSuperAdmin, auditWrite('add_to_allowlist', 'feature_flag', req => req.params.key), featureFlagsController.addToAllowlist);
 
 // DELETE /api/admin/feature-flags/:key/allowlist/:passengerId
-router.delete('/feature-flags/:key/allowlist/:passengerId', requireOperatorOrSuperAdmin, featureFlagsController.removeFromAllowlist);
+router.delete('/feature-flags/:key/allowlist/:passengerId', requireOperatorOrSuperAdmin, auditWrite('remove_from_allowlist', 'feature_flag', req => req.params.key), featureFlagsController.removeFromAllowlist);
 
 // Beta Monitor routes
 const betaMonitor = new betaMonitorController.BetaMonitorController();

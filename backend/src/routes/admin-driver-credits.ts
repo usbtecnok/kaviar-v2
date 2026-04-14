@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db';
 import { authenticateAdmin, allowReadAccess, allowFinanceAccess } from '../middlewares/auth';
 import { applyCreditDelta } from '../services/credit.service';
+import { auditWrite } from '../middlewares/audit-write';
 
 const router = Router();
 
@@ -120,6 +121,17 @@ router.post('/:driverId/credits/adjust', allowFinanceAccess, async (req, res) =>
       adminUserId,
       idempotencyKey
     );
+
+    // Audit with before/after balance
+    const { audit, auditCtx } = require('../utils/audit');
+    const ctx = auditCtx(req);
+    audit({
+      adminId: ctx.adminId, adminEmail: ctx.adminEmail,
+      action: 'adjust_credits', entityType: 'driver_credits', entityId: driverId,
+      oldValue: { balance: result.balance - parseFloat(delta) },
+      newValue: { balance: result.balance, delta: parseFloat(delta), reason: reason.trim(), referredBy: referredBy || null },
+      ipAddress: ctx.ip, userAgent: ctx.ua,
+    });
 
     res.json({
       success: true,

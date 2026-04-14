@@ -132,7 +132,10 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
     }
 
     // Acionar dispatcher (async, não bloqueia resposta)
-    setImmediate(() => dispatcherService.dispatchRide(ride.id));
+    setImmediate(() => dispatcherService.dispatchRide(ride.id).catch(err => {
+      console.error(`[DISPATCH_FIRE_FORGET_ERROR] ride_id=${ride.id}`, err);
+      prisma.rides_v2.update({ where: { id: ride.id }, data: { status: 'no_driver' } }).catch(() => {});
+    }));
 
     res.json({
       success: true,

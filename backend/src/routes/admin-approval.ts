@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ApprovalController } from '../modules/admin/approval-controller';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
+import { auditWrite } from '../middlewares/audit-write';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
@@ -12,9 +13,9 @@ router.use(authenticateAdmin);
 // Driver approval routes
 router.get('/drivers', allowReadAccess, approvalController.getDrivers);
 router.get('/drivers/metrics/by-neighborhood', allowReadAccess, approvalController.getDriversByNeighborhood);
-router.put('/drivers/:id/approve', requireSuperAdmin, approvalController.approveDriver);
-router.put('/drivers/:id/reject', requireSuperAdmin, approvalController.rejectDriver);
-router.delete('/drivers/:id', requireSuperAdmin, async (req, res) => {
+router.put('/drivers/:id/approve', requireSuperAdmin, auditWrite('approve_driver', 'driver'), approvalController.approveDriver);
+router.put('/drivers/:id/reject', requireSuperAdmin, auditWrite('reject_driver', 'driver'), approvalController.rejectDriver);
+router.delete('/drivers/:id', requireSuperAdmin, auditWrite('delete_driver', 'driver'), async (req, res) => {
   try {
     await prisma.drivers.delete({
       where: { id: req.params.id }
@@ -27,8 +28,8 @@ router.delete('/drivers/:id', requireSuperAdmin, async (req, res) => {
 
 // Guide approval routes  
 router.get('/guides', allowReadAccess, approvalController.getGuides);
-router.put('/guides/:id/approve', requireSuperAdmin, approvalController.approveGuide);
-router.put('/guides/:id/reject', requireSuperAdmin, approvalController.rejectGuide);
+router.put('/guides/:id/approve', requireSuperAdmin, auditWrite('approve_guide', 'guide'), approvalController.approveGuide);
+router.put('/guides/:id/reject', requireSuperAdmin, auditWrite('reject_guide', 'guide'), approvalController.rejectGuide);
 
 // Audit route
 router.get('/rides/audit', allowReadAccess, async (req, res) => {
