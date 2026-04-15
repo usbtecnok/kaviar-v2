@@ -19,13 +19,13 @@
     "passenger-apk": {
       "node": "20.19.4",
       "distribution": "internal",
+      "environment": "production",
       "android": {
         "buildType": "apk",
         "image": "latest"
       },
       "env": {
-        "APP_VARIANT": "passenger",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "APP_VARIANT": "passenger"
       }
     },
     "driver-release": {
@@ -44,14 +44,14 @@
     "passenger-release": {
       "node": "20.19.4",
       "distribution": "store",
+      "environment": "production",
       "android": {
         "buildType": "app-bundle",
         "image": "latest"
       },
       "autoIncrement": true,
       "env": {
-        "APP_VARIANT": "passenger",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "APP_VARIANT": "passenger"
       }
     }
   },
