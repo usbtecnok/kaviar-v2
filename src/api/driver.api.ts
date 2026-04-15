@@ -19,8 +19,9 @@ export const driverApi = {
     return data.data || [];
   },
 
-  acceptOffer: async (offerId: string): Promise<{ ride_id: string }> => {
-    const { data } = await apiClient.post(`/api/v2/drivers/offers/${offerId}/accept`);
+  acceptOffer: async (offerId: string, adjustment?: number): Promise<{ ride_id: string }> => {
+    const body = adjustment ? { adjustment } : {};
+    const { data } = await apiClient.post(`/api/v2/drivers/offers/${offerId}/accept`, body);
     return data.data;
   },
 
