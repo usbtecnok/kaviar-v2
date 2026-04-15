@@ -79,14 +79,17 @@ jobs:
           echo "TWILIO_* secrets preserved from SSM:"
           echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].secrets[]? | select(.name | startswith("TWILIO_")) | .name'
           
-          aws ecs register-task-definition --cli-input-json file://task-def.json --region us-east-2
+          NEW_REV=$(aws ecs register-task-definition --cli-input-json file://task-def.json --region us-east-2 | jq -r '.taskDefinition.revision')
+          echo "Registered task definition: kaviar-backend:${NEW_REV}"
+          echo "task_revision=${NEW_REV}" >> $GITHUB_OUTPUT
+        id: register_task
       
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster kaviar-cluster \
             --service kaviar-backend-service \
-            --task-definition kaviar-backend \
+            --task-definition kaviar-backend:${{ steps.register_task.outputs.task_revision }} \
             --force-new-deployment \
             --region us-east-2
       
