@@ -13,6 +13,7 @@ import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
+import { AdjustmentModal } from '../../src/components/AdjustmentModal';
 
 import { ENV } from '../../src/config/env';
 import { apiClient } from '../../src/api/client';
@@ -20,9 +21,10 @@ import { apiClient } from '../../src/api/client';
 const POLL_INTERVAL = 3000;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  requested:  { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
-  offered:    { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
-  accepted:   { label: 'Motorista a caminho',   color: COLORS.accent,  icon: '🚗' },
+  requested:          { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
+  offered:            { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
+  pending_adjustment: { label: 'Ajuste de valor',       color: COLORS.warning, icon: '💰' },
+  accepted:           { label: 'Motorista a caminho',   color: COLORS.accent,  icon: '🚗' },
   arrived:    { label: 'Motorista chegou!',      color: COLORS.primary, icon: '📍' },
   in_progress:{ label: 'Corrida em andamento',   color: COLORS.success, icon: '🛣️' },
   completed:  { label: 'Corrida finalizada',     color: COLORS.success, icon: '✅' },
@@ -60,6 +62,10 @@ export default function PassengerMap() {
 
   // Emergency
   const [showEmergency, setShowEmergency] = useState(false);
+
+  // Adjustment modal
+  const [showAdjustment, setShowAdjustment] = useState(false);
+  const adjustmentShownForRef = useRef<string | null>(null);
 
   // Search microcopy rotation
   const SEARCH_PHRASES = [
@@ -228,13 +234,23 @@ export default function PassengerMap() {
           if (['accepted', 'arrived', 'in_progress'].includes(updated.status)) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
+          if (updated.status === 'pending_adjustment' && adjustmentShownForRef.current !== updated.id) {
+            adjustmentShownForRef.current = updated.id;
+            setShowAdjustment(true);
+          }
           if (updated.status === 'accepted') {
+            setShowAdjustment(false);
             setShowAcceptedBanner(true);
             Animated.sequence([
               Animated.timing(bannerOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
               Animated.delay(4000),
               Animated.timing(bannerOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
             ]).start(() => setShowAcceptedBanner(false));
+          }
+          // If status changed away from pending_adjustment (timeout/backend redispatch), close modal
+          if (lastStatusRef.current === 'pending_adjustment' && updated.status !== 'pending_adjustment') {
+            setShowAdjustment(false);
+            adjustmentShownForRef.current = null;
           }
           lastStatusRef.current = updated.status;
         }
@@ -256,8 +272,34 @@ export default function PassengerMap() {
 
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   const stopAll = () => { stopPolling(); setDriverLocation(null); };
-  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); };
-  const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); };
+  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setShowAdjustment(false); adjustmentShownForRef.current = null; };
+  const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setShowAdjustment(false); adjustmentShownForRef.current = null; };
+
+  const handleAdjustmentAccept = async () => {
+    if (!ride) return;
+    try {
+      await passengerApi.respondAdjustment(ride.id, true);
+    } catch (e: any) {
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível confirmar. Tente novamente.'));
+    }
+    setShowAdjustment(false);
+  };
+
+  const handleAdjustmentReject = async () => {
+    if (!ride) return;
+    try {
+      await passengerApi.respondAdjustment(ride.id, false);
+    } catch (e: any) {
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível recusar. Tente novamente.'));
+    }
+    setShowAdjustment(false);
+    adjustmentShownForRef.current = null;
+  };
+
+  const handleAdjustmentTimeout = () => {
+    setShowAdjustment(false);
+    adjustmentShownForRef.current = null;
+  };
 
   const handleRequest = async () => {
     if (!origin) { Alert.alert('Origem indisponível', 'Aguarde o GPS ou selecione um endereço.'); return; }
@@ -327,7 +369,7 @@ export default function PassengerMap() {
     }
   }, [origin, destination]);
 
-  const canCancel = rideStatus && ['requested', 'offered', 'accepted', 'arrived'].includes(rideStatus);
+  const canCancel = rideStatus && ['requested', 'offered', 'pending_adjustment', 'accepted', 'arrived'].includes(rideStatus);
   const info = rideStatus ? STATUS_CONFIG[rideStatus] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
 
   // === SEARCH SCREEN ===
@@ -534,6 +576,20 @@ export default function PassengerMap() {
           </View>
         </>
       )}
+
+      {/* ADJUSTMENT MODAL */}
+      <AdjustmentModal
+        visible={showAdjustment}
+        quotedPrice={Number(ride?.quoted_price || 0)}
+        driverAdjustment={Number(ride?.driver_adjustment || 0)}
+        adjustedPrice={Number(ride?.adjusted_price || 0)}
+        driverName={ride?.driver?.name}
+        vehicleInfo={ride?.driver ? `${ride.driver.vehicle_model || ''} ${ride.driver.vehicle_color || ''}`.trim() + (ride.driver.vehicle_plate ? ` • ${ride.driver.vehicle_plate}` : '') : undefined}
+        rideUpdatedAt={ride?.updated_at}
+        onAccept={handleAdjustmentAccept}
+        onReject={handleAdjustmentReject}
+        onTimeout={handleAdjustmentTimeout}
+      />
 
       {/* ACCEPTED BANNER */}
       {showAcceptedBanner && ride?.driver && (

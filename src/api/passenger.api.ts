@@ -21,4 +21,9 @@ export const passengerApi = {
   cancelRide: async (rideId: string): Promise<void> => {
     await apiClient.post(`/api/v2/rides/${rideId}/cancel`);
   },
+
+  respondAdjustment: async (rideId: string, accept: boolean): Promise<{ success: boolean; status: string }> => {
+    const { data } = await apiClient.post(`/api/v2/rides/${rideId}/adjustment-response`, { accept });
+    return data;
+  },
 };

@@ -1,8 +1,11 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import Constants from 'expo-constants';
 import { ENV } from '../config/env';
 import { authStore } from '../auth/auth.store';
+
+const APP_VERSION = Constants.expoConfig?.version || '0.0.0';
 
 export const apiClient = axios.create({
   baseURL: ENV.API_URL,
@@ -10,8 +13,9 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Request: attach token
+// Request: attach token + app version
 apiClient.interceptors.request.use(async (config) => {
+  config.headers['X-App-Version'] = APP_VERSION;
   const token = await AsyncStorage.getItem('auth_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

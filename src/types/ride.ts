@@ -1,6 +1,6 @@
 // Tipos de corrida (v2)
 export type RideStatus =
-  | 'requested' | 'offered' | 'accepted' | 'arrived'
+  | 'requested' | 'offered' | 'pending_adjustment' | 'accepted' | 'arrived'
   | 'in_progress' | 'completed'
   | 'canceled_by_passenger' | 'canceled_by_driver' | 'no_driver';
 
@@ -23,6 +23,10 @@ export interface Ride {
   arrived_at?: string;
   started_at?: string;
   completed_at?: string;
+  quoted_price?: number | string;
+  driver_adjustment?: number | string;
+  adjusted_price?: number | string;
+  updated_at?: string;
   passenger?: { name: string; phone?: string };
   driver?: { name: string; phone?: string; vehicle_model?: string; vehicle_plate?: string; vehicle_color?: string; id?: string; last_lat?: number; last_lng?: number };
 }
@@ -55,6 +59,7 @@ export interface RideOffer {
 export const RIDE_STATUS_LABEL: Record<RideStatus, string> = {
   requested: 'Solicitada',
   offered: 'Ofertada',
+  pending_adjustment: 'Aguardando confirmação',
   accepted: 'Aceita',
   arrived: 'Motorista chegou',
   in_progress: 'Em andamento',
