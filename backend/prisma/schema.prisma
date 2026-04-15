@@ -781,6 +781,7 @@ model driver_territory_stats {
 enum RideStatus {
   requested
   offered
+  pending_adjustment
   accepted
   arrived
   in_progress
@@ -829,6 +830,10 @@ model rides_v2 {
   platform_fee           Decimal?     @db.Decimal(8, 2)
   driver_earnings        Decimal?     @db.Decimal(8, 2)
   territory_match        String?
+  // Driver adjustment (premium)
+  driver_adjustment      Decimal?     @db.Decimal(8, 2)
+  adjusted_price         Decimal?     @db.Decimal(8, 2)
+  passenger_app_version  String?
   // Timestamps
   requested_at           DateTime     @default(now())
   offered_at             DateTime?
@@ -863,8 +868,10 @@ model ride_offers {
   sent_at        DateTime    @default(now())
   expires_at     DateTime
   responded_at   DateTime?
-  rank_score     Decimal?    @db.Decimal(10, 2)
-  created_at     DateTime    @default(now())
+  rank_score         Decimal?    @db.Decimal(10, 2)
+  driver_adjustment  Decimal?    @db.Decimal(8, 2)
+  adjustment_status  String?     // null | pending | accepted | rejected | skipped
+  created_at         DateTime    @default(now())
   updated_at     DateTime    @updatedAt
   ride           rides_v2    @relation(fields: [ride_id], references: [id], onDelete: Cascade)
   driver         drivers     @relation(fields: [driver_id], references: [id])

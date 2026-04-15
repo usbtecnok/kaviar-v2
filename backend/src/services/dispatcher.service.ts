@@ -411,6 +411,39 @@ export class DispatcherService {
         await this.dispatchRide(offer.ride_id);
       }
     }
+
+    // Check expired adjustment responses (60s timeout)
+    const adjustmentCutoff = new Date(Date.now() - 60 * 1000);
+    const staleAdjustments = await prisma.ride_offers.findMany({
+      where: {
+        adjustment_status: 'pending',
+        responded_at: { lt: adjustmentCutoff }
+      },
+      include: { ride: true }
+    });
+
+    for (const offer of staleAdjustments) {
+      if (offer.ride.status !== 'pending_adjustment') continue;
+
+      console.log(`[ADJUSTMENT_TIMEOUT] offer_id=${offer.id} ride_id=${offer.ride_id} driver_id=${offer.driver_id}`);
+
+      await prisma.$transaction(async (tx) => {
+        await tx.ride_offers.update({
+          where: { id: offer.id },
+          data: { adjustment_status: 'rejected' }
+        });
+        await tx.rides_v2.update({
+          where: { id: offer.ride_id },
+          data: { status: 'requested', driver_id: null, driver_adjustment: null, adjusted_price: null, accepted_at: null }
+        });
+        await tx.driver_status.update({
+          where: { driver_id: offer.driver_id },
+          data: { availability: 'online' }
+        });
+      });
+
+      await this.dispatchRide(offer.ride_id);
+    }
   }
 
   private emitOfferToDriver(driverId: string, offerId: string, ride: any, tier: string): void {

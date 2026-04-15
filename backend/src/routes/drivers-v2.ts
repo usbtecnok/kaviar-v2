@@ -78,10 +78,18 @@ router.post('/offers/:offer_id/accept', authenticateDriver, async (req: Request,
   try {
     const driverId = (req as any).driverId;
     const { offer_id } = req.params;
+    const { adjustment } = req.body;
 
-    const result = await acceptOfferInternal(offer_id, driverId);
+    // Validate adjustment if provided
+    if (adjustment !== undefined && adjustment !== null) {
+      if (![5, 8, 10].includes(Number(adjustment))) {
+        return res.status(400).json({ error: 'Ajuste inválido. Valores permitidos: 5, 8, 10' });
+      }
+    }
 
-    res.json({ success: true, data: { ride_id: result.id } });
+    const result = await acceptOfferInternal(offer_id, driverId, adjustment ? Number(adjustment) : undefined);
+
+    res.json({ success: true, data: { ride_id: result.id, adjustment_status: result.adjustment_status || null } });
   } catch (error: any) {
     console.error('[OFFER_ACCEPT_ERROR]', error);
     

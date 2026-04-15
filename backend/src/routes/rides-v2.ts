@@ -61,9 +61,11 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
     }
 
     // Criar corrida
+    const passengerAppVersion = req.headers['x-app-version'] as string || null;
     const ride = await prisma.rides_v2.create({
       data: {
         passenger_id: passengerId,
+        passenger_app_version: passengerAppVersion,
         origin_lat: new Decimal(origin.lat),
         origin_lng: new Decimal(origin.lng),
         origin_text: origin.text,
@@ -148,6 +150,118 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[RIDE_CREATE_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
+// 5.1b Passageiro responde ao ajuste de valor
+router.post('/:ride_id/adjustment-response', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const { ride_id } = req.params;
+    const { accept } = req.body;
+
+    if (typeof accept !== 'boolean') {
+      return res.status(400).json({ error: 'Campo "accept" (boolean) é obrigatório' });
+    }
+
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: ride_id },
+      include: { offers: { where: { status: 'accepted', adjustment_status: 'pending' }, take: 1 } }
+    });
+
+    if (!ride || ride.passenger_id !== passengerId) {
+      return res.status(404).json({ error: 'Corrida não encontrada' });
+    }
+    if (ride.status !== 'pending_adjustment') {
+      return res.status(400).json({ error: 'Corrida não está aguardando resposta de ajuste' });
+    }
+
+    const offer = ride.offers[0];
+    if (!offer) {
+      return res.status(400).json({ error: 'Oferta de ajuste não encontrada' });
+    }
+
+    if (accept) {
+      await prisma.$transaction(async (tx) => {
+        await tx.ride_offers.update({
+          where: { id: offer.id },
+          data: { adjustment_status: 'accepted' }
+        });
+        await tx.rides_v2.update({
+          where: { id: ride_id },
+          data: { status: 'accepted', accepted_at: new Date() }
+        });
+      });
+
+      console.log(`[ADJUSTMENT_ACCEPTED] ride_id=${ride_id} driver_id=${ride.driver_id} adjustment=${offer.driver_adjustment}`);
+
+      realTimeService.emitToRide(ride_id, {
+        type: 'ride.status.changed',
+        status: 'accepted',
+        timestamp: new Date().toISOString()
+      });
+
+      // Pricing refine + WhatsApp (fire-and-forget)
+      if (ride.driver_id) {
+        import('../services/pricing-engine').then(async (pe) => {
+          try {
+            const d = await prisma.drivers.findUnique({ where: { id: ride.driver_id! }, select: { neighborhood_id: true, neighborhoods: { select: { name: true } } } });
+            await pe.refine(ride_id, d?.neighborhood_id || null, (d as any)?.neighborhoods?.name || null);
+          } catch {}
+        });
+
+        prisma.drivers.findUnique({ where: { id: ride.driver_id }, select: { name: true, vehicle_color: true, vehicle_model: true, vehicle_plate: true } }).then(driver => {
+          prisma.passengers.findUnique({ where: { id: passengerId }, select: { phone: true, name: true } }).then(passenger => {
+            if (passenger?.phone) {
+              const { whatsappEvents } = require('../modules/whatsapp');
+              whatsappEvents.rideDriverAssigned(passenger.phone, {
+                '1': passenger.name || 'Passageiro',
+                '2': driver?.name || 'Motorista',
+                '3': driver?.vehicle_model || 'Não informado',
+                '4': driver?.vehicle_color || 'Não informada',
+                '5': driver?.vehicle_plate || 'Não informada',
+              }).catch(() => {});
+            }
+          });
+        }).catch(() => {});
+      }
+
+      res.json({ success: true, status: 'accepted' });
+    } else {
+      // Passenger rejected adjustment — release driver, redispatch
+      await prisma.$transaction(async (tx) => {
+        await tx.ride_offers.update({
+          where: { id: offer.id },
+          data: { adjustment_status: 'rejected' }
+        });
+        await tx.rides_v2.update({
+          where: { id: ride_id },
+          data: {
+            status: 'requested',
+            driver_id: null,
+            driver_adjustment: null,
+            adjusted_price: null,
+            accepted_at: null,
+          }
+        });
+        if (ride.driver_id) {
+          await tx.driver_status.update({
+            where: { driver_id: ride.driver_id },
+            data: { availability: 'online' }
+          });
+        }
+      });
+
+      console.log(`[ADJUSTMENT_REJECTED] ride_id=${ride_id} driver_id=${ride.driver_id} adjustment=${offer.driver_adjustment}`);
+
+      // Redispatch
+      setImmediate(() => dispatcherService.dispatchRide(ride_id).catch(() => {}));
+
+      res.json({ success: true, status: 'rejected' });
+    }
+  } catch (error: any) {
+    console.error('[ADJUSTMENT_RESPONSE_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });
