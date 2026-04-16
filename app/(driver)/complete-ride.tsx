@@ -12,6 +12,7 @@ import { COLORS } from '../../src/config/colors';
 import { setActiveRideId } from '../../src/services/background-location';
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
+  pending_adjustment: { label: 'Aguardando passageiro aceitar ajuste', color: COLORS.warning, icon: '💰' },
   accepted:    { label: 'Indo ao passageiro', color: COLORS.primary, icon: '🚗' },
   arrived:     { label: 'Aguardando embarque', color: COLORS.warning, icon: '📍' },
   in_progress: { label: 'Corrida em andamento', color: COLORS.success, icon: '🛣️' },
