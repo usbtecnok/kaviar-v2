@@ -4,12 +4,20 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
 import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { setActiveRideId } from '../../src/services/background-location';
+import { groupLabel } from '../../src/utils/tripLabel';
+
+const BOARDING_LABELS: Record<string, { icon: string; text: string }> = {
+  at_door: { icon: '🚪', text: 'Na porta' },
+  descending: { icon: '🏃', text: 'Está descendo' },
+  '2_minutes': { icon: '⏱️', text: 'Vai levar 2 minutos' },
+};
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: string }> = {
   pending_adjustment: { label: 'Aguardando passageiro aceitar ajuste', color: COLORS.warning, icon: '💰' },
@@ -23,6 +31,7 @@ const LOCATION_INTERVAL = 5000;
 export default function CompleteRide() {
   const router = useRouter();
   const params = useLocalSearchParams<{ rideId: string; status?: string }>();
+  const insets = useSafeAreaInsets();
   const [ride, setRide] = useState<Ride | null>(null);
   const [rideStatus, setRideStatus] = useState<RideStatus>((params.status as RideStatus) || 'accepted');
   const [loading, setLoading] = useState(false);
@@ -63,7 +72,8 @@ export default function CompleteRide() {
     return () => clearInterval(id);
   }, [rideStatus, arrivedAt]);
 
-  const startPolling = () => {
+  const startPolling = (intervalMs = 5000) => {
+    if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
         const current = await driverApi.getCurrentRide();
@@ -76,8 +86,14 @@ export default function CompleteRide() {
           if (pollRef.current) clearInterval(pollRef.current);
         }
       } catch {}
-    }, 5000);
+    }, intervalMs);
   };
+
+  // Speed up polling during arrived (boarding status needs fast updates)
+  useEffect(() => {
+    if (rideStatus === 'arrived') startPolling(3000);
+    else if (rideStatus === 'accepted' || rideStatus === 'in_progress') startPolling(5000);
+  }, [rideStatus]);
 
   const loadRide = async () => {
     try {
@@ -329,7 +345,7 @@ export default function CompleteRide() {
       </View>
 
       {/* Bottom sheet */}
-      <View style={st.bottomSheet}>
+      <View style={[st.bottomSheet, { paddingBottom: Math.max(insets.bottom + 24, 36) }]}>
         <View style={st.infoRow}>
           <View style={st.infoBlock}>
             <Text style={st.infoLabel}>{rideStatus === 'in_progress' ? 'Destino' : 'Origem'}</Text>
@@ -343,6 +359,30 @@ export default function CompleteRide() {
           )}
         </View>
 
+        {/* Group label */}
+        {(ride as any)?.trip_details && (
+          <View style={st.groupCard}>
+            <Ionicons name="people" size={16} color={COLORS.accent} />
+            <Text style={st.groupText}>
+              {groupLabel((ride as any).trip_details.passengers || 1, !!(ride as any).trip_details.has_luggage)}
+            </Text>
+          </View>
+        )}
+
+        {/* Boarding status from passenger */}
+        {rideStatus === 'arrived' && (ride as any)?.trip_details?.boarding_status && BOARDING_LABELS[(ride as any).trip_details.boarding_status] && (
+          <View style={st.boardingCard}>
+            <View style={st.boardingCardBorder} />
+            <View style={st.boardingCardContent}>
+              <Text style={st.boardingCardIcon}>{BOARDING_LABELS[(ride as any).trip_details.boarding_status].icon}</Text>
+              <View>
+                <Text style={st.boardingCardTitle}>Passageiro</Text>
+                <Text style={st.boardingCardText}>{BOARDING_LABELS[(ride as any).trip_details.boarding_status].text}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* B1: Wait warning */}
         {rideStatus === 'arrived' && waitSeconds >= 180 && (
           <View style={st.waitWarning}>
@@ -354,13 +394,13 @@ export default function CompleteRide() {
         <Button title={rideStatus === 'in_progress' ? '📍 Navegar até o destino' : '📍 Navegar até o passageiro'} onPress={openNavigation} style={{ backgroundColor: '#1a73e8', marginBottom: 8, paddingVertical: 18 }} />
 
         {rideStatus === 'accepted' && (
-          <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: COLORS.primary }} />
+          <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: COLORS.primary, minHeight: 56 }} />
         )}
         {rideStatus === 'arrived' && (
-          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: COLORS.warning }} />
+          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: COLORS.warning, minHeight: 56 }} />
         )}
         {rideStatus === 'in_progress' && (
-          <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: COLORS.success }} />
+          <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
         )}
 
         {/* B3: Cancel button */}
@@ -403,7 +443,7 @@ const st = StyleSheet.create({
   statusText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   map: { flex: 1 },
   mapContainer: { flex: 1, backgroundColor: '#000' },
-  bottomSheet: { backgroundColor: COLORS.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, paddingBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
+  bottomSheet: { backgroundColor: COLORS.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, paddingHorizontal: 20, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 8 },
   infoRow: { flexDirection: 'row', marginBottom: 12, gap: 12 },
   infoBlock: { flex: 1 },
   infoLabel: { fontSize: 11, color: COLORS.textMuted, textTransform: 'uppercase', marginBottom: 2 },
@@ -411,6 +451,16 @@ const st = StyleSheet.create({
   // B1
   waitWarning: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#2a2a1a', borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: COLORS.warning },
   waitWarningText: { fontSize: 13, color: COLORS.warning, flex: 1 },
+  // Group label
+  groupCard: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.surfaceLight, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 10, borderWidth: 1, borderColor: COLORS.border },
+  groupText: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
+  // Boarding status
+  boardingCard: { flexDirection: 'row', borderRadius: 10, marginBottom: 10, overflow: 'hidden', backgroundColor: '#1a1a0a', borderWidth: 1, borderColor: '#3a3a1a' },
+  boardingCardBorder: { width: 4, backgroundColor: COLORS.primary },
+  boardingCardContent: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, flex: 1 },
+  boardingCardIcon: { fontSize: 22 },
+  boardingCardTitle: { fontSize: 11, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  boardingCardText: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
   // B2
   centeredTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center' },
   centeredSub: { fontSize: 15, color: COLORS.textSecondary, textAlign: 'center', marginTop: 8 },
