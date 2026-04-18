@@ -19,7 +19,7 @@ import KaviarLanding from "./pages/KaviarLanding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
 import { DriverProvider } from "./contexts/DriverContext";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider } from "./auth/AuthContext";
 
 function ConsultorForm() {
   const [form, setForm] = React.useState({ nome: '', whatsapp: '', bairro: '', cidade: '', qtd: '', obs: '' });
@@ -347,7 +347,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.4.0.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.7.0.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
@@ -370,7 +370,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.4.0.apk"
+                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.7.0.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
