@@ -27,17 +27,21 @@ function fmtHour(d) { if (!d) return '—'; return new Date(d).toLocaleTimeStrin
 
 export default function OperationsMonitor() {
   const [data, setData] = useState(null);
+  const [demandGaps, setDemandGaps] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('today');
   const token = localStorage.getItem('kaviar_admin_token');
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/operations/monitor?period=${period}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await res.json();
+      const [monRes, dgRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/operations/monitor?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/api/admin/operations/demand-gaps?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const d = await monRes.json();
+      const dg = await dgRes.json();
       if (d.success) setData(d);
+      if (dg.success) setDemandGaps(dg);
     } catch (e) { console.error('[OPS]', e); }
     finally { setLoading(false); }
   }, [period, token]);
@@ -88,6 +92,36 @@ export default function OperationsMonitor() {
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 3 }}>
+        {/* Demand Gaps */}
+        {demandGaps && demandGaps.total_no_driver > 0 && (
+          <Box sx={{ ...sectionSx, gridColumn: '1 / -1' }}>
+            <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, mb: 2 }}>📡 Demanda Reprimida (corridas reais sem motorista)</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5 }}>
+              <Box sx={cardSx}>
+                <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#f44336', lineHeight: 1 }}>{demandGaps.total_no_driver}</Typography>
+                <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.8, fontWeight: 600 }}>Total sem motorista</Typography>
+              </Box>
+              {demandGaps.by_origin_neighborhood.slice(0, 2).map((n, i) => (
+                <Box key={n.neighborhood} sx={cardSx}>
+                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: i === 0 ? '#FF9800' : '#FFD700', lineHeight: 1 }}>{n.count}</Typography>
+                  <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.8, fontWeight: 600 }}>{n.neighborhood}</Typography>
+                  {n.peak_hour != null && <Typography sx={{ fontSize: 10, color: '#4a5a6a', mt: 0.3 }}>pico: {n.peak_hour}h</Typography>}
+                </Box>
+              ))}
+              {demandGaps.by_hour && (() => {
+                const peak = demandGaps.by_hour.reduce((a, b) => b.count > a.count ? b : a, { hour: 0, count: 0 });
+                return (
+                  <Box sx={cardSx}>
+                    <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#2196F3', lineHeight: 1 }}>{peak.hour}h</Typography>
+                    <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.8, fontWeight: 600 }}>Horário crítico</Typography>
+                    <Typography sx={{ fontSize: 10, color: '#4a5a6a', mt: 0.3 }}>{peak.count} corridas</Typography>
+                  </Box>
+                );
+              })()}
+            </Box>
+          </Box>
+        )}
+
         {/* Territory */}
         <Box sx={sectionSx}>
           <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, mb: 2 }}>Distribuição Territorial</Typography>
