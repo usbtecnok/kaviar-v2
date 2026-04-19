@@ -138,9 +138,15 @@ router.get('/monitor', async (req: Request, res: Response) => {
 router.get('/demand-gaps', async (req: Request, res: Response) => {
   try {
     const { start, label } = getPeriod(req.query.period as string || '7d');
+    const realOnly = req.query.real !== 'false'; // default: filter out likely test rides
+
+    const where: any = { status: 'no_driver', requested_at: { gte: start } };
+    if (realOnly) {
+      where.passenger_app_version = { not: null }; // exclude API-only / no-app rides
+    }
 
     const rows = await prisma.rides_v2.findMany({
-      where: { status: 'no_driver', requested_at: { gte: start } },
+      where,
       select: {
         requested_at: true,
         origin_neighborhood: { select: { name: true } },
@@ -189,6 +195,7 @@ router.get('/demand-gaps', async (req: Request, res: Response) => {
     res.json({
       success: true,
       period: { start, label },
+      filter: { real_only: realOnly },
       total_no_driver: total,
       by_origin_neighborhood: neighborhoods,
       by_hour: hours,
