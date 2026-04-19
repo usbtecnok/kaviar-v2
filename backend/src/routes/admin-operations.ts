@@ -134,4 +134,70 @@ router.get('/monitor', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/operations/demand-gaps — demanda reprimida (corridas sem motorista)
+router.get('/demand-gaps', async (req: Request, res: Response) => {
+  try {
+    const { start, label } = getPeriod(req.query.period as string || '7d');
+
+    const rows = await prisma.rides_v2.findMany({
+      where: { status: 'no_driver', requested_at: { gte: start } },
+      select: {
+        requested_at: true,
+        origin_neighborhood: { select: { name: true } },
+      },
+    });
+
+    const total = rows.length;
+
+    // Por bairro de origem
+    const byNeighborhood: Record<string, { count: number; hours: number[] }> = {};
+    const byHour: Record<number, number> = {};
+    const byDow: Record<number, number> = {};
+
+    for (const r of rows) {
+      const name = r.origin_neighborhood?.name || 'Sem bairro';
+      const h = r.requested_at.getHours();
+      const dow = r.requested_at.getDay();
+
+      if (!byNeighborhood[name]) byNeighborhood[name] = { count: 0, hours: [] };
+      byNeighborhood[name].count++;
+      byNeighborhood[name].hours.push(h);
+
+      byHour[h] = (byHour[h] || 0) + 1;
+      byDow[dow] = (byDow[dow] || 0) + 1;
+    }
+
+    const dowNames = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+    const neighborhoods = Object.entries(byNeighborhood)
+      .map(([name, d]) => {
+        const freq: Record<number, number> = {};
+        d.hours.forEach(h => { freq[h] = (freq[h] || 0) + 1; });
+        const peak_hour = Object.entries(freq).sort((a, b) => b[1] - a[1])[0];
+        return { neighborhood: name, count: d.count, peak_hour: peak_hour ? Number(peak_hour[0]) : null };
+      })
+      .sort((a, b) => b.count - a.count);
+
+    const hours = Object.entries(byHour)
+      .map(([h, count]) => ({ hour: Number(h), count }))
+      .sort((a, b) => a.hour - b.hour);
+
+    const days = Object.entries(byDow)
+      .map(([d, count]) => ({ day: dowNames[Number(d)], count }))
+      .sort((a, b) => Number(a.day) - Number(b.day));
+
+    res.json({
+      success: true,
+      period: { start, label },
+      total_no_driver: total,
+      by_origin_neighborhood: neighborhoods,
+      by_hour: hours,
+      by_day_of_week: days,
+    });
+  } catch (err: any) {
+    console.error('[DEMAND_GAPS]', err);
+    res.status(500).json({ success: false, error: 'Erro ao carregar demanda reprimida' });
+  }
+});
+
 export default router;
