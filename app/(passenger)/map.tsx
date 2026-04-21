@@ -157,6 +157,7 @@ export default function PassengerMap() {
     acquireLocation();
     recoverActiveRide();
     loadCommunityStatus();
+    checkReturnHome(); // covers return from rating screen
 
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') recoverActiveRide();
@@ -351,26 +352,36 @@ export default function PassengerMap() {
 
   const checkReturnHome = async () => {
     try {
+      // Get fresh location (userLocation state may be stale after ride)
+      let loc = userLocation;
+      try {
+        const pos = await Location.getCurrentPositionAsync({});
+        loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      } catch { /* fall back to state */ }
+      if (!loc) { console.warn('[checkReturnHome] no location'); return; }
+
       const { data: favData } = await apiClient.get('/api/passenger/favorites/home');
-      if (!favData.success || !favData.home) return;
+      if (!favData.success || !favData.home) { console.warn('[checkReturnHome] no HOME favorite'); return; }
       const home = favData.home;
       if (!home.lat || !home.lng) return;
 
       // Check distance from current location to HOME (>1km)
-      if (!userLocation) return;
       const R = 6371000;
-      const dLat = (Number(home.lat) - userLocation.lat) * Math.PI / 180;
-      const dLng = (Number(home.lng) - userLocation.lng) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(userLocation.lat*Math.PI/180) * Math.cos(Number(home.lat)*Math.PI/180) * Math.sin(dLng/2)**2;
+      const dLat = (Number(home.lat) - loc.lat) * Math.PI / 180;
+      const dLng = (Number(home.lng) - loc.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(loc.lat*Math.PI/180) * Math.cos(Number(home.lat)*Math.PI/180) * Math.sin(dLng/2)**2;
       const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      if (dist < 1000) return;
+      console.log(`[checkReturnHome] dist=${Math.round(dist)}m, loc=${loc.lat.toFixed(4)},${loc.lng.toFixed(4)}, home=${home.lat},${home.lng}`);
+      if (dist < 1000) { console.warn(`[checkReturnHome] too close (${Math.round(dist)}m)`); return; }
 
       // Check community status (residential)
       const { data: csData } = await apiClient.get('/api/passengers/me/community-status');
-      if (!csData.success || !csData.data || csData.data.driversOnline < 1) return;
+      console.log('[checkReturnHome] community-status:', JSON.stringify(csData.data));
+      if (!csData.success || !csData.data || csData.data.driversOnline < 1) { console.warn('[checkReturnHome] no drivers online'); return; }
 
       setHomePlace({ text: home.label || 'Casa', lat: Number(home.lat), lng: Number(home.lng), placeId: '' });
       setShowReturnCard(true);
+      console.log('[checkReturnHome] ✅ card shown');
     } catch (e) { console.warn('[checkReturnHome] failed:', e); }
   };
   const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); checkReturnHome(); };

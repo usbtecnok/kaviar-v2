@@ -82,6 +82,7 @@ router.get('/favorites/home', authenticatePassenger, async (req: Request, res: R
     const home = await prisma.passenger_favorite_locations.findFirst({
       where: { passenger_id: passenger.id, type: 'HOME' },
     });
+    console.log(`[favorites/home] passenger=${passenger.id}, found=${!!home}, lat=${home?.lat}, lng=${home?.lng}`);
     if (!home) return res.json({ success: true, home: null });
     res.json({ success: true, home: { lat: home.lat, lng: home.lng, label: home.label } });
   } catch (error) {
