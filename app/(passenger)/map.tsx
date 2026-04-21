@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share, Animated } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share, Animated, AppState } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ import { apiClient } from '../../src/api/client';
 const POLL_INTERVAL = 3000;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  scheduled:          { label: 'Corrida agendada',       color: '#1a3a6a', icon: '🕐' },
   requested:          { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
   offered:            { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
   pending_adjustment: { label: 'Ajuste de valor',       color: COLORS.warning, icon: '💰' },
@@ -48,9 +49,43 @@ export default function PassengerMap() {
   const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showNoDriver, setShowNoDriver] = useState(false);
 
+  // Community status (Base KAVIAR)
+  const [communityStatus, setCommunityStatus] = useState<{ communityName: string; driversOnline: number } | null>(null);
+
+  // Return home card
+  const [showReturnCard, setShowReturnCard] = useState(false);
+  const [homePlace, setHomePlace] = useState<Place | null>(null);
+
   // Price estimate
   const [estimate, setEstimate] = useState<{ price: number; distance_km: number } | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
+
+  // Trip composition
+  const [passengerCount, setPassengerCount] = useState(1);
+  const [hasLuggage, setHasLuggage] = useState(false);
+
+  // Schedule
+  type ScheduleOption = 'now' | '15min' | '30min' | 'custom';
+  const [scheduleOption, setScheduleOption] = useState<ScheduleOption>('now');
+  const [customTime, setCustomTime] = useState<Date | null>(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // Buffer para compensar latência de rede nos atalhos relativos
+  const SCHEDULE_BUFFER_MS = 30_000;
+
+  const getScheduledFor = (): string | undefined => {
+    if (scheduleOption === 'now') return undefined;
+    if (scheduleOption === '15min') return new Date(Date.now() + 15 * 60_000 + SCHEDULE_BUFFER_MS).toISOString();
+    if (scheduleOption === '30min') return new Date(Date.now() + 30 * 60_000 + SCHEDULE_BUFFER_MS).toISOString();
+    return customTime?.toISOString();
+  };
+
+  const fmtTime = (d: Date) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  const getScheduleLabel = (): string => {
+    const sf = getScheduledFor();
+    return sf ? fmtTime(new Date(sf)) : '';
+  };
 
   // Accepted banner
   const [showAcceptedBanner, setShowAcceptedBanner] = useState(false);
@@ -66,6 +101,12 @@ export default function PassengerMap() {
   // Adjustment modal
   const [showAdjustment, setShowAdjustment] = useState(false);
   const adjustmentShownForRef = useRef<string | null>(null);
+
+  // Boarding status
+  const [boardingStatus, setBoardingStatus] = useState<string | null>(null);
+
+  // Redispatch banner
+  const [showRedispatch, setShowRedispatch] = useState(false);
 
   // Search microcopy rotation
   const SEARCH_PHRASES = [
@@ -114,8 +155,36 @@ export default function PassengerMap() {
     if (user?.name) setUserName(user.name);
     if (user?.phone) setUserPhone(user.phone);
     acquireLocation();
-    return () => stopAll();
+    recoverActiveRide();
+    loadCommunityStatus();
+
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') recoverActiveRide();
+    });
+
+    return () => { stopAll(); sub.remove(); };
   }, []);
+
+  const loadCommunityStatus = async () => {
+    try {
+      const { data } = await apiClient.get('/api/passengers/me/community-status');
+      if (data.success && data.data) setCommunityStatus(data.data);
+    } catch { /* silent */ }
+  };
+
+  const recoverActiveRide = async () => {
+    try {
+      const active = await passengerApi.getActiveRide();
+      if (active && !['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(active.status)) {
+        setRide(active);
+        setScreen('tracking');
+        stopPolling();
+        startPolling(active.id);
+      }
+    } catch (e) {
+      console.warn('[Map] recoverActiveRide failed:', e);
+    }
+  };
 
   // Q2: Rotate search phrases while looking for driver
   useEffect(() => {
@@ -240,6 +309,7 @@ export default function PassengerMap() {
           }
           if (updated.status === 'accepted') {
             setShowAdjustment(false);
+            setShowRedispatch(false);
             setShowAcceptedBanner(true);
             Animated.sequence([
               Animated.timing(bannerOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
@@ -251,6 +321,12 @@ export default function PassengerMap() {
           if (lastStatusRef.current === 'pending_adjustment' && updated.status !== 'pending_adjustment') {
             setShowAdjustment(false);
             adjustmentShownForRef.current = null;
+          }
+          // Redispatch detection: accepted/arrived → requested/offered
+          if (['accepted', 'arrived'].includes(lastStatusRef.current) && ['requested', 'offered'].includes(updated.status)) {
+            setShowRedispatch(true);
+            setDriverLocation(null);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           }
           lastStatusRef.current = updated.status;
         }
@@ -272,8 +348,39 @@ export default function PassengerMap() {
 
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   const stopAll = () => { stopPolling(); setDriverLocation(null); };
-  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setShowAdjustment(false); adjustmentShownForRef.current = null; };
-  const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setShowAdjustment(false); adjustmentShownForRef.current = null; };
+
+  const checkReturnHome = async () => {
+    try {
+      const { data: favData } = await apiClient.get('/api/passenger/favorites/home');
+      if (!favData.success || !favData.home) return;
+      const home = favData.home;
+      if (!home.lat || !home.lng) return;
+
+      // Check distance from current location to HOME (>1km)
+      if (!userLocation) return;
+      const R = 6371000;
+      const dLat = (Number(home.lat) - userLocation.lat) * Math.PI / 180;
+      const dLng = (Number(home.lng) - userLocation.lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2)**2 + Math.cos(userLocation.lat*Math.PI/180) * Math.cos(Number(home.lat)*Math.PI/180) * Math.sin(dLng/2)**2;
+      const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      if (dist < 1000) return;
+
+      // Check community status (residential)
+      const { data: csData } = await apiClient.get('/api/passengers/me/community-status');
+      if (!csData.success || !csData.data || csData.data.driversOnline < 1) return;
+
+      setHomePlace({ text: home.label || 'Casa', lat: Number(home.lat), lng: Number(home.lng), placeId: '' });
+      setShowReturnCard(true);
+    } catch (e) { console.warn('[checkReturnHome] failed:', e); }
+  };
+  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); checkReturnHome(); };
+  const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); };
+
+  const handleBoardingStatus = async (status: 'at_door' | 'descending' | '2_minutes') => {
+    if (!ride) return;
+    setBoardingStatus(status);
+    try { await passengerApi.sendBoardingStatus(ride.id, status); } catch {}
+  };
 
   const handleAdjustmentAccept = async () => {
     if (!ride) return;
@@ -309,6 +416,8 @@ export default function PassengerMap() {
       const result = await passengerApi.requestRide({
         origin: { lat: origin.lat, lng: origin.lng, text: origin.text },
         destination: { lat: destination.lat, lng: destination.lng, text: destination.text },
+        trip_details: { passengers: passengerCount, has_luggage: hasLuggage },
+        scheduled_for: getScheduledFor(),
       });
       const rideData = await passengerApi.getRide(result.ride_id);
       setRide(rideData);
@@ -369,7 +478,7 @@ export default function PassengerMap() {
     }
   }, [origin, destination]);
 
-  const canCancel = rideStatus && ['requested', 'offered', 'pending_adjustment', 'accepted', 'arrived'].includes(rideStatus);
+  const canCancel = rideStatus && ['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived'].includes(rideStatus);
   const info = rideStatus ? STATUS_CONFIG[rideStatus] || STATUS_CONFIG.requested : STATUS_CONFIG.requested;
 
   // === SEARCH SCREEN ===
@@ -473,6 +582,36 @@ export default function PassengerMap() {
             </View>
           </SafeAreaView>
 
+          {communityStatus && screen === 'idle' && (
+            <View style={s.communityCard}>
+              <Text style={s.communityTitle}>Base KAVIAR — {communityStatus.communityName}</Text>
+              <Text style={s.communitySubtitle}>
+                {communityStatus.driversOnline > 0
+                  ? `${communityStatus.driversOnline} motorista${communityStatus.driversOnline > 1 ? 's' : ''} na sua região`
+                  : 'Operação em expansão na sua região'}
+              </Text>
+            </View>
+          )}
+
+          {showReturnCard && homePlace && screen === 'idle' && (
+            <View style={s.returnCard}>
+              <Text style={s.returnTitle}>Voltar para casa?</Text>
+              <Text style={s.returnSubtitle}>Sua região está ativa no momento.</Text>
+              <View style={s.returnButtons}>
+                <TouchableOpacity style={s.returnBtnPrimary} onPress={() => {
+                  setShowReturnCard(false);
+                  setDestination(homePlace);
+                  setScreen('idle');
+                }}>
+                  <Text style={s.returnBtnPrimaryText}>Pedir retorno</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.returnBtnSecondary} onPress={() => setShowReturnCard(false)}>
+                  <Text style={s.returnBtnSecondaryText}>Agora não</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           <View style={s.bottomCard}>
             <Text style={s.question}>Para onde você vai?</Text>
 
@@ -507,7 +646,64 @@ export default function PassengerMap() {
             {estimateLoading && !estimate && destination && (
               <Text style={s.estimateLoading}>Calculando estimativa...</Text>
             )}
-            <Button title="Pedir Kaviar" loading={loading} onPress={handleRequest} style={{ marginTop: 14 }} />
+
+            {/* Trip composition */}
+            {destination && (
+              <View style={s.tripComp}>
+                <View style={s.tripRow}>
+                  <Text style={s.tripLabel}>👥 Passageiros</Text>
+                  <View style={s.tripCounter}>
+                    <TouchableOpacity onPress={() => setPassengerCount(Math.max(1, passengerCount - 1))} style={s.tripBtn}><Text style={s.tripBtnText}>−</Text></TouchableOpacity>
+                    <Text style={s.tripCount}>{passengerCount}</Text>
+                    <TouchableOpacity onPress={() => setPassengerCount(Math.min(4, passengerCount + 1))} style={s.tripBtn}><Text style={s.tripBtnText}>+</Text></TouchableOpacity>
+                  </View>
+                </View>
+                <TouchableOpacity style={s.tripRow} onPress={() => setHasLuggage(!hasLuggage)} activeOpacity={0.7}>
+                  <Text style={s.tripLabel}>🧳 Bagagem</Text>
+                  <View style={[s.tripToggle, hasLuggage && s.tripToggleOn]}>
+                    <Text style={s.tripToggleText}>{hasLuggage ? 'Sim' : 'Não'}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Schedule selector */}
+            {destination && (
+              <View style={s.scheduleSection}>
+                <Text style={s.scheduleLabel}>QUANDO</Text>
+                <View style={s.scheduleRow}>
+                  {([
+                    { key: 'now' as ScheduleOption, label: 'Agora' },
+                    { key: '15min' as ScheduleOption, label: '15 min' },
+                    { key: '30min' as ScheduleOption, label: '30 min' },
+                    { key: 'custom' as ScheduleOption, label: 'Horário' },
+                  ]).map(opt => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[s.scheduleChip, scheduleOption === opt.key && s.scheduleChipActive]}
+                      onPress={() => {
+                        setScheduleOption(opt.key);
+                        if (opt.key === 'custom') setShowTimePicker(true);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[s.scheduleChipText, scheduleOption === opt.key && s.scheduleChipTextActive]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {scheduleOption === 'custom' && customTime && (
+                  <Text style={s.schedulePreview}>Agendada para {fmtTime(customTime)}</Text>
+                )}
+              </View>
+            )}
+
+            <Button
+              title={scheduleOption === 'now' ? 'Pedir Kaviar' : `Agendar para ${getScheduleLabel()}`}
+              loading={loading}
+              onPress={handleRequest}
+              disabled={scheduleOption === 'custom' && !customTime}
+              style={{ marginTop: 14 }}
+            />
           </View>
         </>
       )}
@@ -517,16 +713,82 @@ export default function PassengerMap() {
         <>
           <SafeAreaView edges={['top']} style={[s.statusBar, { backgroundColor: info.color }]}>
             <Text style={s.statusText}>
-              {rideStatus === 'requested' || rideStatus === 'offered'
-                ? `🔍 ${SEARCH_PHRASES[searchPhraseIdx]}`
-                : rideStatus === 'arrived' && ride?.driver
-                  ? `📍 Seu motorista chegou! Procure o ${ride.driver.vehicle_model || 'veículo'} ${ride.driver.vehicle_color || ''}`
-                  : `${info.icon} ${info.label}`}
+              {rideStatus === 'scheduled' && ride?.scheduled_for
+                ? `🕐 Agendada para ${fmtTime(new Date(ride.scheduled_for))}`
+                : rideStatus === 'requested' || rideStatus === 'offered'
+                  ? ride?.scheduled_for
+                    ? `🔍 Buscando motorista para as ${fmtTime(new Date(ride.scheduled_for))}...`
+                    : `🔍 ${SEARCH_PHRASES[searchPhraseIdx]}`
+                : `${info.icon} ${info.label}`}
             </Text>
           </SafeAreaView>
 
           <View style={s.bottomSheet}>
-            {ride?.driver && (
+            {/* Redispatch banner */}
+            {showRedispatch && (rideStatus === 'requested' || rideStatus === 'offered') && (
+              <View style={s.redispatchCard}>
+                <View style={[s.scheduledCardBorder, { backgroundColor: COLORS.warning }]} />
+                <View style={s.scheduledCardContent}>
+                  <View style={s.alertCardHeader}>
+                    <Ionicons name="refresh" size={20} color={COLORS.warning} />
+                    <Text style={[s.scheduledCardTitle, { color: COLORS.warning }]}>Procurando outro motorista</Text>
+                  </View>
+                  <Text style={s.scheduledCardSub}>Seu motorista cancelou. Estamos procurando outro automaticamente.</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Scheduled ride card */}
+            {rideStatus === 'scheduled' && ride?.scheduled_for && (
+              <View style={s.scheduledCard}>
+                <View style={s.scheduledCardBorder} />
+                <View style={s.scheduledCardContent}>
+                  <View style={s.alertCardHeader}>
+                    <Ionicons name="time" size={20} color="#5B9BD5" />
+                    <Text style={s.scheduledCardTitle}>Corrida agendada</Text>
+                  </View>
+                  <Text style={s.scheduledCardSub}>Vamos buscar um motorista perto das {fmtTime(new Date(ride.scheduled_for))}</Text>
+                </View>
+              </View>
+            )}
+            {/* Driver arrived — prominent card */}
+            {rideStatus === 'arrived' && ride?.driver && (
+              <View style={s.alertCard}>
+                <View style={s.alertCardBorder} />
+                <View style={s.alertCardContent}>
+                  <View style={s.alertCardHeader}>
+                    <Ionicons name="location" size={20} color={COLORS.primary} />
+                    <Text style={s.alertCardTitle}>Motorista chegou!</Text>
+                  </View>
+                  <Text style={s.alertCardSub}>
+                    Procure o {ride.driver.vehicle_model || 'veículo'} {ride.driver.vehicle_color || ''} · {ride.driver.vehicle_plate || ''}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Boarding status quick actions */}
+            {rideStatus === 'arrived' && (
+              <View style={s.boardingRow}>
+                {([
+                  { key: 'at_door' as const, icon: '🚪', label: 'Na porta' },
+                  { key: 'descending' as const, icon: '🏃', label: 'Descendo' },
+                  { key: '2_minutes' as const, icon: '⏱️', label: '2 min' },
+                ] as const).map(opt => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[s.boardingBtn, boardingStatus === opt.key && s.boardingBtnActive]}
+                    onPress={() => handleBoardingStatus(opt.key)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={s.boardingIcon}>{opt.icon}</Text>
+                    <Text style={[s.boardingLabel, boardingStatus === opt.key && s.boardingLabelActive]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {ride?.driver && rideStatus !== 'arrived' && (
               <View style={s.driverCard}>
                 <View style={s.driverRow}>
                   <View style={s.driverAvatar}>
@@ -543,15 +805,15 @@ export default function PassengerMap() {
                 </View>
                 <View style={s.safetyTip}>
                   <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.accent} />
-                  <Text style={s.safetyTipText}>Confira a placa e a cor do veículo antes de entrar. Em caso de emergência, use o botão abaixo.</Text>
+                  <Text style={s.safetyTipText}>Confira a placa e a cor do veículo antes de entrar.</Text>
                 </View>
               </View>
             )}
             {/* Q3: ETA do motorista */}
             {rideStatus === 'accepted' && driverLocation && ride && (
-              <View style={s.etaRow}>
-                <Ionicons name="time-outline" size={15} color={COLORS.accent} />
-                <Text style={s.etaText}>
+              <View style={s.alertCardInfo}>
+                <Ionicons name="time-outline" size={16} color="#5B9BD5" />
+                <Text style={s.alertCardInfoText}>
                   {(() => {
                     const km = haversineKm(driverLocation.lat, driverLocation.lng, Number(ride.origin_lat), Number(ride.origin_lng));
                     const min = Math.max(1, Math.round(km / 30 * 60));
@@ -689,19 +951,27 @@ export default function PassengerMap() {
       <Modal visible={showNoDriver} transparent animationType="fade" onRequestClose={() => { setShowNoDriver(false); resetToIdle(); }}>
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
-            <Text style={s.modalIcon}>🔍</Text>
-            <Text style={s.modalTitle}>Ainda não encontramos um motorista disponível no momento.</Text>
+            <Text style={s.modalIcon}>{ride?.scheduled_for ? '🕐' : '🔍'}</Text>
+            <Text style={s.modalTitle}>
+              {ride?.scheduled_for
+                ? 'Não encontramos motorista para o horário agendado.'
+                : 'Ainda não encontramos um motorista disponível no momento.'}
+            </Text>
             <Text style={s.modalBody}>
-              Estamos expandindo nossa rede de motoristas na sua região. Seja um Consultor Kaviar e tenha uma renda extra indicando novos motoristas.
+              {ride?.scheduled_for
+                ? 'Isso pode acontecer em horários com menos motoristas na sua região.'
+                : 'Estamos expandindo nossa rede de motoristas na sua região. Seja um Consultor Kaviar e tenha uma renda extra indicando novos motoristas.'}
             </Text>
 
             {/* Primary CTAs */}
             <TouchableOpacity style={s.ctaPrimary} onPress={() => { setShowNoDriver(false); handleRetry(); }}>
-              <Text style={s.ctaPrimaryText}>Tentar novamente</Text>
+              <Text style={s.ctaPrimaryText}>Tentar agora</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.ctaSecondaryHighlight} onPress={() => Linking.openURL('https://kaviar.com.br/#consultor')}>
-              <Text style={s.ctaSecondaryHighlightText}>Quero ser consultor</Text>
-            </TouchableOpacity>
+            {!ride?.scheduled_for && (
+              <TouchableOpacity style={s.ctaSecondaryHighlight} onPress={() => Linking.openURL('https://kaviar.com.br/#consultor')}>
+                <Text style={s.ctaSecondaryHighlightText}>Quero ser consultor</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Secondary CTAs */}
             <View style={s.ctaRow}>
@@ -712,6 +982,36 @@ export default function PassengerMap() {
                 <Text style={s.ctaLinkText}>Fechar</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* TIME PICKER MODAL */}
+      <Modal visible={showTimePicker} transparent animationType="fade" onRequestClose={() => setShowTimePicker(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>Escolher horário</Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+              {(() => {
+                const slots: Date[] = [];
+                const now = new Date();
+                const start = new Date(now.getTime() + 15 * 60_000);
+                start.setMinutes(Math.ceil(start.getMinutes() / 15) * 15, 0, 0);
+                const end = new Date(now.getTime() + 24 * 60 * 60_000);
+                for (let t = new Date(start); t <= end; t = new Date(t.getTime() + 15 * 60_000)) slots.push(new Date(t));
+                const isToday = (d: Date) => d.toDateString() === now.toDateString();
+                return slots.map((slot, i) => (
+                  <TouchableOpacity key={i} style={s.timeSlot} onPress={() => { setCustomTime(slot); setShowTimePicker(false); }}>
+                    <Text style={s.timeSlotText}>
+                      {isToday(slot) ? 'Hoje' : 'Amanhã'} às {fmtTime(slot)}
+                    </Text>
+                  </TouchableOpacity>
+                ));
+              })()}
+            </ScrollView>
+            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => { setShowTimePicker(false); setScheduleOption('now'); }}>
+              <Text style={s.ctaLinkText}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -740,6 +1040,31 @@ const s = StyleSheet.create({
   menuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
   greeting: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+
+  // Community status card
+  communityCard: {
+    position: 'absolute', top: 110, left: 16, right: 16, zIndex: 10,
+    backgroundColor: 'rgba(15,15,15,0.88)', borderRadius: 10,
+    paddingVertical: 12, paddingHorizontal: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
+  },
+  communityTitle: { fontSize: 13, fontWeight: '700', color: '#fff', letterSpacing: 0.3 },
+  communitySubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
+
+  // Return home card
+  returnCard: {
+    position: 'absolute', bottom: 280, left: 16, right: 16, zIndex: 11,
+    backgroundColor: 'rgba(15,15,15,0.92)', borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 8,
+  },
+  returnTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  returnSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  returnButtons: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  returnBtnPrimary: { flex: 1, backgroundColor: COLORS.primary, borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
+  returnBtnPrimaryText: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
+  returnBtnSecondary: { flex: 1, borderRadius: 8, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  returnBtnSecondaryText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
 
   // Bottom card (idle)
   bottomCard: {
@@ -797,11 +1122,65 @@ const s = StyleSheet.create({
   safetyTipText: { fontSize: 12, color: COLORS.textSecondary, flex: 1 },
   etaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10, paddingHorizontal: 4 },
   etaText: { fontSize: 14, fontWeight: '600', color: COLORS.accent },
+
+  // Alert cards (premium visual)
+  alertCard: { flexDirection: 'row', backgroundColor: '#1a1a0a', borderRadius: 12, marginBottom: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#3a3a1a' },
+  alertCardBorder: { width: 4, backgroundColor: COLORS.primary },
+  alertCardContent: { flex: 1, padding: 12 },
+  alertCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  alertCardTitle: { fontSize: 16, fontWeight: '800', color: COLORS.primary },
+  alertCardSub: { fontSize: 13, color: COLORS.textSecondary, marginLeft: 28 },
+  alertCardInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0f1a2e', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#1a2a4a' },
+  alertCardInfoText: { fontSize: 14, fontWeight: '600', color: '#5B9BD5' },
+
+  // Boarding status
+  boardingRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  boardingBtn: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 10, backgroundColor: COLORS.surfaceLight, borderWidth: 1.5, borderColor: COLORS.border },
+  boardingBtnActive: { borderColor: COLORS.primary, backgroundColor: '#1a1a0a' },
+  boardingIcon: { fontSize: 18, marginBottom: 2 },
+  boardingLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  boardingLabelActive: { color: COLORS.primary },
+
+  // Schedule selector
+  scheduleSection: { marginTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12 },
+  scheduleLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 1, marginBottom: 8 },
+  scheduleRow: { flexDirection: 'row', gap: 8 },
+  scheduleChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10, backgroundColor: COLORS.surfaceLight, borderWidth: 1.5, borderColor: COLORS.border },
+  scheduleChipActive: { borderColor: COLORS.primary, backgroundColor: '#1a1a0a' },
+  scheduleChipText: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  scheduleChipTextActive: { color: COLORS.primary },
+  schedulePreview: { fontSize: 13, color: '#5B9BD5', fontWeight: '600', marginTop: 8, textAlign: 'center' },
+
+  // Scheduled card
+  scheduledCard: { flexDirection: 'row', backgroundColor: '#0f1a2e', borderRadius: 12, marginBottom: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#1a2a4a' },
+
+  // Redispatch card
+  redispatchCard: { flexDirection: 'row', backgroundColor: '#2a2a1a', borderRadius: 12, marginBottom: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#3a3a1a' },
+  scheduledCardBorder: { width: 4, backgroundColor: '#5B9BD5' },
+  scheduledCardContent: { flex: 1, padding: 12 },
+  scheduledCardTitle: { fontSize: 16, fontWeight: '800', color: '#5B9BD5' },
+  scheduledCardSub: { fontSize: 13, color: COLORS.textSecondary, marginLeft: 28 },
+
+  // Time picker
+  timeSlot: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  timeSlotText: { fontSize: 16, color: COLORS.textPrimary },
   communityMsg: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 16, lineHeight: 18 },
   estimateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surfaceLight, borderRadius: 10, padding: 12, marginTop: 12, borderWidth: 1, borderColor: COLORS.border },
   estimateText: { fontSize: 13, color: COLORS.textSecondary },
   estimatePrice: { fontSize: 16, fontWeight: '700', color: COLORS.primary },
   estimateLoading: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginTop: 12 },
+
+  // Trip composition
+  tripComp: { marginTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12 },
+  tripRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
+  tripLabel: { fontSize: 15, color: COLORS.textPrimary },
+  tripCounter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  tripBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
+  tripBtnText: { fontSize: 18, fontWeight: '600', color: COLORS.textPrimary },
+  tripCount: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary, minWidth: 20, textAlign: 'center' },
+  tripToggle: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 14, backgroundColor: COLORS.surfaceLight, borderWidth: 1, borderColor: COLORS.border },
+  tripToggleOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tripToggleText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },

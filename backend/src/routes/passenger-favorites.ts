@@ -75,6 +75,20 @@ router.post('/favorites', authenticatePassenger, async (req: Request, res: Respo
   }
 });
 
+// GET /api/passenger/favorites/home — returns HOME favorite (no feature flag)
+router.get('/favorites/home', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passenger = (req as any).passenger;
+    const home = await prisma.passenger_favorite_locations.findFirst({
+      where: { passenger_id: passenger.id, type: 'HOME' },
+    });
+    if (!home) return res.json({ success: true, home: null });
+    res.json({ success: true, home: { lat: home.lat, lng: home.lng, label: home.label } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Internal server error' });
+  }
+});
+
 // GET /api/passenger/favorites
 router.get('/favorites', authenticatePassenger, async (req: Request, res: Response) => {
   try {
