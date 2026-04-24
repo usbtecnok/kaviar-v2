@@ -169,8 +169,8 @@ router.get('/me/offers', authenticateDriver, async (req: Request, res: Response)
             id: true, status: true, ride_type: true,
             origin_lat: true, origin_lng: true, origin_text: true,
             dest_lat: true, dest_lng: true, destination_text: true,
-            is_homebound: true, quoted_price: true,
-            requested_at: true,
+            is_homebound: true, quoted_price: true, trip_details: true,
+            requested_at: true, wait_requested: true, wait_estimated_min: true,
             passenger: { select: { name: true } }
           }
         }

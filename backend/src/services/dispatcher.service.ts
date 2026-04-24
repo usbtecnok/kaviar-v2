@@ -39,7 +39,7 @@ export class DispatcherService {
       return;
     }
 
-    const attemptCount = ride.offers.filter(o => o.status === 'expired' || o.status === 'rejected').length;
+    const attemptCount = ride.offers.filter(o => o.status === 'expired' || o.status === 'rejected' || o.status === 'canceled').length;
     if (attemptCount >= this.MAX_ATTEMPTS) {
       console.log(`[DISPATCHER] Ride ${rideId} reached max attempts (${this.MAX_ATTEMPTS}), setting no_driver`);
       await prisma.rides_v2.update({
@@ -54,7 +54,7 @@ export class DispatcherService {
 
     // Excluir motoristas que já receberam oferta para esta corrida (expired/rejected)
     const excludedDriverIds = new Set(
-      ride.offers.filter((o: any) => o.status === 'expired' || o.status === 'rejected').map((o: any) => o.driver_id)
+      ride.offers.filter((o: any) => o.status === 'expired' || o.status === 'rejected' || o.status === 'canceled').map((o: any) => o.driver_id)
     );
     const candidates = allCandidates.filter(c => !excludedDriverIds.has(c.driver_id));
     
@@ -466,7 +466,10 @@ export class DispatcherService {
           lng: Number(ride.dest_lng),
           text: ride.destination_text
         },
-        homebound: ride.is_homebound || false
+        homebound: ride.is_homebound || false,
+        trip_details: ride.trip_details || null,
+        wait_requested: ride.wait_requested || false,
+        wait_estimated_min: ride.wait_estimated_min || null
       }
     };
 
