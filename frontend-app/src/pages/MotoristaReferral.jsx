@@ -49,7 +49,7 @@ export default function MotoristaReferral() {
         <Button
           variant="contained"
           size="large"
-          href="https://downloads.kaviar.com.br/kaviar-motorista-v1.7.1.apk"
+          href="https://downloads.kaviar.com.br/kaviar-motorista-v1.8.2.apk"
           sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, px: 5, py: 1.5, borderRadius: 3, fontSize: 16 }}
         >
           Baixar App Motorista

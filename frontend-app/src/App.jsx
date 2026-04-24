@@ -347,7 +347,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.7.1.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.8.2.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
@@ -370,7 +370,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.7.0.apk"
+                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.8.1.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
