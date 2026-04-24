@@ -1,4 +1,15 @@
 import React from "react";
+import { useParams } from "react-router-dom";
+import { API_BASE_URL } from "./config/api";
+
+// Redireciona /i/:code para o backend que valida e redireciona para reset-password
+function InviteRedirect() {
+  const { code } = useParams();
+  React.useEffect(() => {
+    window.location.href = `${API_BASE_URL}/i/${code}`;
+  }, [code]);
+  return null;
+}
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { Container, Typography, Box, Button, TextField } from "@mui/material";
 import PassengerApp from "./components/passenger/PassengerApp";
@@ -12,6 +23,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminResetPassword from "./pages/admin/ResetPassword";
+import ConviteExpirado from "./pages/admin/ConviteExpirado";
 import SetPassword from "./pages/driver/SetPassword";
 import MotoristaReferral from "./pages/MotoristaReferral";
 import ConsultorOnboarding from "./pages/ConsultorOnboarding";
@@ -420,6 +432,9 @@ export default function App() {
           
           <Route path="/consultor/:code" element={<ConsultorOnboarding />} />
           <Route path="/motorista" element={<MotoristaReferral />} />
+          {/* Convite curto — redireciona para backend que valida e redireciona para reset-password */}
+          <Route path="/i/:code" element={<InviteRedirect />} />
+          <Route path="/admin/convite-expirado" element={<ConviteExpirado />} />
           {/* First access motorista */}
           <Route path="/motorista/definir-senha" element={<SetPassword />} />
 

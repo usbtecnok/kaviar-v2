@@ -22,7 +22,7 @@ import matchRoutes from './routes/match';
 import { integrationsRoutes } from './routes/integrations';
 import { premiumTourismRoutes } from './routes/premium-tourism';
 import geoRoutes from './routes/geo';
-import ridesRoutes from './routes/rides';
+// v1 rides routes removed — all traffic uses /api/v2/rides
 import { governanceRoutes } from './routes/governance';
 import { passengerAuthRoutes } from './routes/passenger-auth';
 import { driverAuthRoutes } from './routes/driver-auth';
@@ -138,15 +138,26 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// LIVENESS: ALB health check (always 200)
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    message: 'KAVIAR Backend',
-    version: process.env.GIT_COMMIT || 'unknown',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-  });
+// LIVENESS: ALB + container health check (verifies DB connectivity)
+app.get('/api/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({
+      status: 'ok',
+      message: 'KAVIAR Backend',
+      version: process.env.GIT_COMMIT || 'unknown',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+  } catch {
+    res.status(503).json({
+      status: 'unhealthy',
+      message: 'Database unreachable',
+      version: process.env.GIT_COMMIT || 'unknown',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // READINESS: dependency checks (200 if ready, 503 if not)
@@ -189,6 +200,7 @@ app.use('/api/admin/auth', passwordResetRoutes);
 // Investor invites (SUPER_ADMIN only, before investorView middleware)
 import investorInvitesRoutes from './routes/investor-invites-v2';
 app.use('/api/admin/investors', investorInvitesRoutes);
+app.use('/i', investorInvitesRoutes); // public short invite links
 
 // Demo Mode / Investor View Middleware (read-only)
 app.use('/api', investorView);
@@ -240,10 +252,14 @@ app.use('/api/admin', consultantLeadsRoutes);
 app.use('/api/admin/staff', adminStaffRoutes);
 app.use('/api/admin/whatsapp', adminWhatsappRoutes);
 app.use('/api/admin/operations', adminOperationsRoutes);
+import communityHealthRoutes from './routes/community-health';
+app.use('/api/admin/communities', communityHealthRoutes);
 app.use('/api/admin', adminReferralRoutes);
 app.use('/api/public', adminReferralRoutes);
+import adminEmergencyRoutes from './routes/admin-emergency';
+app.use('/api/admin/emergency-events', adminEmergencyRoutes);
 app.use('/api/geo', geoRoutes);
-app.use('/api/rides', ridesRoutes);
+// v1 rides routes deleted — see rides-v2.ts
 app.use('/api/governance', governanceRoutes);
 app.use('/api/auth', passengerAuthRoutes);
 app.use('/api/auth', driverAuthRoutes);
@@ -261,6 +277,8 @@ app.use('/api/webhooks', webhooksAsaasRoutes);
 import geoProxyRoutes from './routes/geo-proxy';
 app.use('/api/geo-proxy', geoProxyRoutes);
 app.use('/api/realtime', realtimeRoutes);
+import rideTrackRoutes from './routes/ride-track';
+app.use('/api/public/ride-track', rideTrackRoutes);
 
 // Feature disabled handler
 app.use((req, res, next) => {

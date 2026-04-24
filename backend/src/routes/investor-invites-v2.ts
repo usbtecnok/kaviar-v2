@@ -6,10 +6,61 @@ import { config } from '../config';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import rateLimit from 'express-rate-limit';
 import { emailService } from '../services/email/email.service';
+import { investorInviteText, investorInviteHtml } from '../services/email/templates/investor-invite';
 import { whatsappEvents } from '../modules/whatsapp';
 import { WHATSAPP_ENV } from '../modules/whatsapp/whatsapp-client';
+import { pool } from '../db';
 
 const router = Router();
+
+// Gera código curto legível: ex. GOES-8F4K
+function generateShortCode(name: string): string {
+  const prefix = name.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 4).padEnd(4, 'X');
+  const suffix = Math.random().toString(36).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, '0');
+  return `${prefix}-${suffix}`;
+}
+
+// GET /api/admin/investor-invites/i/:code — público, redireciona para reset-password
+router.get('/i/:code', async (req: Request, res: Response) => {
+  try {
+    const { code } = req.params;
+    const admin = await prisma.admins.findFirst({
+      where: { invite_code: code },
+      select: { id: true, invite_code_expires_at: true, must_change_password: true }
+    });
+
+    if (!admin) {
+      return res.redirect(`${config.frontendUrl}/admin/convite-expirado`);
+    }
+
+    if (!admin.invite_code_expires_at || admin.invite_code_expires_at < new Date()) {
+      return res.redirect(`${config.frontendUrl}/admin/convite-expirado`);
+    }
+
+    if (!admin.must_change_password) {
+      // Já usou o convite
+      return res.redirect(`${config.frontendUrl}/admin/login`);
+    }
+
+    // Gerar token JWT temporário para reset-password
+    const token = jwt.sign(
+      { userId: admin.id, userType: 'admin', purpose: 'password_reset' },
+      config.jwtResetSecret,
+      { expiresIn: '30m' }
+    );
+
+    // Invalidar o código curto após uso
+    await prisma.admins.update({
+      where: { id: admin.id },
+      data: { invite_code: null, invite_code_expires_at: null }
+    });
+
+    return res.redirect(`${config.frontendUrl}/admin/reset-password?token=${token}`);
+  } catch (err: any) {
+    console.error('[INVITE_REDIRECT_ERROR]', err.message);
+    return res.redirect(`${config.frontendUrl}/admin/convite-expirado`);
+  }
+});
 
 // Logger estruturado
 const logger = {
@@ -21,12 +72,14 @@ const logger = {
 const inviteSchemaEmail = z.object({
   channel: z.literal('email').optional(),
   email: z.string().email('Email inválido'),
+  name: z.string().min(1).optional(),
   role: z.enum(['INVESTOR_VIEW', 'ANGEL_VIEWER'])
 });
 
 const inviteSchemaWhatsApp = z.object({
   channel: z.literal('whatsapp'),
   phone: z.string().regex(/^\+\d{10,15}$/, 'Telefone deve estar no formato E.164 (+5521...)'),
+  name: z.string().min(1).optional(),
   role: z.enum(['INVESTOR_VIEW', 'ANGEL_VIEWER'])
 });
 
@@ -53,6 +106,7 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
     const data = inviteSchema.parse(req.body);
     const { role } = data;
     const channel = 'channel' in data ? data.channel : 'email';
+    const inputName = 'name' in data ? (data as any).name as string : undefined;
 
     let email: string;
     let phone: string | null = null;
@@ -61,10 +115,10 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
     if (channel === 'whatsapp') {
       phone = (data as any).phone as string;
       email = `whatsapp${phone.replace(/\+/g, '').replace(/\D/g, '')}@kaviar.local`;
-      displayName = role === 'INVESTOR_VIEW' ? `Investidor (${phone})` : `Angel Viewer (${phone})`;
+      displayName = inputName || (role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer');
     } else {
       email = (data as any).email as string;
-      displayName = role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer';
+      displayName = inputName || (role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer');
     }
 
     if (email.includes('<') || email.includes('>')) {
@@ -95,6 +149,7 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
       create: {
         email,
         name: displayName,
+        phone: phone || undefined,
         role,
         password: '$2a$10$placeholder',
         must_change_password: true,
@@ -103,27 +158,31 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
       update: {
         must_change_password: true,
         is_active: true,
-        role
+        role,
+        ...(phone && { phone }),
       },
       select: { id: true, email: true, name: true }
     });
 
     const token = generateInviteToken(admin.id, 'admin');
-    const inviteUrl = `${config.frontendUrl}/admin/reset-password?token=${token}`;
+
+    // Gerar código curto e salvar no admin
+    const shortCode = generateShortCode(displayName);
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h
+    await prisma.admins.update({
+      where: { id: admin.id },
+      data: { invite_code: shortCode, invite_code_expires_at: expiresAt }
+    });
+    const inviteUrl = `${config.frontendUrl}/i/${shortCode}`;
 
     // WhatsApp first, email fallback
     if (channel === 'whatsapp' && phone && WHATSAPP_ENV.enabled) {
       logger.info({ requestId, phone, role }, 'INVESTOR_INVITE_WHATSAPP_ATTEMPT');
       
       try {
-        const roleLabel = role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer';
-        const loginUrl = `${config.frontendUrl}/admin/login`;
-        
         await whatsappEvents.inviteInvestor(phone, {
           "1": displayName,
-          "2": roleLabel,
-          "3": inviteUrl,
-          "4": loginUrl
+          "2": inviteUrl
         });
         
         logger.info({ requestId, phone, role }, 'INVESTOR_INVITE_WHATSAPP_SENT');
@@ -147,23 +206,13 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
     }
 
     // Email fallback
+    const templateParams = { name: admin.name, accessLink: inviteUrl };
+
     await emailService.sendMail({
       to: admin.email,
       subject: 'KAVIAR - Convite para Acesso',
-      text: `Você foi convidado para acessar o sistema KAVIAR como ${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'}.\n\nPara configurar sua senha e ativar seu acesso, toque no link:\n${inviteUrl}\n\nEste link expira em 2 horas.\n\nDepois de definir sua senha, você será direcionado ao painel automaticamente.\nSe precisar de acesso novamente no futuro, solicite um novo convite à equipe KAVIAR.\n\nEquipe KAVIAR`,
-      html: `
-        <h2>Convite para Acesso ao Sistema KAVIAR</h2>
-        <p>Você foi convidado para acessar o sistema KAVIAR como <strong>${role === 'INVESTOR_VIEW' ? 'Investidor' : 'Angel Viewer'}</strong>.</p>
-        <p>Para configurar sua senha e ativar seu acesso, toque no link:</p>
-        <p><a href="${inviteUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Configurar Senha</a></p>
-        <p>Ou copie e cole este link no navegador:</p>
-        <p>${inviteUrl}</p>
-        <p>Este link expira em 2 horas.</p>
-        <p>Depois de definir sua senha, você será direcionado ao painel automaticamente.</p>
-        <p>Se precisar de acesso novamente no futuro, solicite um novo convite à equipe KAVIAR.</p>
-        <br>
-        <p>Equipe KAVIAR</p>
-      `
+      text: investorInviteText(templateParams),
+      html: investorInviteHtml(templateParams),
     });
 
     logger.info({ requestId, email }, 'INVESTOR_INVITE_EMAIL_SENT');
@@ -186,6 +235,76 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
       success: false, 
       error: 'Erro ao enviar convite. Tente novamente.' 
     });
+  }
+});
+
+// GET /api/admin/investors/followup-eligible
+router.get('/followup-eligible', authenticateAdmin, requireSuperAdmin, async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT a.id, a.name, COALESCE(a.phone, '+' || regexp_replace(split_part(a.email, '@', 1), '[^0-9]', '', 'g')) AS phone,
+             a.role, a.password_changed_at, a.marketing_followup_sent_at
+      FROM admins a
+      WHERE a.role IN ('ANGEL_VIEWER', 'INVESTOR_VIEW')
+        AND a.is_active = true
+        AND a.password_changed_at IS NOT NULL
+        AND (a.phone IS NOT NULL OR a.email LIKE 'whatsapp%@kaviar.local')
+      ORDER BY a.password_changed_at DESC
+    `);
+
+    const now = Date.now();
+    const eligible = rows.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      phone: r.phone,
+      role: r.role,
+      passwordCreatedAt: r.password_changed_at,
+      firstLoginAt: r.password_changed_at,
+      followupSentAt: r.marketing_followup_sent_at,
+      hourssinceLogin: Math.round((now - new Date(r.password_changed_at).getTime()) / 3600000),
+      eligible: !r.marketing_followup_sent_at && (now - new Date(r.password_changed_at).getTime()) >= 24 * 3600000,
+    }));
+
+    return res.json({ success: true, data: eligible });
+  } catch (error: any) {
+    logger.error({ error: error?.message }, 'FOLLOWUP_ELIGIBLE_ERROR');
+    return res.status(500).json({ success: false, error: 'Erro ao buscar elegíveis.' });
+  }
+});
+
+// POST /api/admin/investors/:id/followup
+router.post('/:id/followup', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const admin = await prisma.admins.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, name: true, email: true, phone: true, role: true, marketing_followup_sent_at: true, password_changed_at: true },
+    });
+
+    if (!admin) return res.status(404).json({ success: false, error: 'Admin não encontrado.' });
+    if (!['ANGEL_VIEWER', 'INVESTOR_VIEW'].includes(admin.role)) return res.status(400).json({ success: false, error: 'Apenas Angel Viewer / Investor View.' });
+
+    // Resolve phone: field or extract from whatsapp email
+    const phone = admin.phone || (admin.email?.startsWith('whatsapp') ? '+' + admin.email.replace(/[^0-9]/g, '') : null);
+    if (!phone) return res.status(400).json({ success: false, error: 'Sem telefone cadastrado.' });
+    if (!admin.password_changed_at) return res.status(400).json({ success: false, error: 'Convidado ainda não criou senha.' });
+    if (admin.marketing_followup_sent_at) return res.status(409).json({ success: false, error: 'Follow-up já enviado.', sentAt: admin.marketing_followup_sent_at });
+
+    if (!WHATSAPP_ENV.enabled) return res.status(503).json({ success: false, error: 'WhatsApp não configurado.' });
+
+    const displayName = admin.name.replace(/\s*\(.*\)$/, '') || 'Investidor';
+
+    await whatsappEvents.followupAngel(phone, { "1": displayName });
+
+    await prisma.admins.update({
+      where: { id: admin.id },
+      data: { marketing_followup_sent_at: new Date() },
+    });
+
+    logger.info({ adminId: admin.id, phone }, 'FOLLOWUP_ANGEL_SENT');
+    return res.json({ success: true, message: 'Follow-up enviado.' });
+  } catch (error: any) {
+    logger.error({ adminId: req.params.id, error: error?.message }, 'FOLLOWUP_ANGEL_ERROR');
+    return res.status(500).json({ success: false, error: 'Erro ao enviar follow-up.' });
   }
 });
 

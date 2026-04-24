@@ -20,6 +20,8 @@ model admins {
   password_changed_at         DateTime?
   marketing_followup_sent_at  DateTime?
   lead_regions                String?
+  invite_code                 String?             @unique
+  invite_code_expires_at      DateTime?
   created_at                  DateTime            @default(now())
   updated_at                  DateTime            @updatedAt
   community_leaders           community_leaders[]
