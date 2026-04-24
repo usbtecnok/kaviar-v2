@@ -78,6 +78,17 @@ export default function AcceptRide() {
   const quotedPrice = ride?.quoted_price != null ? Number(ride.quoted_price) : null;
   const finalPrice = quotedPrice != null && selectedAdjustment ? quotedPrice + selectedAdjustment : null;
 
+  // Proteção estimada
+  const tier = offerData?.territory_tier;
+  const creditEstimated = tier === 'OUTSIDE' ? 2 : 1;
+  const creditValue = creditEstimated * 2.00;
+  const passengers = (ride?.trip_details as any)?.passengers || 1;
+  const hasLuggage = !!(ride?.trip_details as any)?.has_luggage;
+  const passengersExtra = Math.max(0, passengers - 1) * 1.00;
+  const luggageExtra = hasLuggage ? 1.00 : 0;
+  const protectionTotal = creditValue + passengersExtra + luggageExtra;
+  const recommendedAdj = protectionTotal <= 5 ? 5 : protectionTotal <= 8 ? 8 : 10;
+
   return (
     <View style={s.container}>
       <Text style={s.title}>Nova Corrida</Text>
@@ -159,19 +170,61 @@ export default function AcceptRide() {
       {/* Adjustment cards — only show if ride has a quoted price */}
       {quotedPrice != null && (
         <View style={s.adjustSection}>
+          {/* Protection summary */}
+          <View style={{ backgroundColor: '#1a1a2e', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>Estimativa base</Text>
+              <Text style={{ color: COLORS.textPrimary, fontSize: 12, fontWeight: '700' }}>R$ {quotedPrice.toFixed(2)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>Crédito estimado</Text>
+              <Text style={{ color: COLORS.textPrimary, fontSize: 12 }}>{creditEstimated} crédito{creditEstimated > 1 ? 's' : ''} · R$ {creditValue.toFixed(2)}</Text>
+            </View>
+            {passengersExtra > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>Passageiros extras</Text>
+                <Text style={{ color: COLORS.textPrimary, fontSize: 12 }}>+R$ {passengersExtra.toFixed(2)}</Text>
+              </View>
+            )}
+            {luggageExtra > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>Bagagem</Text>
+                <Text style={{ color: COLORS.textPrimary, fontSize: 12 }}>+R$ {luggageExtra.toFixed(2)}</Text>
+              </View>
+            )}
+            {(ride as any)?.wait_requested && (
+              <View style={{ marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#333' }}>
+                <Text style={{ color: '#f57f17', fontSize: 11 }}>⏳ Corrida com espera: cobrança por minuto após iniciar/encerrar espera.</Text>
+              </View>
+            )}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#333' }}>
+              <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>Ajuste recomendado</Text>
+              <Text style={{ color: COLORS.primary, fontSize: 12, fontWeight: '700' }}>+R$ {recommendedAdj.toFixed(2)}</Text>
+            </View>
+            {selectedAdjustment && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>Novo valor se aceito</Text>
+                <Text style={{ color: COLORS.primary, fontSize: 13, fontWeight: '800' }}>R$ {(quotedPrice + selectedAdjustment).toFixed(2)}</Text>
+              </View>
+            )}
+          </View>
+
           <Text style={s.adjustTitle}>Sugerir ajuste de valor?</Text>
           <View style={s.adjustRow}>
             {ADJUSTMENTS.map(adj => {
               const active = selectedAdjustment === adj.value;
+              const recommended = adj.value === recommendedAdj && !selectedAdjustment;
               return (
                 <TouchableOpacity
                   key={adj.value}
-                  style={[s.adjustCard, active && s.adjustCardActive]}
+                  style={[s.adjustCard, active && s.adjustCardActive, recommended && { borderColor: COLORS.primary, borderWidth: 2 }]}
                   onPress={() => setSelectedAdjustment(active ? null : adj.value)}
                   activeOpacity={0.7}
                 >
-                  <Text style={[s.adjustValue, active && s.adjustValueActive]}>{adj.label}</Text>
-                  <Text style={[s.adjustTag, active && s.adjustTagActive]}>{adj.tag}</Text>
+                  <Text style={[s.adjustValue, active && s.adjustValueActive, recommended && { color: COLORS.primary }]}>{adj.label}</Text>
+                  <Text style={[s.adjustTag, active && s.adjustTagActive, recommended && { color: COLORS.primary }]}>
+                    {recommended ? '⭐ recomendado' : adj.tag}
+                  </Text>
                 </TouchableOpacity>
               );
             })}

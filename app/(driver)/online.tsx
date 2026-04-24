@@ -448,6 +448,9 @@ export default function DriverOnline() {
               <View style={styles.offerMeta}>
                 <Ionicons name="cash-outline" size={14} color={COLORS.primary} />
                 <Text style={[styles.offerMetaText, { color: COLORS.primary, fontWeight: '700' }]}>Estimativa R$ {Number((pendingOffer.ride as any).quoted_price).toFixed(2)}</Text>
+                <Text style={[styles.offerMetaText, { color: COLORS.textMuted, marginLeft: 8 }]}>
+                  · {pendingOffer.territory_tier === 'OUTSIDE' ? '2 créditos · externa' : '1 crédito · local'}
+                </Text>
               </View>
             )}
 
@@ -477,7 +480,7 @@ export default function DriverOnline() {
             )}
 
             <View style={styles.offerButtons}>
-              <Button title="Aceitar" variant="success" onPress={handleAcceptOffer} style={{ flex: 1 }} />
+              <Button title="Ver e aceitar" variant="success" onPress={handleAcceptOffer} style={{ flex: 1 }} />
               <View style={{ width: 12 }} />
               <Button title="Recusar" variant="danger" onPress={handleRejectOffer} style={{ flex: 1 }} />
             </View>
