@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../../api';
 
 export default function InvestorInvites() {
   const [channel, setChannel] = useState('whatsapp');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('INVESTOR_VIEW');
@@ -18,13 +19,14 @@ export default function InvestorInvites() {
 
     try {
       const payload = channel === 'whatsapp' 
-        ? { channel: 'whatsapp', phone, role }
-        : { channel: 'email', email, role };
+        ? { channel: 'whatsapp', phone, role, ...(name.trim() && { name: name.trim() }) }
+        : { channel: 'email', email, role, ...(name.trim() && { name: name.trim() }) };
 
       const { data } = await api.post('/api/admin/investors/invite', payload);
 
       if (data.success) {
         setSuccess(data.message);
+        setName('');
         setEmail('');
         setPhone('');
       } else {
@@ -73,6 +75,30 @@ export default function InvestorInvites() {
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '20px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+            Nome do Convidado
+          </label>
+          <input
+            type="text"
+            placeholder="Ex: Fernanda Silva"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '14px',
+              opacity: loading ? 0.6 : 1
+            }}
+          />
+          <small style={{ color: '#666', fontSize: '12px' }}>
+            Opcional. Usado na saudação da mensagem.
+          </small>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
             Canal de Envio
           </label>
           <select
@@ -115,7 +141,7 @@ export default function InvestorInvites() {
               }}
             />
             <small style={{ color: '#666', fontSize: '12px' }}>
-              Formato: +55 (código país) + DDD + número
+              Formato E.164: +55 (Brasil) ou +1 (EUA) + código de área + número
             </small>
           </div>
         ) : (
@@ -187,12 +213,101 @@ export default function InvestorInvites() {
         <h3 style={{ fontSize: '14px', marginBottom: '10px', color: '#333' }}>ℹ️ Como funciona:</h3>
         <ul style={{ fontSize: '13px', color: '#666', lineHeight: '1.6', paddingLeft: '20px' }}>
           <li>O convidado receberá um link para definir senha</li>
-          <li>Link expira em 15 minutos</li>
+          <li>Link expira em 2 horas</li>
           <li>Acesso read-only: pode visualizar mas não editar dados</li>
           <li>Login em: app.kaviar.com.br/admin/login</li>
           <li>WhatsApp: fallback automático para email se falhar</li>
         </ul>
       </div>
+
+      <FollowupSection />
+    </div>
+  );
+}
+
+function FollowupSection() {
+  const [eligible, setEligible] = useState([]);
+  const [loadingId, setLoadingId] = useState(null);
+  const [msg, setMsg] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/admin/investors/followup-eligible');
+      if (data.success) setEligible(data.data);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (!eligible.length) return null;
+
+  const send = async (id) => {
+    setMsg('');
+    setLoadingId(id);
+    try {
+      const { data } = await api.post(`/api/admin/investors/${id}/followup`);
+      setMsg(data.success ? '✅ Follow-up enviado.' : `⚠️ ${data.error}`);
+      load();
+    } catch (err) {
+      setMsg(`⚠️ ${err.response?.data?.error || 'Erro ao enviar.'}`);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const fmt = (d) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+
+  return (
+    <div style={{ marginTop: '30px' }}>
+      <h2 style={{ fontSize: '16px', color: '#333', marginBottom: '15px' }}>📩 Follow-up Marketing</h2>
+      <p style={{ fontSize: '13px', color: '#666', marginBottom: '15px' }}>
+        Convidados que já acessaram o sistema. Envio único por pessoa, recomendado 24-48h após primeiro login.
+      </p>
+      {msg && <div style={{ padding: '10px', marginBottom: '15px', borderRadius: '4px', backgroundColor: msg.startsWith('✅') ? '#e8f5e9' : '#fff3e0', fontSize: '14px' }}>{msg}</div>}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid #ddd', textAlign: 'left' }}>
+            <th style={{ padding: '8px' }}>Nome</th>
+            <th style={{ padding: '8px' }}>Role</th>
+            <th style={{ padding: '8px' }}>1º Login</th>
+            <th style={{ padding: '8px' }}>Horas</th>
+            <th style={{ padding: '8px' }}>Status</th>
+            <th style={{ padding: '8px' }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {eligible.map((e) => (
+            <tr key={e.id} style={{ borderBottom: '1px solid #eee' }}>
+              <td style={{ padding: '8px' }}>{e.name}</td>
+              <td style={{ padding: '8px' }}>{e.role}</td>
+              <td style={{ padding: '8px' }}>{fmt(e.firstLoginAt)}</td>
+              <td style={{ padding: '8px' }}>{e.hourssinceLogin}h</td>
+              <td style={{ padding: '8px' }}>
+                {e.followupSentAt ? `✅ ${fmt(e.followupSentAt)}` : e.eligible ? '🟡 Elegível' : '⏳ < 24h'}
+              </td>
+              <td style={{ padding: '8px' }}>
+                {!e.followupSentAt && (
+                  <button
+                    onClick={() => send(e.id)}
+                    disabled={loadingId === e.id}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: e.eligible ? '#1976d2' : '#bbb',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: loadingId === e.id ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {loadingId === e.id ? '⏳' : 'Enviar'}
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

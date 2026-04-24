@@ -11,7 +11,14 @@ const allowLeadAccess = [authenticateAdmin, requireRole(['SUPER_ADMIN', 'LEAD_AG
 
 // Resolver região pelo DDD do telefone
 function resolveRegion(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+  const trimmed = phone.trim();
+  const digits = trimmed.replace(/\D/g, '');
+
+  // DDI explícito não-brasileiro
+  if (trimmed.startsWith('+') && !trimmed.startsWith('+55')) {
+    return 'INTERNATIONAL';
+  }
+
   // Remove country code 55 se presente
   const local = digits.startsWith('55') && digits.length >= 12 ? digits.slice(2) : digits;
   const ddd = local.slice(0, 2);
@@ -230,7 +237,9 @@ router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, r
     // Auto-create referral_agent on conversion
     if (status === 'converted' && !lead.referral_agent_id) {
       try {
-        const phone = normalizePhone(lead.phone);
+        const phone = lead.phone.startsWith('+')
+        ? lead.phone.replace(/\D/g, '')   // preserve full international digits
+        : normalizePhone(lead.phone);      // BR: strip +55 for legacy storage
         let agent = await prisma.referral_agents.findUnique({ where: { phone } });
         if (!agent) {
           agent = await prisma.referral_agents.create({
@@ -260,6 +269,10 @@ router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, r
               welcomeStatus = 'skipped_disabled';
             } else if (!WHATSAPP_TEMPLATES.kaviar_consultant_welcome_v1) {
               welcomeStatus = 'skipped_no_template';
+            } else if (lead.region === 'INTERNATIONAL' || !agent.phone.startsWith('55')) {
+              // Número internacional — não disparar WA (canal BR apenas)
+              welcomeStatus = 'skipped_international';
+              console.log(`[LEAD_CONVERTED] WhatsApp skipped for international number agent=${agent.id}`);
             } else {
               const link = `https://kaviar.com.br/consultor/${agent.referral_code}`;
               await whatsappEvents.consultantWelcome(`+55${agent.phone}`, {

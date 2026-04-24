@@ -1,9 +1,22 @@
 /**
- * Normaliza telefone para formato E.164 (+5521999999999).
- * Regra central — todo input de telefone no sistema deve passar por aqui.
+ * Normaliza telefone para formato E.164.
+ * - Se começar com +, trata como internacional e valida direto.
+ * - Se for 10-11 dígitos sem DDI, assume Brasil (+55).
+ * - Se começar com 55 e tiver 12+ dígitos, assume Brasil com DDI.
  */
 export function normalizeE164(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
+  const trimmed = phone.trim();
+
+  // Já tem DDI explícito — normalizar removendo formatação
+  if (trimmed.startsWith('+')) {
+    const normalized = '+' + trimmed.replace(/\D/g, '');
+    if (!isValidE164(normalized)) {
+      throw new Error(`Telefone inválido: formato E.164 inválido`);
+    }
+    return normalized;
+  }
+
+  const digits = trimmed.replace(/\D/g, '');
 
   let normalized: string;
   if (digits.startsWith('55') && digits.length >= 12) {

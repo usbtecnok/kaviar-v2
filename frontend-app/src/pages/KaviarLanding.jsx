@@ -59,7 +59,7 @@ function ConsultorForm() {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <TextField label="Seu nome" required value={form.nome} onChange={set('nome')} size="small" fullWidth sx={sx.input} />
-      <TextField label="WhatsApp (com DDD)" required value={form.whatsapp} onChange={set('whatsapp')} size="small" fullWidth sx={sx.input} />
+      <TextField label="WhatsApp (DDI + DDD + número)" required value={form.whatsapp} onChange={set('whatsapp')} size="small" fullWidth sx={sx.input} placeholder="+55 21 99999-9999 ou +1 407 984 2069" />
       <TextField label="Sua região / comunidade" required value={form.bairro} onChange={set('bairro')} size="small" fullWidth sx={sx.input} />
       <TextField label="Cidade" required value={form.cidade} onChange={set('cidade')} size="small" fullWidth sx={sx.input} />
       <Button type="submit" variant="contained" fullWidth sx={sx.goldBtn}>Quero ser consultor</Button>
