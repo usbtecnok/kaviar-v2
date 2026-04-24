@@ -227,6 +227,7 @@ export default function CompleteRide() {
     try {
       await driverApi.startRide(params.rideId!);
       setRideStatus('in_progress');
+      setRide(prev => prev ? { ...prev, status: 'in_progress' } : prev);
     } catch (e: any) {
       if (e.response?.status === 400) {
         const msg = e.response?.data?.error || '';
