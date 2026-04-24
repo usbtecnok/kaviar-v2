@@ -9,6 +9,7 @@ import DomainHeader from "../common/DomainHeader";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
 import OperationsMonitor from "../../pages/admin/OperationsMonitor";
+import ExecutiveOperations from "../../pages/admin/ExecutiveOperations";
 import EmergencyEvents from "../../pages/admin/EmergencyEvents";
 import MatchMonitor from "../../pages/admin/MatchMonitor";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
@@ -460,146 +461,42 @@ function AdminHome() {
         </Box>
       )}
 
-      {/* ⚡ Operações */}
-      {(() => {
-        const gold = '#C9A227';
-        const goldBorder = 'rgba(201,162,39,0.20)';
-        const cardBg = 'linear-gradient(145deg, #15120A 0%, #0E0C07 100%)';
-        const sectionLabel = { color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: 10, fontWeight: 600 };
-        const cell = { borderColor: 'rgba(201,162,39,0.08)', py: 1, color: '#A7A7A7', fontSize: 13 };
-        const OCard = ({ label, value, accent, large }) => (
-          <Card sx={{ background: cardBg, border: `1px solid ${goldBorder}`, borderRadius: 2, height: '100%', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
-            <CardContent sx={{ textAlign: 'center', py: 2, px: 1.5 }}>
-              <Typography sx={{ fontSize: large ? 28 : 22, fontWeight: 800, color: accent || '#F5F1E8', lineHeight: 1.1, letterSpacing: '-0.5px' }}>{value ?? '—'}</Typography>
-              <Typography sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', mt: 0.8 }}>{label}</Typography>
-            </CardContent>
-          </Card>
-        );
-        return (
-          <Box sx={{ mb: 5 }}>
-            {/* Header */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+      {/* ⚡ Operações — card de entrada */}
+      <Box sx={{ mb: 4 }}>
+        <Card sx={{ background: 'linear-gradient(145deg, #15120A 0%, #0E0C07 100%)', border: '1px solid rgba(201,162,39,0.20)', borderRadius: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
               <Box>
                 <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.15em', mb: 0.3 }}>Painel Executivo</Typography>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: gold, letterSpacing: '-0.3px' }}>⚡ Operações</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: '#C9A227', mb: 0.5 }}>⚡ Operações</Typography>
+                <Typography sx={{ color: '#6B6045', fontSize: 12, mb: 2 }}>Receita, créditos, espera e desempenho territorial</Typography>
+                {opsData && (
+                  <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Corridas hoje', value: opsData.rides?.completed },
+                      { label: 'Valor bruto', value: opsData.financials?.gross_total != null ? `R$\u00a0${Number(opsData.financials.gross_total).toFixed(2)}` : '—' },
+                      { label: 'Créditos', value: opsData.financials?.credits_consumed },
+                      { label: 'Espera total', value: opsData.wait?.total_minutes != null ? `${opsData.wait.total_minutes} min` : '—' },
+                    ].map(s => (
+                      <Box key={s.label}>
+                        <Typography sx={{ color: '#C9A227', fontSize: 18, fontWeight: 800, lineHeight: 1 }}>{s.value ?? '—'}</Typography>
+                        <Typography sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', mt: 0.3 }}>{s.label}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
               </Box>
-              <ToggleButtonGroup value={opsPeriod} exclusive onChange={(_, v) => v && setOpsPeriod(v)} size="small" sx={{
-                bgcolor: '#0E0C07', border: `1px solid ${goldBorder}`, borderRadius: 2, p: 0.3,
-                '& .MuiToggleButton-root': { color: '#6B6045', border: 'none', px: 2.5, py: 0.7, fontSize: 12, fontWeight: 600, borderRadius: '6px !important', textTransform: 'none' },
-                '& .Mui-selected': { color: '#0E0C07', bgcolor: `${gold} !important`, fontWeight: 700 },
-              }}>
-                <ToggleButton value="today">Hoje</ToggleButton>
-                <ToggleButton value="7d">7 dias</ToggleButton>
-                <ToggleButton value="30d">30 dias</ToggleButton>
-              </ToggleButtonGroup>
+              <Button
+                href="/admin/executive-operations"
+                variant="outlined"
+                sx={{ borderColor: 'rgba(201,162,39,0.40)', color: '#C9A227', fontWeight: 600, fontSize: 13, px: 3, py: 1, borderRadius: 2, textTransform: 'none', whiteSpace: 'nowrap', '&:hover': { borderColor: '#C9A227', bgcolor: 'rgba(201,162,39,0.06)' } }}
+              >
+                Abrir Painel Executivo →
+              </Button>
             </Box>
-
-            {opsLoading ? (
-              <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress sx={{ color: gold }} size={28} /></Box>
-            ) : opsData ? (<>
-
-              {/* Corridas */}
-              <Typography sx={{ ...sectionLabel, mb: 1 }}>Corridas</Typography>
-              <Grid container spacing={1.5} sx={{ mb: 3 }}>
-                {[
-                  { label: 'Concluídas', value: opsData.rides?.completed, accent: '#7CB87A' },
-                  { label: 'Canceladas', value: opsData.rides?.canceled, accent: '#C0675A' },
-                  { label: 'Sem motorista', value: opsData.rides?.no_driver, accent: '#A7A7A7' },
-                  { label: 'Com espera', value: opsData.rides?.with_wait, accent: gold },
-                  { label: 'Com ajuste', value: opsData.rides?.with_adjustment, accent: '#F5F1E8' },
-                  { label: 'Ajustes aceitos', value: opsData.rides?.adjustments_accepted, accent: '#F5F1E8' },
-                ].map(c => <Grid item xs={6} sm={4} md={2} key={c.label}><OCard {...c} /></Grid>)}
-              </Grid>
-
-              {/* Financeiro */}
-              <Typography sx={{ ...sectionLabel, mb: 1 }}>Financeiro</Typography>
-              <Grid container spacing={1.5} sx={{ mb: 3 }}>
-                {[
-                  { label: 'Valor bruto', value: opsData.financials?.gross_total != null ? `R$\u00a0${Number(opsData.financials.gross_total).toFixed(2)}` : '—', accent: '#7CB87A', large: true },
-                  { label: 'Créditos consumidos', value: opsData.financials?.credits_consumed, accent: gold, large: true },
-                  { label: 'Receita em créditos', value: opsData.financials?.platform_revenue_credits != null ? `R$\u00a0${Number(opsData.financials.platform_revenue_credits).toFixed(2)}` : '—', accent: '#F5F1E8', large: true },
-                  { label: 'Wait charge est.', value: opsData.financials?.wait_charge_estimated != null ? `R$\u00a0${Number(opsData.financials.wait_charge_estimated).toFixed(2)}` : '—', accent: '#A7A7A7', large: true },
-                ].map(c => <Grid item xs={6} sm={3} key={c.label}><OCard {...c} /></Grid>)}
-              </Grid>
-
-              {/* Espera + Território */}
-              <Typography sx={{ ...sectionLabel, mb: 1 }}>Espera · Território</Typography>
-              <Grid container spacing={1.5} sx={{ mb: 3 }}>
-                {[
-                  { label: 'Espera média', value: opsData.wait?.avg_minutes != null ? `${opsData.wait.avg_minutes} min` : '—', accent: gold },
-                  { label: 'Espera total', value: opsData.wait?.total_minutes != null ? `${opsData.wait.total_minutes} min` : '—', accent: '#F5F1E8' },
-                  { label: 'Local', value: opsData.territory?.local, accent: '#7CB87A' },
-                  { label: 'Adjacent', value: opsData.territory?.adjacent, accent: '#A7A7A7' },
-                  { label: 'External', value: opsData.territory?.external, accent: '#6B6045' },
-                ].map(c => <Grid item xs={4} sm={2} key={c.label}><OCard {...c} /></Grid>)}
-              </Grid>
-
-              {/* Rankings */}
-              <Grid container spacing={2}>
-                {[
-                  {
-                    title: 'Top Bairros', all: opsData.top_neighborhoods || [], rows: (opsData.top_neighborhoods || []).slice(0, 5),
-                    cols: ['#', 'Bairro', 'Corridas'],
-                    render: (n, i) => [i + 1, n.name, n.rides],
-                    aligns: ['left', 'left', 'right'],
-                    accentCol: 2,
-                    link: '/admin/operations',
-                  },
-                  {
-                    title: 'Top Motoristas', all: opsData.top_drivers || [], rows: (opsData.top_drivers || []).slice(0, 5),
-                    cols: ['Motorista', 'Corridas', 'Créditos', 'Espera'],
-                    render: (d) => [d.name, d.rides, d.credits, d.wait_min > 0 ? `${d.wait_min}m` : '—'],
-                    aligns: ['left', 'right', 'right', 'right'],
-                    accentCol: 1,
-                    link: '/admin/drivers',
-                  },
-                ].map(({ title, all, rows, cols, render, aligns, accentCol, link }) => (
-                  <Grid item xs={12} md={6} key={title}>
-                    <Card sx={{ background: cardBg, border: `1px solid ${goldBorder}`, borderRadius: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
-                      <CardContent sx={{ pb: '16px !important' }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
-                          <Typography sx={{ color: gold, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{title}</Typography>
-                          <Button href={link} size="small" sx={{ color: '#6B6045', fontSize: 10, textTransform: 'none', p: 0, minWidth: 0, '&:hover': { color: gold } }}>
-                            Ver relatório →
-                          </Button>
-                        </Box>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow sx={{ '& td,& th': { borderColor: 'rgba(201,162,39,0.12)' } }}>
-                              {cols.map((c, i) => (
-                                <TableCell key={c} align={aligns[i]} sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', py: 0.8, fontWeight: 600 }}>{c}</TableCell>
-                              ))}
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {rows.length ? rows.map((row, ri) => {
-                              const vals = render(row, ri);
-                              return (
-                                <TableRow key={ri} sx={{ '&:hover': { bgcolor: 'rgba(201,162,39,0.04)' }, '& td': { borderColor: 'rgba(201,162,39,0.06)' } }}>
-                                  {vals.map((v, vi) => (
-                                    <TableCell key={vi} align={aligns[vi]} sx={{ ...cell, color: vi === accentCol ? gold : vi === 0 ? '#F5F1E8' : '#A7A7A7', fontWeight: vi === accentCol ? 700 : 400 }}>{v}</TableCell>
-                                  ))}
-                                </TableRow>
-                              );
-                            }) : (
-                              <TableRow><TableCell colSpan={cols.length} sx={{ ...cell, textAlign: 'center' }}>—</TableCell></TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                        {all.length > 5 && (
-                          <Typography sx={{ color: '#6B6045', fontSize: 11, mt: 1.5, textAlign: 'center' }}>
-                            + {all.length - 5} {title === 'Top Bairros' ? 'bairros' : 'motoristas'} com movimento no período
-                          </Typography>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </>) : null}
-          </Box>
-        );
-      })()}
+          </CardContent>
+        </Card>
+      </Box>
 
       {/* Atalhos de Gerenciamento */}
       <Box sx={{ mb: 4 }}>
@@ -1137,6 +1034,11 @@ export default function AdminApp() {
           <Route path="/operations" element={
             <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
               <OperationsMonitor />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/executive-operations" element={
+            <ProtectedAdminRoute>
+              <ExecutiveOperations />
             </ProtectedAdminRoute>
           } />
           <Route path="/emergency-events" element={
