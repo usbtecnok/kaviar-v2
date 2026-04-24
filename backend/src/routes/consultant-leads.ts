@@ -65,9 +65,18 @@ async function autoAssign(region: string): Promise<string | null> {
 // POST /api/public/consultant-lead — sem auth (chamado pelo fluxo WhatsApp)
 router.post('/consultant-lead', async (req: Request, res: Response) => {
   try {
-    const { name, phone, source, notes } = req.body;
+    const { name, source, notes } = req.body;
+    let { phone } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'name e phone obrigatórios' });
+    }
+
+    // Normalizar para E.164
+    try {
+      const { normalizeE164 } = require('../utils/phone');
+      phone = normalizeE164(phone);
+    } catch {
+      return res.status(400).json({ success: false, error: 'Telefone inválido. Use formato internacional: +55 21 99999-9999 ou +1 407 984 2069' });
     }
 
     const existing = await prisma.consultant_leads.findFirst({
