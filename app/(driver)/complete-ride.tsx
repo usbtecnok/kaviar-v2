@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking, TouchableOpacity, Modal, Share } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -10,7 +10,9 @@ import { driverApi } from '../../src/api/driver.api';
 import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
-import { setActiveRideId } from '../../src/services/background-location';
+import { setActiveRideId, setEmergencyMode } from '../../src/services/background-location';
+import { enqueue, getQueueSize } from '../../src/services/offline-queue';
+import { ENV } from '../../src/config/env';
 import { groupLabel } from '../../src/utils/tripLabel';
 
 const BOARDING_LABELS: Record<string, { icon: string; text: string }> = {
@@ -51,6 +53,12 @@ export default function CompleteRide() {
   // B3: Cancel modal
   const [showCancelModal, setShowCancelModal] = useState(false);
 
+  // B4: Emergency modal
+  const [showEmergency, setShowEmergency] = useState(false);
+
+  // B5: Offline queue indicator
+  const [queuePending, setQueuePending] = useState(0);
+
   // Map layout hack: force native redraw on Android
   const [mapPadding, setMapPadding] = useState(1);
 
@@ -85,6 +93,8 @@ export default function CompleteRide() {
           setRideStatus('canceled_by_passenger' as RideStatus);
           if (pollRef.current) clearInterval(pollRef.current);
         }
+        // Update queue indicator
+        setQueuePending(await getQueueSize());
       } catch {}
     }, intervalMs);
   };
@@ -202,7 +212,13 @@ export default function CompleteRide() {
       setArrivedAt(Date.now());
     } catch (e: any) {
       if (e.response?.status === 400) setRideStatus('canceled_by_passenger' as RideStatus);
-      else Alert.alert('Erro', friendlyError(e, 'Não foi possível confirmar chegada'));
+      else if (!e.response) {
+        // Network error — enqueue and update UI optimistically
+        await enqueue({ method: 'POST', url: `${ENV.API_URL}/api/v2/rides/${params.rideId}/arrived`, body: {} });
+        setRideStatus('arrived');
+        setArrivedAt(Date.now());
+        setQueuePending(await getQueueSize());
+      } else Alert.alert('Erro', friendlyError(e, 'Não foi possível confirmar chegada'));
     } finally { setLoading(false); }
   };
 
@@ -212,8 +228,35 @@ export default function CompleteRide() {
       await driverApi.startRide(params.rideId!);
       setRideStatus('in_progress');
     } catch (e: any) {
-      if (e.response?.status === 400) setRideStatus('canceled_by_passenger' as RideStatus);
-      else Alert.alert('Erro', friendlyError(e, 'Não foi possível iniciar a corrida'));
+      if (e.response?.status === 400) {
+        const msg = e.response?.data?.error || '';
+        if (msg.includes('Encerre a espera')) Alert.alert('Atenção', msg);
+        else setRideStatus('canceled_by_passenger' as RideStatus);
+      } else if (!e.response) {
+        await enqueue({ method: 'POST', url: `${ENV.API_URL}/api/v2/rides/${params.rideId}/start`, body: {} });
+        setRideStatus('in_progress');
+        setQueuePending(await getQueueSize());
+      } else Alert.alert('Erro', friendlyError(e, 'Não foi possível iniciar a corrida'));
+    } finally { setLoading(false); }
+  };
+
+  const handleStartWait = async () => {
+    setLoading(true);
+    try {
+      await driverApi.startWait(params.rideId!);
+      setRide(prev => prev ? { ...prev, wait_started_at: new Date().toISOString() } : prev);
+    } catch (e: any) {
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível iniciar a espera'));
+    } finally { setLoading(false); }
+  };
+
+  const handleEndWait = async () => {
+    setLoading(true);
+    try {
+      await driverApi.endWait(params.rideId!);
+      setRide(prev => prev ? { ...prev, wait_ended_at: new Date().toISOString() } : prev);
+    } catch (e: any) {
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível encerrar a espera'));
     } finally { setLoading(false); }
   };
 
@@ -227,7 +270,13 @@ export default function CompleteRide() {
       setCompletionData({ credit: result?.credit || undefined });
     } catch (e: any) {
       if (e.response?.status === 400) setRideStatus('canceled_by_passenger' as RideStatus);
-      else Alert.alert('Erro', friendlyError(e, 'Não foi possível finalizar a corrida'));
+      else if (!e.response) {
+        await enqueue({ method: 'POST', url: `${ENV.API_URL}/api/v2/rides/${params.rideId}/complete`, body: {} });
+        if (pollRef.current) clearInterval(pollRef.current);
+        await setActiveRideId(null);
+        Alert.alert('Sem conexão', 'A finalização será enviada quando a conexão voltar.');
+        router.replace('/(driver)/online');
+      } else Alert.alert('Erro', friendlyError(e, 'Não foi possível finalizar a corrida'));
     } finally { setLoading(false); }
   };
 
@@ -320,6 +369,14 @@ export default function CompleteRide() {
         </Text>
       </View>
 
+      {/* Offline queue indicator */}
+      {queuePending > 0 && (
+        <View style={{ backgroundColor: '#1a1a2e', paddingVertical: 6, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <Ionicons name="cloud-offline-outline" size={14} color="#F39C12" />
+          <Text style={{ color: '#F39C12', fontSize: 12, fontWeight: '600' }}>Reconectando... ({queuePending} pendente{queuePending > 1 ? 's' : ''})</Text>
+        </View>
+      )}
+
       {/* Map — always mounted, wrapped for guaranteed dimensions */}
       <View style={st.mapContainer}>
         <MapView
@@ -396,8 +453,14 @@ export default function CompleteRide() {
         {rideStatus === 'accepted' && (
           <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: COLORS.primary, minHeight: 56 }} />
         )}
+        {rideStatus === 'arrived' && ride?.wait_requested && !ride?.wait_started_at && (
+          <Button title={loading ? 'Aguarde...' : '⏳ Iniciar espera'} onPress={handleStartWait} disabled={loading} style={{ backgroundColor: '#f57f17', minHeight: 56, marginBottom: 8 }} />
+        )}
+        {rideStatus === 'arrived' && ride?.wait_requested && ride?.wait_started_at && !ride?.wait_ended_at && (
+          <Button title={loading ? 'Aguarde...' : '✅ Encerrar espera'} onPress={handleEndWait} disabled={loading} style={{ backgroundColor: '#388e3c', minHeight: 56, marginBottom: 8 }} />
+        )}
         {rideStatus === 'arrived' && (
-          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: COLORS.warning, minHeight: 56 }} />
+          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading || (!!ride?.wait_requested && !!ride?.wait_started_at && !ride?.wait_ended_at)} style={{ backgroundColor: COLORS.warning, minHeight: 56 }} />
         )}
         {rideStatus === 'in_progress' && (
           <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
@@ -408,6 +471,27 @@ export default function CompleteRide() {
           <TouchableOpacity style={st.cancelLink} onPress={() => setShowCancelModal(true)}>
             <Text style={st.cancelLinkText}>Cancelar corrida</Text>
           </TouchableOpacity>
+        )}
+
+        {/* B4: Emergency + Share buttons */}
+        {['accepted', 'arrived', 'in_progress'].includes(rideStatus) && (
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8 }}>
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a3a' }} onPress={async () => {
+              if (!ride?.id) return;
+              try {
+                const { apiClient } = require('../../src/api/client');
+                const { data } = await apiClient.post(`/api/v2/rides/${ride.id}/share`);
+                Share.share({ message: `Acompanhe minha corrida KAVIAR em tempo real:\n${data.url}` });
+              } catch { Share.share({ message: `Estou em uma corrida KAVIAR. Passageiro: ${ride?.passenger?.name || '?'}` }); }
+            }}>
+              <Ionicons name="location-outline" size={15} color="#3498db" />
+              <Text style={{ color: '#3498db', fontSize: 13, fontWeight: '600' }}>Compartilhar corrida</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger }} onPress={() => setShowEmergency(true)}>
+              <Ionicons name="shield-outline" size={16} color={COLORS.danger} />
+              <Text style={{ color: COLORS.danger, fontSize: 13, fontWeight: '600' }}>Emergência</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -429,6 +513,59 @@ export default function CompleteRide() {
             ))}
             <TouchableOpacity style={st.modalClose} onPress={() => setShowCancelModal(false)}>
               <Text style={st.modalCloseText}>Voltar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* B4: Emergency modal */}
+      <Modal visible={showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
+        <View style={st.modalOverlay}>
+          <View style={st.modalCard}>
+            <Ionicons name="shield-checkmark" size={36} color={COLORS.danger} style={{ alignSelf: 'center', marginBottom: 10 }} />
+            <Text style={[st.modalTitle, { textAlign: 'center' }]}>Ajuda urgente</Text>
+            <Text style={{ textAlign: 'center', marginBottom: 18, fontSize: 13, color: COLORS.textSecondary }}>Em situação de risco imediato, ligue para a emergência pública.</Text>
+
+            <TouchableOpacity style={{ backgroundColor: COLORS.danger, borderRadius: 10, paddingVertical: 14, alignItems: 'center' }} onPress={() => { setShowEmergency(false); Linking.openURL('tel:190'); }}>
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Ligar 190 — Polícia</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ backgroundColor: '#E67E22', borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 8 }} onPress={() => { setShowEmergency(false); Linking.openURL('tel:192'); }}>
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Ligar 192 — SAMU</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ backgroundColor: '#2E86C1', borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 8 }} onPress={() => {
+              setShowEmergency(false);
+              const loc = driverLocation ? `https://maps.google.com/?q=${driverLocation.lat},${driverLocation.lng}` : '';
+              const passengerInfo = ride?.passenger ? `Passageiro: ${ride.passenger.name}` : '';
+              Share.share({ message: `🚨 Preciso de ajuda!\n${passengerInfo}\nCorrida: ${ride?.id || 'N/A'}\n${loc ? `Minha localização: ${loc}` : ''}`.trim() });
+            }}>
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Contato de confiança</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, marginTop: 8 }} onPress={async () => {
+              if (!ride?.id) return;
+              try {
+                await driverApi.triggerEmergency(ride.id);
+                // Immediate location point + activate emergency mode
+                try {
+                  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+                  await driverApi.sendRideLocation(ride.id, pos.coords.latitude, pos.coords.longitude).catch(() => {});
+                } catch {}
+                setEmergencyMode(true).catch(() => {});
+                Alert.alert('Incidente registrado', 'A Kaviar está acompanhando esta corrida.');
+              } catch {
+                // Fallback: WhatsApp
+                const loc = driverLocation ? `${driverLocation.lat},${driverLocation.lng}` : 'indisponível';
+                const msg = `⚠️ Registro de emergência\nMotorista\nCorrida: ${ride?.id || 'N/A'}\nLocalização: ${loc}`;
+                Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(msg)}`);
+              }
+            }}>
+              <Ionicons name="document-text-outline" size={15} color={COLORS.textSecondary} />
+              <Text style={{ color: COLORS.textSecondary, fontSize: 13, fontWeight: '600' }}>Registrar com a Kaviar</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ alignSelf: 'center', marginTop: 8, paddingVertical: 8 }} onPress={() => setShowEmergency(false)}>
+              <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </View>

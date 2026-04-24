@@ -6,6 +6,7 @@ import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
+import { groupLabel } from '../../src/utils/tripLabel';
 
 const ADJUSTMENTS = [
   { value: 5,  label: '+R$ 5',  tag: 'Ajuste leve' },
@@ -120,6 +121,33 @@ export default function AcceptRide() {
 
         <Text style={s.type}>Tipo: {ride?.ride_type || 'normal'}</Text>
 
+        {ride?.wait_requested && (
+          <View style={[s.badge, { backgroundColor: '#fff8e1', marginTop: 10 }]}>
+            <Text style={[s.badgeText, { color: '#f57f17' }]}>
+              ⏳ Espera solicitada{ride.wait_estimated_min ? `: ~${ride.wait_estimated_min} min` : ''}
+            </Text>
+            {ride.wait_estimated_min ? (
+              <Text style={s.badgeSub}>
+                + R$ {(ride.wait_estimated_min * 0.50).toFixed(2)} estimado · cobrança pelo tempo real
+              </Text>
+            ) : (
+              <Text style={s.badgeSub}>Passageiro vai precisar que você aguarde no destino</Text>
+            )}
+            <Text style={[s.badgeSub, { color: '#e65100', fontWeight: '700', marginTop: 4 }]}>
+              Consome 2 créditos
+            </Text>
+          </View>
+        )}
+
+        {ride?.trip_details && (
+          <View style={s.groupCard}>
+            <Ionicons name="people" size={16} color={COLORS.accent} />
+            <Text style={s.groupText}>
+              {groupLabel(ride.trip_details.passengers || 1, !!ride.trip_details.has_luggage)}
+            </Text>
+          </View>
+        )}
+
         {quotedPrice != null && (
           <View style={s.priceRow}>
             <Ionicons name="cash-outline" size={16} color={COLORS.primary} />
@@ -180,6 +208,9 @@ const s = StyleSheet.create({
   arrow: { fontSize: 24, textAlign: 'center', color: COLORS.statusOffline, marginVertical: 8 },
   passengerName: { fontSize: 16, color: COLORS.textPrimary, marginTop: 4 },
   type: { fontSize: 14, color: COLORS.textSecondary, marginTop: 16, textAlign: 'right' },
+  tripInfo: { fontSize: 14, color: COLORS.textPrimary, marginTop: 8, backgroundColor: COLORS.surfaceLight, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, overflow: 'hidden' },
+  groupCard: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, backgroundColor: COLORS.surfaceLight, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.border },
+  groupText: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
   priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 6 },
   priceText: { fontSize: 16, fontWeight: '700', color: COLORS.primary },
 

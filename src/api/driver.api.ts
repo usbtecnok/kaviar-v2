@@ -46,6 +46,12 @@ export const driverApi = {
     return data;
   },
 
+  startWait: (rideId: string) =>
+    apiClient.post(`/api/v2/rides/${rideId}/wait/start`),
+
+  endWait: (rideId: string) =>
+    apiClient.post(`/api/v2/rides/${rideId}/wait/end`),
+
   // v2: Location update durante corrida (emite SSE para passageiro)
   sendRideLocation: (rideId: string, lat: number, lng: number) =>
     apiClient.post(`/api/v2/rides/${rideId}/location`, { lat, lng }),
@@ -80,6 +86,11 @@ export const driverApi = {
   // v1: Perfil (não tem v2 equivalente)
   getMe: async () => {
     const { data } = await apiClient.get('/api/drivers/me');
+    return data;
+  },
+
+  triggerEmergency: async (rideId: string): Promise<{ event_id: string }> => {
+    const { data } = await apiClient.post(`/api/v2/rides/${rideId}/emergency`);
     return data;
   },
 };

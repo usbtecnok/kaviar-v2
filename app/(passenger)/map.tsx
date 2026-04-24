@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share, Animated, AppState } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share, Animated, AppState, Image } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -38,6 +38,7 @@ type Screen = 'idle' | 'search' | 'tracking';
 
 export default function PassengerMap() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ destLat?: string; destLng?: string }>();
   const [screen, setScreen] = useState<Screen>('idle');
   const [origin, setOrigin] = useState<Place | null>(null);
   const [destination, setDestination] = useState<Place | null>(null);
@@ -63,6 +64,7 @@ export default function PassengerMap() {
   // Trip composition
   const [passengerCount, setPassengerCount] = useState(1);
   const [hasLuggage, setHasLuggage] = useState(false);
+  const [waitEstimatedMin, setWaitEstimatedMin] = useState<number | null>(null);
 
   // Schedule
   type ScheduleOption = 'now' | '15min' | '30min' | 'custom';
@@ -97,6 +99,9 @@ export default function PassengerMap() {
 
   // Emergency
   const [showEmergency, setShowEmergency] = useState(false);
+
+  // Driver photo
+  const [photoError, setPhotoError] = useState(false);
 
   // Adjustment modal
   const [showAdjustment, setShowAdjustment] = useState(false);
@@ -154,10 +159,15 @@ export default function PassengerMap() {
     const user = authStore.getUser();
     if (user?.name) setUserName(user.name);
     if (user?.phone) setUserPhone(user.phone);
-    acquireLocation();
+    acquireLocation().then(() => {
+      // If returning from rating screen with ride destination, use it for return-home check
+      const rideDest = params.destLat && params.destLng
+        ? { lat: Number(params.destLat), lng: Number(params.destLng) }
+        : null;
+      checkReturnHome(rideDest);
+    });
     recoverActiveRide();
     loadCommunityStatus();
-    checkReturnHome(); // covers return from rating screen
 
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') recoverActiveRide();
@@ -312,6 +322,7 @@ export default function PassengerMap() {
             setShowAdjustment(false);
             setShowRedispatch(false);
             setShowAcceptedBanner(true);
+            setPhotoError(false);
             Animated.sequence([
               Animated.timing(bannerOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
               Animated.delay(4000),
@@ -350,41 +361,54 @@ export default function PassengerMap() {
   const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
   const stopAll = () => { stopPolling(); setDriverLocation(null); };
 
-  const checkReturnHome = async () => {
+  const checkReturnHome = async (rideDestination?: { lat: number; lng: number } | null) => {
     try {
-      // Get fresh location (userLocation state may be stale after ride)
-      let loc = userLocation;
-      try {
-        const pos = await Location.getCurrentPositionAsync({});
-        loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      } catch { /* fall back to state */ }
-      if (!loc) { console.warn('[checkReturnHome] no location'); return; }
+      // Use ride destination if available (most reliable after ride completion)
+      // Otherwise try GPS, then state, then lastKnown
+      let loc = rideDestination || null;
+      let locSource = loc ? 'rideDestination' : 'none';
+      if (!loc) {
+        try {
+          const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High, maximumAge: 10000 });
+          loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          locSource = 'gps';
+        } catch {
+          loc = userLocation;
+          locSource = loc ? 'state' : 'none';
+          if (!loc) {
+            try {
+              const last = await Location.getLastKnownPositionAsync();
+              if (last) { loc = { lat: last.coords.latitude, lng: last.coords.longitude }; locSource = 'lastKnown'; }
+            } catch { /* exhausted */ }
+          }
+        }
+      }
+      if (!loc) { console.warn('[checkReturnHome] BAIL: no location'); return; }
+      console.log(`[checkReturnHome] loc via ${locSource}: ${loc.lat.toFixed(4)},${loc.lng.toFixed(4)}`);
 
       const { data: favData } = await apiClient.get('/api/passenger/favorites/home');
-      if (!favData.success || !favData.home) { console.warn('[checkReturnHome] no HOME favorite'); return; }
+      if (!favData.success || !favData.home) { console.warn('[checkReturnHome] BAIL: no HOME'); return; }
       const home = favData.home;
-      if (!home.lat || !home.lng) return;
+      if (!home.lat || !home.lng) { console.warn('[checkReturnHome] BAIL: HOME no coords'); return; }
 
-      // Check distance from current location to HOME (>1km)
       const R = 6371000;
       const dLat = (Number(home.lat) - loc.lat) * Math.PI / 180;
       const dLng = (Number(home.lng) - loc.lng) * Math.PI / 180;
       const a = Math.sin(dLat/2)**2 + Math.cos(loc.lat*Math.PI/180) * Math.cos(Number(home.lat)*Math.PI/180) * Math.sin(dLng/2)**2;
       const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      console.log(`[checkReturnHome] dist=${Math.round(dist)}m, loc=${loc.lat.toFixed(4)},${loc.lng.toFixed(4)}, home=${home.lat},${home.lng}`);
-      if (dist < 1000) { console.warn(`[checkReturnHome] too close (${Math.round(dist)}m)`); return; }
+      console.log(`[checkReturnHome] dist=${Math.round(dist)}m, home=${home.lat},${home.lng}`);
+      if (dist < 1000) { console.warn(`[checkReturnHome] BAIL: too close (${Math.round(dist)}m)`); return; }
 
-      // Check community status (residential)
       const { data: csData } = await apiClient.get('/api/passengers/me/community-status');
-      console.log('[checkReturnHome] community-status:', JSON.stringify(csData.data));
-      if (!csData.success || !csData.data || csData.data.driversOnline < 1) { console.warn('[checkReturnHome] no drivers online'); return; }
+      console.log('[checkReturnHome] community-status:', JSON.stringify(csData?.data));
+      if (!csData.success || !csData.data || csData.data.driversOnline < 1) { console.warn('[checkReturnHome] BAIL: no drivers'); return; }
 
       setHomePlace({ text: home.label || 'Casa', lat: Number(home.lat), lng: Number(home.lng), placeId: '' });
       setShowReturnCard(true);
-      console.log('[checkReturnHome] ✅ card shown');
-    } catch (e) { console.warn('[checkReturnHome] failed:', e); }
+      console.log('[checkReturnHome] ✅ card SHOWN');
+    } catch (e) { console.warn('[checkReturnHome] EXCEPTION:', e); }
   };
-  const resetToIdle = () => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); checkReturnHome(); };
+  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); checkReturnHome(rideDestination); };
   const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); };
 
   const handleBoardingStatus = async (status: 'at_door' | 'descending' | '2_minutes') => {
@@ -429,6 +453,8 @@ export default function PassengerMap() {
         destination: { lat: destination.lat, lng: destination.lng, text: destination.text },
         trip_details: { passengers: passengerCount, has_luggage: hasLuggage },
         scheduled_for: getScheduledFor(),
+        wait_requested: waitEstimatedMin !== null,
+        wait_estimated_min: waitEstimatedMin ?? undefined,
       });
       const rideData = await passengerApi.getRide(result.ride_id);
       setRide(rideData);
@@ -675,6 +701,24 @@ export default function PassengerMap() {
                     <Text style={s.tripToggleText}>{hasLuggage ? 'Sim' : 'Não'}</Text>
                   </View>
                 </TouchableOpacity>
+                <View style={{ marginTop: 10 }}>
+                  <Text style={s.tripLabel}>⏳ Motorista vai esperar?</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                    {[null, 10, 20, 30, 45, 60].map(min => {
+                      const active = waitEstimatedMin === min;
+                      return (
+                        <TouchableOpacity
+                          key={String(min)}
+                          onPress={() => setWaitEstimatedMin(min)}
+                          activeOpacity={0.7}
+                          style={[s.tripToggle, active && s.tripToggleOn, { paddingHorizontal: 12 }]}
+                        >
+                          <Text style={s.tripToggleText}>{min === null ? 'Não' : `${min} min`}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
               </View>
             )}
 
@@ -803,6 +847,13 @@ export default function PassengerMap() {
               <View style={s.driverCard}>
                 <View style={s.driverRow}>
                   <View style={s.driverAvatar}>
+                    {!photoError && ride.driver.photo_url ? (
+                      <Image
+                        source={{ uri: ride.driver.photo_url }}
+                        style={[s.driverPhoto, { position: 'absolute' }]}
+                        onError={() => setPhotoError(true)}
+                      />
+                    ) : null}
                     <Ionicons name="person" size={20} color={COLORS.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -841,10 +892,22 @@ export default function PassengerMap() {
               <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
             )}
             {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
-              <TouchableOpacity style={s.emergencyBtn} onPress={() => setShowEmergency(true)}>
-                <Ionicons name="shield-outline" size={16} color={COLORS.danger} />
-                <Text style={s.emergencyBtnText}>Emergência</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8 }}>
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a3a' }} onPress={async () => {
+                  if (!ride?.id) return;
+                  try {
+                    const { data } = await apiClient.post(`/api/v2/rides/${ride.id}/share`);
+                    Share.share({ message: `Acompanhe minha corrida KAVIAR em tempo real:\n${data.url}` });
+                  } catch { Share.share({ message: `Estou em uma corrida KAVIAR. Motorista: ${ride?.driver?.name || '?'}, Placa: ${ride?.driver?.vehicle_plate || '?'}` }); }
+                }}>
+                  <Ionicons name="location-outline" size={15} color="#3498db" />
+                  <Text style={{ color: '#3498db', fontSize: 13, fontWeight: '600' }}>Compartilhar corrida</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={s.emergencyBtn} onPress={() => setShowEmergency(true)}>
+                  <Ionicons name="shield-outline" size={16} color={COLORS.danger} />
+                  <Text style={s.emergencyBtnText}>Emergência</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </>
@@ -878,7 +941,7 @@ export default function PassengerMap() {
       )}
 
       {/* COMPLETED MODAL */}
-      <Modal visible={showCompleted} transparent animationType="fade" onRequestClose={() => { setShowCompleted(false); resetToIdle(); }}>
+      <Modal visible={showCompleted} transparent animationType="fade" onRequestClose={() => { setShowCompleted(false); resetToIdle(completedRide ? { lat: completedRide.dest_lat, lng: completedRide.dest_lng } : null); }}>
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 8 }}>✅</Text>
@@ -894,13 +957,13 @@ export default function PassengerMap() {
             <Text style={s.communityMsg}>Sua corrida fortalece a mobilidade da sua comunidade 🏘️</Text>
             <TouchableOpacity style={s.ctaPrimary} onPress={() => {
               setShowCompleted(false);
-              router.push({ pathname: '/(passenger)/rating', params: { rideId: completedRide?.id || '', driverName: completedRide?.driver?.name || '', driverId: completedRide?.driver?.id || completedRide?.driver_id || '' } });
+              router.push({ pathname: '/(passenger)/rating', params: { rideId: completedRide?.id || '', driverName: completedRide?.driver?.name || '', driverId: completedRide?.driver?.id || completedRide?.driver_id || '', destLat: String(completedRide?.dest_lat || ''), destLng: String(completedRide?.dest_lng || '') } });
             }}>
               <Text style={s.ctaPrimaryText}>Avaliar motorista</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => {
               setShowCompleted(false);
-              resetToIdle();
+              resetToIdle(completedRide ? { lat: completedRide.dest_lat, lng: completedRide.dest_lng } : null);
               const driverName = completedRide?.driver?.name || 'não informado';
               const rideTime = completedRide?.requested_at ? new Date(completedRide.requested_at).toLocaleString('pt-BR') : 'não informado';
               const msg = `📦 Esqueci um objeto no carro\n\nMotorista: ${driverName}\nHorário: ${rideTime}\nCorrida: ${completedRide?.id || 'N/A'}`;
@@ -909,7 +972,7 @@ export default function PassengerMap() {
               <Ionicons name="bag-outline" size={14} color={COLORS.textSecondary} />
               <Text style={[s.ctaLinkText, { marginLeft: 4 }]}>Esqueci um objeto</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 8 }]} onPress={() => { setShowCompleted(false); resetToIdle(); }}>
+            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 8 }]} onPress={() => { setShowCompleted(false); resetToIdle(completedRide ? { lat: completedRide.dest_lat, lng: completedRide.dest_lng } : null); }}>
               <Text style={s.ctaLinkText}>Fechar</Text>
             </TouchableOpacity>
           </View>
@@ -940,12 +1003,38 @@ export default function PassengerMap() {
               <Text style={s.ctaPrimaryText}>Contato de confiança</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={s.emergencySecondary} onPress={() => {
-              setShowEmergency(false);
-              const loc = userLocation ? `${userLocation.lat},${userLocation.lng}` : 'indisponível';
-              const driverInfo = ride?.driver ? `Motorista: ${ride.driver.name}, Placa: ${ride.driver.vehicle_plate || 'N/A'}` : '';
-              const msg = `⚠️ Registro de emergência\nPassageiro: ${userName || 'N/A'}\nCorrida: ${ride?.id || 'N/A'}\n${driverInfo}\nLocalização: ${loc}`;
-              Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(msg)}`);
+            <TouchableOpacity style={s.emergencySecondary} onPress={async () => {
+              if (!ride?.id) return;
+              try {
+                await passengerApi.triggerEmergency(ride.id);
+                // Immediate location point ("ponto de honra")
+                try {
+                  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+                  await apiClient.post(`/api/v2/rides/${ride.id}/location`, { lat: pos.coords.latitude, lng: pos.coords.longitude }).catch(() => {});
+                } catch {}
+                Alert.alert('Incidente registrado', 'A Kaviar está acompanhando esta corrida.');
+              } catch (emgErr: any) {
+                // Network error — enqueue for retry
+                if (!emgErr.response) {
+                  try {
+                    const { enqueue } = require('../../src/services/offline-queue');
+                    await enqueue({ method: 'POST' as const, url: `${ENV.API_URL}/api/v2/rides/${ride.id}/emergency`, body: {} });
+                    Alert.alert('Sem conexão', 'O registro será enviado quando a conexão voltar.');
+                  } catch {
+                    // Last resort: WhatsApp fallback
+                    const loc = userLocation ? `${userLocation.lat},${userLocation.lng}` : 'indisponível';
+                    const driverInfo = ride?.driver ? `Motorista: ${ride.driver.name}, Placa: ${ride.driver.vehicle_plate || 'N/A'}` : '';
+                    const msg = `⚠️ Registro de emergência\nPassageiro: ${userName || 'N/A'}\nCorrida: ${ride?.id || 'N/A'}\n${driverInfo}\nLocalização: ${loc}`;
+                    Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(msg)}`);
+                  }
+                } else {
+                  // Server error or flag off — WhatsApp fallback
+                  const loc = userLocation ? `${userLocation.lat},${userLocation.lng}` : 'indisponível';
+                  const driverInfo = ride?.driver ? `Motorista: ${ride.driver.name}, Placa: ${ride.driver.vehicle_plate || 'N/A'}` : '';
+                  const msg = `⚠️ Registro de emergência\nPassageiro: ${userName || 'N/A'}\nCorrida: ${ride?.id || 'N/A'}\n${driverInfo}\nLocalização: ${loc}`;
+                  Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(msg)}`);
+                }
+              }
             }}>
               <Ionicons name="document-text-outline" size={15} color={COLORS.textSecondary} />
               <Text style={s.emergencySecondaryText}>Registrar com a Kaviar</Text>
@@ -1193,6 +1282,7 @@ const s = StyleSheet.create({
   tripToggleOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   tripToggleText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  driverPhoto: { width: 56, height: 56, borderRadius: 28, marginRight: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceLight },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 
@@ -1209,7 +1299,7 @@ const s = StyleSheet.create({
   ctaRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   ctaLink: { paddingVertical: 8, paddingHorizontal: 12 },
   ctaLinkText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '500' },
-  emergencyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 18, marginBottom: 12, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.danger },
+  emergencyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger },
   emergencyBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.danger },
   emergencySecondary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border },
   emergencySecondaryText: { fontSize: 13, fontWeight: '500', color: COLORS.textSecondary },

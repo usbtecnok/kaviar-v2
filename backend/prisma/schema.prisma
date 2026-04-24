@@ -9,19 +9,20 @@ datasource db {
 }
 
 model admins {
-  id                   String              @id @default(uuid())
-  name                 String
-  email                String              @unique
-  password             String
-  phone                String?
-  role                 String              @default("SUPER_ADMIN")
-  is_active            Boolean             @default(true)
-  must_change_password Boolean             @default(true)
-  password_changed_at  DateTime?
-  lead_regions         String?
-  created_at           DateTime            @default(now())
-  updated_at           DateTime            @updatedAt
-  community_leaders    community_leaders[]
+  id                          String              @id @default(uuid())
+  name                        String
+  email                       String              @unique
+  password                    String
+  phone                       String?
+  role                        String              @default("SUPER_ADMIN")
+  is_active                   Boolean             @default(true)
+  must_change_password        Boolean             @default(true)
+  password_changed_at         DateTime?
+  marketing_followup_sent_at  DateTime?
+  lead_regions                String?
+  created_at                  DateTime            @default(now())
+  updated_at                  DateTime            @updatedAt
+  community_leaders           community_leaders[]
 }
 
 model communities {
@@ -209,6 +210,8 @@ model drivers {
   active_since                DateTime?
   password_changed_at         DateTime?
   phone_verified_at           DateTime?
+  last_reactivation_sent_at   DateTime?
+  photo_url                   String?
   premium_tourism_status      String                        @default("standard")
   premium_tourism_promoted_at DateTime?
   created_at                  DateTime                      @default(now())
@@ -779,6 +782,7 @@ model driver_territory_stats {
 // SPEC_RIDE_FLOW_V1 Models
 
 enum RideStatus {
+  scheduled
   requested
   offered
   pending_adjustment
@@ -822,6 +826,8 @@ model rides_v2 {
   ride_type              String       @default("normal")
   is_homebound           Boolean      @default(false)
   idempotency_key        String?
+  trip_details           Json?
+  scheduled_for          DateTime?
   // Pricing (cache operacional — fonte de verdade é ride_settlements)
   pricing_profile_id     String?      @db.Uuid
   quoted_price           Decimal?     @db.Decimal(8, 2)
@@ -834,6 +840,14 @@ model rides_v2 {
   driver_adjustment      Decimal?     @db.Decimal(8, 2)
   adjusted_price         Decimal?     @db.Decimal(8, 2)
   passenger_app_version  String?
+  // Wait ("Levar e esperar")
+  wait_requested         Boolean      @default(false)
+  wait_estimated_min     Int?
+  wait_started_at        DateTime?
+  wait_ended_at          DateTime?
+  // Share
+  share_token            String?      @unique
+  share_expires_at       DateTime?
   // Timestamps
   requested_at           DateTime     @default(now())
   offered_at             DateTime?
@@ -850,6 +864,7 @@ model rides_v2 {
   dest_neighborhood      neighborhoods? @relation("RideDestV2", fields: [dest_neighborhood_id], references: [id])
   offers                 ride_offers[]
   settlement             ride_settlements?
+  emergency_events       ride_emergency_events[]
 
   @@map("rides_v2")
   @@index([status])
@@ -1143,4 +1158,47 @@ model wa_messages {
   conversation        wa_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
 
   @@index([conversation_id, created_at])
+}
+
+// ─── Emergency Vault (Cofre de Evidência V1) ────────────────────────────────
+
+model ride_emergency_events {
+  id                String   @id @default(uuid())
+  ride_id           String
+  triggered_by_type String   // 'passenger' | 'driver'
+  triggered_by_id   String
+  trigger_source    String   @default("emergency_button")
+  status            String   @default("active") // 'active' | 'resolved' | 'false_alarm'
+
+  snapshot          Json     // Frozen ride context at trigger time
+
+  resolved_by       String?
+  resolved_at       DateTime?
+  resolution_notes  String?
+
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  ride              rides_v2                  @relation(fields: [ride_id], references: [id])
+  location_trail    emergency_location_trail[]
+
+  @@index([ride_id])
+  @@index([status])
+  @@index([created_at(sort: Desc)])
+}
+
+model emergency_location_trail {
+  id                 String   @id @default(uuid())
+  emergency_event_id String
+  source             String   // 'driver' | 'passenger'
+  lat                Decimal  @db.Decimal(10, 8)
+  lng                Decimal  @db.Decimal(11, 8)
+  speed              Decimal? @db.Decimal(5, 2)
+  heading            Decimal? @db.Decimal(5, 2)
+  captured_at        DateTime
+
+  event              ride_emergency_events @relation(fields: [emergency_event_id], references: [id], onDelete: Cascade)
+
+  @@unique([emergency_event_id, captured_at])
+  @@index([emergency_event_id, captured_at])
 }

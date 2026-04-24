@@ -9,6 +9,18 @@ import { applyCreditDelta } from '../services/credit.service';
 import { whatsappEvents } from '../modules/whatsapp';
 import * as pricingEngine from '../services/pricing-engine';
 import { authenticatePassenger, authenticateDriver, requireAuth } from '../middlewares/auth';
+import { getPresignedUrl } from '../config/s3-upload';
+import { config } from '../config';
+
+const toPhotoUrl = async (key: string | null | undefined): Promise<string | null> => {
+  if (!key) return null;
+  const k = key.startsWith('http')
+    ? key.split('.amazonaws.com/')[1]?.split('?')[0] ?? null
+    : key;
+  if (!k) return null;
+  try { return await getPresignedUrl(k); } catch { return null; }
+};
+import { triggerEmergency, appendTrailPoint } from '../services/ride-emergency.service';
 
 const router = Router();
 
@@ -35,16 +47,56 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
   }
 });
 
+// 5.0.1 Corrida ativa do passageiro (para recuperação de estado)
+router.get('/active', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const ride = await prisma.rides_v2.findFirst({
+      where: {
+        passenger_id: passengerId,
+        status: { in: ['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'in_progress'] }
+      },
+      orderBy: { updated_at: 'desc' },
+      include: { driver: { select: { name: true, phone: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, id: true, last_lat: true, last_lng: true, photo_url: true } } }
+    });
+    res.json({ success: true, data: ride ? {
+      ...ride,
+      origin_lat: Number(ride.origin_lat),
+      origin_lng: Number(ride.origin_lng),
+      dest_lat: Number(ride.dest_lat),
+      dest_lng: Number(ride.dest_lng),
+      driver: ride.driver ? { ...ride.driver, photo_url: await toPhotoUrl(ride.driver.photo_url) } : null,
+    } : null });
+  } catch (error: any) {
+    console.error('[PASSENGER_ACTIVE_RIDE_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
 // 5.1 Passageiro solicita corrida
 router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
   try {
     const passengerId = (req as any).passengerId;
-    const { origin, destination, type = 'normal' } = req.body;
+    const { origin, destination, type = 'normal', trip_details, scheduled_for, wait_requested = false, wait_estimated_min } = req.body;
     const idempotencyKey = req.headers['idempotency-key'] as string;
 
     // Validação
     if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
       return res.status(400).json({ error: 'Origem ou destino inválido' });
+    }
+
+    // Validar agendamento
+    let scheduledDate: Date | null = null;
+    if (scheduled_for) {
+      scheduledDate = new Date(scheduled_for);
+      const diffMs = scheduledDate.getTime() - Date.now();
+      if (diffMs < 15 * 60_000) return res.status(400).json({ error: 'Horário deve ser pelo menos 15 minutos no futuro' });
+      if (diffMs > 24 * 60 * 60_000) return res.status(400).json({ error: 'Horário deve ser no máximo 24 horas no futuro' });
+
+      const existing = await prisma.rides_v2.findFirst({
+        where: { passenger_id: passengerId, status: 'scheduled' }
+      });
+      if (existing) return res.status(400).json({ error: 'Você já tem uma corrida agendada. Cancele antes de agendar outra.' });
     }
 
     // Verificar idempotência
@@ -74,7 +126,11 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
         destination_text: destination.text,
         ride_type: type,
         idempotency_key: idempotencyKey,
-        status: 'requested'
+        trip_details: trip_details || undefined,
+        scheduled_for: scheduledDate,
+        status: scheduledDate ? 'scheduled' : 'requested',
+        wait_requested: config.wait.enabled ? Boolean(wait_requested) : false,
+        wait_estimated_min: config.wait.enabled && wait_requested && wait_estimated_min ? Number(wait_estimated_min) : null,
       }
     });
 
@@ -133,17 +189,22 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
       console.error(`[PRICING_QUOTE_FAILED] ride_id=${ride.id}`, priceErr);
     }
 
-    // Acionar dispatcher (async, não bloqueia resposta)
-    setImmediate(() => dispatcherService.dispatchRide(ride.id).catch(err => {
-      console.error(`[DISPATCH_FIRE_FORGET_ERROR] ride_id=${ride.id}`, err);
-      prisma.rides_v2.update({ where: { id: ride.id }, data: { status: 'no_driver' } }).catch(() => {});
-    }));
+    // Acionar dispatcher (async, não bloqueia resposta) — skip for scheduled rides
+    if (!scheduledDate) {
+      setImmediate(() => dispatcherService.dispatchRide(ride.id).catch(err => {
+        console.error(`[DISPATCH_FIRE_FORGET_ERROR] ride_id=${ride.id}`, err);
+        prisma.rides_v2.update({ where: { id: ride.id }, data: { status: 'no_driver' } }).catch(e => console.error(`[DISPATCH_FALLBACK_FAILED] ride_id=${ride.id}`, e));
+      }));
+    } else {
+      console.log(`[RIDE_SCHEDULED] ride_id=${ride.id} scheduled_for=${scheduledDate.toISOString()}`);
+    }
 
     res.json({
       success: true,
       data: {
         ride_id: ride.id,
-        status: ride.status,
+        status: scheduledDate ? 'scheduled' : ride.status,
+        scheduled_for: scheduledDate?.toISOString() ?? null,
         quoted_price: quoteResult?.quoted_price ?? null,
         territory: quoteResult?.route_territory ?? null,
       }
@@ -208,7 +269,7 @@ router.post('/:ride_id/adjustment-response', authenticatePassenger, async (req: 
           try {
             const d = await prisma.drivers.findUnique({ where: { id: ride.driver_id! }, select: { neighborhood_id: true, neighborhoods: { select: { name: true } } } });
             await pe.refine(ride_id, d?.neighborhood_id || null, (d as any)?.neighborhoods?.name || null);
-          } catch {}
+          } catch (e) { console.warn(`[PRICING_REFINE_FAILED] ride_id=${ride_id}`, e); }
         });
 
         prisma.drivers.findUnique({ where: { id: ride.driver_id }, select: { name: true, vehicle_color: true, vehicle_model: true, vehicle_plate: true } }).then(driver => {
@@ -221,10 +282,10 @@ router.post('/:ride_id/adjustment-response', authenticatePassenger, async (req: 
                 '3': driver?.vehicle_model || 'Não informado',
                 '4': driver?.vehicle_color || 'Não informada',
                 '5': driver?.vehicle_plate || 'Não informada',
-              }).catch(() => {});
+              }).catch((e: any) => console.warn(`[WA_DRIVER_ASSIGNED_FAILED] ride_id=${ride_id}`, e?.message));
             }
           });
-        }).catch(() => {});
+        }).catch((e) => console.warn(`[ADJUSTMENT_WA_LOOKUP_FAILED] ride_id=${ride_id}`, e?.message));
       }
 
       res.json({ success: true, status: 'accepted' });
@@ -256,7 +317,7 @@ router.post('/:ride_id/adjustment-response', authenticatePassenger, async (req: 
       console.log(`[ADJUSTMENT_REJECTED] ride_id=${ride_id} driver_id=${ride.driver_id} adjustment=${offer.driver_adjustment}`);
 
       // Redispatch
-      setImmediate(() => dispatcherService.dispatchRide(ride_id).catch(() => {}));
+      setImmediate(() => dispatcherService.dispatchRide(ride_id).catch(e => console.error(`[REDISPATCH_FAILED] ride_id=${ride_id}`, e)));
 
       res.json({ success: true, status: 'rejected' });
     }
@@ -301,7 +362,7 @@ router.get('/:ride_id', authenticatePassenger, async (req: Request, res: Respons
     const passengerId = (req as any).passengerId;
     const ride = await prisma.rides_v2.findUnique({
       where: { id: req.params.ride_id },
-      include: { driver: { select: { id: true, name: true, phone: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, last_lat: true, last_lng: true } } }
+      include: { driver: { select: { id: true, name: true, phone: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, last_lat: true, last_lng: true, photo_url: true } } }
     });
     if (!ride || ride.passenger_id !== passengerId) {
       return res.status(404).json({ error: 'Corrida não encontrada' });
@@ -316,6 +377,7 @@ router.get('/:ride_id', authenticatePassenger, async (req: Request, res: Respons
         ...ride.driver,
         last_lat: ride.driver.last_lat ? Number(ride.driver.last_lat) : null,
         last_lng: ride.driver.last_lng ? Number(ride.driver.last_lng) : null,
+        photo_url: await toPhotoUrl(ride.driver.photo_url),
       } : null,
     } });
   } catch (error: any) {
@@ -340,7 +402,7 @@ router.post('/:ride_id/cancel', authenticatePassenger, async (req: Request, res:
       return res.status(403).json({ error: 'Acesso negado' });
     }
 
-    if (!['requested', 'offered', 'accepted', 'arrived'].includes(ride.status)) {
+    if (!['scheduled', 'requested', 'offered', 'accepted', 'arrived'].includes(ride.status)) {
       return res.status(400).json({ error: 'Não é possível cancelar neste momento' });
     }
 
@@ -392,7 +454,7 @@ router.post('/:ride_id/cancel', authenticatePassenger, async (req: Request, res:
   }
 });
 
-// 5.6 Driver cancela corrida
+// 5.6 Driver cancela corrida (com redispatch automático V1)
 router.post('/:ride_id/driver-cancel', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
@@ -403,13 +465,49 @@ router.post('/:ride_id/driver-cancel', authenticateDriver, async (req: Request, 
     if (!ride || ride.driver_id !== driverId) return res.status(403).json({ error: 'Acesso negado' });
     if (!['accepted', 'arrived'].includes(ride.status)) return res.status(400).json({ error: 'Não é possível cancelar neste momento' });
 
-    await prisma.$transaction(async (tx) => {
-      await tx.rides_v2.update({ where: { id: ride_id }, data: { status: 'canceled_by_driver', canceled_at: new Date() } });
-      await tx.driver_status.update({ where: { driver_id: driverId }, data: { availability: 'online' } });
-    });
+    const td = (ride.trip_details as any) || {};
+    const redispatchCount = td._redispatch_count || 0;
+    const canRedispatch = redispatchCount < 1;
 
-    console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=canceled_by_driver driver_id=${driverId} reason=${reason || 'none'}`);
-    realTimeService.emitToRide(ride_id, { type: 'ride.status.changed', status: 'canceled_by_driver', timestamp: new Date().toISOString() });
+    if (canRedispatch) {
+      // Redispatch: limpar ride e reabrir
+      await prisma.$transaction(async (tx) => {
+        await tx.rides_v2.update({
+          where: { id: ride_id },
+          data: {
+            status: 'requested',
+            driver_id: null,
+            accepted_at: null,
+            arrived_at: null,
+            driver_adjustment: null,
+            adjusted_price: null,
+            trip_details: { ...td, _redispatch_count: redispatchCount + 1 },
+          }
+        });
+        await tx.ride_offers.updateMany({
+          where: { ride_id, driver_id: driverId, status: 'accepted' },
+          data: { status: 'canceled' }
+        });
+        await tx.driver_status.update({ where: { driver_id: driverId }, data: { availability: 'online' } });
+      });
+
+      console.log(`[RIDE_REDISPATCH] ride_id=${ride_id} canceled_by=${driverId} reason=${reason || 'none'} attempt=${redispatchCount + 1}`);
+      realTimeService.emitToRide(ride_id, { type: 'ride.redispatching', timestamp: new Date().toISOString() });
+
+      setImmediate(() => dispatcherService.dispatchRide(ride_id).catch(err => {
+        console.error(`[REDISPATCH_ERROR] ride_id=${ride_id}`, err);
+        prisma.rides_v2.update({ where: { id: ride_id }, data: { status: 'canceled_by_driver', canceled_at: new Date() } }).catch(() => {});
+      }));
+    } else {
+      // Limite de redispatch atingido — cancelar normalmente
+      await prisma.$transaction(async (tx) => {
+        await tx.rides_v2.update({ where: { id: ride_id }, data: { status: 'canceled_by_driver', canceled_at: new Date() } });
+        await tx.driver_status.update({ where: { driver_id: driverId }, data: { availability: 'online' } });
+      });
+
+      console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=canceled_by_driver driver_id=${driverId} reason=${reason || 'none'} redispatch_exhausted=true`);
+      realTimeService.emitToRide(ride_id, { type: 'ride.status.changed', status: 'canceled_by_driver', timestamp: new Date().toISOString() });
+    }
 
     res.json({ success: true });
   } catch (error: any) {
@@ -474,6 +572,51 @@ router.post('/:ride_id/arrived', authenticateDriver, async (req: Request, res: R
   }
 });
 
+// 5.7 Wait start ("Levar e esperar")
+router.post('/:ride_id/wait/start', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+    const { ride_id } = req.params;
+
+    if (!config.wait.enabled) return res.status(404).json({ error: 'Funcionalidade não disponível' });
+
+    const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
+    if (!ride || ride.driver_id !== driverId) return res.status(403).json({ error: 'Acesso negado' });
+    if (!ride.wait_requested) return res.status(400).json({ error: 'Espera não solicitada nesta corrida' });
+    if (ride.status !== 'arrived') return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
+    if (ride.wait_started_at) return res.status(400).json({ error: 'Espera já iniciada' });
+
+    await prisma.rides_v2.update({ where: { id: ride_id }, data: { wait_started_at: new Date() } });
+    console.log(`[WAIT_START] ride_id=${ride_id} driver_id=${driverId}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[WAIT_START_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
+// 5.7 Wait end ("Levar e esperar")
+router.post('/:ride_id/wait/end', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+    const { ride_id } = req.params;
+
+    if (!config.wait.enabled) return res.status(404).json({ error: 'Funcionalidade não disponível' });
+
+    const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
+    if (!ride || ride.driver_id !== driverId) return res.status(403).json({ error: 'Acesso negado' });
+    if (!ride.wait_started_at) return res.status(400).json({ error: 'Espera não foi iniciada' });
+    if (ride.wait_ended_at) return res.status(400).json({ error: 'Espera já encerrada' });
+
+    await prisma.rides_v2.update({ where: { id: ride_id }, data: { wait_ended_at: new Date() } });
+    console.log(`[WAIT_END] ride_id=${ride_id} driver_id=${driverId}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[WAIT_END_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
 // 5.7 Driver start
 router.post('/:ride_id/start', authenticateDriver, async (req: Request, res: Response) => {
   try {
@@ -488,6 +631,10 @@ router.post('/:ride_id/start', authenticateDriver, async (req: Request, res: Res
 
     if (ride.status !== 'arrived') {
       return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
+    }
+
+    if (ride.wait_requested && !ride.wait_ended_at) {
+      return res.status(400).json({ error: 'Encerre a espera antes de iniciar a corrida' });
     }
 
     await prisma.rides_v2.update({
@@ -574,6 +721,42 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
       console.error(`[PRICING_SETTLE_FAILED] ride_id=${ride_id}`, settleErr);
     }
 
+    // Wait charge: somar ao final_price após settle (apenas se espera foi encerrada)
+    if (settlement && ride.wait_requested && ride.wait_started_at && ride.wait_ended_at) {
+      try {
+        const waitMinutes = Math.floor(
+          (ride.wait_ended_at.getTime() - ride.wait_started_at.getTime()) / 60000
+        );
+        const waitCharge = Math.round(waitMinutes * config.wait.ratePerMin * 100) / 100;
+        if (waitCharge > 0) {
+          const newFinalPrice = Math.round((settlement.final_price + waitCharge) * 100) / 100;
+          await prisma.$transaction([
+            prisma.rides_v2.update({
+              where: { id: ride_id },
+              data: { final_price: new Decimal(newFinalPrice) }
+            }),
+            prisma.$executeRaw`
+              UPDATE ride_settlements
+              SET final_price = ${newFinalPrice}
+              WHERE ride_id = ${ride_id}
+            `,
+          ]);
+          settlement.final_price = newFinalPrice;
+          // Crédito dobrado: espera real = serviço composto
+          const doubledCreditCost = Math.round(settlement.credit_cost * 2 * 100) / 100;
+          await prisma.$executeRaw`
+            UPDATE ride_settlements
+            SET credit_cost = ${doubledCreditCost}
+            WHERE ride_id = ${ride_id}
+          `;
+          settlement.credit_cost = doubledCreditCost;
+          console.log(`[WAIT_CHARGE] ride_id=${ride_id} wait_min=${waitMinutes} charge=${waitCharge} new_final=${newFinalPrice} credit_cost=${doubledCreditCost}`);
+        }
+      } catch (waitErr) {
+        console.error(`[WAIT_CHARGE_FAILED] ride_id=${ride_id}`, waitErr);
+      }
+    }
+
     // Credit consumption ANTES do WhatsApp (precisamos do saldo atualizado para a mensagem)
     let creditResult: { cost: number; matchType: string; balance: number } | null = null;
     if (process.env.CREDIT_CONSUME_ENABLED === 'true' && settlement) {
@@ -632,12 +815,48 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
   }
 });
 
+// 5.9 Passenger boarding status (arrived state only)
+const VALID_BOARDING = ['at_door', 'descending', '2_minutes'] as const;
+router.post('/:ride_id/boarding-status', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const { ride_id } = req.params;
+    const { status } = req.body;
+
+    if (!VALID_BOARDING.includes(status)) {
+      return res.status(400).json({ error: 'Status inválido' });
+    }
+
+    const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
+    if (!ride || ride.passenger_id !== passengerId) return res.status(403).json({ error: 'Acesso negado' });
+    if (ride.status !== 'arrived') return res.status(400).json({ error: 'Operação não permitida no estado atual' });
+
+    const td = (ride.trip_details as any) || {};
+    await prisma.rides_v2.update({
+      where: { id: ride_id },
+      data: { trip_details: { ...td, boarding_status: status } }
+    });
+
+    // Also emit via SSE for faster delivery if driver has SSE client
+    realTimeService.emitToRide(ride_id, {
+      type: 'ride.boarding.status',
+      status,
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[BOARDING_STATUS_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
 // Driver location update during ride
 router.post('/:ride_id/location', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const { ride_id } = req.params;
-    const { lat, lng } = req.body;
+    const { lat, lng, speed, heading } = req.body;
 
     if (!lat || !lng) {
       return res.status(400).json({ error: 'Localização obrigatória' });
@@ -665,9 +884,99 @@ router.post('/:ride_id/location', authenticateDriver, async (req: Request, res: 
       timestamp: new Date().toISOString()
     });
 
+    // Emergency vault: append trail point if emergency active
+    appendTrailPoint(ride_id, { lat, lng, speed, heading, source: 'driver' }).catch(() => {});
+
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_LOCATION_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
+// Share ride: generate temporary public tracking link
+router.post('/:ride_id/share', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { ride_id } = req.params;
+
+    const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
+    if (!ride) return res.status(404).json({ error: 'Corrida não encontrada' });
+
+    // Verify ownership
+    if (ride.passenger_id !== user.userId && ride.driver_id !== user.userId) {
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+
+    if (!['accepted', 'arrived', 'in_progress'].includes(ride.status)) {
+      return res.status(400).json({ error: 'Corrida não está ativa' });
+    }
+
+    // Idempotent: return existing token if valid
+    if (ride.share_token && ride.share_expires_at && ride.share_expires_at > new Date()) {
+      return res.json({ success: true, token: ride.share_token, url: `https://app.kaviar.com.br/track/${ride.share_token}` });
+    }
+
+    // Generate new token
+    const crypto = require('crypto');
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4h
+
+    await prisma.rides_v2.update({
+      where: { id: ride_id },
+      data: { share_token: token, share_expires_at: expiresAt },
+    });
+
+    res.json({ success: true, token, url: `https://app.kaviar.com.br/track/${token}` });
+  } catch (error: any) {
+    console.error('[RIDE_SHARE_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// Emergency vault: trigger emergency event
+router.post('/:ride_id/emergency', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { ride_id } = req.params;
+
+    // Feature flag check
+    const flag = await prisma.feature_flags.findUnique({ where: { key: 'emergency_vault' } });
+    if (!flag?.enabled) {
+      return res.status(404).json({ error: 'Feature não disponível' });
+    }
+
+    const triggeredByType = user.userType === 'DRIVER' ? 'driver' : 'passenger';
+    const triggeredById = user.userId;
+
+    const { event, created } = await triggerEmergency({ rideId: ride_id, triggeredByType, triggeredById });
+
+    if (created) {
+      // SSE: notify the other side
+      if (triggeredByType === 'passenger') {
+        const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id }, select: { driver_id: true } });
+        if (ride?.driver_id) {
+          realTimeService.emitToDriver(ride.driver_id, { type: 'emergency.activated', event_id: event.id });
+        }
+      } else {
+        realTimeService.emitToRide(ride_id, { type: 'emergency.activated', event_id: event.id });
+      }
+
+      // WhatsApp: notify admin (best-effort)
+      const snapshot = event.snapshot as any;
+      const adminPhone = process.env.EMERGENCY_ADMIN_PHONE;
+      if (adminPhone) {
+        const msg = `🚨 EMERGÊNCIA KAVIAR\nCorrida: ${ride_id}\nAcionado por: ${triggeredByType}\n${snapshot.driver ? `Motorista: ${snapshot.driver.name} • ${snapshot.driver.vehicle_plate}` : ''}\nPassageiro: ${snapshot.passenger.name}`;
+        whatsappEvents.driverAlert(adminPhone, { '1': msg }).catch((e: any) => console.error('[WA_FAIL] emergency', e.message));
+      }
+    }
+
+    res.status(created ? 201 : 200).json({ success: true, event_id: event.id });
+  } catch (error: any) {
+    if (error.message === 'RIDE_NOT_FOUND') return res.status(404).json({ error: 'Corrida não encontrada' });
+    if (error.message === 'RIDE_NOT_ACTIVE') return res.status(400).json({ error: 'Corrida não está ativa' });
+    if (error.message === 'ACCESS_DENIED') return res.status(403).json({ error: 'Acesso negado' });
+    console.error('[EMERGENCY_TRIGGER_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });

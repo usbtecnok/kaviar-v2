@@ -1,6 +1,6 @@
 // Tipos de corrida (v2)
 export type RideStatus =
-  | 'requested' | 'offered' | 'pending_adjustment' | 'accepted' | 'arrived'
+  | 'scheduled' | 'requested' | 'offered' | 'pending_adjustment' | 'accepted' | 'arrived'
   | 'in_progress' | 'completed'
   | 'canceled_by_passenger' | 'canceled_by_driver' | 'no_driver';
 
@@ -29,6 +29,14 @@ export interface Ride {
   updated_at?: string;
   passenger?: { name: string; phone?: string };
   driver?: { name: string; phone?: string; vehicle_model?: string; vehicle_plate?: string; vehicle_color?: string; id?: string; last_lat?: number; last_lng?: number };
+  trip_details?: { passengers: number; has_luggage: boolean };
+  boarding_status?: 'at_door' | 'descending' | '2_minutes' | null;
+  scheduled_for?: string | null;
+  // Wait ("Levar e esperar")
+  wait_requested?: boolean;
+  wait_estimated_min?: number | null;
+  wait_started_at?: string | null;
+  wait_ended_at?: string | null;
 }
 
 export interface RideOffer {
@@ -52,11 +60,14 @@ export interface RideOffer {
     is_homebound?: boolean;
     requested_at: string;
     passenger?: { name: string };
+    wait_requested?: boolean;
+    wait_estimated_min?: number | null;
   };
 }
 
 // Labels para exibição
 export const RIDE_STATUS_LABEL: Record<RideStatus, string> = {
+  scheduled: 'Agendada',
   requested: 'Solicitada',
   offered: 'Ofertada',
   pending_adjustment: 'Aguardando confirmação',

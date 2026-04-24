@@ -67,6 +67,11 @@ export const config = {
     enableTwilioWhatsapp: process.env.ENABLE_TWILIO_WHATSAPP !== 'false', // Default true
   },
 
+  wait: {
+    enabled: process.env.WAIT_FEATURE_ENABLED === 'true',
+    ratePerMin: parseFloat(process.env.WAIT_RATE_PER_MIN || '0.50'),
+  },
+
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 };
 
