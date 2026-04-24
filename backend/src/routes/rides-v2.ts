@@ -791,15 +791,47 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
           }).catch((e: any) => console.error('[WA_FAIL] ridePassengerCompleted', e.message));
         }
         if (driver?.phone) {
-          // Template v2: {{1}}=name {{2}}=pickup {{3}}=dropoff {{4}}=price {{5}}=credits_consumed {{6}}=credit_balance
-          whatsappEvents.rideDriverCompleted(driver.phone, {
-            '1': driver.name || 'Motorista',
-            '2': pickup,
-            '3': dropoff,
-            '4': price,
-            '5': String(creditResult?.cost ?? settlement.credit_cost),
-            '6': String(creditResult?.balance ?? 0),
-          }).catch((e: any) => console.error('[WA_FAIL] rideDriverCompleted', e.message));
+          // Use v3/v4 if approved, fallback to v2
+          const hasWait = !!(ride.wait_requested && ride.wait_started_at && ride.wait_ended_at);
+          const waitMinutes = hasWait
+            ? Math.floor((ride.wait_ended_at!.getTime() - ride.wait_started_at!.getTime()) / 60000)
+            : 0;
+          const waitCharge = Math.round(waitMinutes * 0.50 * 100) / 100;
+          const basePrice = hasWait && waitCharge > 0
+            ? String(Math.round((settlement.final_price - waitCharge) * 100) / 100)
+            : price;
+
+          const useV4 = hasWait && waitCharge > 0 && !!process.env.WA_TPL_DRIVER_COMPLETED_V4_WAIT;
+          const useV3 = !useV4 && !!process.env.WA_TPL_DRIVER_COMPLETED_V3;
+
+          if (useV4) {
+            whatsappEvents.rideDriverCompletedV4Wait(driver.phone, {
+              '1': driver.name || 'Motorista',
+              '2': pickup, '3': dropoff,
+              '4': basePrice,
+              '5': String(waitCharge.toFixed(2)),
+              '6': price,
+              '7': String(creditResult?.cost ?? settlement.credit_cost),
+              '8': String(creditResult?.balance ?? 0),
+            }).catch((e: any) => console.error('[WA_FAIL] rideDriverCompletedV4Wait', e.message));
+          } else if (useV3) {
+            whatsappEvents.rideDriverCompletedV3(driver.phone, {
+              '1': driver.name || 'Motorista',
+              '2': pickup, '3': dropoff,
+              '4': price,
+              '5': String(creditResult?.cost ?? settlement.credit_cost),
+              '6': String(creditResult?.balance ?? 0),
+            }).catch((e: any) => console.error('[WA_FAIL] rideDriverCompletedV3', e.message));
+          } else {
+            // Template v2: {{1}}=name {{2}}=pickup {{3}}=dropoff {{4}}=price {{5}}=credits_consumed {{6}}=credit_balance
+            whatsappEvents.rideDriverCompleted(driver.phone, {
+              '1': driver.name || 'Motorista',
+              '2': pickup, '3': dropoff,
+              '4': price,
+              '5': String(creditResult?.cost ?? settlement.credit_cost),
+              '6': String(creditResult?.balance ?? 0),
+            }).catch((e: any) => console.error('[WA_FAIL] rideDriverCompleted', e.message));
+          }
         }
       } catch (e: any) { console.error('[WA_LOOKUP_FAIL] complete', e.message); }
     }

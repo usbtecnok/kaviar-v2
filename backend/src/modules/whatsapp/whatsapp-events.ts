@@ -27,6 +27,18 @@ export class WhatsAppEvents {
     return this.wa.sendTemplate({ to, template: "kaviar_rides_driver_completed_v2", variables: vars });
   }
 
+  // v3: sem espera — "Valor bruto da corrida" + 🚀 O GIGANTE NÃO PARA 🚀
+  // {{1}}=name {{2}}=pickup {{3}}=dropoff {{4}}=final_price {{5}}=credits {{6}}=balance
+  rideDriverCompletedV3(to: string, vars: Record<string, any>) {
+    return this.wa.sendTemplate({ to, template: "kaviar_rides_driver_completed_v3", variables: vars });
+  }
+
+  // v4: com espera — base + adicional + bruto final + 🚀 O GIGANTE NÃO PARA 🚀
+  // {{1}}=name {{2}}=pickup {{3}}=dropoff {{4}}=base_price {{5}}=wait_charge {{6}}=final_price {{7}}=credits {{8}}=balance
+  rideDriverCompletedV4Wait(to: string, vars: Record<string, any>) {
+    return this.wa.sendTemplate({ to, template: "kaviar_rides_driver_completed_v4_wait", variables: vars });
+  }
+
   ridePassengerCompleted(to: string, vars: Record<string, any>) {
     return this.wa.sendTemplate({ to, template: "kaviar_rides_passenger_completed_v1", variables: vars });
   }
@@ -52,7 +64,7 @@ export class WhatsAppEvents {
   }
 
   inviteInvestor(to: string, vars: Record<string, any>) {
-    return this.wa.sendTemplate({ to, template: "kaviar_invites_investor_v1", variables: vars });
+    return this.wa.sendTemplate({ to, template: "kaviar_invites_investor_v2", variables: vars });
   }
 
   paymentReceipt(to: string, vars: Record<string, any>) {
@@ -69,5 +81,21 @@ export class WhatsAppEvents {
 
   authVerificationCode(to: string, vars: Record<string, any>) {
     return this.wa.sendTemplate({ to, template: "copy_kaviar_auth_verification_code_v1", variables: vars });
+  }
+
+  rideScheduledReminder(to: string, vars: Record<string, any>) {
+    return this.wa.sendTemplate({ to, template: "kaviar_rides_scheduled_reminder_v1", variables: vars });
+  }
+
+  rideScheduledSearching(to: string, vars: Record<string, any>) {
+    return this.wa.sendTemplate({ to, template: "kaviar_rides_scheduled_searching_v2", variables: vars });
+  }
+
+  followupAngel(to: string, vars: Record<string, any>) {
+    return this.wa.sendTemplate({ to, template: "kaviar_followup_angel_v1", variables: vars });
+  }
+
+  driverReactivation(to: string, vars: Record<string, any>) {
+    return this.wa.sendTemplate({ to, template: "kaviar_driver_reactivation_v1", variables: vars });
   }
 }
