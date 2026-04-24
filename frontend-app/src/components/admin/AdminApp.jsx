@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
-import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map } from "@mui/icons-material";
+import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow } from "@mui/material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -9,6 +9,7 @@ import DomainHeader from "../common/DomainHeader";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
 import OperationsMonitor from "../../pages/admin/OperationsMonitor";
+import EmergencyEvents from "../../pages/admin/EmergencyEvents";
 import MatchMonitor from "../../pages/admin/MatchMonitor";
 import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
 import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
@@ -33,6 +34,7 @@ import ChangePassword from "../../pages/admin/ChangePassword";
 import WhatsAppCentral from "../../pages/admin/WhatsAppCentral";
 import ForgotPassword from "../../pages/admin/ForgotPassword";
 import InvestorInvites from "../../pages/admin/InvestorInvites";
+import InvestorVision from "../../pages/admin/InvestorVision";
 import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import LeadPerformance from "../../pages/admin/LeadPerformance";
 import StaffManagement from "../../pages/admin/StaffManagement";
@@ -116,6 +118,9 @@ function AdminHeader() {
 function AdminHome() {
   const [dashboardData, setDashboardData] = useState(null);
   const [territoryData, setTerritoryData] = useState(null);
+  const [opsPeriod, setOpsPeriod] = useState('today');
+  const [opsData, setOpsData] = useState(null);
+  const [opsLoading, setOpsLoading] = useState(false);
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
@@ -222,6 +227,19 @@ function AdminHome() {
     } catch {}
   };
 
+  const fetchOpsData = async (period) => {
+    setOpsLoading(true);
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const res = await fetch(`${API_BASE_URL}/api/admin/dashboard/operations?period=${period}`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const json = await res.json();
+      if (json.success) setOpsData(json.data);
+    } catch {}
+    finally { setOpsLoading(false); }
+  };
+
+  useEffect(() => { fetchOpsData(opsPeriod); }, [opsPeriod]);
+
   const { stats = {}, pending = {} } = dashboardData || {};
 
   if (loading) {
@@ -258,6 +276,23 @@ function AdminHome() {
         <Alert severity="error" sx={{ mb: 3, bgcolor: '#1a1a1a', color: '#FFD700' }}>
           {error}
         </Alert>
+      )}
+
+      {['ANGEL_VIEWER', 'INVESTOR_VIEW'].includes(admin?.role) && (
+        <Card sx={{ mb: 4, bgcolor: '#111', border: '1px solid #FFD700', cursor: 'pointer' }}
+          onClick={() => window.location.href = '/admin/visao'}>
+          <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 3 }}>
+            <Box>
+              <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
+                Visão do Projeto
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#ccc', mt: 0.5 }}>
+                Conheça a visão estratégica, o modelo e o potencial de expansão do KAVIAR.
+              </Typography>
+            </Box>
+            <Typography sx={{ color: '#FFD700', fontSize: 24 }}>→</Typography>
+          </CardContent>
+        </Card>
       )}
 
       {/* Métricas Gerais */}
@@ -423,6 +458,132 @@ function AdminHome() {
           </Grid>
         </Box>
       )}
+
+      {/* ⚡ Operações */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#b8960c' }}>⚡ Operações</Typography>
+          <ToggleButtonGroup value={opsPeriod} exclusive onChange={(_, v) => v && setOpsPeriod(v)} size="small"
+            sx={{ '& .MuiToggleButton-root': { color: '#aaa', borderColor: '#333', px: 2 }, '& .Mui-selected': { color: '#b8960c', borderColor: '#b8960c', bgcolor: '#1a1500 !important' } }}>
+            <ToggleButton value="today">Hoje</ToggleButton>
+            <ToggleButton value="7d">7 dias</ToggleButton>
+            <ToggleButton value="30d">30 dias</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+        {opsLoading ? (
+          <Box sx={{ textAlign: 'center', py: 3 }}><CircularProgress sx={{ color: '#b8960c' }} /></Box>
+        ) : opsData ? (<>
+          <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Corridas</Typography>
+          <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
+            {[
+              { label: 'Concluídas', value: opsData.rides?.completed ?? '—', color: '#4caf50' },
+              { label: 'Canceladas', value: opsData.rides?.canceled ?? '—', color: '#ef5350' },
+              { label: 'Sem motorista', value: opsData.rides?.no_driver ?? '—', color: '#ff9800' },
+              { label: 'Com espera', value: opsData.rides?.with_wait ?? '—', color: '#b8960c' },
+              { label: 'Com ajuste', value: opsData.rides?.with_adjustment ?? '—', color: '#90caf9' },
+              { label: 'Ajustes aceitos', value: opsData.rides?.adjustments_accepted ?? '—', color: '#ce93d8' },
+            ].map(c => (
+              <Grid item xs={6} sm={4} md={2} key={c.label}>
+                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                  <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
+                    <Typography variant="h5" fontWeight="800" sx={{ color: c.color }}>{c.value}</Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa' }}>{c.label}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Financeiro</Typography>
+          <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
+            {[
+              { label: 'Valor bruto', value: opsData.financials?.gross_total != null ? `R$\u00a0${Number(opsData.financials.gross_total).toFixed(2)}` : '—', color: '#4caf50' },
+              { label: 'Créditos consumidos', value: opsData.financials?.credits_consumed ?? '—', color: '#b8960c' },
+              { label: 'Receita créditos', value: opsData.financials?.platform_revenue_credits != null ? `R$\u00a0${Number(opsData.financials.platform_revenue_credits).toFixed(2)}` : '—', color: '#ce93d8' },
+              { label: 'Wait charge est.', value: opsData.financials?.wait_charge_estimated != null ? `R$\u00a0${Number(opsData.financials.wait_charge_estimated).toFixed(2)}` : '—', color: '#ff9800' },
+            ].map(c => (
+              <Grid item xs={6} sm={3} key={c.label}>
+                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                  <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
+                    <Typography variant="h6" fontWeight="800" sx={{ color: c.color }}>{c.value}</Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa' }}>{c.label}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Espera · Território</Typography>
+          <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
+            {[
+              { label: 'Espera média', value: opsData.wait?.avg_minutes != null ? `${opsData.wait.avg_minutes} min` : '—', color: '#b8960c' },
+              { label: 'Espera total', value: opsData.wait?.total_minutes != null ? `${opsData.wait.total_minutes} min` : '—', color: '#90caf9' },
+              { label: 'Local', value: opsData.territory?.local ?? '—', color: '#4caf50' },
+              { label: 'Adjacent', value: opsData.territory?.adjacent ?? '—', color: '#ff9800' },
+              { label: 'External', value: opsData.territory?.external ?? '—', color: '#aaa' },
+            ].map(c => (
+              <Grid item xs={4} sm={2} key={c.label}>
+                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                  <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
+                    <Typography variant="h6" fontWeight="800" sx={{ color: c.color }}>{c.value}</Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa' }}>{c.label}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ color: '#b8960c', mb: 1 }}>🏘️ Top Bairros</Typography>
+                  <Table size="small">
+                    <TableHead><TableRow>
+                      <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>#</TableCell>
+                      <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Bairro</TableCell>
+                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Corridas</TableCell>
+                    </TableRow></TableHead>
+                    <TableBody>
+                      {(opsData.top_neighborhoods || []).slice(0, 8).map((n, i) => (
+                        <TableRow key={n.name}>
+                          <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>{i + 1}</TableCell>
+                          <TableCell sx={{ color: '#ddd', borderColor: '#1a1a1a', py: 0.5 }}>{n.name}</TableCell>
+                          <TableCell align="right" sx={{ color: '#b8960c', fontWeight: 700, borderColor: '#1a1a1a', py: 0.5 }}>{n.rides}</TableCell>
+                        </TableRow>
+                      ))}
+                      {!opsData.top_neighborhoods?.length && <TableRow><TableCell colSpan={3} sx={{ color: '#555', borderColor: '#1a1a1a', textAlign: 'center' }}>—</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ color: '#b8960c', mb: 1 }}>🚗 Top Motoristas</Typography>
+                  <Table size="small">
+                    <TableHead><TableRow>
+                      <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Motorista</TableCell>
+                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Corridas</TableCell>
+                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Créditos</TableCell>
+                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Espera</TableCell>
+                    </TableRow></TableHead>
+                    <TableBody>
+                      {(opsData.top_drivers || []).slice(0, 8).map((d) => (
+                        <TableRow key={d.name}>
+                          <TableCell sx={{ color: '#ddd', borderColor: '#1a1a1a', py: 0.5 }}>{d.name}</TableCell>
+                          <TableCell align="right" sx={{ color: '#b8960c', fontWeight: 700, borderColor: '#1a1a1a', py: 0.5 }}>{d.rides}</TableCell>
+                          <TableCell align="right" sx={{ color: '#90caf9', borderColor: '#1a1a1a', py: 0.5 }}>{d.credits}</TableCell>
+                          <TableCell align="right" sx={{ color: '#aaa', borderColor: '#1a1a1a', py: 0.5 }}>{d.wait_min > 0 ? `${d.wait_min}m` : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                      {!opsData.top_drivers?.length && <TableRow><TableCell colSpan={4} sx={{ color: '#555', borderColor: '#1a1a1a', textAlign: 'center' }}>—</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </>) : null}
+      </Box>
 
       {/* Atalhos de Gerenciamento */}
       <Box sx={{ mb: 4 }}>
@@ -668,6 +829,25 @@ function AdminHome() {
 
           {isSuperAdmin && (
             <Grid item xs={12} sm={6} md={4}>
+              <Card sx={{ bgcolor: '#1a0a0a', border: '1px solid #ff444433' }}>
+                <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                  <Shield sx={{ fontSize: 40, color: 'error.main', mb: 2 }} />
+                  <Typography variant="h6" sx={{ color: '#ff6b6b', fontWeight: 700, mb: 0.5 }}>
+                    Incidentes de Emergência
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#7a8a9a', mb: 2.5, fontSize: 12 }}>
+                    Cofre de evidência e trilha de proteção
+                  </Typography>
+                  <Button variant="outlined" sx={{ borderColor: '#ff444466', color: '#ff6b6b', fontWeight: 600, fontSize: 12, px: 3, '&:hover': { borderColor: '#ff4444', bgcolor: '#ff444410' } }} component={Link} to="/admin/emergency-events">
+                    Acessar
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
+
+          {isSuperAdmin && (
+            <Grid item xs={12} sm={6} md={4}>
               <Card>
                 <CardContent sx={{ textAlign: 'center', py: 3 }}>
                   <PersonAdd sx={{ fontSize: 40, color: 'warning.main', mb: 2 }} />
@@ -729,14 +909,6 @@ function AdminHome() {
                   href="/admin/referrals"
                 >
                   Indicações
-                </Button>
-                <Button 
-                  variant="outlined" 
-                  size="small"
-                  sx={{ ml: 1, borderColor: '#90caf9', color: '#1565c0' }}
-                  href="/admin/audit"
-                >
-                  Auditoria
                 </Button>
               </CardContent>
             </Card>
@@ -813,6 +985,13 @@ export default function AdminApp() {
                 <AdminHeader />
                 <InvestorInvites />
               </Container>
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/visao" element={
+            <ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'INVESTOR_VIEW', 'SUPER_ADMIN']}>
+              <Box sx={{ bgcolor: '#fff', minHeight: '100vh' }}>
+                <InvestorVision />
+              </Box>
             </ProtectedAdminRoute>
           } />
           <Route path="/consultant-leads" element={
@@ -942,6 +1121,11 @@ export default function AdminApp() {
           <Route path="/operations" element={
             <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
               <OperationsMonitor />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/emergency-events" element={
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN']}>
+              <EmergencyEvents />
             </ProtectedAdminRoute>
           } />
 
