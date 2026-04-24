@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
@@ -13,6 +13,7 @@ import { RideOffer } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
+import { groupLabel } from '../../src/utils/tripLabel';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../src/services/background-location';
 import { ENV } from '../../src/config/env';
 
@@ -356,7 +357,11 @@ export default function DriverOnline() {
       )}
 
       {/* Status */}
-      <View style={styles.center}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.center, pendingOffer && { justifyContent: 'flex-start', paddingTop: 16 }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.statusRing}>
           <Animated.View style={[
             styles.statusDot,
@@ -453,6 +458,24 @@ export default function DriverOnline() {
               </Text>
             )}
 
+            {(pendingOffer.ride as any).trip_details && (
+              <View style={styles.offerGroup}>
+                <Ionicons name="people" size={14} color={COLORS.accent} />
+                <Text style={styles.offerGroupText}>
+                  {groupLabel((pendingOffer.ride as any).trip_details.passengers || 1, !!(pendingOffer.ride as any).trip_details.has_luggage)}
+                </Text>
+              </View>
+            )}
+
+            {(pendingOffer.ride as any).wait_requested && (
+              <View style={{ backgroundColor: '#fff8e1', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, marginTop: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#f57f17' }}>
+                  ⏳ Espera solicitada{(pendingOffer.ride as any).wait_estimated_min ? `: ~${(pendingOffer.ride as any).wait_estimated_min} min` : ''}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Consome 2 créditos</Text>
+              </View>
+            )}
+
             <View style={styles.offerButtons}>
               <Button title="Aceitar" variant="success" onPress={handleAcceptOffer} style={{ flex: 1 }} />
               <View style={{ width: 12 }} />
@@ -487,7 +510,7 @@ export default function DriverOnline() {
             <Button title="Ficar Offline" variant="outline" onPress={handleGoOffline} loading={loading} />
           </>
         ) : null}
-      </View>
+      </ScrollView>
 
       {/* Drawer */}
       <DrawerMenu
@@ -571,6 +594,8 @@ const styles = StyleSheet.create({
   offerMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   offerMetaText: { fontSize: 13, color: COLORS.textMuted },
   offerPassenger: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 },
+  offerGroup: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: COLORS.surfaceLight, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10, marginBottom: 16, alignSelf: 'flex-start', borderWidth: 1, borderColor: COLORS.border },
+  offerGroupText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   offerButtons: { flexDirection: 'row' },
   muteBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
