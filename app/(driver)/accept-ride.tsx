@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
@@ -90,7 +90,7 @@ export default function AcceptRide() {
   const recommendedAdj = protectionTotal <= 5 ? 5 : protectionTotal <= 8 ? 8 : 10;
 
   return (
-    <View style={s.container}>
+    <ScrollView style={{ flex: 1, backgroundColor: COLORS.background }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
       <Text style={s.title}>Nova Corrida</Text>
 
       <View style={s.card}>
@@ -245,7 +245,7 @@ export default function AcceptRide() {
         style={s.acceptBtn}
       />
       <Button title="Recusar" onPress={handleReject} disabled={loading} style={s.rejectBtn} />
-    </View>
+    </ScrollView>
   );
 }
 
