@@ -460,130 +460,133 @@ function AdminHome() {
       )}
 
       {/* ⚡ Operações */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 'bold', color: '#b8960c' }}>⚡ Operações</Typography>
-          <ToggleButtonGroup value={opsPeriod} exclusive onChange={(_, v) => v && setOpsPeriod(v)} size="small"
-            sx={{ '& .MuiToggleButton-root': { color: '#aaa', borderColor: '#333', px: 2 }, '& .Mui-selected': { color: '#b8960c', borderColor: '#b8960c', bgcolor: '#1a1500 !important' } }}>
-            <ToggleButton value="today">Hoje</ToggleButton>
-            <ToggleButton value="7d">7 dias</ToggleButton>
-            <ToggleButton value="30d">30 dias</ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
-        {opsLoading ? (
-          <Box sx={{ textAlign: 'center', py: 3 }}><CircularProgress sx={{ color: '#b8960c' }} /></Box>
-        ) : opsData ? (<>
-          <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Corridas</Typography>
-          <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
-            {[
-              { label: 'Concluídas', value: opsData.rides?.completed ?? '—', color: '#4caf50' },
-              { label: 'Canceladas', value: opsData.rides?.canceled ?? '—', color: '#ef5350' },
-              { label: 'Sem motorista', value: opsData.rides?.no_driver ?? '—', color: '#ff9800' },
-              { label: 'Com espera', value: opsData.rides?.with_wait ?? '—', color: '#b8960c' },
-              { label: 'Com ajuste', value: opsData.rides?.with_adjustment ?? '—', color: '#90caf9' },
-              { label: 'Ajustes aceitos', value: opsData.rides?.adjustments_accepted ?? '—', color: '#ce93d8' },
-            ].map(c => (
-              <Grid item xs={6} sm={4} md={2} key={c.label}>
-                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
-                  <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
-                    <Typography variant="h5" fontWeight="800" sx={{ color: c.color }}>{c.value}</Typography>
-                    <Typography variant="caption" sx={{ color: '#aaa' }}>{c.label}</Typography>
-                  </CardContent>
-                </Card>
+      {(() => {
+        const gold = '#C9A227';
+        const goldBorder = 'rgba(201,162,39,0.20)';
+        const cardBg = 'linear-gradient(145deg, #15120A 0%, #0E0C07 100%)';
+        const sectionLabel = { color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: 10, fontWeight: 600 };
+        const cell = { borderColor: 'rgba(201,162,39,0.08)', py: 1, color: '#A7A7A7', fontSize: 13 };
+        const OCard = ({ label, value, accent, large }) => (
+          <Card sx={{ background: cardBg, border: `1px solid ${goldBorder}`, borderRadius: 2, height: '100%', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2, px: 1.5 }}>
+              <Typography sx={{ fontSize: large ? 28 : 22, fontWeight: 800, color: accent || '#F5F1E8', lineHeight: 1.1, letterSpacing: '-0.5px' }}>{value ?? '—'}</Typography>
+              <Typography sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', mt: 0.8 }}>{label}</Typography>
+            </CardContent>
+          </Card>
+        );
+        return (
+          <Box sx={{ mb: 5 }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.15em', mb: 0.3 }}>Painel Executivo</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: gold, letterSpacing: '-0.3px' }}>⚡ Operações</Typography>
+              </Box>
+              <ToggleButtonGroup value={opsPeriod} exclusive onChange={(_, v) => v && setOpsPeriod(v)} size="small" sx={{
+                bgcolor: '#0E0C07', border: `1px solid ${goldBorder}`, borderRadius: 2, p: 0.3,
+                '& .MuiToggleButton-root': { color: '#6B6045', border: 'none', px: 2.5, py: 0.7, fontSize: 12, fontWeight: 600, borderRadius: '6px !important', textTransform: 'none' },
+                '& .Mui-selected': { color: '#0E0C07', bgcolor: `${gold} !important`, fontWeight: 700 },
+              }}>
+                <ToggleButton value="today">Hoje</ToggleButton>
+                <ToggleButton value="7d">7 dias</ToggleButton>
+                <ToggleButton value="30d">30 dias</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {opsLoading ? (
+              <Box sx={{ textAlign: 'center', py: 5 }}><CircularProgress sx={{ color: gold }} size={28} /></Box>
+            ) : opsData ? (<>
+
+              {/* Corridas */}
+              <Typography sx={{ ...sectionLabel, mb: 1 }}>Corridas</Typography>
+              <Grid container spacing={1.5} sx={{ mb: 3 }}>
+                {[
+                  { label: 'Concluídas', value: opsData.rides?.completed, accent: '#7CB87A' },
+                  { label: 'Canceladas', value: opsData.rides?.canceled, accent: '#C0675A' },
+                  { label: 'Sem motorista', value: opsData.rides?.no_driver, accent: '#A7A7A7' },
+                  { label: 'Com espera', value: opsData.rides?.with_wait, accent: gold },
+                  { label: 'Com ajuste', value: opsData.rides?.with_adjustment, accent: '#F5F1E8' },
+                  { label: 'Ajustes aceitos', value: opsData.rides?.adjustments_accepted, accent: '#F5F1E8' },
+                ].map(c => <Grid item xs={6} sm={4} md={2} key={c.label}><OCard {...c} /></Grid>)}
               </Grid>
-            ))}
-          </Grid>
-          <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Financeiro</Typography>
-          <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
-            {[
-              { label: 'Valor bruto', value: opsData.financials?.gross_total != null ? `R$\u00a0${Number(opsData.financials.gross_total).toFixed(2)}` : '—', color: '#4caf50' },
-              { label: 'Créditos consumidos', value: opsData.financials?.credits_consumed ?? '—', color: '#b8960c' },
-              { label: 'Receita créditos', value: opsData.financials?.platform_revenue_credits != null ? `R$\u00a0${Number(opsData.financials.platform_revenue_credits).toFixed(2)}` : '—', color: '#ce93d8' },
-              { label: 'Wait charge est.', value: opsData.financials?.wait_charge_estimated != null ? `R$\u00a0${Number(opsData.financials.wait_charge_estimated).toFixed(2)}` : '—', color: '#ff9800' },
-            ].map(c => (
-              <Grid item xs={6} sm={3} key={c.label}>
-                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
-                  <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
-                    <Typography variant="h6" fontWeight="800" sx={{ color: c.color }}>{c.value}</Typography>
-                    <Typography variant="caption" sx={{ color: '#aaa' }}>{c.label}</Typography>
-                  </CardContent>
-                </Card>
+
+              {/* Financeiro */}
+              <Typography sx={{ ...sectionLabel, mb: 1 }}>Financeiro</Typography>
+              <Grid container spacing={1.5} sx={{ mb: 3 }}>
+                {[
+                  { label: 'Valor bruto', value: opsData.financials?.gross_total != null ? `R$\u00a0${Number(opsData.financials.gross_total).toFixed(2)}` : '—', accent: '#7CB87A', large: true },
+                  { label: 'Créditos consumidos', value: opsData.financials?.credits_consumed, accent: gold, large: true },
+                  { label: 'Receita em créditos', value: opsData.financials?.platform_revenue_credits != null ? `R$\u00a0${Number(opsData.financials.platform_revenue_credits).toFixed(2)}` : '—', accent: '#F5F1E8', large: true },
+                  { label: 'Wait charge est.', value: opsData.financials?.wait_charge_estimated != null ? `R$\u00a0${Number(opsData.financials.wait_charge_estimated).toFixed(2)}` : '—', accent: '#A7A7A7', large: true },
+                ].map(c => <Grid item xs={6} sm={3} key={c.label}><OCard {...c} /></Grid>)}
               </Grid>
-            ))}
-          </Grid>
-          <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Espera · Território</Typography>
-          <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
-            {[
-              { label: 'Espera média', value: opsData.wait?.avg_minutes != null ? `${opsData.wait.avg_minutes} min` : '—', color: '#b8960c' },
-              { label: 'Espera total', value: opsData.wait?.total_minutes != null ? `${opsData.wait.total_minutes} min` : '—', color: '#90caf9' },
-              { label: 'Local', value: opsData.territory?.local ?? '—', color: '#4caf50' },
-              { label: 'Adjacent', value: opsData.territory?.adjacent ?? '—', color: '#ff9800' },
-              { label: 'External', value: opsData.territory?.external ?? '—', color: '#aaa' },
-            ].map(c => (
-              <Grid item xs={4} sm={2} key={c.label}>
-                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
-                  <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
-                    <Typography variant="h6" fontWeight="800" sx={{ color: c.color }}>{c.value}</Typography>
-                    <Typography variant="caption" sx={{ color: '#aaa' }}>{c.label}</Typography>
-                  </CardContent>
-                </Card>
+
+              {/* Espera + Território */}
+              <Typography sx={{ ...sectionLabel, mb: 1 }}>Espera · Território</Typography>
+              <Grid container spacing={1.5} sx={{ mb: 3 }}>
+                {[
+                  { label: 'Espera média', value: opsData.wait?.avg_minutes != null ? `${opsData.wait.avg_minutes} min` : '—', accent: gold },
+                  { label: 'Espera total', value: opsData.wait?.total_minutes != null ? `${opsData.wait.total_minutes} min` : '—', accent: '#F5F1E8' },
+                  { label: 'Local', value: opsData.territory?.local, accent: '#7CB87A' },
+                  { label: 'Adjacent', value: opsData.territory?.adjacent, accent: '#A7A7A7' },
+                  { label: 'External', value: opsData.territory?.external, accent: '#6B6045' },
+                ].map(c => <Grid item xs={4} sm={2} key={c.label}><OCard {...c} /></Grid>)}
               </Grid>
-            ))}
-          </Grid>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
-                <CardContent>
-                  <Typography variant="subtitle2" sx={{ color: '#b8960c', mb: 1 }}>🏘️ Top Bairros</Typography>
-                  <Table size="small">
-                    <TableHead><TableRow>
-                      <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>#</TableCell>
-                      <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Bairro</TableCell>
-                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Corridas</TableCell>
-                    </TableRow></TableHead>
-                    <TableBody>
-                      {(opsData.top_neighborhoods || []).slice(0, 8).map((n, i) => (
-                        <TableRow key={n.name}>
-                          <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>{i + 1}</TableCell>
-                          <TableCell sx={{ color: '#ddd', borderColor: '#1a1a1a', py: 0.5 }}>{n.name}</TableCell>
-                          <TableCell align="right" sx={{ color: '#b8960c', fontWeight: 700, borderColor: '#1a1a1a', py: 0.5 }}>{n.rides}</TableCell>
-                        </TableRow>
-                      ))}
-                      {!opsData.top_neighborhoods?.length && <TableRow><TableCell colSpan={3} sx={{ color: '#555', borderColor: '#1a1a1a', textAlign: 'center' }}>—</TableCell></TableRow>}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
-                <CardContent>
-                  <Typography variant="subtitle2" sx={{ color: '#b8960c', mb: 1 }}>🚗 Top Motoristas</Typography>
-                  <Table size="small">
-                    <TableHead><TableRow>
-                      <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Motorista</TableCell>
-                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Corridas</TableCell>
-                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Créditos</TableCell>
-                      <TableCell align="right" sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>Espera</TableCell>
-                    </TableRow></TableHead>
-                    <TableBody>
-                      {(opsData.top_drivers || []).slice(0, 8).map((d) => (
-                        <TableRow key={d.name}>
-                          <TableCell sx={{ color: '#ddd', borderColor: '#1a1a1a', py: 0.5 }}>{d.name}</TableCell>
-                          <TableCell align="right" sx={{ color: '#b8960c', fontWeight: 700, borderColor: '#1a1a1a', py: 0.5 }}>{d.rides}</TableCell>
-                          <TableCell align="right" sx={{ color: '#90caf9', borderColor: '#1a1a1a', py: 0.5 }}>{d.credits}</TableCell>
-                          <TableCell align="right" sx={{ color: '#aaa', borderColor: '#1a1a1a', py: 0.5 }}>{d.wait_min > 0 ? `${d.wait_min}m` : '—'}</TableCell>
-                        </TableRow>
-                      ))}
-                      {!opsData.top_drivers?.length && <TableRow><TableCell colSpan={4} sx={{ color: '#555', borderColor: '#1a1a1a', textAlign: 'center' }}>—</TableCell></TableRow>}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </>) : null}
-      </Box>
+
+              {/* Rankings */}
+              <Grid container spacing={2}>
+                {[
+                  {
+                    title: 'Top Bairros', rows: (opsData.top_neighborhoods || []).slice(0, 8),
+                    cols: ['#', 'Bairro', 'Corridas'],
+                    render: (n, i) => [i + 1, n.name, n.rides],
+                    aligns: ['left', 'left', 'right'],
+                    accentCol: 2,
+                  },
+                  {
+                    title: 'Top Motoristas', rows: (opsData.top_drivers || []).slice(0, 8),
+                    cols: ['Motorista', 'Corridas', 'Créditos', 'Espera'],
+                    render: (d) => [d.name, d.rides, d.credits, d.wait_min > 0 ? `${d.wait_min}m` : '—'],
+                    aligns: ['left', 'right', 'right', 'right'],
+                    accentCol: 1,
+                  },
+                ].map(({ title, rows, cols, render, aligns, accentCol }) => (
+                  <Grid item xs={12} md={6} key={title}>
+                    <Card sx={{ background: cardBg, border: `1px solid ${goldBorder}`, borderRadius: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
+                      <CardContent sx={{ pb: '16px !important' }}>
+                        <Typography sx={{ color: gold, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', mb: 1.5 }}>{title}</Typography>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow sx={{ '& td,& th': { borderColor: 'rgba(201,162,39,0.12)' } }}>
+                              {cols.map((c, i) => (
+                                <TableCell key={c} align={aligns[i]} sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', py: 0.8, fontWeight: 600 }}>{c}</TableCell>
+                              ))}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {rows.length ? rows.map((row, ri) => {
+                              const vals = render(row, ri);
+                              return (
+                                <TableRow key={ri} sx={{ '&:hover': { bgcolor: 'rgba(201,162,39,0.04)' }, '& td': { borderColor: 'rgba(201,162,39,0.06)' } }}>
+                                  {vals.map((v, vi) => (
+                                    <TableCell key={vi} align={aligns[vi]} sx={{ ...cell, color: vi === accentCol ? gold : vi === 0 ? '#F5F1E8' : '#A7A7A7', fontWeight: vi === accentCol ? 700 : 400 }}>{v}</TableCell>
+                                  ))}
+                                </TableRow>
+                              );
+                            }) : (
+                              <TableRow><TableCell colSpan={cols.length} sx={{ ...cell, textAlign: 'center' }}>—</TableCell></TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </>) : null}
+          </Box>
+        );
+      })()}
 
       {/* Atalhos de Gerenciamento */}
       <Box sx={{ mb: 4 }}>
