@@ -49,6 +49,7 @@ export default function CompleteRide() {
 
   // B2: Completion screen
   const [completionData, setCompletionData] = useState<{ credit?: { cost: number; matchType: string; balance: number } } | null>(null);
+  const completionRef = useRef(false);
 
   // B3: Cancel modal
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -88,7 +89,7 @@ export default function CompleteRide() {
         if (current) {
           setRide(current);
           setRideStatus(current.status as RideStatus);
-        } else {
+        } else if (!completionRef.current) {
           setActiveRideId(null);
           setRideStatus('canceled_by_passenger' as RideStatus);
           if (pollRef.current) clearInterval(pollRef.current);
@@ -266,6 +267,7 @@ export default function CompleteRide() {
     setLoading(true);
     try {
       const result = await driverApi.completeRide(params.rideId!);
+      completionRef.current = true;
       if (pollRef.current) clearInterval(pollRef.current);
       await setActiveRideId(null);
       setCompletionData({ credit: result?.credit || undefined });
