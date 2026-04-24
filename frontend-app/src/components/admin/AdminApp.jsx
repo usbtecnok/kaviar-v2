@@ -432,25 +432,26 @@ function AdminHome() {
 
       {/* Operação Territorial */}
       {territoryData && territoryData.total > 0 && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h5" sx={{ mb: 2, fontWeight: 'bold' }}>
-            Operação Territorial
-          </Typography>
-          <Grid container spacing={2}>
+        <Box sx={{ mb: 5 }}>
+          <Box sx={{ mb: 2 }}>
+            <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.15em', mb: 0.3 }}>Distribuição acumulada</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#C9A227', letterSpacing: '-0.3px' }}>Operação Territorial</Typography>
+          </Box>
+          <Grid container spacing={1.5}>
             {[
-              { icon: '🏠', value: territoryData.homebound, label: 'Retorno casa', color: '#2e7d32' },
-              { icon: '💰', value: territoryData.homeboundReduced, label: 'Taxa reduzida', color: '#b8960c' },
-              { icon: '📍', value: territoryData.local, label: 'Mesma região', color: '#1976d2' },
-              { icon: '↗️', value: territoryData.adjacent, label: 'Bairro vizinho', color: '#ed6c02' },
-              { icon: '🌐', value: territoryData.external, label: 'Fora território', color: '#666' },
-              { icon: '🚗', value: territoryData.total, label: 'Total corridas', color: '#2e7d32' },
+              { symbol: '⌂', value: territoryData.homebound, label: 'Retorno casa', accent: '#7CB87A' },
+              { symbol: '◈', value: territoryData.homeboundReduced, label: 'Taxa reduzida', accent: '#C9A227' },
+              { symbol: '●', value: territoryData.local, label: 'Mesma região', accent: '#F5F1E8' },
+              { symbol: '◎', value: territoryData.adjacent, label: 'Bairro vizinho', accent: '#A7A7A7' },
+              { symbol: '○', value: territoryData.external, label: 'Fora território', accent: '#6B6045' },
+              { symbol: '∑', value: territoryData.total, label: 'Total corridas', accent: '#C9A227' },
             ].map((item, i) => (
               <Grid item xs={6} sm={4} md={2} key={i}>
-                <Card>
-                  <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                    <Typography sx={{ fontSize: 22, mb: 0.5 }}>{item.icon}</Typography>
-                    <Typography variant="h5" fontWeight="800" sx={{ color: item.color }}>{item.value}</Typography>
-                    <Typography variant="caption" color="text.secondary">{item.label}</Typography>
+                <Card sx={{ background: 'linear-gradient(145deg, #15120A 0%, #0E0C07 100%)', border: '1px solid rgba(201,162,39,0.20)', borderRadius: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
+                  <CardContent sx={{ textAlign: 'center', py: 2, px: 1.5 }}>
+                    <Typography sx={{ fontSize: 16, color: 'rgba(201,162,39,0.35)', mb: 0.5, fontFamily: 'serif', lineHeight: 1 }}>{item.symbol}</Typography>
+                    <Typography sx={{ fontSize: 26, fontWeight: 800, color: item.accent, lineHeight: 1.1, letterSpacing: '-0.5px' }}>{item.value}</Typography>
+                    <Typography sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', mt: 0.8 }}>{item.label}</Typography>
                   </CardContent>
                 </Card>
               </Grid>
