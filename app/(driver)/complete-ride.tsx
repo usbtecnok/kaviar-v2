@@ -46,9 +46,10 @@ export default function CompleteRide() {
   // B1: Wait timer
   const [arrivedAt, setArrivedAt] = useState<number | null>(null);
   const [waitSeconds, setWaitSeconds] = useState(0);
+  const [waitActiveSeconds, setWaitActiveSeconds] = useState(0);
 
   // B2: Completion screen
-  const [completionData, setCompletionData] = useState<{ credit?: { cost: number; matchType: string; balance: number } } | null>(null);
+  const [completionData, setCompletionData] = useState<{ credit?: { cost: number; matchType: string; balance: number }; waitMin?: number; waitCharge?: number; finalPrice?: number } | null>(null);
   const completionRef = useRef(false);
 
   // B3: Cancel modal
@@ -80,6 +81,14 @@ export default function CompleteRide() {
     const id = setInterval(() => setWaitSeconds(Math.floor((Date.now() - arrivedAt) / 1000)), 1000);
     return () => clearInterval(id);
   }, [rideStatus, arrivedAt]);
+
+  // B1b: Wait active timer
+  useEffect(() => {
+    if (rideStatus !== 'in_progress' || !ride?.wait_started_at || ride?.wait_ended_at) return;
+    const startMs = new Date(ride.wait_started_at).getTime();
+    const id = setInterval(() => setWaitActiveSeconds(Math.floor((Date.now() - startMs) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [rideStatus, ride?.wait_started_at, ride?.wait_ended_at]);
 
   const startPolling = (intervalMs = 5000) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -270,7 +279,17 @@ export default function CompleteRide() {
       completionRef.current = true;
       if (pollRef.current) clearInterval(pollRef.current);
       await setActiveRideId(null);
-      setCompletionData({ credit: result?.credit || undefined });
+      // Calcular wait info para tela de conclusão
+      let waitMin: number | undefined;
+      let waitCharge: number | undefined;
+      if (ride?.wait_started_at && ride?.wait_ended_at) {
+        waitMin = Math.floor((new Date(ride.wait_ended_at).getTime() - new Date(ride.wait_started_at).getTime()) / 60000);
+        waitCharge = Math.round(waitMin * 0.50 * 100) / 100;
+      }
+      const finalPrice = ride?.quoted_price != null
+        ? Math.round((Number(ride.quoted_price) + (waitCharge || 0)) * 100) / 100
+        : undefined;
+      setCompletionData({ credit: result?.credit || undefined, waitMin, waitCharge, finalPrice });
     } catch (e: any) {
       if (e.response?.status === 400) setRideStatus('canceled_by_passenger' as RideStatus);
       else if (!e.response) {
@@ -323,6 +342,7 @@ export default function CompleteRide() {
   // --- B2: COMPLETED ---
   if (completionData) {
     const credit = completionData.credit;
+    const { waitMin, waitCharge, finalPrice } = completionData;
     return (
       <View style={[st.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
         <Text style={{ fontSize: 48, marginBottom: 12 }}>✅</Text>
@@ -330,6 +350,23 @@ export default function CompleteRide() {
         {(ride as any)?.is_homebound && (
           <View style={{ backgroundColor: '#e8f5e9', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12, marginTop: 8 }}>
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#2e7d32' }}>🏠 Retorno para casa — taxa especial aplicada</Text>
+          </View>
+        )}
+        {waitMin != null && waitMin > 0 && (
+          <View style={[st.completionCard, { marginTop: 12 }]}>
+            <View style={st.completionRow}>
+              <Text style={st.completionLabel}>⏳ Tempo de espera cobrado</Text>
+              <Text style={st.completionValue}>{waitMin} min</Text>
+            </View>
+            <View style={[st.completionRow, { borderBottomWidth: 0 }]}>
+              <Text style={st.completionLabel}>Adicional de espera</Text>
+              <Text style={[st.completionValue, { color: '#f57f17' }]}>+ R$ {waitCharge?.toFixed(2)}</Text>
+            </View>
+          </View>
+        )}
+        {finalPrice != null && (
+          <View style={{ marginTop: 8, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#1a2a1a', borderRadius: 10 }}>
+            <Text style={{ color: COLORS.success, fontSize: 20, fontWeight: '800', textAlign: 'center' }}>Valor final: R$ {finalPrice.toFixed(2)}</Text>
           </View>
         )}
         {credit && (
@@ -463,8 +500,28 @@ export default function CompleteRide() {
           <Button title={loading ? 'Aguarde...' : '⏳ Iniciar espera'} onPress={handleStartWait} disabled={loading} style={{ backgroundColor: '#f57f17', minHeight: 56, marginBottom: 8 }} />
         )}
         {rideStatus === 'in_progress' && ride?.wait_requested && ride?.wait_started_at && !ride?.wait_ended_at && (
+          <View style={{ backgroundColor: '#1a2a1a', borderRadius: 10, padding: 12, marginBottom: 8, alignItems: 'center' }}>
+            <Text style={{ color: '#f57f17', fontSize: 16, fontWeight: '700' }}>
+              ⏳ Esperando há {String(Math.floor(waitActiveSeconds / 60)).padStart(2, '0')}:{String(waitActiveSeconds % 60).padStart(2, '0')}
+            </Text>
+            <Text style={{ color: '#888', fontSize: 11, marginTop: 2 }}>Cobrança por minutos completos · R$0,50/min</Text>
+          </View>
+        )}
+        {rideStatus === 'in_progress' && ride?.wait_requested && ride?.wait_started_at && !ride?.wait_ended_at && (
           <Button title={loading ? 'Aguarde...' : '✅ Encerrar espera'} onPress={handleEndWait} disabled={loading} style={{ backgroundColor: '#388e3c', minHeight: 56, marginBottom: 8 }} />
         )}
+        {rideStatus === 'in_progress' && ride?.wait_requested && ride?.wait_started_at && ride?.wait_ended_at && (() => {
+          const min = Math.floor((new Date(ride.wait_ended_at!).getTime() - new Date(ride.wait_started_at!).getTime()) / 60000);
+          const charge = Math.round(min * 0.50 * 100) / 100;
+          return min > 0 ? (
+            <View style={{ backgroundColor: '#1a2a1a', borderRadius: 10, padding: 10, marginBottom: 8 }}>
+              <Text style={{ color: '#aaa', fontSize: 12, textAlign: 'center' }}>
+                Espera registrada: <Text style={{ color: '#f57f17', fontWeight: '700' }}>{min} min</Text>
+                {'  '}Adicional: <Text style={{ color: COLORS.success, fontWeight: '700' }}>+R$ {charge.toFixed(2)}</Text>
+              </Text>
+            </View>
+          ) : null;
+        })()}
         {rideStatus === 'in_progress' && (
           <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading || (!!ride?.wait_requested && !!ride?.wait_started_at && !ride?.wait_ended_at)} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
         )}
