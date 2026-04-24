@@ -583,7 +583,7 @@ router.post('/:ride_id/wait/start', authenticateDriver, async (req: Request, res
     const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
     if (!ride || ride.driver_id !== driverId) return res.status(403).json({ error: 'Acesso negado' });
     if (!ride.wait_requested) return res.status(400).json({ error: 'Espera não solicitada nesta corrida' });
-    if (ride.status !== 'arrived') return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
+    if (ride.status !== 'in_progress') return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
     if (ride.wait_started_at) return res.status(400).json({ error: 'Espera já iniciada' });
 
     await prisma.rides_v2.update({ where: { id: ride_id }, data: { wait_started_at: new Date() } });
@@ -631,10 +631,6 @@ router.post('/:ride_id/start', authenticateDriver, async (req: Request, res: Res
 
     if (ride.status !== 'arrived') {
       return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
-    }
-
-    if (ride.wait_requested && !ride.wait_ended_at) {
-      return res.status(400).json({ error: 'Encerre a espera antes de iniciar a corrida' });
     }
 
     await prisma.rides_v2.update({

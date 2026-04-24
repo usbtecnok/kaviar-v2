@@ -453,17 +453,17 @@ export default function CompleteRide() {
         {rideStatus === 'accepted' && (
           <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: COLORS.primary, minHeight: 56 }} />
         )}
-        {rideStatus === 'arrived' && ride?.wait_requested && !ride?.wait_started_at && (
+        {rideStatus === 'arrived' && (
+          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: COLORS.warning, minHeight: 56 }} />
+        )}
+        {rideStatus === 'in_progress' && ride?.wait_requested && !ride?.wait_started_at && (
           <Button title={loading ? 'Aguarde...' : '⏳ Iniciar espera'} onPress={handleStartWait} disabled={loading} style={{ backgroundColor: '#f57f17', minHeight: 56, marginBottom: 8 }} />
         )}
-        {rideStatus === 'arrived' && ride?.wait_requested && ride?.wait_started_at && !ride?.wait_ended_at && (
+        {rideStatus === 'in_progress' && ride?.wait_requested && ride?.wait_started_at && !ride?.wait_ended_at && (
           <Button title={loading ? 'Aguarde...' : '✅ Encerrar espera'} onPress={handleEndWait} disabled={loading} style={{ backgroundColor: '#388e3c', minHeight: 56, marginBottom: 8 }} />
         )}
-        {rideStatus === 'arrived' && (
-          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading || (!!ride?.wait_requested && !!ride?.wait_started_at && !ride?.wait_ended_at)} style={{ backgroundColor: COLORS.warning, minHeight: 56 }} />
-        )}
         {rideStatus === 'in_progress' && (
-          <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
+          <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading || (!!ride?.wait_requested && !!ride?.wait_started_at && !ride?.wait_ended_at)} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
         )}
 
         {/* B3: Cancel button */}

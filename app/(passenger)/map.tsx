@@ -702,7 +702,7 @@ export default function PassengerMap() {
                   </View>
                 </TouchableOpacity>
                 <View style={{ marginTop: 10 }}>
-                  <Text style={s.tripLabel}>⏳ Motorista vai esperar?</Text>
+                  <Text style={s.tripLabel}>⏳ Preciso de uma parada com espera no destino?</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
                     {[null, 10, 20, 30, 45, 60].map(min => {
                       const active = waitEstimatedMin === min;
