@@ -7,7 +7,15 @@ import {
   Typography, 
   Button,
   Chip,
-  Alert
+  Alert,
+  ToggleButton,
+  ToggleButtonGroup,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import { 
   People, 
@@ -24,16 +32,39 @@ import {
 
 import { API_BASE_URL } from '../../config/api';
 
+const gold = '#b8960c';
+const fmt = (v, prefix = '') => v == null ? '—' : `${prefix}${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: prefix === 'R$\u00a0' ? 2 : 0, maximumFractionDigits: prefix === 'R$\u00a0' ? 2 : 1 })}`;
+
+function OpsCard({ label, value, sub, color }) {
+  return (
+    <Card sx={{ bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
+      <CardContent sx={{ textAlign: 'center', py: 2 }}>
+        <Typography variant="h5" fontWeight="800" sx={{ color: color || '#fff' }}>{value}</Typography>
+        <Typography variant="caption" sx={{ color: '#aaa', display: 'block', mt: 0.5 }}>{label}</Typography>
+        {sub && <Typography variant="caption" sx={{ color: '#666', fontSize: 10 }}>{sub}</Typography>}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [territoryData, setTerritoryData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [opsPeriod, setOpsPeriod] = useState('today');
+  const [opsData, setOpsData] = useState(null);
+  const [opsLoading, setOpsLoading] = useState(false);
+
   useEffect(() => {
     fetchDashboardData();
     fetchTerritoryData();
   }, []);
+
+  useEffect(() => {
+    fetchOpsData(opsPeriod);
+  }, [opsPeriod]);
 
   const fetchDashboardData = async () => {
     try {
@@ -58,6 +89,19 @@ export default function AdminDashboard() {
       const data = await response.json();
       if (data.success) setTerritoryData(data.data);
     } catch {}
+  };
+
+  const fetchOpsData = async (period) => {
+    setOpsLoading(true);
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const res = await fetch(`${API_BASE_URL}/api/admin/dashboard/operations?period=${period}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success) setOpsData(json.data);
+    } catch {}
+    finally { setOpsLoading(false); }
   };
 
   if (loading) {
@@ -294,6 +338,154 @@ export default function AdminDashboard() {
           </Grid>
         </>
       )}
+
+      {/* Operações */}
+      <Box sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="h6" sx={{ color: gold, fontWeight: 700 }}>⚡ Operações</Typography>
+          <ToggleButtonGroup
+            value={opsPeriod}
+            exclusive
+            onChange={(_, v) => v && setOpsPeriod(v)}
+            size="small"
+            sx={{ '& .MuiToggleButton-root': { color: '#aaa', borderColor: '#333', px: 2 }, '& .Mui-selected': { color: gold, borderColor: gold, bgcolor: '#1a1500 !important' } }}
+          >
+            <ToggleButton value="today">Hoje</ToggleButton>
+            <ToggleButton value="7d">7 dias</ToggleButton>
+            <ToggleButton value="30d">30 dias</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        {opsLoading ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress sx={{ color: gold }} /></Box>
+        ) : opsData ? (
+          <>
+            {/* Corridas */}
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Corridas</Typography>
+            <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
+              {[
+                { label: 'Concluídas', value: fmt(opsData.rides?.completed), color: '#4caf50' },
+                { label: 'Canceladas', value: fmt(opsData.rides?.canceled), color: '#ef5350' },
+                { label: 'Sem motorista', value: fmt(opsData.rides?.no_driver), color: '#ff9800' },
+                { label: 'Com espera', value: fmt(opsData.rides?.with_wait), color: gold },
+                { label: 'Com ajuste', value: fmt(opsData.rides?.with_adjustment), color: '#90caf9' },
+                { label: 'Ajustes aceitos', value: fmt(opsData.rides?.adjustments_accepted), color: '#ce93d8' },
+              ].map(c => (
+                <Grid item xs={6} sm={4} md={2} key={c.label}>
+                  <OpsCard label={c.label} value={c.value} color={c.color} />
+                </Grid>
+              ))}
+            </Grid>
+
+            {/* Financeiro */}
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Financeiro</Typography>
+            <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
+              {[
+                { label: 'Valor bruto', value: fmt(opsData.financials?.gross_total, 'R$\u00a0'), color: '#4caf50' },
+                { label: 'Créditos consumidos', value: fmt(opsData.financials?.credits_consumed), color: gold },
+                { label: 'Receita em créditos', value: fmt(opsData.financials?.platform_revenue_credits, 'R$\u00a0'), color: '#ce93d8', sub: 'créditos × R$2' },
+                { label: 'Wait charge est.', value: fmt(opsData.financials?.wait_charge_estimated, 'R$\u00a0'), color: '#ff9800', sub: 'sem ajuste motorista' },
+              ].map(c => (
+                <Grid item xs={6} sm={3} key={c.label}>
+                  <OpsCard label={c.label} value={c.value} color={c.color} sub={c.sub} />
+                </Grid>
+              ))}
+            </Grid>
+
+            {/* Espera */}
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Espera</Typography>
+            <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
+              {[
+                { label: 'Espera média', value: opsData.wait?.avg_minutes != null ? `${fmt(opsData.wait.avg_minutes)} min` : '—', color: gold },
+                { label: 'Espera total', value: opsData.wait?.total_minutes != null ? `${fmt(opsData.wait.total_minutes)} min` : '—', color: '#90caf9' },
+              ].map(c => (
+                <Grid item xs={6} sm={3} key={c.label}>
+                  <OpsCard label={c.label} value={c.value} color={c.color} />
+                </Grid>
+              ))}
+            </Grid>
+
+            {/* Território */}
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Território (período)</Typography>
+            <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
+              {[
+                { label: 'Local', value: fmt(opsData.territory?.local), color: '#4caf50' },
+                { label: 'Adjacent', value: fmt(opsData.territory?.adjacent), color: '#ff9800' },
+                { label: 'External', value: fmt(opsData.territory?.external), color: '#aaa' },
+              ].map(c => (
+                <Grid item xs={4} sm={2} key={c.label}>
+                  <OpsCard label={c.label} value={c.value} color={c.color} />
+                </Grid>
+              ))}
+            </Grid>
+
+            {/* Rankings */}
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" sx={{ color: gold, mb: 1 }}>🏘️ Top Bairros (origem)</Typography>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ color: '#666', borderColor: '#222', py: 0.5 }}>#</TableCell>
+                          <TableCell sx={{ color: '#666', borderColor: '#222', py: 0.5 }}>Bairro</TableCell>
+                          <TableCell align="right" sx={{ color: '#666', borderColor: '#222', py: 0.5 }}>Corridas</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(opsData.top_neighborhoods || []).slice(0, 8).map((n, i) => (
+                          <TableRow key={n.name}>
+                            <TableCell sx={{ color: '#555', borderColor: '#1a1a1a', py: 0.5 }}>{i + 1}</TableCell>
+                            <TableCell sx={{ color: '#ddd', borderColor: '#1a1a1a', py: 0.5 }}>{n.name}</TableCell>
+                            <TableCell align="right" sx={{ color: gold, fontWeight: 700, borderColor: '#1a1a1a', py: 0.5 }}>{n.rides}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(!opsData.top_neighborhoods?.length) && (
+                          <TableRow><TableCell colSpan={3} sx={{ color: '#555', borderColor: '#1a1a1a', textAlign: 'center' }}>—</TableCell></TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" sx={{ color: gold, mb: 1 }}>🚗 Top Motoristas</Typography>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ color: '#666', borderColor: '#222', py: 0.5 }}>Motorista</TableCell>
+                          <TableCell align="right" sx={{ color: '#666', borderColor: '#222', py: 0.5 }}>Corridas</TableCell>
+                          <TableCell align="right" sx={{ color: '#666', borderColor: '#222', py: 0.5 }}>Créditos</TableCell>
+                          <TableCell align="right" sx={{ color: '#666', borderColor: '#222', py: 0.5 }}>Espera</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(opsData.top_drivers || []).slice(0, 8).map((d) => (
+                          <TableRow key={d.name}>
+                            <TableCell sx={{ color: '#ddd', borderColor: '#1a1a1a', py: 0.5 }}>{d.name}</TableCell>
+                            <TableCell align="right" sx={{ color: gold, fontWeight: 700, borderColor: '#1a1a1a', py: 0.5 }}>{d.rides}</TableCell>
+                            <TableCell align="right" sx={{ color: '#90caf9', borderColor: '#1a1a1a', py: 0.5 }}>{d.credits}</TableCell>
+                            <TableCell align="right" sx={{ color: '#aaa', borderColor: '#1a1a1a', py: 0.5 }}>{d.wait_min > 0 ? `${d.wait_min}m` : '—'}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(!opsData.top_drivers?.length) && (
+                          <TableRow><TableCell colSpan={4} sx={{ color: '#555', borderColor: '#1a1a1a', textAlign: 'center' }}>—</TableCell></TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </>
+        ) : (
+          <Typography sx={{ color: '#555' }}>Sem dados disponíveis.</Typography>
+        )}
+      </Box>
 
       {/* Menu de Navegação */}
       <Typography variant="h6" sx={{ mb: 2 }}>
