@@ -11,16 +11,18 @@ async function startServer() {
 
     // Auto-migration: add invite_code columns if not present
     try {
-      await prisma.$executeRawUnsafe(`
+      const { pool } = await import('./db');
+      await pool.query(`
         ALTER TABLE admins
         ADD COLUMN IF NOT EXISTS invite_code VARCHAR(20),
         ADD COLUMN IF NOT EXISTS invite_code_expires_at TIMESTAMPTZ
       `);
-      await prisma.$executeRawUnsafe(`
+      await pool.query(`
         CREATE UNIQUE INDEX IF NOT EXISTS admins_invite_code_key ON admins(invite_code) WHERE invite_code IS NOT NULL
       `);
+      console.log('[STARTUP_MIGRATION] invite_code columns OK');
     } catch (migErr) {
-      console.warn('[STARTUP_MIGRATION] invite_code columns:', (migErr as any).message);
+      console.warn('[STARTUP_MIGRATION] invite_code:', (migErr as any).message);
     }
 
     // Start server

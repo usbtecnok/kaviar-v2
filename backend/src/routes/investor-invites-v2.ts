@@ -20,7 +20,7 @@ function generateShortCode(name: string): string {
   return `${prefix}-${suffix}`;
 }
 
-// GET /api/admin/investor-invites/i/:code — público, redireciona para reset-password
+// GET /i/:code — público, redireciona para reset-password
 router.get('/i/:code', async (req: Request, res: Response) => {
   try {
     const { code } = req.params;
@@ -169,10 +169,15 @@ router.post('/invite', authenticateAdmin, requireSuperAdmin, inviteRateLimit, as
     // Gerar código curto e salvar no admin
     const shortCode = generateShortCode(displayName);
     const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h
-    await prisma.admins.update({
-      where: { id: admin.id },
-      data: { invite_code: shortCode, invite_code_expires_at: expiresAt }
-    });
+    try {
+      await prisma.admins.update({
+        where: { id: admin.id },
+        data: { invite_code: shortCode, invite_code_expires_at: expiresAt }
+      });
+      console.log(`[INVITE_CODE_SAVED] admin=${admin.id} code=${shortCode}`);
+    } catch (codeErr: any) {
+      console.error(`[INVITE_CODE_FAILED] admin=${admin.id}`, codeErr.message);
+    }
     const inviteUrl = `${config.frontendUrl}/i/${shortCode}`;
 
     // WhatsApp first, email fallback
