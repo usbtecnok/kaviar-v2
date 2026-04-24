@@ -537,24 +537,31 @@ function AdminHome() {
               <Grid container spacing={2}>
                 {[
                   {
-                    title: 'Top Bairros', rows: (opsData.top_neighborhoods || []).slice(0, 8),
+                    title: 'Top Bairros', all: opsData.top_neighborhoods || [], rows: (opsData.top_neighborhoods || []).slice(0, 5),
                     cols: ['#', 'Bairro', 'Corridas'],
                     render: (n, i) => [i + 1, n.name, n.rides],
                     aligns: ['left', 'left', 'right'],
                     accentCol: 2,
+                    link: '/admin/operations',
                   },
                   {
-                    title: 'Top Motoristas', rows: (opsData.top_drivers || []).slice(0, 8),
+                    title: 'Top Motoristas', all: opsData.top_drivers || [], rows: (opsData.top_drivers || []).slice(0, 5),
                     cols: ['Motorista', 'Corridas', 'Créditos', 'Espera'],
                     render: (d) => [d.name, d.rides, d.credits, d.wait_min > 0 ? `${d.wait_min}m` : '—'],
                     aligns: ['left', 'right', 'right', 'right'],
                     accentCol: 1,
+                    link: '/admin/drivers',
                   },
-                ].map(({ title, rows, cols, render, aligns, accentCol }) => (
+                ].map(({ title, all, rows, cols, render, aligns, accentCol, link }) => (
                   <Grid item xs={12} md={6} key={title}>
                     <Card sx={{ background: cardBg, border: `1px solid ${goldBorder}`, borderRadius: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
                       <CardContent sx={{ pb: '16px !important' }}>
-                        <Typography sx={{ color: gold, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', mb: 1.5 }}>{title}</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                          <Typography sx={{ color: gold, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{title}</Typography>
+                          <Button href={link} size="small" sx={{ color: '#6B6045', fontSize: 10, textTransform: 'none', p: 0, minWidth: 0, '&:hover': { color: gold } }}>
+                            Ver relatório →
+                          </Button>
+                        </Box>
                         <Table size="small">
                           <TableHead>
                             <TableRow sx={{ '& td,& th': { borderColor: 'rgba(201,162,39,0.12)' } }}>
@@ -578,6 +585,11 @@ function AdminHome() {
                             )}
                           </TableBody>
                         </Table>
+                        {all.length > 5 && (
+                          <Typography sx={{ color: '#6B6045', fontSize: 11, mt: 1.5, textAlign: 'center' }}>
+                            + {all.length - 5} {title === 'Top Bairros' ? 'bairros' : 'motoristas'} com movimento no período
+                          </Typography>
+                        )}
                       </CardContent>
                     </Card>
                   </Grid>
