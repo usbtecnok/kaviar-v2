@@ -1,4 +1,52 @@
-# arquivos locais gerados (docs/relatórios/scripts)
+# === Secrets / Environment ===
+.env
+**/.env
+*.env
+*.env.*
+aws-resources.env
+rds.env
+
+# === Dependencies ===
+node_modules/
+**/node_modules/
+
+# === Build artifacts ===
+dist/
+**/dist/
+
+# === APKs / Builds (binários vão para R2, não Git) ===
+builds/
+apks/
+*.apk
+
+# === Python virtual env ===
+.venv/
+
+# === Expo / Wrangler / Android cache ===
+.expo/
+.wrangler/
+android/.kotlin/
+android/app/debug.keystore
+
+# === Backend artifacts ===
+backend/backend-bundle.zip
+backend/audit/
+
+# === Backups / Temporários / Logs ===
+*.bak
+*.bak.*
+*.bak-*
+*.broken-*
+*.tmp
+*.log
+*.sql.bak
+deploy.log
+
+# === OS / Editor ===
+.DS_Store
+Thumbs.db
+
+# === Arquivos locais gerados (docs/relatórios) ===
 *.txt
 *_HOTFIX*.md
 RELATORIO_*.md
@@ -8,116 +56,34 @@ CHECKLIST_*.md
 DIFF_*.md
 INDEX.md
 QUICK_START.md
+ANALISE_TERRITORIO_GOOGLE.md
+APRESENTACAO_EXECUTIVA.md
+CORRECAO_FINAL.md
+HOTFIX_COMPLETO.md
+HOTFIX_GEOFENCE_FALLBACK.md
+INVESTORS_ACCESS*.md
+METRICAS_SISTEMA_KAVIAR.md
+docs/aws/BACKUP_ENV_VARS_PRODUCAO_2026-03-15.md
 
-# scripts locais (se não forem parte do repo)
+# === Scripts locais perigosos ===
 deploy-geofence-fix.sh
 rollback-geofence-fix.sh
 test-geofence-patches.sh
 validate-*.sh
-
-# secrets / env
-.env
-**/.env
-*.env
-*.env.*
-aws-resources.env
-rds.env
-
-# deps / build
-node_modules/
-**/node_modules/
-dist/
-**/dist/
-
-# backups & logs
-*.bak
-*.log
-deploy.log
-*.sql.bak
-
-# OS/editor
-.DS_Store
-
-# scripts locais perigosos / rascunhos de migração
 migrate-to-rds.sh
 validate-territory.sql
 
-# backups
-*.bak
-*.bak.*
-
-# scripts locais perigosos / rascunhos de migração/validação
-migrate-to-rds.sh
-validate-territory.sql
-
-# backups
-*.bak
-*.bak.*
-
-# docs/relatórios locais (não versionar)
-ANALISE_TERRITORIO_GOOGLE.md
-APRESENTACAO_EXECUTIVA.md
-CORRECAO_FINAL.md
-HOTFIX_COMPLETO.md
-HOTFIX_GEOFENCE_FALLBACK.md
-INVESTORS_ACCESS*.md
-METRICAS_SISTEMA_KAVIAR.md
-
-# auditorias locais (muitos arquivos gerados)
-backend/audit/
-
-# backups
-*.bak
-*.bak.*
-
-# docs/relatórios locais (não versionar)
-ANALISE_TERRITORIO_GOOGLE.md
-APRESENTACAO_EXECUTIVA.md
-CORRECAO_FINAL.md
-HOTFIX_COMPLETO.md
-HOTFIX_GEOFENCE_FALLBACK.md
-INVESTORS_ACCESS*.md
-METRICAS_SISTEMA_KAVIAR.md
-
-# auditorias locais (muitos arquivos gerados)
-backend/audit/
-
-# backups
-*.bak
-*.bak.*
-
-# backups / temporários
-*.bak-*
-*.broken-*
-*.tmp
-*.log
-
-# evidências locais
-evidencias-prod-*/
+# === JSON (exceto configs do projeto) ===
 *.json
 !package.json
 !package-lock.json
 !tsconfig.json
+!tsconfig.build.json
+!tsconfig.clean.json
+!tsconfig.node.json
 !app.json
 !eas.json
+!backend/migration-runner-task-def.json
 
-docs/aws/BACKUP_ENV_VARS_PRODUCAO_2026-03-15.md
-
-# === Limpeza sync 2026-04-05 ===
-# Expo cache (gerado pelo build)
-.expo/
-
-# Wrangler local state (dev only)
-.wrangler/
-
-# Kotlin compiler sessions
-android/.kotlin/
-
-# APKs binários (devem ir para R2/S3, não Git)
-apks/
-
-# Backend bundle zip (artefato de deploy)
-backend/backend-bundle.zip
-
-# Android debug keystore (não versionar)
-android/app/debug.keystore
+# === Evidências locais ===
+evidencias-prod-*/
