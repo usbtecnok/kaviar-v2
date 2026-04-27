@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { RatingController } from '../modules/rating/controller';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
 const ratingController = new RatingController();
+router.use(requireAuth);
 
 /**
  * Ratings (Avaliação de Motorista)

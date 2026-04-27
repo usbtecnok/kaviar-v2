@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { checkAllNotifications } from '../services/notifications';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
+router.use(requireAuth);
 
 /**
  * GET /api/drivers/:driverId/notifications

@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { resolveTerritory } from '../services/territory-resolver.service';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
+router.use(requireAuth);
 
 /**
  * POST /api/passengers/:passengerId/locations

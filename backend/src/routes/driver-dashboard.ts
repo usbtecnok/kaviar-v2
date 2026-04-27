@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { calculateBadgeProgress, generateRecommendation } from '../services/badge-service';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
+router.use(requireAuth);
 
 /**
  * GET /api/drivers/:driverId/dashboard

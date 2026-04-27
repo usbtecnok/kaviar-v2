@@ -6,6 +6,9 @@ import { pool } from '../db';
 const router = Router();
 const prisma = new PrismaClient();
 
+// Auth obrigatório para todas as rotas do dashboard
+router.use(authenticateAdmin, allowReadAccess);
+
 // GET /api/admin/dashboard/overview
 router.get('/overview', async (req: Request, res: Response) => {
   try {
@@ -88,7 +91,7 @@ router.get('/territory', async (req: Request, res: Response) => {
  *   Isso isola o wait_charge sem misturar ajuste do motorista.
  *   Nomeado "estimated" porque depende de locked_price como proxy do quoted_price.
  */
-router.get('/operations', authenticateAdmin, allowReadAccess, async (req: Request, res: Response) => {
+router.get('/operations', async (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || '7d';
     const since = new Date();
