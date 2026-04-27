@@ -9,6 +9,7 @@ interface RequestRideParams {
   scheduled_for?: string;
   wait_requested?: boolean;
   wait_estimated_min?: number;
+  post_wait_destination?: { lat: number; lng: number; text?: string };
 }
 
 export const passengerApi = {

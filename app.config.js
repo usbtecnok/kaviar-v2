@@ -48,7 +48,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.7.8',
+    version: '1.10.3',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
@@ -98,6 +98,18 @@ export default {
           isAndroidForegroundServiceEnabled: variant === 'driver',
         }
       ],
+      (config) => {
+        // Injeta sdk.dir no local.properties para builds EAS local
+        const { withDangerousMod } = require('@expo/config-plugins');
+        const fs = require('fs');
+        const path = require('path');
+        return withDangerousMod(config, ['android', async (cfg) => {
+          const localProps = path.join(cfg.modRequest.platformProjectRoot, 'local.properties');
+          const sdkDir = process.env.ANDROID_HOME || '/usr/lib/android-sdk';
+          fs.writeFileSync(localProps, `sdk.dir=${sdkDir}\n`);
+          return cfg;
+        }]);
+      },
     ],
     extra: {
       eas: {

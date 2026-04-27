@@ -13,6 +13,13 @@ import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
+import { CommunityStatusCard } from '../../src/components/passenger/CommunityStatusCard';
+import { ReturnHomeCard } from '../../src/components/passenger/ReturnHomeCard';
+import { TripComposition } from '../../src/components/passenger/TripComposition';
+import { ScheduleSelector } from '../../src/components/passenger/ScheduleSelector';
+import { RideCompletedModal } from '../../src/components/passenger/RideCompletedModal';
+import { RideWizard } from '../../src/components/passenger/RideWizard';
+import { RadarPulse } from '../../src/components/passenger/RadarPulse';
 import { AdjustmentModal } from '../../src/components/AdjustmentModal';
 
 import { ENV } from '../../src/config/env';
@@ -22,8 +29,8 @@ const POLL_INTERVAL = 3000;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   scheduled:          { label: 'Corrida agendada',       color: '#1a3a6a', icon: '🕐' },
-  requested:          { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
-  offered:            { label: 'Buscando motorista...', color: COLORS.warning, icon: '🔍' },
+  requested:          { label: 'Buscando motorista...', color: COLORS.warning, icon: '🚗' },
+  offered:            { label: 'Buscando motorista...', color: COLORS.warning, icon: '🚗' },
   pending_adjustment: { label: 'Ajuste de valor',       color: COLORS.warning, icon: '💰' },
   accepted:           { label: 'Motorista a caminho',   color: COLORS.accent,  icon: '🚗' },
   arrived:    { label: 'Motorista chegou!',      color: COLORS.primary, icon: '📍' },
@@ -39,11 +46,20 @@ type Screen = 'idle' | 'search' | 'tracking';
 export default function PassengerMap() {
   const router = useRouter();
   const params = useLocalSearchParams<{ destLat?: string; destLng?: string }>();
-  const [screen, setScreen] = useState<Screen>('idle');
-  const [origin, setOrigin] = useState<Place | null>(null);
-  const [destination, setDestination] = useState<Place | null>(null);
+  // ── DEV PREVIEW: set to 'accepted' | 'arrived' | 'in_progress' | null to test tracking UI ──
+  const DEV_PREVIEW: RideStatus | null = null; // ← change to test, set null before build
+  const [screen, setScreen] = useState<Screen>(DEV_PREVIEW ? 'tracking' : 'idle');
+  const [wizardStep, setWizardStep] = useState(0);
+  const [origin, setOrigin] = useState<Place | null>(DEV_PREVIEW ? { text: 'Estr. Pedro Pereira Pinto, 6d', lat: -22.9818, lng: -43.2945, placeId: 'dev' } : null);
+  const [destination, setDestination] = useState<Place | null>(DEV_PREVIEW ? { text: 'Tijuca, Rio de Janeiro', lat: -22.9253, lng: -43.2350, placeId: 'dev' } : null);
   const [loading, setLoading] = useState(false);
-  const [ride, setRide] = useState<Ride | null>(null);
+  const [ride, setRide] = useState<Ride | null>(DEV_PREVIEW ? {
+    id: 'dev-preview', passenger_id: 'dev', status: DEV_PREVIEW, ride_type: 'normal',
+    origin_lat: -22.9818, origin_lng: -43.2945, origin_text: 'Estr. Pedro Pereira Pinto, 6d',
+    dest_lat: -22.9253, dest_lng: -43.2350, destination_text: 'Tijuca, Rio de Janeiro',
+    requested_at: new Date().toISOString(),
+    driver: { name: 'Aparecido Goes', vehicle_model: 'Templa 2026', vehicle_plate: 'NDHXU', vehicle_color: 'Branco' },
+  } : null);
   const [userName, setUserName] = useState('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [userAddress, setUserAddress] = useState('Minha localização');
@@ -65,6 +81,8 @@ export default function PassengerMap() {
   const [passengerCount, setPassengerCount] = useState(1);
   const [hasLuggage, setHasLuggage] = useState(false);
   const [waitEstimatedMin, setWaitEstimatedMin] = useState<number | null>(null);
+  const [postWaitDest, setPostWaitDest] = useState<{ lat: number; lng: number; text: string } | null>(null);
+  const [postWaitSearchMode, setPostWaitSearchMode] = useState(false);
 
   // Schedule
   type ScheduleOption = 'now' | '15min' | '30min' | 'custom';
@@ -269,6 +287,7 @@ export default function PassengerMap() {
         const loc = data.result.geometry.location;
         const place: Place = { text: p.description, lat: loc.lat, lng: loc.lng, placeId: p.place_id };
         if (searchingFor === 'origin') setOrigin(place);
+        else if (postWaitSearchMode) { setPostWaitDest({ lat: loc.lat, lng: loc.lng, text: p.description }); setPostWaitSearchMode(false); }
         else setDestination(place);
       }
     } catch (e) {
@@ -276,7 +295,7 @@ export default function PassengerMap() {
       Alert.alert('Erro', friendlyError(e, 'Não foi possível selecionar o endereço. Tente novamente.'));
     }
     setScreen('idle');
-  }, [searchingFor]);
+  }, [searchingFor, postWaitSearchMode]);
 
   const useCurrentLocation = () => {
     if (userLocation) {
@@ -408,7 +427,12 @@ export default function PassengerMap() {
       console.log('[checkReturnHome] ✅ card SHOWN');
     } catch (e) { console.warn('[checkReturnHome] EXCEPTION:', e); }
   };
-  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); checkReturnHome(rideDestination); };
+  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); checkReturnHome(rideDestination); };
+  const rideEndLocation = (r: Ride | null) => {
+    if (!r) return null;
+    const pwd = (r as any).trip_details?.post_wait_destination;
+    return pwd?.lat && pwd?.lng ? { lat: pwd.lat, lng: pwd.lng } : { lat: r.dest_lat, lng: r.dest_lng };
+  };
   const handleRetry = () => { stopPolling(); setRide(null); setScreen('idle'); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); };
 
   const handleBoardingStatus = async (status: 'at_door' | 'descending' | '2_minutes') => {
@@ -446,6 +470,22 @@ export default function PassengerMap() {
   const handleRequest = async () => {
     if (!origin) { Alert.alert('Origem indisponível', 'Aguarde o GPS ou selecione um endereço.'); return; }
     if (!destination) { Alert.alert('Selecione o destino', 'Para onde você vai?'); return; }
+    if (waitEstimatedMin !== null && !postWaitDest) {
+      Alert.alert(
+        'Sem destino após a espera',
+        'O valor incluirá apenas a ida até a parada + o tempo de espera. Se o motorista deve continuar ou retornar, informe o destino após a espera.',
+        [
+          { text: 'Informar destino', style: 'cancel' },
+          { text: 'Continuar assim', onPress: () => submitRide() },
+        ]
+      );
+      return;
+    }
+    submitRide();
+  };
+
+  const submitRide = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setLoading(true);
     try {
       const result = await passengerApi.requestRide({
@@ -455,6 +495,7 @@ export default function PassengerMap() {
         scheduled_for: getScheduledFor(),
         wait_requested: waitEstimatedMin !== null,
         wait_estimated_min: waitEstimatedMin ?? undefined,
+        post_wait_destination: waitEstimatedMin !== null && postWaitDest ? postWaitDest : undefined,
       });
       const rideData = await passengerApi.getRide(result.ride_id);
       setRide(rideData);
@@ -492,10 +533,18 @@ export default function PassengerMap() {
   ) : null;
 
   const regionCenter = mapTarget || (destination ? { lat: destination.lat, lng: destination.lng } : null) || userLocation;
-  const region: Region | undefined = regionCenter ? {
-    latitude: regionCenter.lat, longitude: regionCenter.lng,
-    latitudeDelta: 0.015, longitudeDelta: 0.015,
-  } : undefined;
+  // During tracking search states, fit origin+destination; otherwise use center with tight zoom
+  const region: Region | undefined = (() => {
+    if (screen === 'tracking' && ride && (rideStatus === 'requested' || rideStatus === 'offered' || rideStatus === 'no_driver')) {
+      const oLat = Number(ride.origin_lat), oLng = Number(ride.origin_lng);
+      const dLat = Number(ride.dest_lat), dLng = Number(ride.dest_lng);
+      const cLat = (oLat + dLat) / 2, cLng = (oLng + dLng) / 2;
+      const dLatDelta = Math.abs(oLat - dLat) * 1.5 || 0.02;
+      const dLngDelta = Math.abs(oLng - dLng) * 1.5 || 0.02;
+      return { latitude: cLat, longitude: cLng, latitudeDelta: Math.max(dLatDelta, 0.02), longitudeDelta: Math.max(dLngDelta, 0.02) };
+    }
+    return regionCenter ? { latitude: regionCenter.lat, longitude: regionCenter.lng, latitudeDelta: 0.015, longitudeDelta: 0.015 } : undefined;
+  })();
 
   useEffect(() => {
     if (driverLocation && mapTarget && mapRef.current) {
@@ -524,10 +573,10 @@ export default function PassengerMap() {
       <SafeAreaView style={s.searchContainer}>
         {/* Header */}
         <View style={s.searchHeader}>
-          <TouchableOpacity onPress={() => setScreen('idle')} style={s.searchBack}>
+          <TouchableOpacity onPress={() => { setScreen('idle'); setPostWaitSearchMode(false); }} style={s.searchBack}>
             <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
-          <Text style={s.searchTitle}>{searchingFor === 'destination' ? 'Para onde?' : 'Ponto de embarque'}</Text>
+          <Text style={s.searchTitle}>{postWaitSearchMode ? 'Destino após a espera' : searchingFor === 'destination' ? 'Para onde?' : 'Ponto de embarque'}</Text>
         </View>
 
         {/* Input */}
@@ -580,8 +629,11 @@ export default function PassengerMap() {
   return (
     <View style={s.container}>
       {/* Map */}
-      {region ? (
-        <MapView ref={mapRef} style={s.map} initialRegion={region} showsUserLocation showsMyLocationButton={false}>
+      {(() => {
+        const showRadarOverlay = screen === 'tracking' && (rideStatus === 'requested' || rideStatus === 'offered' || rideStatus === 'no_driver' || (rideStatus === 'accepted' && !driverLocation));
+        return region ? (
+        <View style={{ flex: 1 }}>
+        <MapView ref={mapRef} style={[s.map, screen === 'idle' && wizardStep > 0 && { flex: undefined, height: wizardStep >= 3 ? 120 : 180 }]} initialRegion={region} showsUserLocation showsMyLocationButton={false}>
           {screen === 'idle' && origin && origin.placeId !== 'current' && (
             <Marker coordinate={{ latitude: origin.lat, longitude: origin.lng }} title="Origem" pinColor={COLORS.success} />
           )}
@@ -597,12 +649,23 @@ export default function PassengerMap() {
             <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }} title="Motorista" pinColor={COLORS.warning} />
           )}
         </MapView>
+        {showRadarOverlay && (
+          <View style={s.radarOverlay}>
+            <RadarPulse />
+            <Text style={s.mapFallbackBrand}>K</Text>
+            <Text style={s.mapFallbackTitle}>{rideStatus === 'accepted' ? 'Motorista a caminho' : 'Buscando motorista'}</Text>
+            <Text style={s.mapFallbackSub}>{rideStatus === 'accepted' ? 'Aguardando localização do motorista...' : 'Estamos encontrando o melhor motorista para você'}</Text>
+            {ride?.driver?.name && <Text style={s.mapFallbackDriver}>🧑‍✈️ {ride.driver.name}</Text>}
+          </View>
+        )}
+        </View>
       ) : (
         <View style={s.mapLoading}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={s.mapLoadingText}>Obtendo localização...</Text>
         </View>
-      )}
+      );
+      })()}
 
       {/* IDLE overlay */}
       {screen === 'idle' && (
@@ -619,164 +682,69 @@ export default function PassengerMap() {
             </View>
           </SafeAreaView>
 
-          {communityStatus && screen === 'idle' && (
-            <View style={s.communityCard}>
-              <Text style={s.communityTitle}>Base KAVIAR — {communityStatus.communityName}</Text>
-              <Text style={s.communitySubtitle}>
-                {communityStatus.driversOnline > 0
-                  ? `${communityStatus.driversOnline} motorista${communityStatus.driversOnline > 1 ? 's' : ''} na sua região`
-                  : 'Operação em expansão na sua região'}
-              </Text>
-            </View>
+          {communityStatus && screen === 'idle' && !destination && (
+            <CommunityStatusCard communityName={communityStatus.communityName} driversOnline={communityStatus.driversOnline} />
           )}
 
           {showReturnCard && homePlace && screen === 'idle' && (
-            <View style={s.returnCard}>
-              <Text style={s.returnTitle}>Voltar para casa?</Text>
-              <Text style={s.returnSubtitle}>Sua região está ativa no momento.</Text>
-              <View style={s.returnButtons}>
-                <TouchableOpacity style={s.returnBtnPrimary} onPress={() => {
-                  setShowReturnCard(false);
-                  setDestination(homePlace);
-                  setScreen('idle');
-                }}>
-                  <Text style={s.returnBtnPrimaryText}>Pedir retorno</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.returnBtnSecondary} onPress={() => setShowReturnCard(false)}>
-                  <Text style={s.returnBtnSecondaryText}>Agora não</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <ReturnHomeCard
+              homePlace={homePlace}
+              onAccept={() => { setShowReturnCard(false); setDestination(homePlace); setScreen('idle'); }}
+              onDismiss={() => setShowReturnCard(false)}
+            />
           )}
 
-          <View style={s.bottomCard}>
-            <Text style={s.question}>Para onde você vai?</Text>
-
-            {/* Origin row — tap to change */}
-            <TouchableOpacity style={s.addressRow} onPress={() => openSearch('origin')}>
-              <View style={[s.dot, { backgroundColor: COLORS.success }]} />
-              <View style={s.addressInfo}>
-                <Text style={s.addressLabel}>EMBARQUE</Text>
-                <Text style={s.addressText} numberOfLines={1}>{origin?.text || 'Obtendo localização...'}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-
-            {/* Destination row — tap to search */}
-            <TouchableOpacity style={[s.addressRow, s.addressRowLast]} onPress={() => openSearch('destination')}>
-              <View style={[s.dot, { backgroundColor: COLORS.danger }]} />
-              <View style={s.addressInfo}>
-                <Text style={s.addressLabel}>DESTINO</Text>
-                <Text style={[s.addressText, !destination && s.addressPlaceholder]} numberOfLines={1}>
-                  {destination?.text || 'Toque para buscar endereço'}
-                </Text>
-              </View>
-              <Ionicons name="search" size={18} color={COLORS.textMuted} />
-            </TouchableOpacity>
-
-            {estimate && (
-              <View style={s.estimateRow}>
-                <Text style={s.estimateText}>~{estimate.distance_km.toFixed(1)} km</Text>
-                <Text style={s.estimatePrice}>Estimativa R$ {estimate.price.toFixed(2)}</Text>
-              </View>
-            )}
-            {estimateLoading && !estimate && destination && (
-              <Text style={s.estimateLoading}>Calculando estimativa...</Text>
-            )}
-
-            {/* Trip composition */}
-            {destination && (
-              <View style={s.tripComp}>
-                <View style={s.tripRow}>
-                  <Text style={s.tripLabel}>👥 Passageiros</Text>
-                  <View style={s.tripCounter}>
-                    <TouchableOpacity onPress={() => setPassengerCount(Math.max(1, passengerCount - 1))} style={s.tripBtn}><Text style={s.tripBtnText}>−</Text></TouchableOpacity>
-                    <Text style={s.tripCount}>{passengerCount}</Text>
-                    <TouchableOpacity onPress={() => setPassengerCount(Math.min(4, passengerCount + 1))} style={s.tripBtn}><Text style={s.tripBtnText}>+</Text></TouchableOpacity>
-                  </View>
-                </View>
-                <TouchableOpacity style={s.tripRow} onPress={() => setHasLuggage(!hasLuggage)} activeOpacity={0.7}>
-                  <Text style={s.tripLabel}>🧳 Bagagem</Text>
-                  <View style={[s.tripToggle, hasLuggage && s.tripToggleOn]}>
-                    <Text style={s.tripToggleText}>{hasLuggage ? 'Sim' : 'Não'}</Text>
-                  </View>
-                </TouchableOpacity>
-                <View style={{ marginTop: 10 }}>
-                  <Text style={s.tripLabel}>⏳ Preciso de uma parada com espera no destino?</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                    {[null, 10, 20, 30, 45, 60].map(min => {
-                      const active = waitEstimatedMin === min;
-                      return (
-                        <TouchableOpacity
-                          key={String(min)}
-                          onPress={() => setWaitEstimatedMin(min)}
-                          activeOpacity={0.7}
-                          style={[s.tripToggle, active && s.tripToggleOn, { paddingHorizontal: 12 }]}
-                        >
-                          <Text style={s.tripToggleText}>{min === null ? 'Não' : `${min} min`}</Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {/* Schedule selector */}
-            {destination && (
-              <View style={s.scheduleSection}>
-                <Text style={s.scheduleLabel}>QUANDO</Text>
-                <View style={s.scheduleRow}>
-                  {([
-                    { key: 'now' as ScheduleOption, label: 'Agora' },
-                    { key: '15min' as ScheduleOption, label: '15 min' },
-                    { key: '30min' as ScheduleOption, label: '30 min' },
-                    { key: 'custom' as ScheduleOption, label: 'Horário' },
-                  ]).map(opt => (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[s.scheduleChip, scheduleOption === opt.key && s.scheduleChipActive]}
-                      onPress={() => {
-                        setScheduleOption(opt.key);
-                        if (opt.key === 'custom') setShowTimePicker(true);
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[s.scheduleChipText, scheduleOption === opt.key && s.scheduleChipTextActive]}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {scheduleOption === 'custom' && customTime && (
-                  <Text style={s.schedulePreview}>Agendada para {fmtTime(customTime)}</Text>
-                )}
-              </View>
-            )}
-
-            <Button
-              title={scheduleOption === 'now' ? 'Pedir Kaviar' : `Agendar para ${getScheduleLabel()}`}
-              loading={loading}
-              onPress={handleRequest}
-              disabled={scheduleOption === 'custom' && !customTime}
-              style={{ marginTop: 14 }}
-            />
-          </View>
+          <RideWizard
+            step={wizardStep}
+            origin={origin}
+            destination={destination}
+            onSearchOrigin={() => openSearch('origin')}
+            onSearchDestination={() => openSearch('destination')}
+            estimate={estimate}
+            estimateLoading={estimateLoading}
+            passengerCount={passengerCount}
+            onPassengerChange={setPassengerCount}
+            hasLuggage={hasLuggage}
+            onLuggageToggle={() => setHasLuggage(!hasLuggage)}
+            waitEstimatedMin={waitEstimatedMin}
+            onWaitChange={(min) => { setWaitEstimatedMin(min); if (min === null) setPostWaitDest(null); }}
+            postWaitDest={postWaitDest}
+            onPostWaitClear={() => setPostWaitDest(null)}
+            onPostWaitSearch={() => { setSearchingFor('destination'); setScreen('search'); setPostWaitSearchMode(true); }}
+            scheduleOption={scheduleOption}
+            onScheduleChange={(opt) => { setScheduleOption(opt); if (opt === 'custom') setShowTimePicker(true); }}
+            customTime={customTime}
+            scheduleLabel={getScheduleLabel()}
+            loading={loading}
+            onSubmit={handleRequest}
+            onStepChange={setWizardStep}
+          />
         </>
       )}
 
       {/* TRACKING overlay */}
       {screen === 'tracking' && (
         <>
+          {!(rideStatus === 'requested' || rideStatus === 'offered' || rideStatus === 'no_driver') && (
           <SafeAreaView edges={['top']} style={[s.statusBar, { backgroundColor: info.color }]}>
             <Text style={s.statusText}>
               {rideStatus === 'scheduled' && ride?.scheduled_for
                 ? `🕐 Agendada para ${fmtTime(new Date(ride.scheduled_for))}`
-                : rideStatus === 'requested' || rideStatus === 'offered'
-                  ? ride?.scheduled_for
-                    ? `🔍 Buscando motorista para as ${fmtTime(new Date(ride.scheduled_for))}...`
-                    : `🔍 ${SEARCH_PHRASES[searchPhraseIdx]}`
                 : `${info.icon} ${info.label}`}
             </Text>
           </SafeAreaView>
+          )}
+
+          {/* Safety tip card — shown during active ride states */}
+          {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
+            <View style={s.safetyCard}>
+              <Text style={s.safetyCardIcon}>🛡️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.safetyCardTitle}>Viaje com segurança</Text>
+                <Text style={s.safetyCardText}>Confira a placa e cor do veículo antes de entrar. Compartilhe sua corrida com alguém de confiança.</Text>
+              </View>
+            </View>
+          )}
 
           <View style={s.bottomSheet}>
             {/* Redispatch banner */}
@@ -941,43 +909,15 @@ export default function PassengerMap() {
       )}
 
       {/* COMPLETED MODAL */}
-      <Modal visible={showCompleted} transparent animationType="fade" onRequestClose={() => { setShowCompleted(false); resetToIdle(completedRide ? { lat: completedRide.dest_lat, lng: completedRide.dest_lng } : null); }}>
-        <View style={s.modalOverlay}>
-          <View style={s.modalCard}>
-            <Text style={{ fontSize: 48, textAlign: 'center', marginBottom: 8 }}>✅</Text>
-            <Text style={s.modalTitle}>Corrida finalizada!</Text>
-            {completedRide?.driver?.name && (
-              <Text style={s.modalBody}>Motorista: {completedRide.driver.name}</Text>
-            )}
-            {completedRide?.final_price != null && (
-              <Text style={{ fontSize: 24, fontWeight: '800', color: COLORS.primary, textAlign: 'center', marginBottom: 8 }}>
-                R$ {Number(completedRide.final_price).toFixed(2)}
-              </Text>
-            )}
-            <Text style={s.communityMsg}>Sua corrida fortalece a mobilidade da sua comunidade 🏘️</Text>
-            <TouchableOpacity style={s.ctaPrimary} onPress={() => {
-              setShowCompleted(false);
-              router.push({ pathname: '/(passenger)/rating', params: { rideId: completedRide?.id || '', driverName: completedRide?.driver?.name || '', driverId: completedRide?.driver?.id || completedRide?.driver_id || '', destLat: String(completedRide?.dest_lat || ''), destLng: String(completedRide?.dest_lng || '') } });
-            }}>
-              <Text style={s.ctaPrimaryText}>Avaliar motorista</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 12 }]} onPress={() => {
-              setShowCompleted(false);
-              resetToIdle(completedRide ? { lat: completedRide.dest_lat, lng: completedRide.dest_lng } : null);
-              const driverName = completedRide?.driver?.name || 'não informado';
-              const rideTime = completedRide?.requested_at ? new Date(completedRide.requested_at).toLocaleString('pt-BR') : 'não informado';
-              const msg = `📦 Esqueci um objeto no carro\n\nMotorista: ${driverName}\nHorário: ${rideTime}\nCorrida: ${completedRide?.id || 'N/A'}`;
-              Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(msg)}`);
-            }}>
-              <Ionicons name="bag-outline" size={14} color={COLORS.textSecondary} />
-              <Text style={[s.ctaLinkText, { marginLeft: 4 }]}>Esqueci um objeto</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[s.ctaLink, { alignSelf: 'center', marginTop: 8 }]} onPress={() => { setShowCompleted(false); resetToIdle(completedRide ? { lat: completedRide.dest_lat, lng: completedRide.dest_lng } : null); }}>
-              <Text style={s.ctaLinkText}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <RideCompletedModal
+        visible={showCompleted}
+        ride={completedRide}
+        onRate={() => {
+          setShowCompleted(false);
+          router.push({ pathname: '/(passenger)/rating', params: { rideId: completedRide?.id || '', driverName: completedRide?.driver?.name || '', driverId: completedRide?.driver?.id || completedRide?.driver_id || '', destLat: String(completedRide?.dest_lat || ''), destLng: String(completedRide?.dest_lng || '') } });
+        }}
+        onClose={() => { setShowCompleted(false); resetToIdle(rideEndLocation(completedRide)); }}
+      />
 
       {/* EMERGENCY MODAL */}
       <Modal visible={showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
@@ -1051,7 +991,7 @@ export default function PassengerMap() {
       <Modal visible={showNoDriver} transparent animationType="fade" onRequestClose={() => { setShowNoDriver(false); resetToIdle(); }}>
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
-            <Text style={s.modalIcon}>{ride?.scheduled_for ? '🕐' : '🔍'}</Text>
+            <Text style={s.modalIcon}>{ride?.scheduled_for ? '🕐' : '🚗'}</Text>
             <Text style={s.modalTitle}>
               {ride?.scheduled_for
                 ? 'Não encontramos motorista para o horário agendado.'
@@ -1131,8 +1071,15 @@ export default function PassengerMap() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   map: { flex: 1 },
-  mapLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+  mapLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
   mapLoadingText: { color: COLORS.textMuted, fontSize: 14, marginTop: 12 },
+  mapFallback: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#080808' },
+  radarOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(8,8,8,0.85)' },
+  mapFallbackBrand: { fontSize: 56, fontWeight: '900', color: 'rgba(200,168,78,0.35)', letterSpacing: 8, marginBottom: 20 },
+  mapFallbackIcon: { fontSize: 40, marginBottom: 12 },
+  mapFallbackTitle: { fontSize: 20, fontWeight: '800', color: '#C8A84E', letterSpacing: 1 },
+  mapFallbackSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 8, textAlign: 'center', paddingHorizontal: 40, lineHeight: 18 },
+  mapFallbackDriver: { fontSize: 15, color: COLORS.textPrimary, fontWeight: '600', marginTop: 16 },
 
   // Top bar
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.92)' },
@@ -1207,6 +1154,17 @@ const s = StyleSheet.create({
   // Tracking
   statusBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, paddingTop: 48, paddingBottom: 10, paddingHorizontal: 16, alignItems: 'center' },
   statusText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  // Safety card
+  safetyCard: {
+    position: 'absolute', top: 100, left: 20, right: 20, zIndex: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(10,10,10,0.85)', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(200,168,78,0.15)',
+  },
+  safetyCardIcon: { fontSize: 24 },
+  safetyCardTitle: { fontSize: 13, fontWeight: '700', color: '#C8A84E', marginBottom: 3 },
+  safetyCardText: { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 17 },
+
   bottomSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
     backgroundColor: COLORS.surface, borderTopLeftRadius: 16, borderTopRightRadius: 16,

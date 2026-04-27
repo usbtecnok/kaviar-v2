@@ -144,9 +144,19 @@ export default function AcceptRide() {
             ) : (
               <Text style={s.badgeSub}>Passageiro vai precisar que você aguarde no destino</Text>
             )}
+            {(ride?.trip_details as any)?.post_wait_destination?.text ? (
+              <Text style={[s.badgeSub, { color: '#1565c0', fontWeight: '700', marginTop: 4 }]}>
+                📍 Após a espera: {(ride.trip_details as any).post_wait_destination.text}
+              </Text>
+            ) : null}
             <Text style={[s.badgeSub, { color: '#e65100', fontWeight: '700', marginTop: 4 }]}>
               Consome 2 créditos
             </Text>
+            {(ride?.trip_details as any)?.post_wait_destination && (
+              <View style={{ backgroundColor: '#1a1a0a', borderRadius: 6, borderWidth: 1, borderColor: '#C8A84E', paddingVertical: 6, paddingHorizontal: 10, marginTop: 6, alignSelf: 'flex-start' }}>
+                <Text style={{ color: '#C8A84E', fontSize: 12, fontWeight: '700' }}>✨ Valor já inclui o trecho após a espera</Text>
+              </View>
+            )}
           </View>
         )}
 

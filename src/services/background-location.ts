@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const TASK_NAME = 'kaviar-driver-location';
 const RIDE_ID_KEY = 'kaviar_active_ride_id';
 const API_URL_KEY = 'kaviar_api_url';
+const EMERGENCY_KEY = 'kaviar_emergency_active';
 
 // --- Persistent ride ID ---
 
@@ -44,12 +45,23 @@ function ensureTaskDefined() {
     const { latitude: lat, longitude: lng } = locations[locations.length - 1].coords;
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 
+    // Drain offline queue on each cycle (piggyback on background task)
+    try {
+      const { drain } = require('./offline-queue');
+      await drain(token);
+    } catch {}
+
     // Always send driver location
     try {
       await fetch(`${apiUrl}/api/v2/drivers/me/location`, {
         method: 'POST', headers, body: JSON.stringify({ lat, lng }),
       });
-    } catch {}
+    } catch {
+      try {
+        const { enqueue } = require('./offline-queue');
+        await enqueue({ method: 'POST' as const, url: `${apiUrl}/api/v2/drivers/me/location`, body: { lat, lng } });
+      } catch {}
+    }
 
     // If active ride, also send ride location (SSE to passenger)
     const rideId = await AsyncStorage.getItem(RIDE_ID_KEY);
@@ -58,7 +70,12 @@ function ensureTaskDefined() {
         await fetch(`${apiUrl}/api/v2/rides/${rideId}/location`, {
           method: 'POST', headers, body: JSON.stringify({ lat, lng }),
         });
-      } catch {}
+      } catch {
+        try {
+          const { enqueue } = require('./offline-queue');
+          await enqueue({ method: 'POST' as const, url: `${apiUrl}/api/v2/rides/${rideId}/location`, body: { lat, lng } });
+        } catch {}
+      }
     }
   });
 }
@@ -113,6 +130,7 @@ export async function startBackgroundLocation(apiUrl: string): Promise<'backgrou
 export async function stopBackgroundLocation(): Promise<void> {
   _running = false;
   await AsyncStorage.removeItem(RIDE_ID_KEY);
+  await AsyncStorage.removeItem(EMERGENCY_KEY);
   const registered = await TaskManager.isTaskRegisteredAsync(TASK_NAME);
   if (registered) {
     await Location.stopLocationUpdatesAsync(TASK_NAME);
@@ -121,4 +139,32 @@ export async function stopBackgroundLocation(): Promise<void> {
 
 export function isBackgroundRunning(): boolean {
   return _running;
+}
+
+export async function setEmergencyMode(active: boolean): Promise<void> {
+  if (active) {
+    await AsyncStorage.setItem(EMERGENCY_KEY, 'true');
+  } else {
+    await AsyncStorage.removeItem(EMERGENCY_KEY);
+  }
+  // Restart with tighter interval if running
+  if (_running) {
+    const apiUrl = (await AsyncStorage.getItem(API_URL_KEY)) || 'https://api.kaviar.com.br';
+    const registered = await TaskManager.isTaskRegisteredAsync(TASK_NAME);
+    if (registered) {
+      await Location.stopLocationUpdatesAsync(TASK_NAME);
+    }
+    await Location.startLocationUpdatesAsync(TASK_NAME, {
+      accuracy: Location.Accuracy.High,
+      timeInterval: active ? 5000 : 15000,
+      distanceInterval: active ? 10 : 30,
+      deferredUpdatesInterval: active ? 5000 : 15000,
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: 'Kaviar Motorista',
+        notificationBody: active ? '🚨 Modo de proteção ativo' : 'Compartilhando localização',
+        notificationColor: active ? '#FF0000' : '#D4AF37',
+      },
+    });
+  }
 }

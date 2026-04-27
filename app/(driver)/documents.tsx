@@ -16,6 +16,7 @@ const DOCUMENT_TYPES = [
   { type: 'proofOfAddress', label: 'Comprovante de Residência', required: true },
   { type: 'vehiclePhoto', label: 'Foto do Veículo', required: true },
   { type: 'backgroundCheck', label: 'Antecedentes Criminais', required: true },
+  { type: 'profilePhoto', label: 'Foto de Perfil', required: false },
 ] as const;
 
 type DocType = typeof DOCUMENT_TYPES[number]['type'];
@@ -37,6 +38,7 @@ export default function DocumentUpload() {
     proofOfAddress: null,
     vehiclePhoto: null,
     backgroundCheck: null,
+    profilePhoto: null,
   });
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -75,6 +77,7 @@ export default function DocumentUpload() {
       'PROOF_OF_ADDRESS': 'proofOfAddress',
       'VEHICLE_PHOTO': 'vehiclePhoto',
       'BACKGROUND_CHECK': 'backgroundCheck',
+      'PROFILE_PHOTO': 'profilePhoto',
     };
     return map[backendType] || null;
   };

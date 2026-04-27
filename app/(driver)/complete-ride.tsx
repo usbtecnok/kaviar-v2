@@ -47,6 +47,7 @@ export default function CompleteRide() {
   const [arrivedAt, setArrivedAt] = useState<number | null>(null);
   const [waitSeconds, setWaitSeconds] = useState(0);
   const [waitActiveSeconds, setWaitActiveSeconds] = useState(0);
+  const [postWaitLegStarted, setPostWaitLegStarted] = useState(false);
 
   // B2: Completion screen
   const [completionData, setCompletionData] = useState<{ credit?: { cost: number; matchType: string; balance: number }; waitMin?: number; waitCharge?: number; finalPrice?: number } | null>(null);
@@ -360,7 +361,7 @@ export default function CompleteRide() {
             </View>
             <View style={[st.completionRow, { borderBottomWidth: 0 }]}>
               <Text style={st.completionLabel}>Adicional de espera</Text>
-              <Text style={[st.completionValue, { color: '#f57f17' }]}>+ R$ {waitCharge?.toFixed(2)}</Text>
+              <Text style={[st.completionValue, { color: '#f57f17' }]}>{`+ R$\u00a0${waitCharge?.toFixed(2)}`}</Text>
             </View>
           </View>
         )}
@@ -466,6 +467,16 @@ export default function CompleteRide() {
           </View>
         )}
 
+        {/* Post-wait destination info */}
+        {ride?.wait_requested && (ride as any)?.trip_details?.post_wait_destination?.text && (
+          <View style={{ backgroundColor: '#0d2137', borderRadius: 10, padding: 12, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: '#1565c0' }}>
+            <Text style={{ color: '#1565c0', fontSize: 12, fontWeight: '700' }}>📍 Após a espera → {(ride as any).trip_details.post_wait_destination.text}</Text>
+            <View style={{ backgroundColor: '#1a1a0a', borderRadius: 6, borderWidth: 1, borderColor: '#C8A84E', paddingVertical: 6, paddingHorizontal: 10, marginTop: 6, alignSelf: 'flex-start' }}>
+              <Text style={{ color: '#C8A84E', fontSize: 12, fontWeight: '700' }}>✨ Valor já inclui o trecho após a espera</Text>
+            </View>
+          </View>
+        )}
+
         {/* Boarding status from passenger */}
         {rideStatus === 'arrived' && (ride as any)?.trip_details?.boarding_status && BOARDING_LABELS[(ride as any).trip_details.boarding_status] && (
           <View style={st.boardingCard}>
@@ -522,9 +533,40 @@ export default function CompleteRide() {
             </View>
           ) : null;
         })()}
-        {rideStatus === 'in_progress' && (
-          <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading || (!!ride?.wait_requested && !!ride?.wait_started_at && !ride?.wait_ended_at)} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
-        )}
+        {rideStatus === 'in_progress' && (() => {
+          const pwd = (ride as any)?.trip_details?.post_wait_destination;
+          const waitDone = ride?.wait_requested && ride?.wait_started_at && ride?.wait_ended_at;
+          const waitPending = ride?.wait_requested && ride?.wait_started_at && !ride?.wait_ended_at;
+
+          // After wait ended, with post_wait_destination: require "Iniciar trecho final" first
+          if (waitDone && pwd?.text && !postWaitLegStarted) {
+            return (
+              <Button
+                title="➡️ Iniciar trecho final"
+                onPress={() => setPostWaitLegStarted(true)}
+                style={{ backgroundColor: '#1565c0', minHeight: 56 }}
+              />
+            );
+          }
+
+          // After "Iniciar trecho final" clicked: show destination and allow complete
+          if (waitDone && pwd?.text && postWaitLegStarted) {
+            return (
+              <>
+                <View style={{ backgroundColor: '#0d2137', borderRadius: 10, padding: 14, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: '#1565c0' }}>
+                  <Text style={{ color: '#1565c0', fontSize: 13, fontWeight: '700', marginBottom: 4 }}>🚗 Em direção ao destino final</Text>
+                  <Text style={{ color: COLORS.textPrimary, fontSize: 15 }} numberOfLines={2}>{pwd.text}</Text>
+                </View>
+                <Button title={loading ? 'Finalizando...' : '✅ Cheguei ao destino final — Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
+              </>
+            );
+          }
+
+          // Default: normal complete button
+          return (
+            <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading || !!waitPending} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
+          );
+        })()}
 
         {/* B3: Cancel button */}
         {(rideStatus === 'accepted' || rideStatus === 'arrived') && (

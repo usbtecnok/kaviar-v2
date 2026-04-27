@@ -359,7 +359,7 @@ export default function DriverOnline() {
       {/* Status */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.center, pendingOffer && { justifyContent: 'flex-start', paddingTop: 16 }]}
+        contentContainerStyle={[styles.center, pendingOffer && { flex: undefined, justifyContent: 'flex-start', paddingTop: 16, paddingBottom: 40 }]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.statusRing}>
@@ -396,103 +396,80 @@ export default function DriverOnline() {
         {/* Offer card */}
         {pendingOffer && (
           <View style={styles.offerCard}>
-            {/* Badge territorial — homebound tem prioridade visual */}
-            {pendingOffer.ride.is_homebound ? (
-              <View style={[styles.territoryBadge, { backgroundColor: '#e8f5e9' }]}>
-                <Text style={[styles.territoryBadgeText, { color: '#2e7d32' }]}>🏠 Retorno para casa</Text>
-                <Text style={styles.territorySubtext}>Taxa reduzida — passageiro da sua região voltando para casa</Text>
-              </View>
-            ) : pendingOffer.territory_tier === 'COMMUNITY' ? (
-              <View style={[styles.territoryBadge, { backgroundColor: '#e3f2fd' }]}>
-                <Text style={[styles.territoryBadgeText, { color: '#1565c0' }]}>Da sua comunidade</Text>
-                <Text style={styles.territorySubtext}>Prioridade territorial por comunidade</Text>
-              </View>
-            ) : pendingOffer.territory_tier === 'NEIGHBORHOOD' ? (
-              <View style={[styles.territoryBadge, { backgroundColor: '#fff3e0' }]}>
-                <Text style={[styles.territoryBadgeText, { color: '#e65100' }]}>Do seu bairro</Text>
-                <Text style={styles.territorySubtext}>Prioridade territorial por bairro</Text>
-              </View>
-            ) : pendingOffer.territory_tier === 'OUTSIDE' ? (
-              <View style={[styles.territoryBadge, { backgroundColor: '#f5f5f5' }]}>
-                <Text style={[styles.territoryBadgeText, { color: '#616161' }]}>Região próxima</Text>
-                <Text style={styles.territorySubtext}>Corrida fora do seu território principal</Text>
-              </View>
-            ) : null}
-
+            {/* Header */}
             <View style={styles.offerHeader}>
-              <Ionicons name="car-sport" size={22} color={COLORS.primary} />
-              <Text style={styles.offerTitle}>Nova corrida!</Text>
+              <Ionicons name="car-sport" size={20} color={COLORS.primary} />
+              <Text style={styles.offerTitle}>Nova corrida</Text>
               {offerCountdown ? <Text style={styles.offerTimer}>{offerCountdown}</Text> : null}
             </View>
 
+            {/* Route compact */}
             <View style={styles.routeRow}>
               <View style={styles.routeDots}>
                 <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
                 <View style={styles.dotLine} />
                 <View style={[styles.dot, { backgroundColor: COLORS.danger }]} />
+                {(pendingOffer.ride as any).trip_details?.post_wait_destination?.text ? (
+                  <>
+                    <View style={styles.dotLine} />
+                    <View style={[styles.dot, { backgroundColor: '#1565c0' }]} />
+                  </>
+                ) : null}
               </View>
               <View style={styles.routeTexts}>
-                <Text style={styles.routeText}>{pendingOffer.ride.origin_text || 'Origem não informada'}</Text>
-                <Text style={styles.routeText}>{pendingOffer.ride.destination_text || 'Destino não informado'}</Text>
+                <Text style={styles.routeText} numberOfLines={1}>{pendingOffer.ride.origin_text || 'Origem'}</Text>
+                <Text style={styles.routeText} numberOfLines={1}>{pendingOffer.ride.destination_text || 'Destino'}{(pendingOffer.ride as any).wait_requested ? ' (parada)' : ''}</Text>
+                {(pendingOffer.ride as any).trip_details?.post_wait_destination?.text ? (
+                  <Text style={[styles.routeText, { color: '#1565c0' }]} numberOfLines={1}>{(pendingOffer.ride as any).trip_details.post_wait_destination.text}</Text>
+                ) : null}
               </View>
             </View>
 
-            {distanceToPickup !== null && (
-              <View style={styles.offerMeta}>
-                <Ionicons name="location-outline" size={14} color={COLORS.textMuted} />
-                <Text style={styles.offerMetaText}>{distanceToPickup.toFixed(1)} km até o embarque</Text>
+            {/* Meta row: value + credits + distance */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              {(pendingOffer.ride as any).quoted_price != null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a2a1a', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <Text style={{ color: COLORS.primary, fontSize: 14, fontWeight: '800' }}>R$ {Number((pendingOffer.ride as any).quoted_price).toFixed(2)}</Text>
+                </View>
+              )}
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a2e', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>{pendingOffer.territory_tier === 'OUTSIDE' ? '2 créd · externa' : '1 créd · local'}</Text>
               </View>
-            )}
+              {distanceToPickup !== null && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a2e', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>{distanceToPickup.toFixed(1)} km</Text>
+                </View>
+              )}
+              {(pendingOffer.ride as any).wait_requested && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#2a2a1a', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <Text style={{ color: '#f57f17', fontSize: 12, fontWeight: '700' }}>⏳ {(pendingOffer.ride as any).wait_estimated_min || '?'} min</Text>
+                </View>
+              )}
+            </View>
 
-            {(pendingOffer.ride as any).quoted_price != null && (
-              <View style={styles.offerMeta}>
-                <Ionicons name="cash-outline" size={14} color={COLORS.primary} />
-                <Text style={[styles.offerMetaText, { color: COLORS.primary, fontWeight: '700' }]}>Estimativa R$ {Number((pendingOffer.ride as any).quoted_price).toFixed(2)}</Text>
-                <Text style={[styles.offerMetaText, { color: COLORS.textMuted, marginLeft: 8 }]}>
-                  · {pendingOffer.territory_tier === 'OUTSIDE' ? '2 créditos · externa' : '1 crédito · local'}
-                </Text>
-              </View>
-            )}
-
-            {pendingOffer.ride.passenger?.name && (
-              <Text style={styles.offerPassenger}>
-                <Ionicons name="person-outline" size={14} color={COLORS.textSecondary} />{' '}
-                {pendingOffer.ride.passenger.name}
-              </Text>
-            )}
-
-            {(pendingOffer.ride as any).trip_details && (
-              <View style={styles.offerGroup}>
-                <Ionicons name="people" size={14} color={COLORS.accent} />
-                <Text style={styles.offerGroupText}>
+            {/* Territory + passenger compact */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
+              {pendingOffer.ride.is_homebound ? (
+                <Text style={{ fontSize: 11, color: '#2e7d32' }}>🏠 Retorno</Text>
+              ) : pendingOffer.territory_tier === 'COMMUNITY' ? (
+                <Text style={{ fontSize: 11, color: '#1565c0' }}>Comunidade</Text>
+              ) : pendingOffer.territory_tier === 'NEIGHBORHOOD' ? (
+                <Text style={{ fontSize: 11, color: '#e65100' }}>Bairro</Text>
+              ) : null}
+              {pendingOffer.ride.passenger?.name && (
+                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>👤 {pendingOffer.ride.passenger.name}</Text>
+              )}
+              {(pendingOffer.ride as any).trip_details && (
+                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>
                   {groupLabel((pendingOffer.ride as any).trip_details.passengers || 1, !!(pendingOffer.ride as any).trip_details.has_luggage)}
                 </Text>
-              </View>
-            )}
-
-            {(pendingOffer.ride as any).wait_requested && (
-              <View style={{ backgroundColor: '#fff8e1', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, marginTop: 8 }}>
-                <Text style={{ fontSize: 14, fontWeight: '700', color: '#f57f17' }}>
-                  ⏳ Espera solicitada{(pendingOffer.ride as any).wait_estimated_min ? `: ~${(pendingOffer.ride as any).wait_estimated_min} min` : ''}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Consome 2 créditos</Text>
-              </View>
-            )}
-
-            <View style={styles.offerButtons}>
-              <Button title="Ver e aceitar" variant="success" onPress={handleAcceptOffer} style={{ flex: 1 }} />
-              <View style={{ width: 12 }} />
-              <Button title="Recusar" variant="danger" onPress={handleRejectOffer} style={{ flex: 1 }} />
+              )}
             </View>
-            {!soundMuted && (
-              <TouchableOpacity
-                style={styles.muteBtn}
-                onPress={() => { stopSound(); setSoundMuted(true); }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="volume-mute-outline" size={16} color={COLORS.textMuted} />
-                <Text style={styles.muteBtnText}>Silenciar alerta</Text>
-              </TouchableOpacity>
+
+            {(pendingOffer.ride as any).trip_details?.post_wait_destination && (
+              <View style={{ backgroundColor: '#1a1a0a', borderRadius: 6, borderWidth: 1, borderColor: '#C8A84E', paddingVertical: 4, paddingHorizontal: 8, marginTop: 6, alignSelf: 'flex-start' }}>
+                <Text style={{ fontSize: 11, color: '#C8A84E', fontWeight: '700' }}>✨ Valor inclui trecho após espera</Text>
+              </View>
             )}
           </View>
         )}
@@ -514,6 +491,27 @@ export default function DriverOnline() {
           </>
         ) : null}
       </ScrollView>
+
+      {/* Fixed offer action buttons */}
+      {pendingOffer && (
+        <View style={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: '#222' }}>
+          <View style={styles.offerButtons}>
+            <Button title="Ver e aceitar" variant="success" onPress={handleAcceptOffer} style={{ flex: 1 }} />
+            <View style={{ width: 12 }} />
+            <Button title="Recusar" variant="danger" onPress={handleRejectOffer} style={{ flex: 1 }} />
+          </View>
+          {!soundMuted && (
+            <TouchableOpacity
+              style={styles.muteBtn}
+              onPress={() => { stopSound(); setSoundMuted(true); }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="volume-mute-outline" size={16} color={COLORS.textMuted} />
+              <Text style={styles.muteBtnText}>Silenciar alerta</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Drawer */}
       <DrawerMenu

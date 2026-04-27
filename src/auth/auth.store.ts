@@ -7,6 +7,7 @@ class AuthStore {
   private token: string | null = null;
   private user: User | null = null;
   private listeners: AuthListener[] = [];
+  private loginListeners: AuthListener[] = [];
 
   async init() {
     this.token = await AsyncStorage.getItem('auth_token');
@@ -31,6 +32,7 @@ class AuthStore {
     this.user = user;
     await AsyncStorage.setItem('auth_token', token);
     await AsyncStorage.setItem('auth_user', JSON.stringify(user));
+    this.loginListeners.forEach(fn => fn());
   }
 
   async clearAuth(): Promise<void> {
@@ -45,10 +47,16 @@ class AuthStore {
     return !!this.token;
   }
 
-  /** Subscribe to logout events (e.g. 401 interceptor). Returns unsubscribe fn. */
+  /** Subscribe to logout events. Returns unsubscribe fn. */
   onLogout(fn: AuthListener): () => void {
     this.listeners.push(fn);
     return () => { this.listeners = this.listeners.filter(l => l !== fn); };
+  }
+
+  /** Subscribe to login events. Returns unsubscribe fn. */
+  onLogin(fn: AuthListener): () => void {
+    this.loginListeners.push(fn);
+    return () => { this.loginListeners = this.loginListeners.filter(l => l !== fn); };
   }
 }
 

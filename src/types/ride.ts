@@ -29,7 +29,7 @@ export interface Ride {
   updated_at?: string;
   passenger?: { name: string; phone?: string };
   driver?: { name: string; phone?: string; vehicle_model?: string; vehicle_plate?: string; vehicle_color?: string; id?: string; last_lat?: number; last_lng?: number };
-  trip_details?: { passengers: number; has_luggage: boolean };
+  trip_details?: { passengers: number; has_luggage: boolean; post_wait_destination?: { lat: number; lng: number; text?: string | null } };
   boarding_status?: 'at_door' | 'descending' | '2_minutes' | null;
   scheduled_for?: string | null;
   // Wait ("Levar e esperar")

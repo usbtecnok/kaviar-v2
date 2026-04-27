@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import Constants from 'expo-constants';
 import { ENV } from '../config/env';
 import { authStore } from '../auth/auth.store';
+import { stopBackgroundLocation } from '../services/background-location';
 
 const APP_VERSION = Constants.expoConfig?.version || '0.0.0';
 
@@ -25,6 +26,7 @@ apiClient.interceptors.request.use(async (config) => {
 
 // Response: handle 401 (session expired)
 let isLoggingOut = false;
+authStore.onLogin(() => { isLoggingOut = false; });
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -32,7 +34,7 @@ apiClient.interceptors.response.use(
       isLoggingOut = true;
       Alert.alert('Sessão expirada', 'Sua sessão expirou. Faça login novamente.');
       await authStore.clearAuth();
-      isLoggingOut = false;
+      stopBackgroundLocation().catch(() => {});
     }
     return Promise.reject(error);
   }

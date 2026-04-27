@@ -12,7 +12,7 @@ const TAGS = ['Dirigiu bem', 'Simpático', 'Carro limpo', 'Conhece a região', '
 
 export default function Rating() {
   const router = useRouter();
-  const { rideId, driverName, driverId } = useLocalSearchParams<{ rideId: string; driverName?: string; driverId?: string }>();
+  const { rideId, driverName, driverId, destLat, destLng } = useLocalSearchParams<{ rideId: string; driverName?: string; driverId?: string; destLat?: string; destLng?: string }>();
   const [rating, setRating] = useState(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [comment, setComment] = useState('');
@@ -38,11 +38,11 @@ export default function Rating() {
         comment: comment.trim() || undefined,
       });
       setSubmitted(true);
-      setTimeout(() => router.replace('/(passenger)/map'), 1500);
+      setTimeout(() => router.replace({ pathname: '/(passenger)/map', params: { destLat, destLng } }), 1500);
     } catch (e: any) {
       if (e.response?.status === 409) {
         setSubmitted(true);
-        setTimeout(() => router.replace('/(passenger)/map'), 1500);
+        setTimeout(() => router.replace({ pathname: '/(passenger)/map', params: { destLat, destLng } }), 1500);
       } else {
         Alert.alert('Erro', friendlyError(e, 'Não foi possível enviar a avaliação.'));
       }
@@ -104,7 +104,7 @@ export default function Rating() {
         )}
 
         <Button title="Enviar" variant="primary" onPress={handleSubmit} loading={submitting} disabled={submitting} />
-        <Button title="Pular" variant="secondary" onPress={() => router.replace('/(passenger)/map')} style={{ marginTop: 8 }} disabled={submitting} />
+        <Button title="Pular" variant="secondary" onPress={() => router.replace({ pathname: '/(passenger)/map', params: { destLat, destLng } })} style={{ marginTop: 8 }} disabled={submitting} />
       </View>
     </SafeAreaView>
   );
