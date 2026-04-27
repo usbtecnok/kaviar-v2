@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { NeighborhoodStatsService } from '../services/neighborhood-stats';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
+router.use(requireAuth);
 const statsService = new NeighborhoodStatsService();
 
 router.get('/drivers/:driverId/neighborhood-stats', async (req, res) => {

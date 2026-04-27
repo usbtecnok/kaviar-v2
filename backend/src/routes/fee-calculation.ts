@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { calculateTripFee, calculateFeePercentage, getDriverFeeStats } from '../services/fee-calculation';
+import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
+router.use(requireAuth);
 
 /**
  * POST /api/trips/estimate-fee
