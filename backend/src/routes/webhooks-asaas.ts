@@ -9,6 +9,7 @@ const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN || '';
 const ASAAS_ALLOWED_IPS = new Set([
   '54.94.19.48', '54.207.148.92', '54.94.145.49',
   '54.207.47.78', '54.94.171.142', '18.229.231.232',
+  '54.94.183.101',
 ]);
 
 // POST /api/webhooks/asaas
