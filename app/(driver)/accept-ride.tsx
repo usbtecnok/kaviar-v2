@@ -104,7 +104,8 @@ export default function AcceptRide() {
   const recommendedAdj = protectionTotal <= 5 ? 5 : protectionTotal <= 8 ? 8 : 10;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: COLORS.background }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+    <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
       <Text style={s.title}>Nova Corrida</Text>
 
       {countdown != null && countdown > 0 && (
@@ -271,6 +272,8 @@ export default function AcceptRide() {
         </View>
       )}
 
+    </ScrollView>
+    <View style={s.footerButtons}>
       <Button
         title={loading ? 'Aceitando...' : selectedAdjustment ? 'Aceitar com ajuste' : 'Aceitar corrida'}
         onPress={handleAccept}
@@ -278,7 +281,8 @@ export default function AcceptRide() {
         style={s.acceptBtn}
       />
       <Button title="Recusar" onPress={handleReject} disabled={loading} style={s.rejectBtn} />
-    </ScrollView>
+    </View>
+    </View>
   );
 }
 
@@ -326,6 +330,7 @@ const s = StyleSheet.create({
 
   acceptBtn: { backgroundColor: COLORS.success },
   rejectBtn: { backgroundColor: COLORS.danger },
+  footerButtons: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 32, backgroundColor: COLORS.background, borderTopWidth: 1, borderTopColor: '#222' },
   bigIcon: { fontSize: 48, textAlign: 'center', marginBottom: 16 },
   centeredTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', color: COLORS.textPrimary },
   centeredSub: { fontSize: 16, textAlign: 'center', color: COLORS.textSecondary, marginTop: 8 },
