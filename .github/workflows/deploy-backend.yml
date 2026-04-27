@@ -22,6 +22,20 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
       
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install and type-check
+        run: |
+          cd backend
+          npm ci
+          npx prisma generate
+          npx tsc --noEmit -p tsconfig.build.json
+      
       - name: Login to ECR
         run: |
           aws ecr get-login-password --region us-east-2 | \
@@ -39,30 +53,18 @@ jobs:
       - name: Update Task Definition
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition kaviar-backend --region us-east-2)
-          # Collect secret names to exclude from environment injection
-          SECRET_NAMES=$(echo $TASK_DEF | jq -r '.taskDefinition.containerDefinitions[0].secrets[]?.name')
           NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:${{ github.sha }}" --arg COMMIT "${{ github.sha }}" \
-            --arg TWILIO_WHATSAPP_FROM "${{ secrets.TWILIO_WHATSAPP_FROM }}" \
-            --arg TWILIO_TEMPLATE_INVITE_INVESTOR "${{ secrets.TWILIO_TEMPLATE_INVITE_INVESTOR }}" \
-            --arg TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED "${{ secrets.TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED }}" \
-            --arg TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING "${{ secrets.TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING }}" \
-            --arg TWILIO_TEMPLATE_AUTH_PASSWORD_RESET "${{ secrets.TWILIO_TEMPLATE_AUTH_PASSWORD_RESET }}" '
+            --arg TWILIO_WHATSAPP_FROM "${{ secrets.TWILIO_WHATSAPP_FROM }}" '
             .taskDefinition |
             .containerDefinitions[0].image = $IMAGE |
-            # Preserve secrets from SSM — only touch environment vars
-            # Remove TWILIO_* env vars and GIT_COMMIT to avoid duplicates (but keep secrets intact)
+            # Only touch: TWILIO_* env vars and GIT_COMMIT (remove and re-add controlled set)
+            # Everything else (WA_TPL_*, feature flags, non-sensitive config) is preserved as-is
+            # Secrets block (SSM references) is never touched — carried over from previous revision
             .containerDefinitions[0].environment = [.containerDefinitions[0].environment[]? | select(.name | startswith("TWILIO_") | not) | select(.name != "GIT_COMMIT")] |
             .containerDefinitions[0].environment += [{"name": "GIT_COMMIT", "value": $COMMIT}] |
-            # Feature flag: WhatsApp enabled
             .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_ENABLED", "value": "true"}] |
-            # Only add TWILIO env vars that are NOT already in secrets (ACCOUNT_SID and AUTH_TOKEN come from SSM)
-            .containerDefinitions[0].environment += (
-              if $TWILIO_WHATSAPP_FROM != "" then [{"name": "TWILIO_WHATSAPP_FROM", "value": $TWILIO_WHATSAPP_FROM}] else [] end +
-              if $TWILIO_TEMPLATE_INVITE_INVESTOR != "" then [{"name": "TWILIO_TEMPLATE_INVITE_INVESTOR", "value": $TWILIO_TEMPLATE_INVITE_INVESTOR}] else [] end +
-              if $TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED != "" then [{"name": "TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED", "value": $TWILIO_TEMPLATE_RIDE_DRIVER_ASSIGNED}] else [] end +
-              if $TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING != "" then [{"name": "TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING", "value": $TWILIO_TEMPLATE_RIDE_PASSENGER_ARRIVING}] else [] end +
-              if $TWILIO_TEMPLATE_AUTH_PASSWORD_RESET != "" then [{"name": "TWILIO_TEMPLATE_AUTH_PASSWORD_RESET", "value": $TWILIO_TEMPLATE_AUTH_PASSWORD_RESET}] else [] end
-            ) |
+            .containerDefinitions[0].environment += [{"name": "ENABLE_TWILIO_WHATSAPP", "value": "true"}] |
+            (if $TWILIO_WHATSAPP_FROM != "" then .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_FROM", "value": $TWILIO_WHATSAPP_FROM}] else . end) |
             .containerDefinitions[0].healthCheck = {
               "command": ["CMD-SHELL", "node /app/healthcheck.js"],
               "interval": 30,
@@ -74,10 +76,17 @@ jobs:
           ')
           echo $NEW_TASK_DEF > task-def.json
           
-          echo "TWILIO_* env vars injected:"
-          echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].environment[]? | select(.name | startswith("TWILIO_")) | .name'
-          echo "TWILIO_* secrets preserved from SSM:"
-          echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].secrets[]? | select(.name | startswith("TWILIO_")) | .name'
+          # Safety check: ensure sensitive values are NOT in environment (they must stay in secrets/SSM)
+          LEAKED=$(echo $NEW_TASK_DEF | jq -r '[.containerDefinitions[0].environment[]?.name] | map(select(. == "DATABASE_URL" or . == "JWT_SECRET" or . == "JWT_RESET_SECRET" or . == "ADMIN_DEFAULT_PASSWORD" or . == "ASAAS_API_KEY" or . == "MERCADOPAGO_ACCESS_TOKEN" or . == "GOOGLE_PLACES_KEY")) | join(",")')
+          if [ -n "$LEAKED" ]; then
+            echo "❌ ABORT: Sensitive values found in plaintext environment: $LEAKED"
+            exit 1
+          fi
+          
+          echo "Secrets in SSM (preserved):"
+          echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].secrets[]?.name' | sort
+          echo "WA_TPL_* env vars (preserved):"
+          echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].environment[]? | select(.name | startswith("WA_TPL_")) | .name' | sort
           
           NEW_REV=$(aws ecs register-task-definition --cli-input-json file://task-def.json --region us-east-2 | jq -r '.taskDefinition.revision')
           echo "Registered task definition: kaviar-backend:${NEW_REV}"

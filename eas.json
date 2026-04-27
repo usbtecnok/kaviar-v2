@@ -25,7 +25,8 @@
         "image": "latest"
       },
       "env": {
-        "APP_VARIANT": "passenger"
+        "APP_VARIANT": "passenger",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       }
     },
     "driver-release": {
@@ -51,7 +52,8 @@
       },
       "autoIncrement": true,
       "env": {
-        "APP_VARIANT": "passenger"
+        "APP_VARIANT": "passenger",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       }
     }
   },
