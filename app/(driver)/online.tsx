@@ -262,7 +262,7 @@ export default function DriverOnline() {
     if (!pendingOffer) return;
     await stopSound();
     pendingOfferRef.current = null;
-    router.push(`/(driver)/accept-ride?offerId=${pendingOffer.id}&rideId=${pendingOffer.ride.id}`);
+    router.push(`/(driver)/accept-ride?offerId=${pendingOffer.id}&rideId=${pendingOffer.ride.id}&expiresAt=${encodeURIComponent(pendingOffer.expires_at)}`);
   };
 
   const handleRejectOffer = async () => {

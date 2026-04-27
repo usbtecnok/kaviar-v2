@@ -16,13 +16,27 @@ const ADJUSTMENTS = [
 
 export default function AcceptRide() {
   const router = useRouter();
-  const { offerId, rideId } = useLocalSearchParams<{ offerId: string; rideId: string }>();
+  const { offerId, rideId, expiresAt } = useLocalSearchParams<{ offerId: string; rideId: string; expiresAt?: string }>();
   const [loading, setLoading] = useState(false);
   const [offerData, setOfferData] = useState<any>(null);
   const [fetching, setFetching] = useState(true);
   const [expired, setExpired] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [selectedAdjustment, setSelectedAdjustment] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!expiresAt) return;
+    const tick = () => {
+      const left = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+      setCountdown(left);
+      if (left <= 0) setExpired(true);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
 
   useEffect(() => { loadOffer(); }, []);
 
@@ -92,6 +106,15 @@ export default function AcceptRide() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: COLORS.background }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
       <Text style={s.title}>Nova Corrida</Text>
+
+      {countdown != null && countdown > 0 && (
+        <View style={[s.timerBar, countdown <= 10 && s.timerBarUrgent]}>
+          <Ionicons name="time-outline" size={16} color={countdown <= 10 ? '#ff1744' : COLORS.primary} />
+          <Text style={[s.timerText, countdown <= 10 && s.timerTextUrgent]}>
+            Oferta expira em {countdown}s
+          </Text>
+        </View>
+      )}
 
       <View style={s.card}>
         {/* Territory badges */}
@@ -251,7 +274,7 @@ export default function AcceptRide() {
       <Button
         title={loading ? 'Aceitando...' : selectedAdjustment ? 'Aceitar com ajuste' : 'Aceitar corrida'}
         onPress={handleAccept}
-        disabled={loading}
+        disabled={loading || expired}
         style={s.acceptBtn}
       />
       <Button title="Recusar" onPress={handleReject} disabled={loading} style={s.rejectBtn} />
@@ -262,6 +285,10 @@ export default function AcceptRide() {
 const s = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: COLORS.background, justifyContent: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 24 },
+  timerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#1a1a2e', borderRadius: 8, paddingVertical: 8, marginBottom: 16, borderWidth: 1, borderColor: COLORS.primary },
+  timerBarUrgent: { backgroundColor: '#2d0a0a', borderColor: '#ff1744' },
+  timerText: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
+  timerTextUrgent: { color: '#ff1744' },
   card: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, marginBottom: 16 },
   badge: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 12 },
   badgeText: { fontSize: 15, fontWeight: '700' },
