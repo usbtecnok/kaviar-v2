@@ -5,7 +5,7 @@ import { adminRoutes } from './admin';
 import { governanceRoutes } from './governance';
 import geoRoutes from './geo';
 import driversRoutes from './drivers';
-import ridesRoutes from './rides';
+// v1 rides routes deleted — all traffic uses /api/v2/rides
 import reputationRoutes from './reputation';
 // import adminGeofenceRoutes from './admin-geofence';
 
@@ -39,8 +39,8 @@ router.use('/geo', geoRoutes);
 // Driver routes
 router.use('/drivers', driversRoutes);
 
-// Ride routes
-router.use('/rides', ridesRoutes);
+// Ride routes — v1 removed, see rides-v2.ts
+// router.use('/rides', ridesRoutes);
 
 // Reputation routes
 router.use('/reputation', reputationRoutes);

@@ -193,7 +193,24 @@ router.post('/reset-password', resetExecutionRateLimit, async (req, res) => {
         return res.status(400).json({ success: false, error: 'Tipo de usuário inválido' });
     }
 
-    // NO auto-login. User must authenticate normally after reset.
+    // Auto-login for admin users (investor/angel invites via WhatsApp don't have real email)
+    if (userType === 'admin') {
+      const admin = await prisma.admins.findUnique({ where: { id: userId }, select: { id: true, email: true, name: true, role: true } });
+      if (admin) {
+        const sessionToken = jwt.sign(
+          { userId: admin.id, userType: 'ADMIN', email: admin.email, role: admin.role },
+          config.jwtSecret,
+          { expiresIn: '24h' }
+        );
+        return res.json({
+          success: true,
+          message: 'Senha redefinida com sucesso.',
+          userType,
+          data: { token: sessionToken, user: { id: admin.id, email: admin.email, name: admin.name, role: admin.role } }
+        });
+      }
+    }
+
     res.json({
       success: true,
       message: 'Senha redefinida com sucesso. Faça login com a nova senha.',

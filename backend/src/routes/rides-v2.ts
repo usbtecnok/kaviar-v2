@@ -77,7 +77,7 @@ router.get('/active', authenticatePassenger, async (req: Request, res: Response)
 router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
   try {
     const passengerId = (req as any).passengerId;
-    const { origin, destination, type = 'normal', trip_details, scheduled_for, wait_requested = false, wait_estimated_min } = req.body;
+    const { origin, destination, type = 'normal', trip_details, scheduled_for, wait_requested = false, wait_estimated_min, post_wait_destination } = req.body;
     const idempotencyKey = req.headers['idempotency-key'] as string;
 
     // Validação
@@ -126,7 +126,12 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
         destination_text: destination.text,
         ride_type: type,
         idempotency_key: idempotencyKey,
-        trip_details: trip_details || undefined,
+        trip_details: {
+          ...(trip_details || {}),
+          ...(config.wait.enabled && wait_requested && post_wait_destination?.lat && post_wait_destination?.lng
+            ? { post_wait_destination: { lat: Number(post_wait_destination.lat), lng: Number(post_wait_destination.lng), text: post_wait_destination.text || null } }
+            : {}),
+        },
         scheduled_for: scheduledDate,
         status: scheduledDate ? 'scheduled' : 'requested',
         wait_requested: config.wait.enabled ? Boolean(wait_requested) : false,
@@ -183,7 +188,10 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
     try {
       quoteResult = await pricingEngine.quote(
         ride.id, origin.lat, origin.lng, destination.lat, destination.lng,
-        originNeighborhoodId, destNeighborhoodId
+        originNeighborhoodId, destNeighborhoodId,
+        config.wait.enabled && wait_requested && post_wait_destination?.lat && post_wait_destination?.lng
+          ? { lat: Number(post_wait_destination.lat), lng: Number(post_wait_destination.lng) }
+          : null
       );
     } catch (priceErr) {
       console.error(`[PRICING_QUOTE_FAILED] ride_id=${ride.id}`, priceErr);

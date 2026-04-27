@@ -178,7 +178,8 @@ function toProfile(row: any): PricingProfile {
  */
 export async function quote(rideId: string, originLat: number, originLng: number,
   destLat: number, destLng: number,
-  originNeighborhoodId: string | null, destNeighborhoodId: string | null
+  originNeighborhoodId: string | null, destNeighborhoodId: string | null,
+  postWaitDest?: { lat: number; lng: number } | null
 ): Promise<QuoteResult> {
   // Idempotência: se já existe settlement, retorna valores existentes
   const existing = await pool.query(
@@ -210,12 +211,27 @@ export async function quote(rideId: string, originLat: number, originLng: number
   const resolvedDestId = destNeighborhoodId || destRes.neighborhood?.id || null;
 
   // Calculate
-  const distance_km = round2(haversineKm(originLat, originLng, destLat, destLng));
+  let distance_km = round2(haversineKm(originLat, originLng, destLat, destLng));
+
+  // post_wait_destination: add extra leg and promote territory if needed
+  let postWaitNeighborhoodId: string | null = null;
+  if (postWaitDest) {
+    distance_km = round2(distance_km + haversineKm(destLat, destLng, postWaitDest.lat, postWaitDest.lng));
+    const postRes = await resolveTerritory(postWaitDest.lng, postWaitDest.lat);
+    postWaitNeighborhoodId = postRes.neighborhood?.id || null;
+  }
+
   const raw = profile.base_fare + (distance_km * profile.per_km);
   // V1: per_minute não usado (sem duração estimada)
   const quoted_price = round2(Math.max(raw, profile.minimum_fare));
 
-  const route_territory = classifyRoute(resolvedOriginId, resolvedDestId);
+  // Territory: promote to most external classification across all legs
+  let route_territory = classifyRoute(resolvedOriginId, resolvedDestId);
+  if (postWaitDest) {
+    const postLeg = classifyRoute(resolvedDestId, postWaitNeighborhoodId);
+    const rank: Record<TerritoryType, number> = { local: 0, adjacent: 1, external: 2 };
+    if (rank[postLeg] > rank[route_territory]) route_territory = postLeg;
+  }
   const fee_percent = feeForTerritory(profile, route_territory);
   const fee_amount = round2(quoted_price * fee_percent / 100);
   const driver_earnings = round2(quoted_price - fee_amount);

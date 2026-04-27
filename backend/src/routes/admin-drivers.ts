@@ -696,6 +696,67 @@ router.patch('/drivers/:id', requireSuperAdmin, async (req: Request, res: Respon
   }
 });
 
+// PUT /api/admin/drivers/:id/photo-approve — aprova foto de perfil e popula drivers.photo_url
+router.put('/drivers/:id/photo-approve', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const doc = await prisma.driver_documents.findFirst({
+      where: { driver_id: id, type: 'PROFILE_PHOTO', status: { not: 'rejected' } },
+      orderBy: { created_at: 'desc' },
+    });
+    if (!doc) return res.status(404).json({ success: false, error: 'Foto de perfil não encontrada' });
+
+    const photoUrl = doc.file_url || doc.document_url;
+    if (!photoUrl) return res.status(400).json({ success: false, error: 'URL da foto ausente no documento' });
+
+    await prisma.$transaction([
+      prisma.driver_documents.update({
+        where: { id: doc.id },
+        data: { status: 'VERIFIED', verified_at: new Date() },
+      }),
+      prisma.drivers.update({
+        where: { id },
+        data: { photo_url: photoUrl },
+      }),
+    ]);
+
+    console.log(`[PHOTO_APPROVED] driver_id=${id} doc_id=${doc.id}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[PHOTO_APPROVE_ERROR]', error);
+    res.status(500).json({ success: false, error: 'Erro ao aprovar foto' });
+  }
+});
+
+// PUT /api/admin/drivers/:id/photo-reject — rejeita foto e limpa drivers.photo_url
+router.put('/drivers/:id/photo-reject', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const doc = await prisma.driver_documents.findFirst({
+      where: { driver_id: id, type: 'PROFILE_PHOTO', status: { not: 'rejected' } },
+      orderBy: { created_at: 'desc' },
+    });
+    if (!doc) return res.status(404).json({ success: false, error: 'Foto de perfil não encontrada' });
+
+    await prisma.$transaction([
+      prisma.driver_documents.update({
+        where: { id: doc.id },
+        data: { status: 'rejected', rejected_at: new Date() },
+      }),
+      prisma.drivers.update({
+        where: { id },
+        data: { photo_url: null },
+      }),
+    ]);
+
+    console.log(`[PHOTO_REJECTED] driver_id=${id} doc_id=${doc.id}`);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[PHOTO_REJECT_ERROR]', error);
+    res.status(500).json({ success: false, error: 'Erro ao rejeitar foto' });
+  }
+});
+
 // GET /api/admin/drivers/:id/audit — audit log for a driver
 router.get('/drivers/:id/audit', allowReadAccess, async (req: Request, res: Response) => {
   try {

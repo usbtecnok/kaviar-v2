@@ -196,7 +196,7 @@ router.get('/communities/:id/geofence', async (req, res) => {
         const geom = parsed?.type === 'FeatureCollection' ? parsed.features?.[0]?.geometry
           : parsed?.type === 'Feature' ? parsed.geometry : parsed;
         return res.json({ success: true, data: { geometry: geom, centerLat: geofence.center_lat, centerLng: geofence.center_lng } });
-      } catch {}
+      } catch (e) { console.warn(`[GOVERNANCE_GEOJSON_PARSE] community_id=${community.id}`, e); }
     }
 
     // Fallback: retornar centro + raio como Point

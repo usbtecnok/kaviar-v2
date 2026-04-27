@@ -140,6 +140,17 @@ export class AdminService {
         }
       });
 
+      // Populate photo_url if driver has a profile photo
+      const profilePhoto = await tx.driver_documents.findFirst({
+        where: { driver_id, type: 'PROFILE_PHOTO', status: { not: 'rejected' } },
+        orderBy: { created_at: 'desc' },
+        select: { file_url: true, document_url: true },
+      });
+      if (profilePhoto) {
+        const url = profilePhoto.file_url || profilePhoto.document_url;
+        if (url) await tx.drivers.update({ where: { id: driver_id }, data: { photo_url: url } });
+      }
+
       return updated;
     });
 

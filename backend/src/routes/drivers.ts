@@ -215,7 +215,8 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
   { name: 'proofOfAddress', maxCount: 1 },
   { name: 'vehiclePhoto', maxCount: 5 },
   { name: 'backgroundCheck', maxCount: 1 },
-  { name: 'certidao', maxCount: 1 } // alias temporário
+  { name: 'certidao', maxCount: 1 }, // alias temporário
+  { name: 'profilePhoto', maxCount: 1 },
 ]), async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).userId || (req as any).user?.id || (req as any).driver?.id;
@@ -366,6 +367,7 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
       vehiclePhoto: 'VEHICLE_PHOTO',
       backgroundCheck: 'BACKGROUND_CHECK',
       certidao: 'BACKGROUND_CHECK',
+      profilePhoto: 'PROFILE_PHOTO',
     };
 
     if (files) {
