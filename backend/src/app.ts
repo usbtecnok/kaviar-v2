@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import helmet from 'helmet';
 import { config } from './config';
 import { getUploadsPaths } from './config/uploads';
 import { errorHandler, notFound } from './middlewares/error';
@@ -64,6 +65,9 @@ const app = express();
 
 // ✅ Trust proxy (ALB)
 app.set('trust proxy', 1);
+
+// ✅ Security headers
+app.use(helmet({ contentSecurityPolicy: false }));
 
 // ✅ Request ID (primeiro middleware)
 app.use(requestIdMiddleware);
@@ -200,7 +204,7 @@ app.use('/api/admin/auth', passwordResetRoutes);
 // Investor invites (SUPER_ADMIN only, before investorView middleware)
 import investorInvitesRoutes from './routes/investor-invites-v2';
 app.use('/api/admin/investors', investorInvitesRoutes);
-app.use('/i', investorInvitesRoutes); // public short invite links
+app.use('/', investorInvitesRoutes); // public short invite links: /i/:code
 
 // Demo Mode / Investor View Middleware (read-only)
 app.use('/api', investorView);
