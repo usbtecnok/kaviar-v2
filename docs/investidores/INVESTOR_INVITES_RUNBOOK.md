@@ -23,7 +23,7 @@ Sistema para convidar investidores e anjos com acesso read-only ao painel admini
 ### 3. O que acontece
 
 - Sistema cria/atualiza conta com email real
-- Gera token de convite (expira em 15 minutos)
+- Gera token de convite (expira em 2 horas)
 - Envia email com link para definir senha
 - Força `must_change_password=true`
 - Convidado recebe link: `https://app.kaviar.com.br/admin/reset-password?token=...`
@@ -31,7 +31,7 @@ Sistema para convidar investidores e anjos com acesso read-only ao painel admini
 ### 4. Fluxo do Convidado
 
 1. Recebe email com link
-2. Clica no link (válido por 15 minutos)
+2. Clica no link (válido por 2 horas)
 3. Define senha pessoal
 4. Faz login em: `https://app.kaviar.com.br/admin/login`
 5. Acesso read-only garantido pelo backend
@@ -50,7 +50,7 @@ Sistema para convidar investidores e anjos com acesso read-only ao painel admini
 - Idempotente: reenvia convite se já existir com mesma role
 
 ✅ **Read-Only**: Middleware `investorView` bloqueia POST/PUT/PATCH/DELETE  
-✅ **Token Expiration**: Link expira em 15 minutos  
+✅ **Token Expiration**: Link expira em 2 horas  
 ✅ **Resposta Neutra**: Não revela se email existe (segurança)
 
 ## Testes de Validação
