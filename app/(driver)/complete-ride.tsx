@@ -557,14 +557,14 @@ export default function CompleteRide() {
                   <Text style={{ color: '#1565c0', fontSize: 13, fontWeight: '700', marginBottom: 4 }}>🚗 Em direção ao destino final</Text>
                   <Text style={{ color: COLORS.textPrimary, fontSize: 15 }} numberOfLines={2}>{pwd.text}</Text>
                 </View>
-                <Button title={loading ? 'Finalizando...' : '✅ Cheguei ao destino final — Finalizar corrida'} onPress={handleComplete} disabled={loading} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
+                <Button title={loading ? 'Finalizando...' : '✅ Cheguei ao destino final — Finalizar corrida'} onPress={() => Alert.alert('Finalizar corrida?', 'Confirme apenas se a viagem foi concluída com o passageiro.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Sim, finalizar', onPress: handleComplete }])} disabled={loading} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
               </>
             );
           }
 
           // Default: normal complete button
           return (
-            <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={handleComplete} disabled={loading || !!waitPending} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
+            <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={() => Alert.alert('Finalizar corrida?', 'Confirme apenas se a viagem foi concluída com o passageiro.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Sim, finalizar', onPress: handleComplete }])} disabled={loading || !!waitPending} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
           );
         })()}
 
