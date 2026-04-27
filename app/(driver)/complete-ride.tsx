@@ -564,8 +564,10 @@ export default function CompleteRide() {
 
           // Default: normal complete button
           return (
+            <>
             {!!waitPending && <Text style={{ color: '#f57f17', fontSize: 13, textAlign: 'center', marginBottom: 8 }}>⏳ Finalize a espera antes de concluir a corrida.</Text>}
             <Button title={loading ? 'Finalizando...' : 'Finalizar corrida'} onPress={() => Alert.alert('Finalizar corrida?', 'Confirme apenas se a viagem foi concluída com o passageiro.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Sim, finalizar', onPress: handleComplete }])} disabled={loading || !!waitPending} style={{ backgroundColor: COLORS.success, minHeight: 56 }} />
+            </>
           );
         })()}
 
