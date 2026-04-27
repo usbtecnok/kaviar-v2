@@ -5,6 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "dotenv -e .env.development -- tsx watch src/server.ts",
+    "test": "vitest run",
     "dev:3003": "dotenv -e .env.development -- tsx watch src/server.ts",
     "build": "./node_modules/.bin/tsc -p tsconfig.build.json",
     "postbuild": "mkdir -p dist/scripts && cp scripts/beta-monitor-dog.js dist/scripts/ && cp scripts/beta-phase1-checkpoint.sh dist/scripts/ && cp scripts/beta-phase1-go-nogo.sh dist/scripts/ && cp scripts/beta-phase2-activate.sh dist/scripts/ && cp scripts/update-rollout.js dist/scripts/ && cp scripts/check-rollout.js dist/scripts/ && cp scripts/promote-premium-tourism.js dist/scripts/",
@@ -58,11 +59,14 @@
     "@types/multer-s3": "^3.0.3",
     "@types/node": "^20.19.30",
     "@types/pg": "^8.16.0",
+    "@types/supertest": "^6.0.3",
     "@types/uuid": "^11.0.0",
     "dotenv-cli": "^11.0.0",
     "prisma": "^5.7.1",
+    "supertest": "^7.2.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }
