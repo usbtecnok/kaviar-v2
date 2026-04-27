@@ -3,10 +3,9 @@ import { NeighborhoodStatsService } from '../services/neighborhood-stats';
 import { requireAuth } from '../middlewares/auth';
 
 const router = Router();
-router.use(requireAuth);
 const statsService = new NeighborhoodStatsService();
 
-router.get('/drivers/:driverId/neighborhood-stats', async (req, res) => {
+router.get('/drivers/:driverId/neighborhood-stats', requireAuth, async (req, res) => {
   try {
     const { driverId } = req.params;
     const period = (req.query.period as 'week' | 'month') || 'month';
