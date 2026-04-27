@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Image, Alert, Clipboard, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -20,6 +20,28 @@ export default function DriverCredits() {
 
   // Pix payment state
   const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string; credits: number; amount: number } | null>(null);
+  const balanceBeforePix = useRef<number | null>(null);
+
+  // Auto-poll balance while Pix screen is open
+  useEffect(() => {
+    if (!pixData) { balanceBeforePix.current = null; return; }
+    balanceBeforePix.current = balance;
+    let attempts = 0;
+    const id = setInterval(async () => {
+      if (++attempts > 120) { clearInterval(id); return; }
+      try {
+        const { balance: now } = await driverApi.getCredits();
+        if (balanceBeforePix.current != null && now > balanceBeforePix.current) {
+          clearInterval(id);
+          setBalance(now);
+          setPixData(null);
+          load();
+          Alert.alert('✅ Pagamento confirmado!', 'Créditos adicionados ao seu saldo.');
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(id);
+  }, [!!pixData]);
 
   const load = useCallback(async () => {
     try {
