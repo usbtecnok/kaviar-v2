@@ -439,6 +439,9 @@ export default function CompleteRide() {
         >
           {target && <Marker coordinate={{ latitude: target.lat, longitude: target.lng }} title={rideStatus === 'in_progress' ? 'Destino' : 'Passageiro'} description={target.label} pinColor={rideStatus === 'in_progress' ? COLORS.success : COLORS.primary} />}
           {driverLocation && <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }} title="Você" pinColor={COLORS.warning} />}
+          {(rideStatus === 'accepted' || rideStatus === 'arrived') && ride?.passenger?.last_lat && ride?.passenger?.last_lng && (
+            <Marker coordinate={{ latitude: Number(ride.passenger.last_lat), longitude: Number(ride.passenger.last_lng) }} title="Passageiro (ao vivo)" pinColor="#3498db" />
+          )}
         </MapView>
       </View>
 

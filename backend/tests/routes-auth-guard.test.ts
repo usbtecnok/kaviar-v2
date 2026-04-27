@@ -14,6 +14,7 @@ const routes: { method: 'get' | 'post' | 'put'; path: string }[] = [
   { method: 'get',  path: '/api/drivers/fake/neighborhood-stats' },
   { method: 'put',  path: '/api/admin/drivers/fake/photo-approve' },
   { method: 'get',  path: '/api/passengers/me/community-status' },
+  { method: 'post', path: '/api/v2/rides/fake/passenger-location' },
 ];
 
 describe('Auth guard — rotas sensíveis retornam 401', () => {

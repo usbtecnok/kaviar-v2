@@ -1017,4 +1017,26 @@ router.post('/:ride_id/emergency', requireAuth, async (req: Request, res: Respon
   }
 });
 
+// POST /api/v2/rides/:ride_id/passenger-location — passageiro compartilha localização com motorista
+router.post('/:ride_id/passenger-location', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const { ride_id } = req.params;
+    const passengerId = (req as any).passengerId;
+    const { lat, lng } = req.body;
+    if (lat == null || lng == null) return res.status(400).json({ error: 'lat e lng obrigatórios' });
+
+    const ride = await prisma.rides_v2.findFirst({
+      where: { id: ride_id, passenger_id: passengerId, status: { in: ['accepted', 'arrived'] } },
+      select: { id: true, driver_id: true },
+    });
+    if (!ride) return res.status(404).json({ error: 'Corrida não encontrada ou status inválido' });
+
+    await prisma.passengers.update({ where: { id: passengerId }, data: { last_lat: lat, last_lng: lng, last_location_updated_at: new Date() } });
+    realTimeService.emitToRide(ride_id, { type: 'passenger_location', lat, lng, timestamp: new Date().toISOString() });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
 export default router;

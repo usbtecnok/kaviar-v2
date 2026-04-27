@@ -127,6 +127,8 @@ export default function PassengerMap() {
 
   // Boarding status
   const [boardingStatus, setBoardingStatus] = useState<string | null>(null);
+  const [sharingLocation, setSharingLocation] = useState(false);
+  const locationWatchRef = useRef<Location.LocationSubscription | null>(null);
 
   // Redispatch banner
   const [showRedispatch, setShowRedispatch] = useState(false);
@@ -172,6 +174,28 @@ export default function PassengerMap() {
   const mapRef = useRef<MapView>(null);
   const searchRef = useRef<TextInput>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Compartilhamento de localização com motorista
+  useEffect(() => {
+    if (!sharingLocation || !ride?.id) {
+      locationWatchRef.current?.remove(); locationWatchRef.current = null; return;
+    }
+    const rideId = ride.id;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { setSharingLocation(false); return; }
+      locationWatchRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.Balanced, timeInterval: 10000, distanceInterval: 30 },
+        (loc) => { apiClient.post(`/api/v2/rides/${rideId}/passenger-location`, { lat: loc.coords.latitude, lng: loc.coords.longitude }).catch(() => {}); }
+      );
+    })();
+    return () => { locationWatchRef.current?.remove(); locationWatchRef.current = null; };
+  }, [sharingLocation, ride?.id]);
+
+  // Parar compartilhamento quando corrida sai de accepted/arrived
+  useEffect(() => {
+    if (sharingLocation && rideStatus && !['accepted', 'arrived'].includes(rideStatus)) setSharingLocation(false);
+  }, [rideStatus]);
 
   useEffect(() => {
     const user = authStore.getUser();
@@ -858,6 +882,17 @@ export default function PassengerMap() {
             </View>
             {canCancel && (
               <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
+            )}
+            {(rideStatus === 'accepted' || rideStatus === 'arrived') && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 10, borderRadius: 10, backgroundColor: sharingLocation ? '#1a3a1a' : '#1a1a2e', borderWidth: 1, borderColor: sharingLocation ? COLORS.success : '#333' }}
+                onPress={() => setSharingLocation(!sharingLocation)}
+              >
+                <Ionicons name={sharingLocation ? 'navigate' : 'navigate-outline'} size={15} color={sharingLocation ? COLORS.success : COLORS.textMuted} />
+                <Text style={{ color: sharingLocation ? COLORS.success : COLORS.textMuted, fontSize: 13, fontWeight: '600' }}>
+                  {sharingLocation ? '📍 Localização compartilhada — Parar' : 'Compartilhar localização com motorista'}
+                </Text>
+              </TouchableOpacity>
             )}
             {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
               <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8 }}>

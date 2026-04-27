@@ -222,16 +222,18 @@ router.get('/me/current-ride', authenticateDriver, async (req: Request, res: Res
       },
       orderBy: { updated_at: 'desc' },
       include: {
-        passenger: { select: { name: true, phone: true } }
+        passenger: { select: { name: true, phone: true, last_lat: true, last_lng: true, last_location_updated_at: true } }
       }
     });
 
+    const locFresh = ride?.passenger?.last_location_updated_at && (Date.now() - new Date(ride.passenger.last_location_updated_at).getTime()) < 30000;
     res.json({ success: true, data: ride ? {
       ...ride,
       origin_lat: Number(ride.origin_lat),
       origin_lng: Number(ride.origin_lng),
       dest_lat: Number(ride.dest_lat),
       dest_lng: Number(ride.dest_lng),
+      passenger: { ...ride.passenger, last_lat: locFresh ? ride.passenger?.last_lat : null, last_lng: locFresh ? ride.passenger?.last_lng : null, last_location_updated_at: undefined },
     } : null });
   } catch (error: any) {
     console.error('[DRIVER_CURRENT_RIDE_ERROR]', error);
