@@ -224,6 +224,54 @@ export default function DriverApproval() {
                   </Box>
                 ) : <Typography variant="body2" color="text.secondary">Nenhum documento enviado</Typography>}
               </Grid>
+              {/* Foto de perfil — aprovação */}
+              {(() => {
+                const photoDoc = uniqueByTypeBestStatus(driverDocuments).find(d => d.type === 'PROFILE_PHOTO');
+                if (!photoDoc) return null;
+                const photoUrl = photoDoc.file_url || photoDoc.document_url;
+                const isPending = photoDoc.status === 'SUBMITTED';
+                const isApproved = photoDoc.status === 'VERIFIED';
+                return (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Foto de Perfil</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      {photoUrl && (
+                        <Box
+                          component="img"
+                          src={photoUrl}
+                          alt="Foto de perfil"
+                          sx={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '1px solid', borderColor: 'divider' }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
+                      )}
+                      <Box>
+                        <Chip
+                          label={isApproved ? 'Aprovada' : isPending ? 'Aguardando aprovação' : photoDoc.status}
+                          size="small"
+                          color={isApproved ? 'success' : isPending ? 'warning' : 'default'}
+                          sx={{ mb: 1 }}
+                        />
+                        {isPending && (
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button size="small" variant="contained" color="success" onClick={async () => {
+                              try {
+                                await api.put(`/api/admin/drivers/${selectedDriver.id}/photo-approve`);
+                                setDriverDocuments(prev => prev.map(d => d.id === photoDoc.id ? { ...d, status: 'VERIFIED' } : d));
+                              } catch { alert('Erro ao aprovar foto'); }
+                            }}>Aprovar</Button>
+                            <Button size="small" variant="outlined" color="error" onClick={async () => {
+                              try {
+                                await api.put(`/api/admin/drivers/${selectedDriver.id}/photo-reject`);
+                                setDriverDocuments(prev => prev.map(d => d.id === photoDoc.id ? { ...d, status: 'rejected' } : d));
+                              } catch { alert('Erro ao rejeitar foto'); }
+                            }}>Rejeitar</Button>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
+                );
+              })()}
             </Grid>
           )}
         </DialogContent>

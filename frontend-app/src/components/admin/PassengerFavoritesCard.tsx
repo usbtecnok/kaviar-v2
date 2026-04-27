@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, Typography, TextField, Button, Box, Alert, CircularProgress, Select, MenuItem, FormControl, InputLabel, IconButton, List, ListItem, ListItemText, ListItemSecondaryAction } from '@mui/material';
 import { Favorite as HeartIcon, Delete as TrashIcon, Add as PlusIcon } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface PassengerFavoritesCardProps {
   passengerId: string;
@@ -16,7 +15,7 @@ interface Favorite {
   created_at: string;
 }
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://api.kaviar.com.br';
+import { API_BASE_URL as API_URL } from '../../config/api';
 
 const TYPE_LABELS = {
   HOME: '🏠 Casa',
@@ -25,7 +24,7 @@ const TYPE_LABELS = {
 };
 
 export const PassengerFavoritesCard: React.FC<PassengerFavoritesCardProps> = ({ passengerId }) => {
-  const { token } = useAuth();
+  const token = localStorage.getItem('kaviar_admin_token');
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

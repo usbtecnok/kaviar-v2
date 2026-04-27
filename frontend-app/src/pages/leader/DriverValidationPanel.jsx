@@ -24,7 +24,7 @@ import {
 import axios from 'axios';
 import ReputationBadge from '../../components/ReputationBadge';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+import { API_BASE_URL } from '../../config/api';
 
 export default function DriverValidationPanel() {
   const [drivers, setDrivers] = useState([]);

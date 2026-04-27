@@ -28,6 +28,9 @@ export default function CommunitiesManagement() {
   const [communities, setCommunities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [healthData, setHealthData] = useState({});
+  const [reactivating, setReactivating] = useState(null);
+  const [reactivateMsg, setReactivateMsg] = useState('');
   const [confirmDialog, setConfirmDialog] = useState({ open: false, community: null });
   const [mapDialog, setMapDialog] = useState({ open: false, community: null });
   const [createDialog, setCreateDialog] = useState({ open: false });
@@ -42,6 +45,35 @@ export default function CommunitiesManagement() {
   useEffect(() => {
     fetchCommunities();
   }, []);
+
+  const loadHealth = async (communityIds) => {
+    const results = {};
+    await Promise.all(communityIds.map(async (id) => {
+      try {
+        const { data } = await api.get(`/api/admin/communities/${id}/health`);
+        if (data.success) results[id] = data.data;
+      } catch { /* ignore */ }
+    }));
+    setHealthData(results);
+  };
+
+  const handleReactivate = async (id) => {
+    setReactivating(id);
+    setReactivateMsg('');
+    try {
+      const { data } = await api.post(`/api/admin/communities/${id}/reactivate-drivers`);
+      if (data.success) {
+        setReactivateMsg(`✅ ${data.data.sent} motorista(s) reativado(s), ${data.data.skipped} ignorado(s).`);
+        loadHealth([id]);
+      } else {
+        setReactivateMsg(`⚠️ ${data.error}`);
+      }
+    } catch (err) {
+      setReactivateMsg(`⚠️ ${err.response?.data?.error || 'Erro ao reativar.'}`);
+    } finally {
+      setReactivating(null);
+    }
+  };
 
   const fetchCommunities = async () => {
     try {
@@ -65,6 +97,7 @@ export default function CommunitiesManagement() {
           isActive: true // Governance só retorna ativos
         }));
         setCommunities(transformedData);
+        loadHealth(transformedData.map(c => c.id));
       } else {
         setError(response.data.error || 'Erro ao carregar comunidades');
       }
@@ -382,6 +415,7 @@ export default function CommunitiesManagement() {
         </Box>
       )}
 
+      {reactivateMsg && <Alert severity={reactivateMsg.startsWith('✅') ? 'success' : 'warning'} sx={{ mb: 2 }} onClose={() => setReactivateMsg('')}>{reactivateMsg}</Alert>}
       <Grid container spacing={3}>
         {/* 
         ✅ CHECK 3 - AUDIT DO HANDLER:
@@ -449,6 +483,41 @@ export default function CommunitiesManagement() {
                     </Box>
                   )}
                 </Box>
+
+                {/* Saúde da Região */}
+                {healthData[community.id] && (() => {
+                  const h = healthData[community.id];
+                  const healthColor = h.health === 'active' ? 'success' : h.health === 'weak' ? 'warning' : 'info';
+                  const healthLabel = h.health === 'active' ? 'Ativa' : h.health === 'weak' ? 'Fraca' : 'Em formação';
+                  return (
+                    <Box sx={{ mb: 2, p: 1.5, bgcolor: '#f8f9fa', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', color: '#555' }}>Saúde da Região</Typography>
+                        <Chip label={healthLabel} color={healthColor} size="small" />
+                      </Box>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        Online agora: <strong>{h.driversOnline}</strong> / {h.driversTotal} motoristas
+                      </Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        Inativos &gt;7d: <strong>{h.driversInactive7d}</strong>
+                      </Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        Corridas 7d: <strong>{h.ridesCompleted7d}</strong> concluídas, <strong>{h.ridesNoDriver7d}</strong> sem motorista
+                      </Typography>
+                      {h.driversInactive7d > 0 && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ mt: 1, fontSize: '0.7rem' }}
+                          disabled={reactivating === community.id}
+                          onClick={() => handleReactivate(community.id)}
+                        >
+                          {reactivating === community.id ? '⏳ Enviando...' : `Reativar ${h.driversInactive7d} inativo(s)`}
+                        </Button>
+                      )}
+                    </Box>
+                  );
+                })()}
 
                 {/* Controles */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

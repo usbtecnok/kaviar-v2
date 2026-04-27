@@ -283,16 +283,26 @@ export default function AdminDriverDetail() {
             )}
           </Grid>
 
-          <Grid item xs={12}>
-            <Typography variant="subtitle2" color="text.secondary">Certidão "Nada Consta" (Legacy)</Typography>
-            {driver.certidao_nada_consta_url ? (
-              <Box sx={{ mt: 1 }}>
-                <DocumentImage url={driver.certidao_nada_consta_url} alt="Certidão Nada Consta" />
-              </Box>
-            ) : (
-              <Typography variant="body2" color="text.secondary">Não enviado</Typography>
-            )}
-          </Grid>
+          {/* Legacy certidão: only show if no BACKGROUND_CHECK in new document system */}
+          {!documents.some(d => d.type === 'BACKGROUND_CHECK') && (
+            <Grid item xs={12}>
+              <Typography variant="subtitle2" color="text.secondary">Certidão "Nada Consta"</Typography>
+              {driver.certidao_nada_consta_url ? (
+                <Box sx={{ mt: 1 }}>
+                  <DocumentImage url={driver.certidao_nada_consta_url} alt="Certidão Nada Consta" />
+                </Box>
+              ) : (
+                <Box sx={{ p: 2, bgcolor: 'warning.light', borderRadius: 1 }}>
+                  <Typography variant="body2" color="warning.dark">
+                    ⚠️ Certidão Nada Consta não enviada
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    O motorista precisa enviar a certidão de antecedentes criminais pelo app.
+                  </Typography>
+                </Box>
+              )}
+            </Grid>
+          )}
 
           {driver.rejected_reason && (
             <Grid item xs={12}>

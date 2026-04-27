@@ -3,7 +3,7 @@ import { Box, Card, CardContent, Typography, Chip, Alert } from '@mui/material';
 import { CheckCircle, LocationOn, Map, Info } from '@mui/icons-material';
 import axios from 'axios';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+import { API_BASE_URL as API_BASE } from '../../config/api';
 
 /**
  * Cards 1-3: GPS + Território + Cobertura
