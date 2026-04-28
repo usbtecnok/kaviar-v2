@@ -8,7 +8,8 @@ import { authStore } from '../../src/auth/auth.store';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 
-const TAGS = ['Dirigiu bem', 'Simpático', 'Carro limpo', 'Conhece a região', 'Pontual'];
+const POSITIVE_TAGS = ['Dirigiu bem', 'Simpático', 'Carro limpo', 'Conhece a região', 'Pontual'];
+const NEGATIVE_TAGS = ['Dirigiu mal', 'Rota ruim', 'Atrasou', 'Veículo sujo', 'Foi grosseiro', 'Não encontrei o motorista'];
 
 export default function Rating() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function Rating() {
 
         <View style={s.stars}>
           {[1, 2, 3, 4, 5].map((n) => (
-            <TouchableOpacity key={n} onPress={() => setRating(n)} accessibilityRole="button" accessibilityLabel={`${n} estrela${n > 1 ? 's' : ''}`}>
+            <TouchableOpacity key={n} onPress={() => { setRating(n); setSelectedTags([]); }} accessibilityRole="button" accessibilityLabel={`${n} estrela${n > 1 ? 's' : ''}`}>
               <Text style={s.star}>{n <= rating ? '⭐' : '☆'}</Text>
             </TouchableOpacity>
           ))}
@@ -82,7 +83,20 @@ export default function Rating() {
           <View style={s.tagsContainer}>
             <Text style={s.tagsTitle}>O que mais gostou?</Text>
             <View style={s.tagsRow}>
-              {TAGS.map(tag => (
+              {POSITIVE_TAGS.map(tag => (
+                <TouchableOpacity key={tag} style={[s.tag, selectedTags.includes(tag) && s.tagSelected]} onPress={() => toggleTag(tag)}>
+                  <Text style={[s.tagText, selectedTags.includes(tag) && s.tagTextSelected]}>{tag}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {rating >= 1 && rating <= 3 && (
+          <View style={s.tagsContainer}>
+            <Text style={s.tagsTitle}>O que pode melhorar?</Text>
+            <View style={s.tagsRow}>
+              {NEGATIVE_TAGS.map(tag => (
                 <TouchableOpacity key={tag} style={[s.tag, selectedTags.includes(tag) && s.tagSelected]} onPress={() => toggleTag(tag)}>
                   <Text style={[s.tagText, selectedTags.includes(tag) && s.tagTextSelected]}>{tag}</Text>
                 </TouchableOpacity>
