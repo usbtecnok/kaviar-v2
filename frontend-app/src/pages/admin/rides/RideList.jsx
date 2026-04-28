@@ -29,14 +29,16 @@ import { Visibility, Search } from '@mui/icons-material';
 
 const statusColors = {
   requested: 'warning',
+  scheduled: 'default',
+  offered: 'warning',
+  pending_adjustment: 'warning',
   accepted: 'info',
   arrived: 'primary',
-  started: 'secondary',
+  in_progress: 'secondary',
   completed: 'success',
-  paid: 'success',
-  cancelled_by_user: 'error',
-  cancelled_by_driver: 'error',
-  cancelled_by_admin: 'error'
+  canceled_by_passenger: 'error',
+  canceled_by_driver: 'error',
+  no_driver: 'default'
 };
 
 const rideTypes = {
@@ -170,14 +172,14 @@ export default function RideList() {
               >
                 <MenuItem value="">Todos</MenuItem>
                 <MenuItem value="requested">Solicitada</MenuItem>
+                <MenuItem value="scheduled">Agendada</MenuItem>
                 <MenuItem value="accepted">Aceita</MenuItem>
                 <MenuItem value="arrived">Chegou</MenuItem>
-                <MenuItem value="started">Iniciada</MenuItem>
+                <MenuItem value="in_progress">Em andamento</MenuItem>
                 <MenuItem value="completed">Concluída</MenuItem>
-                <MenuItem value="paid">Paga</MenuItem>
-                <MenuItem value="cancelled_by_user">Cancelada (Usuário)</MenuItem>
-                <MenuItem value="cancelled_by_driver">Cancelada (Motorista)</MenuItem>
-                <MenuItem value="cancelled_by_admin">Cancelada (Admin)</MenuItem>
+                <MenuItem value="canceled_by_passenger">Cancelada (Passageiro)</MenuItem>
+                <MenuItem value="canceled_by_driver">Cancelada (Motorista)</MenuItem>
+                <MenuItem value="no_driver">Sem motorista</MenuItem>
               </Select>
             </FormControl>
 

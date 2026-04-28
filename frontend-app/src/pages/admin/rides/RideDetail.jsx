@@ -39,14 +39,16 @@ import {
 
 const statusColors = {
   requested: 'warning',
+  scheduled: 'default',
+  offered: 'warning',
+  pending_adjustment: 'warning',
   accepted: 'info',
   arrived: 'primary',
-  started: 'secondary',
+  in_progress: 'secondary',
   completed: 'success',
-  paid: 'success',
-  cancelled_by_user: 'error',
-  cancelled_by_driver: 'error',
-  cancelled_by_admin: 'error'
+  canceled_by_passenger: 'error',
+  canceled_by_driver: 'error',
+  no_driver: 'default'
 };
 
 export default function RideDetail() {
@@ -435,7 +437,7 @@ export default function RideDetail() {
                   color="error"
                   startIcon={<Cancel />}
                   onClick={() => setCancelModal(true)}
-                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
+                  disabled={['completed', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Cancelar Corrida
@@ -446,7 +448,7 @@ export default function RideDetail() {
                   color="success"
                   startIcon={<CheckCircle />}
                   onClick={() => setForceCompleteModal(true)}
-                  disabled={['completed', 'paid', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
+                  disabled={['completed', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Forçar Finalização
@@ -456,7 +458,7 @@ export default function RideDetail() {
                   variant="outlined"
                   startIcon={<Edit />}
                   onClick={() => setStatusModal(true)}
-                  disabled={['completed', 'canceled_by_passenger', 'canceled_by_driver', 'cancelled_by_admin', 'cancelled_by_user', 'cancelled_by_driver'].includes(ride.status)}
+                  disabled={['completed', 'canceled_by_passenger', 'canceled_by_driver'].includes(ride.status)}
                   fullWidth
                 >
                   Corrigir Status

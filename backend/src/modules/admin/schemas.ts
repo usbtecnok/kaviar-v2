@@ -26,7 +26,7 @@ export const passengersQuerySchema = paginationSchema;
 
 // Rides query schema
 export const ridesQuerySchema = paginationSchema.extend({
-  status: z.enum(['requested', 'accepted', 'arrived', 'started', 'completed', 'paid', 'cancelled_by_user', 'cancelled_by_driver', 'cancelled_by_admin']).optional(),
+  status: z.enum(['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'in_progress', 'completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver']).optional(),
   type: z.enum(['normal', 'combo', 'comunidade', 'TOURISM']).optional(),
   driver_id: z.string().optional(),
   passengerId: z.string().optional(),
@@ -39,7 +39,7 @@ export const ridesQuerySchema = paginationSchema.extend({
 
 // Status update schema
 export const updateStatusSchema = z.object({
-  status: z.enum(['requested', 'accepted', 'arrived', 'started', 'completed', 'paid']),
+  status: z.enum(['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'in_progress', 'completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver']),
   reason: z.string().min(1, 'Justificativa é obrigatória'),
 });
 
