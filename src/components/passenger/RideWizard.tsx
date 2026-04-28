@@ -1,34 +1,33 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../config/colors';
-import { TripComposition } from './TripComposition';
 import { ScheduleSelector } from './ScheduleSelector';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface Place { text: string; lat: number; lng: number; placeId: string }
 interface PostWaitDest { lat: number; lng: number; text: string }
 type ScheduleOption = 'now' | '15min' | '30min' | 'custom';
 
 interface Props {
-  // Step 1 — Destination
   origin: Place | null;
   destination: Place | null;
   onSearchOrigin: () => void;
   onSearchDestination: () => void;
   estimate: { price: number; distance_km: number; wait_charge_estimate?: number | null } | null;
   estimateLoading: boolean;
-  // Step 2 — Details
   passengerCount: number;
   onPassengerChange: (n: number) => void;
   hasLuggage: boolean;
   onLuggageToggle: () => void;
-  // Step 3 — Wait
   waitEstimatedMin: number | null;
   onWaitChange: (min: number | null) => void;
   postWaitDest: PostWaitDest | null;
   onPostWaitClear: () => void;
   onPostWaitSearch: () => void;
-  // Step 4 — Summary
   scheduleOption: ScheduleOption;
   onScheduleChange: (opt: ScheduleOption) => void;
   customTime: Date | null;
@@ -38,19 +37,25 @@ interface Props {
   onStepChange?: (step: number) => void;
 }
 
-const STEPS = ['Destino', 'Detalhes', 'Espera', 'Resumo'] as const;
+const STEPS = ['Destino', 'Confirmar'] as const;
 
 export function RideWizard(props: Props & { step: number }) {
   const step = props.step;
   const setStep = (s: number) => props.onStepChange?.(s);
 
-  const canAdvance = () => {
-    if (step === 0) return !!props.destination;
-    return true;
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const toggle = (key: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedSection(prev => prev === key ? null : key);
   };
 
-  const next = () => { if (canAdvance() && step < 3) { const s = step + 1; setStep(s); props.onStepChange?.(s); } };
-  const back = () => { if (step > 0) { const s = step - 1; setStep(s); props.onStepChange?.(s); } };
+  const canAdvance = () => step === 0 ? !!props.destination : true;
+  const next = () => { if (canAdvance() && step < 1) setStep(1); };
+  const back = () => { if (step > 0) setStep(0); };
+
+  const detailsSummary = `${props.passengerCount} passageiro${props.passengerCount > 1 ? 's' : ''}${props.hasLuggage ? ' · Bagagem' : ''}`;
+  const waitSummary = props.waitEstimatedMin ? `${props.waitEstimatedMin} min${props.postWaitDest ? ' + destino' : ''}` : 'Sem espera';
 
   return (
     <View style={s.container}>
@@ -64,7 +69,7 @@ export function RideWizard(props: Props & { step: number }) {
         ))}
       </View>
 
-      {/* Step 1 — Destination */}
+      {/* Step 0 — Destination */}
       {step === 0 && (
         <View>
           <Text style={s.stepTitle}>Para onde você vai?</Text>
@@ -98,84 +103,12 @@ export function RideWizard(props: Props & { step: number }) {
         </View>
       )}
 
-      {/* Step 2 — Details */}
+      {/* Step 1 — Summary + collapsible options */}
       {step === 1 && (
-        <View>
-          <Text style={s.stepTitle}>Detalhes da viagem</Text>
-          <View style={s.detailRow}>
-            <Text style={s.detailLabel}>👥 Passageiros</Text>
-            <View style={s.counter}>
-              <TouchableOpacity onPress={() => props.onPassengerChange(Math.max(1, props.passengerCount - 1))} style={s.counterBtn}><Text style={s.counterBtnText}>−</Text></TouchableOpacity>
-              <Text style={s.counterValue}>{props.passengerCount}</Text>
-              <TouchableOpacity onPress={() => props.onPassengerChange(Math.min(4, props.passengerCount + 1))} style={s.counterBtn}><Text style={s.counterBtnText}>+</Text></TouchableOpacity>
-            </View>
-          </View>
-          <TouchableOpacity style={s.detailRow} onPress={props.onLuggageToggle} activeOpacity={0.7}>
-            <Text style={s.detailLabel}>🧳 Bagagem</Text>
-            <View style={[s.toggle, props.hasLuggage && s.toggleOn]}>
-              <Text style={s.toggleText}>{props.hasLuggage ? 'Sim' : 'Não'}</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Step 3 — Wait */}
-      {step === 2 && (
-        <View>
-          <Text style={s.stepTitle}>Precisa de espera no destino?</Text>
-          <View style={s.waitGrid}>
-            {[null, 10, 20, 30, 45, 60].map(min => (
-              <TouchableOpacity
-                key={String(min)}
-                onPress={() => props.onWaitChange(min)}
-                activeOpacity={0.7}
-                style={[s.waitChip, props.waitEstimatedMin === min && s.waitChipActive]}
-              >
-                <Text style={s.waitChipText}>{min === null ? 'Não' : `${min} min`}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {props.waitEstimatedMin !== null && (
-            <View style={{ marginTop: 16 }}>
-              <Text style={s.detailLabel}>Depois da espera, vai para outro destino?</Text>
-              {props.postWaitDest ? (
-                <View style={s.postWaitCard}>
-                  <View style={[s.dot, { backgroundColor: '#1565c0' }]} />
-                  <Text style={{ flex: 1, color: COLORS.textPrimary, fontSize: 14 }} numberOfLines={1}>{props.postWaitDest.text}</Text>
-                  <TouchableOpacity onPress={props.onPostWaitClear} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                    <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={{ marginTop: 8 }}>
-                  <TouchableOpacity
-                    style={[s.addressRow, { borderBottomWidth: 0, backgroundColor: COLORS.surfaceLight, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border }]}
-                    onPress={props.onPostWaitSearch}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[s.dot, { backgroundColor: COLORS.textMuted }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, color: COLORS.textMuted }}>Para onde depois da espera?</Text>
-                      <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>Toque para buscar ou deixe vazio</Text>
-                    </View>
-                    <Ionicons name="search" size={18} color={COLORS.textMuted} />
-                  </TouchableOpacity>
-                </View>
-              )}
-              {props.postWaitDest && (
-                <Text style={{ fontSize: 12, color: '#2e7d32', marginTop: 8, fontWeight: '600' }}>
-                  ✓ Valor incluirá ida + trecho após espera + tempo de espera
-                </Text>
-              )}
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Step 4 — Summary */}
-      {step === 3 && (
-        <ScrollView style={{ maxHeight: 280 }} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
           <Text style={s.stepTitle}>Confirme sua corrida</Text>
+
+          {/* Route summary */}
           <View style={s.summaryBlock}>
             <SummaryRow icon="📍" label="Embarque" value={props.origin?.text || '—'} />
             <SummaryRow icon="🏁" label={props.waitEstimatedMin ? 'Parada' : 'Destino'} value={props.destination?.text || '—'} />
@@ -185,9 +118,9 @@ export function RideWizard(props: Props & { step: number }) {
             {props.postWaitDest && (
               <SummaryRow icon="📍" label="Após espera" value={props.postWaitDest.text} accent />
             )}
-            <SummaryRow icon="👥" label="Passageiros" value={String(props.passengerCount)} />
-            {props.hasLuggage && <SummaryRow icon="🧳" label="Bagagem" value="Sim" />}
           </View>
+
+          {/* Price */}
           {props.estimate && (
             <View style={s.summaryPrice}>
               {props.estimate.wait_charge_estimate ? (
@@ -215,6 +148,86 @@ export function RideWizard(props: Props & { step: number }) {
               )}
             </View>
           )}
+
+          {/* Collapsible: Details */}
+          <TouchableOpacity style={s.sectionHeader} onPress={() => toggle('details')} activeOpacity={0.7}>
+            <Text style={s.sectionTitle}>👥 {detailsSummary}</Text>
+            <Ionicons name={expandedSection === 'details' ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+          {expandedSection === 'details' && (
+            <View style={s.sectionBody}>
+              <View style={s.detailRow}>
+                <Text style={s.detailLabel}>Passageiros</Text>
+                <View style={s.counter}>
+                  <TouchableOpacity onPress={() => props.onPassengerChange(Math.max(1, props.passengerCount - 1))} style={s.counterBtn}><Text style={s.counterBtnText}>−</Text></TouchableOpacity>
+                  <Text style={s.counterValue}>{props.passengerCount}</Text>
+                  <TouchableOpacity onPress={() => props.onPassengerChange(Math.min(4, props.passengerCount + 1))} style={s.counterBtn}><Text style={s.counterBtnText}>+</Text></TouchableOpacity>
+                </View>
+              </View>
+              <TouchableOpacity style={s.detailRow} onPress={props.onLuggageToggle} activeOpacity={0.7}>
+                <Text style={s.detailLabel}>🧳 Bagagem</Text>
+                <View style={[s.toggle, props.hasLuggage && s.toggleOn]}>
+                  <Text style={s.toggleText}>{props.hasLuggage ? 'Sim' : 'Não'}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Collapsible: Wait */}
+          <TouchableOpacity style={s.sectionHeader} onPress={() => toggle('wait')} activeOpacity={0.7}>
+            <Text style={s.sectionTitle}>⏳ {waitSummary}</Text>
+            <Ionicons name={expandedSection === 'wait' ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+          {expandedSection === 'wait' && (
+            <View style={s.sectionBody}>
+              <View style={s.waitGrid}>
+                {[null, 10, 20, 30, 45, 60].map(min => (
+                  <TouchableOpacity
+                    key={String(min)}
+                    onPress={() => props.onWaitChange(min)}
+                    activeOpacity={0.7}
+                    style={[s.waitChip, props.waitEstimatedMin === min && s.waitChipActive]}
+                  >
+                    <Text style={s.waitChipText}>{min === null ? 'Não' : `${min} min`}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {props.waitEstimatedMin !== null && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={s.detailLabel}>Depois da espera, vai para outro destino?</Text>
+                  {props.postWaitDest ? (
+                    <View style={s.postWaitCard}>
+                      <View style={[s.dot, { backgroundColor: '#1565c0' }]} />
+                      <Text style={{ flex: 1, color: COLORS.textPrimary, fontSize: 14 }} numberOfLines={1}>{props.postWaitDest.text}</Text>
+                      <TouchableOpacity onPress={props.onPostWaitClear} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                        <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      style={[s.addressRow, { borderBottomWidth: 0, backgroundColor: COLORS.surfaceLight, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, marginTop: 8 }]}
+                      onPress={props.onPostWaitSearch}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[s.dot, { backgroundColor: COLORS.textMuted }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 15, color: COLORS.textMuted }}>Para onde depois da espera?</Text>
+                        <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>Toque para buscar ou deixe vazio</Text>
+                      </View>
+                      <Ionicons name="search" size={18} color={COLORS.textMuted} />
+                    </TouchableOpacity>
+                  )}
+                  {props.postWaitDest && (
+                    <Text style={{ fontSize: 12, color: '#2e7d32', marginTop: 8, fontWeight: '600' }}>
+                      ✓ Valor incluirá ida + trecho após espera + tempo de espera
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Schedule — always visible */}
           <ScheduleSelector
             scheduleOption={props.scheduleOption}
             onOptionChange={props.onScheduleChange}
@@ -231,7 +244,7 @@ export function RideWizard(props: Props & { step: number }) {
             <Text style={s.navBackText}>Voltar</Text>
           </TouchableOpacity>
         ) : <View />}
-        {step < 3 ? (
+        {step === 0 ? (
           <TouchableOpacity
             style={[s.navNext, !canAdvance() && s.navNextDisabled]}
             onPress={next}
@@ -283,7 +296,6 @@ const s = StyleSheet.create({
   progressLabelActive: { color: COLORS.primary },
   stepTitle: { fontSize: 17, fontWeight: '700', color: COLORS.textPrimary, marginBottom: 10 },
 
-  // Address rows (step 1)
   addressRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   dot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
   addressInfo: { flex: 1 },
@@ -294,8 +306,13 @@ const s = StyleSheet.create({
   estimatePrice: { fontSize: 16, fontWeight: '700', color: COLORS.primary },
   estimateLoading: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginTop: 12 },
 
-  // Details (step 2)
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14 },
+  // Collapsible sections
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.border, marginTop: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
+  sectionBody: { paddingBottom: 4 },
+
+  // Details
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
   detailLabel: { fontSize: 15, color: COLORS.textPrimary },
   counter: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   counterBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
@@ -305,14 +322,14 @@ const s = StyleSheet.create({
   toggleOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   toggleText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
 
-  // Wait (step 3)
-  waitGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  // Wait
+  waitGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   waitChip: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 14, backgroundColor: COLORS.surfaceLight, borderWidth: 1, borderColor: COLORS.border },
   waitChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   waitChipText: { fontSize: 14, fontWeight: '600', color: COLORS.textPrimary },
   postWaitCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceLight, borderRadius: 10, padding: 12, marginTop: 8, borderWidth: 1, borderColor: '#1565c0' },
 
-  // Summary (step 4)
+  // Summary
   summaryBlock: { backgroundColor: COLORS.surfaceLight, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: COLORS.border },
   summaryRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   summaryLabel: { fontSize: 12, color: COLORS.textMuted, width: 80 },

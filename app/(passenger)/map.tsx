@@ -659,7 +659,7 @@ export default function PassengerMap() {
         const showRadarOverlay = screen === 'tracking' && (rideStatus === 'requested' || rideStatus === 'offered' || rideStatus === 'no_driver' || (rideStatus === 'accepted' && !driverLocation));
         return region ? (
         <View style={{ flex: 1 }}>
-        <MapView ref={mapRef} style={[s.map, screen === 'idle' && wizardStep > 0 && { flex: undefined, height: wizardStep >= 3 ? 120 : 180 }]} initialRegion={region} showsUserLocation showsMyLocationButton={false}>
+        <MapView ref={mapRef} style={[s.map, screen === 'idle' && wizardStep > 0 && { flex: undefined, height: 120 }]} initialRegion={region} showsUserLocation showsMyLocationButton={false}>
           {screen === 'idle' && origin && origin.placeId !== 'current' && (
             <Marker coordinate={{ latitude: origin.lat, longitude: origin.lng }} title="Origem" pinColor={COLORS.success} />
           )}
