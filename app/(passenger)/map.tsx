@@ -451,7 +451,7 @@ export default function PassengerMap() {
       console.log('[checkReturnHome] ✅ card SHOWN');
     } catch (e) { console.warn('[checkReturnHome] EXCEPTION:', e); }
   };
-  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); checkReturnHome(rideDestination); };
+  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); setSharingLocation(false); checkReturnHome(rideDestination); };
   const rideEndLocation = (r: Ride | null) => {
     if (!r) return null;
     const pwd = (r as any).trip_details?.post_wait_destination;

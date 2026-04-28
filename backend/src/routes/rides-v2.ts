@@ -422,6 +422,9 @@ router.post('/:ride_id/cancel', authenticatePassenger, async (req: Request, res:
       }
     });
 
+    // Limpar localização compartilhada do passageiro
+    await prisma.passengers.update({ where: { id: passengerId }, data: { last_lat: null, last_lng: null, last_location_updated_at: null } });
+
     // Cancelar ofertas pendentes
     await prisma.ride_offers.updateMany({
       where: {
@@ -706,6 +709,9 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
         where: { driver_id: driverId },
         data: { availability: 'online' }
       });
+
+      // Limpar localização compartilhada do passageiro
+      await tx.passengers.update({ where: { id: ride.passenger_id }, data: { last_lat: null, last_lng: null, last_location_updated_at: null } });
     });
 
     console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=completed driver_id=${driverId}`);
