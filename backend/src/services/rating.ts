@@ -24,12 +24,16 @@ export class RatingService {
       if (data.rideId) {
         // Try rides_v2 first, then legacy rides
         let rideStatus: string | null = null;
-        const rideV2 = await prisma.rides_v2.findUnique({ where: { id: data.rideId }, select: { status: true } });
+        let rideDriverId: string | null = null;
+        let ridePassengerId: string | null = null;
+        const rideV2 = await prisma.rides_v2.findUnique({ where: { id: data.rideId }, select: { status: true, driver_id: true, passenger_id: true } });
         if (rideV2) {
           rideStatus = rideV2.status;
+          rideDriverId = rideV2.driver_id;
+          ridePassengerId = rideV2.passenger_id;
         } else {
-          const ride = await prisma.rides.findUnique({ where: { id: data.rideId }, select: { status: true } });
-          if (ride) rideStatus = ride.status;
+          const ride = await prisma.rides.findUnique({ where: { id: data.rideId }, select: { status: true, driver_id: true, passenger_id: true } });
+          if (ride) { rideStatus = ride.status; rideDriverId = ride.driver_id; ridePassengerId = ride.passenger_id; }
         }
 
         if (rideStatus === null) {
@@ -37,10 +41,15 @@ export class RatingService {
         }
 
         if (rideStatus !== 'completed') {
-          return { 
-            success: false, 
-            error: 'RIDE_NOT_COMPLETED'
-          };
+          return { success: false, error: 'RIDE_NOT_COMPLETED' };
+        }
+
+        // Validate rater belongs to this ride
+        if (data.raterType === 'DRIVER' && rideDriverId !== data.raterId) {
+          return { success: false, error: 'RATER_NOT_IN_RIDE' };
+        }
+        if (data.raterType === 'PASSENGER' && ridePassengerId !== data.raterId) {
+          return { success: false, error: 'RATER_NOT_IN_RIDE' };
         }
 
         // Check for existing rating (idempotency)
@@ -67,11 +76,14 @@ export class RatingService {
         }
       }
 
+      // Resolve entity_type: who is being rated?
+      const entityType = data.raterType === 'DRIVER' ? 'PASSENGER' : 'DRIVER';
+
       // Create new rating
       const rating = await prisma.ratings.create({
         data: {
           id: randomUUID(),
-          entity_type: 'DRIVER',
+          entity_type: entityType,
           entity_id: data.ratedId,
           user_id: data.raterId,
           ride_id: data.rideId || null,
@@ -86,8 +98,8 @@ export class RatingService {
         }
       });
 
-      // Update rating stats
-      await this.updateRatingStats(data.ratedId, 'DRIVER');
+      // Update rating stats for the rated entity
+      await this.updateRatingStats(data.ratedId, entityType);
 
       return { 
         success: true, 

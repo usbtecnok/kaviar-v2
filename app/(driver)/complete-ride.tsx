@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking, TouchableOpacity, Modal, Share } from 'react-native';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking, TouchableOpacity, Modal, Share, TextInput, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MapView, { Marker, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
+import { apiClient } from '../../src/api/client';
+import { authStore } from '../../src/auth/auth.store';
 import { Ride, RideStatus } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
@@ -29,6 +31,9 @@ const STATUS_LABELS: Record<string, { label: string; color: string; icon: string
 };
 
 const LOCATION_INTERVAL = 5000;
+
+const POS_TAGS = ['Pontual', 'Educado', 'Local fácil', 'Corrida tranquila'];
+const NEG_TAGS = ['Demorou muito', 'Não apareceu', 'Foi grosseiro', 'Mudou destino sem avisar', 'Bagagem não informada', 'Local difícil sem orientação'];
 
 export default function CompleteRide() {
   const router = useRouter();
@@ -58,6 +63,13 @@ export default function CompleteRide() {
 
   // B4: Emergency modal
   const [showEmergency, setShowEmergency] = useState(false);
+
+  // B5: Passenger rating
+  const [pRating, setPRating] = useState(0);
+  const [pTags, setPTags] = useState<string[]>([]);
+  const [pComment, setPComment] = useState('');
+  const [pSubmitting, setPSubmitting] = useState(false);
+  const [pDone, setPDone] = useState(false);
 
   // B5: Offline queue indicator
   const [queuePending, setQueuePending] = useState(0);
@@ -345,7 +357,7 @@ export default function CompleteRide() {
     const credit = completionData.credit;
     const { waitMin, waitCharge, finalPrice } = completionData;
     return (
-      <View style={[st.container, { justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
         <Text style={{ fontSize: 48, marginBottom: 12 }}>✅</Text>
         <Text style={st.centeredTitle}>Corrida finalizada!</Text>
         {(ride as any)?.is_homebound && (
@@ -387,8 +399,71 @@ export default function CompleteRide() {
           </View>
         )}
         <Text style={st.communityMsg}>Obrigado pela viagem! Sua corrida fortalece a comunidade 🏘️</Text>
+
+        {/* Passenger rating */}
+        {!pDone && ride && (
+          <View style={{ width: '100%', marginTop: 16, backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: COLORS.border }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, textAlign: 'center', marginBottom: 10 }}>
+              Como foi a viagem com {ride.passenger?.name || 'o passageiro'}?
+            </Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 8 }}>
+              {[1, 2, 3, 4, 5].map(n => (
+                <TouchableOpacity key={n} onPress={() => { setPRating(n); setPTags([]); }}>
+                  <Text style={{ fontSize: 36, marginHorizontal: 4 }}>{n <= pRating ? '⭐' : '☆'}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {pRating >= 4 && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+                {POS_TAGS.map(t => (
+                  <TouchableOpacity key={t} onPress={() => setPTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])}
+                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: pTags.includes(t) ? COLORS.primary : COLORS.border, backgroundColor: pTags.includes(t) ? COLORS.surfaceLight : COLORS.surface }}>
+                    <Text style={{ fontSize: 12, color: pTags.includes(t) ? COLORS.primary : COLORS.textSecondary, fontWeight: pTags.includes(t) ? '600' : '400' }}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {pRating >= 1 && pRating <= 3 && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+                {NEG_TAGS.map(t => (
+                  <TouchableOpacity key={t} onPress={() => setPTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])}
+                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: pTags.includes(t) ? COLORS.primary : COLORS.border, backgroundColor: pTags.includes(t) ? COLORS.surfaceLight : COLORS.surface }}>
+                    <Text style={{ fontSize: 12, color: pTags.includes(t) ? COLORS.primary : COLORS.textSecondary, fontWeight: pTags.includes(t) ? '600' : '400' }}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {pRating > 0 && (
+              <TextInput style={{ backgroundColor: COLORS.background, borderRadius: 8, borderWidth: 1, borderColor: COLORS.border, padding: 10, fontSize: 14, color: COLORS.textPrimary, marginBottom: 8 }}
+                placeholder="Comentário (opcional)" placeholderTextColor={COLORS.textMuted} value={pComment} onChangeText={setPComment} maxLength={200} />
+            )}
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity onPress={() => setPDone(true)} style={{ flex: 1, paddingVertical: 10, alignItems: 'center' }}>
+                <Text style={{ color: COLORS.textMuted, fontSize: 14 }}>Pular</Text>
+              </TouchableOpacity>
+              {pRating > 0 && (
+                <TouchableOpacity disabled={pSubmitting} onPress={async () => {
+                  const user = authStore.getUser();
+                  if (!user?.id || !ride) { setPDone(true); return; }
+                  setPSubmitting(true);
+                  try {
+                    await apiClient.post('/api/ratings', {
+                      rideId: ride.id, raterId: user.id, ratedId: ride.passenger_id, raterType: 'DRIVER',
+                      score: pRating, tags: pTags.length > 0 ? pTags.join(',') : undefined, comment: pComment.trim() || undefined,
+                    });
+                  } catch (_e) { /* silent — don't block driver */ }
+                  setPDone(true); setPSubmitting(false);
+                }} style={{ flex: 2, backgroundColor: COLORS.primary, borderRadius: 10, paddingVertical: 10, alignItems: 'center', opacity: pSubmitting ? 0.6 : 1 }}>
+                  <Text style={{ color: COLORS.textDark, fontSize: 15, fontWeight: '700' }}>{pSubmitting ? 'Enviando...' : 'Avaliar'}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+        {pDone && <Text style={{ color: COLORS.textMuted, fontSize: 13, marginTop: 12 }}>✓ Obrigado pela avaliação</Text>}
+
         <Button title="Ficar online" onPress={() => router.replace('/(driver)/online')} style={{ marginTop: 8 }} />
-      </View>
+      </ScrollView>
     );
   }
 
