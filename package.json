@@ -10,7 +10,9 @@
     "web": "expo start --web",
     "lint": "eslint backend/src app src --max-warnings=9999",
     "lint:backend": "eslint backend/src --max-warnings=9999",
-    "lint:app": "eslint app src --max-warnings=9999"
+    "lint:app": "eslint app src --max-warnings=9999",
+    "test:backend": "cd backend && npm test",
+    "check": "npm run test:backend && npm run lint && git status --short"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
