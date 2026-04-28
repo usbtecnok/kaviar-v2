@@ -7,7 +7,10 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "lint": "eslint backend/src app src --max-warnings=9999",
+    "lint:backend": "eslint backend/src --max-warnings=9999",
+    "lint:app": "eslint app src --max-warnings=9999"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
@@ -35,5 +38,10 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "typescript": "~5.9.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "typescript-eslint": "^8.59.1"
   }
 }
