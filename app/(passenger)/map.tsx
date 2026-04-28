@@ -544,7 +544,14 @@ export default function PassengerMap() {
         'Cancelar agora pode prejudicar o motorista, que já se deslocou até você.\n\nSe precisar cancelar por um imprevisto, a gente entende.\n\nSe desejar compensar o motorista pelo deslocamento, peça a chave Pix pelo suporte KAVIAR.',
         [
           { text: 'Voltar para a corrida', style: 'cancel' },
-          { text: 'Pedir chave Pix ao suporte', onPress: () => Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(`Olá, sou passageiro KAVIAR. Precisei cancelar uma corrida após o motorista chegar e gostaria de solicitar a chave Pix para compensar o motorista. Corrida: ${ride.id}`)}`) },
+          { text: 'Pedir chave Pix ao suporte', onPress: () => {
+            const d = ride.driver;
+            const lines = ['Olá, sou passageiro KAVIAR.', '', 'Precisei cancelar uma corrida após o motorista chegar e gostaria de solicitar a chave Pix para compensar o motorista pelo deslocamento.', '', `Corrida: ${ride.id}`];
+            if (d?.name) lines.push(`Motorista: ${d.name}`);
+            if (d?.vehicle_model || d?.vehicle_color || d?.vehicle_plate) lines.push(`Veículo: ${[d.vehicle_model, d.vehicle_color].filter(Boolean).join(' ')}${d.vehicle_plate ? ' - ' + d.vehicle_plate : ''}`);
+            lines.push('Status: motorista chegou');
+            Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(lines.join('\n'))}`);
+          } },
           { text: 'Cancelar mesmo assim', style: 'destructive', onPress: doCancel },
         ]
       );
