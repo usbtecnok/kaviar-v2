@@ -752,18 +752,20 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
         const waitCharge = Math.round(waitMinutes * config.wait.ratePerMin * 100) / 100;
         if (waitCharge > 0) {
           const newFinalPrice = Math.round((settlement.final_price + waitCharge) * 100) / 100;
+          const newDriverEarnings = Math.round((settlement.driver_earnings + waitCharge) * 100) / 100;
           await prisma.$transaction([
             prisma.rides_v2.update({
               where: { id: ride_id },
-              data: { final_price: new Decimal(newFinalPrice) }
+              data: { final_price: new Decimal(newFinalPrice), driver_earnings: new Decimal(newDriverEarnings) }
             }),
             prisma.$executeRaw`
               UPDATE ride_settlements
-              SET final_price = ${newFinalPrice}
+              SET final_price = ${newFinalPrice}, driver_earnings = ${newDriverEarnings}
               WHERE ride_id = ${ride_id}
             `,
           ]);
           settlement.final_price = newFinalPrice;
+          settlement.driver_earnings = newDriverEarnings;
           // Crédito dobrado: espera real = serviço composto
           const doubledCreditCost = Math.round(settlement.credit_cost * 2 * 100) / 100;
           await prisma.$executeRaw`
