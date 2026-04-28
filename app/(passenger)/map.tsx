@@ -534,13 +534,26 @@ export default function PassengerMap() {
 
   const handleCancel = async () => {
     if (!ride) return;
-    Alert.alert('Cancelar corrida?', 'Deseja realmente cancelar?', [
-      { text: 'Não', style: 'cancel' },
-      { text: 'Sim, cancelar', style: 'destructive', onPress: async () => {
-        try { await passengerApi.cancelRide(ride.id); Alert.alert('Corrida cancelada'); resetToIdle(); }
-        catch (e: any) { Alert.alert('Erro', friendlyError(e, 'Não foi possível cancelar.')); }
-      }},
-    ]);
+    const doCancel = async () => {
+      try { await passengerApi.cancelRide(ride.id); Alert.alert('Corrida cancelada'); resetToIdle(); }
+      catch (e: any) { Alert.alert('Erro', friendlyError(e, 'Não foi possível cancelar.')); }
+    };
+    if (rideStatus === 'arrived') {
+      Alert.alert(
+        'O motorista já chegou',
+        'Cancelar agora pode prejudicar o motorista, que já se deslocou até você.\n\nSe precisar cancelar por um imprevisto, a gente entende.\n\nSe desejar compensar o motorista pelo deslocamento, peça a chave Pix pelo suporte KAVIAR.',
+        [
+          { text: 'Voltar para a corrida', style: 'cancel' },
+          { text: 'Pedir chave Pix ao suporte', onPress: () => Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(`Olá, sou passageiro KAVIAR. Precisei cancelar uma corrida após o motorista chegar e gostaria de solicitar a chave Pix para compensar o motorista. Corrida: ${ride.id}`)}`) },
+          { text: 'Cancelar mesmo assim', style: 'destructive', onPress: doCancel },
+        ]
+      );
+    } else {
+      Alert.alert('Cancelar corrida?', 'Deseja realmente cancelar?', [
+        { text: 'Não', style: 'cancel' },
+        { text: 'Sim, cancelar', style: 'destructive', onPress: doCancel },
+      ]);
+    }
   };
 
   const handleLogout = () => {
