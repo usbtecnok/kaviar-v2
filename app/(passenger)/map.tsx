@@ -74,7 +74,7 @@ export default function PassengerMap() {
   const [homePlace, setHomePlace] = useState<Place | null>(null);
 
   // Price estimate
-  const [estimate, setEstimate] = useState<{ price: number; distance_km: number } | null>(null);
+  const [estimate, setEstimate] = useState<{ price: number; distance_km: number; wait_charge_estimate?: number | null } | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
 
   // Trip composition
@@ -335,10 +335,12 @@ export default function PassengerMap() {
     apiClient.post('/api/v2/rides/estimate', {
       origin: { lat: origin.lat, lng: origin.lng },
       destination: { lat: destination.lat, lng: destination.lng },
+      ...(postWaitDest ? { post_wait_destination: { lat: postWaitDest.lat, lng: postWaitDest.lng } } : {}),
+      ...(waitEstimatedMin ? { wait_estimated_min: waitEstimatedMin } : {}),
     }).then(r => setEstimate(r.data?.data || null))
       .catch(() => {})
       .finally(() => setEstimateLoading(false));
-  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng]);
+  }, [origin?.lat, origin?.lng, destination?.lat, destination?.lng, postWaitDest?.lat, postWaitDest?.lng, waitEstimatedMin]);
 
   // --- Ride ---
   const lastStatusRef = useRef('');

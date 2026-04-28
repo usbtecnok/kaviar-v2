@@ -27,20 +27,32 @@ const router = Router();
 // 5.0 Estimativa de preço (sem criar corrida)
 router.post('/estimate', authenticatePassenger, async (req: Request, res: Response) => {
   try {
-    const { origin, destination } = req.body;
+    const { origin, destination, post_wait_destination, wait_estimated_min } = req.body;
     if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
       return res.status(400).json({ error: 'Origem ou destino inválido' });
     }
 
-    const distance_km = Math.round(
+    let distance_km = Math.round(
       pricingEngine.haversineKm(origin.lat, origin.lng, destination.lat, destination.lng) * 100
     ) / 100;
+
+    // Add post-wait leg if provided
+    if (post_wait_destination?.lat && post_wait_destination?.lng) {
+      distance_km = Math.round(
+        (distance_km + pricingEngine.haversineKm(destination.lat, destination.lng, post_wait_destination.lat, post_wait_destination.lng)) * 100
+      ) / 100;
+    }
 
     const profile = await pricingEngine.resolveProfile(origin.lat, origin.lng);
     const raw = profile.base_fare + distance_km * profile.per_km;
     const price = Math.round(Math.max(raw, profile.minimum_fare) * 100) / 100;
 
-    res.json({ success: true, data: { price, distance_km } });
+    // Wait estimate (informational only — real charge is by actual time)
+    const wait_charge_estimate = wait_estimated_min && wait_estimated_min > 0
+      ? Math.round(wait_estimated_min * config.wait.ratePerMin * 100) / 100
+      : null;
+
+    res.json({ success: true, data: { price, distance_km, wait_charge_estimate } });
   } catch (error: any) {
     console.error('[RIDE_ESTIMATE_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });

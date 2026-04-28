@@ -15,7 +15,7 @@ interface Props {
   destination: Place | null;
   onSearchOrigin: () => void;
   onSearchDestination: () => void;
-  estimate: { price: number; distance_km: number } | null;
+  estimate: { price: number; distance_km: number; wait_charge_estimate?: number | null } | null;
   estimateLoading: boolean;
   // Step 2 — Details
   passengerCount: number;
@@ -190,8 +190,29 @@ export function RideWizard(props: Props & { step: number }) {
           </View>
           {props.estimate && (
             <View style={s.summaryPrice}>
-              <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>Estimativa</Text>
-              <Text style={{ color: COLORS.primary, fontSize: 22, fontWeight: '800' }}>R$ {props.estimate.price.toFixed(2)}</Text>
+              {props.estimate.wait_charge_estimate ? (
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>Rota completa</Text>
+                    <Text style={{ color: COLORS.textPrimary, fontSize: 15, fontWeight: '700' }}>R$ {props.estimate.price.toFixed(2)}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>Espera estimada (~{props.waitEstimatedMin} min)</Text>
+                    <Text style={{ color: COLORS.textPrimary, fontSize: 15, fontWeight: '700' }}>+ R$ {props.estimate.wait_charge_estimate.toFixed(2)}</Text>
+                  </View>
+                  <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 6 }} />
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>Total estimado</Text>
+                    <Text style={{ color: COLORS.primary, fontSize: 22, fontWeight: '800' }}>R$ {(props.estimate.price + props.estimate.wait_charge_estimate).toFixed(2)}</Text>
+                  </View>
+                  <Text style={{ color: COLORS.textMuted, fontSize: 11, marginTop: 4 }}>A espera será cobrada pelo tempo real.</Text>
+                </View>
+              ) : (
+                <>
+                  <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>Estimativa</Text>
+                  <Text style={{ color: COLORS.primary, fontSize: 22, fontWeight: '800' }}>R$ {props.estimate.price.toFixed(2)}</Text>
+                </>
+              )}
             </View>
           )}
           <ScheduleSelector
