@@ -228,6 +228,7 @@ model drivers {
   rides                       rides[]
   rides_v2                    rides_v2[]                    @relation("DriverRidesV2")
   ride_offers                 ride_offers[]
+  credit_purchases            driver_credit_purchases[]
   driver_status               driver_status?
   driver_location             driver_locations?
 
@@ -1203,4 +1204,73 @@ model emergency_location_trail {
 
   @@unique([emergency_event_id, captured_at])
   @@index([emergency_event_id, captured_at])
+}
+
+// --- Créditos e Pagamentos (Fase 1) ---
+
+model credit_balance {
+  driver_id  String    @id
+  balance    Decimal   @default(0) @db.Decimal
+  updated_at DateTime? @default(now())
+}
+
+model driver_credit_ledger {
+  id              Int       @id @default(autoincrement())
+  driver_id       String
+  delta           Decimal   @db.Decimal
+  balance_after   Decimal   @db.Decimal
+  reason          String
+  admin_user_id   String?
+  idempotency_key String?   @unique @db.VarChar(255)
+  created_at      DateTime? @default(now())
+
+  @@index([driver_id, created_at(sort: Desc)])
+}
+
+model credit_packages {
+  id         String    @id
+  credits    Int
+  price      Decimal   @db.Decimal
+  active     Boolean?  @default(true)
+  created_at DateTime? @default(now())
+}
+
+model driver_credit_purchases {
+  id                 String    @id @default(uuid()) @db.Uuid
+  driver_id          String
+  package_id         String?
+  asaas_customer_id  String?
+  asaas_payment_id   String?   @unique
+  billing_type       String?   @default("PIX")
+  status             String?   @default("pending")
+  amount_cents       Int
+  credits_amount     Int
+  external_reference String?   @unique
+  pix_qr_code        String?
+  pix_copy_paste     String?
+  pix_expires_at     DateTime? @db.Timestamptz
+  paid_at            DateTime? @db.Timestamptz
+  raw_payload        Json?     @db.JsonB
+  created_at         DateTime? @default(now()) @db.Timestamptz
+  updated_at         DateTime? @default(now()) @db.Timestamptz
+
+  driver drivers @relation(fields: [driver_id], references: [id])
+
+  @@index([driver_id])
+  @@index([asaas_payment_id])
+  @@index([status])
+}
+
+model asaas_webhook_events {
+  id               String    @id @default(uuid()) @db.Uuid
+  event_type       String
+  asaas_payment_id String?
+  payload          Json      @db.JsonB
+  status           String?   @default("received")
+  processed_at     DateTime? @db.Timestamptz
+  error            String?
+  created_at       DateTime? @default(now()) @db.Timestamptz
+
+  @@index([asaas_payment_id])
+  @@index([status])
 }
