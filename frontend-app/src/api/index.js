@@ -25,6 +25,8 @@ const isAuthRoute = (url) => {
 const getTokenScope = (url) => {
   if (url?.includes('/api/admin/') || url?.includes('/api/governance/')) return 'admin';
   if (url?.includes('/api/driver/') || url?.includes('/api/drivers/')) return 'driver';
+  // Se estamos em página admin, usar token admin para endpoints compartilhados
+  if (window.location.pathname.startsWith('/admin')) return 'admin';
   return 'passenger';
 };
 

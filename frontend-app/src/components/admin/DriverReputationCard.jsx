@@ -9,8 +9,11 @@ export function DriverReputationCard({ driverId }) {
 
   useEffect(() => {
     api.get(`/api/ratings/driver/${driverId}`)
-      .then(r => setData(r.data?.summary || r.data?.data || r.data))
-      .catch(() => {})
+      .then(r => {
+        const d = r.data?.summary || r.data?.data || r.data;
+        setData(d);
+      })
+      .catch((err) => { console.warn('[DriverReputationCard] Error:', err?.message); })
       .finally(() => setLoading(false));
   }, [driverId]);
 
