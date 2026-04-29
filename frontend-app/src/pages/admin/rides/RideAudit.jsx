@@ -85,7 +85,7 @@ export default function RideAudit() {
       const token = localStorage.getItem('kaviar_admin_token');
       
       if (!token) {
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       }
       
@@ -105,7 +105,7 @@ export default function RideAudit() {
       if (response.status === 401) {
         localStorage.removeItem('kaviar_admin_token');
         localStorage.removeItem('kaviar_admin_data');
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       }
 

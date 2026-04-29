@@ -135,7 +135,7 @@ export default function CommunitiesManagement() {
 
       if (response.status === 401) {
         localStorage.removeItem('kaviar_admin_token');
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       }
 
@@ -179,7 +179,7 @@ export default function CommunitiesManagement() {
 
       if (response.status === 401) {
         localStorage.removeItem('kaviar_admin_token');
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       }
 
@@ -303,7 +303,7 @@ export default function CommunitiesManagement() {
 
       if (response.status === 401) {
         localStorage.removeItem('kaviar_admin_token');
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       }
 

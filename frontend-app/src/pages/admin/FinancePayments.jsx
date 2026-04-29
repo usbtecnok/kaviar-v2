@@ -64,7 +64,7 @@ export default function FinancePayments() {
   const handleLogout = () => {
     localStorage.removeItem('kaviar_admin_token');
     localStorage.removeItem('kaviar_admin_data');
-    window.location.href = '/admin/login';
+    // redirect removido — ProtectedAdminRoute cuida
   };
 
   // KPI counts

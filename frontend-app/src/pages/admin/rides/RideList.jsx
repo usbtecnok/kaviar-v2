@@ -79,7 +79,7 @@ export default function RideList() {
       if (!token) {
         localStorage.removeItem('kaviar_admin_token');
         localStorage.removeItem('kaviar_admin_data');
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       }
       
@@ -102,7 +102,7 @@ export default function RideList() {
       if (response.status === 401) {
         localStorage.removeItem('kaviar_admin_token');
         localStorage.removeItem('kaviar_admin_data');
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       }
 

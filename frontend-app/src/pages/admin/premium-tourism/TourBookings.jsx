@@ -80,7 +80,7 @@ export default function TourBookings() {
         // Limpar tokens e redirecionar para login
         localStorage.removeItem('kaviar_admin_token');
         localStorage.removeItem('kaviar_admin_data');
-        window.location.href = '/admin/login';
+        // redirect removido — ProtectedAdminRoute cuida
         return;
       } else {
         setError(err.response?.data?.message || ERROR_MESSAGES.SERVER_ERROR);

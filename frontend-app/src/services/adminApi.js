@@ -35,9 +35,9 @@ class AdminApiService {
 
       // Handle unauthorized responses
       if (response.status === 401) {
-        localStorage.removeItem('kaviar_admin_token');
-        localStorage.removeItem('kaviar_admin_data');
-        window.location.href = '/admin/login';
+        // token cleanup delegado ao ProtectedAdminRoute
+        
+        throw new Error('Sessão expirada');
         throw new Error('Sessão expirada');
       }
 
