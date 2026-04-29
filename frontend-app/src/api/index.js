@@ -106,9 +106,14 @@ api.interceptors.response.use(
         // Não forçar redirect — ProtectedAdminRoute cuida disso
         console.log('[API] 401 em admin route - rejeitando sem redirect');
       } else {
-        localStorage.removeItem('kaviar_token');
-        localStorage.removeItem('kaviar_user');
-        window.location.href = '/login';
+        // Não redirecionar se o usuário está em página admin (chamada cross-scope)
+        if (window.location.pathname.startsWith('/admin')) {
+          console.log('[API] 401 em rota não-admin mas usuário está no admin - sem redirect');
+        } else {
+          localStorage.removeItem('kaviar_token');
+          localStorage.removeItem('kaviar_user');
+          window.location.href = '/login';
+        }
       }
     }
     
