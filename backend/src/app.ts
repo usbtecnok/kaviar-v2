@@ -219,6 +219,8 @@ app.use('/api/admin/dashboard', adminDashboardMetricsRoutes);
 app.use('/api/admin/community-leaders', communityLeadersRoutes);
 app.use('/api', complianceRoutes);
 app.use('/api/ratings', ratingsRoutes);
+import adminRatingsRoutes from './routes/admin-ratings';
+app.use('/api/admin/ratings', adminRatingsRoutes);
 app.use('/api/drivers', driversRoutes);
 app.use('/api/drivers', driverDashboardRoutes);
 app.use('/api/drivers', driverTerritoryRoutes);

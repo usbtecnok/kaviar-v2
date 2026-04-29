@@ -122,10 +122,11 @@ export class RatingService {
    */
   async getRatingSummary(entityId: string, userType: UserType): Promise<RatingSummary> {
     try {
+      const entityType = userType === UserType.DRIVER ? 'DRIVER' : 'PASSENGER';
       const stats = await prisma.rating_stats.findUnique({
         where: {
           entity_type_entity_id: {
-            entity_type: 'DRIVER',
+            entity_type: entityType,
             entity_id: entityId
           }
         }
@@ -147,7 +148,7 @@ export class RatingService {
       // Get recent ratings
       const recentRatings = await prisma.ratings.findMany({
         where: {
-          entity_type: 'DRIVER',
+          entity_type: entityType,
           entity_id: entityId
         },
         orderBy: { created_at: 'desc' },
@@ -164,7 +165,7 @@ export class RatingService {
       const distribution = await prisma.ratings.groupBy({
         by: ['rating'],
         where: {
-          entity_type: 'DRIVER',
+          entity_type: entityType,
           entity_id: entityId
         },
         _count: {

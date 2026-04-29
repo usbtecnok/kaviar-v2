@@ -25,6 +25,9 @@ router.get('/pending/:passengerId', ratingController.getPendingRating);
 // Resumo/estatísticas do motorista
 router.get('/driver/:driverId', ratingController.getRatingSummary);
 
+// Resumo/estatísticas do passageiro
+router.get('/passenger/:passengerId', ratingController.getPassengerSummary);
+
 // Alias para compatibilidade com frontend que chama /stats
 router.get('/driver/:driverId/stats', ratingController.getRatingSummary);
 

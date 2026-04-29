@@ -77,20 +77,20 @@ export class RatingController {
   getRatingSummary = async (req: Request, res: Response) => {
     try {
       const { driverId } = req.params;
-      
-      const userType = UserType.DRIVER;
-      const summary = await this.ratingService.getRatingSummary(driverId, userType);
-
-      res.json({
-        success: true,
-        summary
-      });
-
+      const summary = await this.ratingService.getRatingSummary(driverId, UserType.DRIVER);
+      res.json({ success: true, summary });
     } catch (error) {
-      res.status(400).json({
-        success: false,
-        error: error instanceof Error ? error.message : 'Invalid request parameters'
-      });
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Invalid request parameters' });
+    }
+  };
+
+  getPassengerSummary = async (req: Request, res: Response) => {
+    try {
+      const { passengerId } = req.params;
+      const summary = await this.ratingService.getRatingSummary(passengerId, UserType.PASSENGER);
+      res.json({ success: true, summary });
+    } catch (error) {
+      res.status(400).json({ success: false, error: error instanceof Error ? error.message : 'Invalid request parameters' });
     }
   };
 

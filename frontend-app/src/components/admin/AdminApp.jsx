@@ -16,6 +16,7 @@ import CommunitiesManagement from "../../pages/admin/CommunitiesManagement";
 import NeighborhoodsManagement from "../../pages/admin/NeighborhoodsManagement";
 import NeighborhoodsByCity from "../../pages/admin/NeighborhoodsByCity";
 import DriversManagement from "../../pages/admin/DriversManagement";
+import { RatingsOverviewCard } from "./RatingsOverviewCard";
 import PassengersManagement from "../../pages/admin/PassengersManagement";
 import PassengerDetail from "../../pages/admin/PassengerDetail";
 import GuidesManagement from "../../pages/admin/GuidesManagement";
@@ -467,6 +468,11 @@ function AdminHome() {
             </Box>
           </CardContent>
         </Card>
+      </Box>
+
+      {/* Card de Avaliações */}
+      <Box sx={{ mb: 4 }}>
+        <RatingsOverviewCard />
       </Box>
 
       {/* Atalhos de Gerenciamento */}
