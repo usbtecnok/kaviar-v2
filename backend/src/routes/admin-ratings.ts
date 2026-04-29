@@ -51,6 +51,22 @@ router.get('/overview', allowReadAccess, async (_req: Request, res: Response) =>
       : [];
     const driverMap = Object.fromEntries(drivers.map(d => [d.id, d.name]));
 
+    // Fetch negative ratings details for attention drivers
+    const negRatingsForDrivers = driverIds.length > 0
+      ? await prisma.ratings.findMany({
+          where: { entity_type: 'DRIVER', entity_id: { in: driverIds }, score: { lte: 3 } },
+          select: { entity_id: true, tags: true, comment: true },
+          orderBy: { created_at: 'desc' },
+        })
+      : [];
+    const driverNegDetails: Record<string, { tags: Record<string, number>; lastComment: string | null }> = {};
+    negRatingsForDrivers.forEach(r => {
+      if (!driverNegDetails[r.entity_id]) driverNegDetails[r.entity_id] = { tags: {}, lastComment: null };
+      const d = driverNegDetails[r.entity_id];
+      if (r.tags) r.tags.split(',').forEach(t => { const tag = t.trim(); if (tag) d.tags[tag] = (d.tags[tag] || 0) + 1; });
+      if (r.comment && !d.lastComment) d.lastComment = r.comment;
+    });
+
     res.json({
       success: true,
       data: {
@@ -60,12 +76,18 @@ router.get('/overview', allowReadAccess, async (_req: Request, res: Response) =>
         passengerTotal: passengerStats._count.score,
         totalRatings: driverStats._count.score + passengerStats._count.score,
         topNegativeTags,
-        attentionDrivers: attentionDrivers.map(d => ({
-          id: d.entity_id,
-          name: driverMap[d.entity_id] || d.entity_id,
-          negCount: d._count.score,
-          avgScore: d._avg.score,
-        })),
+        attentionDrivers: attentionDrivers.map(d => {
+          const details = driverNegDetails[d.entity_id] || { tags: {}, lastComment: null };
+          const topTags = Object.entries(details.tags).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+          return {
+            id: d.entity_id,
+            name: driverMap[d.entity_id] || d.entity_id,
+            negCount: d._count.score,
+            avgScore: d._avg.score,
+            tags: topTags,
+            lastComment: details.lastComment,
+          };
+        }),
       },
     });
   } catch (error: any) {

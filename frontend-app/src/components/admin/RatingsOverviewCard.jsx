@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Paper, Typography, Box, Chip, CircularProgress, Rating, Divider } from '@mui/material';
 import { API_BASE_URL } from '../../config/api';
+import { Link } from 'react-router-dom';
 
 const gold = '#FFD700';
 const cardBg = '#111';
@@ -68,12 +69,26 @@ export function RatingsOverviewCard() {
           <Box sx={{ bgcolor: 'rgba(255,152,0,0.06)', border: '1px solid rgba(255,152,0,0.15)', borderRadius: 1.5, p: 2 }}>
             <Typography variant="body2" sx={{ color: '#FFA726', fontWeight: 700, mb: 1.5 }}>⚠️ Motoristas com atenção</Typography>
             {attentionDrivers.slice(0, 5).map(d => (
-              <Box key={d.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.8, borderBottom: '1px solid rgba(255,255,255,0.04)', '&:last-child': { borderBottom: 'none' } }}>
-                <Typography variant="body2" sx={{ color: '#ddd', fontWeight: 500 }}>{d.name}</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Chip label={`${d.negCount}× negativa`} size="small" sx={{ bgcolor: 'rgba(244,67,54,0.1)', color: '#ef5350', fontSize: 11, height: 22 }} />
-                  <Typography variant="body2" sx={{ color: '#888', fontSize: 12 }}>média {d.avgScore?.toFixed(1)}</Typography>
+              <Box key={d.id} sx={{ py: 1.2, borderBottom: '1px solid rgba(255,255,255,0.04)', '&:last-child': { borderBottom: 'none' } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#ddd', fontWeight: 500 }}>{d.name}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Chip label={`${d.negCount}× negativa`} size="small" sx={{ bgcolor: 'rgba(244,67,54,0.1)', color: '#ef5350', fontSize: 11, height: 22 }} />
+                    <Typography variant="body2" sx={{ color: '#888', fontSize: 12 }}>média {d.avgScore?.toFixed(1)}</Typography>
+                    <Chip label="Ver detalhes" size="small" component={Link} to={`/admin/drivers/${d.id}`} clickable
+                      sx={{ bgcolor: 'rgba(255,215,0,0.08)', color: gold, fontSize: 11, height: 22, textDecoration: 'none' }} />
+                  </Box>
                 </Box>
+                {d.tags?.length > 0 && (
+                  <Box sx={{ mt: 0.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {d.tags.map(t => <Chip key={t} label={t} size="small" sx={{ height: 18, fontSize: 10, color: '#999', borderColor: '#333' }} variant="outlined" />)}
+                  </Box>
+                )}
+                {d.lastComment && (
+                  <Typography variant="caption" sx={{ color: '#777', fontStyle: 'italic', display: 'block', mt: 0.5 }}>
+                    "{d.lastComment.length > 80 ? d.lastComment.substring(0, 80) + '…' : d.lastComment}"
+                  </Typography>
+                )}
               </Box>
             ))}
           </Box>
