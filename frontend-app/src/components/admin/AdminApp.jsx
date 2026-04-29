@@ -346,7 +346,7 @@ function AdminHome() {
                     variant="contained" 
                     color="warning" 
                     size="small"
-                    component={Link} to="/admin/drivers?status=pending"
+                    component={Link} to="/admin/drivers/approval"
                     disabled={!pending.drivers}
                   >
                     Revisar
@@ -475,28 +475,6 @@ function AdminHome() {
           Gerenciamento
         </Typography>
         <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={4}>
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                <PersonAdd sx={{ fontSize: 40, color: 'success.main', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>
-                  Aprovação Motoristas
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Aprovar/reprovar motoristas
-                </Typography>
-                <Button 
-                  variant="contained" 
-                  color="success"
-                  component={Link}
-                  to="/admin/drivers/approval"
-                >
-                  Acessar
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
-
           <Grid item xs={12} sm={6} md={4}>
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 3 }}>
