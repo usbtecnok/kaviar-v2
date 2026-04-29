@@ -129,25 +129,8 @@ function AdminHome() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const response = await originalFetch(...args);
-      if (response.status === 403) {
-        const adminData = localStorage.getItem('kaviar_admin_data');
-        if (adminData) {
-          const admin = JSON.parse(adminData);
-          if (admin.role === 'ANGEL_VIEWER') {
-            alert('Sem permissão: você está em modo somente leitura');
-          }
-        }
-      }
-      return response;
-    };
-    
     fetchDashboardData();
     fetchTerritoryData();
-    
-    return () => { window.fetch = originalFetch; };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -171,21 +154,9 @@ function AdminHome() {
         fetch(`${API_BASE_URL}/api/neighborhoods`)
       ]);
 
-      // Só remover token se 401 com erro de token inválido
+      // Se 401, mostrar erro no dashboard (ProtectedAdminRoute cuida do redirect real)
       if (driversResponse.status === 401 || guidesResponse.status === 401) {
-        try {
-          const errorData = await driversResponse.json();
-          if (errorData.error && errorData.error.includes('Token inválido')) {
-            localStorage.removeItem('kaviar_admin_token');
-            localStorage.removeItem('kaviar_admin_data');
-            window.location.href = '/admin/login';
-            return;
-          }
-        } catch (e) {
-          // Erro de parsing
-        }
-        
-        throw new Error(`Erro de conexão: ${driversResponse.status}`);
+        throw new Error('Sessão expirada. Faça login novamente.');
       }
 
       const driversData = await driversResponse.json();
