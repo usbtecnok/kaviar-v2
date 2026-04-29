@@ -2,6 +2,21 @@ import { useState, useEffect } from 'react';
 import { Paper, Typography, Box, Chip, CircularProgress, Rating, Divider } from '@mui/material';
 import { API_BASE_URL } from '../../config/api';
 
+const gold = '#FFD700';
+const cardBg = '#111';
+const metricBg = '#0a0a0a';
+
+function MetricBox({ label, value, subtitle, stars }) {
+  return (
+    <Box sx={{ flex: 1, minWidth: 140, bgcolor: metricBg, borderRadius: 2, p: 2.5, border: '1px solid #222', textAlign: 'center' }}>
+      <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', letterSpacing: 1, fontSize: 10 }}>{label}</Typography>
+      <Typography variant="h4" sx={{ color: gold, fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>{value}</Typography>
+      {stars != null && <Rating value={stars} precision={0.1} readOnly size="small" sx={{ mt: 0.5, '& .MuiRating-iconFilled': { color: gold } }} />}
+      <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>{subtitle}</Typography>
+    </Box>
+  );
+}
+
 export function RatingsOverviewCard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,56 +31,52 @@ export function RatingsOverviewCard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <Paper sx={{ p: 3 }}><CircularProgress size={24} /></Paper>;
+  if (loading) return <Paper sx={{ p: 4, bgcolor: cardBg, border: `1px solid ${gold}22` }}><CircularProgress size={24} sx={{ color: gold }} /></Paper>;
   if (!data) return null;
 
   const negTags = (data.topNegativeTags || []).slice(0, 5);
-  const attentionDrivers = (data.attentionDrivers || []).slice(0, 3);
+  const attentionDrivers = (data.attentionDrivers || []).filter(d => d.negCount > 0);
 
   return (
-    <Paper sx={{ p: 3, bgcolor: '#1a1a1a', border: '1px solid #333' }}>
-      <Typography variant="h6" sx={{ color: '#FFD700', mb: 2 }}>⭐ Qualidade das Avaliações</Typography>
-      <Box sx={{ display: 'flex', gap: 4, mb: 2, flexWrap: 'wrap' }}>
-        <Box>
-          <Typography variant="caption" color="text.secondary">Motoristas</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700 }}>{data.driverAvg?.toFixed(1) || '—'}</Typography>
-            <Rating value={data.driverAvg || 0} precision={0.1} readOnly size="small" />
-          </Box>
-          <Typography variant="caption" color="text.secondary">{data.driverTotal || 0} avaliações</Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary">Passageiros</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700 }}>{data.passengerAvg?.toFixed(1) || '—'}</Typography>
-            <Rating value={data.passengerAvg || 0} precision={0.1} readOnly size="small" />
-          </Box>
-          <Typography variant="caption" color="text.secondary">{data.passengerTotal || 0} avaliações</Typography>
-        </Box>
-        <Box>
-          <Typography variant="caption" color="text.secondary">Total</Typography>
-          <Typography variant="h5" sx={{ color: '#fff', fontWeight: 700 }}>{data.totalRatings || 0}</Typography>
-        </Box>
+    <Paper sx={{ p: 3.5, bgcolor: cardBg, border: `1px solid ${gold}33`, borderRadius: 2, boxShadow: `0 4px 20px ${gold}08` }}>
+      <Typography variant="h6" sx={{ color: gold, fontWeight: 700, mb: 2.5, letterSpacing: 0.5 }}>
+        ⭐ Qualidade das Avaliações
+      </Typography>
+
+      <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <MetricBox label="Motoristas" value={data.driverAvg?.toFixed(1) || '—'} stars={data.driverAvg} subtitle={`${data.driverTotal || 0} avaliações`} />
+        <MetricBox label="Passageiros" value={data.passengerAvg?.toFixed(1) || '—'} stars={data.passengerAvg} subtitle={`${data.passengerTotal || 0} avaliações`} />
+        <MetricBox label="Total" value={data.totalRatings || 0} subtitle="avaliações" />
       </Box>
+
       {negTags.length > 0 && (
         <>
-          <Divider sx={{ borderColor: '#333', my: 1 }} />
-          <Typography variant="caption" color="text.secondary">Tags negativas frequentes</Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-            {negTags.map(t => <Chip key={t.tag} label={`${t.tag} (${t.count})`} size="small" sx={{ bgcolor: '#3a1a1a', color: '#f44336', borderColor: '#f44336' }} variant="outlined" />)}
+          <Divider sx={{ borderColor: '#222', mb: 2 }} />
+          <Typography variant="body2" sx={{ color: '#888', mb: 1, fontWeight: 600 }}>Tags negativas frequentes</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+            {negTags.map(t => (
+              <Chip key={t.tag} label={`${t.tag} (${t.count})`} size="small"
+                sx={{ bgcolor: 'rgba(244,67,54,0.08)', color: '#ef5350', border: '1px solid rgba(244,67,54,0.2)', fontWeight: 500 }} />
+            ))}
           </Box>
         </>
       )}
+
       {attentionDrivers.length > 0 && (
         <>
-          <Divider sx={{ borderColor: '#333', my: 1 }} />
-          <Typography variant="caption" color="text.secondary">⚠️ Motoristas com atenção</Typography>
-          {attentionDrivers.map(d => (
-            <Box key={d.id} sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-              <Typography variant="body2" sx={{ color: '#ccc' }}>{d.name}</Typography>
-              <Typography variant="body2" sx={{ color: '#f44336' }}>{d.negCount}× negativa · média {d.avgScore?.toFixed(1)}</Typography>
-            </Box>
-          ))}
+          <Divider sx={{ borderColor: '#222', mb: 2 }} />
+          <Box sx={{ bgcolor: 'rgba(255,152,0,0.06)', border: '1px solid rgba(255,152,0,0.15)', borderRadius: 1.5, p: 2 }}>
+            <Typography variant="body2" sx={{ color: '#FFA726', fontWeight: 700, mb: 1.5 }}>⚠️ Motoristas com atenção</Typography>
+            {attentionDrivers.slice(0, 5).map(d => (
+              <Box key={d.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.8, borderBottom: '1px solid rgba(255,255,255,0.04)', '&:last-child': { borderBottom: 'none' } }}>
+                <Typography variant="body2" sx={{ color: '#ddd', fontWeight: 500 }}>{d.name}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Chip label={`${d.negCount}× negativa`} size="small" sx={{ bgcolor: 'rgba(244,67,54,0.1)', color: '#ef5350', fontSize: 11, height: 22 }} />
+                  <Typography variant="body2" sx={{ color: '#888', fontSize: 12 }}>média {d.avgScore?.toFixed(1)}</Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
         </>
       )}
     </Paper>
