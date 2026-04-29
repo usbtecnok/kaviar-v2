@@ -26,7 +26,7 @@ import {
   CardContent
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 const isSuperAdmin = () => {
   const data = localStorage.getItem('kaviar_admin_data');
   return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
@@ -34,10 +34,11 @@ const isSuperAdmin = () => {
 
 export default function DriversManagement() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [currentTab, setCurrentTab] = useState('approved');
+  const [currentTab, setCurrentTab] = useState(searchParams.get('status') || 'approved');
   const [neighborhoodMetrics, setNeighborhoodMetrics] = useState([]);
   const [showMetrics, setShowMetrics] = useState(false);
   const [actionDialog, setActionDialog] = useState({ 

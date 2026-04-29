@@ -126,7 +126,7 @@ export default function AdminDriverDetail() {
   const handleApprove = async () => {
     try {
       setError('');
-      const response = await api.post(`/api/admin/drivers/${id}/approve`);
+      const response = await api.put(`/api/admin/drivers/${id}/approve`);
       if (response.data.success) {
         setSuccess('Motorista aprovado com sucesso!');
         setTimeout(() => navigate('/admin/motoristas'), 2000);
@@ -144,7 +144,7 @@ export default function AdminDriverDetail() {
 
     try {
       setError('');
-      const response = await api.post(`/api/admin/drivers/${id}/reject`, {
+      const response = await api.put(`/api/admin/drivers/${id}/reject`, {
         reason: rejectReason
       });
       if (response.data.success) {
