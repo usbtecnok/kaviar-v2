@@ -9,7 +9,7 @@ import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 
 const POSITIVE_TAGS = ['Dirigiu bem', 'Simpático', 'Carro limpo', 'Conhece a região', 'Pontual'];
-const NEGATIVE_TAGS = ['Dirigiu mal', 'Rota ruim', 'Atrasou', 'Veículo sujo', 'Foi grosseiro', 'Não encontrei o motorista'];
+const NEGATIVE_TAGS = ['Atrasou', 'Comunicação ruim', 'Foi grosseiro', 'Dirigiu mal', 'Veículo sujo', 'Não encontrei o motorista', 'Outro'];
 
 export default function Rating() {
   const router = useRouter();
@@ -26,6 +26,8 @@ export default function Rating() {
 
   const handleSubmit = async () => {
     if (rating === 0) { Alert.alert('Avaliação', 'Selecione uma nota.'); return; }
+    if (rating <= 3 && selectedTags.length === 0) { Alert.alert('Avaliação', 'Selecione pelo menos um motivo para nos ajudar a melhorar.'); return; }
+    if (selectedTags.includes('Outro') && !comment.trim()) { Alert.alert('Avaliação', 'Por favor, descreva o motivo no comentário.'); return; }
     if (!rideId || !driverId) { router.replace('/(passenger)/map'); return; }
     const user = authStore.getUser();
     if (!user?.id) { router.replace('/(auth)/login'); return; }

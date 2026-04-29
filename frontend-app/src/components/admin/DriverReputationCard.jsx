@@ -14,12 +14,14 @@ const TAG_CATEGORIES = {
   'Veículo sujo': 'Veículo / limpeza',
   'Carro sujo': 'Veículo / limpeza',
   'Foi grosseiro': 'Cordialidade',
+  'Comunicação ruim': 'Comunicação',
   'Não encontrei o motorista': 'Localização',
   'Local difícil sem orientação': 'Localização',
   'Mudou destino sem avisar': 'Comunicação',
   'Cancelou após chegada': 'Cancelamento',
+  'Outro': 'Outro',
 };
-const ALL_CATEGORIES = ['Atraso / demora', 'Cordialidade', 'Direção / segurança', 'Veículo / limpeza', 'Comunicação', 'Localização', 'Cancelamento'];
+const ALL_CATEGORIES = ['Atraso / demora', 'Cordialidade', 'Direção / segurança', 'Veículo / limpeza', 'Comunicação', 'Localização', 'Cancelamento', 'Outro'];
 
 export function DriverReputationCard({ driverId }) {
   const [data, setData] = useState(null);
