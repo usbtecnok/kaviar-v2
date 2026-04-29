@@ -375,7 +375,7 @@ function AdminHome() {
                     variant="contained" 
                     color="warning" 
                     size="small"
-                    href="/admin/drivers?status=pending"
+                    component={Link} to="/admin/drivers?status=pending"
                     disabled={!pending.drivers}
                   >
                     Revisar
@@ -397,7 +397,7 @@ function AdminHome() {
                     variant="contained" 
                     color="warning" 
                     size="small"
-                    href="/admin/passengers?status=pending"
+                    component={Link} to="/admin/passengers?status=pending"
                     disabled={!pending.passengers}
                   >
                     Revisar
@@ -419,7 +419,7 @@ function AdminHome() {
                     variant="contained" 
                     color="warning" 
                     size="small"
-                    href="/admin/guides?status=pending"
+                    component={Link} to="/admin/guides?status=pending"
                     disabled={!pending.guides}
                   >
                     Revisar
@@ -487,7 +487,7 @@ function AdminHome() {
                 )}
               </Box>
               <Button
-                href="/admin/executive-operations"
+                component={Link} to="/admin/executive-operations"
                 variant="outlined"
                 sx={{ borderColor: 'rgba(201,162,39,0.40)', color: '#C9A227', fontWeight: 600, fontSize: 13, px: 3, py: 1, borderRadius: 2, textTransform: 'none', whiteSpace: 'nowrap', '&:hover': { borderColor: '#C9A227', bgcolor: 'rgba(201,162,39,0.06)' } }}
               >
@@ -591,7 +591,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Gestão de comunidades e ativação
                 </Typography>
-                <Button variant="contained" color="info" href="/admin/communities">
+                <Button variant="contained" color="info" component={Link} to="/admin/communities">
                   Acessar
                 </Button>
               </CardContent>
@@ -608,7 +608,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Gestão de bairros administrativos
                 </Typography>
-                <Button variant="contained" color="success" href="/admin/neighborhoods">
+                <Button variant="contained" color="success" component={Link} to="/admin/neighborhoods">
                   Acessar
                 </Button>
               </CardContent>
@@ -625,7 +625,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Revisão e validação de geofences
                 </Typography>
-                <Button variant="contained" color="warning" href="/admin/geofences">
+                <Button variant="contained" color="warning" component={Link} to="/admin/geofences">
                   Revisar
                 </Button>
               </CardContent>
@@ -642,7 +642,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Gerenciar motoristas
                 </Typography>
-                <Button variant="contained" href="/admin/drivers">
+                <Button variant="contained" component={Link} to="/admin/drivers">
                   Acessar
                 </Button>
               </CardContent>
@@ -659,7 +659,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Gerenciar passageiros
                 </Typography>
-                <Button variant="contained" color="success" href="/admin/passengers">
+                <Button variant="contained" color="success" component={Link} to="/admin/passengers">
                   Acessar
                 </Button>
               </CardContent>
@@ -676,7 +676,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Gerenciar guias
                 </Typography>
-                <Button variant="contained" color="secondary" href="/admin/guides">
+                <Button variant="contained" color="secondary" component={Link} to="/admin/guides">
                   Acessar
                 </Button>
               </CardContent>
@@ -693,7 +693,7 @@ function AdminHome() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Logs e ações administrativas
                 </Typography>
-                <Button variant="contained" color="warning" href="/admin/audit">
+                <Button variant="contained" color="warning" component={Link} to="/admin/audit">
                   Acessar
                 </Button>
               </CardContent>
@@ -713,7 +713,7 @@ function AdminHome() {
                 <Button 
                   variant="contained" 
                   color="secondary"
-                  href="/admin/premium-tourism/packages"
+                  component={Link} to="/admin/premium-tourism/packages"
                 >
                   Acessar
                 </Button>
@@ -773,7 +773,7 @@ function AdminHome() {
                   <Button 
                     variant="contained" 
                     color="warning"
-                    href="/admin/investor-invites"
+                    component={Link} to="/admin/investor-invites"
                   >
                     Acessar
                   </Button>
@@ -795,7 +795,7 @@ function AdminHome() {
                 <Button 
                   variant="contained" 
                   sx={{ bgcolor: '#FFD700', color: '#000' }}
-                  href="/admin/consultant-leads"
+                  component={Link} to="/admin/consultant-leads"
                 >
                   Acessar
                 </Button>
@@ -803,7 +803,7 @@ function AdminHome() {
                   variant="outlined" 
                   size="small"
                   sx={{ ml: 1 }}
-                  href="/admin/lead-performance"
+                  component={Link} to="/admin/lead-performance"
                 >
                   Performance
                 </Button>
@@ -811,7 +811,7 @@ function AdminHome() {
                   variant="outlined" 
                   size="small"
                   sx={{ ml: 1 }}
-                  href="/admin/staff"
+                  component={Link} to="/admin/staff"
                 >
                   Equipe
                 </Button>
@@ -819,7 +819,7 @@ function AdminHome() {
                   variant="outlined" 
                   size="small"
                   sx={{ ml: 1, borderColor: '#FFD700', color: '#B8860B' }}
-                  href="/admin/referrals"
+                  component={Link} to="/admin/referrals"
                 >
                   Indicações
                 </Button>

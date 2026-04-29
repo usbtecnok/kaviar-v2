@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Box, 
   Grid, 
@@ -240,7 +241,7 @@ export default function AdminDashboard() {
                 variant="contained" 
                 size="small"
                 disabled={pending.drivers === 0}
-                href="/admin/drivers?status=pending"
+                component={Link} to="/admin/drivers?status=pending"
               >
                 Revisar
               </Button>
@@ -265,7 +266,7 @@ export default function AdminDashboard() {
                 variant="contained" 
                 size="small"
                 disabled={pending.guides === 0}
-                href="/admin/guides?status=pending"
+                component={Link} to="/admin/guides?status=pending"
               >
                 Revisar
               </Button>
@@ -498,7 +499,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/neighborhoods-by-city"
+            component={Link} to="/admin/neighborhoods-by-city"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -516,7 +517,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/drivers"
+            component={Link} to="/admin/drivers"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -534,7 +535,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/passengers"
+            component={Link} to="/admin/passengers"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -552,7 +553,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/guides"
+            component={Link} to="/admin/guides"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -570,7 +571,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/elderly"
+            component={Link} to="/admin/elderly"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -588,7 +589,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/rides/audit"
+            component={Link} to="/admin/rides/audit"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -606,7 +607,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/beta-monitor"
+            component={Link} to="/admin/beta-monitor"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -624,7 +625,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/match-monitor"
+            component={Link} to="/admin/match-monitor"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -642,7 +643,7 @@ export default function AdminDashboard() {
             variant="outlined"
             fullWidth
             sx={{ p: 2, textAlign: 'left' }}
-            href="/admin/feature-flags"
+            component={Link} to="/admin/feature-flags"
           >
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
