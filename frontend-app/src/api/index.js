@@ -103,9 +103,8 @@ api.interceptors.response.use(
         localStorage.removeItem('kaviar_driver_data');
         window.location.href = '/motorista/login';
       } else if (scope === 'admin') {
-        localStorage.removeItem('kaviar_admin_token');
-        localStorage.removeItem('kaviar_admin_data');
-        window.location.href = '/admin/login';
+        // Não forçar redirect — ProtectedAdminRoute cuida disso
+        console.log('[API] 401 em admin route - rejeitando sem redirect');
       } else {
         localStorage.removeItem('kaviar_token');
         localStorage.removeItem('kaviar_user');
