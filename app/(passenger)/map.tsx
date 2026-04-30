@@ -21,6 +21,7 @@ import { RideCompletedModal } from '../../src/components/passenger/RideCompleted
 import { RideWizard } from '../../src/components/passenger/RideWizard';
 import { RadarPulse } from '../../src/components/passenger/RadarPulse';
 import { AdjustmentModal } from '../../src/components/AdjustmentModal';
+import { KaviarHub } from '../../src/components/passenger/KaviarHub';
 
 import { ENV } from '../../src/config/env';
 import { apiClient } from '../../src/api/client';
@@ -691,16 +692,19 @@ export default function PassengerMap() {
               title={rideStatus === 'in_progress' ? 'Destino' : 'Embarque'} description={mapTarget.label}
               pinColor={rideStatus === 'in_progress' ? COLORS.success : COLORS.primary} />
           )}
+          {screen === 'tracking' && ride && (rideStatus === 'requested' || rideStatus === 'offered') && (
+            <Marker coordinate={{ latitude: Number(ride.dest_lat), longitude: Number(ride.dest_lng) }} title="Destino" description={ride.destination_text} pinColor={COLORS.danger} />
+          )}
           {driverLocation && (
             <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }} title="Motorista" pinColor={COLORS.warning} />
           )}
         </MapView>
         {showRadarOverlay && (
-          <View style={s.radarOverlay}>
+          <View style={s.radarOverlay} pointerEvents="none">
             <RadarPulse />
             <Text style={s.mapFallbackBrand}>K</Text>
             <Text style={s.mapFallbackTitle}>{rideStatus === 'accepted' ? 'Motorista a caminho' : 'Buscando motorista'}</Text>
-            <Text style={s.mapFallbackSub}>{rideStatus === 'accepted' ? 'Aguardando localização do motorista...' : 'Estamos encontrando o melhor motorista para você'}</Text>
+            <Text style={s.mapFallbackSub}>{rideStatus === 'accepted' ? 'Aguardando localização do motorista...' : SEARCH_PHRASES[searchPhraseIdx]}</Text>
             {ride?.driver?.name && <Text style={s.mapFallbackDriver}>🧑‍✈️ {ride.driver.name}</Text>}
           </View>
         )}
@@ -897,6 +901,15 @@ export default function PassengerMap() {
                   })()}
                 </Text>
               </View>
+            )}
+            {rideStatus === 'in_progress' && (
+              <KaviarHub
+                rideId={ride?.id}
+                waitStartedAt={ride?.wait_started_at}
+                waitEndedAt={ride?.wait_ended_at}
+                postWaitDestText={ride?.trip_details?.post_wait_destination?.text}
+                neighborhoodName={communityStatus?.communityName}
+              />
             )}
             <View style={s.routeCompact}>
               <Text style={s.label}>{rideStatus === 'in_progress' ? 'Destino' : 'Origem'}</Text>
@@ -1131,7 +1144,7 @@ const s = StyleSheet.create({
   mapLoading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0a0a0a' },
   mapLoadingText: { color: COLORS.textMuted, fontSize: 14, marginTop: 12 },
   mapFallback: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#080808' },
-  radarOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(8,8,8,0.85)' },
+  radarOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(8,8,8,0.55)' },
   mapFallbackBrand: { fontSize: 56, fontWeight: '900', color: 'rgba(200,168,78,0.35)', letterSpacing: 8, marginBottom: 20 },
   mapFallbackIcon: { fontSize: 40, marginBottom: 12 },
   mapFallbackTitle: { fontSize: 20, fontWeight: '800', color: '#C8A84E', letterSpacing: 1 },
