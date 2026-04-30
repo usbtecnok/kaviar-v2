@@ -124,7 +124,7 @@ export default function DriverApproval() {
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ '& th': { fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5, color: 'text.secondary' } }}>
+              <TableRow sx={{ '& th': { fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.3, color: 'text.secondary' } }}>
                 <TableCell>Nome</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Cadastro</TableCell>

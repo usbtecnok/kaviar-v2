@@ -107,12 +107,12 @@ export default function CreditPurchases() {
               <TableBody>
                 {purchases.map((p) => (
                   <TableRow key={p.id} sx={{ '&:hover': { bgcolor: '#222' } }}>
-                    <TableCell sx={{ color: '#fff' }}>
+                    <TableCell sx={{ color: '#E8E3D5' }}>
                       <Typography variant="body2">{p.driver_name || '—'}</Typography>
                       <Typography variant="caption" sx={{ color: '#888' }}>{p.driver_phone}</Typography>
                     </TableCell>
-                    <TableCell sx={{ color: '#fff' }}>{fmt(p.amount_cents)}</TableCell>
-                    <TableCell sx={{ color: '#fff' }}>{p.credits_amount}</TableCell>
+                    <TableCell sx={{ color: '#E8E3D5' }}>{fmt(p.amount_cents)}</TableCell>
+                    <TableCell sx={{ color: '#E8E3D5' }}>{p.credits_amount}</TableCell>
                     <TableCell>
                       <Chip label={statusLabel[p.status] || p.status} color={statusColor[p.status] || 'default'} size="small" />
                     </TableCell>
@@ -137,7 +137,7 @@ export default function CreditPurchases() {
           <TablePagination
             component="div" count={total} page={page} rowsPerPage={25}
             onPageChange={(_, p) => setPage(p)} rowsPerPageOptions={[25]}
-            sx={{ color: '#fff' }}
+            sx={{ color: '#E8E3D5' }}
           />
         </>
       )}

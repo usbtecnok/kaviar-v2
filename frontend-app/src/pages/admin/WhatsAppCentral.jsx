@@ -62,12 +62,12 @@ function ContextPanel({ chatData, badge, token, onUpdate }) {
   ];
 
   const cardSx = { bgcolor: '#111a22', borderRadius: 2, p: 1.5, border: '1px solid #1a2332' };
-  const labelSx = { fontSize: 10, color: '#5a7a8a', mb: 0.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8 };
+  const labelSx = { fontSize: 10, color: '#5a7a8a', mb: 0.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 };
 
   return (
     <Box sx={{ width: 300, minWidth: 300, bgcolor: '#0d1117', borderRadius: 3, border: '1px solid #1a2332', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
       <Box sx={{ px: 2, py: 1.8, borderBottom: '1px solid #1a2332', background: 'linear-gradient(180deg, #111a22 0%, #0d1117 100%)' }}>
-        <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5 }}>Contexto KAVIAR</Typography>
+        <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Contexto KAVIAR</Typography>
       </Box>
 
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#1a2332', borderRadius: 3 } }}>
@@ -75,7 +75,7 @@ function ContextPanel({ chatData, badge, token, onUpdate }) {
         {/* Contato */}
         <Box sx={cardSx}>
           <Typography sx={labelSx}>Contato</Typography>
-          <Typography sx={{ fontSize: 14, color: '#f0f4f8', fontWeight: 700 }}>{getDisplayName(chatData)}</Typography>
+          <Typography sx={{ fontSize: 14, color: '#f0f4f8', fontWeight: 600 }}>{getDisplayName(chatData)}</Typography>
           {chatData.whatsapp_name && chatData.contact_name && chatData.whatsapp_name !== chatData.contact_name && (
             <Typography sx={{ fontSize: 11, color: '#7a8a9a', mt: 0.2 }}>WhatsApp: {chatData.whatsapp_name}</Typography>
           )}
@@ -171,7 +171,7 @@ function ContextPanel({ chatData, badge, token, onUpdate }) {
           {editingNotes ? (
             <Box>
               <TextField fullWidth multiline rows={3} size="small" value={notes} onChange={e => setNotes(e.target.value)}
-                InputProps={{ sx: { bgcolor: '#111', color: '#ddd', fontSize: 12, '& fieldset': { borderColor: '#1a2332' } } }} />
+                InputProps={{ sx: { bgcolor: '#111217', color: '#ddd', fontSize: 12, '& fieldset': { borderColor: '#1a2332' } } }} />
               <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
                 <Chip label={saving ? '...' : 'Salvar'} size="small" onClick={() => { patch({ internal_notes: notes }); setEditingNotes(false); }}
                   sx={{ height: 22, fontSize: 10, bgcolor: '#25D36633', color: '#25D366', cursor: 'pointer', '&:hover': { bgcolor: '#25D36644' } }} />
@@ -329,7 +329,7 @@ export default function WhatsAppCentral() {
           <Box sx={{ p: 1.5, borderBottom: '1px solid #1a2332' }}>
             <TextField fullWidth size="small" placeholder="Buscar nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)}
               InputProps={{ startAdornment: <InputAdornment position="start"><Search sx={{ color: '#666', fontSize: 18 }} /></InputAdornment>,
-                sx: { bgcolor: '#111a22', borderRadius: 2, color: '#fff', fontSize: 13, '& fieldset': { borderColor: '#1a2332' } } }} />
+                sx: { bgcolor: '#111a22', borderRadius: 2, color: '#E8E3D5', fontSize: 13, '& fieldset': { borderColor: '#1a2332' } } }} />
           </Box>
           <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid #1a2332', display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {STATUS_FILTERS.map(f => (
@@ -349,7 +349,7 @@ export default function WhatsAppCentral() {
           <Box sx={{ px: 1.5, py: 0.8, borderBottom: '1px solid #1a2332', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Typography variant="caption" sx={{ color: '#888' }}>
               {conversations.length} conversa{conversations.length !== 1 ? 's' : ''}
-              {unreadTotal > 0 && <Chip label={`${unreadTotal} não lida${unreadTotal > 1 ? 's' : ''}`} size="small" sx={{ ml: 1, height: 20, fontSize: 10, bgcolor: '#25D366', color: '#fff', fontWeight: 700 }} />}
+              {unreadTotal > 0 && <Chip label={`${unreadTotal} não lida${unreadTotal > 1 ? 's' : ''}`} size="small" sx={{ ml: 1, height: 20, fontSize: 10, bgcolor: '#25D366', color: '#fff', fontWeight: 600 }} />}
             </Typography>
             <Tooltip title="Atualizar"><IconButton size="small" onClick={() => { setLoading(true); loadConversations(); }}><Refresh sx={{ color: '#666', fontSize: 16 }} /></IconButton></Tooltip>
           </Box>
@@ -388,7 +388,7 @@ export default function WhatsAppCentral() {
                       {conv.last_message_preview || '...'}
                     </Typography>
                   </Box>
-                  {hasUnread && <Badge badgeContent={conv.unread_count} sx={{ mt: 1.5, '& .MuiBadge-badge': { bgcolor: '#25D366', color: '#fff', fontSize: 10, fontWeight: 800, minWidth: 18, height: 18 } }}><Box /></Badge>}
+                  {hasUnread && <Badge badgeContent={conv.unread_count} sx={{ mt: 1.5, '& .MuiBadge-badge': { bgcolor: '#25D366', color: '#fff', fontSize: 10, fontWeight: 700, minWidth: 18, height: 18 } }}><Box /></Badge>}
                 </Box>
               );
             })}
@@ -413,7 +413,7 @@ export default function WhatsAppCentral() {
                   ].map(s => (
                     <Box key={s.l} sx={{ textAlign: 'center', bgcolor: '#111a22', borderRadius: 2, px: 2.5, py: 1.5, border: '1px solid #1a2332', minWidth: 80 }}>
                       <Typography sx={{ fontSize: 22, fontWeight: 800, color: s.c }}>{s.n}</Typography>
-                      <Typography sx={{ fontSize: 9, color: '#5a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.3 }}>{s.l}</Typography>
+                      <Typography sx={{ fontSize: 9, color: '#5a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.3 }}>{s.l}</Typography>
                     </Box>
                   ))}
                 </Box>

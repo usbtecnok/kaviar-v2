@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../../config/api';
 const gold = '#C9A227';
 const goldBorder = 'rgba(201,162,39,0.20)';
 const cardBg = 'linear-gradient(145deg, #15120A 0%, #0E0C07 100%)';
-const sectionLabel = { color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: 10, fontWeight: 600 };
+const sectionLabel = { color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, fontWeight: 600 };
 const cell = { borderColor: 'rgba(201,162,39,0.08)', py: 1, color: '#A7A7A7', fontSize: 13 };
 
 function OCard({ label, value, accent, large }) {
@@ -13,7 +13,7 @@ function OCard({ label, value, accent, large }) {
     <Card sx={{ background: cardBg, border: `1px solid ${goldBorder}`, borderRadius: 2, height: '100%', boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
       <CardContent sx={{ textAlign: 'center', py: 2, px: 1.5 }}>
         <Typography sx={{ fontSize: large ? 28 : 22, fontWeight: 800, color: accent || '#F5F1E8', lineHeight: 1.1, letterSpacing: '-0.5px' }}>{value ?? '—'}</Typography>
-        <Typography sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', mt: 0.8 }}>{label}</Typography>
+        <Typography sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', mt: 0.8 }}>{label}</Typography>
       </CardContent>
     </Card>
   );
@@ -46,7 +46,7 @@ export default function ExecutiveOperations() {
           <Button href="/admin" size="small" sx={{ color: '#6B6045', fontSize: 11, textTransform: 'none', p: 0, mb: 1, '&:hover': { color: gold } }}>
             ← Dashboard
           </Button>
-          <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.15em', mb: 0.3 }}>Painel Executivo</Typography>
+          <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.3 }}>Painel Executivo</Typography>
           <Typography variant="h4" sx={{ fontWeight: 700, color: gold, letterSpacing: '-0.5px' }}>⚡ Operações</Typography>
         </Box>
         <ToggleButtonGroup value={period} exclusive onChange={(_, v) => v && setPeriod(v)} size="small" sx={{
@@ -117,12 +117,12 @@ export default function ExecutiveOperations() {
             <Grid item xs={12} md={6} key={title}>
               <Card sx={{ background: cardBg, border: `1px solid ${goldBorder}`, borderRadius: 2, boxShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
                 <CardContent>
-                  <Typography sx={{ color: gold, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', mb: 1.5 }}>{title}</Typography>
+                  <Typography sx={{ color: gold, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.5 }}>{title}</Typography>
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={{ '& th': { borderColor: 'rgba(201,162,39,0.12)' } }}>
                         {cols.map((c, i) => (
-                          <TableCell key={c} align={aligns[i]} sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', py: 0.8, fontWeight: 600 }}>{c}</TableCell>
+                          <TableCell key={c} align={aligns[i]} sx={{ color: '#6B6045', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', py: 0.8, fontWeight: 600 }}>{c}</TableCell>
                         ))}
                       </TableRow>
                     </TableHead>
@@ -150,3 +150,4 @@ export default function ExecutiveOperations() {
     </Box>
   );
 }
+

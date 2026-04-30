@@ -86,7 +86,7 @@ export default function OperationsMonitor() {
         ].map(k => (
           <Box key={k.l} sx={cardSx}>
             <Typography sx={{ fontSize: 32, fontWeight: 800, color: k.c, lineHeight: 1 }}>{k.n ?? 0}</Typography>
-            <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.8, fontWeight: 600 }}>{k.l}</Typography>
+            <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>{k.l}</Typography>
           </Box>
         ))}
       </Box>
@@ -95,16 +95,16 @@ export default function OperationsMonitor() {
         {/* Demand Gaps */}
         {demandGaps && demandGaps.total_no_driver > 0 && (
           <Box sx={{ ...sectionSx, gridColumn: '1 / -1' }}>
-            <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, mb: 2 }}>📡 Demanda Reprimida (corridas reais sem motorista)</Typography>
+            <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>📡 Demanda Reprimida (corridas reais sem motorista)</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5 }}>
               <Box sx={cardSx}>
                 <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#f44336', lineHeight: 1 }}>{demandGaps.total_no_driver}</Typography>
-                <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.8, fontWeight: 600 }}>Total sem motorista</Typography>
+                <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>Total sem motorista</Typography>
               </Box>
               {demandGaps.by_origin_neighborhood.slice(0, 2).map((n, i) => (
                 <Box key={n.neighborhood} sx={cardSx}>
                   <Typography sx={{ fontSize: 28, fontWeight: 800, color: i === 0 ? '#FF9800' : '#FFD700', lineHeight: 1 }}>{n.count}</Typography>
-                  <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.8, fontWeight: 600 }}>{n.neighborhood}</Typography>
+                  <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>{n.neighborhood}</Typography>
                   {n.peak_hour != null && <Typography sx={{ fontSize: 10, color: '#4a5a6a', mt: 0.3 }}>pico: {n.peak_hour}h</Typography>}
                 </Box>
               ))}
@@ -113,7 +113,7 @@ export default function OperationsMonitor() {
                 return (
                   <Box sx={cardSx}>
                     <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#2196F3', lineHeight: 1 }}>{peak.hour}h</Typography>
-                    <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.8, mt: 0.8, fontWeight: 600 }}>Horário crítico</Typography>
+                    <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>Horário crítico</Typography>
                     <Typography sx={{ fontSize: 10, color: '#4a5a6a', mt: 0.3 }}>{peak.count} corridas</Typography>
                   </Box>
                 );
@@ -124,7 +124,7 @@ export default function OperationsMonitor() {
 
         {/* Territory */}
         <Box sx={sectionSx}>
-          <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, mb: 2 }}>Distribuição Territorial</Typography>
+          <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>Distribuição Territorial</Typography>
           {tierTotal === 0 ? (
             <Typography sx={{ color: '#4a5a6a', fontSize: 12, py: 2, textAlign: 'center' }}>Sem dados territoriais no período selecionado</Typography>
           ) : (
@@ -148,7 +148,7 @@ export default function OperationsMonitor() {
 
         {/* Timing */}
         <Box sx={sectionSx}>
-          <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, mb: 2 }}>Tempos Operacionais</Typography>
+          <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>Tempos Operacionais</Typography>
           {[
             { l: 'Aceite médio', v: timing?.avg_accept_seconds, icon: '⚡' },
             { l: 'Até primeira oferta', v: timing?.avg_to_offer_seconds, icon: '📡' },
@@ -159,12 +159,12 @@ export default function OperationsMonitor() {
                 <Typography sx={{ fontSize: 14 }}>{t.icon}</Typography>
                 <Typography sx={{ fontSize: 12, color: '#c0c8d0' }}>{t.l}</Typography>
               </Box>
-              <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#f0f4f8' }}>{fmtTime(t.v)}</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#f0f4f8' }}>{fmtTime(t.v)}</Typography>
             </Box>
           ))}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1.5 }}>
             <Typography sx={{ fontSize: 12, color: '#c0c8d0' }}>Ofertas aceitas / total</Typography>
-            <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#FFD700' }}>
+            <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#FFD700' }}>
               {offers?.accepted || 0} / {offers?.total || 0}
               {offers?.total > 0 && <Typography component="span" sx={{ fontSize: 11, color: '#7a8a9a', ml: 0.5 }}>({Math.round((offers.accepted / offers.total) * 100)}%)</Typography>}
             </Typography>
@@ -174,13 +174,13 @@ export default function OperationsMonitor() {
 
       {/* Recent rides */}
       <Box sx={sectionSx}>
-        <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, mb: 2 }}>Corridas Recentes</Typography>
+        <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>Corridas Recentes</Typography>
         <TableContainer>
           <Table size="small">
             <TableHead>
               <TableRow>
                 {['Hora', 'Status', 'Origem', 'Destino', 'Motorista', 'Território', 'Aceite', 'Duração'].map(h => (
-                  <TableCell key={h} sx={{ color: '#5a7a8a', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', borderColor: '#1a2332', py: 1 }}>{h}</TableCell>
+                  <TableCell key={h} sx={{ color: '#5a7a8a', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', borderColor: '#1a2332', py: 1 }}>{h}</TableCell>
                 ))}
               </TableRow>
             </TableHead>

@@ -74,7 +74,7 @@ export default function InvestorInvites() {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 600, color: '#333' }}>
             Nome do Convidado
           </label>
           <input
@@ -98,7 +98,7 @@ export default function InvestorInvites() {
         </div>
 
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 600, color: '#333' }}>
             Canal de Envio
           </label>
           <select
@@ -121,7 +121,7 @@ export default function InvestorInvites() {
 
         {channel === 'whatsapp' ? (
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 600, color: '#333' }}>
               Telefone (formato E.164)
             </label>
             <input
@@ -146,7 +146,7 @@ export default function InvestorInvites() {
           </div>
         ) : (
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 600, color: '#333' }}>
               Email do Investidor/Anjo
             </label>
             <input
@@ -169,7 +169,7 @@ export default function InvestorInvites() {
         )}
 
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', fontWeight: 600, color: '#333' }}>
             Tipo de Acesso
           </label>
           <select

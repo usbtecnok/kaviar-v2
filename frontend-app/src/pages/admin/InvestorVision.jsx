@@ -38,7 +38,7 @@ export default function InvestorVision() {
         <p style={{
           fontSize: 11,
           fontWeight: 500,
-          letterSpacing: '0.12em',
+          letterSpacing: '0.06em',
           textTransform: 'uppercase',
           color: '#bbb',
           margin: '0 0 20px 0',
@@ -62,7 +62,7 @@ export default function InvestorVision() {
             fontSize: 10,
             fontWeight: 600,
             textTransform: 'uppercase',
-            letterSpacing: '0.1em',
+            letterSpacing: '0.05em',
             color: '#ccc',
             marginBottom: 8,
           }}>
@@ -113,7 +113,7 @@ export default function InvestorVision() {
         marginTop: 80,
         fontSize: 10,
         color: '#ddd',
-        letterSpacing: '0.04em',
+        letterSpacing: '0.02em',
       }}>
         KAVIAR — USB Tecnok
       </footer>

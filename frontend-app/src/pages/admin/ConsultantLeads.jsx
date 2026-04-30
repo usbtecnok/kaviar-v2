@@ -80,7 +80,7 @@ export default function ConsultantLeads() {
                       {new Date(lead.created_at).toLocaleString('pt-BR')} · via {lead.source}
                     </Typography>
                     {lead.referral_agent?.referral_code && (
-                      <Box sx={{ bgcolor: '#111', borderRadius: 2, p: 1.5, mt: 1.5, border: '1px solid #FFD700', textAlign: 'center' }}>
+                      <Box sx={{ bgcolor: '#111217', borderRadius: 2, p: 1.5, mt: 1.5, border: '1px solid #FFD700', textAlign: 'center' }}>
                         <Chip label={lead.referral_agent.referral_code} size="small" sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, fontFamily: 'monospace', fontSize: 13 }} />
                         {lead.referral_agent.welcome_sent_status && (
                           <Typography sx={{ fontSize: 10, mt: 0.5, color:
