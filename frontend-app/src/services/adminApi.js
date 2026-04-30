@@ -80,6 +80,10 @@ class AdminApiService {
     return this.request(endpoint, { method: 'DELETE' });
   }
 
+  async patch(endpoint, data) {
+    return this.request(endpoint, { method: 'PATCH', body: JSON.stringify(data) });
+  }
+
   // Admin-specific methods
   async getDrivers(params = {}) {
     const queryString = new URLSearchParams(params).toString();
@@ -205,6 +209,16 @@ class AdminApiService {
   async updateTourSettings(data) {
     return this.put('/api/admin/tour-settings', data);
   }
+
+  // Vitrine Local
+  async getShowcaseItems(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.get(`/api/admin/showcase${qs ? '?' + qs : ''}`);
+  }
+  async getShowcaseItem(id) { return this.get(`/api/admin/showcase/${id}`); }
+  async createShowcaseItem(data) { return this.post('/api/admin/showcase', data); }
+  async updateShowcaseItem(id, data) { return this.put(`/api/admin/showcase/${id}`, data); }
+  async patchShowcaseItem(id, data) { return this.patch(`/api/admin/showcase/${id}`, data); }
 }
 
 export const adminApi = new AdminApiService();

@@ -1274,3 +1274,47 @@ model asaas_webhook_events {
   @@index([asaas_payment_id])
   @@index([status])
 }
+
+// ── Vitrine Local ────────────────────────────────────────────────────────────
+model showcase_items {
+  id              String    @id @default(uuid())
+  title           String
+  description     String
+  icon            String    @default("🏪")
+  type            String    @default("commerce") // commerce, association, condo, tourism, service, notice
+  community_id    String?
+  neighborhood_id String?
+  cta_label       String
+  cta_url         String
+  is_active       Boolean   @default(false)
+  priority        Int       @default(0)
+  starts_at       DateTime?
+  ends_at         DateTime?
+  approved_at     DateTime?
+  approved_by     String?
+  created_by      String?
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  // V2: Pacote de exposições
+  exposure_quota Int? // null = ilimitado
+  exposure_used  Int       @default(0)
+  clicks_count   Int       @default(0)
+  last_shown_at  DateTime?
+
+  @@index([is_active, community_id])
+  @@index([is_active, neighborhood_id])
+}
+
+model showcase_events {
+  id           String   @id @default(uuid())
+  item_id      String
+  passenger_id String
+  ride_id      String?
+  event_type   String // 'exposure' | 'click'
+  created_at   DateTime @default(now())
+
+  @@unique([item_id, passenger_id, ride_id, event_type])
+  @@index([item_id, event_type])
+  @@index([item_id, created_at])
+}
