@@ -32,7 +32,7 @@ class AdminErrorBoundary extends React.Component {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          bgcolor: '#000',
+          bgcolor: '#0A0A0F',
           color: '#FFD700',
           p: 3
         }}>
@@ -43,7 +43,7 @@ class AdminErrorBoundary extends React.Component {
               Erro no Painel Admin
             </Typography>
             
-            <Typography variant="body1" sx={{ mb: 3, color: '#FFF' }}>
+            <Typography variant="body1" sx={{ mb: 3, color: '#E8E3D5' }}>
               Ocorreu um erro inesperado no painel administrativo. 
               Tente recarregar a página ou voltar ao início.
             </Typography>

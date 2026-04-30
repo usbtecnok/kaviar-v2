@@ -237,8 +237,8 @@ export default function ReferralManagement() {
               {/* Share Card */}
               {selected.agent?.referral_code && (
                 <Box sx={{ bgcolor: '#1a1a1a', borderRadius: 3, p: 3, mb: 3, border: '1px solid #FFD700', textAlign: 'center' }}>
-                  <Typography sx={{ color: '#FFD700', fontWeight: 900, letterSpacing: 4, fontSize: 14, mb: 1 }}>KAVIAR</Typography>
-                  <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 18, mb: 0.5 }}>{selected.agent.name}</Typography>
+                  <Typography sx={{ color: '#FFD700', fontWeight: 900, letterSpacing: 2, fontSize: 14, mb: 1 }}>KAVIAR</Typography>
+                  <Typography sx={{ color: '#E8E3D5', fontWeight: 600, fontSize: 18, mb: 0.5 }}>{selected.agent.name}</Typography>
                   <Typography sx={{ color: '#999', fontSize: 13, mb: 2 }}>{selected.agent.phone}</Typography>
                   <Chip label={selected.agent.referral_code} sx={{ bgcolor: '#FFD700', color: '#000', fontWeight: 800, fontFamily: 'monospace', fontSize: 18, py: 2.5, px: 1, borderRadius: 2 }} />
                   <Typography sx={{ color: '#666', fontSize: 12, mt: 1.5, fontFamily: 'monospace' }}>kaviar.com.br/consultor/{selected.agent.referral_code}</Typography>

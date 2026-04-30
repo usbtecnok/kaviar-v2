@@ -34,7 +34,7 @@ export function DriverReputationCard({ driverId }) {
       .finally(() => setLoading(false));
   }, [driverId]);
 
-  if (loading) return <Paper sx={{ p: 3, mt: 3, bgcolor: '#111', border: '1px solid #222' }}><CircularProgress size={24} sx={{ color: gold }} /></Paper>;
+  if (loading) return <Paper sx={{ p: 3, mt: 3, bgcolor: '#111217', border: '1px solid #222' }}><CircularProgress size={24} sx={{ color: gold }} /></Paper>;
   if (!data?.stats) return null;
 
   const { stats, recentRatings = [] } = data;
@@ -64,13 +64,13 @@ export function DriverReputationCard({ driverId }) {
   const posComments = recentRatings.filter(r => r.rating >= 4 && r.comment);
 
   return (
-    <Paper sx={{ p: 3, mt: 3, bgcolor: '#111', border: '1px solid #222', borderRadius: 2 }}>
+    <Paper sx={{ p: 3, mt: 3, bgcolor: '#111217', border: '1px solid #222', borderRadius: 2 }}>
       <Typography variant="h6" sx={{ color: gold, fontWeight: 700, mb: 2 }}>Reputação e Avaliações</Typography>
 
       {/* Stats */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2 }}>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="h3" sx={{ fontWeight: 800, color: gold }}>{stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '—'}</Typography>
+          <Typography variant="h3" sx={{ fontWeight: 700, color: gold }}>{stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '—'}</Typography>
           <Rating value={stats.averageRating || 0} precision={0.1} readOnly size="small" sx={{ '& .MuiRating-iconFilled': { color: gold } }} />
           <Typography variant="caption" sx={{ color: '#888', display: 'block' }}>{stats.totalRatings} avaliação{stats.totalRatings !== 1 ? 'ões' : ''}</Typography>
         </Box>

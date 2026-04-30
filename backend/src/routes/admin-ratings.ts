@@ -67,6 +67,21 @@ router.get('/overview', allowReadAccess, async (_req: Request, res: Response) =>
       if (r.comment && !d.lastComment) d.lastComment = r.comment;
     });
 
+    // Passengers with attention (most negative ratings)
+    const attentionPassengers = await prisma.ratings.groupBy({
+      by: ['entity_id'],
+      where: { entity_type: 'PASSENGER', score: { lte: 3 } },
+      _count: { score: true },
+      _avg: { score: true },
+      orderBy: { _count: { score: 'desc' } },
+      take: 5,
+    });
+    const passengerIds = attentionPassengers.map(p => p.entity_id);
+    const passengers = passengerIds.length > 0
+      ? await prisma.passengers.findMany({ where: { id: { in: passengerIds } }, select: { id: true, name: true } })
+      : [];
+    const passengerMap = Object.fromEntries(passengers.map(p => [p.id, p.name]));
+
     res.json({
       success: true,
       data: {
@@ -88,6 +103,12 @@ router.get('/overview', allowReadAccess, async (_req: Request, res: Response) =>
             lastComment: details.lastComment,
           };
         }),
+        attentionPassengers: attentionPassengers.map(p => ({
+          id: p.entity_id,
+          name: passengerMap[p.entity_id] || p.entity_id,
+          negCount: p._count.score,
+          avgScore: p._avg.score,
+        })),
       },
     });
   } catch (error: any) {

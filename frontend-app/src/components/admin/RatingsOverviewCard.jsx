@@ -4,21 +4,21 @@ import { API_BASE_URL } from '../../config/api';
 import { Link } from 'react-router-dom';
 
 const gold = '#FFD700';
-const cardBg = '#111';
-const metricBg = '#0a0a0a';
+const cardBg = '#111217';
+const metricBg = '#0D0D12';
 
 function MetricBox({ label, value, subtitle, stars }) {
   return (
     <Box sx={{ flex: 1, minWidth: 140, bgcolor: metricBg, borderRadius: 2, p: 2.5, border: '1px solid #222', textAlign: 'center' }}>
-      <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', letterSpacing: 1, fontSize: 10 }}>{label}</Typography>
-      <Typography variant="h4" sx={{ color: gold, fontWeight: 800, mt: 0.5, lineHeight: 1.2 }}>{value}</Typography>
+      <Typography variant="caption" sx={{ color: '#888', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 10 }}>{label}</Typography>
+      <Typography variant="h4" sx={{ color: gold, fontWeight: 700, mt: 0.5, lineHeight: 1.2 }}>{value}</Typography>
       {stars != null && <Rating value={stars} precision={0.1} readOnly size="small" sx={{ mt: 0.5, '& .MuiRating-iconFilled': { color: gold } }} />}
       <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 0.5 }}>{subtitle}</Typography>
     </Box>
   );
 }
 
-export function RatingsOverviewCard() {
+export function RatingsOverviewCard({ compact, linkTo }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -38,9 +38,25 @@ export function RatingsOverviewCard() {
   const negTags = (data.topNegativeTags || []).slice(0, 5);
   const attentionDrivers = (data.attentionDrivers || []).filter(d => d.negCount > 0);
 
+  if (compact) {
+    return (
+      <Paper sx={{ p: 3, bgcolor: cardBg, border: `1px solid ${gold}33`, borderRadius: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: gold, fontWeight: 700, letterSpacing: 0.3 }}>⭐ Avaliações</Typography>
+          {linkTo && <Chip label="Ver tudo →" size="small" component={Link} to={linkTo} clickable sx={{ bgcolor: `${gold}15`, color: gold, fontSize: 11, textDecoration: 'none' }} />}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+          <MetricBox label="Motoristas" value={data.driverAvg?.toFixed(1) || '—'} stars={data.driverAvg} subtitle={`${data.driverTotal || 0}`} />
+          <MetricBox label="Passageiros" value={data.passengerAvg?.toFixed(1) || '—'} stars={data.passengerAvg} subtitle={`${data.passengerTotal || 0}`} />
+          <MetricBox label="Alertas" value={attentionDrivers.length} subtitle="motoristas" />
+        </Box>
+      </Paper>
+    );
+  }
+
   return (
     <Paper sx={{ p: 3.5, bgcolor: cardBg, border: `1px solid ${gold}33`, borderRadius: 2, boxShadow: `0 4px 20px ${gold}08` }}>
-      <Typography variant="h6" sx={{ color: gold, fontWeight: 700, mb: 2.5, letterSpacing: 0.5 }}>
+      <Typography variant="h6" sx={{ color: gold, fontWeight: 700, mb: 2.5, letterSpacing: 0.3 }}>
         ⭐ Qualidade das Avaliações
       </Typography>
 
@@ -97,3 +113,4 @@ export function RatingsOverviewCard() {
     </Paper>
   );
 }
+

@@ -38,9 +38,9 @@ const fmt = (v, prefix = '') => v == null ? '—' : `${prefix}${Number(v).toLoca
 
 function OpsCard({ label, value, sub, color }) {
   return (
-    <Card sx={{ bgcolor: '#111', border: '1px solid #222', height: '100%' }}>
+    <Card sx={{ bgcolor: '#111217', border: '1px solid #222', height: '100%' }}>
       <CardContent sx={{ textAlign: 'center', py: 2 }}>
-        <Typography variant="h5" fontWeight="800" sx={{ color: color || '#fff' }}>{value}</Typography>
+        <Typography variant="h5" fontWeight="800" sx={{ color: color || '#E8E3D5' }}>{value}</Typography>
         <Typography variant="caption" sx={{ color: '#aaa', display: 'block', mt: 0.5 }}>{label}</Typography>
         {sub && <Typography variant="caption" sx={{ color: '#666', fontSize: 10 }}>{sub}</Typography>}
       </CardContent>
@@ -362,7 +362,7 @@ export default function AdminDashboard() {
         ) : opsData ? (
           <>
             {/* Corridas */}
-            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Corridas</Typography>
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>Corridas</Typography>
             <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
               {[
                 { label: 'Concluídas', value: fmt(opsData.rides?.completed), color: '#4caf50' },
@@ -379,7 +379,7 @@ export default function AdminDashboard() {
             </Grid>
 
             {/* Financeiro */}
-            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Financeiro</Typography>
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>Financeiro</Typography>
             <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
               {[
                 { label: 'Valor bruto', value: fmt(opsData.financials?.gross_total, 'R$\u00a0'), color: '#4caf50' },
@@ -394,7 +394,7 @@ export default function AdminDashboard() {
             </Grid>
 
             {/* Espera */}
-            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Espera</Typography>
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>Espera</Typography>
             <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
               {[
                 { label: 'Espera média', value: opsData.wait?.avg_minutes != null ? `${fmt(opsData.wait.avg_minutes)} min` : '—', color: gold },
@@ -407,7 +407,7 @@ export default function AdminDashboard() {
             </Grid>
 
             {/* Território */}
-            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 1 }}>Território (período)</Typography>
+            <Typography variant="caption" sx={{ color: '#666', textTransform: 'uppercase', letterSpacing: 0.5 }}>Território (período)</Typography>
             <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
               {[
                 { label: 'Local', value: fmt(opsData.territory?.local), color: '#4caf50' },
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
             {/* Rankings */}
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                <Card sx={{ bgcolor: '#111217', border: '1px solid #222' }}>
                   <CardContent>
                     <Typography variant="subtitle2" sx={{ color: gold, mb: 1 }}>🏘️ Top Bairros (origem)</Typography>
                     <Table size="small">
@@ -452,7 +452,7 @@ export default function AdminDashboard() {
               </Grid>
 
               <Grid item xs={12} md={6}>
-                <Card sx={{ bgcolor: '#111', border: '1px solid #222' }}>
+                <Card sx={{ bgcolor: '#111217', border: '1px solid #222' }}>
                   <CardContent>
                     <Typography variant="subtitle2" sx={{ color: gold, mb: 1 }}>🚗 Top Motoristas</Typography>
                     <Table size="small">

@@ -13,7 +13,7 @@ export default function PermissionDenied({ message }) {
           p: 4, 
           maxWidth: 500, 
           textAlign: 'center',
-          bgcolor: '#000',
+          bgcolor: '#0A0A0F',
           color: '#FFD700',
           border: '1px solid #FFD700'
         }}
@@ -35,7 +35,7 @@ export default function PermissionDenied({ message }) {
             color: '#FFD700',
             borderColor: '#FFD700',
             '&:hover': {
-              borderColor: '#FFF',
+              borderColor: '#E8E3D5',
               bgcolor: 'rgba(255, 215, 0, 0.1)'
             }
           }}

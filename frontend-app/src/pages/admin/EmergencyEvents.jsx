@@ -83,7 +83,7 @@ export default function EmergencyEvents() {
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         {['', 'active', 'resolved', 'false_alarm'].map(s => (
           <Chip key={s} label={s ? STATUS_MAP[s]?.label : 'Todos'} variant={filter === s ? 'filled' : 'outlined'}
-            color={s ? STATUS_MAP[s]?.color : 'default'} onClick={() => setFilter(s)} sx={{ cursor: 'pointer', ...(!s && { borderColor: '#888', color: '#fff' }) }} />
+            color={s ? STATUS_MAP[s]?.color : 'default'} onClick={() => setFilter(s)} sx={{ cursor: 'pointer', ...(!s && { borderColor: '#888', color: '#E8E3D5' }) }} />
         ))}
       </Box>
 

@@ -214,6 +214,8 @@ app.use('/api/match', matchRoutes);
 app.use('/api/admin', adminApprovalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes);
+import adminShowcaseRoutes from './routes/admin-showcase';
+app.use('/api/admin/showcase', adminShowcaseRoutes);
 app.use('/api/admin', adminPresignRoutes);
 app.use('/api/admin/dashboard', adminDashboardMetricsRoutes);
 app.use('/api/admin/community-leaders', communityLeadersRoutes);

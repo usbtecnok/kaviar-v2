@@ -8,8 +8,8 @@ import { Payment, CheckCircle, Search, Visibility, ContentCopy, AccountBalance }
 import { API_BASE_URL } from '../../config/api';
 
 const gold = '#FFD700';
-const bg = '#000';
-const cardBg = '#111';
+const bg = '#0A0A0F';
+const cardBg = '#111217';
 const border = '#333';
 
 const PAY_CHIPS = {
@@ -140,7 +140,7 @@ export default function FinancePayments() {
   }
 
   return (
-    <Box sx={{ bgcolor: bg, minHeight: '100vh', color: '#FFF' }}>
+    <Box sx={{ bgcolor: bg, minHeight: '100vh', color: '#E8E3D5' }}>
       <Container maxWidth="lg" sx={{ py: 3 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, p: 2, bgcolor: cardBg, borderRadius: 1, border: `1px solid ${gold}` }}>
@@ -190,7 +190,7 @@ export default function FinancePayments() {
             size="small" placeholder="Buscar..."
             value={search} onChange={e => setSearch(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start"><Search sx={{ color: '#666' }} /></InputAdornment> }}
-            sx={{ width: 250, '& .MuiOutlinedInput-root': { color: '#FFF', '& fieldset': { borderColor: border } } }}
+            sx={{ width: 250, '& .MuiOutlinedInput-root': { color: '#E8E3D5', '& fieldset': { borderColor: border } } }}
           />
         </Box>
 
@@ -208,7 +208,7 @@ export default function FinancePayments() {
                   onClick={() => { setSelected(ref); setDetailOpen(true); }}>
                   <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Box>
-                      <Typography sx={{ color: '#FFF', fontWeight: 500 }}>{ref.agent?.name || '—'}</Typography>
+                      <Typography sx={{ color: '#E8E3D5', fontWeight: 500 }}>{ref.agent?.name || '—'}</Typography>
                       <Typography variant="caption" sx={{ color: '#888' }}>
                         Motorista: {ref.driver_phone} · R$ {Number(ref.reward_amount).toFixed(2)}
                       </Typography>
@@ -227,7 +227,7 @@ export default function FinancePayments() {
 
       {/* Detail Dialog */}
       <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="sm" fullWidth
-        PaperProps={{ sx: { bgcolor: '#1a1a1a', color: '#FFF', border: `1px solid ${gold}40` } }}>
+        PaperProps={{ sx: { bgcolor: '#1a1a1a', color: '#E8E3D5', border: `1px solid ${gold}40` } }}>
         {selected && (() => {
           const r = selected;
           const chip = PAY_CHIPS[r.payment_status] || { label: r.payment_status, color: '#666' };
@@ -342,14 +342,14 @@ export default function FinancePayments() {
 
       {/* Mark Paid Dialog */}
       <Dialog open={actionDialog.open} onClose={() => setActionDialog({ open: false, action: '', ref: null })}
-        PaperProps={{ sx: { bgcolor: '#1a1a1a', color: '#FFF', border: `1px solid ${gold}40` } }}>
+        PaperProps={{ sx: { bgcolor: '#1a1a1a', color: '#E8E3D5', border: `1px solid ${gold}40` } }}>
         <DialogTitle sx={{ color: gold }}>Marcar como Pago</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: '#aaa', mb: 2 }}>
             Informe a referência do comprovante de pagamento (ID da transação, protocolo, etc.)
           </Typography>
           <TextField fullWidth label="Referência / Comprovante" value={actionInput} onChange={e => setActionInput(e.target.value)}
-            sx={{ '& .MuiOutlinedInput-root': { color: '#FFF', '& fieldset': { borderColor: border } }, '& .MuiInputLabel-root': { color: '#888' } }} />
+            sx={{ '& .MuiOutlinedInput-root': { color: '#E8E3D5', '& fieldset': { borderColor: border } }, '& .MuiInputLabel-root': { color: '#888' } }} />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setActionDialog({ open: false, action: '', ref: null })} sx={{ color: '#888' }}>Cancelar</Button>
@@ -363,17 +363,17 @@ export default function FinancePayments() {
 
       {/* PIX Dialog */}
       <Dialog open={pixDialog.open} onClose={() => setPixDialog({ open: false, agent: null })}
-        PaperProps={{ sx: { bgcolor: '#1a1a1a', color: '#FFF', border: `1px solid ${gold}40` } }}>
+        PaperProps={{ sx: { bgcolor: '#1a1a1a', color: '#E8E3D5', border: `1px solid ${gold}40` } }}>
         <DialogTitle sx={{ color: gold }}>
           {pixDialog.agent?.pix_key ? 'Editar' : 'Cadastrar'} Chave PIX — {pixDialog.agent?.name}
         </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2, mt: 1 }}>
           <TextField select label="Tipo" value={pixForm.pix_key_type} onChange={e => setPixForm(f => ({ ...f, pix_key_type: e.target.value }))}
-            sx={{ '& .MuiOutlinedInput-root': { color: '#FFF', '& fieldset': { borderColor: border } }, '& .MuiInputLabel-root': { color: '#888' } }}>
+            sx={{ '& .MuiOutlinedInput-root': { color: '#E8E3D5', '& fieldset': { borderColor: border } }, '& .MuiInputLabel-root': { color: '#888' } }}>
             {PIX_TYPES.map(t => <MenuItem key={t} value={t} sx={{ color: '#000' }}>{t}</MenuItem>)}
           </TextField>
           <TextField label="Chave PIX" value={pixForm.pix_key} onChange={e => setPixForm(f => ({ ...f, pix_key: e.target.value }))}
-            sx={{ '& .MuiOutlinedInput-root': { color: '#FFF', '& fieldset': { borderColor: border } }, '& .MuiInputLabel-root': { color: '#888' } }} />
+            sx={{ '& .MuiOutlinedInput-root': { color: '#E8E3D5', '& fieldset': { borderColor: border } }, '& .MuiInputLabel-root': { color: '#888' } }} />
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setPixDialog({ open: false, agent: null })} sx={{ color: '#888' }}>Cancelar</Button>
