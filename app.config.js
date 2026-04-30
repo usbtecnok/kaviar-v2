@@ -85,10 +85,6 @@ export default {
       }
     },
     plugins: [
-      ['@sentry/react-native/expo', {
-        organization: 'usbtecnok',
-        project: 'kaviar-mobile',
-      }],
       [
         'expo-location',
         {
@@ -121,8 +117,6 @@ export default {
       },
       EXPO_PUBLIC_API_URL: 'https://api.kaviar.com.br',
       EXPO_PUBLIC_PLACES_KEY: process.env.EXPO_PUBLIC_PLACES_KEY || '',
-      EXPO_PUBLIC_SENTRY_DSN: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
-      EXPO_PUBLIC_APP_VARIANT: variant,
       APP_VARIANT: variant
     }
   }
