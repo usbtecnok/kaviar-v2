@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, BarChart, Handshake, CardGiftcard } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, BarChart, Handshake, CardGiftcard } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -28,6 +28,7 @@ import DriverDetail from "../../pages/admin/DriverDetail";
 import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
 import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
 import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
+import RatingsPage from "../../pages/admin/ratings/RatingsPage";
 import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
 import TourPartners from "../../pages/admin/premium-tourism/TourPartners";
 import TourReports from "../../pages/admin/premium-tourism/TourReports";
@@ -349,7 +350,7 @@ function AdminHome() {
 
         {/* Avaliações */}
         <Grid item xs={12} md={5}>
-          <RatingsOverviewCard compact />
+          <RatingsOverviewCard compact linkTo="/admin/ratings" />
         </Grid>
       </Grid>
 
@@ -372,6 +373,7 @@ function AdminHome() {
             { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },
             { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
             { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages', accent: '#5B9BD5' },
+            { Icon: Star, title: 'Avaliações e Reputação', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
             { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
             { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
           ].map(c => {
@@ -755,6 +757,9 @@ export default function AdminApp() {
             </ProtectedAdminRoute>
           } />
           
+          {/* Avaliações e Reputação */}
+          <Route path="/ratings" element={<ProtectedAdminRoute><RatingsPage /></ProtectedAdminRoute>} />
+
           {/* Rotas Premium Tourism */}
           <Route path="/premium-tourism/packages" element={
             <ProtectedAdminRoute>
