@@ -13,7 +13,9 @@
       },
       "env": {
         "APP_VARIANT": "driver",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_SENTRY_DSN": "${EXPO_PUBLIC_SENTRY_DSN}",
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
       }
     },
     "passenger-apk": {
@@ -26,7 +28,9 @@
       },
       "env": {
         "APP_VARIANT": "passenger",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_SENTRY_DSN": "${EXPO_PUBLIC_SENTRY_DSN}",
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
       }
     },
     "driver-release": {
@@ -39,7 +43,9 @@
       "autoIncrement": true,
       "env": {
         "APP_VARIANT": "driver",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_SENTRY_DSN": "${EXPO_PUBLIC_SENTRY_DSN}",
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
       }
     },
     "passenger-release": {
@@ -53,7 +59,9 @@
       "autoIncrement": true,
       "env": {
         "APP_VARIANT": "passenger",
-        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_SENTRY_DSN": "${EXPO_PUBLIC_SENTRY_DSN}",
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}"
       }
     }
   },
