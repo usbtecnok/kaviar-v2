@@ -67,6 +67,36 @@ router.get('/overview', allowReadAccess, async (_req: Request, res: Response) =>
       if (r.comment && !d.lastComment) d.lastComment = r.comment;
     });
 
+    // Passengers with attention (most negative ratings)
+    const attentionPassengers = await prisma.ratings.groupBy({
+      by: ['entity_id'],
+      where: { entity_type: 'PASSENGER', score: { lte: 3 } },
+      _count: { score: true },
+      _avg: { score: true },
+      orderBy: { _count: { score: 'desc' } },
+      take: 5,
+    });
+    const passengerIds = attentionPassengers.map(p => p.entity_id);
+    const passengers = passengerIds.length > 0
+      ? await prisma.passengers.findMany({ where: { id: { in: passengerIds } }, select: { id: true, name: true } })
+      : [];
+    const passengerMap = Object.fromEntries(passengers.map(p => [p.id, p.name]));
+
+    const negRatingsForPassengers = passengerIds.length > 0
+      ? await prisma.ratings.findMany({
+          where: { entity_type: 'PASSENGER', entity_id: { in: passengerIds }, score: { lte: 3 } },
+          select: { entity_id: true, tags: true, comment: true },
+          orderBy: { created_at: 'desc' },
+        })
+      : [];
+    const passengerNegDetails: Record<string, { tags: Record<string, number>; lastComment: string | null }> = {};
+    negRatingsForPassengers.forEach(r => {
+      if (!passengerNegDetails[r.entity_id]) passengerNegDetails[r.entity_id] = { tags: {}, lastComment: null };
+      const d = passengerNegDetails[r.entity_id];
+      if (r.tags) r.tags.split(',').forEach(t => { const tag = t.trim(); if (tag) d.tags[tag] = (d.tags[tag] || 0) + 1; });
+      if (r.comment && !d.lastComment) d.lastComment = r.comment;
+    });
+
     res.json({
       success: true,
       data: {
@@ -84,6 +114,18 @@ router.get('/overview', allowReadAccess, async (_req: Request, res: Response) =>
             name: driverMap[d.entity_id] || d.entity_id,
             negCount: d._count.score,
             avgScore: d._avg.score,
+            tags: topTags,
+            lastComment: details.lastComment,
+          };
+        }),
+        attentionPassengers: attentionPassengers.map(p => {
+          const details = passengerNegDetails[p.entity_id] || { tags: {}, lastComment: null };
+          const topTags = Object.entries(details.tags).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+          return {
+            id: p.entity_id,
+            name: passengerMap[p.entity_id] || p.entity_id,
+            negCount: p._count.score,
+            avgScore: p._avg.score,
             tags: topTags,
             lastComment: details.lastComment,
           };
