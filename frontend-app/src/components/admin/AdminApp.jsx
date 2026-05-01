@@ -29,6 +29,7 @@ import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
 import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
 import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
 import RatingsPage from "../../pages/admin/ratings/RatingsPage";
+import CompensationsPage from "../../pages/admin/CompensationsPage";
 import VitrineLocalList from "../../pages/admin/vitrine-local/VitrineLocalList";
 import VitrineLocalForm from "../../pages/admin/vitrine-local/VitrineLocalForm";
 import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
@@ -762,6 +763,7 @@ export default function AdminApp() {
           
           {/* Avaliações e Reputação */}
           <Route path="/ratings" element={<ProtectedAdminRoute><RatingsPage /></ProtectedAdminRoute>} />
+          <Route path="/compensations" element={<ProtectedAdminRoute><CompensationsPage /></ProtectedAdminRoute>} />
 
           {/* Rotas Vitrine Local */}
           <Route path="/vitrine-local" element={<ProtectedAdminRoute><VitrineLocalList /></ProtectedAdminRoute>} />
