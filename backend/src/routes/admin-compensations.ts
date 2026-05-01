@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
-import { ensureAsaasCustomerForPassenger, createPixPayment } from '../services/asaas.service';
+import { createPixPayment } from '../services/asaas.service';
 
 const router = Router();
 router.use(authenticateAdmin);
 
 const AMOUNT_CENTS = parseInt(process.env.COMPENSATION_AMOUNT_CENTS || '500', 10);
 const CREDITS = parseInt(process.env.COMPENSATION_CREDITS || '1', 10);
+const COMPENSATION_CUSTOMER_ID = process.env.ASAAS_COMPENSATION_CUSTOMER_ID || '';
 
 // GET /api/admin/compensations — listar
 router.get('/', async (_req: Request, res: Response) => {
@@ -42,11 +43,12 @@ router.post('/', requireRole(['SUPER_ADMIN', 'FINANCE']), async (req: Request, r
     const adminId = (req as any).adminId;
     const extRef = `compensation:${ride_id}`;
 
-    // Gerar cobrança Pix via Asaas (usando customer do passageiro ou genérico)
+    // Gerar cobrança Pix via Asaas (customer fixo KAVIAR Compensações)
+    if (!COMPENSATION_CUSTOMER_ID) return res.status(500).json({ success: false, error: 'Customer Asaas de compensações não configurado (ASAAS_COMPENSATION_CUSTOMER_ID)' });
+
     let pix;
     try {
-      const customerId = await ensureAsaasCustomerForPassenger(ride.passenger_id);
-      pix = await createPixPayment(customerId, AMOUNT_CENTS, extRef, 'KAVIAR: Apoio ao motorista — corrida cancelada após chegada');
+      pix = await createPixPayment(COMPENSATION_CUSTOMER_ID, AMOUNT_CENTS, extRef, 'KAVIAR: Apoio ao motorista — corrida cancelada após chegada');
     } catch (pixErr: any) {
       return res.status(500).json({ success: false, error: `Erro ao gerar Pix: ${pixErr.message}` });
     }
