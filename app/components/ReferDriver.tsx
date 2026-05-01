@@ -8,7 +8,7 @@ import { authStore } from '../../src/auth/auth.store';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 
-type Step = 'choose' | 'consultant' | 'free' | 'sent';
+type Step = 'choose' | 'consultant' | 'free' | 'signup' | 'signup_sent' | 'sent';
 
 const WA_CONSULTOR = 'https://wa.me/5521968648777?text=Quero%20ser%20Consultor%20KAVIAR%20para%20indicar%20motoristas';
 
@@ -68,6 +68,25 @@ export default function ReferDriver() {
     } finally { setLoading(false); }
   };
 
+  const handleSignup = async () => {
+    if (!name.trim() || !phone.trim()) { setError('Preencha nome e telefone'); return; }
+    setError('');
+    setLoading(true);
+    try {
+      const notes = neighborhood ? `Bairro: ${neighborhood}` : undefined;
+      await apiClient.post('/api/public/consultant-lead', {
+        name: name.trim(),
+        phone: phone.trim(),
+        source: 'app-consultant-signup',
+        notes,
+      });
+      setStep('signup_sent');
+    } catch (e: any) {
+      if (e.response?.status === 409) setError('Você já está cadastrado como interessado.');
+      else setError(friendlyError(e, 'Não foi possível enviar.'));
+    } finally { setLoading(false); }
+  };
+
   const header = (
     <View style={s.header}>
       <TouchableOpacity onPress={() => step === 'choose' ? router.back() : setStep('choose')} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -100,6 +119,25 @@ export default function ReferDriver() {
     );
   }
 
+  // ── SIGNUP SENT ──
+  if (step === 'signup_sent') {
+    return (
+      <SafeAreaView style={s.container}>
+        <View style={s.center}>
+          <Ionicons name="checkmark-circle" size={64} color={COLORS.success} />
+          <Text style={s.successTitle}>Interesse registrado!</Text>
+          <Text style={s.successText}>Recebemos seu interesse. Nossa equipe KAVIAR vai entrar em contato.</Text>
+          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+            <Text style={s.backBtnText}>Voltar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.waBtn} onPress={() => Linking.openURL(WA_CONSULTOR)}>
+            <Text style={s.waBtnText}>Falar agora no WhatsApp</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // ── CHOOSE ──
   if (step === 'choose') {
     return (
@@ -121,7 +159,7 @@ export default function ReferDriver() {
             <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={s.optionCard} onPress={() => Linking.openURL(WA_CONSULTOR)} activeOpacity={0.7}>
+          <TouchableOpacity style={s.optionCard} onPress={() => setStep('signup')} activeOpacity={0.7}>
             <View style={s.optionIcon}><Ionicons name="star-outline" size={24} color={COLORS.accent} /></View>
             <View style={{ flex: 1 }}>
               <Text style={s.optionTitle}>Quero ser consultor</Text>
@@ -139,6 +177,36 @@ export default function ReferDriver() {
             <Ionicons name="chevron-forward" size={20} color={COLORS.textMuted} />
           </TouchableOpacity>
         </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── SIGNUP: formulário para quem quer ser consultor ──
+  if (step === 'signup') {
+    return (
+      <SafeAreaView style={s.container}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+            {header}
+            <View style={s.heroArea}>
+              <Ionicons name="star-outline" size={36} color={COLORS.accent} />
+              <Text style={s.heroTitle}>Quero ser Consultor KAVIAR</Text>
+              <Text style={s.heroText}>Preencha seus dados e nossa equipe entrará em contato para cadastrar você como consultor.</Text>
+            </View>
+            <View style={s.form}>
+              <Text style={s.label}>Seu nome *</Text>
+              <TextInput style={s.input} placeholder="Nome completo" placeholderTextColor={COLORS.textMuted} value={name} onChangeText={setName} />
+              <Text style={s.label}>Seu telefone / WhatsApp *</Text>
+              <TextInput style={s.input} placeholder="(00) 00000-0000" placeholderTextColor={COLORS.textMuted} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+              <Text style={s.label}>Bairro / Região</Text>
+              <TextInput style={s.input} placeholder="Opcional" placeholderTextColor={COLORS.textMuted} value={neighborhood} onChangeText={setNeighborhood} />
+              {error ? <Text style={s.error}>{error}</Text> : null}
+              <TouchableOpacity style={s.submitBtn} onPress={handleSignup} disabled={loading}>
+                {loading ? <ActivityIndicator color={COLORS.textDark} /> : <Text style={s.submitText}>Enviar interesse</Text>}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
     );
   }
@@ -241,4 +309,6 @@ const s = StyleSheet.create({
   successHint: { fontSize: 13, color: COLORS.textMuted, textAlign: 'center', marginTop: 12, lineHeight: 20 },
   backBtn: { backgroundColor: COLORS.surface, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, marginTop: 24, borderWidth: 1, borderColor: COLORS.border },
   backBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.textPrimary },
+  waBtn: { marginTop: 12 },
+  waBtnText: { fontSize: 14, fontWeight: '600', color: '#25D366' },
 });

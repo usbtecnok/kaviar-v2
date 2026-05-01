@@ -1078,8 +1078,8 @@ export default function PassengerMap() {
               <Text style={s.ctaPrimaryText}>Tentar agora</Text>
             </TouchableOpacity>
             {!ride?.scheduled_for && (
-              <TouchableOpacity style={s.ctaSecondaryHighlight} onPress={() => Linking.openURL('https://kaviar.com.br/#consultor')}>
-                <Text style={s.ctaSecondaryHighlightText}>Quero ser consultor</Text>
+              <TouchableOpacity style={s.ctaSecondaryHighlight} onPress={() => { setShowNoDriver(false); router.push('/(passenger)/refer-driver'); }}>
+                <Text style={s.ctaSecondaryHighlightText}>Indicar motorista</Text>
               </TouchableOpacity>
             )}
 
