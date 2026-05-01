@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -380,6 +380,7 @@ function AdminHome() {
             { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
             { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
             { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
+            { Icon: Paid, title: 'Compensações por Deslocamento', desc: 'Apoio ao motorista em cancelamentos após chegada', to: '/admin/compensations' },
           ].map(c => {
             const color = c.accent || '#C8A84E';
             return (
