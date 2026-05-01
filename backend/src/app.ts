@@ -223,6 +223,8 @@ import adminRatingsRoutes from './routes/admin-ratings';
 app.use('/api/admin/ratings', adminRatingsRoutes);
 import adminShowcaseRoutes from './routes/admin-showcase';
 app.use('/api/admin/showcase', adminShowcaseRoutes);
+import adminCompensationRoutes from './routes/admin-compensations';
+app.use('/api/admin/compensations', adminCompensationRoutes);
 app.use('/api/drivers', driversRoutes);
 app.use('/api/drivers', driverDashboardRoutes);
 app.use('/api/drivers', driverTerritoryRoutes);

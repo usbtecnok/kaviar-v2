@@ -50,6 +50,32 @@ router.post('/asaas', async (req: Request, res: Response) => {
   }
 
   try {
+    // ── Compensation flow ──
+    const comp = await pool.query(
+      'SELECT * FROM ride_compensations WHERE asaas_payment_id = $1',
+      [paymentId]
+    );
+    if (comp.rows[0]) {
+      const c = comp.rows[0];
+      if (c.status === 'paid') {
+        console.log(`[ASAAS_WEBHOOK] Compensation already paid: ${paymentId}`);
+        if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'duplicate', processed_at = NOW() WHERE id = $1", [eventId]);
+        return res.status(200).json({ received: true });
+      }
+      await pool.query(
+        `UPDATE ride_compensations SET status = 'paid', paid_at = NOW(), updated_at = NOW() WHERE id = $1`,
+        [c.id]
+      );
+      const creditResult = await applyCreditDelta(
+        c.driver_id, c.credits_amount,
+        `compensation:ride:${c.ride_id}`, 'system:compensation', `comp:${c.id}`
+      );
+      console.log(`[ASAAS_WEBHOOK] Compensation paid id=${c.id} driver=${c.driver_id} credits=${c.credits_amount} balance=${creditResult.balance} alreadyProcessed=${creditResult.alreadyProcessed}`);
+      if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'processed', processed_at = NOW() WHERE id = $1", [eventId]);
+      return res.status(200).json({ received: true });
+    }
+
+    // ── Credit purchase flow ──
     // Find purchase
     const purchase = await pool.query(
       'SELECT * FROM driver_credit_purchases WHERE asaas_payment_id = $1',

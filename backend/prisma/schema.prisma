@@ -1318,3 +1318,31 @@ model showcase_events {
   @@index([item_id, event_type])
   @@index([item_id, created_at])
 }
+
+// ── Compensação por Deslocamento ─────────────────────────────────────────────
+model ride_compensations {
+  id                 String    @id @default(uuid())
+  ride_id            String    @unique
+  driver_id          String
+  passenger_id       String
+  amount_cents       Int       @default(500)
+  credits_amount     Int       @default(1)
+  status             String    @default("pending") // pending | paid | expired | waived
+  external_reference String?   @unique
+  asaas_payment_id   String?   @unique
+  pix_qr_code        String?
+  pix_copy_paste     String?
+  pix_expires_at     DateTime?
+  invoice_url        String?
+  paid_at            DateTime?
+  waived_at          DateTime?
+  waived_by          String?
+  waived_reason      String?
+  notes              String?
+  created_by         String
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  @@index([status])
+  @@index([driver_id])
+}
