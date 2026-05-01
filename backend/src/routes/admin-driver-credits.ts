@@ -93,6 +93,9 @@ router.post('/:driverId/credits/adjust', allowFinanceAccess, async (req, res) =>
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({ error: 'Reason is required' });
     }
+    if (!idempotencyKey || idempotencyKey.trim().length === 0) {
+      return res.status(400).json({ error: 'idempotencyKey is required for manual credit adjustments' });
+    }
 
     // Record referral on first credit purchase (auditable, immutable)
     if (referredBy && parseFloat(delta) > 0) {
