@@ -284,7 +284,7 @@ router.patch('/consultant-leads/:id', ...allowLeadAccess, async (req: Request, r
               console.log(`[LEAD_CONVERTED] WhatsApp skipped for international number agent=${agent.id}`);
             } else {
               const link = `https://kaviar.com.br/consultor/${agent.referral_code}`;
-              await whatsappEvents.consultantWelcome(`+55${agent.phone}`, {
+              await whatsappEvents.consultantWelcome(`+${agent.phone}`, {
                 '1': agent.name,
                 '2': link,
                 '3': agent.referral_code,
