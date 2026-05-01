@@ -43,6 +43,39 @@ export async function ensureAsaasCustomer(driverId: string): Promise<string> {
   return customer.id;
 }
 
+/** Find or create Asaas customer for a passenger (CPF optional for Pix) */
+export async function ensureAsaasCustomerForPassenger(passengerId: string): Promise<string> {
+  const res = await pool.query(
+    'SELECT id, name, email, phone, document_cpf FROM passengers WHERE id = $1',
+    [passengerId]
+  );
+  if (!res.rows[0]) throw new Error('Passenger not found');
+  const p = res.rows[0];
+
+  // Check if column exists and has value
+  const existing = await pool.query(
+    `SELECT column_name FROM information_schema.columns WHERE table_name = 'passengers' AND column_name = 'asaas_customer_id'`
+  );
+  if (existing.rows.length > 0) {
+    const cur = await pool.query('SELECT asaas_customer_id FROM passengers WHERE id = $1', [passengerId]);
+    if (cur.rows[0]?.asaas_customer_id) return cur.rows[0].asaas_customer_id;
+  } else {
+    await pool.query('ALTER TABLE passengers ADD COLUMN IF NOT EXISTS asaas_customer_id TEXT');
+  }
+
+  const customer = await asaasRequest('POST', '/customers', {
+    name: p.name,
+    email: p.email || undefined,
+    phone: p.phone?.replace(/\D/g, '') || undefined,
+    ...(p.document_cpf && { cpfCnpj: p.document_cpf }),
+    externalReference: `passenger:${passengerId}`,
+  });
+
+  await pool.query('UPDATE passengers SET asaas_customer_id = $1 WHERE id = $2', [customer.id, passengerId]);
+  console.log(`[ASAAS] Passenger customer created: ${customer.id} for ${passengerId}`);
+  return customer.id;
+}
+
 /** Create Pix payment and return QR code data */
 export async function createPixPayment(customerId: string, amountCents: number, externalRef: string, description: string) {
   const payment = await asaasRequest('POST', '/payments', {

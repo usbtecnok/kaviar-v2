@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
-import { ensureAsaasCustomer, createPixPayment } from '../services/asaas.service';
+import { ensureAsaasCustomerForPassenger, createPixPayment } from '../services/asaas.service';
 
 const router = Router();
 router.use(authenticateAdmin);
@@ -45,7 +45,7 @@ router.post('/', requireRole(['SUPER_ADMIN', 'FINANCE']), async (req: Request, r
     // Gerar cobrança Pix via Asaas (usando customer do passageiro ou genérico)
     let pix;
     try {
-      const customerId = await ensureAsaasCustomer(ride.passenger_id);
+      const customerId = await ensureAsaasCustomerForPassenger(ride.passenger_id);
       pix = await createPixPayment(customerId, AMOUNT_CENTS, extRef, 'KAVIAR: Apoio ao motorista — corrida cancelada após chegada');
     } catch (pixErr: any) {
       return res.status(500).json({ success: false, error: `Erro ao gerar Pix: ${pixErr.message}` });
