@@ -79,7 +79,7 @@ router.post('/:driverId/credits/adjust', allowFinanceAccess, async (req, res) =>
 
   try {
     const { driverId } = req.params;
-    const { delta, reason, idempotencyKey, referredBy } = req.body;
+    const { delta, reason, idempotencyKey, referredBy, password } = req.body;
     const adminUserId = (req as any).adminId || (req as any).admin?.id;
 
     if (!adminUserId) {
@@ -95,6 +95,16 @@ router.post('/:driverId/credits/adjust', allowFinanceAccess, async (req, res) =>
     }
     if (!idempotencyKey || idempotencyKey.trim().length === 0) {
       return res.status(400).json({ error: 'idempotencyKey is required for manual credit adjustments' });
+    }
+
+    // Re-authenticate admin for exceptional adjustment
+    if (!password) {
+      return res.status(400).json({ error: 'Senha do admin é obrigatória para ajuste excepcional' });
+    }
+    const bcrypt = require('bcryptjs');
+    const admin = await pool.query('SELECT password FROM admins WHERE id = $1', [adminUserId]);
+    if (!admin.rows[0] || !(await bcrypt.compare(password, admin.rows[0].password))) {
+      return res.status(401).json({ error: 'Senha incorreta' });
     }
 
     // Record referral on first credit purchase (auditable, immutable)

@@ -25,6 +25,9 @@ import { Add, Remove } from '@mui/icons-material';
 import api from '../../api/index';
 
 export function DriverCreditsCard({ driverId }) {
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const adminRole = adminData ? JSON.parse(adminData)?.role : '';
+  const canAdjust = ['SUPER_ADMIN', 'FINANCE'].includes(adminRole);
   const [balance, setBalance] = useState(0);
   const [ledger, setLedger] = useState([]);
   const [total, setTotal] = useState(0);
@@ -34,6 +37,7 @@ export function DriverCreditsCard({ driverId }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [delta, setDelta] = useState('');
   const [reason, setReason] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -80,19 +84,25 @@ export function DriverCreditsCard({ driverId }) {
       setError('Motivo é obrigatório');
       return;
     }
+    if (!password) {
+      setError('Senha do admin é obrigatória para ajuste excepcional');
+      return;
+    }
 
     try {
       const idempotencyKey = `adjust-${driverId}-${Date.now()}-${Math.random()}`;
       await api.post(`/api/admin/drivers/${driverId}/credits/adjust`, {
         delta: deltaNum,
         reason: reason.trim(),
-        idempotencyKey
+        idempotencyKey,
+        password
       });
 
       setSuccess('Créditos ajustados com sucesso');
       setModalOpen(false);
       setDelta('');
       setReason('');
+      setPassword('');
       loadBalance();
       loadLedger();
     } catch (err) {
@@ -111,13 +121,13 @@ export function DriverCreditsCard({ driverId }) {
               color="primary" 
               size="large"
             />
-            <Button
+            {canAdjust && <Button
               variant="contained"
               startIcon={<Add />}
               onClick={() => setModalOpen(true)}
             >
-              Ajustar
-            </Button>
+              Ajuste Excepcional
+            </Button>}
           </Box>
         </Box>
 
@@ -188,9 +198,10 @@ export function DriverCreditsCard({ driverId }) {
         )}
       </CardContent>
 
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Ajustar Créditos</DialogTitle>
+      <Dialog open={modalOpen} onClose={() => { setModalOpen(false); setPassword(''); }} maxWidth="sm" fullWidth>
+        <DialogTitle>Ajuste Excepcional de Crédito</DialogTitle>
         <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2, mt: 1 }}>Use apenas para correções auditadas. Para compensação por deslocamento, use a tela Compensações por Deslocamento.</Alert>
           <Box display="flex" flexDirection="column" gap={2} mt={1}>
             <TextField
               label="Valor (positivo para adicionar, negativo para remover)"
@@ -204,15 +215,23 @@ export function DriverCreditsCard({ driverId }) {
               label="Motivo"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Ex: Bônus de boas-vindas"
+              placeholder="Ex: Correção técnica — ticket #123"
               multiline
               rows={3}
+              fullWidth
+            />
+            <TextField
+              label="Sua senha de admin"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Confirme sua senha para autorizar"
               fullWidth
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setModalOpen(false)}>Cancelar</Button>
+          <Button onClick={() => { setModalOpen(false); setPassword(''); }}>Cancelar</Button>
           <Button onClick={handleAdjust} variant="contained">
             Confirmar
           </Button>
