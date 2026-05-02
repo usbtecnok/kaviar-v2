@@ -25,7 +25,7 @@ export default function Index() {
     if (authStore.isAuthenticated()) {
       const userType = authStore.getUserType();
       if (userType === 'PASSENGER') {
-        router.replace('/(passenger)/map');
+        router.replace('/(passenger)/home');
       } else if (userType === 'DRIVER') {
         const user = authStore.getUser();
         router.replace(user?.status === 'pending' ? '/(driver)/documents' : '/(driver)/online');
