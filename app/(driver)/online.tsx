@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
@@ -46,11 +46,17 @@ export default function DriverOnline() {
   const locationRef = useRef<NodeJS.Timeout | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const pendingOfferRef = useRef<RideOffer | null>(null);
+  const isOnlineRef = useRef(false);
+  const backgroundDeniedRef = useRef(false);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userPhone, setUserPhone] = useState('');
+
+  // Keep refs in sync for AppState callback
+  useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
+  useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
 
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
@@ -67,7 +73,7 @@ export default function DriverOnline() {
     try {
       await soundRef.current?.stopAsync();
       await soundRef.current?.unloadAsync();
-    } catch {}
+    } catch (e) { console.warn('[Driver] stopSound failed:', e); }
     soundRef.current = null;
   };
 
@@ -78,7 +84,55 @@ export default function DriverOnline() {
     loadDashboard();
     checkGps();
     checkLocationPermission();
-    return () => { stopAll(); stopSound(); driverApi.setAvailability('offline').catch(() => {}); };
+
+    // Resume everything when app returns from background
+    const appStateSub = AppState.addEventListener('change', async (nextState) => {
+      if (nextState !== 'active' || !isOnlineRef.current) return;
+      console.log('[Driver] AppState → active, resuming...');
+
+      // 1. Reenvia localização imediatamente
+      try {
+        const loc = await Location.getCurrentPositionAsync({});
+        setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        await driverApi.sendLocation(loc.coords.latitude, loc.coords.longitude);
+        console.log('[Driver] Resume: location sent');
+      } catch (e) {
+        console.warn('[Driver] Resume: location failed:', e);
+      }
+
+      // 2. Confirma availability online (stale-cleanup pode ter marcado offline)
+      try {
+        await driverApi.setAvailability('online');
+      } catch (e) {
+        console.warn('[Driver] Resume: availability failed:', e);
+      }
+
+      // 3. Reinicia polling de ofertas
+      if (pollRef.current) clearInterval(pollRef.current);
+      startPolling();
+
+      // 4. Reinicia location foreground se background negado
+      if (backgroundDeniedRef.current && locationRef.current) {
+        clearInterval(locationRef.current);
+        const send = async () => {
+          try {
+            const loc = await Location.getCurrentPositionAsync({});
+            setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+            await driverApi.sendLocation(loc.coords.latitude, loc.coords.longitude);
+          } catch (e) {
+            console.warn('[Driver] sendLocation failed:', e);
+          }
+        };
+        locationRef.current = setInterval(send, LOCATION_INTERVAL);
+      }
+
+      // 5. Verifica corrida ativa e GPS
+      checkCurrentRide();
+      checkGps();
+      checkLocationPermission();
+    });
+
+    return () => { appStateSub.remove(); stopAll(); stopSound(); driverApi.setAvailability('offline').catch(() => {}); };
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -179,7 +233,7 @@ export default function DriverOnline() {
             );
             soundRef.current = sound;
             await sound.playAsync();
-          } catch {}
+          } catch (e) { console.warn('[Driver] offer sound failed:', e); }
         }
       } catch (e) {
         console.warn('[Driver] offer polling failed:', e);
@@ -211,7 +265,7 @@ export default function DriverOnline() {
         try {
           const loc = await Location.getCurrentPositionAsync({});
           setCurrentCoords({ lat: loc.coords.latitude, lng: loc.coords.longitude });
-        } catch {}
+        } catch (e) { console.warn('[Driver] initial coords failed:', e); }
       }
     } catch (e: any) {
       if (e.message === 'FOREGROUND_DENIED') {
