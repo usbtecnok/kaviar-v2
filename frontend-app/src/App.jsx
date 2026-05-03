@@ -359,7 +359,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.1-appstate-fix.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.2-push-mvp.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
