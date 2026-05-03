@@ -10,6 +10,7 @@ import { whatsappEvents } from '../modules/whatsapp';
 import * as pricingEngine from '../services/pricing-engine';
 import { authenticatePassenger, authenticateDriver, requireAuth } from '../middlewares/auth';
 import { getPresignedUrl } from '../config/s3-upload';
+import { createPixPayment } from '../services/asaas.service';
 import { config } from '../config';
 
 const toPhotoUrl = async (key: string | null | undefined): Promise<string | null> => {
@@ -1056,6 +1057,51 @@ router.post('/:ride_id/passenger-location', authenticatePassenger, async (req: R
     res.json({ success: true });
   } catch (error: any) {
     res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// 5.12 Passenger compensation after post-arrival cancel
+router.post('/:ride_id/compensation', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const { ride_id } = req.params;
+
+    const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id } });
+    if (!ride) return res.status(404).json({ error: 'Corrida não encontrada' });
+    if (ride.passenger_id !== passengerId) return res.status(403).json({ error: 'Não autorizado' });
+    if (ride.status !== 'canceled_by_passenger') return res.status(400).json({ error: 'Corrida não foi cancelada' });
+    if (!ride.arrived_at) return res.status(400).json({ error: 'Motorista não havia chegado' });
+    if (!ride.driver_id) return res.status(400).json({ error: 'Corrida sem motorista' });
+
+    const existing = await prisma.ride_compensations.findUnique({ where: { ride_id } });
+    if (existing && ['pending', 'paid'].includes(existing.status)) {
+      return res.json({ success: true, data: { compensation_id: existing.id, amount: existing.amount_cents / 100, invoice_url: existing.invoice_url, pix_copy_paste: existing.pix_copy_paste, status: existing.status } });
+    }
+
+    const amountCents = parseInt(process.env.COMPENSATION_AMOUNT_CENTS || '500', 10);
+    const credits = parseInt(process.env.COMPENSATION_CREDITS || '1', 10);
+    const customerId = process.env.ASAAS_COMPENSATION_CUSTOMER_ID || '';
+    if (!customerId) return res.status(500).json({ error: 'Configuração de compensação indisponível' });
+
+    const extRef = `compensation:${ride_id}`;
+    const pix = await createPixPayment(customerId, amountCents, extRef, 'KAVIAR: Apoio ao motorista — corrida cancelada após chegada');
+
+    const comp = await prisma.ride_compensations.create({
+      data: {
+        ride_id, driver_id: ride.driver_id, passenger_id: passengerId,
+        amount_cents: amountCents, credits_amount: credits,
+        external_reference: extRef, asaas_payment_id: pix.paymentId,
+        pix_qr_code: pix.qrCode, pix_copy_paste: pix.copyPaste,
+        pix_expires_at: pix.expirationDate ? new Date(pix.expirationDate) : null,
+        invoice_url: pix.invoiceUrl, created_by: passengerId,
+      },
+    });
+
+    console.log(`[COMPENSATION] passenger-created id=${comp.id} ride=${ride_id} driver=${ride.driver_id}`);
+    res.json({ success: true, data: { compensation_id: comp.id, amount: amountCents / 100, invoice_url: pix.invoiceUrl, pix_copy_paste: pix.copyPaste, status: 'pending' } });
+  } catch (error: any) {
+    console.error('[COMPENSATION] passenger error:', error);
+    res.status(500).json({ error: 'Erro ao gerar compensação. Tente novamente.' });
   }
 });
 

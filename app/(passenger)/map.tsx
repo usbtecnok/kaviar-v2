@@ -540,20 +540,34 @@ export default function PassengerMap() {
       catch (e: any) { Alert.alert('Erro', friendlyError(e, 'Não foi possível cancelar.')); }
     };
     if (rideStatus === 'arrived') {
+      const rideId = ride.id;
       Alert.alert(
         'O motorista já chegou',
-        'Cancelar agora pode prejudicar o motorista, que já se deslocou até você.\n\nSe precisar cancelar por um imprevisto, a gente entende.\n\nSe desejar compensar o motorista pelo deslocamento, peça a chave Pix pelo suporte KAVIAR.',
+        'Cancelar agora pode prejudicar o motorista, que já se deslocou até você.\n\nSe precisar cancelar por um imprevisto, a gente entende. Você poderá compensar o motorista com um Pix de R$5,00 pela plataforma.',
         [
           { text: 'Voltar para a corrida', style: 'cancel' },
-          { text: 'Pedir chave Pix ao suporte', onPress: () => {
-            const d = ride.driver;
-            const lines = ['Olá, sou passageiro KAVIAR.', '', 'Precisei cancelar uma corrida após o motorista chegar e gostaria de solicitar a chave Pix para compensar o motorista pelo deslocamento.', '', `Corrida: ${ride.id}`];
-            if (d?.name) lines.push(`Motorista: ${d.name}`);
-            if (d?.vehicle_model || d?.vehicle_color || d?.vehicle_plate) lines.push(`Veículo: ${[d.vehicle_model, d.vehicle_color].filter(Boolean).join(' ')}${d.vehicle_plate ? ' - ' + d.vehicle_plate : ''}`);
-            lines.push('Status: motorista chegou');
-            Linking.openURL(`https://wa.me/5521968648777?text=${encodeURIComponent(lines.join('\n'))}`);
-          } },
-          { text: 'Cancelar mesmo assim', style: 'destructive', onPress: doCancel },
+          { text: 'Cancelar mesmo assim', style: 'destructive', onPress: async () => {
+            await doCancel();
+            Alert.alert(
+              'Corrida cancelada',
+              'O motorista se deslocou até você. Deseja compensá-lo com R$5,00 via Pix?',
+              [
+                { text: 'Agora não' },
+                { text: 'Compensar motorista — R$5,00', onPress: async () => {
+                  try {
+                    const { data } = await apiClient.post(`/api/v2/rides/${rideId}/compensation`);
+                    if (data?.data?.invoice_url) {
+                      Linking.openURL(data.data.invoice_url);
+                    } else {
+                      Alert.alert('Erro', 'Não foi possível gerar o Pix. Tente novamente.');
+                    }
+                  } catch (e: any) {
+                    Alert.alert('Erro', friendlyError(e, 'Não foi possível gerar o Pix.'));
+                  }
+                }},
+              ]
+            );
+          }},
         ]
       );
     } else {
