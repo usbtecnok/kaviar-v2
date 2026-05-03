@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback,
   Animated, Dimensions, Platform, StatusBar,
@@ -30,11 +30,8 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
   const slideAnim = useRef(new Animated.Value(-DRAWER_W)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
     if (visible) {
-      setMounted(true);
       Animated.parallel([
         Animated.timing(slideAnim, { toValue: 0, duration: 260, useNativeDriver: true }),
         Animated.timing(fadeAnim, { toValue: 1, duration: 260, useNativeDriver: true }),
@@ -43,11 +40,11 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
       Animated.parallel([
         Animated.timing(slideAnim, { toValue: -DRAWER_W, duration: 220, useNativeDriver: true }),
         Animated.timing(fadeAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
-      ]).start(() => setMounted(false));
+      ]).start();
     }
   }, [visible]);
 
-  if (!mounted) return null;
+  if (!visible) return null;
 
   const initials = userName
     ? userName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
@@ -82,7 +79,7 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
                 {item.danger && <View style={s.separator} />}
                 <TouchableOpacity
                   style={s.item}
-                  onPress={() => { const fn = item.onPress; onClose(); setTimeout(fn, 400); }}
+                  onPress={() => { onClose(); setTimeout(item.onPress, 350); }}
                   activeOpacity={0.6}
                 >
                   <Ionicons
