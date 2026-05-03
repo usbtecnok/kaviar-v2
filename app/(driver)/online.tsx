@@ -60,7 +60,16 @@ export default function DriverOnline() {
   useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
   useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
 
-  // Push notifications handled natively by Android — no handler override needed
+  // Always show push notification as heads-up banner
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }, []);
 
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
