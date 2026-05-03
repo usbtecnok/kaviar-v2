@@ -372,10 +372,13 @@ export default function DriverOnline() {
     Alert.alert('Sair', 'Deseja realmente sair?', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sair', style: 'destructive', onPress: async () => {
-        stopAll();
-        await driverApi.setAvailability('offline').catch(() => {});
-        await authStore.clearAuth();
-        router.replace('/(auth)/login');
+        try {
+          stopAll();
+          await driverApi.setAvailability('offline').catch(() => {});
+          await authStore.clearAuth();
+        } finally {
+          router.replace('/(auth)/login');
+        }
       }}
     ]);
   };
