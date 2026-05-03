@@ -60,9 +60,15 @@ export default function DriverOnline() {
   useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
   useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
 
-  // Suppress push notification when app is in foreground (polling handles it)
+  // Show push alert only when app is NOT in foreground on this screen
   useEffect(() => {
-    Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false }) });
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: !isOnlineRef.current,
+        shouldPlaySound: !isOnlineRef.current,
+        shouldSetBadge: false,
+      }),
+    });
   }, []);
 
   const drawerItems: DrawerItem[] = [
