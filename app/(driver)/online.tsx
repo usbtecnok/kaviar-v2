@@ -125,8 +125,8 @@ export default function DriverOnline() {
       startPolling();
 
       // 4. Reinicia location foreground se background negado
-      if (backgroundDeniedRef.current && locationRef.current) {
-        clearInterval(locationRef.current);
+      if (backgroundDeniedRef.current) {
+        if (locationRef.current) clearInterval(locationRef.current);
         const send = async () => {
           try {
             const loc = await Location.getCurrentPositionAsync({});
@@ -232,6 +232,7 @@ export default function DriverOnline() {
   };
 
   const startPolling = () => {
+    if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
         const offers = await driverApi.getOffers();
