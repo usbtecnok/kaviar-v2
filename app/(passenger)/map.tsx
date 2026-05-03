@@ -169,6 +169,7 @@ export default function PassengerMap() {
   // Search state
   const [searchText, setSearchText] = useState('');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [searchError, setSearchError] = useState(false);
   const [searchingFor, setSearchingFor] = useState<'origin' | 'destination'>('destination');
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -286,7 +287,7 @@ export default function PassengerMap() {
 
   const searchPlaces = useCallback((input: string) => {
     setSearchText(input);
-    if (input.length < 3) { setPredictions([]); return; }
+    if (input.length < 3) { setPredictions([]); setSearchError(false); return; }
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       try {
@@ -294,10 +295,12 @@ export default function PassengerMap() {
         const url = `/api/geo-proxy/autocomplete?input=${encodeURIComponent(input)}${loc}`;
         const res = await apiClient.get(url);
         const data = res.data;
+        setSearchError(false);
         if (data.status === 'OK') setPredictions(data.predictions);
       } catch (e) {
         console.warn('[Map] autocomplete failed:', e);
         setPredictions([]);
+        setSearchError(true);
       }
     }, 300);
   }, [userLocation]);
@@ -682,7 +685,7 @@ export default function PassengerMap() {
             </TouchableOpacity>
           ))}
           {searchText.length >= 3 && predictions.length === 0 && (
-            <Text style={s.searchEmpty}>Nenhum resultado encontrado</Text>
+            <Text style={s.searchEmpty}>{searchError ? 'Não foi possível buscar endereços. Verifique sua conexão.' : 'Nenhum resultado encontrado'}</Text>
           )}
         </ScrollView>
       </SafeAreaView>
