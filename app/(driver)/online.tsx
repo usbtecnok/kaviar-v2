@@ -302,11 +302,17 @@ export default function DriverOnline() {
         });
       }
       const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') return;
-      const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85' });
+      if (status !== 'granted') {
+        console.warn('[Driver] Push permission denied:', status);
+        return;
+      }
+      const { data: token } = await Notifications.getExpoPushTokenAsync({
+        projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85',
+      });
       await apiClient.put('/api/v2/drivers/me/push-token', { token });
-      console.log('[Driver] Push token registered');
-    } catch (e) {
+      console.log('[Driver] Push token registered:', token.substring(0, 30));
+    } catch (e: any) {
+      Alert.alert('Push Debug', `Erro: ${e.message}`);
       console.warn('[Driver] Push token registration failed:', e);
     }
   };
