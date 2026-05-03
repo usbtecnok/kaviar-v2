@@ -478,7 +478,10 @@ export class DispatcherService {
     realTimeService.emitToDriver(driverId, event);
 
     // Push notification (aditivo — não bloqueia se falhar)
-    try { const { sendPushToDriver } = require('./push.service'); sendPushToDriver(driverId, '🚗 Nova corrida disponível', 'Abra o KAVIAR Motorista para aceitar.'); } catch (_) {}
+    const { sendPushToDriver } = require('./push.service');
+    sendPushToDriver(driverId, '🚗 Nova corrida disponível', 'Abra o KAVIAR Motorista para aceitar.')
+      .then(() => console.log(`[PUSH] Sent to driver ${driverId}`))
+      .catch((e: any) => console.warn(`[PUSH] Failed for driver ${driverId}:`, e?.message));
     
     console.log(`[REALTIME] Emitted to driver ${driverId}:`, JSON.stringify(event));
   }
