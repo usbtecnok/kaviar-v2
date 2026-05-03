@@ -476,6 +476,9 @@ export class DispatcherService {
     // Enviar via SSE
     const { realTimeService } = require('./realtime.service');
     realTimeService.emitToDriver(driverId, event);
+
+    // Push notification (aditivo — não bloqueia se falhar)
+    try { const { sendPushToDriver } = require('./push.service'); sendPushToDriver(driverId, '🚗 Nova corrida disponível', 'Abra o KAVIAR Motorista para aceitar.'); } catch (_) {}
     
     console.log(`[REALTIME] Emitted to driver ${driverId}:`, JSON.stringify(event));
   }

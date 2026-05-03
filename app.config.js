@@ -39,6 +39,7 @@ const driverPermissions = [
   'ACCESS_BACKGROUND_LOCATION',
   'FOREGROUND_SERVICE',
   'FOREGROUND_SERVICE_LOCATION',
+  'POST_NOTIFICATIONS',
 ];
 
 const passengerPermissions = [...basePermissions];
@@ -48,7 +49,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.11.1',
+    version: '1.11.2',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',

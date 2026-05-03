@@ -73,6 +73,25 @@ router.post('/me/location', authenticateDriver, async (req: Request, res: Respon
   }
 });
 
+// 5.4.1 Driver push token
+router.put('/me/push-token', authenticateDriver, async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+    const { token } = req.body;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ error: 'Token inválido' });
+    }
+    await prisma.drivers.update({
+      where: { id: driverId },
+      data: { expo_push_token: token, push_token_updated_at: new Date() }
+    });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[PUSH_TOKEN_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
 // 5.5 Driver aceita oferta
 router.post('/offers/:offer_id/accept', authenticateDriver, async (req: Request, res: Response) => {
   try {

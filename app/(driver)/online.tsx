@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
 import { Audio } from 'expo-av';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { driverApi } from '../../src/api/driver.api';
@@ -57,6 +59,12 @@ export default function DriverOnline() {
   // Keep refs in sync for AppState callback
   useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
   useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
+
+  // Suppress push notification when app is in foreground (polling handles it)
+  useEffect(() => {
+    const sub = Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false }) });
+    return () => { Notifications.setNotificationHandler(null as any); };
+  }, []);
 
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
@@ -285,11 +293,31 @@ export default function DriverOnline() {
     stopBackgroundLocation().catch(() => {});
   };
 
+  const registerPushToken = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('rides', {
+          name: 'Corridas',
+          importance: Notifications.AndroidImportance.MAX,
+          sound: 'default',
+        });
+      }
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') return;
+      const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85' });
+      await apiClient.put('/api/v2/drivers/me/push-token', { token });
+      console.log('[Driver] Push token registered');
+    } catch (e) {
+      console.warn('[Driver] Push token registration failed:', e);
+    }
+  };
+
   const handleGoOnline = async () => {
     setLoading(true);
     try {
       await driverApi.setAvailability('online');
       setIsOnline(true);
+      registerPushToken();
       await startLocationTracking();
       startPolling();
     } catch (e: any) {
