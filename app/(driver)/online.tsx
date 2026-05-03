@@ -62,8 +62,7 @@ export default function DriverOnline() {
 
   // Suppress push notification when app is in foreground (polling handles it)
   useEffect(() => {
-    const sub = Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false }) });
-    return () => { Notifications.setNotificationHandler(null as any); };
+    Notifications.setNotificationHandler({ handleNotification: async () => ({ shouldShowAlert: false, shouldPlaySound: false, shouldSetBadge: false }) });
   }, []);
 
   const drawerItems: DrawerItem[] = [

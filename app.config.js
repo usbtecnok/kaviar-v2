@@ -86,6 +86,7 @@ export default {
       }
     },
     plugins: [
+      'expo-notifications',
       [
         'expo-location',
         {
