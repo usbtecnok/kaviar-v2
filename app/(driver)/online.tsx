@@ -60,16 +60,7 @@ export default function DriverOnline() {
   useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
   useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
 
-  // Show push alert only when app is NOT in foreground on this screen
-  useEffect(() => {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: !isOnlineRef.current,
-        shouldPlaySound: !isOnlineRef.current,
-        shouldSetBadge: false,
-      }),
-    });
-  }, []);
+  // Push notifications handled natively by Android — no handler override needed
 
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
