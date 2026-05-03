@@ -578,11 +578,10 @@ export default function PassengerMap() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Sair', 'Deseja sair?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: async () => { stopAll(); await authStore.clearAuth(); router.replace('/(auth)/login'); }},
-    ]);
+  const handleLogout = async () => {
+    stopAll();
+    await authStore.clearAuth();
+    router.replace('/(auth)/login');
   };
 
   // --- Map region ---
