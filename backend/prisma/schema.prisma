@@ -216,6 +216,8 @@ model drivers {
   photo_url                   String?
   premium_tourism_status      String                        @default("standard")
   premium_tourism_promoted_at DateTime?
+  expo_push_token             String?                       @db.VarChar(100)
+  push_token_updated_at       DateTime?
   created_at                  DateTime                      @default(now())
   updated_at                  DateTime
   driver_compliance_documents driver_compliance_documents[]
