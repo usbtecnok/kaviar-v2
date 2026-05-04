@@ -36,6 +36,11 @@ export default function PassengerHome() {
     }
   }, []);
 
+  const handleLogout = async () => {
+    await authStore.clearAuth();
+    router.replace('/(auth)/login');
+  };
+
   const drawerItems: DrawerItem[] = [
     { key: 'profile',   label: 'Meu perfil',        icon: 'person-outline',       onPress: () => router.push('/(passenger)/profile')      },
     { key: 'history',   label: 'Minhas corridas',    icon: 'time-outline',         onPress: () => router.push('/(passenger)/history')      },
@@ -43,7 +48,7 @@ export default function PassengerHome() {
     { key: 'tourism',   label: 'Turismo Premium',    icon: 'diamond-outline',      badge: '✦', onPress: () => router.push('/(passenger)/tourism') },
     { key: 'refer',     label: 'Convide e ganhe',    icon: 'people-outline',       onPress: () => router.push('/(passenger)/refer-driver') },
     { key: 'help',      label: 'Ajuda',              icon: 'help-circle-outline',  onPress: () => router.push('/(passenger)/help')         },
-    { key: 'logout',    label: 'Sair',               icon: 'log-out-outline',      danger: true, onPress: () => authStore.clearAuth()       },
+    { key: 'logout',    label: 'Sair',               icon: 'log-out-outline',      danger: true, onPress: () => handleLogout()       },
   ];
 
   return (
