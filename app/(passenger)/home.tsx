@@ -37,8 +37,11 @@ export default function PassengerHome() {
   }, []);
 
   const handleLogout = async () => {
-    await authStore.clearAuth();
-    router.replace('/(auth)/login');
+    try {
+      await authStore.clearAuth();
+    } finally {
+      router.replace('/(auth)/login');
+    }
   };
 
   const drawerItems: DrawerItem[] = [
