@@ -39,6 +39,7 @@ const driverPermissions = [
   'ACCESS_BACKGROUND_LOCATION',
   'FOREGROUND_SERVICE',
   'FOREGROUND_SERVICE_LOCATION',
+  'POST_NOTIFICATIONS',
 ];
 
 const passengerPermissions = [...basePermissions];
@@ -48,7 +49,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.10.25',
+    version: '1.11.4',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
@@ -77,6 +78,7 @@ export default {
         backgroundColor: '#1a1a1a'
       },
       package: variantConfig.package,
+      googleServicesFile: variant === 'driver' ? './google-services.json' : undefined,
       permissions: variant === 'driver' ? driverPermissions : passengerPermissions,
       config: {
         googleMaps: {
@@ -85,6 +87,7 @@ export default {
       }
     },
     plugins: [
+      'expo-notifications',
       [
         'expo-location',
         {

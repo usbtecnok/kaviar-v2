@@ -31,7 +31,7 @@ export default function Login() {
       const { token, user } = await loginFn(email, password);
       await authStore.setAuth(token, user);
       if (userType === 'PASSENGER') {
-        router.replace('/(passenger)/map');
+        router.replace('/(passenger)/home');
       } else {
         router.replace(user.status === 'pending' ? '/(driver)/pending-approval' : '/(driver)/online');
       }

@@ -79,7 +79,15 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
                 {item.danger && <View style={s.separator} />}
                 <TouchableOpacity
                   style={s.item}
-                  onPress={() => { onClose(); setTimeout(item.onPress, 280); }}
+                  onPress={() => {
+                    if (item.danger) {
+                      item.onPress();
+                      onClose();
+                    } else {
+                      onClose();
+                      setTimeout(item.onPress, 350);
+                    }
+                  }}
                   activeOpacity={0.6}
                 >
                   <Ionicons
