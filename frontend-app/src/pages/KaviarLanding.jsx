@@ -301,7 +301,7 @@ export default function KaviarLanding() {
               <li>Experiência conectada à rede local</li>
               <li>Acompanhe a expansão na sua região</li>
             </Box>
-            <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.10.25.apk" target="_blank" rel="noopener" sx={sx.outlineBtn}>
+            <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.11.4-logout-fix.apk" target="_blank" rel="noopener" sx={sx.outlineBtn}>
               Baixar app do passageiro
             </Button>
           </Box>
