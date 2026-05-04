@@ -87,3 +87,6 @@ validate-territory.sql
 
 # === Evidências locais ===
 evidencias-prod-*/
+
+# Keystores e credenciais sensíveis
+credentials/
