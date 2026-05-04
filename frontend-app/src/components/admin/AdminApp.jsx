@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -30,6 +30,7 @@ import TourPackages from "../../pages/admin/premium-tourism/TourPackages";
 import TourBookings from "../../pages/admin/premium-tourism/TourBookings";
 import RatingsPage from "../../pages/admin/ratings/RatingsPage";
 import CompensationsPage from "../../pages/admin/CompensationsPage";
+import LocalSupportDrivers from "../../pages/admin/LocalSupportDrivers";
 import VitrineLocalList from "../../pages/admin/vitrine-local/VitrineLocalList";
 import VitrineLocalForm from "../../pages/admin/vitrine-local/VitrineLocalForm";
 import TourPackageForm from "../../pages/admin/premium-tourism/TourPackageForm";
@@ -381,6 +382,7 @@ function AdminHome() {
             { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
             { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
             { Icon: Paid, title: 'Compensações por Deslocamento', desc: 'Apoio ao motorista em cancelamentos após chegada', to: '/admin/compensations' },
+            { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
           ].map(c => {
             const color = c.accent || '#C8A84E';
             return (
@@ -765,6 +767,7 @@ export default function AdminApp() {
           {/* Avaliações e Reputação */}
           <Route path="/ratings" element={<ProtectedAdminRoute><RatingsPage /></ProtectedAdminRoute>} />
           <Route path="/compensations" element={<ProtectedAdminRoute><CompensationsPage /></ProtectedAdminRoute>} />
+          <Route path="/local-support" element={<ProtectedAdminRoute><Container maxWidth="lg" sx={{ mt: 2 }}><AdminHeader /><LocalSupportDrivers /></Container></ProtectedAdminRoute>} />
 
           {/* Rotas Vitrine Local */}
           <Route path="/vitrine-local" element={<ProtectedAdminRoute><VitrineLocalList /></ProtectedAdminRoute>} />

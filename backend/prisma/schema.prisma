@@ -49,6 +49,8 @@ model communities {
   elderly_contracts        elderly_contracts[]
   passengers               passengers[]
   tourist_guides           tourist_guides[]
+  local_support_drivers    local_support_drivers[] @relation("LocalSupportCommunity")
+  local_support_invites    local_support_invites[] @relation("LocalSupportInviteCommunity")
 }
 
 model community_geofences {
@@ -233,6 +235,7 @@ model drivers {
   credit_purchases            driver_credit_purchases[]
   driver_status               driver_status?
   driver_location             driver_locations?
+  local_support_profile       local_support_drivers? @relation("LocalSupportDriver")
 
   @@index([territory_type])
   @@index([neighborhood_id, territory_type])
@@ -1347,4 +1350,62 @@ model ride_compensations {
 
   @@index([status])
   @@index([driver_id])
+}
+
+// ── Motoristas Parceiros de Apoio Local ─────────────────────────────────────
+model local_support_drivers {
+  id                String    @id @default(uuid())
+  driver_id         String    @unique
+  community_id      String?
+  
+  // Status de participação voluntária
+  status            String    @default("interested") // interested | eligible | participating | paused | future_contact
+  
+  // Áreas de atuação
+  primary_area      String?
+  coverage_areas    Json?     // Array: ["Furnas", "Agrícola", "Mata Machado"]
+  
+  // Janelas preferenciais de disponibilidade
+  preferred_windows Json      @default("{}")
+  
+  // Controle operacional
+  pilot_start_date  DateTime?
+  operational_notes String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+  
+  driver            drivers   @relation("LocalSupportDriver", fields: [driver_id], references: [id], onDelete: Cascade)
+  community         communities? @relation("LocalSupportCommunity", fields: [community_id], references: [id])
+  invites           local_support_invites[]
+
+  @@index([community_id])
+  @@index([status])
+}
+
+model local_support_invites {
+  id                      String    @id @default(uuid())
+  driver_id               String
+  community_id            String?
+  
+  // Dados do convite
+  invited_at              DateTime  @default(now())
+  region                  String?
+  demand_type             String    @default("normal")
+  
+  // Resposta voluntária
+  responded               Boolean   @default(false)
+  response_time_minutes   Int?
+  informed_availability   Boolean   @default(false)
+  attended_ride           Boolean   @default(false)
+  
+  // Controle administrativo
+  notes                   String?
+  invited_by_admin_id     String?
+  created_at              DateTime  @default(now())
+  
+  support_driver          local_support_drivers @relation(fields: [driver_id], references: [driver_id], onDelete: Cascade)
+  community               communities? @relation("LocalSupportInviteCommunity", fields: [community_id], references: [id])
+
+  @@index([driver_id, invited_at(sort: Desc)])
+  @@index([community_id, invited_at(sort: Desc)])
 }
