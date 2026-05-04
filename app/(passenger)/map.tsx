@@ -579,8 +579,10 @@ export default function PassengerMap() {
   };
 
   const handleLogout = async () => {
+    Alert.alert('DEBUG', 'handleLogout chamado - iniciando logout');
     stopAll();
     await authStore.clearAuth();
+    Alert.alert('DEBUG', 'clearAuth executado - redirecionando');
     router.replace('/(auth)/login');
   };
 
