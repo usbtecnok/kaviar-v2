@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback,
-  Animated, Dimensions, Platform, StatusBar, Alert,
+  Animated, Dimensions, Platform, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/colors';
@@ -80,9 +80,6 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
                 <TouchableOpacity
                   style={s.item}
                   onPress={() => {
-                    // DEBUG: Evidência de clique no drawer
-                    Alert.alert('DEBUG Drawer', `Item clicado: ${item.label}`);
-                    
                     if (item.danger) {
                       item.onPress();
                       onClose();

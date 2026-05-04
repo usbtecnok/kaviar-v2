@@ -47,14 +47,6 @@ export default function Profile() {
         {field('Telefone', user?.phone, user ? <PhoneVerifyBadge user={user} onVerified={refresh} /> : null)}
         {field('E-mail', user?.email)}
         {field('Tipo', user?.user_type === 'PASSENGER' ? 'Passageiro' : 'Motorista')}
-        
-        {/* DEBUG: Mostrar dados brutos */}
-        <View style={[s.field, { backgroundColor: '#fff3cd', padding: 8, borderRadius: 4, marginTop: 8 }]}>
-          <Text style={[s.label, { color: '#856404' }]}>DEBUG user_type</Text>
-          <Text style={[s.value, { color: '#856404', fontSize: 14 }]}>
-            "{user?.user_type}" (raw)
-          </Text>
-        </View>
       </View>
     </SafeAreaView>
   );

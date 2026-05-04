@@ -92,3 +92,6 @@ evidencias-prod-*/
 google-services.json
 GoogleService-Info.plist
 **/firebase-service-account*.json
+
+# Keystores e credenciais sensíveis
+credentials/
