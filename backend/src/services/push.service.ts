@@ -18,9 +18,9 @@ export async function sendPushToDriver(driverId: string, title: string, body: st
         to: driver.expo_push_token,
         title,
         body,
-        sound: 'default',
+        sound: 'kaviar_ride.wav',
         priority: 'high',
-        channelId: 'rides',
+        channelId: 'rides_kaviar',
       }),
     });
 
