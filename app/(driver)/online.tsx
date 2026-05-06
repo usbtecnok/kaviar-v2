@@ -360,6 +360,8 @@ export default function DriverOnline() {
   const handleAcceptOffer = async () => {
     if (!pendingOffer) return;
     await stopSound();
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    setPendingOffer(null);
     pendingOfferRef.current = null;
     router.push(`/(driver)/accept-ride?offerId=${pendingOffer.id}&rideId=${pendingOffer.ride.id}&expiresAt=${encodeURIComponent(pendingOffer.expires_at)}`);
   };
