@@ -63,17 +63,6 @@ export default function DriverOnline() {
   useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
   useEffect(() => { soundMutedRef.current = soundMuted; }, [soundMuted]);
 
-  // Always show push notification as heads-up banner
-  useEffect(() => {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-      }),
-    });
-  }, []);
-
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
     { key: 'summary', label: 'Resumo', icon: 'stats-chart-outline', onPress: () => router.push('/(driver)/summary') },
@@ -309,13 +298,6 @@ export default function DriverOnline() {
 
   const registerPushToken = async () => {
     try {
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('rides', {
-          name: 'Corridas',
-          importance: Notifications.AndroidImportance.MAX,
-          sound: 'default',
-        });
-      }
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') return;
       const { data: token } = await Notifications.getExpoPushTokenAsync({
