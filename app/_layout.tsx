@@ -13,6 +13,11 @@ if (variant === 'driver') {
       importance: Notifications.AndroidImportance.MAX,
       sound: 'default',
     });
+    Notifications.setNotificationChannelAsync('rides_kaviar', {
+      name: 'Corridas KAVIAR',
+      importance: Notifications.AndroidImportance.MAX,
+      sound: 'kaviar_ride.wav',
+    });
   }
 
   Notifications.setNotificationHandler({

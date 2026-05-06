@@ -239,7 +239,7 @@ export default function DriverOnline() {
             try {
               await stopSound();
               const { sound } = await Audio.Sound.createAsync(
-                require('../../assets/sounds/new-ride.wav')
+                require('../../assets/sounds/kaviar-ride.wav')
               );
               soundRef.current = sound;
               await sound.playAsync();

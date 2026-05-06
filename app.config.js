@@ -87,7 +87,7 @@ export default {
       }
     },
     plugins: [
-      'expo-notifications',
+      ['expo-notifications', { sounds: ['./assets/sounds/kaviar-ride.wav'] }],
       [
         'expo-location',
         {
