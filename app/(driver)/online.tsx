@@ -47,6 +47,8 @@ export default function DriverOnline() {
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const locationRef = useRef<NodeJS.Timeout | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const soundMutedRef = useRef(false);
+  const expiredOfferIdsRef = useRef<Set<string>>(new Set());
   const pendingOfferRef = useRef<RideOffer | null>(null);
   const isOnlineRef = useRef(false);
   const backgroundDeniedRef = useRef(false);
@@ -59,6 +61,7 @@ export default function DriverOnline() {
   // Keep refs in sync for AppState callback
   useEffect(() => { isOnlineRef.current = isOnline; }, [isOnline]);
   useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
+  useEffect(() => { soundMutedRef.current = soundMuted; }, [soundMuted]);
 
   // Always show push notification as heads-up banner
   useEffect(() => {
@@ -175,7 +178,7 @@ export default function DriverOnline() {
     const tick = () => {
       const left = Math.max(0, Math.floor((new Date(pendingOffer.expires_at).getTime() - Date.now()) / 1000));
       setOfferCountdown(`${left}s`);
-      if (left === 0) { setPendingOffer(null); pendingOfferRef.current = null; stopSound(); setSoundMuted(false); }
+      if (left === 0) { expiredOfferIdsRef.current.add(pendingOffer.id); setPendingOffer(null); pendingOfferRef.current = null; stopSound(); }
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -237,17 +240,22 @@ export default function DriverOnline() {
       try {
         const offers = await driverApi.getOffers();
         if (offers.length > 0 && !pendingOfferRef.current) {
-          pendingOfferRef.current = offers[0];
-          setPendingOffer(offers[0]);
+          const offer = offers[0];
+          if (expiredOfferIdsRef.current.has(offer.id)) return;
+          soundMutedRef.current = false;
           setSoundMuted(false);
-          try {
-            await stopSound();
-            const { sound } = await Audio.Sound.createAsync(
-              require('../../assets/sounds/new-ride.wav')
-            );
-            soundRef.current = sound;
-            await sound.playAsync();
-          } catch (e) { console.warn('[Driver] offer sound failed:', e); }
+          pendingOfferRef.current = offer;
+          setPendingOffer(offer);
+          if (!soundMutedRef.current) {
+            try {
+              await stopSound();
+              const { sound } = await Audio.Sound.createAsync(
+                require('../../assets/sounds/new-ride.wav')
+              );
+              soundRef.current = sound;
+              await sound.playAsync();
+            } catch (e) { console.warn('[Driver] offer sound failed:', e); }
+          }
         }
       } catch (e) {
         console.warn('[Driver] offer polling failed:', e);
@@ -343,6 +351,7 @@ export default function DriverOnline() {
       setPendingOffer(null);
       pendingOfferRef.current = null;
       setSoundMuted(false);
+      expiredOfferIdsRef.current.clear();
     } catch (e: any) {
       Alert.alert('Erro', friendlyError(e, 'Erro ao ficar offline'));
     } finally { setLoading(false); }
