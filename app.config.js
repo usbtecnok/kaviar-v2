@@ -49,7 +49,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.11.7',
+    version: '1.11.8',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
