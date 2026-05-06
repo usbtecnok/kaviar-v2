@@ -359,7 +359,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.2-push-mvp.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.7-aceite-sem-piscar.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
