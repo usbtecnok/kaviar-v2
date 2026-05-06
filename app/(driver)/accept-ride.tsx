@@ -65,8 +65,8 @@ export default function AcceptRide() {
   const handleReject = async () => {
     if (!offerId) return;
     setLoading(true);
-    try { await driverApi.rejectOffer(offerId); router.back(); }
-    catch { router.back(); }
+    try { await driverApi.rejectOffer(offerId); router.replace('/(driver)/online'); }
+    catch { router.replace('/(driver)/online'); }
   };
 
   if (fetching) return <View style={s.container}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
