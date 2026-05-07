@@ -49,7 +49,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.11.11',
+    version: '1.11.12',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
@@ -110,6 +110,13 @@ export default {
           const localProps = path.join(cfg.modRequest.platformProjectRoot, 'local.properties');
           const sdkDir = process.env.ANDROID_HOME || '/usr/lib/android-sdk';
           fs.writeFileSync(localProps, `sdk.dir=${sdkDir}\n`);
+          // Desabilitar resource path shortening para preservar res/raw/kaviar_ride.wav
+          const gradleProps = path.join(cfg.modRequest.platformProjectRoot, 'gradle.properties');
+          let content = fs.existsSync(gradleProps) ? fs.readFileSync(gradleProps, 'utf8') : '';
+          if (!content.includes('android.enableResourceOptimizations')) {
+            content += '\nandroid.enableResourceOptimizations=false\n';
+            fs.writeFileSync(gradleProps, content);
+          }
           return cfg;
         }]);
       },
