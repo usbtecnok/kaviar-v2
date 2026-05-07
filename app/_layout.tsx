@@ -13,11 +13,6 @@ if (variant === 'driver') {
       importance: Notifications.AndroidImportance.MAX,
       sound: 'default',
     });
-    Notifications.setNotificationChannelAsync('rides_kaviar_v2', {
-      name: 'Corridas KAVIAR',
-      importance: Notifications.AndroidImportance.MAX,
-      sound: 'kaviar_ride.wav',
-    });
   }
 
   Notifications.setNotificationHandler({
@@ -32,6 +27,13 @@ if (variant === 'driver') {
 export default function RootLayout() {
   useEffect(() => {
     startNetInfoListener();
+    if (variant === 'driver' && Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('rides_kaviar_v3', {
+        name: 'Corridas KAVIAR',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'kaviar_ride.wav',
+      });
+    }
     return () => stopNetInfoListener();
   }, []);
 

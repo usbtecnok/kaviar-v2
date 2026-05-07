@@ -20,7 +20,7 @@ export async function sendPushToDriver(driverId: string, title: string, body: st
         body,
         sound: 'default',
         priority: 'high',
-        channelId: 'rides_kaviar_v2',
+        channelId: 'rides_kaviar_v3',
       }),
     });
 
