@@ -49,7 +49,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.11.16-fcm-token',
+    version: '1.11.20-native-channel-kotlin',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
@@ -112,6 +112,31 @@ export default {
           fs.writeFileSync(localProps, `sdk.dir=${sdkDir}\n`);
           return cfg;
         }]);
+      },
+      (config) => {
+        // KAVIAR: Create notification channels natively in MainApplication.onCreate
+        const { withMainApplication } = require('@expo/config-plugins');
+        return withMainApplication(config, (cfg) => {
+          const channelCode = [
+            '    // --- KAVIAR: Native notification channels ---',
+            '    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {',
+            '      val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager',
+            '      val chRides = android.app.NotificationChannel("rides", "Corridas", android.app.NotificationManager.IMPORTANCE_HIGH)',
+            '      chRides.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())',
+            '      nm.createNotificationChannel(chRides)',
+            '      val chKaviar = android.app.NotificationChannel("rides_kaviar_native_v1", "Corridas KAVIAR", android.app.NotificationManager.IMPORTANCE_HIGH)',
+            '      chKaviar.setSound(android.net.Uri.parse("android.resource://" + packageName + "/raw/kaviar_ride"), android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())',
+            '      chKaviar.enableVibration(true)',
+            '      nm.createNotificationChannel(chKaviar)',
+            '    }',
+            '    // --- END KAVIAR ---',
+          ].join('\n');
+          cfg.modResults.contents = cfg.modResults.contents.replace(
+            'super.onCreate()',
+            'super.onCreate()\n' + channelCode
+          );
+          return cfg;
+        });
       },
     ],
     extra: {

@@ -38,7 +38,7 @@ export async function sendFcmPushToDriver(driverId: string, title: string, body:
     android: {
       priority: 'high',
       notification: {
-        channelId: 'rides_kaviar',
+        channelId: 'rides_kaviar_native_v1',
         sound: 'kaviar_ride.wav',
         defaultSound: false,
       },
