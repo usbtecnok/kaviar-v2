@@ -113,6 +113,19 @@ export default {
           return cfg;
         }]);
       },
+      (config) => {
+        // Preserva kaviar_ride.wav em res/raw para som de notificação customizado
+        const { withDangerousMod } = require('@expo/config-plugins');
+        const fs = require('fs');
+        const path = require('path');
+        return withDangerousMod(config, ['android', async (cfg) => {
+          const rawDir = path.join(cfg.modRequest.platformProjectRoot, 'app/src/main/res/raw');
+          if (!fs.existsSync(rawDir)) fs.mkdirSync(rawDir, { recursive: true });
+          fs.writeFileSync(path.join(rawDir, 'keep.xml'),
+            '<?xml version="1.0" encoding="utf-8"?>\n<resources xmlns:tools="http://schemas.android.com/tools"\n    tools:keep="@raw/kaviar_ride" />\n');
+          return cfg;
+        }]);
+      },
     ],
     extra: {
       eas: {
