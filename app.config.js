@@ -133,6 +133,50 @@ export default {
           return cfg;
         }]);
       },
+      (config) => {
+        // Cria NotificationChannel nativamente no MainApplication.onCreate()
+        // Bypassa o SoundResolver do expo-notifications que não resolve o recurso
+        const { withMainApplication } = require('@expo/config-plugins');
+        return withMainApplication(config, (cfg) => {
+          const mainApp = cfg.modResults.contents;
+          // Adicionar imports necessários
+          const importBlock = `import android.app.NotificationChannel\nimport android.app.NotificationManager\nimport android.media.AudioAttributes\nimport android.net.Uri\nimport android.os.Build`;
+          if (!mainApp.includes('import android.app.NotificationChannel')) {
+            cfg.modResults.contents = mainApp.replace(
+              'import android.app.Application',
+              `import android.app.Application\n${importBlock}`
+            );
+          }
+          // Adicionar criação do canal no onCreate, antes do loadReactNative
+          const channelCode = `
+    // KAVIAR: Criar canal de notificação com som customizado nativamente
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+      val existingChannel = notificationManager.getNotificationChannel("expo_notifications_fallback_notification_channel")
+      if (existingChannel == null) {
+        val soundUri = Uri.parse("android.resource://com.kaviar.driver/raw/kaviar_ride")
+        val audioAttributes = AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .build()
+        val channel = NotificationChannel(
+          "expo_notifications_fallback_notification_channel",
+          "Corridas KAVIAR",
+          NotificationManager.IMPORTANCE_HIGH
+        )
+        channel.setSound(soundUri, audioAttributes)
+        channel.enableVibration(true)
+        channel.vibrationPattern = longArrayOf(0, 250, 250, 250)
+        notificationManager.createNotificationChannel(channel)
+      }
+    }`;
+          cfg.modResults.contents = cfg.modResults.contents.replace(
+            'super.onCreate()',
+            `super.onCreate()\n${channelCode}`
+          );
+          return cfg;
+        });
+      },
     ],
     extra: {
       eas: {
