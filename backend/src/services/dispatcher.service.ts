@@ -479,18 +479,19 @@ export class DispatcherService {
 
     // Push notification (aditivo — não bloqueia se falhar)
     const pushProvider = process.env.DRIVER_PUSH_PROVIDER || 'expo';
-    if (pushProvider === 'fcm' || pushProvider === 'dual') {
+    const fcmAllowlist = (process.env.DRIVER_FCM_ALLOWLIST || '').split(',').filter(Boolean);
+    const usesFcmForDriver = fcmAllowlist.includes(driverId) || pushProvider === 'fcm' || pushProvider === 'dual';
+
+    if (usesFcmForDriver) {
       const { sendFcmPushToDriver } = require('./fcm-push.service');
       sendFcmPushToDriver(driverId, '🚗 Nova corrida disponível', 'Abra o KAVIAR Motorista para aceitar.')
         .then(() => console.log(`[FCM] Sent to driver ${driverId}`))
         .catch((e: any) => {
           console.warn(`[FCM] Failed for driver ${driverId}:`, e?.message);
-          if (pushProvider === 'dual') {
-            const { sendPushToDriver } = require('./push.service');
-            sendPushToDriver(driverId, '🚗 Nova corrida disponível', 'Abra o KAVIAR Motorista para aceitar.')
-              .then(() => console.log(`[PUSH] Expo fallback sent to driver ${driverId}`))
-              .catch((e2: any) => console.warn(`[PUSH] Expo fallback failed for driver ${driverId}:`, e2?.message));
-          }
+          const { sendPushToDriver } = require('./push.service');
+          sendPushToDriver(driverId, '🚗 Nova corrida disponível', 'Abra o KAVIAR Motorista para aceitar.')
+            .then(() => console.log(`[PUSH] Expo fallback sent to driver ${driverId}`))
+            .catch((e2: any) => console.warn(`[PUSH] Expo fallback failed for driver ${driverId}:`, e2?.message));
         });
     } else {
       const { sendPushToDriver } = require('./push.service');
