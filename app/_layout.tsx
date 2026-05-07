@@ -8,10 +8,19 @@ const variant = process.env.EXPO_PUBLIC_APP_VARIANT;
 
 if (variant === 'driver') {
   if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('rides', {
-      name: 'Corridas',
+    // Deletar canais antigos (som imutável — ficam travados com som default)
+    Notifications.deleteNotificationChannelAsync('rides');
+    Notifications.deleteNotificationChannelAsync('rides_kaviar');
+    Notifications.deleteNotificationChannelAsync('rides_kaviar_v2');
+    Notifications.deleteNotificationChannelAsync('rides_kaviar_v3');
+
+    // Criar canal com som customizado — top-level, antes do React montar
+    Notifications.setNotificationChannelAsync('rides_kaviar_v4', {
+      name: 'Corridas KAVIAR',
       importance: Notifications.AndroidImportance.MAX,
-      sound: 'default',
+      sound: 'kaviar_ride.wav',
+      vibrationPattern: [0, 250, 250, 250],
+      enableVibrate: true,
     });
   }
 
@@ -27,13 +36,6 @@ if (variant === 'driver') {
 export default function RootLayout() {
   useEffect(() => {
     startNetInfoListener();
-    if (variant === 'driver' && Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('rides_kaviar_v3', {
-        name: 'Corridas KAVIAR',
-        importance: Notifications.AndroidImportance.MAX,
-        sound: 'kaviar_ride.wav',
-      });
-    }
     return () => stopNetInfoListener();
   }, []);
 
