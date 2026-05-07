@@ -38,7 +38,7 @@ Mapeamento para preencher o formulário "Data safety" no Google Play Console.
 | Telefone | ✅ | Com passageiro (durante corrida) | Funcionalidade do app | Sim |
 | Documentos (CNH) | ✅ | Não | Verificação de identidade | Sim |
 | Dados do veículo | ✅ | Não | Funcionalidade do app | Sim |
-| Chave Pix | ✅ | Não | Pagamentos/ganhos | Sim |
+| Chave Pix | ✅ | Não | Pagamentos/ganhos do motorista | Não (opcional) |
 | Localização aproximada | ✅ | Com passageiro (durante corrida) | Funcionalidade do app | Sim |
 | Localização precisa | ✅ | Com passageiro (durante corrida) | Funcionalidade do app | Sim |
 | Histórico de corridas | ✅ | Não | Funcionalidade do app | Sim |
@@ -88,6 +88,57 @@ Texto para o formulário do Google Play:
 - ❌ Contatos
 - ❌ SMS
 - ❌ Chamadas telefônicas
-- ❌ Câmera (exceto upload de documento no cadastro motorista)
-- ❌ Microfone
-- ❌ Armazenamento externo
+
+### Notas sobre permissões no APK
+
+**CAMERA** — presente em ambos os APKs. Vem do `expo-image-picker` (upload de documentos no cadastro motorista e possivelmente foto de perfil). Declarar no Data Safety como "coletado para verificação de identidade".
+
+**RECORD_AUDIO / MODIFY_AUDIO_SETTINGS** — vem do `expo-av` (reprodução da vinheta KAVIAR). Não é usado para gravar áudio do usuário. Pode ser necessário justificar ao Google que é apenas para reprodução de som de notificação.
+
+**READ/WRITE_EXTERNAL_STORAGE** — legado do Expo, não usado ativamente. Em Android 13+ é ignorado pelo sistema.
+
+**Permissões de badge** (Samsung, Huawei, Oppo, etc.) — injetadas automaticamente pelo expo-notifications para badge count. Inofensivas.
+
+### Permissões reais do APK Motorista (v1.11.20)
+```
+ACCESS_BACKGROUND_LOCATION
+ACCESS_COARSE_LOCATION
+ACCESS_FINE_LOCATION
+FOREGROUND_SERVICE
+FOREGROUND_SERVICE_LOCATION
+INTERNET
+MODIFY_AUDIO_SETTINGS
+POST_NOTIFICATIONS
+READ_EXTERNAL_STORAGE
+RECORD_AUDIO
+SYSTEM_ALERT_WINDOW
+VIBRATE
+WRITE_EXTERNAL_STORAGE
+ACCESS_NETWORK_STATE
+ACCESS_WIFI_STATE
+CAMERA
+RECEIVE_BOOT_COMPLETED
+WAKE_LOCK
+```
+
+### Permissões reais do APK Passageiro (v1.11.3)
+```
+ACCESS_COARSE_LOCATION
+ACCESS_FINE_LOCATION
+INTERNET
+MODIFY_AUDIO_SETTINGS
+READ_EXTERNAL_STORAGE
+RECORD_AUDIO
+SYSTEM_ALERT_WINDOW
+VIBRATE
+WRITE_EXTERNAL_STORAGE
+ACCESS_NETWORK_STATE
+ACCESS_WIFI_STATE
+CAMERA
+RECEIVE_BOOT_COMPLETED
+POST_NOTIFICATIONS
+WAKE_LOCK
+FOREGROUND_SERVICE
+```
+
+**Nota:** O passageiro NÃO tem `ACCESS_BACKGROUND_LOCATION` ✅
