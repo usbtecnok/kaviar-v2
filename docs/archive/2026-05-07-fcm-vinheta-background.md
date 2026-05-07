@@ -68,3 +68,10 @@ Para ativar FCM para todos os motoristas:
 2. Aguardar adoção.
 3. Expandir `DRIVER_FCM_ALLOWLIST` com mais IDs ou setar `DRIVER_PUSH_PROVIDER=fcm`.
 4. Monitorar logs `[FCM] Sent` vs `[PUSH] Expo fallback`.
+
+## Publicação
+
+| App | Versão | URL | Data |
+|-----|--------|-----|------|
+| Motorista | v1.11.20-native-channel-kotlin | https://downloads.kaviar.com.br/kaviar-motorista-v1.11.20-native-channel-kotlin.apk | 2026-05-07 |
+| Passageiro | Inalterado | — | — |
