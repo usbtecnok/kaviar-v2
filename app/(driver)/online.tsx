@@ -303,8 +303,17 @@ export default function DriverOnline() {
       const { data: token } = await Notifications.getExpoPushTokenAsync({
         projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85',
       });
-      await apiClient.put('/api/v2/drivers/me/push-token', { token });
-      console.log('[Driver] Push token registered');
+
+      let fcmToken: string | undefined;
+      try {
+        const { data } = await Notifications.getDevicePushTokenAsync();
+        fcmToken = data as string;
+      } catch (e) {
+        console.warn('[Driver] FCM token failed (non-blocking):', e);
+      }
+
+      await apiClient.put('/api/v2/drivers/me/push-token', { token, fcmToken });
+      console.log('[Driver] Push tokens registered');
     } catch (e) {
       console.warn('[Driver] Push token registration failed:', e);
     }
