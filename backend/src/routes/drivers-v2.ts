@@ -77,13 +77,17 @@ router.post('/me/location', authenticateDriver, async (req: Request, res: Respon
 router.put('/me/push-token', authenticateDriver, async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
-    const { token } = req.body;
+    const { token, fcmToken } = req.body;
     if (!token || typeof token !== 'string') {
       return res.status(400).json({ error: 'Token inválido' });
     }
+    const data: any = { expo_push_token: token, push_token_updated_at: new Date() };
+    if (fcmToken && typeof fcmToken === 'string') {
+      data.fcm_push_token = fcmToken;
+    }
     await prisma.drivers.update({
       where: { id: driverId },
-      data: { expo_push_token: token, push_token_updated_at: new Date() }
+      data
     });
     res.json({ success: true });
   } catch (error: any) {

@@ -217,6 +217,7 @@ model drivers {
   last_reactivation_sent_at   DateTime?
   photo_url                   String?
   expo_push_token             String?                       @db.VarChar(100)
+  fcm_push_token              String?                       @db.VarChar(200)
   push_token_updated_at       DateTime?
   premium_tourism_status      String                        @default("standard")
   premium_tourism_promoted_at DateTime?
