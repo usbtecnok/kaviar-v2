@@ -26,7 +26,7 @@ echo "cd /home/goes/kaviar/backend"
 echo ""
 
 echo -e "${YELLOW}# 2. Exportar DATABASE_URL${NC}"
-echo 'export DATABASE_URL="postgresql://neondb_owner:npg_2xbfMWRF6hrO@ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true&connection_limit=1&connect_timeout=60"'
+echo 'export DATABASE_URL="$DATABASE_URL"'
 echo ""
 
 echo -e "${YELLOW}# 3. Verificar conexão${NC}"

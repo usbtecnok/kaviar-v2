@@ -12,7 +12,7 @@ echo "Pressione ENTER para continuar ou Ctrl+C para cancelar..."
 read
 
 # Configurar DATABASE_URL (sem parâmetros pgbouncer para psql)
-export DATABASE_URL="postgresql://neondb_owner:npg_2xbfMWRF6hrO@ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+export DATABASE_URL="$DATABASE_URL"
 
 echo ""
 echo "📋 ETAPA 1/7: Executando Migration..."

@@ -129,7 +129,7 @@ test_endpoint "POST" "/governance/guide" '{
   "name": "Ana Guia",
   "email": "ana@test.com",
   "phone": "(21) 99999-1003",
-  "password": "guide123456",
+  "password": "$GUIDE_TEMP_PASSWORD",
   "isBilingual": true,
   "languages": ["Português", "Inglês"],
   "alsoDriver": false
@@ -188,7 +188,7 @@ test_endpoint "POST" "/auth/driver/login" '{
 # Login Guia Turístico (deve funcionar se aprovado)
 test_endpoint "POST" "/auth/guide/login" '{
   "email": "ana@test.com",
-  "password": "guide123"
+  "password": "$GUIDE_TEMP_PASSWORD"
 }' "Login guia turístico (aprovado)"
 
 echo -e "\n${YELLOW}📋 FASE 6: SISTEMA DE AVALIAÇÃO${NC}"

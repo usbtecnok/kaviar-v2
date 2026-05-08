@@ -13,6 +13,9 @@ const guideLoginSchema = z.object({
 
 // POST /api/auth/guide/login
 router.post('/guide/login', async (req, res) => {
+  if (!process.env.ENABLE_GUIDE_AUTH) {
+    return res.status(404).json({ success: false, error: 'Endpoint não disponível' });
+  }
   try {
     const { email, password } = guideLoginSchema.parse(req.body);
     
@@ -39,8 +42,8 @@ router.post('/guide/login', async (req, res) => {
     // Note: Tourist guides don't have password_hash in schema yet
     // For now, we'll create a temporary password system
     // TODO: Add password_hash field to tourist_guides table
-    const tempPassword = 'guide123'; // Temporary for testing
-    const isValidPassword = password === tempPassword;
+    const tempPassword = process.env.GUIDE_TEMP_PASSWORD || '';
+    const isValidPassword = tempPassword && password === tempPassword;
     
     if (!isValidPassword) {
       return res.status(401).json({

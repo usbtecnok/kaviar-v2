@@ -69,7 +69,7 @@ fi
 # 4. Verificar estrutura do banco
 echo "4️⃣ Verificando banco de dados..."
 cd backend
-TABLES=$(PGPASSWORD='npg_2xbfMWRF6hrO' psql -h ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech -U neondb_owner -d neondb -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'driver_compliance_documents';" 2>/dev/null | tr -d ' ')
+TABLES=$(PGPASSWORD="$PGPASSWORD" psql -h $DB_HOST -U neondb_owner -d neondb -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'driver_compliance_documents';" 2>/dev/null | tr -d ' ')
 
 if [ "$TABLES" = "1" ]; then
     echo "   ✅ Tabela driver_compliance_documents existe"

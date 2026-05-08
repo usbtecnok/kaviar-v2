@@ -11,7 +11,7 @@ echo "====================================="
 echo ""
 
 # Configurações
-RDS_URL="postgresql://kaviaradmin:KaviarDB2026!Secure#Prod@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require"
+RDS_URL="$DATABASE_URL"
 BACKUP_FILE="kaviar_neon_backup.sql"
 
 # ============================================
@@ -80,7 +80,7 @@ echo ""
 echo "📥 2. Importando dados no RDS..."
 
 ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << 'ENDSSH'
-  export PGPASSWORD="KaviarDB2026!Secure#Prod"
+  export PGPASSWORD="$RDS_PASSWORD"
   
   echo "   Testando conexão RDS..."
   psql -h kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com \

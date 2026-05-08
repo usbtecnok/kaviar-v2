@@ -6,7 +6,7 @@ set -e
 
 source aws-resources.env
 
-NEON_URL="postgresql://neondb_owner:npg_2xbfMWRF6hrO@ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+NEON_URL="$DATABASE_URL"
 RDS_URL="$DATABASE_URL"
 
 echo "╔════════════════════════════════════════════════════════════╗"
@@ -16,7 +16,7 @@ echo ""
 
 # 1. Dump data from Neon (data only, no schema)
 echo "1️⃣ Exportando dados do Neon..."
-PGPASSWORD="npg_2xbfMWRF6hrO" pg_dump \
+PGPASSWORD="$PGPASSWORD" pg_dump \
   -h ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech \
   -U neondb_owner \
   -d neondb \

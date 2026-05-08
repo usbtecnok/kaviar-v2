@@ -8,7 +8,7 @@ echo "Isso vai gerar WARN de 'Configuration drift'"
 echo ""
 
 # Conectar no banco e alterar
-export PGPASSWORD="KaviarDB2026!Secure"
+export PGPASSWORD="$RDS_PASSWORD"
 
 echo "1️⃣ Salvando estado atual..."
 psql "postgresql://kaviaradmin@kaviar-prod-db.cyvuq86iugqc.us-east-1.rds.amazonaws.com:5432/kaviar?sslmode=require" \
