@@ -231,7 +231,7 @@ export class RatingService {
         if (!existingRating) {
           const driver = rideV2.driver_id ? await prisma.drivers.findUnique({
             where: { id: rideV2.driver_id },
-            select: { id: true, name: true, phone: true }
+            select: { id: true, name: true }
           }) : null;
           return {
             id: rideV2.id,
@@ -240,7 +240,7 @@ export class RatingService {
             price: null,
             status: rideV2.status,
             completedAt: rideV2.updated_at,
-            driver: driver ? { id: driver.id, name: driver.name, phone: driver.phone } : null
+            driver: driver ? { id: driver.id, name: driver.name } : null
           };
         }
       }
@@ -263,7 +263,7 @@ export class RatingService {
 
       const driver = ride.driver_id ? await prisma.drivers.findUnique({
         where: { id: ride.driver_id },
-        select: { id: true, name: true, phone: true }
+        select: { id: true, name: true }
       }) : null;
 
       return {
@@ -273,7 +273,7 @@ export class RatingService {
         price: ride.price,
         status: ride.status,
         completedAt: ride.updated_at,
-        driver: driver ? { id: driver.id, name: driver.name, phone: driver.phone } : null
+        driver: driver ? { id: driver.id, name: driver.name } : null
       };
 
     } catch (error) {

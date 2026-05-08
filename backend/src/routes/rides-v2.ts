@@ -70,7 +70,7 @@ router.get('/active', authenticatePassenger, async (req: Request, res: Response)
         status: { in: ['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'in_progress'] }
       },
       orderBy: { updated_at: 'desc' },
-      include: { driver: { select: { name: true, phone: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, id: true, last_lat: true, last_lng: true, photo_url: true } } }
+      include: { driver: { select: { name: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, id: true, last_lat: true, last_lng: true, photo_url: true } } }
     });
     res.json({ success: true, data: ride ? {
       ...ride,
@@ -383,7 +383,7 @@ router.get('/:ride_id', authenticatePassenger, async (req: Request, res: Respons
     const passengerId = (req as any).passengerId;
     const ride = await prisma.rides_v2.findUnique({
       where: { id: req.params.ride_id },
-      include: { driver: { select: { id: true, name: true, phone: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, last_lat: true, last_lng: true, photo_url: true } } }
+      include: { driver: { select: { id: true, name: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, last_lat: true, last_lng: true, photo_url: true } } }
     });
     if (!ride || ride.passenger_id !== passengerId) {
       return res.status(404).json({ error: 'Corrida não encontrada' });

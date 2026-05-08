@@ -245,7 +245,7 @@ router.get('/me/current-ride', authenticateDriver, async (req: Request, res: Res
       },
       orderBy: { updated_at: 'desc' },
       include: {
-        passenger: { select: { name: true, phone: true, last_lat: true, last_lng: true, last_location_updated_at: true } }
+        passenger: { select: { name: true, last_lat: true, last_lng: true, last_location_updated_at: true } }
       }
     });
 
