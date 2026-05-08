@@ -32,7 +32,7 @@ async function main() {
   console.log('✓ Roles criadas');
 
   // 2. Criar SUPER_ADMIN
-  const defaultPassword = 'Kaviar2026!Admin'; // Trocar em produção
+  const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME_IN_PRODUCTION';
   const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
   const superAdmins = [

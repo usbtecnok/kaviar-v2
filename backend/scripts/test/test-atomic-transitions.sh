@@ -16,7 +16,7 @@ LOGIN_RESPONSE=$(curl -s -X POST "$API_BASE/admin/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@kaviar.com",
-    "password": "admin123"
+    "password": "${ADMIN_PASSWORD:-admin123}"
   }')
 
 ADMIN_TOKEN=$(echo $LOGIN_RESPONSE | jq -r '.token // empty')

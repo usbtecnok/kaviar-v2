@@ -14,7 +14,7 @@ echo "" | tee -a "$LOG_FILE"
 # Login admin
 echo "1️⃣ Autenticando admin..." | tee -a "$LOG_FILE"
 ADMIN_EMAIL="${ADMIN_EMAIL:-suporte@usbtecnok.com.br}"
-ADMIN_PASSWORD="${ADMIN_PASSWORD:-z4939ia4}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?Set ADMIN_PASSWORD env var}"
 
 LOGIN=$(curl -s -X POST "$API_URL/api/admin/auth/login" \
   -H "Content-Type: application/json" \

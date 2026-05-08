@@ -5,11 +5,11 @@ const prisma = new PrismaClient();
 
 const admins = [
   // SUPER_ADMIN
-  { email: 'suporte@usbtecnok.com.br', password: 'z4939ia4', role: 'SUPER_ADMIN', name: 'Suporte USB Tecnok' },
-  { email: 'financeiro@kaviar.com.br', password: 'z4939ia4', role: 'SUPER_ADMIN', name: 'Financeiro Kaviar' },
+  { email: 'suporte@usbtecnok.com.br', password: process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME', role: 'SUPER_ADMIN', name: 'Suporte USB Tecnok' },
+  { email: 'financeiro@kaviar.com.br', password: process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME', role: 'SUPER_ADMIN', name: 'Financeiro Kaviar' },
   
   // ANGEL_VIEWER
-  { email: 'angel1@kaviar.com', password: 'z4939ia4', role: 'ANGEL_VIEWER', name: 'Angel Viewer 01' },
+  { email: 'angel1@kaviar.com', password: process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME', role: 'ANGEL_VIEWER', name: 'Angel Viewer 01' },
   { email: 'angel2@kaviar.com', password: 'rClu4a48Zeuc', role: 'ANGEL_VIEWER', name: 'Angel Viewer 02' },
   { email: 'angel3@kaviar.com', password: 'e2icCotMNos7', role: 'ANGEL_VIEWER', name: 'Angel Viewer 03' },
   { email: 'angel4@kaviar.com', password: 'TPT24kHn1KoC', role: 'ANGEL_VIEWER', name: 'Angel Viewer 04' },

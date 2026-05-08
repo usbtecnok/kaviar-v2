@@ -66,7 +66,7 @@ test_valid_login() {
         -H "Content-Type: application/json" \
         -d '{
             "email": "admin@kaviar.com",
-            "password": "admin123"
+            "password": "${ADMIN_PASSWORD:-admin123}"
         }')
     
     SUCCESS=$(echo $RESPONSE | jq -r '.success')

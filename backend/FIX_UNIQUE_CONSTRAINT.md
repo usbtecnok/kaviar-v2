@@ -48,7 +48,7 @@ try {
 ## Render Environment
 Atualizar `DATABASE_URL` com:
 ```
-postgresql://neondb_owner:npg_2xbfMWRF6hrO@ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&pgbouncer=true&connection_limit=1&connect_timeout=60
+postgresql://neondb_owner:<REVOKED>@<neon-host>/neondb?sslmode=require
 ```
 
 ---

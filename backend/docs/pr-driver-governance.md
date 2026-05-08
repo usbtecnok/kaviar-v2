@@ -221,7 +221,7 @@ curl -X PUT http://localhost:3001/api/governance/driver/driver-123/documents \
 # 3. Admin verifica status
 TOKEN=$(curl -s -X POST http://localhost:3001/api/admin/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}' | jq -r '.token')
+  -d '{"email":"admin@kaviar.com","password":"<ADMIN_PASSWORD>"}' | jq -r '.token')
 
 curl -X GET http://localhost:3001/api/admin/drivers/driver-123/verification \
   -H "Authorization: Bearer $TOKEN"

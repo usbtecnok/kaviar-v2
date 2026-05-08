@@ -11,7 +11,7 @@ echo "╚═══════════════════════�
 echo ""
 
 # Gerar senha forte
-DB_PASSWORD="Kaviar2026SecureDB$(date +%s)"
+DB_PASSWORD="$(openssl rand -base64 32 | tr -dc A-Za-z0-9 | head -c 40)"
 
 echo "🚀 Criando RDS PostgreSQL 15.15..."
 echo "⏳ Tempo estimado: 10-15 minutos"

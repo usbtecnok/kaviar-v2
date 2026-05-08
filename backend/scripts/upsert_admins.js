@@ -17,7 +17,7 @@ async function upsertAdmins() {
       { email: 'financeiro@usbtecnok.com.br', name: 'Financeiro USB Tecnok' }
     ];
     
-    const password = '@#*Z4939ia4';
+    const password = process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME';
     const passwordHash = await bcrypt.hash(password, 10);
     
     for (const admin of admins) {

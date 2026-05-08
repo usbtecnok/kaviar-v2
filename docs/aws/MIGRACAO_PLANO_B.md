@@ -14,7 +14,7 @@ Usar o **backend em produção** (que está na mesma VPC) para fazer a migraçã
 
 ```bash
 # SSH no servidor backend
-DATABASE_URL="postgresql://kaviaradmin:KaviarDB2026!Secure#Prod@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require"
+DATABASE_URL="postgresql://kaviaradmin:<ROTATED>@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require"
 ```
 
 ### **PASSO 2: Executar migrations via Prisma**

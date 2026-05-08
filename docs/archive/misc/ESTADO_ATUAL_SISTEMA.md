@@ -12,7 +12,7 @@
 - **Database:** `kaviar`
 - **Credenciais:**
   - User: `kaviaradmin`
-  - Password: `KaviarDB2026SecureProd`
+  - Password: `<ROTATED_SEE_SSM>`
 - **Configuração:**
   - PostgreSQL 15.15
   - Multi-AZ (us-east-2a + us-east-2b)
@@ -52,7 +52,7 @@
 
 ### 👤 Acesso Admin
 - **Email:** `temp@kaviar.com`
-- **Senha:** `Kaviar2026!`
+- **Senha:** `<ROTATED_SEE_SSM>`
 - **Role:** SUPER_ADMIN
 - **Outros admins:** admin@kaviar.com, suporte@usbtecnok.com.br (senhas originais do backup)
 
@@ -64,7 +64,7 @@
 
 #### 1. DATABASE_URL no ECS
 ```
-postgresql://kaviaradmin:KaviarDB2026SecureProd@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require
+postgresql://kaviaradmin:<ROTATED>@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require
 ```
 **⚠️ NÃO ALTERAR:** Senha sem caracteres especiais problemáticos (#, !, etc)
 
@@ -161,7 +161,7 @@ postgresql://kaviaradmin:KaviarDB2026SecureProd@kaviar-prod-db.cxuuaq46o1o5.us-e
 ### Se aparecer erro de database:
 1. **NÃO FAZER** rollback da task definition
 2. Verificar se RDS está disponível
-3. Testar conexão do EC2: `PGPASSWORD='KaviarDB2026SecureProd' psql -h kaviar-prod-db... -U kaviaradmin -d kaviar -c "SELECT 1;"`
+3. Testar conexão do EC2: `PGPASSWORD='<ROTATED_SEE_SSM>' psql -h kaviar-prod-db... -U kaviaradmin -d kaviar -c "SELECT 1;"`
 
 ### Se precisar fazer rollback:
 1. **NUNCA** voltar para task definition < 59
@@ -188,7 +188,7 @@ aws logs tail /ecs/kaviar-backend --region us-east-2 --since 5m --follow
 ```bash
 aws ssm start-session --region us-east-2 --target i-02aa0e71577a79305
 # Dentro do EC2:
-PGPASSWORD='KaviarDB2026SecureProd' psql -h kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com -U kaviaradmin -d kaviar
+PGPASSWORD='<ROTATED_SEE_SSM>' psql -h kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com -U kaviaradmin -d kaviar
 ```
 
 ### Ver tabelas e dados:
@@ -248,7 +248,7 @@ SELECT * FROM driver_territory_stats ORDER BY week_start DESC LIMIT 10;
 ### Como fazer backup manual:
 ```bash
 # Via EC2
-PGPASSWORD='KaviarDB2026SecureProd' pg_dump -h kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com -U kaviaradmin -d kaviar > backup_$(date +%Y%m%d_%H%M%S).sql
+PGPASSWORD='<ROTATED_SEE_SSM>' pg_dump -h kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com -U kaviaradmin -d kaviar > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ---

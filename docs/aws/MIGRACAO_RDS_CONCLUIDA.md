@@ -40,12 +40,12 @@ Host: kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com
 Port: 5432
 Database: kaviar
 User: kaviaradmin
-Password: KaviarDB2026!Secure#Prod
+Password: <ROTATED_SEE_SSM>
 ```
 
 **DATABASE_URL:**
 ```
-postgresql://kaviaradmin:KaviarDB2026!Secure#Prod@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require
+postgresql://kaviaradmin:<ROTATED_SEE_SSM>@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require
 ```
 
 ---
@@ -67,7 +67,7 @@ CREATE INDEX idx_drivers_territory_type ON drivers(territory_type);
 
 ### **1. Atualizar .env no servidor de produção**
 ```bash
-DATABASE_URL="postgresql://kaviaradmin:KaviarDB2026!Secure#Prod@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require"
+DATABASE_URL="postgresql://kaviaradmin:<ROTATED_SEE_SSM>@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require"
 ```
 
 ### **2. Restart do backend**
@@ -126,7 +126,7 @@ Execute para confirmar:
 
 ```bash
 # Testar conexão
-psql "postgresql://kaviaradmin:KaviarDB2026!Secure#Prod@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require" -c "SELECT COUNT(*) FROM drivers;"
+psql "postgresql://kaviaradmin:<ROTATED_SEE_SSM>@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require" -c "SELECT COUNT(*) FROM drivers;"
 
 # Verificar campos de território
 psql "..." -c "SELECT column_name FROM information_schema.columns WHERE table_name='drivers' AND column_name LIKE 'territory%';"

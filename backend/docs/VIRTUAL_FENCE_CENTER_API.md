@@ -8,7 +8,7 @@ Primeiro, obtenha um token de admin:
 # Login como SUPER_ADMIN
 TOKEN=$(curl -s -X POST https://api.kaviar.com.br/api/admin/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"suporte@kaviar.com.br","password":"Kaviar2026!"}' \
+  -d '{"email":"suporte@kaviar.com.br","password":"<FROM_ENV_ADMIN_PASSWORD>"}' \
   | jq -r '.token')
 ```
 

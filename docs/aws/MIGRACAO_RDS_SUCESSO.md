@@ -34,13 +34,13 @@ Migração completa de **Neon PostgreSQL (us-east-1)** para **AWS RDS PostgreSQL
 
 ### Credenciais
 - **Username:** kaviaradmin
-- **Password:** KaviarDB2026SecureProd (sem caracteres especiais problemáticos)
+- **Password:** <ROTATED_SEE_SSM> (sem caracteres especiais problemáticos)
 - **Database:** kaviar
 - **Port:** 5432
 
 ### Connection String
 ```
-postgresql://kaviaradmin:KaviarDB2026SecureProd@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require
+postgresql://kaviaradmin:<ROTATED>@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require
 ```
 
 ### Networking
@@ -73,9 +73,9 @@ postgresql://kaviaradmin:KaviarDB2026SecureProd@kaviar-prod-db.cxuuaq46o1o5.us-e
 ## 🔧 PROBLEMAS RESOLVIDOS
 
 ### 1. Caracteres Especiais na Senha
-**Problema:** Senha original `KaviarDB2026!Secure#Prod` causava erro "invalid port number in database URL"  
+**Problema:** Senha original `<ROTATED_SEE_SSM>` (continha caracteres especiais) causava erro "invalid port number in database URL"  
 **Causa:** Caractere `#` não foi corretamente URL-encoded  
-**Solução:** Modificada senha do RDS para `KaviarDB2026SecureProd` (sem caracteres especiais)
+**Solução:** Modificada senha do RDS para `<ROTATED_SEE_SSM>` (sem caracteres especiais)
 
 ### 2. Health Checks Falhando
 **Problema:** Tasks parando com "Task failed ELB health checks"  

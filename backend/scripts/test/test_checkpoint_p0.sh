@@ -12,7 +12,7 @@ echo "1️⃣ Tentando login..."
 # Tentar com credenciais do seed
 ADMIN_TOKEN=$(curl -s -X POST "$API_URL/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"suporte@kaviar.com.br","password":"Kaviar2026!Admin"}' | jq -r '.token')
+  -d '{"email":"suporte@kaviar.com.br","password":"<FROM_ENV_ADMIN_PASSWORD>"}' | jq -r '.token')
 
 if [ -z "$ADMIN_TOKEN" ] || [ "$ADMIN_TOKEN" = "null" ]; then
   echo "⚠️ Primeira tentativa falhou, tentando credencial alternativa..."

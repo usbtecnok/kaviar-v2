@@ -18,7 +18,7 @@
       "environment": [
         {
           "name": "DATABASE_URL",
-          "value": "postgresql://kaviaradmin:KaviarDB2026SecureProd@kaviar-prod-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require"
+          "value": "<FROM_SSM_PARAMETER:/kaviar/prod/database_url>"
         }
       ],
       "logConfiguration": {

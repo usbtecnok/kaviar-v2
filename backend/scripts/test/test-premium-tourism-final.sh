@@ -18,7 +18,7 @@ BASE_URL="http://localhost:3001"
 echo "🔑 Obtendo token admin..."
 ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}' | jq -r '.token')
+  -d '{"email":"admin@kaviar.com","password":"${ADMIN_PASSWORD:-admin123}"}' | jq -r '.token')
 
 if [ "$ADMIN_TOKEN" = "null" ] || [ -z "$ADMIN_TOKEN" ]; then
   echo "❌ Falha ao obter token admin"

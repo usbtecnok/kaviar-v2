@@ -51,5 +51,5 @@ SQL
 echo "SQL"
 echo ""
 echo "✅ Seed SQL pronto para executar"
-echo "   Senha: Kaviar2026!Admin"
+echo "   Senha: <FROM_ENV_ADMIN_PASSWORD>"
 echo ""

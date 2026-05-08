@@ -17,13 +17,13 @@
 
 ### 1. backend/data/geojson/README.md
 **Problema:** Credenciais reais de banco de dados expostas
-- PGPASSWORD='npg_2xbfMWRF6hrO'
+- PGPASSWORD='<REVOKED>'
 - DATABASE_URL com senha em plaintext
 
 **Correção:**
 ```bash
 # Antes
-PGPASSWORD='npg_2xbfMWRF6hrO' psql -h ep-wispy-thunder...
+PGPASSWORD='<REVOKED>' psql -h ep-wispy-thunder...
 
 # Depois
 export PGPASSWORD='[YOUR_DB_PASSWORD]'
@@ -32,8 +32,8 @@ psql -h [YOUR_DB_HOST] -U [YOUR_DB_USER]...
 
 ### 2. backend/scripts/test-virtual-fence-center-api.sh
 **Problema:** Senhas default hardcoded
-- SUPER_ADMIN_PASSWORD="${SUPER_ADMIN_PASSWORD:-Kaviar2026!}"
-- ANGEL_PASSWORD="${ANGEL_PASSWORD:-Angel2026!}"
+- SUPER_ADMIN_PASSWORD="${SUPER_ADMIN_PASSWORD:?Set SUPER_ADMIN_PASSWORD}"
+- ANGEL_PASSWORD="${ANGEL_PASSWORD:?Set ANGEL_PASSWORD}"
 
 **Correção:**
 ```bash
@@ -83,7 +83,7 @@ e6cb328 chore(security): remove hardcoded credentials and unsafe defaults
 
 ### Padrões Críticos Removidos do HEAD
 ```bash
-git grep -nE "npg_2xbfMWRF6hrO|Kaviar2026!|Angel2026!|senha123|admin123" -- \
+git grep -nE "<REVOKED>|<REDACTED>|<REDACTED>|senha123|admin123" -- \
   backend/data/geojson/README.md \
   backend/scripts/test-virtual-fence-center-api.sh \
   backend/test-driver-registration-flow.sh \
@@ -129,7 +129,7 @@ pip install git-filter-repo
 
 # 3. Remover credenciais do histórico
 git filter-repo --path backend/data/geojson/README.md \
-  --replace-text <(echo "npg_2xbfMWRF6hrO==>REDACTED")
+  --replace-text <(echo "<REVOKED>==>REDACTED")
 
 # 4. Force push (CUIDADO: reescreve histórico)
 git push origin main --force
@@ -138,7 +138,7 @@ git push origin main --force
 **⚠️ ATENÇÃO:** Reescrita de histórico requer coordenação com time (todos devem re-clonar).
 
 ### Rotação de Credenciais
-- ✅ Credencial npg_2xbfMWRF6hrO já foi rotacionada (Neon DB)
+- ✅ Credencial <REVOKED> já foi rotacionada (Neon DB)
 - ✅ Senhas de admin em produção usam AWS Secrets Manager
 - ✅ Nenhuma credencial ativa foi exposta
 

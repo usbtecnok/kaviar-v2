@@ -7,11 +7,11 @@
 
 const API_BASE_URL = 'https://api.kaviar.com.br';
 
-const TEMP_PASSWORD = 'z4939ia4';
+const TEMP_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME';
 
 const TEST_ACCOUNTS = [
   { email: 'suporte@kaviar.com.br', role: 'SUPER_ADMIN', newPassword: 'SuperAdmin2026!' },
-  { email: 'financeiro@kaviar.com.br', role: 'SUPER_ADMIN', newPassword: 'Financeiro2026!' },
+  { email: 'financeiro@kaviar.com.br', role: 'SUPER_ADMIN', newPassword: process.env.NEW_ADMIN_PASSWORD || 'CHANGE_ME' },
   { email: 'angel1@kaviar.com', role: 'ANGEL_VIEWER', newPassword: 'Angel1Viewer2026!' }
 ];
 

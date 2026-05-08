@@ -14,7 +14,7 @@ login_admin() {
         -H "Content-Type: application/json" \
         -d '{
             "email": "admin@kaviar.com",
-            "password": "admin123"
+            "password": "${ADMIN_PASSWORD:-admin123}"
         }')
     
     ADMIN_TOKEN=$(echo $RESPONSE | jq -r '.data.token')

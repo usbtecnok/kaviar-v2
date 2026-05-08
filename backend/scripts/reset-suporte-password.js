@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  const hash = await bcrypt.hash('z4939ia4', 10);
+  const hash = await bcrypt.hash(process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME', 10);
   
   // Resetar apenas suporte@kaviar.com.br
   const result = await prisma.admins.updateMany({
@@ -18,7 +18,7 @@ async function main() {
     }
   });
   
-  console.log(`SUCCESS: ${JSON.stringify({ updated: result.count, email: 'suporte@kaviar.com.br', password: 'z4939ia4', must_change: true })}`);
+  console.log(`SUCCESS: ${JSON.stringify({ updated: result.count, email: 'suporte@kaviar.com.br', password: process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME', must_change: true })}`);
 }
 
 main()

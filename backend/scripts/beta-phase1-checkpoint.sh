@@ -22,7 +22,7 @@ echo ""
 # Get admin token
 TOKEN=$(curl -s -X POST "https://api.kaviar.com.br/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"suporte@usbtecnok.com.br","password":"z4939ia4"}' | jq -r '.token')
+  -d '{"email":"suporte@usbtecnok.com.br","password":"<FROM_ENV_ADMIN_PASSWORD>"}' | jq -r '.token')
 
 # 1. Feature Flag State
 echo "1. FEATURE FLAG STATE"

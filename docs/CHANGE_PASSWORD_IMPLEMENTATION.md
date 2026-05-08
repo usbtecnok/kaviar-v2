@@ -139,7 +139,7 @@ if (adminData) {
 **1. Login com senha temporária**
 ```bash
 POST /api/admin/auth/login
-{"email":"financeiro@kaviar.com.br","password":"z4939ia4"}
+{"email":"financeiro@kaviar.com.br","password":"<ADMIN_PASSWORD>"}
 ```
 **Resultado:** ✅ Login OK, `mustChangePassword: true`
 
@@ -147,21 +147,21 @@ POST /api/admin/auth/login
 ```bash
 POST /api/admin/auth/change-password
 Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
-{"currentPassword":"z4939ia4","newPassword":"Financeiro2026!"}
+{"currentPassword":"<ADMIN_PASSWORD>","newPassword":"<NEW_PASSWORD>"}
 ```
 **Resultado:** ✅ Senha trocada com sucesso
 
 **3. Senha antiga rejeitada**
 ```bash
 POST /api/admin/auth/login
-{"email":"financeiro@kaviar.com.br","password":"z4939ia4"}
+{"email":"financeiro@kaviar.com.br","password":"<ADMIN_PASSWORD>"}
 ```
 **Resultado:** ✅ "Credenciais inválidas"
 
 **4. Login com nova senha**
 ```bash
 POST /api/admin/auth/login
-{"email":"financeiro@kaviar.com.br","password":"Financeiro2026!"}
+{"email":"financeiro@kaviar.com.br","password":"<NEW_PASSWORD>"}
 ```
 **Resultado:** ✅ Login OK, `mustChangePassword: false`
 
@@ -175,7 +175,7 @@ Authorization: Bearer <novo_token>
 **6. Reset para temporária**
 ```bash
 POST /api/admin/auth/change-password
-{"currentPassword":"Financeiro2026!","newPassword":"z4939ia4"}
+{"currentPassword":"<NEW_PASSWORD>","newPassword":"<ADMIN_PASSWORD>"}
 ```
 **Resultado:** ✅ Senha resetada
 

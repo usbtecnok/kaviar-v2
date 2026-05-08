@@ -88,7 +88,7 @@ echo ""
 echo "5. Testing with valid credentials (should still be rate limited)..."
 VALID_CREDENTIALS='{
   "email": "admin@kaviar.com",
-  "password": "admin123"
+  "password": "${ADMIN_PASSWORD:-admin123}"
 }'
 
 VALID_RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST "$API_BASE/admin/auth/login" \

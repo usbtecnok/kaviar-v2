@@ -27,7 +27,7 @@
 # Primeiro fazer login admin para obter token
 TOKEN=$(curl -s -X POST "http://localhost:3001/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@kaviar.com","password":"admin123"}' | jq -r .token)
+  -d '{"email":"admin@kaviar.com","password":"<ADMIN_PASSWORD>"}' | jq -r .token)
 
 # Importar GeoJSON
 curl -X POST "http://localhost:3001/api/admin/geofence/import-geojson" \

@@ -211,7 +211,7 @@ SELECT PostGIS_version();
 
 ```bash
 # 1. Backup do Neon
-pg_dump "postgresql://neondb_owner:npg_2xbfMWRF6hrO@ep-wispy-thunder-ad850l5j-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require" \
+pg_dump "postgresql://neondb_owner:<REVOKED>@<neon-host>/neondb?sslmode=require" \
   --no-owner --no-acl \
   > kaviar-neon-backup.sql
 

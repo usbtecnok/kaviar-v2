@@ -62,7 +62,7 @@ echo "3️⃣  Criando RDS PostgreSQL 15.4..."
 echo "⏳ Isso vai levar 10-15 minutos. Aguarde..."
 echo ""
 
-DB_PASSWORD="Kaviar2026SecureDB$(date +%s)"
+DB_PASSWORD="$(openssl rand -base64 32 | tr -dc A-Za-z0-9 | head -c 40)"
 
 aws rds create-db-instance \
   --db-instance-identifier kaviar-db \

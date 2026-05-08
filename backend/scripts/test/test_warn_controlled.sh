@@ -10,7 +10,7 @@ echo ""
 echo "1️⃣ Login como super admin..."
 ADMIN_TOKEN=$(curl -s -X POST "$API_URL/api/admin/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"suporte@usbtecnok.com.br","password":"Kaviar2026!Admin"}' | jq -r '.token')
+  -d '{"email":"suporte@usbtecnok.com.br","password":"<FROM_ENV_ADMIN_PASSWORD>"}' | jq -r '.token')
 
 if [ -z "$ADMIN_TOKEN" ] || [ "$ADMIN_TOKEN" = "null" ]; then
   echo "❌ Falha no login"

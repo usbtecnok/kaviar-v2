@@ -195,7 +195,7 @@ RESULTADO FINAL: PASS
 # 1. Executar validação
 cd /home/goes/kaviar
 export ADMIN_EMAIL="suporte@usbtecnok.com.br"
-export ADMIN_PASSWORD="z4939ia4"
+export ADMIN_PASSWORD="<FROM_SSM>"
 ./scripts/validate_territory_real_data.sh
 
 # 2. Verificar resultado

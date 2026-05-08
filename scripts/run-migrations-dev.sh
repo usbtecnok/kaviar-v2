@@ -9,7 +9,7 @@ REGION="us-east-2"
 
 # DATABASE_URL for DEV/STAGING (kaviar-db)
 # Override this via environment variable if needed
-DATABASE_URL="${DATABASE_URL:-postgresql://kaviaradmin:Kaviar2026SecureDB1769650964@kaviar-db.cxuuaq46o1o5.us-east-2.rds.amazonaws.com:5432/kaviar?sslmode=require}"
+DATABASE_URL="${DATABASE_URL:-<FROM_SSM_OR_ENV_DATABASE_URL>}"
 
 echo "🚀 KAVIAR MIGRATION RUNNER (ANTI-FRANKENSTEIN)"
 echo "================================================"

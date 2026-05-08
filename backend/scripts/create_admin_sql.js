@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 
 async function createAdminHashes() {
-  const password = '@#*Z4939ia4';
+  const password = process.env.ADMIN_DEFAULT_PASSWORD || 'CHANGE_ME';
   const hash = await bcrypt.hash(password, 10);
   
   console.log('ADMIN_PASSWORD_HASH:');
