@@ -359,7 +359,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.9-som-kaviar.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.20-native-channel-kotlin.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
@@ -382,7 +382,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.11.3-compensation.apk"
+                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.11.4-logout-fix.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
