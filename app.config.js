@@ -81,7 +81,7 @@ export default {
       versionCode: 1,
       googleServicesFile: variant === 'driver' ? './google-services.json' : undefined,
       permissions: variant === 'driver' ? driverPermissions : passengerPermissions,
-      blockedPermissions: ['android.permission.RECORD_AUDIO'],
+      blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.SYSTEM_ALERT_WINDOW'],
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_PLACES_KEY || ''
