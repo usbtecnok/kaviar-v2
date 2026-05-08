@@ -44,6 +44,7 @@ import InvestorInvites from "../../pages/admin/InvestorInvites";
 import InvestorVision from "../../pages/admin/InvestorVision";
 import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import LeadPerformance from "../../pages/admin/LeadPerformance";
+import LocalOperators from "../../pages/admin/LocalOperators";
 import StaffManagement from "../../pages/admin/StaffManagement";
 import AuditLogs from "../../pages/admin/AuditLogs";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
@@ -381,6 +382,7 @@ function AdminHome() {
             { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
             { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
             { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
+            { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
             { Icon: Paid, title: 'Compensações por Deslocamento', desc: 'Apoio ao motorista em cancelamentos após chegada', to: '/admin/compensations' },
             { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
           ].map(c => {
@@ -542,6 +544,12 @@ export default function AdminApp() {
                 <AdminHeader />
                 <ConsultantLeadsHub />
               </Container>
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/local-operators" element={
+            <ProtectedAdminRoute>
+              <AdminHeader />
+              <LocalOperators />
             </ProtectedAdminRoute>
           } />
           <Route path="/lead-performance" element={

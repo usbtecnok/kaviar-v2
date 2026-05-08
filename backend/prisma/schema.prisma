@@ -1410,3 +1410,28 @@ model local_support_invites {
   @@index([driver_id, invited_at(sort: Desc)])
   @@index([community_id, invited_at(sort: Desc)])
 }
+
+// ─── Associações / Operadores Locais ───
+model local_operators {
+  id                    String    @id @default(uuid())
+  organization_name     String
+  responsible_name      String
+  responsible_role      String    // presidente, liderança, vereador, representante
+  phone                 String
+  email                 String?
+  community             String?
+  neighborhood          String?
+  city                  String?
+  source                String    @default("site")
+  status                String    @default("interested")
+  notes                 String?
+  next_followup_at      DateTime?
+  drivers_referred      Int       @default(0)
+  drivers_approved      Int       @default(0)
+  first_contact_at      DateTime  @default(now())
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@index([status])
+  @@index([city])
+}
