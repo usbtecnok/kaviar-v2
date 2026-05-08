@@ -213,6 +213,7 @@ model drivers {
   territory_verification_method String?
   active_since                DateTime?
   password_changed_at         DateTime?
+  active_session_id           String?
   phone_verified_at           DateTime?
   last_reactivation_sent_at   DateTime?
   photo_url                   String?

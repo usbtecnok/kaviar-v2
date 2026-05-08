@@ -175,6 +175,11 @@ export async function authenticateDriver(req: Request, res: Response, next: Next
       return res.status(401).json({ success: false, error: 'Sessão expirada. Faça login novamente.' });
     }
 
+    // Single-device session control: reject if session was superseded by another login
+    if (decoded.sessionId && driver.active_session_id && decoded.sessionId !== driver.active_session_id) {
+      return res.status(401).json({ success: false, error: 'Sessão encerrada. Você fez login em outro dispositivo.' });
+    }
+
     (req as any).driver = driver;
     (req as any).userId = decoded.userId;
     (req as any).driverId = decoded.userId;

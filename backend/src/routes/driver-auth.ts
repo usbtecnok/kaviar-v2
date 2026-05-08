@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
 import { prisma } from '../lib/prisma';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
@@ -152,12 +153,20 @@ router.post('/driver/login', loginByEmailRateLimit, async (req, res) => {
       return res.status(403).json({ error: 'Conta suspensa ou rejeitada' });
     }
 
+    // Generate unique session ID (single-device control)
+    const sessionId = randomUUID();
+    await prisma.drivers.update({
+      where: { id: driver.id },
+      data: { active_session_id: sessionId },
+    });
+
     const token = jwt.sign(
       { 
         userId: driver.id, 
         userType: 'DRIVER', 
         email: driver.email,
-        status: driver.status
+        status: driver.status,
+        sessionId
       },
       process.env.JWT_SECRET,
       { expiresIn: '72h' }
