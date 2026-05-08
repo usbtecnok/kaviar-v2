@@ -78,6 +78,7 @@ export default {
         backgroundColor: '#1a1a1a'
       },
       package: variantConfig.package,
+      versionCode: 1,
       googleServicesFile: variant === 'driver' ? './google-services.json' : undefined,
       permissions: variant === 'driver' ? driverPermissions : passengerPermissions,
       blockedPermissions: ['android.permission.RECORD_AUDIO'],
