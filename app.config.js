@@ -49,7 +49,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.11.20-native-channel-kotlin',
+    version: '1.11.21-play-store-prep',
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
@@ -80,6 +80,7 @@ export default {
       package: variantConfig.package,
       googleServicesFile: variant === 'driver' ? './google-services.json' : undefined,
       permissions: variant === 'driver' ? driverPermissions : passengerPermissions,
+      blockedPermissions: ['android.permission.RECORD_AUDIO'],
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY || process.env.EXPO_PUBLIC_PLACES_KEY || ''
@@ -88,6 +89,7 @@ export default {
     },
     plugins: [
       ['expo-notifications', { sounds: ['./assets/sounds/kaviar_ride.wav'] }],
+      ['expo-av', { microphonePermission: false }],
       [
         'expo-location',
         {

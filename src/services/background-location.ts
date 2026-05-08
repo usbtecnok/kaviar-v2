@@ -1,6 +1,7 @@
 import * as TaskManager from 'expo-task-manager';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 const TASK_NAME = 'kaviar-driver-location';
 const RIDE_ID_KEY = 'kaviar_active_ride_id';
@@ -104,7 +105,23 @@ export async function startBackgroundLocation(apiUrl: string): Promise<'backgrou
     throw new Error('FOREGROUND_DENIED');
   }
 
-  // Background permission
+  // Background permission — show rationale first
+  const userAccepted = await new Promise<boolean>((resolve) => {
+    Alert.alert(
+      'Localização em segundo plano',
+      'O KAVIAR usa sua localização quando você está online para receber corridas próximas e atualizar sua posição durante a corrida. Você pode parar a coleta ficando offline.',
+      [
+        { text: 'Não permitir', onPress: () => resolve(false), style: 'cancel' },
+        { text: 'Permitir', onPress: () => resolve(true) },
+      ],
+      { cancelable: false }
+    );
+  });
+
+  if (!userAccepted) {
+    throw new Error('BACKGROUND_RATIONALE_DECLINED');
+  }
+
   const bg = await Location.requestBackgroundPermissionsAsync();
   if (bg.status === 'granted') {
     await Location.startLocationUpdatesAsync(TASK_NAME, {
