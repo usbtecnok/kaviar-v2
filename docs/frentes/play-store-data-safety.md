@@ -10,7 +10,7 @@ Mapeamento para preencher o formulário "Data safety" no Google Play Console.
 |---|---|---|---|---|
 | Nome | ✅ | Com motorista (durante corrida) | Funcionalidade do app | Sim |
 | E-mail | ✅ | Não | Gerenciamento de conta | Sim |
-| Telefone | ✅ | Não | Gerenciamento de conta | Sim |
+| Telefone | ✅ | Não | Gerenciamento de conta, segurança, comunicação operacional | Sim |
 | Localização aproximada | ✅ | Com motorista (durante corrida) | Funcionalidade do app | Sim |
 | Localização precisa | ✅ | Com motorista (durante corrida) | Funcionalidade do app | Sim |
 | Histórico de corridas | ✅ | Não | Funcionalidade do app | Sim |
@@ -20,6 +20,11 @@ Mapeamento para preencher o formulário "Data safety" no Google Play Console.
 - ✅ Dados criptografados em trânsito (TLS)
 - ✅ Usuário pode solicitar exclusão de dados
 - ❌ Dados NÃO são vendidos a terceiros
+
+### Telefone
+- Coletado para cadastro, segurança, suporte e comunicação operacional (notificações WhatsApp server-side)
+- **Não é compartilhado diretamente** entre passageiro e motorista pelo app
+- Comunicação entre usuários ocorre por canais oficiais do KAVIAR (cards de status operacional)
 
 ### Localização
 - Coletada apenas em **primeiro plano** (foreground)
@@ -35,7 +40,7 @@ Mapeamento para preencher o formulário "Data safety" no Google Play Console.
 |---|---|---|---|---|
 | Nome | ✅ | Com passageiro (durante corrida) | Funcionalidade do app | Sim |
 | E-mail | ✅ | Não | Gerenciamento de conta | Sim |
-| Telefone | ✅ | Com passageiro (durante corrida) | Funcionalidade do app | Sim |
+| Telefone | ✅ | Não | Gerenciamento de conta, segurança, comunicação operacional | Sim |
 | Documentos (CNH) | ✅ | Não | Verificação de identidade | Sim |
 | Dados do veículo | ✅ | Não | Funcionalidade do app | Sim |
 | Chave Pix | ✅ | Não | Pagamentos/ganhos do motorista | Não (opcional) |
@@ -48,6 +53,11 @@ Mapeamento para preencher o formulário "Data safety" no Google Play Console.
 - ✅ Dados criptografados em trânsito (TLS)
 - ✅ Usuário pode solicitar exclusão de dados
 - ❌ Dados NÃO são vendidos a terceiros
+
+### Telefone
+- Coletado para cadastro, segurança, suporte e comunicação operacional (notificações WhatsApp server-side)
+- **Não é compartilhado diretamente** entre motorista e passageiro pelo app
+- Comunicação entre usuários ocorre por canais oficiais do KAVIAR (cards de status operacional)
 
 ### Localização
 - Coletada em **primeiro plano e segundo plano** (foreground + background)
