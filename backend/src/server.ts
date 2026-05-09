@@ -9,22 +9,6 @@ async function startServer() {
   try {
     const PORT = Number(process.env.PORT || 3003);
 
-    // Auto-migration: add invite_code columns if not present
-    try {
-      const { pool } = await import('./db');
-      await pool.query(`
-        ALTER TABLE admins
-        ADD COLUMN IF NOT EXISTS invite_code VARCHAR(20),
-        ADD COLUMN IF NOT EXISTS invite_code_expires_at TIMESTAMPTZ
-      `);
-      await pool.query(`
-        CREATE UNIQUE INDEX IF NOT EXISTS admins_invite_code_key ON admins(invite_code) WHERE invite_code IS NOT NULL
-      `);
-      console.log('[STARTUP_MIGRATION] invite_code columns OK');
-    } catch (migErr) {
-      console.warn('[STARTUP_MIGRATION] invite_code:', (migErr as any).message);
-    }
-
     // Start server
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`KAVIAR Backend running on port ${PORT} [${config.nodeEnv}] commit=${process.env.GIT_COMMIT || 'unknown'}`);
