@@ -252,6 +252,7 @@ router.get('/me/current-ride', authenticateDriver, async (req: Request, res: Res
     const locFresh = ride?.passenger?.last_location_updated_at && (Date.now() - new Date(ride.passenger.last_location_updated_at).getTime()) < 30000;
     res.json({ success: true, data: ride ? {
       ...ride,
+      boarding_code: undefined,
       origin_lat: Number(ride.origin_lat),
       origin_lng: Number(ride.origin_lng),
       dest_lat: Number(ride.dest_lat),

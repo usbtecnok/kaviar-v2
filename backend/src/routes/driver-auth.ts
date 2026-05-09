@@ -155,9 +155,14 @@ router.post('/driver/login', loginByEmailRateLimit, async (req, res) => {
 
     // Generate unique session ID (single-device control)
     const sessionId = randomUUID();
+    const { device_id, device_model } = req.body || {};
     await prisma.drivers.update({
       where: { id: driver.id },
-      data: { active_session_id: sessionId },
+      data: {
+        active_session_id: sessionId,
+        ...(device_id && { device_id }),
+        ...(device_model && { device_model }),
+      },
     });
 
     const token = jwt.sign(

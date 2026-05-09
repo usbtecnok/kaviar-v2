@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { prisma } from '../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { realTimeService } from './realtime.service';
@@ -63,6 +64,7 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
       data: {
         driver_id: driverId,
         status: rideStatus,
+        boarding_code: String(randomInt(1000, 10000)),
         accepted_at: rideStatus === 'accepted' ? new Date() : undefined,
         driver_adjustment: adjustmentStatus === 'pending' ? new Decimal(adjustment!) : null,
         adjusted_price: adjustmentStatus === 'pending' && offer.ride.quoted_price

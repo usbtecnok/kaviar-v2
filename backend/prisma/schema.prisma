@@ -214,6 +214,8 @@ model drivers {
   active_since                DateTime?
   password_changed_at         DateTime?
   active_session_id           String?
+  device_id                   String?
+  device_model                String?
   phone_verified_at           DateTime?
   last_reactivation_sent_at   DateTime?
   photo_url                   String?
@@ -862,6 +864,7 @@ model rides_v2 {
   requested_at           DateTime     @default(now())
   offered_at             DateTime?
   accepted_at            DateTime?
+  boarding_code          String?
   arrived_at             DateTime?
   started_at             DateTime?
   completed_at           DateTime?
