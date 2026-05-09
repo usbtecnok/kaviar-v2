@@ -1421,13 +1421,16 @@ model local_operators {
   organization_name     String
   responsible_name      String
   responsible_role      String    // presidente, liderança, vereador, representante
-  phone                 String
+  phone                 String?
   email                 String?
+  address               String?
+  website               String?
   community             String?
   neighborhood          String?
   city                  String?
   source                String    @default("site")
-  status                String    @default("interested")
+  status                String    @default("researching")
+  verified              Boolean   @default(false)
   notes                 String?
   next_followup_at      DateTime?
   drivers_referred      Int       @default(0)
