@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { resolveTerritory } from './territory-resolver.service';
 
 const prisma = new PrismaClient();
@@ -160,8 +160,8 @@ export async function updateMatchConfig(
 // Obter estatísticas de match
 export async function getMatchStats(startDate?: Date, endDate?: Date) {
   const whereClause = startDate && endDate 
-    ? `WHERE created_at BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'`
-    : '';
+    ? Prisma.sql`WHERE created_at BETWEEN ${startDate} AND ${endDate}`
+    : Prisma.empty;
 
   const stats = await prisma.$queryRaw<Array<{
     match_type: string;
@@ -175,7 +175,7 @@ export async function getMatchStats(startDate?: Date, endDate?: Date) {
       SUM(platform_fee_brl) as total_platform_fee,
       AVG(platform_percent) as avg_platform_percent
     FROM match_logs
-    ${whereClause ? prisma.$queryRawUnsafe(whereClause) : prisma.$queryRawUnsafe('')}
+    ${whereClause}
     GROUP BY match_type
     ORDER BY count DESC
   `;

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { resolveTerritory } from './territory-resolver.service';
 
 const prisma = new PrismaClient();
@@ -342,8 +342,8 @@ export async function getDriverFeeStats(
   }>;
 }> {
   const dateFilter = startDate && endDate
-    ? `AND ml.created_at BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'`
-    : '';
+    ? Prisma.sql`AND ml.created_at BETWEEN ${startDate} AND ${endDate}`
+    : Prisma.empty;
 
   const stats: any = await prisma.$queryRaw`
     SELECT 
@@ -353,7 +353,7 @@ export async function getDriverFeeStats(
       SUM(platform_fee_brl) as total_fees
     FROM match_logs ml
     WHERE ml.driver_id = ${driverId}
-    ${dateFilter ? prisma.$queryRawUnsafe(dateFilter) : prisma.$queryRawUnsafe('')}
+    ${dateFilter}
   `;
 
   const breakdown: any = await prisma.$queryRaw`
@@ -362,7 +362,7 @@ export async function getDriverFeeStats(
       COUNT(*) as count
     FROM match_logs
     WHERE driver_id = ${driverId}
-    ${dateFilter ? prisma.$queryRawUnsafe(dateFilter) : prisma.$queryRawUnsafe('')}
+    ${dateFilter}
     GROUP BY match_type
   `;
 
