@@ -52,6 +52,7 @@ export default function CompleteRide() {
   const [arrivedAt, setArrivedAt] = useState<number | null>(null);
   const [waitSeconds, setWaitSeconds] = useState(0);
   const [waitActiveSeconds, setWaitActiveSeconds] = useState(0);
+  const [boardingCode, setBoardingCode] = useState('');
   const [postWaitLegStarted, setPostWaitLegStarted] = useState(false);
 
   // B2: Completion screen
@@ -248,16 +249,17 @@ export default function CompleteRide() {
   const handleStart = async () => {
     setLoading(true);
     try {
-      await driverApi.startRide(params.rideId!);
+      await driverApi.startRide(params.rideId!, boardingCode || undefined);
       setRideStatus('in_progress');
       setRide(prev => prev ? { ...prev, status: 'in_progress' } : prev);
     } catch (e: any) {
       if (e.response?.status === 400) {
         const msg = e.response?.data?.error || '';
-        if (msg.includes('Encerre a espera')) Alert.alert('Atenção', msg);
+        if (msg.includes('Código de embarque')) { Alert.alert('Código incorreto', 'O código informado não confere. Peça o código correto ao passageiro.'); setBoardingCode(''); }
+        else if (msg.includes('Encerre a espera')) Alert.alert('Atenção', msg);
         else setRideStatus('canceled_by_passenger' as RideStatus);
       } else if (!e.response) {
-        await enqueue({ method: 'POST', url: `${ENV.API_URL}/api/v2/rides/${params.rideId}/start`, body: {} });
+        await enqueue({ method: 'POST', url: `${ENV.API_URL}/api/v2/rides/${params.rideId}/start`, body: boardingCode ? { boarding_code: boardingCode } : {} });
         setRideStatus('in_progress');
         setQueuePending(await getQueueSize());
       } else Alert.alert('Erro', friendlyError(e, 'Não foi possível iniciar a corrida'));
@@ -581,6 +583,20 @@ export default function CompleteRide() {
 
         {rideStatus === 'accepted' && (
           <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: COLORS.primary, minHeight: 56 }} />
+        )}
+        {rideStatus === 'arrived' && (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ color: '#aaa', fontSize: 12, textAlign: 'center', marginBottom: 6 }}>Peça o código de embarque ao passageiro</Text>
+            <TextInput
+              style={{ backgroundColor: '#1a1a2e', borderWidth: 1.5, borderColor: boardingCode.length === 4 ? '#C8A84E' : '#333', borderRadius: 12, color: '#fff', fontSize: 28, fontWeight: '900', textAlign: 'center', letterSpacing: 12, paddingVertical: 14 }}
+              value={boardingCode}
+              onChangeText={t => setBoardingCode(t.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="number-pad"
+              maxLength={4}
+              placeholder="0000"
+              placeholderTextColor="#444"
+            />
+          </View>
         )}
         {rideStatus === 'arrived' && (
           <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: COLORS.warning, minHeight: 56 }} />

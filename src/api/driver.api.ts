@@ -38,8 +38,8 @@ export const driverApi = {
   arrived: (rideId: string) =>
     apiClient.post(`/api/v2/rides/${rideId}/arrived`),
 
-  startRide: (rideId: string) =>
-    apiClient.post(`/api/v2/rides/${rideId}/start`),
+  startRide: (rideId: string, boarding_code?: string) =>
+    apiClient.post(`/api/v2/rides/${rideId}/start`, boarding_code ? { boarding_code } : {}),
 
   completeRide: async (rideId: string) => {
     const { data } = await apiClient.post(`/api/v2/rides/${rideId}/complete`);

@@ -809,6 +809,15 @@ export default function PassengerMap() {
             </View>
           )}
 
+          {/* Boarding code card */}
+          {(rideStatus === 'accepted' || rideStatus === 'arrived') && ride?.boarding_code && (
+            <View style={s.boardingCodeCard}>
+              <Text style={s.boardingCodeLabel}>Código de embarque</Text>
+              <Text style={s.boardingCodeValue}>{ride.boarding_code}</Text>
+              <Text style={s.boardingCodeHint}>Informe este código somente ao motorista indicado no app.</Text>
+            </View>
+          )}
+
           <View style={s.bottomSheet}>
             {/* Redispatch banner */}
             {showRedispatch && (rideStatus === 'requested' || rideStatus === 'offered') && (
@@ -1247,6 +1256,15 @@ const s = StyleSheet.create({
   safetyCardIcon: { fontSize: 24 },
   safetyCardTitle: { fontSize: 13, fontWeight: '700', color: '#C8A84E', marginBottom: 3 },
   safetyCardText: { fontSize: 12, color: 'rgba(255,255,255,0.6)', lineHeight: 17 },
+
+  boardingCodeCard: {
+    position: 'absolute', top: 170, left: 20, right: 20, zIndex: 9,
+    alignItems: 'center', backgroundColor: 'rgba(10,10,10,0.92)', borderRadius: 16, padding: 18,
+    borderWidth: 1.5, borderColor: 'rgba(200,168,78,0.4)',
+  },
+  boardingCodeLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
+  boardingCodeValue: { fontSize: 36, fontWeight: '900', color: '#C8A84E', letterSpacing: 12 },
+  boardingCodeHint: { fontSize: 11, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 8 },
 
   bottomSheet: {
     position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
