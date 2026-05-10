@@ -405,7 +405,7 @@ function AdminHome() {
                 const color = c.accent || '#B8942E';
                 return (
                   <Grid item xs={12} sm={6} md={4} key={c.to}>
-                    <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', transition: 'all 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: color, transform: 'translateY(-2px)', boxShadow: `0 4px 12px rgba(0,0,0,0.08)` } }}>
+                    <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(184,148,46,0.18)', borderRadius: 2, height: '100%', transition: 'all 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: color, transform: 'translateY(-2px)', boxShadow: `0 4px 12px rgba(0,0,0,0.08)` } }}>
                       <CardContent sx={{ textAlign: 'center', pt: 3.5, pb: 3, px: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
                         <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: `${color}0D`, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2, border: `1px solid ${color}20` }}>
                           <c.Icon sx={{ fontSize: 24, color }} />
