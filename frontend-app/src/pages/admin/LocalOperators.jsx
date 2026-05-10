@@ -112,16 +112,25 @@ export default function LocalOperators() {
       </Box>
 
       {/* Counters */}
-      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 3 }}>
-        {Object.entries(STATUS_MAP).map(([key, { label, color }]) => (
-          <Chip key={key} label={`${label}: ${counts[key] || 0}`} color={color} size="small" variant={filterStatus === key ? 'filled' : 'outlined'}
-            onClick={() => setFilterStatus(filterStatus === key ? '' : key)} sx={{ cursor: 'pointer', fontSize: 11 }} />
-        ))}
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2, p: 2, bgcolor: '#0d0d0d', borderRadius: 2, border: '1px solid #1a1a1a' }}>
+        {Object.entries(STATUS_MAP).map(([key, { label, color }]) => {
+          const count = counts[key] || 0;
+          const isActive = filterStatus === key;
+          return (
+            <Chip key={key} label={<span>{label}: <strong>{count}</strong></span>} color={color !== 'default' ? color : undefined}
+              size="medium" variant={isActive ? 'filled' : 'outlined'}
+              onClick={() => setFilterStatus(filterStatus === key ? '' : key)}
+              sx={{ cursor: 'pointer', fontSize: 13, fontWeight: 500, px: 0.5,
+                ...(color === 'default' && { borderColor: '#444', color: '#ccc', bgcolor: isActive ? '#333' : 'transparent' }),
+                '&:hover': { opacity: 0.85 }
+              }} />
+          );
+        })}
       </Box>
 
       {/* City filter */}
       <TextField size="small" placeholder="Filtrar por cidade..." value={filterCity} onChange={e => setFilterCity(e.target.value)}
-        sx={{ mb: 2, '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: '#333' } }, '& .MuiInputBase-input::placeholder': { color: '#666' } }} />
+        sx={{ mb: 2, minWidth: 260, '& .MuiOutlinedInput-root': { color: '#fff', '& fieldset': { borderColor: '#333' }, '&:hover fieldset': { borderColor: '#C8A84E' }, '&.Mui-focused fieldset': { borderColor: '#C8A84E' } }, '& .MuiInputBase-input::placeholder': { color: '#888', opacity: 1 } }} />
 
       {/* List */}
       {operators.length === 0 ? (
