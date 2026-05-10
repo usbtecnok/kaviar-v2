@@ -78,17 +78,18 @@ function AdminHeader() {
       alignItems: 'center', 
       mb: 3,
       p: 2,
-      bgcolor: '#1a1a1a',
-      borderRadius: 1,
-      border: '1px solid #FFD700',
-      boxShadow: '0 4px 8px rgba(255, 215, 0, 0.2)'
+      bgcolor: '#FFFFFF',
+      borderRadius: 2,
+      border: '1px solid #E8E5DE',
+      borderTop: '3px solid #B8942E',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
     }}>
       <Box>
-        <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 'bold' }}>
-          Admin: {admin?.name || 'Usuário'}
+        <Typography variant="h6" sx={{ color: '#1A1A1A', fontWeight: 700 }}>
+          <span style={{ color: '#B8942E' }}>KAVIAR</span> Admin — {admin?.name || 'Usuário'}
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Typography variant="body2" sx={{ color: '#E8E3D5' }}>
+          <Typography variant="body2" sx={{ color: '#6B7280' }}>
             {admin?.role || 'ADMIN'}
           </Typography>
           {isAngelViewer && (
@@ -96,9 +97,10 @@ function AdminHeader() {
               label="👁️ Modo Leitura" 
               size="small"
               sx={{ 
-                bgcolor: '#FFA726', 
-                color: '#000',
-                fontWeight: 'bold'
+                bgcolor: '#FFF3E0', 
+                color: '#E65100',
+                fontWeight: 'bold',
+                border: '1px solid #FFE0B2'
               }} 
             />
           )}
@@ -109,11 +111,12 @@ function AdminHeader() {
         variant="outlined"
         size="small"
         sx={{
-          borderColor: '#FFD700',
-          color: '#FFD700',
+          borderColor: '#E8E5DE',
+          color: '#6B7280',
           '&:hover': {
-            borderColor: '#FFC107',
-            bgcolor: 'rgba(255, 215, 0, 0.1)'
+            borderColor: '#B8942E',
+            color: '#B8942E',
+            bgcolor: 'rgba(184,148,46,0.04)'
           }
         }}
       >
@@ -227,8 +230,8 @@ function AdminHome() {
         <AdminHeader />
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
           <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress sx={{ color: '#FFD700', mb: 2 }} />
-            <Typography variant="h6" sx={{ color: '#FFD700' }}>
+            <CircularProgress sx={{ color: '#B8942E', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: '#6B7280' }}>
               Carregando painel administrativo...
             </Typography>
           </Box>
@@ -238,26 +241,27 @@ function AdminHome() {
   }
 
   return (
+    <Box sx={{ bgcolor: '#FAFAF8', minHeight: '100vh', pt: 1 }}>
     <Container maxWidth="lg" sx={{ mt: 3, pb: 6 }}>
       <AdminHeader />
       
       {/* Header compacto */}
       <Box sx={{ mb: 3 }}>
-        <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.3 }}>Painel Administrativo</Typography>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: '#C8A84E', letterSpacing: '-0.2px' }}>KAVIAR Dashboard</Typography>
+        <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.3 }}>Painel Administrativo</Typography>
+        <Typography variant="h5" sx={{ fontWeight: 700, color: '#1A1A1A', letterSpacing: '-0.3px' }}>KAVIAR Dashboard</Typography>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 2, bgcolor: '#1a1a1a', color: '#C8A84E' }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {['ANGEL_VIEWER', 'INVESTOR_VIEW'].includes(admin?.role) && (
-        <Card sx={{ mb: 3, background: 'linear-gradient(145deg, #101014, #09090b)', border: '1px solid #C8A84E33', cursor: 'pointer', borderRadius: 3 }}
+        <Card sx={{ mb: 3, bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', cursor: 'pointer', borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: '#B8942E', boxShadow: '0 2px 8px rgba(184,148,46,0.1)' } }}
           onClick={() => window.location.href = '/admin/visao'}>
           <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
             <Box>
-              <Typography sx={{ color: '#C8A84E', fontWeight: 700, fontSize: 15 }}>Visão do Projeto</Typography>
-              <Typography sx={{ color: '#8888A0', fontSize: 12, mt: 0.3 }}>Visão estratégica, modelo e potencial de expansão</Typography>
+              <Typography sx={{ color: '#1A1A1A', fontWeight: 700, fontSize: 15 }}>Visão do Projeto</Typography>
+              <Typography sx={{ color: '#6B7280', fontSize: 12, mt: 0.3 }}>Visão estratégica, modelo e potencial de expansão</Typography>
             </Box>
-            <Typography sx={{ color: '#C8A84E', fontSize: 20 }}>→</Typography>
+            <Typography sx={{ color: '#B8942E', fontSize: 20 }}>→</Typography>
           </CardContent>
         </Card>
       )}
@@ -267,16 +271,16 @@ function AdminHome() {
         <Grid container spacing={1.5} sx={{ mb: 3 }}>
           {/* KPIs */}
           {[
-            { icon: <People sx={{ fontSize: 22, color: '#C8A84E' }} />, value: stats.totalPassengers || 0, label: 'Passageiros' },
-            { icon: <DirectionsCar sx={{ fontSize: 22, color: '#C8A84E' }} />, value: stats.totalDrivers || 0, label: 'Motoristas' },
-            { icon: <LocationCity sx={{ fontSize: 22, color: '#C8A84E' }} />, value: stats.totalNeighborhoods || 0, label: 'Bairros' },
-            { icon: <Tour sx={{ fontSize: 22, color: '#C8A84E' }} />, value: stats.totalGuides || 0, label: 'Guias' },
+            { icon: <People sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalPassengers || 0, label: 'Passageiros' },
+            { icon: <DirectionsCar sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalDrivers || 0, label: 'Motoristas' },
+            { icon: <LocationCity sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalNeighborhoods || 0, label: 'Bairros' },
+            { icon: <Tour sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalGuides || 0, label: 'Guias' },
           ].map(k => (
             <Grid item xs={6} sm={3} key={k.label}>
-              <Card sx={{ background: 'linear-gradient(145deg, #101014, #09090b)', border: '1px solid #C8A84E20', borderRadius: 2.5 }}>
+              <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                 <CardContent sx={{ textAlign: 'center', py: 2, px: 1.5 }}>
                   {k.icon}
-                  <Typography sx={{ color: '#C8A84E', fontSize: 26, fontWeight: 700, lineHeight: 1.2, mt: 0.5 }}>{k.value}</Typography>
+                  <Typography sx={{ color: '#1A1A1A', fontSize: 26, fontWeight: 700, lineHeight: 1.2, mt: 0.5 }}>{k.value}</Typography>
                   <Typography sx={{ color: '#9CA3AF', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{k.label}</Typography>
                 </CardContent>
               </Card>
@@ -290,10 +294,10 @@ function AdminHome() {
             { value: pending.guides || 0, label: 'Guias pendentes', to: '/admin/guides?status=pending', active: pending.guides > 0 },
           ].map(p => (
             <Grid item xs={4} sm={4} md={4} key={p.label}>
-              <Card component={p.active ? Link : 'div'} to={p.active ? p.to : undefined} sx={{ background: 'linear-gradient(145deg, #101014, #09090b)', border: `1px solid ${p.active ? '#D4A01740' : '#1A1A2E'}`, borderRadius: 2.5, textDecoration: 'none', transition: 'all 0.2s', ...(p.active && { '&:hover': { borderColor: '#D4A01770', transform: 'translateY(-1px)' } }) }}>
+              <Card component={p.active ? Link : 'div'} to={p.active ? p.to : undefined} sx={{ bgcolor: p.active ? '#FFFBEB' : '#FFFFFF', border: `1px solid ${p.active ? '#FDE68A' : '#E8E5DE'}`, borderRadius: 2, textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...(p.active && { '&:hover': { borderColor: '#B8942E', transform: 'translateY(-1px)', boxShadow: '0 3px 8px rgba(184,148,46,0.12)' } }) }}>
                 <CardContent sx={{ textAlign: 'center', py: 1.5, px: 1 }}>
-                  <Typography sx={{ color: p.active ? '#D4A017' : '#555570', fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>{p.value}</Typography>
-                  <Typography sx={{ color: p.active ? '#A08030' : '#555570', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{p.label}</Typography>
+                  <Typography sx={{ color: p.active ? '#92400E' : '#D1D5DB', fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>{p.value}</Typography>
+                  <Typography sx={{ color: p.active ? '#B45309' : '#D1D5DB', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{p.label}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -306,35 +310,35 @@ function AdminHome() {
         {/* Operações */}
         <Grid item xs={12} md={7}>
           {territoryData && territoryData.total > 0 && (
-            <Card sx={{ background: 'linear-gradient(145deg, #101014, #09090b)', border: '1px solid #C8A84E20', borderRadius: 2.5, height: '100%' }}>
+            <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Box>
-                    <Typography sx={{ fontSize: 10, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Painel Executivo</Typography>
-                    <Typography sx={{ fontWeight: 700, color: '#C8A84E', fontSize: 16 }}>Operações</Typography>
+                    <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Painel Executivo</Typography>
+                    <Typography sx={{ fontWeight: 700, color: '#1A1A1A', fontSize: 16 }}>Operações</Typography>
                   </Box>
-                  <Button component={Link} to="/admin/executive-operations" variant="outlined" size="small" sx={{ borderColor: '#C8A84E30', color: '#C8A84E', fontSize: 11, fontWeight: 600, '&:hover': { bgcolor: '#C8A84E', color: '#0a0a0a', borderColor: '#C8A84E' } }}>
+                  <Button component={Link} to="/admin/executive-operations" variant="outlined" size="small" sx={{ borderColor: '#E8E5DE', color: '#B8942E', fontSize: 11, fontWeight: 600, '&:hover': { bgcolor: '#B8942E', color: '#fff', borderColor: '#B8942E' } }}>
                     Abrir →
                   </Button>
                 </Box>
                 <Grid container spacing={1}>
                   {[
-                    { symbol: '⌂', value: territoryData.homebound, label: 'Retorno', accent: '#7CB87A' },
-                    { symbol: '●', value: territoryData.local, label: 'Local', accent: '#F5F1E8' },
-                    { symbol: '◎', value: territoryData.adjacent, label: 'Vizinho', accent: '#A7A7A7' },
-                    { symbol: '○', value: territoryData.external, label: 'Externo', accent: '#6B6045' },
-                    { symbol: '∑', value: territoryData.total, label: 'Total', accent: '#C8A84E' },
+                    { symbol: '⌂', value: territoryData.homebound, label: 'Retorno', accent: '#16A34A' },
+                    { symbol: '●', value: territoryData.local, label: 'Local', accent: '#1A1A1A' },
+                    { symbol: '◎', value: territoryData.adjacent, label: 'Vizinho', accent: '#6B7280' },
+                    { symbol: '○', value: territoryData.external, label: 'Externo', accent: '#9CA3AF' },
+                    { symbol: '∑', value: territoryData.total, label: 'Total', accent: '#B8942E' },
                   ].map((t, i) => (
                     <Grid item xs key={i}>
                       <Box sx={{ textAlign: 'center', py: 1 }}>
                         <Typography sx={{ color: t.accent, fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{t.value}</Typography>
-                        <Typography sx={{ color: '#6B6045', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{t.label}</Typography>
+                        <Typography sx={{ color: '#9CA3AF', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{t.label}</Typography>
                       </Box>
                     </Grid>
                   ))}
                 </Grid>
                 {opsData && (
-                  <Box sx={{ display: 'flex', gap: 2.5, mt: 2, pt: 2, borderTop: '1px solid #1A1A2E', flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', gap: 2.5, mt: 2, pt: 2, borderTop: '1px solid #F3F4F6', flexWrap: 'wrap' }}>
                     {[
                       { label: 'Corridas hoje', value: opsData.rides?.completed },
                       { label: 'Bruto', value: opsData.financials?.gross_total != null ? `R$\u00a0${Number(opsData.financials.gross_total).toFixed(0)}` : '—' },
@@ -342,8 +346,8 @@ function AdminHome() {
                       { label: 'Espera', value: opsData.wait?.total_minutes != null ? `${opsData.wait.total_minutes}m` : '—' },
                     ].map(s => (
                       <Box key={s.label}>
-                        <Typography sx={{ color: '#C8A84E', fontSize: 16, fontWeight: 700, lineHeight: 1 }}>{s.value ?? '—'}</Typography>
-                        <Typography sx={{ color: '#6B6045', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.2 }}>{s.label}</Typography>
+                        <Typography sx={{ color: '#1A1A1A', fontSize: 16, fontWeight: 700, lineHeight: 1 }}>{s.value ?? '—'}</Typography>
+                        <Typography sx={{ color: '#9CA3AF', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.2 }}>{s.label}</Typography>
                       </Box>
                     ))}
                   </Box>
@@ -361,93 +365,74 @@ function AdminHome() {
 
       {/* Atalhos de Gerenciamento */}
       <Box sx={{ mb: 4 }}>
-        <Box sx={{ mb: 2 }}>
-          <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.05em', mb: 0.3 }}>Painel</Typography>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: '#C8A84E', letterSpacing: '-0.2px' }}>Gerenciamento</Typography>
-        </Box>
-        <Grid container spacing={2}>
-          {[
+        {[
+          { section: 'Operação', items: [
             { Icon: DirectionsCar, title: 'Corridas', desc: 'Gestão operacional de corridas', to: '/admin/rides' },
             { Icon: CreditCard, title: 'Compras de Créditos', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
-            { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp', accent: '#25D366' },
-            { Icon: Apartment, title: 'Comunidades', desc: 'Gestão de comunidades e ativação', to: '/admin/communities' },
-            { Icon: Map, title: 'Bairros', desc: 'Gestão de bairros administrativos', to: '/admin/neighborhoods' },
-            { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
+            { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp', accent: '#16A34A' },
+            { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
+            { Icon: Paid, title: 'Compensações', desc: 'Apoio ao motorista em cancelamentos', to: '/admin/compensations' },
+          ]},
+          { section: 'Comercial', items: [
+            { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
+            { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
+            { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
+            { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
+            { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages', accent: '#2563EB' },
+          ]},
+          { section: 'Gestão', items: [
             { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
             { Icon: People, title: 'Passageiros', desc: 'Gerenciar passageiros', to: '/admin/passengers' },
             { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },
+            { Icon: Star, title: 'Avaliações', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
+            { Icon: Apartment, title: 'Comunidades', desc: 'Gestão de comunidades e ativação', to: '/admin/communities' },
+          ]},
+          { section: 'Configuração', items: [
+            { Icon: Map, title: 'Bairros', desc: 'Gestão de bairros administrativos', to: '/admin/neighborhoods' },
+            { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
             { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
-            { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages', accent: '#5B9BD5' },
-            { Icon: Star, title: 'Avaliações e Reputação', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
-            { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
-            { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
-            { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
-            { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
-            { Icon: Paid, title: 'Compensações por Deslocamento', desc: 'Apoio ao motorista em cancelamentos após chegada', to: '/admin/compensations' },
-            { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
-          ].map(c => {
-            const color = c.accent || '#C8A84E';
-            return (
-            <Grid item xs={12} sm={6} md={4} key={c.to}>
-              <Card sx={{ background: 'linear-gradient(145deg, #111217, #0c0c10)', border: `1px solid ${color}22`, borderRadius: 3, height: '100%', transition: 'all 0.3s cubic-bezier(.4,0,.2,1)', '&:hover': { borderColor: `${color}50`, transform: 'translateY(-3px)', boxShadow: `0 8px 24px ${color}0a` } }}>
-                <CardContent sx={{ textAlign: 'center', pt: 4, pb: 3.5, px: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-                  <Box sx={{ width: 54, height: 54, borderRadius: '50%', background: `radial-gradient(circle, ${color}14 0%, ${color}06 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2.5, border: `1px solid ${color}18` }}>
-                    <c.Icon sx={{ fontSize: 26, color }} />
-                  </Box>
-                  <Typography sx={{ color: '#E0DDD5', fontWeight: 600, fontSize: 14, letterSpacing: '0.01em', mb: 0.5 }}>{c.title}</Typography>
-                  <Typography sx={{ color: '#9CA3AF', fontSize: 11.5, lineHeight: 1.5, mb: 'auto', pb: 2.5 }}>{c.desc}</Typography>
-                  <Button variant="outlined" component={Link} to={c.to} sx={{ borderColor: `${color}35`, color, fontWeight: 600, fontSize: 11.5, letterSpacing: '0.02em', px: 3, py: 0.8, '&:hover': { bgcolor: color, color: '#0a0a0a', borderColor: color } }}>
-                    Acessar
-                  </Button>
-                </CardContent>
-              </Card>
+            ...(isSuperAdmin ? [
+              { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e trilha de proteção', to: '/admin/emergency-events', accent: '#DC2626' },
+              { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
+            ] : []),
+          ]},
+        ].map(({ section, items }) => (
+          <Box key={section} sx={{ mb: 4 }}>
+            <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>Painel</Typography>
+            <Typography sx={{ fontWeight: 700, color: '#1A1A1A', fontSize: 18, mb: 2 }}>{section}</Typography>
+            <Grid container spacing={2}>
+              {items.map(c => {
+                const color = c.accent || '#B8942E';
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={c.to}>
+                    <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', transition: 'all 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: color, transform: 'translateY(-2px)', boxShadow: `0 4px 12px rgba(0,0,0,0.08)` } }}>
+                      <CardContent sx={{ textAlign: 'center', pt: 3.5, pb: 3, px: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
+                        <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: `${color}0D`, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2, border: `1px solid ${color}20` }}>
+                          <c.Icon sx={{ fontSize: 24, color }} />
+                        </Box>
+                        <Typography sx={{ color: '#1A1A1A', fontWeight: 600, fontSize: 14, mb: 0.5 }}>{c.title}</Typography>
+                        <Typography sx={{ color: '#6B7280', fontSize: 12, lineHeight: 1.5, mb: 'auto', pb: 2 }}>{c.desc}</Typography>
+                        <Button variant="outlined" component={Link} to={c.to} sx={{ borderColor: '#E8E5DE', color: '#6B7280', fontWeight: 600, fontSize: 12, px: 3, py: 0.7, '&:hover': { bgcolor: color, color: '#fff', borderColor: color } }}>
+                          Acessar
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
             </Grid>
-            );
-          })}
-
-          {isSuperAdmin && (
-            <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ background: 'linear-gradient(145deg, #111217, #0c0c10)', border: '1px solid rgba(239,83,80,0.18)', borderRadius: 3, height: '100%', transition: 'all 0.3s cubic-bezier(.4,0,.2,1)', '&:hover': { borderColor: 'rgba(239,83,80,0.45)', transform: 'translateY(-3px)', boxShadow: '0 8px 24px rgba(239,83,80,0.06)' } }}>
-                <CardContent sx={{ textAlign: 'center', pt: 4, pb: 3.5, px: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-                  <Box sx={{ width: 54, height: 54, borderRadius: '50%', background: 'radial-gradient(circle, rgba(239,83,80,0.10) 0%, rgba(239,83,80,0.03) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2.5, border: '1px solid rgba(239,83,80,0.12)' }}>
-                    <Shield sx={{ fontSize: 26, color: '#ef5350' }} />
-                  </Box>
-                  <Typography sx={{ color: '#e57373', fontWeight: 600, fontSize: 14, letterSpacing: '0.01em', mb: 0.5 }}>Incidentes de Emergência</Typography>
-                  <Typography sx={{ color: '#9CA3AF', mb: 'auto', pb: 2.5, fontSize: 11.5, lineHeight: 1.5 }}>Cofre de evidência e trilha de proteção</Typography>
-                  <Button variant="outlined" component={Link} to="/admin/emergency-events" sx={{ borderColor: 'rgba(239,83,80,0.35)', color: '#ef5350', fontWeight: 600, fontSize: 12, px: 3, '&:hover': { borderColor: '#ef5350', bgcolor: 'rgba(239,83,80,0.06)' } }}>
-                    Acessar
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          )}
-
-          {isSuperAdmin && (
-            <Grid item xs={12} sm={6} md={4}>
-              <Card sx={{ background: 'linear-gradient(145deg, #111217, #0c0c10)', border: '1px solid rgba(200,168,78,0.18)', borderRadius: 3, height: '100%', transition: 'all 0.3s cubic-bezier(.4,0,.2,1)', '&:hover': { borderColor: 'rgba(200,168,78,0.45)', transform: 'translateY(-3px)', boxShadow: '0 8px 24px rgba(200,168,78,0.06)' } }}>
-                <CardContent sx={{ textAlign: 'center', pt: 4, pb: 3.5, px: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-                  <Box sx={{ width: 54, height: 54, borderRadius: '50%', background: 'radial-gradient(circle, rgba(200,168,78,0.10) 0%, rgba(200,168,78,0.03) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2.5, border: '1px solid rgba(200,168,78,0.12)' }}>
-                    <CardGiftcard sx={{ fontSize: 26, color: '#C8A84E' }} />
-                  </Box>
-                  <Typography sx={{ color: '#E0DDD5', fontWeight: 600, fontSize: 14, letterSpacing: '0.01em', mb: 0.5 }}>Convites Investidor/Anjo</Typography>
-                  <Typography sx={{ color: '#9CA3AF', mb: 'auto', pb: 2.5, fontSize: 11.5, lineHeight: 1.5 }}>Enviar convites read-only</Typography>
-                  <Button variant="outlined" component={Link} to="/admin/investor-invites" sx={{ borderColor: 'rgba(200,168,78,0.35)', color: '#C8A84E', fontWeight: 600, fontSize: 12, px: 3, '&:hover': { borderColor: '#C8A84E', bgcolor: 'rgba(200,168,78,0.06)' } }}>
-                    Acessar
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          )}
-        </Grid>
+          </Box>
+        ))}
       </Box>
 
       {/* Build Stamp */}
-      <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
-        <Typography variant="caption" color="text.secondary">
+      <Box sx={{ mt: 4, pt: 2, borderTop: '1px solid #E8E5DE', textAlign: 'center' }}>
+        <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
           Build: {__BUILD_HASH__} - {new Date(__BUILD_TIME__).toLocaleString('pt-BR')}
         </Typography>
       </Box>
     </Container>
+    </Box>
   );
 }
 
