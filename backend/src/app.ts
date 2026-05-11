@@ -223,6 +223,21 @@ app.use('/api/admin', adminPresignRoutes);
 app.use('/api/admin/dashboard', adminDashboardMetricsRoutes);
 app.use('/api/admin/community-leaders', communityLeadersRoutes);
 app.use('/api/admin/local-operators', localOperatorsRoutes);
+// Public receipt validation (no auth)
+app.get('/api/public/receipt/:code', async (req, res) => {
+  const { PrismaClient } = require('@prisma/client');
+  const p = new PrismaClient();
+  try {
+    const payment = await p.partner_member_payments.findUnique({
+      where: { receipt_code: req.params.code },
+      select: { receipt_code: true, reference_month: true, amount_cents: true, payment_method: true, paid_at: true, member: { select: { name: true, unit: true } }, partner: { select: { name: true, logo_url: true } } },
+    });
+    if (!payment) return res.json({ success: false, error: 'Comprovante não encontrado' });
+    res.json({ success: true, data: payment });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+  finally { await p.$disconnect(); }
+});
+
 // Public partner logo (no auth)
 app.get('/api/partners/:id/logo', async (req, res) => {
   const { S3Client, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
