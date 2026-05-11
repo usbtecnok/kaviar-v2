@@ -225,12 +225,16 @@ app.use('/api/admin/community-leaders', communityLeadersRoutes);
 app.use('/api/admin/local-operators', localOperatorsRoutes);
 // Public partner logo (no auth)
 app.get('/api/partners/:id/logo', async (req, res) => {
-  const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+  const { S3Client, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
   try {
     const s3 = new S3Client({ region: 'us-east-2' });
-    const key = `partner-logos/${req.params.id}.jpg`;
-    const command = new GetObjectCommand({ Bucket: 'kaviar-uploads-847895361928', Key: key });
-    const response = await s3.send(command);
+    const bucket = 'kaviar-uploads-847895361928';
+    const prefix = `partner-logos/${req.params.id}`;
+    // Find the actual file (any extension)
+    const list = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix, MaxKeys: 5 }));
+    const key = list.Contents?.sort((a: any, b: any) => b.LastModified - a.LastModified)?.[0]?.Key;
+    if (!key) return res.status(404).end();
+    const response = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
     res.set('Content-Type', response.ContentType || 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=3600');
     (response.Body as any).pipe(res);
