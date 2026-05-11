@@ -57,10 +57,12 @@ export default function AdminDashboard() {
   const [opsPeriod, setOpsPeriod] = useState('today');
   const [opsData, setOpsData] = useState(null);
   const [opsLoading, setOpsLoading] = useState(false);
+  const [partnersData, setPartnersData] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
     fetchTerritoryData();
+    fetchPartnersData();
   }, []);
 
   useEffect(() => {
@@ -89,6 +91,17 @@ export default function AdminDashboard() {
       });
       const data = await response.json();
       if (data.success) setTerritoryData(data.data);
+    } catch {}
+  };
+
+  const fetchPartnersData = async () => {
+    try {
+      const token = localStorage.getItem('kaviar_admin_token');
+      const res = await fetch(`${API_BASE_URL}/api/admin/territorial-partners/summary`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) setPartnersData(data.data);
     } catch {}
   };
 
@@ -487,6 +500,53 @@ export default function AdminDashboard() {
           <Typography sx={{ color: '#555' }}>Sem dados disponíveis.</Typography>
         )}
       </Box>
+
+      {/* Parceiros Territoriais */}
+      {partnersData && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ color: gold, fontWeight: 700, mb: 1.5 }}>🤝 Parceiros Territoriais</Typography>
+          <Card sx={{ bgcolor: '#111217', border: '1px solid #222' }}>
+            <CardContent sx={{ py: 2 }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid item xs={6} sm={2}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" fontWeight="800" sx={{ color: gold }}>{partnersData.active_partners}</Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa' }}>Ativos</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={2}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" fontWeight="800" sx={{ color: partnersData.billing_alerts > 0 ? '#ef5350' : '#4caf50' }}>{partnersData.billing_alerts}</Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa' }}>Alertas billing</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={2}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h4" fontWeight="800" sx={{ color: '#E8E3D5' }}>{partnersData.month_commissions}</Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa' }}>Comissões mês</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} sm={2}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="h5" fontWeight="800" sx={{ color: '#ff9800' }}>R$ {Number(partnersData.pending_value || 0).toFixed(2)}</Typography>
+                    <Typography variant="caption" sx={{ color: '#aaa' }}>Pendente ({partnersData.pending_count})</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} sm={4}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                    {partnersData.last_commission_partner && (
+                      <Typography variant="caption" sx={{ color: '#666' }}>Última: {partnersData.last_commission_partner}</Typography>
+                    )}
+                    <Button component={Link} to="/admin/territorial-partners" variant="outlined" size="small" sx={{ borderColor: gold, color: gold, '&:hover': { bgcolor: '#1a1500', borderColor: gold } }}>
+                      Ver parceiros
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
 
       {/* Menu de Navegação */}
       <Typography variant="h6" sx={{ mb: 2 }}>

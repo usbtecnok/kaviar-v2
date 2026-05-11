@@ -63,13 +63,9 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       user = await prisma.partner_users.findUnique({ where: { email: email.toLowerCase().trim() }, include: { partner: { select: { responsible_phone: true } } } });
     } else if (phone) {
       const normalized = phone.replace(/\D/g, '');
-      user = await prisma.partner_users.findFirst({ where: { phone: { contains: normalized.slice(-9) }, is_active: true }, include: { partner: { select: { responsible_phone: true } } } });
-      if (!user) {
-        // Try via partner responsible_phone
-        const partner = await prisma.territorial_partners.findFirst({ where: { responsible_phone: { contains: normalized.slice(-9) } }, include: { users: { where: { is_active: true }, take: 1 } } });
-        if (partner?.users?.[0]) {
-          user = { ...partner.users[0], partner: { responsible_phone: partner.responsible_phone } };
-        }
+      const partner = await prisma.territorial_partners.findFirst({ where: { responsible_phone: { contains: normalized.slice(-9) } }, include: { users: { where: { is_active: true }, take: 1 } } });
+      if (partner?.users?.[0]) {
+        user = { ...partner.users[0], partner: { responsible_phone: partner.responsible_phone } };
       }
     }
 
@@ -94,7 +90,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       });
 
       // WhatsApp as primary channel, email as fallback
-      const userPhone = user.phone || user.partner?.responsible_phone;
+      const userPhone = user.partner?.responsible_phone;
       let sentViaWhatsApp = false;
 
       if (userPhone) {
@@ -134,11 +130,8 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       user = await prisma.partner_users.findUnique({ where: { email: email.toLowerCase().trim() } });
     } else if (phone) {
       const normalized = phone.replace(/\D/g, '');
-      user = await prisma.partner_users.findFirst({ where: { phone: { contains: normalized.slice(-9) }, is_active: true } });
-      if (!user) {
-        const partner = await prisma.territorial_partners.findFirst({ where: { responsible_phone: { contains: normalized.slice(-9) } }, include: { users: { where: { is_active: true }, take: 1 } } });
-        if (partner?.users?.[0]) user = partner.users[0];
-      }
+      const partner = await prisma.territorial_partners.findFirst({ where: { responsible_phone: { contains: normalized.slice(-9) } }, include: { users: { where: { is_active: true }, take: 1 } } });
+      if (partner?.users?.[0]) user = partner.users[0];
     }
     if (!user) return res.status(400).json({ success: false, error: 'Código inválido ou expirado' });
 

@@ -1571,7 +1571,6 @@ model partner_users {
   partner_id    String
   name          String
   email         String   @unique
-  phone         String?
   password_hash String
   is_active     Boolean  @default(true)
   last_login_at DateTime?

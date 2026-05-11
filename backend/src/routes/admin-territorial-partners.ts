@@ -528,7 +528,7 @@ router.post('/:id/commissions/mark-paid', authenticateAdmin, async (req: Request
 // Create partner user (admin creates login for the partner)
 router.post('/:id/users', authenticateAdmin, async (req: Request, res: Response) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email, password } = req.body;
     if (!name || !email) return res.status(400).json({ success: false, error: 'name e email obrigatórios' });
 
     // Prevent duplicate: one user per partner
@@ -539,7 +539,7 @@ router.post('/:id/users', authenticateAdmin, async (req: Request, res: Response)
     const { randomBytes } = require('crypto');
     const tempPassword = password || randomBytes(4).toString('hex') + '!A1';
     const password_hash = await bcrypt.hash(tempPassword, 10);
-    const user = await prisma.partner_users.create({ data: { partner_id: req.params.id, name, email: email.toLowerCase().trim(), phone: phone || null, password_hash } });
+    const user = await prisma.partner_users.create({ data: { partner_id: req.params.id, name, email: email.toLowerCase().trim(), password_hash } });
     const ctx = auditCtx(req);
     audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'partner_user_created', entityType: 'partner_user', entityId: user.id, newValue: { partner_id: req.params.id, email }, ipAddress: ctx.ip });
     res.status(201).json({ success: true, data: { id: user.id, name: user.name, email: user.email, temp_password: tempPassword } });
