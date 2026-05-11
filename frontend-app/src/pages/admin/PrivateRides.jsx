@@ -41,7 +41,7 @@ export default function PrivateRides() {
         <Chip label={`Novas (${counts.new})`} color="info" variant={filter === 'new' ? 'filled' : 'outlined'} onClick={() => setFilter('new')} />
         <Chip label={`Em análise (${counts.analyzing})`} color="warning" variant={filter === 'analyzing' ? 'filled' : 'outlined'} onClick={() => setFilter('analyzing')} />
         <Chip label={`Confirmadas (${counts.confirmed})`} color="success" variant={filter === 'confirmed' ? 'filled' : 'outlined'} onClick={() => setFilter('confirmed')} />
-        <Chip label="Todas" variant={filter === 'all' ? 'filled' : 'outlined'} onClick={() => setFilter('all')} />
+        <Chip label="Todas" variant={filter === 'all' ? 'filled' : 'outlined'} onClick={() => setFilter('all')} sx={{ color: '#E8E3D5', borderColor: '#555' }} />
       </Box>
 
       <Table size="small" sx={{ '& .MuiTableCell-root': { borderColor: '#333' } }}>
