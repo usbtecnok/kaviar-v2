@@ -230,7 +230,7 @@ app.get('/api/public/receipt/:code', async (req, res) => {
   try {
     const payment = await p.partner_member_payments.findUnique({
       where: { receipt_code: req.params.code },
-      select: { receipt_code: true, reference_month: true, amount_cents: true, payment_method: true, paid_at: true, member: { select: { name: true, unit: true } }, partner: { select: { name: true, logo_url: true } } },
+      select: { receipt_code: true, reference_month: true, amount_cents: true, payment_method: true, paid_at: true, partner_id: true, member: { select: { name: true, unit: true } }, partner: { select: { name: true, logo_url: true } } },
     });
     if (!payment) return res.json({ success: false, error: 'Comprovante não encontrado' });
     res.json({ success: true, data: payment });
