@@ -9,6 +9,7 @@ const CARD_W = SCREEN_W * 0.7;
 
 const SLIDES = [
   { icon: '💼', title: 'Seja um Consultor', sub: 'Ajude o KAVIAR a crescer na sua região e ganhe por isso.', cta: 'Saiba mais', action: 'consultor' },
+  { icon: '🚘', title: 'KAVIAR Particular', sub: 'Reserve um motorista para consultas, compras, escola, aeroporto, ida e volta ou espera no local.', cta: 'Solicitar', action: 'particular' },
   { icon: '🚗', title: 'Trabalhe como motorista', sub: 'Dirija na sua comunidade com segurança e autonomia.', cta: 'Quero dirigir', action: 'refer' },
   { icon: '🤝', title: 'Indique e ganhe', sub: 'Indique motoristas e passageiros e receba créditos KAVIAR.', cta: 'Indicar agora', action: 'refer' },
   { icon: '🎉', title: 'Novidades da comunidade', sub: 'Fique por dentro das campanhas e promoções locais.', cta: 'Ver mais', action: 'help' },
@@ -20,6 +21,7 @@ export function HomeOpportunityCarousel() {
   const handlePress = (action: string) => {
     if (action === 'refer') router.push('/(passenger)/refer-driver');
     else if (action === 'consultor') Linking.openURL('https://kaviar.com.br/#consultor');
+    else if (action === 'particular') Linking.openURL('https://kaviar.com.br/particular');
     else if (action === 'help') router.push('/(passenger)/help');
   };
 
