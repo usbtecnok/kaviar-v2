@@ -223,6 +223,23 @@ app.use('/api/admin', adminPresignRoutes);
 app.use('/api/admin/dashboard', adminDashboardMetricsRoutes);
 app.use('/api/admin/community-leaders', communityLeadersRoutes);
 app.use('/api/admin/local-operators', localOperatorsRoutes);
+// Public partner logo (no auth)
+app.get('/api/partners/:id/logo', async (req, res) => {
+  const { PrismaClient } = require('@prisma/client');
+  const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+  const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+  const p = new PrismaClient();
+  try {
+    const partner = await p.territorial_partners.findUnique({ where: { id: req.params.id }, select: { logo_url: true } });
+    if (!partner?.logo_url) return res.status(404).end();
+    const s3 = new S3Client({ region: 'us-east-2' });
+    const key = partner.logo_url.includes('.amazonaws.com/') ? partner.logo_url.split('.amazonaws.com/')[1].split('?')[0] : `partner-logos/${req.params.id}.jpg`;
+    const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: 'kaviar-uploads-847895361928', Key: key }), { expiresIn: 3600 });
+    res.redirect(url);
+  } catch { res.status(500).end(); }
+  finally { await p.$disconnect(); }
+});
+
 app.use('/api/admin/territorial-partners', territorialPartnersRoutes);
 app.use('/api/admin/territorial-partners', partnerManagementRoutes);
 app.use('/api', complianceRoutes);

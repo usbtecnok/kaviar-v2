@@ -676,8 +676,8 @@ router.post('/:id/logo', authenticateAdmin, uploadLogo.single('logo'), async (re
   try {
     const file = req.file as any;
     if (!file) return res.status(400).json({ success: false, error: 'Arquivo obrigatório' });
-    // Save API proxy URL so it always works regardless of S3 ACL
-    const logo_url = `https://api.kaviar.com.br/api/admin/territorial-partners/${req.params.id}/logo`;
+    // Save public API URL for logo access
+    const logo_url = `https://api.kaviar.com.br/api/partners/${req.params.id}/logo`;
     await prisma.territorial_partners.update({ where: { id: req.params.id }, data: { logo_url } });
     res.json({ success: true, data: { logo_url } });
   } catch (error: any) {
