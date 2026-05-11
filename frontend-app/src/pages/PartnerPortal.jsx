@@ -28,6 +28,10 @@ export default function PartnerPortal() {
   const [changePwDialog, setChangePwDialog] = useState(false);
   const [changePwForm, setChangePwForm] = useState({ current: '', newPw: '', confirm: '' });
   const [changePwError, setChangePwError] = useState('');
+  const [memberPayments, setMemberPayments] = useState([]);
+  const [payMonth, setPayMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [payDialog, setPayDialog] = useState(false);
+  const [payForm, setPayForm] = useState({ member_id: '', amount: '', payment_method: 'pix', notes: '' });
 
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -64,6 +68,7 @@ export default function PartnerPortal() {
   };
 
   useEffect(() => { if (token) fetchData(); }, [token, month]);
+  useEffect(() => { if (token && portalTab === 2) { fetch(`${API_BASE_URL}/api/partner/member-payments?month=${payMonth}`, { headers }).then(r => r.json()).then(d => { if (d.success) setMemberPayments(d.data); }); } }, [token, portalTab, payMonth]);
 
   const handleAddMember = async () => {
     if (!memberForm.name) return;
@@ -192,6 +197,7 @@ export default function PartnerPortal() {
         <Tabs value={portalTab} onChange={(_, v) => setPortalTab(v)} centered sx={{ mb: 2, '& .MuiTab-root': { color: '#888', fontSize: 13 }, '& .Mui-selected': { color: `${gold} !important` }, '& .MuiTabs-indicator': { backgroundColor: gold } }}>
           <Tab label="Corridas" />
           <Tab label="Gestão" />
+          <Tab label="Mensalidades" />
         </Tabs>
 
         {/* Tab 0: Corridas */}
@@ -334,6 +340,76 @@ export default function PartnerPortal() {
           Controle interno. Não substitui contabilidade oficial.
         </Typography>
         </Box>)}
+
+        {/* Tab 2: Mensalidades */}
+        {portalTab === 2 && (<Box>
+          <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+            <TextField size="small" type="month" value={payMonth} onChange={(e) => setPayMonth(e.target.value)} sx={{ '& .MuiOutlinedInput-root': { color: '#E8E3D5' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' } }} />
+            <Button size="small" variant="contained" sx={{ bgcolor: gold }} onClick={() => { setPayForm({ member_id: '', amount: '', payment_method: 'pix', notes: '' }); setPayDialog(true); }}>Registrar pagamento</Button>
+            <Button size="small" variant="outlined" sx={{ color: gold, borderColor: '#333' }} onClick={async () => {
+              const res = await fetch(`${API_BASE_URL}/api/partner/member-payments?month=${payMonth}`, { headers });
+              const data = await res.json();
+              if (data.success) setMemberPayments(data.data);
+            }}>Atualizar</Button>
+          </Box>
+
+          {memberPayments.length === 0 && <Typography sx={{ color: '#666', textAlign: 'center', py: 3 }}>Nenhum pagamento registrado para {payMonth}</Typography>}
+
+          {memberPayments.map(p => (
+            <Box key={p.id} sx={{ p: 1.5, mb: 1, border: '1px solid #222', borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{p.member?.name} {p.member?.unit ? `(${p.member.unit})` : ''}</Typography>
+                <Typography variant="caption" sx={{ color: '#888' }}>R$ {(p.amount_cents / 100).toFixed(2)} • {p.payment_method} • {new Date(p.paid_at).toLocaleDateString('pt-BR')}</Typography>
+                <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>Código: {p.receipt_code}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {p.whatsapp_sent_at && <Chip label="Enviado" size="small" color="success" sx={{ fontSize: 10 }} />}
+                <Button size="small" sx={{ color: '#4caf50', fontSize: 11 }} onClick={async () => {
+                  const phone = p.member?.phone || prompt('Telefone do associado (com DDD):');
+                  if (!phone) return;
+                  const res = await fetch(`${API_BASE_URL}/api/partner/member-payments/${p.id}/send-whatsapp`, { method: 'POST', headers, body: JSON.stringify({ phone }) });
+                  const data = await res.json();
+                  if (data.success) {
+                    window.open(`https://wa.me/${data.data.phone.replace('+', '')}?text=${encodeURIComponent(data.data.message)}`, '_blank');
+                    // Refresh
+                    const r2 = await fetch(`${API_BASE_URL}/api/partner/member-payments?month=${payMonth}`, { headers });
+                    const d2 = await r2.json();
+                    if (d2.success) setMemberPayments(d2.data);
+                  } else { alert(data.error); }
+                }}>Enviar comprovante</Button>
+              </Box>
+            </Box>
+          ))}
+        </Box>)}
+
+        {/* Dialog registrar pagamento */}
+        <Dialog open={payDialog} onClose={() => setPayDialog(false)} PaperProps={{ sx: { bgcolor: '#1a1a1a', color: '#E8E3D5' } }}>
+          <DialogTitle sx={{ color: gold }}>Registrar pagamento</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: '8px !important', minWidth: 300 }}>
+            <FormControl size="small"><InputLabel sx={{ color: '#888' }}>Associado</InputLabel><Select label="Associado" value={payForm.member_id} onChange={(e) => setPayForm({ ...payForm, member_id: e.target.value })} sx={{ color: '#E8E3D5', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' } }}>
+              {members.filter(m => m.status === 'active').map(m => <MenuItem key={m.id} value={m.id}>{m.name} {m.unit ? `(${m.unit})` : ''}</MenuItem>)}
+            </Select></FormControl>
+            <TextField size="small" label="Valor (R$)" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} sx={{ '& .MuiOutlinedInput-root': { color: '#E8E3D5' }, '& .MuiInputLabel-root': { color: '#888' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' } }} />
+            <FormControl size="small"><InputLabel sx={{ color: '#888' }}>Forma</InputLabel><Select label="Forma" value={payForm.payment_method} onChange={(e) => setPayForm({ ...payForm, payment_method: e.target.value })} sx={{ color: '#E8E3D5', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' } }}>
+              <MenuItem value="pix">Pix</MenuItem><MenuItem value="dinheiro">Dinheiro</MenuItem><MenuItem value="transferencia">Transferência</MenuItem><MenuItem value="cartao">Cartão</MenuItem><MenuItem value="outro">Outro</MenuItem>
+            </Select></FormControl>
+            <TextField size="small" label="Observação (opcional)" value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })} sx={{ '& .MuiOutlinedInput-root': { color: '#E8E3D5' }, '& .MuiInputLabel-root': { color: '#888' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#333' } }} />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setPayDialog(false)} sx={{ color: '#888' }}>Cancelar</Button>
+            <Button variant="contained" sx={{ bgcolor: gold }} onClick={async () => {
+              if (!payForm.member_id || !payForm.amount) return;
+              const res = await fetch(`${API_BASE_URL}/api/partner/member-payments`, { method: 'POST', headers, body: JSON.stringify({ member_id: payForm.member_id, reference_month: payMonth, amount_cents: Math.round(Number(payForm.amount) * 100), payment_method: payForm.payment_method, notes: payForm.notes || undefined }) });
+              const data = await res.json();
+              if (data.success) {
+                setPayDialog(false);
+                const r2 = await fetch(`${API_BASE_URL}/api/partner/member-payments?month=${payMonth}`, { headers });
+                const d2 = await r2.json();
+                if (d2.success) setMemberPayments(d2.data);
+              } else { alert(data.error); }
+            }}>Registrar</Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Report Dialog */}
         <Dialog open={showReport} onClose={() => setShowReport(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#0a0a0a', color: '#E8E3D5' } }}>

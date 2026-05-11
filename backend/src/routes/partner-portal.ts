@@ -329,4 +329,100 @@ router.delete('/transactions/:id', authenticatePartner, async (req: Request, res
   }
 });
 
+// --- Member Payments (mensalidade) ---
+
+function generateReceiptCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'KAV-';
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+// Register payment
+router.post('/member-payments', authenticatePartner, async (req: Request, res: Response) => {
+  try {
+    const { partnerId, userId } = (req as any).partnerUser;
+    const { member_id, reference_month, amount_cents, payment_method, paid_at, notes } = req.body;
+    if (!member_id || !reference_month || !amount_cents) return res.status(400).json({ success: false, error: 'member_id, reference_month e amount_cents obrigatórios' });
+
+    const member = await prisma.partner_members.findUnique({ where: { id: member_id } });
+    if (!member || member.partner_id !== partnerId) return res.status(404).json({ success: false, error: 'Associado não encontrado' });
+
+    const payment = await prisma.partner_member_payments.create({
+      data: {
+        partner_id: partnerId,
+        member_id,
+        reference_month,
+        amount_cents: Number(amount_cents),
+        payment_method: payment_method || 'pix',
+        paid_at: paid_at ? new Date(paid_at) : new Date(),
+        receipt_code: generateReceiptCode(),
+        notes: notes || null,
+        registered_by: userId,
+      },
+    });
+    res.status(201).json({ success: true, data: payment });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao registrar pagamento' });
+  }
+});
+
+// List payments for a month
+router.get('/member-payments', authenticatePartner, async (req: Request, res: Response) => {
+  try {
+    const { partnerId } = (req as any).partnerUser;
+    const month = (req.query.month as string) || new Date().toISOString().slice(0, 7);
+    const payments = await prisma.partner_member_payments.findMany({
+      where: { partner_id: partnerId, reference_month: month },
+      include: { member: { select: { name: true, unit: true, phone: true } } },
+      orderBy: { paid_at: 'desc' },
+    });
+    res.json({ success: true, data: payments });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro' });
+  }
+});
+
+// Send receipt via WhatsApp
+router.post('/member-payments/:id/send-whatsapp', authenticatePartner, async (req: Request, res: Response) => {
+  try {
+    const { partnerId } = (req as any).partnerUser;
+    const payment = await prisma.partner_member_payments.findUnique({
+      where: { id: req.params.id },
+      include: { member: { select: { name: true, phone: true } }, partner: { select: { name: true, responsible_phone: true } } },
+    });
+    if (!payment || payment.partner_id !== partnerId) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    const phone = payment.member.phone || (req.body.phone as string);
+    if (!phone) return res.status(400).json({ success: false, error: 'Associado não possui telefone cadastrado' });
+
+    const phoneDigits = phone.replace(/\D/g, '');
+    const phoneE164 = phoneDigits.startsWith('55') ? `+${phoneDigits}` : `+55${phoneDigits}`;
+    const valor = (payment.amount_cents / 100).toFixed(2).replace('.', ',');
+    const [year, monthNum] = payment.reference_month.split('-');
+    const meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesRef = `${meses[Number(monthNum)]}/${year}`;
+
+    const msg = `✅ *Comprovante de Pagamento*\n\n*${payment.partner.name}*\n\nAssociado: ${payment.member.name}\nReferência: ${mesRef}\nValor: R$ ${valor}\nForma: ${payment.payment_method}\nData: ${new Date(payment.paid_at).toLocaleDateString('pt-BR')}\nStatus: Pago ✓\n\nCódigo: ${payment.receipt_code}`;
+
+    // Send via WhatsApp API (wa.me link for now, template in future)
+    try {
+      await whatsappEvents.authVerificationCode(phoneE164, { '1': `Comprovante ${payment.receipt_code}` });
+    } catch {
+      // Fallback: return message for manual send
+    }
+
+    await prisma.partner_member_payments.update({ where: { id: req.params.id }, data: { whatsapp_sent_at: new Date() } });
+
+    // Update member phone if provided
+    if (req.body.phone && !payment.member.phone) {
+      await prisma.partner_members.update({ where: { id: payment.member_id }, data: { phone: req.body.phone } });
+    }
+
+    res.json({ success: true, data: { message: msg, phone: phoneE164 } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao enviar comprovante' });
+  }
+});
+
 export default router;

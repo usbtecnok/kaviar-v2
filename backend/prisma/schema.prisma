@@ -1478,6 +1478,7 @@ model territorial_partners {
   members             partner_members[]
   transactions        partner_transactions[]
   users               partner_users[]
+  member_payments     partner_member_payments[]
 
   @@index([status])
   @@index([partner_type])
@@ -1541,13 +1542,36 @@ model partner_members {
   id          String   @id @default(uuid())
   partner_id  String
   name        String
+  phone       String?
   unit        String?  // apt 101, casa 3, etc
   status      String   @default("active") // active | inactive
   created_at  DateTime @default(now())
 
   partner     territorial_partners @relation(fields: [partner_id], references: [id])
+  payments    partner_member_payments[]
 
   @@index([partner_id, status])
+}
+
+model partner_member_payments {
+  id              String    @id @default(uuid())
+  partner_id      String
+  member_id       String
+  reference_month String
+  amount_cents    Int
+  payment_method  String    @default("pix") // pix | dinheiro | transferencia | cartao | outro
+  paid_at         DateTime  @default(now())
+  receipt_code    String    @unique
+  notes           String?
+  registered_by   String
+  whatsapp_sent_at DateTime?
+  created_at      DateTime  @default(now())
+
+  partner  territorial_partners @relation(fields: [partner_id], references: [id])
+  member   partner_members      @relation(fields: [member_id], references: [id])
+
+  @@index([partner_id, reference_month])
+  @@index([member_id])
 }
 
 model partner_transactions {
