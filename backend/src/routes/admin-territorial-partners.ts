@@ -157,10 +157,23 @@ router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
       ? await prisma.rides_v2.count({ where: { driver_id: { in: driverIds }, status: 'completed' } })
       : 0;
 
+    // Generate presigned logo URL if partner has logo
+    let logo_presigned = null;
+    if (partner.logo_url) {
+      try {
+        const { GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+        const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+        const list: any = await s3.send(new ListObjectsV2Command({ Bucket: logoBucket, Prefix: `partner-logos/${req.params.id}`, MaxKeys: 5 }));
+        const key = list.Contents?.sort((a: any, b: any) => new Date(b.LastModified).getTime() - new Date(a.LastModified).getTime())?.[0]?.Key;
+        if (key) logo_presigned = await getSignedUrl(s3, new GetObjectCommand({ Bucket: logoBucket, Key: key }), { expiresIn: 3600 });
+      } catch {}
+    }
+
     res.json({
       success: true,
       data: {
         ...partner,
+        logo_url: logo_presigned || partner.logo_url,
         drivers: driversWithStats,
         financial: {
           total_rides: ridesCount,
