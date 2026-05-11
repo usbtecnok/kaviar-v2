@@ -10,6 +10,8 @@ import path from 'path';
 
 const router = Router();
 const prisma = new PrismaClient();
+const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
+const logoBucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
 
 const VALID_TYPES = ['association', 'condominium', 'business', 'community_leader', 'institution', 'other'];
 const VALID_STATUSES = ['active', 'paused', 'inactive', 'archived'];
@@ -664,8 +666,6 @@ router.post('/:id/payments', authenticateAdmin, async (req: Request, res: Respon
 });
 
 // Upload partner logo
-const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
-const logoBucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
 
 const uploadLogo = multer({
   storage: multerS3({
