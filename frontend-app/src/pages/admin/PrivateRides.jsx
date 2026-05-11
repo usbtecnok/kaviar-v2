@@ -35,7 +35,7 @@ export default function PrivateRides() {
 
   return (
     <Box sx={{ p: 3, maxWidth: 1100, mx: 'auto' }}>
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>KAVIAR Particular</Typography>
+      <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: '#B8942E' }}>KAVIAR Particular</Typography>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
         <Chip label={`Novas (${counts.new})`} color="info" variant={filter === 'new' ? 'filled' : 'outlined'} onClick={() => setFilter('new')} />
@@ -44,9 +44,9 @@ export default function PrivateRides() {
         <Chip label="Todas" variant={filter === 'all' ? 'filled' : 'outlined'} onClick={() => setFilter('all')} />
       </Box>
 
-      <Table size="small">
+      <Table size="small" sx={{ '& .MuiTableCell-root': { borderColor: '#333' } }}>
         <TableHead><TableRow>
-          <TableCell>Data/Hora</TableCell><TableCell>Cliente</TableCell><TableCell>Serviço</TableCell><TableCell>Trajeto</TableCell><TableCell>Status</TableCell><TableCell>Ações</TableCell>
+          <TableCell sx={{ color: '#B8942E', fontWeight: 600 }}>Data/Hora</TableCell><TableCell sx={{ color: '#B8942E', fontWeight: 600 }}>Cliente</TableCell><TableCell sx={{ color: '#B8942E', fontWeight: 600 }}>Serviço</TableCell><TableCell sx={{ color: '#B8942E', fontWeight: 600 }}>Trajeto</TableCell><TableCell sx={{ color: '#B8942E', fontWeight: 600 }}>Status</TableCell><TableCell sx={{ color: '#B8942E', fontWeight: 600 }}>Ações</TableCell>
         </TableRow></TableHead>
         <TableBody>
           {requests.map(r => (
