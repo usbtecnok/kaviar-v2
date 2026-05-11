@@ -34,6 +34,9 @@ import driversRoutes from './routes/drivers';
 import adminDriversRoutes from './routes/admin-drivers';
 import communityLeadersRoutes from './routes/community-leaders';
 import localOperatorsRoutes from './routes/admin-local-operators';
+import territorialPartnersRoutes from './routes/admin-territorial-partners';
+import partnerManagementRoutes from './routes/admin-partner-management';
+import partnerPortalRoutes from './routes/partner-portal';
 import feeCalculationRoutes from './routes/fee-calculation';
 import driverDashboardRoutes from './routes/driver-dashboard';
 import notificationsRoutes from './routes/notifications';
@@ -220,6 +223,8 @@ app.use('/api/admin', adminPresignRoutes);
 app.use('/api/admin/dashboard', adminDashboardMetricsRoutes);
 app.use('/api/admin/community-leaders', communityLeadersRoutes);
 app.use('/api/admin/local-operators', localOperatorsRoutes);
+app.use('/api/admin/territorial-partners', territorialPartnersRoutes);
+app.use('/api/admin/territorial-partners', partnerManagementRoutes);
 app.use('/api', complianceRoutes);
 app.use('/api/ratings', ratingsRoutes);
 import adminRatingsRoutes from './routes/admin-ratings';
@@ -260,6 +265,7 @@ if (config.premiumTourism.enablePremiumTourism) {
 
 // Public + admin routes
 app.use('/api/public', publicRoutes);
+app.use('/api/partner', partnerPortalRoutes);
 app.use('/api/public', consultantLeadsRoutes);
 app.use('/api/admin', consultantLeadsRoutes);
 app.use('/api/admin/staff', adminStaffRoutes);

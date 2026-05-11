@@ -64,6 +64,22 @@ export class DriverRegistrationService {
       if (existing) {
         return { success: false, error: 'Email já cadastrado' };
       }
+
+      // 2b. Validar telefone único (se informado)
+      if (input.phone) {
+        const byPhone = await prisma.drivers.findFirst({ where: { phone: input.phone } });
+        if (byPhone) {
+          return { success: false, error: 'Telefone já cadastrado' };
+        }
+      }
+
+      // 2c. Validar CPF único (se informado)
+      if (input.document_cpf) {
+        const byCpf = await prisma.drivers.findFirst({ where: { document_cpf: input.document_cpf } });
+        if (byCpf) {
+          return { success: false, error: 'CPF já cadastrado' };
+        }
+      }
       
       // 3. Resolver território via GPS (fonte primária) ou neighborhoodId (fallback)
       let resolvedNeighborhoodId = input.neighborhoodId;
