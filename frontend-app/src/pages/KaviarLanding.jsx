@@ -106,7 +106,7 @@ export default function KaviarLanding() {
             </Box>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
-            {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#downloads', 'Downloads']].map(([href, label]) => (
+            {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#particular', 'Particular'], ['#downloads', 'Downloads']].map(([href, label]) => (
               <Typography key={href} component="a" href={href} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textDecoration: 'none', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>{label}</Typography>
             ))}
             <Button component={Link} to="/login" variant="outlined" size="small" sx={{ borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.85)', borderRadius: 2.5, textTransform: 'none', fontSize: 13, px: 2.5 }}>Já tenho conta</Button>
@@ -308,6 +308,35 @@ export default function KaviarLanding() {
         </Box>
       </Box>
 
+      {/* ─── KAVIAR Particular ─── */}
+      <Box id="particular" sx={{ ...sx.section, py: { xs: 4, md: 7 } }}>
+        <Box sx={{ borderRadius: 6, border: `1px solid ${gold}30`, background: 'linear-gradient(135deg, #0f0d08, #0a0a0a)', p: { xs: 4, md: 6 }, textAlign: 'center', boxShadow: `0 30px 120px rgba(212,175,55,0.05)` }}>
+          <Typography sx={{ fontSize: 11, letterSpacing: '0.35em', color: gold, textTransform: 'uppercase', mb: 1 }}>Novo</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, letterSpacing: '-0.01em', fontSize: { xs: '1.6rem', md: '2.2rem' }, mb: 2 }}>
+            KAVIAR Particular
+          </Typography>
+          <Typography sx={{ fontSize: 15, lineHeight: 1.8, color: 'rgba(255,255,255,0.6)', maxWidth: 600, mx: 'auto', mb: 4 }}>
+            Reserve um motorista de confiança para consultas, compras, eventos, escola, aeroporto, ida e volta ou deslocamentos com espera.
+          </Typography>
+          <Box component="ul" sx={{ pl: 0, listStyle: 'none', mb: 4, display: 'inline-block', textAlign: 'left', '& li': { fontSize: 13, color: 'rgba(255,255,255,0.55)', mb: 1, '&::before': { content: '"•"', mr: 1, color: gold } } }}>
+            <li>Consulta médica com espera</li>
+            <li>Mercado, farmácia, escola</li>
+            <li>Aeroporto e rodoviária</li>
+            <li>Eventos e compromissos</li>
+            <li>Acompanhamento de familiar ou idoso</li>
+            <li>Ida e volta com motorista aguardando</li>
+          </Box>
+          <Box>
+            <Button variant="contained" component={Link} to="/particular" sx={sx.goldBtn}>
+              Solicitar motorista particular
+            </Button>
+          </Box>
+          <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', mt: 3 }}>
+            Associações e condomínios podem solicitar para moradores e associados.
+          </Typography>
+        </Box>
+      </Box>
+
       {/* ─── Footer ─── */}
       <Box sx={{ position: 'relative', zIndex: 10, mt: 5, borderTop: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(0,0,0,0.3)' }}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, justifyContent: 'space-between', gap: 3, px: { xs: 3, md: 5 }, py: 4 }}>
@@ -316,6 +345,7 @@ export default function KaviarLanding() {
             {[
               ['/login', 'Entrar'],
               ['/admin/login', 'Admin'],
+              ['/particular', 'Motorista Particular'],
               ['/turismo', 'Turismo Premium'],
             ].map(([href, label]) => (
               <Typography key={href} component={Link} to={href} sx={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>{label}</Typography>
