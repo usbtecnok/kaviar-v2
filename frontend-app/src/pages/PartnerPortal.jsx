@@ -378,6 +378,7 @@ export default function PartnerPortal() {
                   } else { alert(data.error); }
                 }}>Enviar comprovante</Button>
                 <Button size="small" sx={{ color: gold, fontSize: 11 }} onClick={() => window.open(`${API_BASE_URL}/api/partner/member-payments/${p.id}/pdf?token=${token}`, '_blank')}>PDF</Button>
+                <Button size="small" sx={{ color: '#888', fontSize: 11 }} onClick={() => { navigator.clipboard.writeText(`https://kaviar.com.br/comprovante/${p.receipt_code}`); alert('Link copiado!'); }}>Copiar link</Button>
               </Box>
             </Box>
           ))}
