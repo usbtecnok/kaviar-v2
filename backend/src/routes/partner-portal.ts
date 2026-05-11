@@ -415,7 +415,7 @@ router.post('/member-payments/:id/send-whatsapp', authenticatePartner, async (re
     const meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const mesRef = `${meses[Number(monthNum)]}/${year}`;
 
-    const msg = `✅ *Comprovante de Pagamento*\n\n*${payment.partner.name}*\n\nAssociado: ${payment.member.name}\nReferência: ${mesRef}\nValor: R$ ${valor}\nForma: ${payment.payment_method}\nData: ${new Date(payment.paid_at).toLocaleDateString('pt-BR')}\nStatus: Pago ✓\n\nCódigo: ${payment.receipt_code}`;
+    const msg = `✅ *Comprovante de Pagamento*\n\n*${payment.partner.name}*\n\nAssociado: ${payment.member.name}\nReferência: ${mesRef}\nValor: R$ ${valor}\nForma: ${payment.payment_method}\nData: ${new Date(payment.paid_at).toLocaleDateString('pt-BR')}\nStatus: Pago ✓\n\nCódigo: ${payment.receipt_code}\n\n_Seu pagamento ajuda a melhorar o local em que moramos. Obrigado!_`;
 
     // Send via WhatsApp API (wa.me link for now, template in future)
     try {
