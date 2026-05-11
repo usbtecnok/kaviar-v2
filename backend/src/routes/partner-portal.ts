@@ -95,7 +95,9 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 
       if (userPhone) {
         try {
-          await whatsappEvents.authVerificationCode(userPhone.replace(/\D/g, ''), { '1': code });
+          const phoneDigits = userPhone.replace(/\D/g, '');
+          const phoneE164 = phoneDigits.startsWith('55') ? `+${phoneDigits}` : `+55${phoneDigits}`;
+          await whatsappEvents.authVerificationCode(phoneE164, { '1': code });
           sentViaWhatsApp = true;
         } catch (e) {
           // WhatsApp failed, fall through to email
