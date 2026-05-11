@@ -31,6 +31,7 @@ import PartnerPublicView from "./pages/PartnerPublicView";
 import PartnerPortal from "./pages/PartnerPortal";
 import DriverRegister from "./pages/DriverRegister";
 import ReceiptValidation from "./pages/ReceiptValidation";
+import PrivateRideRequest from "./pages/PrivateRideRequest";
 import KaviarLanding from "./pages/KaviarLanding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
@@ -439,6 +440,7 @@ export default function App() {
           <Route path="/parceiro/portal" element={<PartnerPortal />} />
           <Route path="/driver/register" element={<DriverRegister />} />
           <Route path="/comprovante/:code" element={<ReceiptValidation />} />
+          <Route path="/particular" element={<PrivateRideRequest />} />
           <Route path="/motorista" element={<MotoristaReferral />} />
           {/* Convite curto — redireciona para backend que valida e redireciona para reset-password */}
           <Route path="/i/:code" element={<InviteRedirect />} />

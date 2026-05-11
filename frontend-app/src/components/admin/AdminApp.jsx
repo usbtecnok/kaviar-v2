@@ -46,6 +46,7 @@ import ConsultantLeads from "../../pages/admin/ConsultantLeads";
 import LeadPerformance from "../../pages/admin/LeadPerformance";
 import LocalOperators from "../../pages/admin/LocalOperators";
 import TerritorialPartners from "../../pages/admin/TerritorialPartners";
+import PrivateRides from "../../pages/admin/PrivateRides";
 import StaffManagement from "../../pages/admin/StaffManagement";
 import AuditLogs from "../../pages/admin/AuditLogs";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
@@ -378,6 +379,7 @@ function AdminHome() {
             { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
             { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
             { Icon: Handshake, title: 'Parceiros Territoriais', desc: 'Comissão por corridas de motoristas vinculados', to: '/admin/territorial-partners' },
+            { Icon: Handshake, title: 'KAVIAR Particular', desc: 'Solicitações de motorista reservado', to: '/admin/private-rides', accent: '#B8942E' },
             { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
             { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
             { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages', accent: '#2563EB' },
@@ -543,6 +545,12 @@ export default function AdminApp() {
             <ProtectedAdminRoute>
               <AdminHeader />
               <TerritorialPartners />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/private-rides" element={
+            <ProtectedAdminRoute>
+              <AdminHeader />
+              <PrivateRides />
             </ProtectedAdminRoute>
           } />
           <Route path="/lead-performance" element={

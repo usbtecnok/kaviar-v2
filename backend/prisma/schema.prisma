@@ -1621,3 +1621,27 @@ model partner_password_resets {
   @@index([partner_user_id])
   @@index([expires_at])
 }
+
+model private_ride_requests {
+  id                  String   @id @default(uuid())
+  name                String
+  phone               String
+  service_type        String   @default("outro") // consulta | mercado | escola | aeroporto | evento | idoso | compromisso | outro
+  scheduled_date      String   // 2026-05-15
+  scheduled_time      String   // 14:00
+  origin              String
+  destination         String
+  round_trip          Boolean  @default(false)
+  wait_at_destination Boolean  @default(false)
+  notes               String?
+  status              String   @default("new") // new | analyzing | confirmed | completed | canceled
+  assigned_driver     String?
+  admin_notes         String?
+  partner_id          String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @default(now()) @updatedAt
+
+  @@index([status])
+  @@index([scheduled_date])
+  @@index([partner_id])
+}

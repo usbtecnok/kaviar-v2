@@ -37,6 +37,7 @@ import localOperatorsRoutes from './routes/admin-local-operators';
 import territorialPartnersRoutes from './routes/admin-territorial-partners';
 import partnerManagementRoutes from './routes/admin-partner-management';
 import partnerPortalRoutes from './routes/partner-portal';
+import privateRidesRoutes from './routes/private-rides';
 import feeCalculationRoutes from './routes/fee-calculation';
 import driverDashboardRoutes from './routes/driver-dashboard';
 import notificationsRoutes from './routes/notifications';
@@ -314,6 +315,8 @@ if (config.premiumTourism.enablePremiumTourism) {
 // Public + admin routes
 app.use('/api/public', publicRoutes);
 app.use('/api/partner', partnerPortalRoutes);
+app.use('/api/public/private-rides', privateRidesRoutes);
+app.use('/api/admin/private-rides', privateRidesRoutes);
 app.use('/api/public', consultantLeadsRoutes);
 app.use('/api/admin', consultantLeadsRoutes);
 app.use('/api/admin/staff', adminStaffRoutes);
