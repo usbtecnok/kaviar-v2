@@ -377,6 +377,7 @@ export default function PartnerPortal() {
                     if (d2.success) setMemberPayments(d2.data);
                   } else { alert(data.error); }
                 }}>Enviar comprovante</Button>
+                <Button size="small" sx={{ color: gold, fontSize: 11 }} onClick={() => window.open(`${API_BASE_URL}/api/partner/member-payments/${p.id}/pdf?token=${token}`, '_blank')}>PDF</Button>
               </Box>
             </Box>
           ))}

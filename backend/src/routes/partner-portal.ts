@@ -16,7 +16,7 @@ function hashCode(code: string): string {
 
 // --- Auth middleware for partner users ---
 function authenticatePartner(req: Request, res: Response, next: NextFunction) {
-  const token = req.headers.authorization?.replace('Bearer ', '');
+  const token = req.headers.authorization?.replace('Bearer ', '') || (req.query.token as string);
   if (!token) return res.status(401).json({ success: false, error: 'Token ausente' });
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as any;
@@ -429,6 +429,92 @@ router.post('/member-payments/:id/send-whatsapp', authenticatePartner, async (re
     res.json({ success: true, data: { message: msg, phone: phoneE164 } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao enviar comprovante' });
+  }
+});
+
+// Generate PDF receipt
+router.get('/member-payments/:id/pdf', authenticatePartner, async (req: Request, res: Response) => {
+  try {
+    const { partnerId } = (req as any).partnerUser;
+    const payment = await prisma.partner_member_payments.findUnique({
+      where: { id: req.params.id },
+      include: { member: { select: { name: true, unit: true } }, partner: { select: { name: true, logo_url: true, address: true } } },
+    });
+    if (!payment || payment.partner_id !== partnerId) return res.status(404).end();
+
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Disposition', `inline; filename=comprovante-${payment.receipt_code}.pdf`);
+    doc.pipe(res);
+
+    // Try to load partner logo
+    let logoLoaded = false;
+    if (payment.partner.logo_url) {
+      try {
+        const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
+        const s3 = new S3Client({ region: 'us-east-2' });
+        const list: any = await s3.send(new ListObjectsV2Command({ Bucket: 'kaviar-uploads-847895361928', Prefix: `partner-logos/${partnerId}`, MaxKeys: 5 }));
+        const key = list.Contents?.sort((a: any, b: any) => new Date(b.LastModified).getTime() - new Date(a.LastModified).getTime())?.[0]?.Key;
+        if (key) {
+          const obj = await s3.send(new GetObjectCommand({ Bucket: 'kaviar-uploads-847895361928', Key: key }));
+          const chunks: Buffer[] = [];
+          for await (const chunk of obj.Body) chunks.push(chunk);
+          const imgBuffer = Buffer.concat(chunks);
+          doc.image(imgBuffer, 50, 40, { width: 60 });
+          logoLoaded = true;
+        }
+      } catch {}
+    }
+
+    // Header
+    const headerX = logoLoaded ? 120 : 50;
+    doc.fontSize(20).font('Helvetica-Bold').text('KAVIAR', headerX, 45, { continued: false });
+    doc.fontSize(8).font('Helvetica').text('Mobilidade local brasileira', headerX, 68);
+    doc.fontSize(14).font('Helvetica-Bold').text(payment.partner.name, headerX, 85);
+    if (payment.partner.address) doc.fontSize(8).font('Helvetica').text(payment.partner.address, headerX, 103);
+
+    // Divider
+    doc.moveTo(50, 125).lineTo(545, 125).stroke('#B8942E');
+
+    // Title
+    doc.fontSize(16).font('Helvetica-Bold').text('Comprovante de Pagamento', 50, 145, { align: 'center' });
+
+    // Payment details
+    const [year, monthNum] = payment.reference_month.split('-');
+    const meses = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesRef = `${meses[Number(monthNum)]}/${year}`;
+    const valor = (payment.amount_cents / 100).toFixed(2).replace('.', ',');
+
+    const startY = 185;
+    const fields = [
+      ['Associado', `${payment.member.name}${payment.member.unit ? ` (${payment.member.unit})` : ''}`],
+      ['Referência', mesRef],
+      ['Valor', `R$ ${valor}`],
+      ['Forma de pagamento', payment.payment_method],
+      ['Data do pagamento', new Date(payment.paid_at).toLocaleDateString('pt-BR')],
+      ['Status', 'Pago ✓'],
+      ['Código do comprovante', payment.receipt_code],
+    ];
+    if (payment.notes) fields.push(['Observação', payment.notes]);
+
+    fields.forEach(([label, value], i) => {
+      const y = startY + i * 28;
+      doc.fontSize(9).font('Helvetica').fillColor('#666').text(label, 50, y);
+      doc.fontSize(11).font('Helvetica-Bold').fillColor('#000').text(value as string, 50, y + 12);
+    });
+
+    // Footer
+    const footerY = startY + fields.length * 28 + 30;
+    doc.moveTo(50, footerY).lineTo(545, footerY).stroke('#E8E5DE');
+    doc.fontSize(9).font('Helvetica').fillColor('#888').text('Seu pagamento ajuda a melhorar o local em que moramos. Obrigado!', 50, footerY + 15, { align: 'center' });
+    doc.fontSize(7).fillColor('#aaa').text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} • KAVIAR`, 50, footerY + 35, { align: 'center' });
+    doc.fontSize(7).text('Controle interno. Não substitui contabilidade oficial.', 50, footerY + 48, { align: 'center' });
+
+    doc.end();
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao gerar PDF' });
   }
 });
 
