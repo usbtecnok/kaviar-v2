@@ -64,6 +64,30 @@ export default function RegionPage() {
           </Button>
         </Box>
 
+        {/* Vitrine Local */}
+        <Box sx={{ mt: 4, textAlign: 'left' }}>
+          <Typography sx={{ color: gold, fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', mb: 1, textAlign: 'center' }}>Vitrine Local</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 16, textAlign: 'center', mb: 2 }}>Comércios e serviços da região</Typography>
+
+          {(!data?.businesses || data.businesses.length === 0) ? (
+            <Typography sx={{ color: '#666', fontSize: 13, textAlign: 'center' }}>Em breve: comércios e serviços parceiros da sua região.</Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {data.businesses.map(b => (
+                <Box key={b.id} sx={{ border: '1px solid #222', borderRadius: 2, p: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+                  {b.logo_url && <img src={b.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'contain' }} />}
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{b.name}</Typography>
+                    {b.description && <Typography sx={{ color: '#888', fontSize: 12 }}>{b.description}</Typography>}
+                    {b.address && <Typography sx={{ color: '#666', fontSize: 11 }}>📍 {b.address}</Typography>}
+                  </Box>
+                  {b.whatsapp && <Button size="small" variant="outlined" sx={{ borderColor: '#4caf50', color: '#4caf50', fontSize: 11, minWidth: 'auto' }} onClick={() => window.open(`https://wa.me/55${b.whatsapp.replace(/\D/g, '')}`, '_blank')}>WhatsApp</Button>}
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+
         <Typography sx={{ color: '#444', fontSize: 10, mt: 4 }}>KAVIAR • Plataforma brasileira de mobilidade local</Typography>
       </Box>
     </Box>

@@ -18,9 +18,14 @@ router.get('/:slug', async (req: Request, res: Response) => {
     const community = communities.find(c => slugify(c.name) === slug);
 
     if (!community) {
-      // Region not found — return placeholder
+      // Region not found — return placeholder with businesses if any
       const name = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      return res.json({ success: true, data: { name, drivers_count: 0, partner: null, found: false } });
+      const businesses = await prisma.local_businesses.findMany({
+        where: { region_slug: slug, is_active: true },
+        select: { id: true, name: true, category: true, description: true, whatsapp: true, address: true, logo_url: true },
+        orderBy: { name: 'asc' },
+      });
+      return res.json({ success: true, data: { name, drivers_count: 0, partner: null, businesses, found: false } });
     }
 
     // Count active drivers in this community
@@ -47,7 +52,14 @@ router.get('/:slug', async (req: Request, res: Response) => {
       partnerData = { name: partner.name, logo_url: logo_presigned };
     }
 
-    res.json({ success: true, data: { name: community.name, drivers_count, partner: partnerData, found: true } });
+    // Fetch local businesses for this region slug
+    const businesses = await prisma.local_businesses.findMany({
+      where: { region_slug: slug, is_active: true },
+      select: { id: true, name: true, category: true, description: true, whatsapp: true, address: true, logo_url: true },
+      orderBy: { name: 'asc' },
+    });
+
+    res.json({ success: true, data: { name: community.name, drivers_count, partner: partnerData, businesses, found: true } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro' });
   }
