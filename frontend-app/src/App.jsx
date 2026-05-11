@@ -387,7 +387,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.12.0-boarding-code.apk"
+                href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.12.1-particular.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{

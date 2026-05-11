@@ -332,7 +332,7 @@ export default function TerritorialPartners() {
                         }}>Redefinir senha</Button>
                         {detail.responsible_phone && <Button size="small" variant="outlined" color="success" onClick={() => {
                           const phone = detail.responsible_phone.replace(/\D/g, '');
-                          const msg = `Olá ${detail.responsible_name}! Seguem seus links do KAVIAR:\n\n*Portal de gestão:*\nhttps://kaviar.com.br/parceiro/portal\nLogin: ${detail.users[0].email}\n\n*Convite para motoristas:*\n${driverLink}\n\n*App para passageiros:*\nhttps://downloads.kaviar.com.br/kaviar-passageiro-v1.12.0-boarding-code.apk`;
+                          const msg = `Olá ${detail.responsible_name}! Seguem seus links do KAVIAR:\n\n*Portal de gestão:*\nhttps://kaviar.com.br/parceiro/portal\nLogin: ${detail.users[0].email}\n\n*Convite para motoristas:*\n${driverLink}\n\n*App para passageiros:*\nhttps://downloads.kaviar.com.br/kaviar-passageiro-v1.12.1-particular.apk`;
                           window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                         }}>Enviar acesso</Button>}
                       </>) : (<>
@@ -343,7 +343,7 @@ export default function TerritorialPartners() {
                           const res = await fetch(`${API_BASE_URL}/api/admin/territorial-partners/${detail.id}/users`, { method: 'POST', headers, body: JSON.stringify({ name, email }) });
                           const data = await res.json();
                           if (data.success) {
-                            const msg = `Olá ${detail.responsible_name}! Seu acesso ao Portal Parceiro KAVIAR foi criado.\n\n*Portal de gestão:*\nhttps://kaviar.com.br/parceiro/portal\nLogin: ${data.data.email}\nSenha: ${data.data.temp_password}\n\n*Link para motoristas:*\n${driverLink}\n\n*Link para passageiros (app):*\nhttps://downloads.kaviar.com.br/kaviar-passageiro-v1.12.0-boarding-code.apk`;
+                            const msg = `Olá ${detail.responsible_name}! Seu acesso ao Portal Parceiro KAVIAR foi criado.\n\n*Portal de gestão:*\nhttps://kaviar.com.br/parceiro/portal\nLogin: ${data.data.email}\nSenha: ${data.data.temp_password}\n\n*Link para motoristas:*\n${driverLink}\n\n*Link para passageiros (app):*\nhttps://downloads.kaviar.com.br/kaviar-passageiro-v1.12.1-particular.apk`;
                             alert(`✅ Acesso criado!\n\n${msg}`);
                             fetchDetail(detail.id);
                             if (detail.responsible_phone && confirm('Enviar por WhatsApp?')) {
@@ -354,7 +354,7 @@ export default function TerritorialPartners() {
                         }}>Criar acesso do parceiro</Button>
                         {detail.responsible_phone && <Button size="small" variant="outlined" color="success" onClick={() => {
                           const phone = detail.responsible_phone.replace(/\D/g, '');
-                          const msg = `Olá ${detail.responsible_name}! Seguem os links do KAVIAR:\n\n*Portal de gestão:*\nhttps://kaviar.com.br/parceiro/portal\n\n*Convite para motoristas:*\n${driverLink}\n\n*App para passageiros:*\nhttps://downloads.kaviar.com.br/kaviar-passageiro-v1.12.0-boarding-code.apk`;
+                          const msg = `Olá ${detail.responsible_name}! Seguem os links do KAVIAR:\n\n*Portal de gestão:*\nhttps://kaviar.com.br/parceiro/portal\n\n*Convite para motoristas:*\n${driverLink}\n\n*App para passageiros:*\nhttps://downloads.kaviar.com.br/kaviar-passageiro-v1.12.1-particular.apk`;
                           window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank');
                         }}>Enviar links</Button>}
                       </>)}
