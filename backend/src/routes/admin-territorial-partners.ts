@@ -634,14 +634,14 @@ router.post('/:id/payments', authenticateAdmin, async (req: Request, res: Respon
 
 // Upload partner logo
 const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
-const logoBucket = 'kaviar-frontend-847895361928';
-const logoBaseUrl = 'https://kaviar.com.br';
+const logoBucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
 
 const uploadLogo = multer({
   storage: multerS3({
     s3,
     bucket: logoBucket,
     contentType: multerS3.AUTO_CONTENT_TYPE,
+    acl: 'public-read',
     key: (req: Request, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
       cb(null, `partner-logos/${req.params.id}${ext}`);
@@ -658,11 +658,38 @@ router.post('/:id/logo', authenticateAdmin, uploadLogo.single('logo'), async (re
   try {
     const file = req.file as any;
     if (!file) return res.status(400).json({ success: false, error: 'Arquivo obrigatório' });
-    const logo_url = `${logoBaseUrl}/${file.key}`;
+    // Save API proxy URL so it always works regardless of S3 ACL
+    const logo_url = `https://api.kaviar.com.br/api/admin/territorial-partners/${req.params.id}/logo`;
     await prisma.territorial_partners.update({ where: { id: req.params.id }, data: { logo_url } });
     res.json({ success: true, data: { logo_url } });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'AccessControlListNotSupported') {
+      return res.status(500).json({ success: false, error: 'Bucket não suporta ACL pública. Contate o admin.' });
+    }
     res.status(500).json({ success: false, error: 'Erro ao fazer upload da logo' });
+  }
+});
+
+// Serve partner logo (proxy for private S3 objects)
+router.get('/:id/logo', async (req: Request, res: Response) => {
+  try {
+    const partner = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { logo_url: true } });
+    if (!partner?.logo_url) return res.status(404).json({ success: false, error: 'Logo não encontrada' });
+
+    // If URL is already public (starts with https), redirect
+    if (partner.logo_url.startsWith('https://')) {
+      // Generate presigned URL for private objects
+      const { GetObjectCommand } = require('@aws-sdk/client-s3');
+      const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+      const key = partner.logo_url.split('.amazonaws.com/')[1] || partner.logo_url.split('.com.br/')[1];
+      if (!key) return res.redirect(partner.logo_url);
+      const command = new GetObjectCommand({ Bucket: logoBucket, Key: key });
+      const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+      return res.redirect(url);
+    }
+    res.status(404).json({ success: false, error: 'Logo não encontrada' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro' });
   }
 });
 
