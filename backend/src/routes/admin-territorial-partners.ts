@@ -634,18 +634,20 @@ router.post('/:id/payments', authenticateAdmin, async (req: Request, res: Respon
 
 // Upload partner logo
 const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
-const logoBucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-1769655575';
+const logoBucket = 'kaviar-frontend-847895361928';
+const logoBaseUrl = 'https://kaviar.com.br';
 
 const uploadLogo = multer({
   storage: multerS3({
     s3,
     bucket: logoBucket,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
     key: (req: Request, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
       cb(null, `partner-logos/${req.params.id}${ext}`);
     },
   }),
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (/^image\/(jpeg|jpg|png|webp)$/.test(file.mimetype)) cb(null, true);
     else cb(new Error('Apenas imagens JPEG, PNG ou WebP (máx 2MB)'));
@@ -656,7 +658,7 @@ router.post('/:id/logo', authenticateAdmin, uploadLogo.single('logo'), async (re
   try {
     const file = req.file as any;
     if (!file) return res.status(400).json({ success: false, error: 'Arquivo obrigatório' });
-    const logo_url = file.location || `https://${logoBucket}.s3.us-east-2.amazonaws.com/${file.key}`;
+    const logo_url = `${logoBaseUrl}/${file.key}`;
     await prisma.territorial_partners.update({ where: { id: req.params.id }, data: { logo_url } });
     res.json({ success: true, data: { logo_url } });
   } catch (error) {
