@@ -199,4 +199,99 @@ router.get('/territory/resolution-history', async (req, res) => {
   }
 });
 
+// GET /api/public/partners/:code/report?token=X — Public read-only partner view
+router.get('/partners/:code/report', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { token } = req.query;
+
+    if (!token) return res.status(401).json({ success: false, error: 'Token obrigatório' });
+
+    const partner = await prisma.territorial_partners.findUnique({
+      where: { referral_code: code.toUpperCase() },
+      include: { drivers: { select: { id: true, status: true } } },
+    });
+
+    if (!partner) return res.status(404).json({ success: false, error: 'Parceiro não encontrado' });
+    if (partner.public_token !== token) return res.status(403).json({ success: false, error: 'Token inválido' });
+    if (partner.status === 'archived') return res.status(403).json({ success: false, error: 'Parceiro arquivado' });
+
+    const driverIds = partner.drivers.map(d => d.id);
+    const approvedDrivers = partner.drivers.filter(d => d.status === 'approved').length;
+
+    const monthStart = new Date();
+    monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+
+    const [ridesMonth, commAgg, paidAgg, pendingRequests] = await Promise.all([
+      driverIds.length > 0 ? prisma.rides_v2.count({ where: { driver_id: { in: driverIds }, status: 'completed', completed_at: { gte: monthStart } } }) : 0,
+      prisma.partner_commissions.aggregate({ where: { partner_id: partner.id }, _sum: { commission_amount: true } }),
+      prisma.partner_commissions.aggregate({ where: { partner_id: partner.id, status: 'paid' }, _sum: { commission_amount: true } }),
+      prisma.partner_link_requests.count({ where: { partner_id: partner.id, status: 'pending' } }),
+    ]);
+
+    const totalCommission = Number(commAgg._sum.commission_amount || 0);
+    const totalPaid = Number(paidAgg._sum.commission_amount || 0);
+
+    res.json({
+      success: true,
+      data: {
+        name: partner.name,
+        partner_type: partner.partner_type,
+        referral_code: partner.referral_code,
+        status: partner.status,
+        commission_percent: partner.commission_percent,
+        total_drivers: partner.drivers.length,
+        approved_drivers: approvedDrivers,
+        pending_requests: pendingRequests,
+        rides_this_month: ridesMonth,
+        commission_total: Math.round(totalCommission * 100) / 100,
+        commission_pending: Math.round((totalCommission - totalPaid) * 100) / 100,
+        commission_paid: Math.round(totalPaid * 100) / 100,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar dados' });
+  }
+});
+
+// GET /api/public/partners/:code/management?token=X — Read-only management view
+router.get('/partners/:code/management', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { token, month } = req.query;
+    if (!token) return res.status(401).json({ success: false, error: 'Token obrigatório' });
+
+    const partner = await prisma.territorial_partners.findUnique({ where: { referral_code: (code as string).toUpperCase() } });
+    if (!partner) return res.status(404).json({ success: false, error: 'Parceiro não encontrado' });
+    if (partner.public_token !== token) return res.status(403).json({ success: false, error: 'Token inválido' });
+    if (partner.plan !== 'management') return res.status(403).json({ success: false, error: 'Módulo não disponível neste plano' });
+
+    const referenceMonth = (month as string) || new Date().toISOString().slice(0, 7);
+
+    const [members, transactions] = await Promise.all([
+      prisma.partner_members.findMany({ where: { partner_id: partner.id }, orderBy: { name: 'asc' } }),
+      prisma.partner_transactions.findMany({ where: { partner_id: partner.id, reference_month: referenceMonth }, orderBy: { created_at: 'desc' } }),
+    ]);
+
+    const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount_cents, 0);
+    const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount_cents, 0);
+
+    res.json({
+      success: true,
+      data: {
+        reference_month: referenceMonth,
+        members_total: members.length,
+        members_active: members.filter(m => m.status === 'active').length,
+        members: members.map(m => ({ id: m.id, name: m.name, unit: m.unit, status: m.status })),
+        income_total: income,
+        expense_total: expense,
+        balance: income - expense,
+        transactions: transactions.map(t => ({ id: t.id, type: t.type, amount_cents: t.amount_cents, description: t.description, category: t.category, created_at: t.created_at })),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar dados' });
+  }
+});
+
 export { router as publicRoutes };

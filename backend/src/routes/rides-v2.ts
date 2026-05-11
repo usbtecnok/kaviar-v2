@@ -791,6 +791,41 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
       }
     }
 
+    // Partner commission: gerar comissão se motorista vinculado a parceiro territorial
+    if (settlement) {
+      try {
+        const driverRecord = await prisma.drivers.findUnique({
+          where: { id: driverId },
+          select: { territorial_partner_id: true },
+        });
+        if (driverRecord?.territorial_partner_id) {
+          const partner = await prisma.territorial_partners.findUnique({
+            where: { id: driverRecord.territorial_partner_id },
+            select: { id: true, commission_percent: true, status: true, billing_status: true },
+          });
+          if (partner && partner.status === 'active' && !['blocked', 'canceled'].includes(partner.billing_status)) {
+            const commPercent = Number(partner.commission_percent);
+            const commAmount = Math.round(settlement.driver_earnings * commPercent) / 100;
+            await prisma.partner_commissions.upsert({
+              where: { ride_id_partner_id: { ride_id, partner_id: partner.id } },
+              create: {
+                partner_id: partner.id,
+                ride_id,
+                driver_id: driverId,
+                ride_final_price: settlement.driver_earnings,
+                commission_percent: commPercent,
+                commission_amount: commAmount,
+              },
+              update: {},
+            });
+            console.log(`[PARTNER_COMMISSION] ride=${ride_id} partner=${partner.id} driver_earnings=${settlement.driver_earnings} amount=${commAmount}`);
+          }
+        }
+      } catch (partnerErr) {
+        console.error(`[PARTNER_COMMISSION_FAILED] ride_id=${ride_id}`, partnerErr);
+      }
+    }
+
     // Credit consumption ANTES do WhatsApp (precisamos do saldo atualizado para a mensagem)
     let creditResult: { cost: number; matchType: string; balance: number } | null = null;
     if (process.env.CREDIT_CONSUME_ENABLED === 'true' && settlement) {

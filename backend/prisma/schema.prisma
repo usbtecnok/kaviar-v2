@@ -239,6 +239,9 @@ model drivers {
   credit_purchases            driver_credit_purchases[]
   driver_status               driver_status?
   driver_location             driver_locations?
+  territorial_partner_id        String?
+  territorial_partner_linked_at DateTime?
+  territorial_partner           territorial_partners? @relation(fields: [territorial_partner_id], references: [id])
   local_support_profile       local_support_drivers? @relation("LocalSupportDriver")
 
   @@index([territory_type])
@@ -247,6 +250,7 @@ model drivers {
   @@index([last_location_updated_at])
   @@index([active_since])
   @@index([premium_tourism_status])
+  @@index([territorial_partner_id])
 }
 
 model elderly_contracts {
@@ -1441,4 +1445,155 @@ model local_operators {
 
   @@index([status])
   @@index([city])
+}
+
+// ─── Parceiros Territoriais KAVIAR ──────────────────────────────────────────
+model territorial_partners {
+  id                  String   @id @default(uuid())
+  name                String
+  partner_type        String   @default("association") // association | condominium | business | community_leader | institution | other
+  address             String?
+  responsible_name    String
+  responsible_role    String   @default("presidente")
+  responsible_phone   String?
+  responsible_email   String?
+  commission_percent  Decimal  @default(5) @db.Decimal(5, 2)
+  monthly_fee_cents   Int?
+  billing_due_day     Int?     // dia do mês para vencimento (1-28)
+  billing_status      String   @default("current") // current | pending | overdue | blocked | canceled
+  last_payment_at     DateTime?
+  referral_code       String?  @unique
+  public_token        String?  @unique
+  plan                String   @default("basic") // basic | management
+  status              String   @default("active") // active | paused | inactive
+  notes               String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  drivers             drivers[]
+  commissions         partner_commissions[]
+  payments            partner_payments[]
+  link_requests       partner_link_requests[]
+  members             partner_members[]
+  transactions        partner_transactions[]
+  users               partner_users[]
+
+  @@index([status])
+  @@index([partner_type])
+  @@index([billing_status])
+}
+
+model partner_commissions {
+  id                 String   @id @default(uuid())
+  partner_id         String
+  ride_id            String
+  driver_id          String
+  ride_final_price   Decimal  @db.Decimal(8, 2)
+  commission_percent Decimal  @db.Decimal(5, 2)
+  commission_amount  Decimal  @db.Decimal(8, 2)
+  status             String   @default("pending") // pending | paid | canceled
+  paid_at            DateTime?
+  paid_by            String?
+  created_at         DateTime @default(now())
+
+  partner            territorial_partners @relation(fields: [partner_id], references: [id])
+
+  @@unique([ride_id, partner_id])
+  @@index([partner_id, status])
+  @@index([driver_id])
+}
+
+model partner_payments {
+  id              String   @id @default(uuid())
+  partner_id      String
+  amount_cents    Int
+  reference_month String?  // "2026-05" formato YYYY-MM
+  paid_at         DateTime
+  receipt_url     String?
+  notes           String?
+  registered_by   String   // admin_id
+  created_at      DateTime @default(now())
+
+  partner         territorial_partners @relation(fields: [partner_id], references: [id])
+
+  @@index([partner_id, paid_at(sort: Desc)])
+}
+
+model partner_link_requests {
+  id          String   @id @default(uuid())
+  partner_id  String
+  driver_id   String
+  status      String   @default("pending") // pending | approved | rejected
+  source      String   @default("referral_code") // referral_code | admin_manual | partner_invite
+  reviewed_at DateTime?
+  reviewed_by String?
+  created_at  DateTime @default(now())
+
+  partner     territorial_partners @relation(fields: [partner_id], references: [id])
+
+  @@unique([partner_id, driver_id])
+  @@index([partner_id, status])
+  @@index([status])
+}
+
+model partner_members {
+  id          String   @id @default(uuid())
+  partner_id  String
+  name        String
+  unit        String?  // apt 101, casa 3, etc
+  status      String   @default("active") // active | inactive
+  created_at  DateTime @default(now())
+
+  partner     territorial_partners @relation(fields: [partner_id], references: [id])
+
+  @@index([partner_id, status])
+}
+
+model partner_transactions {
+  id              String   @id @default(uuid())
+  partner_id      String
+  type            String   // income | expense
+  amount_cents    Int
+  description     String
+  category        String   @default("outro") // mensalidade | manutencao | limpeza | evento | outro
+  reference_month String?  // 2026-05
+  member_id       String?
+  created_at      DateTime @default(now())
+
+  partner         territorial_partners @relation(fields: [partner_id], references: [id])
+
+  @@index([partner_id, reference_month])
+  @@index([partner_id, type])
+}
+
+model partner_users {
+  id            String   @id @default(uuid())
+  partner_id    String
+  name          String
+  email         String   @unique
+  password_hash String
+  is_active     Boolean  @default(true)
+  last_login_at DateTime?
+  created_at    DateTime @default(now())
+
+  partner         territorial_partners      @relation(fields: [partner_id], references: [id])
+  password_resets partner_password_resets[]
+
+  @@index([partner_id])
+}
+
+model partner_password_resets {
+  id              String    @id @default(uuid())
+  partner_user_id String
+  code_hash       String
+  expires_at      DateTime
+  used_at         DateTime?
+  created_at      DateTime  @default(now())
+  request_ip      String?
+  user_agent      String?
+
+  user partner_users @relation(fields: [partner_user_id], references: [id], onDelete: Cascade)
+
+  @@index([partner_user_id])
+  @@index([expires_at])
 }

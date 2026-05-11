@@ -27,6 +27,9 @@ import ConviteExpirado from "./pages/admin/ConviteExpirado";
 import SetPassword from "./pages/driver/SetPassword";
 import MotoristaReferral from "./pages/MotoristaReferral";
 import ConsultorOnboarding from "./pages/ConsultorOnboarding";
+import PartnerPublicView from "./pages/PartnerPublicView";
+import PartnerPortal from "./pages/PartnerPortal";
+import DriverRegister from "./pages/DriverRegister";
 import KaviarLanding from "./pages/KaviarLanding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
@@ -431,6 +434,9 @@ export default function App() {
           />
           
           <Route path="/consultor/:code" element={<ConsultorOnboarding />} />
+          <Route path="/parceiro/:code" element={<PartnerPublicView />} />
+          <Route path="/parceiro/portal" element={<PartnerPortal />} />
+          <Route path="/driver/register" element={<DriverRegister />} />
           <Route path="/motorista" element={<MotoristaReferral />} />
           {/* Convite curto — redireciona para backend que valida e redireciona para reset-password */}
           <Route path="/i/:code" element={<InviteRedirect />} />

@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { PrismaClient } from '@prisma/client';
 import { driverRegistrationService } from '../services/driver-registration.service';
 
 const router = Router();
+const prisma = new PrismaClient();
 
 const driverOnboardingSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -21,7 +23,8 @@ const driverOnboardingSchema = z.object({
   lat: z.number({ required_error: 'Localização GPS é obrigatória' }),
   lng: z.number({ required_error: 'Localização GPS é obrigatória' }),
   familyBonusAccepted: z.boolean().optional(),
-  familyProfile: z.string().optional()
+  familyProfile: z.string().optional(),
+  partner_code: z.string().optional(),
 });
 
 // POST /api/driver/onboarding - Cadastro público de motorista (web)
@@ -52,6 +55,30 @@ router.post('/onboarding', async (req: Request, res: Response) => {
     });
 
     if (!result.success) {
+      // If driver already exists and partner_code was provided, try to create link request
+      if (data.partner_code && (result.error === 'Email já cadastrado' || result.error === 'Telefone já cadastrado' || result.error === 'CPF já cadastrado')) {
+        try {
+          const code = data.partner_code.toUpperCase().trim();
+          const partner = await prisma.territorial_partners.findUnique({ where: { referral_code: code } });
+          if (partner && partner.status === 'active') {
+            // Find the existing driver
+            const existingDriver = await prisma.drivers.findFirst({
+              where: { OR: [{ email: data.email }, { phone: data.phone }, { document_cpf: data.document_cpf }] },
+              select: { id: true },
+            });
+            if (existingDriver) {
+              await prisma.partner_link_requests.upsert({
+                where: { partner_id_driver_id: { partner_id: partner.id, driver_id: existingDriver.id } },
+                create: { partner_id: partner.id, driver_id: existingDriver.id, source: 'referral_code' },
+                update: {},
+              });
+              console.log(`[PARTNER_LINK_REQUEST] existing driver=${existingDriver.id} partner=${partner.id} code=${code}`);
+            }
+          }
+        } catch (e) {
+          console.error('[PARTNER_LINK_REQUEST_EXISTING_FAILED]', e);
+        }
+      }
       return res.status(400).json({
         success: false,
         error: result.error
@@ -69,6 +96,24 @@ router.post('/onboarding', async (req: Request, res: Response) => {
       },
       token: result.token
     });
+
+    // Process partner_code async (non-blocking, never fails the registration)
+    if (data.partner_code && result.driver) {
+      try {
+        const code = data.partner_code.toUpperCase().trim();
+        const partner = await prisma.territorial_partners.findUnique({ where: { referral_code: code } });
+        if (partner && partner.status === 'active') {
+          await prisma.partner_link_requests.upsert({
+            where: { partner_id_driver_id: { partner_id: partner.id, driver_id: result.driver.id } },
+            create: { partner_id: partner.id, driver_id: result.driver.id, source: 'referral_code' },
+            update: {},
+          });
+          console.log(`[PARTNER_LINK_REQUEST] driver=${result.driver.id} partner=${partner.id} code=${code}`);
+        }
+      } catch (e) {
+        console.error('[PARTNER_LINK_REQUEST_FAILED]', e);
+      }
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
