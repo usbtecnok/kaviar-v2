@@ -43,7 +43,7 @@ export default function ReceiptValidation() {
         <Box sx={{ bgcolor: '#111', border: '1px solid #222', borderRadius: 3, p: 3, textAlign: 'left' }}>
           <Typography sx={{ color: '#4caf50', fontWeight: 700, fontSize: 16, textAlign: 'center', mb: 2 }}>✅ Comprovante verificado</Typography>
 
-          {data.partner_id && <Box sx={{ textAlign: 'center', mb: 1 }}><img src={`${API_BASE_URL}/api/partners/${data.partner_id}/logo`} alt="" style={{ width: 50, height: 50, borderRadius: 8, objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} /></Box>}
+          {data.logo_presigned && <Box sx={{ textAlign: 'center', mb: 1 }}><img src={data.logo_presigned} alt="" style={{ width: 50, height: 50, borderRadius: 8, objectFit: 'contain' }} /></Box>}
           <Typography sx={{ color: gold, fontWeight: 700, fontSize: 15, textAlign: 'center', mb: 2 }}>{data.partner.name}</Typography>
 
           {[

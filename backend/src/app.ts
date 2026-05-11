@@ -226,6 +226,8 @@ app.use('/api/admin/local-operators', localOperatorsRoutes);
 // Public receipt validation (no auth)
 app.get('/api/public/receipt/:code', async (req, res) => {
   const { PrismaClient } = require('@prisma/client');
+  const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
+  const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
   const p = new PrismaClient();
   try {
     const payment = await p.partner_member_payments.findUnique({
@@ -233,7 +235,17 @@ app.get('/api/public/receipt/:code', async (req, res) => {
       select: { receipt_code: true, reference_month: true, amount_cents: true, payment_method: true, paid_at: true, partner_id: true, member: { select: { name: true, unit: true } }, partner: { select: { name: true, logo_url: true } } },
     });
     if (!payment) return res.json({ success: false, error: 'Comprovante não encontrado' });
-    res.json({ success: true, data: payment });
+    // Generate presigned logo URL
+    let logo_presigned = null;
+    if (payment.partner.logo_url) {
+      try {
+        const s3 = new S3Client({ region: 'us-east-2' });
+        const list: any = await s3.send(new ListObjectsV2Command({ Bucket: 'kaviar-uploads-847895361928', Prefix: `partner-logos/${payment.partner_id}`, MaxKeys: 5 }));
+        const key = list.Contents?.sort((a: any, b: any) => new Date(b.LastModified).getTime() - new Date(a.LastModified).getTime())?.[0]?.Key;
+        if (key) logo_presigned = await getSignedUrl(s3, new GetObjectCommand({ Bucket: 'kaviar-uploads-847895361928', Key: key }), { expiresIn: 3600 });
+      } catch {}
+    }
+    res.json({ success: true, data: { ...payment, logo_presigned } });
   } catch { res.status(500).json({ success: false, error: 'Erro' }); }
   finally { await p.$disconnect(); }
 });
