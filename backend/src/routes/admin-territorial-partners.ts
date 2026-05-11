@@ -659,7 +659,6 @@ const uploadLogo = multer({
     s3,
     bucket: logoBucket,
     contentType: multerS3.AUTO_CONTENT_TYPE,
-    acl: 'public-read',
     key: (req: Request, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
       cb(null, `partner-logos/${req.params.id}${ext}`);
@@ -676,14 +675,10 @@ router.post('/:id/logo', authenticateAdmin, uploadLogo.single('logo'), async (re
   try {
     const file = req.file as any;
     if (!file) return res.status(400).json({ success: false, error: 'Arquivo obrigatório' });
-    // Save public API URL for logo access
     const logo_url = `https://api.kaviar.com.br/api/partners/${req.params.id}/logo`;
     await prisma.territorial_partners.update({ where: { id: req.params.id }, data: { logo_url } });
     res.json({ success: true, data: { logo_url } });
-  } catch (error: any) {
-    if (error?.code === 'AccessControlListNotSupported') {
-      return res.status(500).json({ success: false, error: 'Bucket não suporta ACL pública. Contate o admin.' });
-    }
+  } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao fazer upload da logo' });
   }
 });
