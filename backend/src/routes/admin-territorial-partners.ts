@@ -3,6 +3,10 @@ import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { authenticateAdmin } from '../middlewares/auth';
 import { audit, auditCtx } from '../utils/audit';
+import multer from 'multer';
+import multerS3 from 'multer-s3';
+import { S3Client } from '@aws-sdk/client-s3';
+import path from 'path';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -625,6 +629,38 @@ router.post('/:id/payments', authenticateAdmin, async (req: Request, res: Respon
     res.status(201).json({ success: true, data: payment });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao registrar pagamento' });
+  }
+});
+
+// Upload partner logo
+const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
+const logoBucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-1769655575';
+
+const uploadLogo = multer({
+  storage: multerS3({
+    s3,
+    bucket: logoBucket,
+    key: (req: Request, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `partner-logos/${req.params.id}${ext}`);
+    },
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|jpg|png|webp)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Apenas imagens JPEG, PNG ou WebP (máx 2MB)'));
+  },
+});
+
+router.post('/:id/logo', authenticateAdmin, uploadLogo.single('logo'), async (req: Request, res: Response) => {
+  try {
+    const file = req.file as any;
+    if (!file) return res.status(400).json({ success: false, error: 'Arquivo obrigatório' });
+    const logo_url = file.location || `https://${logoBucket}.s3.us-east-2.amazonaws.com/${file.key}`;
+    await prisma.territorial_partners.update({ where: { id: req.params.id }, data: { logo_url } });
+    res.json({ success: true, data: { logo_url } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao fazer upload da logo' });
   }
 });
 

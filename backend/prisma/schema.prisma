@@ -1465,6 +1465,7 @@ model territorial_partners {
   referral_code       String?  @unique
   public_token        String?  @unique
   plan                String   @default("basic") // basic | management
+  logo_url            String?
   status              String   @default("active") // active | paused | inactive
   notes               String?
   created_at          DateTime @default(now())

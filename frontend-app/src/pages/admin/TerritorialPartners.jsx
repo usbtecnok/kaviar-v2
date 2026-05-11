@@ -240,6 +240,26 @@ export default function TerritorialPartners() {
 
         {detailTab === 0 && (
           <Card><CardContent>
+            {/* Logo do parceiro */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box sx={{ width: 64, height: 64, borderRadius: 2, border: '1px solid #E8E5DE', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', bgcolor: '#f9f9f7' }}>
+                {detail.logo_url ? <img src={detail.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Typography sx={{ color: '#ccc', fontSize: 24 }}>🏢</Typography>}
+              </Box>
+              <Button size="small" variant="outlined" component="label">
+                {detail.logo_url ? 'Trocar logo' : 'Adicionar logo'}
+                <input type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 2 * 1024 * 1024) { alert('Máximo 2MB'); return; }
+                  const form = new FormData();
+                  form.append('logo', file);
+                  const res = await fetch(`${API_BASE_URL}/api/admin/territorial-partners/${detail.id}/logo`, { method: 'POST', headers: { Authorization: headers.Authorization }, body: form });
+                  const data = await res.json();
+                  if (data.success) fetchDetail(detail.id);
+                  else alert(data.error || 'Erro ao enviar logo');
+                }} />
+              </Button>
+            </Box>
             <Typography><strong>Responsável:</strong> {detail.responsible_name} ({detail.responsible_role})</Typography>
             {detail.responsible_phone && <Typography><strong>Telefone:</strong> {detail.responsible_phone}</Typography>}
             {detail.responsible_email && <Typography><strong>Email:</strong> {detail.responsible_email}</Typography>}

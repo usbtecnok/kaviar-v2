@@ -191,7 +191,7 @@ router.post('/change-password', authenticatePartner, async (req: Request, res: R
 router.get('/me', authenticatePartner, async (req: Request, res: Response) => {
   try {
     const { partnerId } = (req as any).partnerUser;
-    const partner = await prisma.territorial_partners.findUnique({ where: { id: partnerId }, select: { name: true, partner_type: true, plan: true, status: true, commission_percent: true, referral_code: true } });
+    const partner = await prisma.territorial_partners.findUnique({ where: { id: partnerId }, select: { name: true, partner_type: true, plan: true, status: true, commission_percent: true, referral_code: true, logo_url: true } });
     res.json({ success: true, data: partner });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro' });

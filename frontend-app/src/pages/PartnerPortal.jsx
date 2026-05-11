@@ -154,9 +154,12 @@ export default function PartnerPortal() {
       <Box sx={{ maxWidth: 700, mx: 'auto' }}>
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography sx={{ color: gold, fontWeight: 800, fontSize: 16, letterSpacing: 2 }}>KAVIAR</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>{user.name}</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {user.logo_url ? <img src={user.logo_url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'contain' }} /> : null}
+            <Box>
+              <Typography sx={{ color: gold, fontWeight: 800, fontSize: 16, letterSpacing: 2 }}>KAVIAR</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>{user.name}</Typography>
+            </Box>
           </Box>
           <Button size="small" onClick={handleLogout} sx={{ color: '#888' }}>Sair</Button>
           <Button size="small" onClick={() => { setChangePwDialog(true); setChangePwForm({ current: '', newPw: '', confirm: '' }); setChangePwError(''); }} sx={{ color: '#888' }}>Alterar senha</Button>
