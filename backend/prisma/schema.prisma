@@ -1542,7 +1542,6 @@ model partner_members {
   id          String   @id @default(uuid())
   partner_id  String
   name        String
-  phone       String?
   unit        String?  // apt 101, casa 3, etc
   status      String   @default("active") // active | inactive
   created_at  DateTime @default(now())

@@ -192,7 +192,19 @@ router.get('/me', authenticatePartner, async (req: Request, res: Response) => {
   try {
     const { partnerId } = (req as any).partnerUser;
     const partner = await prisma.territorial_partners.findUnique({ where: { id: partnerId }, select: { name: true, partner_type: true, plan: true, status: true, commission_percent: true, referral_code: true, logo_url: true } });
-    res.json({ success: true, data: partner });
+    // Generate presigned logo URL
+    let logo_url = partner?.logo_url || null;
+    if (logo_url) {
+      try {
+        const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
+        const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+        const s3 = new S3Client({ region: 'us-east-2' });
+        const list: any = await s3.send(new ListObjectsV2Command({ Bucket: 'kaviar-uploads-847895361928', Prefix: `partner-logos/${partnerId}`, MaxKeys: 5 }));
+        const key = list.Contents?.sort((a: any, b: any) => new Date(b.LastModified).getTime() - new Date(a.LastModified).getTime())?.[0]?.Key;
+        if (key) logo_url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: 'kaviar-uploads-847895361928', Key: key }), { expiresIn: 3600 });
+      } catch {}
+    }
+    res.json({ success: true, data: { ...partner, logo_url } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro' });
   }
@@ -374,7 +386,7 @@ router.get('/member-payments', authenticatePartner, async (req: Request, res: Re
     const month = (req.query.month as string) || new Date().toISOString().slice(0, 7);
     const payments = await prisma.partner_member_payments.findMany({
       where: { partner_id: partnerId, reference_month: month },
-      include: { member: { select: { name: true, unit: true, phone: true } } },
+      include: { member: { select: { name: true, unit: true } } },
       orderBy: { paid_at: 'desc' },
     });
     res.json({ success: true, data: payments });
@@ -389,12 +401,12 @@ router.post('/member-payments/:id/send-whatsapp', authenticatePartner, async (re
     const { partnerId } = (req as any).partnerUser;
     const payment = await prisma.partner_member_payments.findUnique({
       where: { id: req.params.id },
-      include: { member: { select: { name: true, phone: true } }, partner: { select: { name: true, responsible_phone: true } } },
+      include: { member: { select: { name: true } }, partner: { select: { name: true, responsible_phone: true } } },
     });
     if (!payment || payment.partner_id !== partnerId) return res.status(404).json({ success: false, error: 'Não encontrado' });
 
-    const phone = payment.member.phone || (req.body.phone as string);
-    if (!phone) return res.status(400).json({ success: false, error: 'Associado não possui telefone cadastrado' });
+    const phone = req.body.phone as string;
+    if (!phone) return res.status(400).json({ success: false, error: 'Informe o telefone do associado' });
 
     const phoneDigits = phone.replace(/\D/g, '');
     const phoneE164 = phoneDigits.startsWith('55') ? `+${phoneDigits}` : `+55${phoneDigits}`;
@@ -413,11 +425,6 @@ router.post('/member-payments/:id/send-whatsapp', authenticatePartner, async (re
     }
 
     await prisma.partner_member_payments.update({ where: { id: req.params.id }, data: { whatsapp_sent_at: new Date() } });
-
-    // Update member phone if provided
-    if (req.body.phone && !payment.member.phone) {
-      await prisma.partner_members.update({ where: { id: payment.member_id }, data: { phone: req.body.phone } });
-    }
 
     res.json({ success: true, data: { message: msg, phone: phoneE164 } });
   } catch (error) {
