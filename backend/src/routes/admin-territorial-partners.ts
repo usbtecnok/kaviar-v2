@@ -77,6 +77,24 @@ router.get('/', authenticateAdmin, async (req: Request, res: Response) => {
   }
 });
 
+// Serve partner logo (public, no auth required)
+router.get('/:id/logo', async (req: Request, res: Response) => {
+  try {
+    const partner = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { logo_url: true } });
+    if (!partner?.logo_url) return res.status(404).json({ success: false, error: 'Logo não encontrada' });
+    const { GetObjectCommand } = require('@aws-sdk/client-s3');
+    const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+    // Extract S3 key from stored URL
+    const urlParts = partner.logo_url.split('.amazonaws.com/');
+    const key = urlParts.length > 1 ? urlParts[1].split('?')[0] : `partner-logos/${req.params.id}.jpg`;
+    const command = new GetObjectCommand({ Bucket: logoBucket, Key: key });
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+    return res.redirect(url);
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro' });
+  }
+});
+
 // Get partner detail with financial summary
 router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
   try {
@@ -667,29 +685,6 @@ router.post('/:id/logo', authenticateAdmin, uploadLogo.single('logo'), async (re
       return res.status(500).json({ success: false, error: 'Bucket não suporta ACL pública. Contate o admin.' });
     }
     res.status(500).json({ success: false, error: 'Erro ao fazer upload da logo' });
-  }
-});
-
-// Serve partner logo (proxy for private S3 objects)
-router.get('/:id/logo', async (req: Request, res: Response) => {
-  try {
-    const partner = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { logo_url: true } });
-    if (!partner?.logo_url) return res.status(404).json({ success: false, error: 'Logo não encontrada' });
-
-    // If URL is already public (starts with https), redirect
-    if (partner.logo_url.startsWith('https://')) {
-      // Generate presigned URL for private objects
-      const { GetObjectCommand } = require('@aws-sdk/client-s3');
-      const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-      const key = partner.logo_url.split('.amazonaws.com/')[1] || partner.logo_url.split('.com.br/')[1];
-      if (!key) return res.redirect(partner.logo_url);
-      const command = new GetObjectCommand({ Bucket: logoBucket, Key: key });
-      const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
-      return res.redirect(url);
-    }
-    res.status(404).json({ success: false, error: 'Logo não encontrada' });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Erro' });
   }
 });
 
