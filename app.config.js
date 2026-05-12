@@ -9,7 +9,9 @@ const config = {
     splash: './assets/splash-driver.png',
     adaptiveIcon: './assets/adaptive-icon-driver.png',
     scheme: 'kaviar-driver',
-    projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85'
+    projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85',
+    version: '1.11.21-play-store-prep',
+    versionCode: 1,
   },
   passenger: {
     name: 'Kaviar Passageiro',
@@ -19,7 +21,9 @@ const config = {
     splash: './assets/splash-passenger.png',
     adaptiveIcon: './assets/adaptive-icon-passenger.png',
     scheme: 'kaviar-passenger',
-    projectId: '23cab91b-82a5-4d92-9709-017279a2539d'
+    projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
+    version: '1.12.2-regiao',
+    versionCode: 2,
   }
 };
 
@@ -49,7 +53,7 @@ export default {
     owner: 'usbtecnok',
     name: variantConfig.name,
     slug: variantConfig.slug,
-    version: '1.11.21-play-store-prep',
+    version: variantConfig.version,
     orientation: 'portrait',
     icon: variantConfig.icon,
     userInterfaceStyle: 'light',
@@ -78,7 +82,7 @@ export default {
         backgroundColor: '#1a1a1a'
       },
       package: variantConfig.package,
-      versionCode: 1,
+      versionCode: variantConfig.versionCode,
       googleServicesFile: variant === 'driver' ? './google-services.json' : undefined,
       permissions: variant === 'driver' ? driverPermissions : passengerPermissions,
       blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.SYSTEM_ALERT_WINDOW'],
