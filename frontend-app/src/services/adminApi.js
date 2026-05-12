@@ -219,6 +219,23 @@ class AdminApiService {
   async createShowcaseItem(data) { return this.post('/api/admin/showcase', data); }
   async updateShowcaseItem(id, data) { return this.put(`/api/admin/showcase/${id}`, data); }
   async patchShowcaseItem(id, data) { return this.patch(`/api/admin/showcase/${id}`, data); }
+
+  // Vitrine Local — comércios locais (local_businesses)
+  async getLocalBusinesses() {
+    return this.get('/api/admin/local-businesses');
+  }
+  async getLocalBusiness(id) {
+    return this.get(`/api/admin/local-businesses/${id}`);
+  }
+  async createLocalBusiness(data) {
+    return this.post('/api/admin/local-businesses', data);
+  }
+  async updateLocalBusiness(id, data) {
+    return this.patch(`/api/admin/local-businesses/${id}`, data);
+  }
+  async toggleLocalBusiness(id, is_active) {
+    return this.patch(`/api/admin/local-businesses/${id}`, { is_active });
+  }
 }
 
 export const adminApi = new AdminApiService();
