@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from '../config/api';
 
@@ -52,16 +52,42 @@ export default function RegionPage() {
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 2 }}>
-          <Button variant="contained" component={Link} to="/particular" sx={{ bgcolor: gold, '&:hover': { bgcolor: '#9A7B24' }, fontWeight: 700, py: 1.2 }}>
-            Solicitar motorista particular
-          </Button>
-          <Button variant="outlined" component="a" href="https://kaviar.com.br/#consultor" sx={{ borderColor: gold, color: gold, fontWeight: 600 }}>
-            Seja consultor KAVIAR
-          </Button>
-          <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.12.2-regiao.apk" target="_blank" sx={{ borderColor: '#444', color: '#ccc' }}>
-            Baixar app passageiro
-          </Button>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          {/* KAVIAR Particular */}
+          <Box sx={{ border: '1px solid #222', borderRadius: 2, p: 2, textAlign: 'left' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>KAVIAR Particular</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, mb: 1.5 }}>Reserve um motorista para consultas, compras, eventos, ida e volta ou espera no local.</Typography>
+            <Button variant="contained" component="a" href="https://kaviar.com.br/particular" target="_blank" fullWidth sx={{ bgcolor: gold, '&:hover': { bgcolor: '#9A7B24' }, fontWeight: 700, py: 1 }}>
+              Solicitar motorista particular
+            </Button>
+          </Box>
+
+          {/* Seja Consultor */}
+          <Box sx={{ border: '1px solid #222', borderRadius: 2, p: 2, textAlign: 'left' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>Seja Consultor KAVIAR</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, mb: 1.5 }}>Ganhe indicando motoristas, passageiros, parceiros e comércios da sua região.</Typography>
+            <Button variant="outlined" component="a" href="https://kaviar.com.br/#consultor" target="_blank" fullWidth sx={{ borderColor: gold, color: gold, fontWeight: 600, py: 1 }}>
+              Quero ser consultor
+            </Button>
+          </Box>
+
+          {/* Trabalhe como Motorista */}
+          <Box sx={{ border: '1px solid #222', borderRadius: 2, p: 2, textAlign: 'left' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>Trabalhe como motorista</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, mb: 1.5 }}>Dirija na sua região com mais proximidade e autonomia.</Typography>
+            <Button variant="outlined" component="a" href="https://downloads.kaviar.com.br/kaviar-motorista-v1.12.0-boarding-code.apk" target="_blank" fullWidth sx={{ borderColor: '#444', color: '#ccc', fontWeight: 600, py: 1 }}>
+              Baixar app Motorista
+            </Button>
+          </Box>
+
+          {/* Guia Turístico Local */}
+          <Box sx={{ border: '1px solid #222', borderRadius: 2, p: 2, textAlign: 'left', opacity: 0.85 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5 }}>Guia turístico local</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, mb: 1.5 }}>Conhece bem a região? Em breve, moradores poderão oferecer roteiros, passeios e experiências locais pelo KAVIAR.</Typography>
+            <Button variant="outlined" component="a" href={`https://wa.me/5521968648777?text=${encodeURIComponent('Olá, tenho interesse em saber mais sobre Guia Turístico Local / Pacotes Turísticos KAVIAR na região ' + (data?.name || ''))}`} target="_blank" fullWidth sx={{ borderColor: '#555', color: '#aaa', fontWeight: 600, py: 1 }}>
+              Tenho interesse
+            </Button>
+          </Box>
         </Box>
 
         {/* Vitrine Local */}
