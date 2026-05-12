@@ -10,31 +10,67 @@ const sx = {
   page: { minHeight: '100vh', bgcolor: bg, color: '#fff', position: 'relative', overflow: 'hidden' },
   glow: { position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% -10%, rgba(212,175,55,0.12), transparent 50%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.03), transparent 30%)', pointerEvents: 'none' },
   card: {
-    borderRadius: 4, border: '1px solid rgba(255,255,255,0.08)', bgcolor: 'rgba(255,255,255,0.03)',
-    backdropFilter: 'blur(12px)', p: 2.5, textAlign: 'left',
-    transition: 'all 0.25s ease',
-    '&:hover': { border: '1px solid rgba(212,175,55,0.2)', bgcolor: 'rgba(255,255,255,0.05)', transform: 'translateY(-2px)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' },
+    borderRadius: 4, border: '1px solid rgba(212,175,55,0.12)', bgcolor: 'rgba(255,255,255,0.03)',
+    backdropFilter: 'blur(12px)', p: { xs: 2.5, md: 3 }, display: 'flex', flexDirection: 'column',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    '&:hover': { border: '1px solid rgba(212,175,55,0.3)', bgcolor: 'rgba(255,255,255,0.05)', transform: 'translateY(-3px)', boxShadow: '0 12px 40px rgba(0,0,0,0.4), 0 0 20px rgba(212,175,55,0.05)' },
   },
   goldBtn: {
     background: 'linear-gradient(180deg, #eece55 0%, #D4AF37 50%, #b8962e 100%)',
-    color: '#000', fontWeight: 700, borderRadius: 3, textTransform: 'none', py: 1.4, fontSize: '0.85rem',
+    color: '#000', fontWeight: 700, borderRadius: 2.5, textTransform: 'none', py: 1.2, fontSize: '0.82rem',
     boxShadow: '0 4px 16px rgba(212,175,55,0.2), inset 0 1px 0 rgba(255,255,255,0.15)',
-    '&:hover': { background: 'linear-gradient(180deg, #f3d660 0%, #e1be52 50%, #c5a028 100%)', boxShadow: '0 6px 24px rgba(212,175,55,0.28)' },
+    '&:hover': { background: 'linear-gradient(180deg, #f3d660 0%, #e1be52 50%, #c5a028 100%)', boxShadow: '0 6px 24px rgba(212,175,55,0.3)' },
     transition: 'all 0.2s',
   },
   outlineBtn: {
-    border: '1px solid rgba(212,175,55,0.35)', color: gold, fontWeight: 600, borderRadius: 3,
-    textTransform: 'none', py: 1.3, fontSize: '0.83rem',
-    '&:hover': { bgcolor: 'rgba(212,175,55,0.08)', borderColor: gold },
+    border: '1px solid rgba(212,175,55,0.4)', color: gold, fontWeight: 600, borderRadius: 2.5,
+    textTransform: 'none', py: 1.1, fontSize: '0.82rem',
+    '&:hover': { bgcolor: 'rgba(212,175,55,0.1)', borderColor: gold },
     transition: 'all 0.2s',
   },
   subtleBtn: {
-    border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontWeight: 600,
-    borderRadius: 3, textTransform: 'none', py: 1.3, fontSize: '0.83rem',
-    '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.2)' },
+    border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.75)', fontWeight: 600,
+    borderRadius: 2.5, textTransform: 'none', py: 1.1, fontSize: '0.82rem',
+    '&:hover': { bgcolor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.25)' },
     transition: 'all 0.2s',
   },
 };
+
+const CARDS = [
+  {
+    icon: '🚘',
+    title: 'KAVIAR Particular',
+    desc: 'Reserve um motorista para consultas, compras, eventos, ida e volta ou espera no local.',
+    btn: 'Solicitar motorista particular',
+    href: 'https://kaviar.com.br/particular',
+    variant: 'gold',
+  },
+  {
+    icon: '💰',
+    title: 'Seja Consultor KAVIAR',
+    desc: 'Ganhe indicando motoristas, passageiros, parceiros e comércios da sua região.',
+    btn: 'Quero ser consultor',
+    href: 'https://kaviar.com.br/#consultor',
+    variant: 'outline',
+  },
+  {
+    icon: '🚗',
+    title: 'Trabalhe como motorista',
+    desc: 'Dirija na sua região com mais proximidade e autonomia.',
+    btn: 'Baixar app Motorista',
+    href: 'https://downloads.kaviar.com.br/kaviar-motorista-v1.12.0-boarding-code.apk',
+    variant: 'subtle',
+  },
+  {
+    icon: '🗺️',
+    title: 'Guia turístico local',
+    desc: 'Conhece bem a região? Em breve, moradores poderão oferecer roteiros, passeios e experiências locais pelo KAVIAR.',
+    btn: 'Tenho interesse',
+    variant: 'subtle',
+    badge: 'EM BREVE',
+    dynamic: true,
+  },
+];
 
 export default function RegionPage() {
   const { slug } = useParams();
@@ -57,16 +93,27 @@ export default function RegionPage() {
 
   const found = data?.found;
 
+  const getHref = (card) => {
+    if (card.dynamic) return `https://wa.me/5521968648777?text=${encodeURIComponent('Olá, tenho interesse em saber mais sobre Guia Turístico Local / Pacotes Turísticos KAVIAR na região ' + (data?.name || ''))}`;
+    return card.href;
+  };
+
+  const getBtnSx = (variant) => {
+    if (variant === 'gold') return sx.goldBtn;
+    if (variant === 'outline') return sx.outlineBtn;
+    return sx.subtleBtn;
+  };
+
   return (
     <Box sx={sx.page}>
       <Box sx={sx.glow} />
 
-      <Box sx={{ position: 'relative', zIndex: 10, maxWidth: 480, mx: 'auto', px: 3, py: { xs: 5, md: 7 } }}>
+      <Box sx={{ position: 'relative', zIndex: 10, maxWidth: 720, mx: 'auto', px: { xs: 2.5, md: 4 }, py: { xs: 5, md: 7 } }}>
 
         {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 5 }}>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
           <Typography sx={{
-            fontSize: 26, fontFamily: '"Cormorant Garamond", serif', fontWeight: 600,
+            fontSize: 28, fontFamily: '"Cormorant Garamond", serif', fontWeight: 600,
             letterSpacing: '0.28em', lineHeight: 1, color: 'transparent',
             backgroundImage: 'linear-gradient(180deg, #fff3bf 0%, #f3d57a 18%, #d4af37 42%, #fff1a8 52%, #b88913 78%, #f0cf67 100%)',
             backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
@@ -78,102 +125,74 @@ export default function RegionPage() {
 
         {/* Partner logo */}
         {data?.partner?.logo_url && (
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <Box sx={{ textAlign: 'center', mb: 2.5 }}>
             <Box component="img" src={data.partner.logo_url} alt="" sx={{ width: 56, height: 56, borderRadius: 3, objectFit: 'contain', border: '1px solid rgba(255,255,255,0.08)' }} />
           </Box>
         )}
 
         {/* Region name */}
-        <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center', mb: 1, fontSize: { xs: '1.6rem', md: '1.9rem' }, letterSpacing: '-0.01em' }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center', mb: 1, fontSize: { xs: '1.5rem', md: '1.8rem' }, letterSpacing: '-0.01em' }}>
           {data?.name || 'Região'}
         </Typography>
 
         {/* Status */}
-        {found ? (
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            {data.drivers_count > 0 && (
-              <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, borderRadius: 5, border: '1px solid rgba(76,175,80,0.2)', bgcolor: 'rgba(76,175,80,0.08)', px: 2, py: 0.6, mb: 1.5 }}>
-                <Typography sx={{ fontSize: 12, color: '#66BB6A', fontWeight: 500 }}>
-                  🚗 {data.drivers_count} motorista{data.drivers_count > 1 ? 's' : ''} ativo{data.drivers_count > 1 ? 's' : ''} na região
-                </Typography>
-              </Box>
-            )}
-            {data.partner && (
-              <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, mb: 1 }}>Parceiro local: {data.partner.name}</Typography>
-            )}
-            <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.7, maxWidth: 380, mx: 'auto' }}>
-              O KAVIAR opera na sua região com motoristas locais, parceiros territoriais e atendimento personalizado.
-            </Typography>
-          </Box>
-        ) : (
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.7, maxWidth: 380, mx: 'auto' }}>
-              O KAVIAR está chegando na sua região. Quer ajudar a construir a mobilidade local? Seja consultor ou indique motoristas.
-            </Typography>
-          </Box>
-        )}
-
-        {/* Divider */}
-        <Box sx={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.2), transparent)', mb: 4 }} />
-
-        {/* Section title */}
-        <Typography sx={{ fontSize: 11, letterSpacing: '0.3em', color: 'rgba(212,175,55,0.6)', textTransform: 'uppercase', fontWeight: 500, textAlign: 'center', mb: 3 }}>
-          Oportunidades locais
-        </Typography>
-
-        {/* CTA Cards */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-
-          {/* KAVIAR Particular */}
-          <Box sx={sx.card}>
-            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5, color: '#fff' }}>KAVIAR Particular</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6, mb: 2 }}>
-              Reserve um motorista para consultas, compras, eventos, ida e volta ou espera no local.
-            </Typography>
-            <Button variant="contained" component="a" href="https://kaviar.com.br/particular" target="_blank" fullWidth sx={sx.goldBtn}>
-              Solicitar motorista particular
-            </Button>
-          </Box>
-
-          {/* Seja Consultor */}
-          <Box sx={sx.card}>
-            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5, color: '#fff' }}>Seja Consultor KAVIAR</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6, mb: 2 }}>
-              Ganhe indicando motoristas, passageiros, parceiros e comércios da sua região.
-            </Typography>
-            <Button variant="outlined" component="a" href="https://kaviar.com.br/#consultor" target="_blank" fullWidth sx={sx.outlineBtn}>
-              Quero ser consultor
-            </Button>
-          </Box>
-
-          {/* Trabalhe como Motorista */}
-          <Box sx={sx.card}>
-            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5, color: '#fff' }}>Trabalhe como motorista</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6, mb: 2 }}>
-              Dirija na sua região com mais proximidade e autonomia.
-            </Typography>
-            <Button variant="outlined" component="a" href="https://downloads.kaviar.com.br/kaviar-motorista-v1.12.0-boarding-code.apk" target="_blank" fullWidth sx={sx.subtleBtn}>
-              Baixar app Motorista
-            </Button>
-          </Box>
-
-          {/* Guia Turístico Local */}
-          <Box sx={{ ...sx.card, opacity: 0.88 }}>
-            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, borderRadius: 4, bgcolor: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.15)', px: 1.2, py: 0.3, mb: 1.2 }}>
-              <Typography sx={{ fontSize: 10, color: gold, fontWeight: 600, letterSpacing: '0.1em' }}>EM BREVE</Typography>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          {found && data.drivers_count > 0 && (
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8, borderRadius: 5, border: '1px solid rgba(76,175,80,0.2)', bgcolor: 'rgba(76,175,80,0.08)', px: 2, py: 0.5, mb: 1.5 }}>
+              <Typography sx={{ fontSize: 12, color: '#66BB6A', fontWeight: 500 }}>
+                🚗 {data.drivers_count} motorista{data.drivers_count > 1 ? 's' : ''} ativo{data.drivers_count > 1 ? 's' : ''} na região
+              </Typography>
             </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.5, color: '#fff' }}>Guia turístico local</Typography>
-            <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, lineHeight: 1.6, mb: 2 }}>
-              Conhece bem a região? Em breve, moradores poderão oferecer roteiros, passeios e experiências locais pelo KAVIAR.
-            </Typography>
-            <Button variant="outlined" component="a" href={`https://wa.me/5521968648777?text=${encodeURIComponent('Olá, tenho interesse em saber mais sobre Guia Turístico Local / Pacotes Turísticos KAVIAR na região ' + (data?.name || ''))}`} target="_blank" fullWidth sx={sx.subtleBtn}>
-              Tenho interesse
-            </Button>
-          </Box>
+          )}
+          {found && data.partner && (
+            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, mb: 1 }}>Parceiro local: {data.partner.name}</Typography>
+          )}
+          <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 1.7, maxWidth: 440, mx: 'auto' }}>
+            {found
+              ? 'O KAVIAR opera na sua região com motoristas locais, parceiros territoriais e atendimento personalizado.'
+              : 'O KAVIAR está chegando na sua região. Quer ajudar a construir a mobilidade local? Seja consultor ou indique motoristas.'}
+          </Typography>
         </Box>
 
         {/* Divider */}
-        <Box sx={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)', my: 4 }} />
+        <Box sx={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(212,175,55,0.25), transparent)', mb: 4 }} />
+
+        {/* Section title */}
+        <Typography sx={{ fontSize: 11, letterSpacing: '0.3em', color: 'rgba(212,175,55,0.6)', textTransform: 'uppercase', fontWeight: 500, textAlign: 'center', mb: 1 }}>
+          Oportunidades
+        </Typography>
+        <Typography sx={{ fontWeight: 700, fontSize: { xs: 18, md: 20 }, textAlign: 'center', mb: 3.5, color: '#fff' }}>
+          Oportunidades KAVIAR na região
+        </Typography>
+
+        {/* CTA Grid */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+          {CARDS.map((card) => (
+            <Box key={card.title} sx={sx.card}>
+              {/* Badge */}
+              {card.badge && (
+                <Box sx={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', borderRadius: 4, bgcolor: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.2)', px: 1.2, py: 0.3, mb: 1.5 }}>
+                  <Typography sx={{ fontSize: 9, color: gold, fontWeight: 700, letterSpacing: '0.12em' }}>{card.badge}</Typography>
+                </Box>
+              )}
+              {/* Icon */}
+              <Typography sx={{ fontSize: 28, mb: 1.2, lineHeight: 1 }}>{card.icon}</Typography>
+              {/* Title */}
+              <Typography sx={{ fontWeight: 700, fontSize: 15, mb: 0.8, color: '#fff' }}>{card.title}</Typography>
+              {/* Description */}
+              <Typography sx={{ color: 'rgba(255,255,255,0.5)', fontSize: 12.5, lineHeight: 1.6, mb: 2, flex: 1 }}>
+                {card.desc}
+              </Typography>
+              {/* Button */}
+              <Button variant="contained" component="a" href={getHref(card)} target="_blank" fullWidth sx={getBtnSx(card.variant)}>
+                {card.btn}
+              </Button>
+            </Box>
+          ))}
+        </Box>
+
+        {/* Divider */}
+        <Box sx={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent)', my: 5 }} />
 
         {/* Vitrine Local */}
         <Box>
@@ -189,17 +208,19 @@ export default function RegionPage() {
               <Typography sx={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>Em breve: comércios e serviços parceiros da sua região.</Typography>
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
               {data.businesses.map(b => (
-                <Box key={b.id} sx={{ borderRadius: 3, border: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.02)', p: 2, display: 'flex', gap: 2, alignItems: 'center', transition: 'all 0.2s', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' } }}>
-                  {b.logo_url && <Box component="img" src={b.logo_url} alt="" sx={{ width: 40, height: 40, borderRadius: 2, objectFit: 'contain' }} />}
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontWeight: 600, fontSize: 14, color: '#fff' }}>{b.name}</Typography>
-                    {b.description && <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, mt: 0.3 }}>{b.description}</Typography>}
-                    {b.address && <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, mt: 0.3 }}>📍 {b.address}</Typography>}
+                <Box key={b.id} sx={{ borderRadius: 3, border: '1px solid rgba(255,255,255,0.06)', bgcolor: 'rgba(255,255,255,0.02)', p: 2, display: 'flex', flexDirection: 'column', gap: 1, transition: 'all 0.2s', '&:hover': { bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    {b.logo_url && <Box component="img" src={b.logo_url} alt="" sx={{ width: 36, height: 36, borderRadius: 2, objectFit: 'contain' }} />}
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: 13.5, color: '#fff' }}>{b.name}</Typography>
+                      {b.description && <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: 11.5 }}>{b.description}</Typography>}
+                    </Box>
                   </Box>
+                  {b.address && <Typography sx={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>📍 {b.address}</Typography>}
                   {b.whatsapp && (
-                    <Button size="small" variant="outlined" sx={{ borderColor: 'rgba(76,175,80,0.3)', color: '#66BB6A', fontSize: 11, minWidth: 'auto', borderRadius: 2, textTransform: 'none', '&:hover': { bgcolor: 'rgba(76,175,80,0.08)' } }} onClick={() => window.open(`https://wa.me/55${b.whatsapp.replace(/\D/g, '')}`, '_blank')}>
+                    <Button size="small" variant="outlined" fullWidth sx={{ borderColor: 'rgba(76,175,80,0.25)', color: '#66BB6A', fontSize: 11, borderRadius: 2, textTransform: 'none', mt: 0.5, '&:hover': { bgcolor: 'rgba(76,175,80,0.08)' } }} onClick={() => window.open(`https://wa.me/55${b.whatsapp.replace(/\D/g, '')}`, '_blank')}>
                       WhatsApp
                     </Button>
                   )}
