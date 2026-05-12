@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { allowReadAccess } from '../middlewares/auth';
+import { authenticateAdmin, allowReadAccess } from '../middlewares/auth';
 
 const router = Router();
+router.use(authenticateAdmin);
 
 // GET /api/admin/dashboard/metrics
 router.get('/metrics', allowReadAccess, async (req: Request, res: Response) => {
@@ -57,7 +58,7 @@ router.get('/metrics', allowReadAccess, async (req: Request, res: Response) => {
       }
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

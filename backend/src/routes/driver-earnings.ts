@@ -49,7 +49,7 @@ router.get('/me/earnings', authenticateDriver, async (req: Request, res: Respons
       rides
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

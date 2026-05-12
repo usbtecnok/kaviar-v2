@@ -60,7 +60,7 @@ router.post('/:id/cancel', authenticatePassenger, async (req: Request, res: Resp
 
     res.json({ success: true, ride: result });
   } catch (error: any) {
-    res.status(400).json({ success: false, error: error.message });
+    res.status(400).json({ success: false, error: 'Erro ao processar solicitação' });
   }
 });
 

@@ -26,7 +26,7 @@ router.get('/me/profile', authenticatePassenger, async (req: Request, res: Respo
     
     res.json({ success: true, profile: passenger });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -52,7 +52,7 @@ router.put('/me/profile', authenticatePassenger, async (req: Request, res: Respo
     
     res.json({ success: true, profile: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -109,7 +109,7 @@ router.get('/me/community-status', authenticatePassenger, async (req: Request, r
 
     return res.json({ success: true, data: null });
   } catch (error: any) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { authenticateDriver } from '../middlewares/auth';
 import {
   validateNeighborhoodDistance,
   getTerritoryType,
@@ -13,6 +14,7 @@ import {
 } from '../services/badge-service';
 
 const router = Router();
+router.use(authenticateDriver);
 
 const verifyTerritorySchema = z.object({
   neighborhoodId: z.string().uuid(),
@@ -27,15 +29,7 @@ const verifyTerritorySchema = z.object({
  */
 router.post('/me/verify-territory', async (req: Request, res: Response) => {
   try {
-    // @ts-ignore - driverId vem do middleware de autenticação
-    const driverId = req.driverId;
-
-    if (!driverId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Não autenticado',
-      });
-    }
+    const driverId = (req as any).driverId;
 
     const body = verifyTerritorySchema.parse(req.body);
 
@@ -94,15 +88,7 @@ router.post('/me/verify-territory', async (req: Request, res: Response) => {
  */
 router.get('/me/territory-stats', async (req: Request, res: Response) => {
   try {
-    // @ts-ignore
-    const driverId = req.driverId;
-
-    if (!driverId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Não autenticado',
-      });
-    }
+    const driverId = (req as any).driverId;
 
     // Buscar estatísticas das últimas 4 semanas
     const fourWeeksAgo = new Date();
@@ -183,15 +169,7 @@ router.get('/me/territory-stats', async (req: Request, res: Response) => {
  */
 router.get('/me/badges', async (req: Request, res: Response) => {
   try {
-    // @ts-ignore
-    const driverId = req.driverId;
-
-    if (!driverId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Não autenticado',
-      });
-    }
+    const driverId = (req as any).driverId;
 
     // Verificar e desbloquear novos badges
     const newBadges = await checkAndUnlockBadges(driverId);

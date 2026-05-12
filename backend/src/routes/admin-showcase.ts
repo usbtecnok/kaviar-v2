@@ -32,7 +32,7 @@ router.get('/', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data: items });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -43,7 +43,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     if (!item) return res.status(404).json({ success: false, error: 'Item não encontrado' });
     return res.json({ success: true, data: item });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -67,7 +67,7 @@ router.post('/', auditWrite('create_showcase_item', 'showcase_item'), async (req
     });
     return res.json({ success: true, data: item });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -87,7 +87,7 @@ router.put('/:id', auditWrite('update_showcase_item', 'showcase_item'), async (r
     });
     return res.json({ success: true, data: item });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -101,7 +101,7 @@ router.patch('/:id', auditWrite('patch_showcase_item', 'showcase_item'), async (
     const item = await prisma.showcase_items.update({ where: { id: req.params.id }, data });
     return res.json({ success: true, data: item });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

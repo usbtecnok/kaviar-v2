@@ -19,7 +19,7 @@ router.get('/', async (_req: Request, res: Response) => {
     });
     return res.json({ success: true, data: items });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -75,7 +75,7 @@ router.post('/', requireRole(['SUPER_ADMIN', 'FINANCE']), async (req: Request, r
     return res.json({ success: true, data: comp });
   } catch (err: any) {
     console.error('[COMPENSATION] create error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -95,7 +95,7 @@ router.patch('/:id/waive', requireRole(['SUPER_ADMIN', 'FINANCE']), async (req: 
     console.log(`[COMPENSATION] waived id=${comp.id} by=${(req as any).adminId}`);
     return res.json({ success: true, data: updated });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

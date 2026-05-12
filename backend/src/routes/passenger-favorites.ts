@@ -68,10 +68,7 @@ router.post('/favorites', authenticatePassenger, async (req: Request, res: Respo
     });
   } catch (error) {
     console.error('[passenger_favorites_matching] Error creating favorite:', error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
-    });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -86,7 +83,7 @@ router.get('/favorites/home', authenticatePassenger, async (req: Request, res: R
     if (!home) return res.json({ success: true, home: null });
     res.json({ success: true, home: { lat: home.lat, lng: home.lng, label: home.label } });
   } catch (error) {
-    res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -129,10 +126,7 @@ router.get('/favorites', authenticatePassenger, async (req: Request, res: Respon
     });
   } catch (error) {
     console.error('[passenger_favorites_matching] Error listing favorites:', error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
-    });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -179,10 +173,7 @@ router.delete('/favorites/:id', authenticatePassenger, async (req: Request, res:
     });
   } catch (error) {
     console.error('[passenger_favorites_matching] Error deleting favorite:', error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error',
-    });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

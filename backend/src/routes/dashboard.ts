@@ -250,7 +250,7 @@ router.get('/operations', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[DASHBOARD_OPERATIONS_ERROR]', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

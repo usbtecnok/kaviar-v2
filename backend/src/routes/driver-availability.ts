@@ -20,7 +20,7 @@ router.get('/me/availability', authenticateDriver, async (req: Request, res: Res
       status: driver?.status
     });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -45,7 +45,7 @@ router.put('/me/availability', authenticateDriver, async (req: Request, res: Res
     
     res.json({ success: true, available: updated.available });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

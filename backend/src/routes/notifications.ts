@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { checkAllNotifications } from '../services/notifications';
-import { requireAuth } from '../middlewares/auth';
+import { authenticateDriver } from '../middlewares/auth';
 
 const router = Router();
-router.use(requireAuth);
+router.use(authenticateDriver);
 
 /**
  * GET /api/drivers/:driverId/notifications
@@ -12,6 +12,9 @@ router.use(requireAuth);
 router.get('/:driverId/notifications', async (req: Request, res: Response) => {
   try {
     const { driverId } = req.params;
+    if (driverId !== (req as any).driverId) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
     const { lat, lng } = req.query;
 
     const notifications = await checkAllNotifications(

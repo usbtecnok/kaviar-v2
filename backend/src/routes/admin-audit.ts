@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { allowReadAccess } from '../middlewares/auth';
+import { authenticateAdmin, allowReadAccess } from '../middlewares/auth';
 import { pool } from '../db';
 
 const router = Router();
+router.use(authenticateAdmin);
 
 // GET /api/admin/audit-logs
 router.get('/audit-logs', allowReadAccess, async (req: Request, res: Response) => {
@@ -38,7 +39,7 @@ router.get('/audit-logs', allowReadAccess, async (req: Request, res: Response) =
 
     res.json({ success: true, logs, pagination: { total, limit: lim, showing: logs.length } });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -66,7 +67,7 @@ router.get('/login-history', allowReadAccess, async (req: Request, res: Response
 
     res.json({ success: true, logins, total: logins.length });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

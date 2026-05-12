@@ -65,7 +65,7 @@ router.post('/me/credits/purchase', authenticateDriver, async (req: Request, res
     });
   } catch (err: any) {
     console.error('[CREDIT_PURCHASE_ERROR]', err);
-    res.status(500).json({ success: false, error: err.message || 'Erro ao criar cobrança' });
+    res.status(500).json({ success: false, error: 'Erro ao criar cobrança' });
   }
 });
 

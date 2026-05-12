@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { resolveTerritory } from '../services/territory-resolver.service';
-import { requireAuth } from '../middlewares/auth';
+import { authenticatePassenger } from '../middlewares/auth';
 
 const router = Router();
-router.use(requireAuth);
+router.use(authenticatePassenger);
 
 /**
  * POST /api/passengers/:passengerId/locations
@@ -13,6 +13,9 @@ router.use(requireAuth);
 router.post('/:passengerId/locations', async (req: Request, res: Response) => {
   try {
     const { passengerId } = req.params;
+    if (passengerId !== (req as any).passengerId) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
     const { type, address, lat, lng, label } = req.body;
 
     // Validação
@@ -73,6 +76,9 @@ router.post('/:passengerId/locations', async (req: Request, res: Response) => {
 router.get('/:passengerId/locations', async (req: Request, res: Response) => {
   try {
     const { passengerId } = req.params;
+    if (passengerId !== (req as any).passengerId) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
 
     const locations: any[] = await prisma.$queryRaw`
       SELECT 
@@ -127,6 +133,9 @@ router.get('/:passengerId/locations', async (req: Request, res: Response) => {
 router.delete('/:passengerId/locations/:locationId', async (req: Request, res: Response) => {
   try {
     const { passengerId, locationId } = req.params;
+    if (passengerId !== (req as any).passengerId) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
 
     await prisma.$executeRaw`
       DELETE FROM passenger_frequent_locations

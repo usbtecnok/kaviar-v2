@@ -18,7 +18,7 @@ router.get('/drivers', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -31,7 +31,7 @@ router.get('/summary', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -42,7 +42,7 @@ router.post('/drivers/:driverId', async (req: Request, res: Response) => {
     return res.json({ success: true, data });
   } catch (err: any) {
     const status = err.message === 'Driver not found' ? 404 : 500;
-    return res.status(status).json({ success: false, error: err.message });
+    return res.status(status).json({ success: false, error: status === 404 ? 'Motorista não encontrado' : 'Erro interno do servidor' });
   }
 });
 
@@ -52,7 +52,7 @@ router.put('/drivers/:driverId', async (req: Request, res: Response) => {
     const data = await localSupportService.updateDriver(req.params.driverId, req.body);
     return res.json({ success: true, data });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 
@@ -66,7 +66,7 @@ router.post('/invites', async (req: Request, res: Response) => {
     });
     return res.json({ success: true, data });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });
 

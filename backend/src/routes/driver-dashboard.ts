@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { calculateBadgeProgress, generateRecommendation } from '../services/badge-service';
-import { requireAuth } from '../middlewares/auth';
+import { authenticateDriver } from '../middlewares/auth';
 
 const router = Router();
-router.use(requireAuth);
+router.use(authenticateDriver);
 
 /**
  * GET /api/drivers/:driverId/dashboard
@@ -13,6 +13,9 @@ router.use(requireAuth);
 router.get('/:driverId/dashboard', async (req: Request, res: Response) => {
   try {
     const { driverId } = req.params;
+    if (driverId !== (req as any).driverId) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
     const { period = '30' } = req.query; // dias
 
     const daysAgo = parseInt(period as string);
