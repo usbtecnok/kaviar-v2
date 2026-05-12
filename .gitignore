@@ -70,6 +70,7 @@ deploy-geofence-fix.sh
 rollback-geofence-fix.sh
 test-geofence-patches.sh
 validate-*.sh
+!scripts/deploy/validate-and-publish-passenger.sh
 migrate-to-rds.sh
 validate-territory.sql
 
