@@ -31,3 +31,34 @@ export async function sendPushToDriver(driverId: string, title: string, body: st
     console.warn(`[PUSH] Error sending to driver ${driverId}:`, (err as Error).message);
   }
 }
+
+export async function sendPushToPassenger(passengerId: string, title: string, body: string, data?: Record<string, string>): Promise<void> {
+  try {
+    const passenger = await prisma.passengers.findUnique({
+      where: { id: passengerId },
+      select: { expo_push_token: true }
+    });
+
+    if (!passenger?.expo_push_token) return;
+
+    const res = await fetch(EXPO_PUSH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: passenger.expo_push_token,
+        title,
+        body,
+        sound: 'default',
+        priority: 'high',
+        channelId: 'rides',
+        data: data || {},
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn(`[PUSH] Failed for passenger ${passengerId}: HTTP ${res.status}`);
+    }
+  } catch (err) {
+    console.warn(`[PUSH] Error sending to passenger ${passengerId}:`, (err as Error).message);
+  }
+}

@@ -217,4 +217,24 @@ router.post('/me/showcase/:id/click', authenticatePassenger, async (req: Request
   }
 });
 
+// PUT /api/passengers/me/push-token
+router.put('/me/push-token', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const { token, fcmToken } = req.body;
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ success: false, error: 'Token obrigatório' });
+    }
+    const data: any = { expo_push_token: token, push_token_updated_at: new Date() };
+    if (fcmToken && typeof fcmToken === 'string') {
+      data.fcm_push_token = fcmToken;
+    }
+    await prisma.passengers.update({ where: { id: passengerId }, data });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[passenger-push-token]', error.message);
+    res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
 export default router;
