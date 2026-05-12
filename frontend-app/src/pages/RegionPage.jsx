@@ -59,7 +59,7 @@ export default function RegionPage() {
           <Button variant="outlined" component="a" href="https://kaviar.com.br/#consultor" sx={{ borderColor: gold, color: gold, fontWeight: 600 }}>
             Seja consultor KAVIAR
           </Button>
-          <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.12.1-particular.apk" target="_blank" sx={{ borderColor: '#444', color: '#ccc' }}>
+          <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.12.2-regiao.apk" target="_blank" sx={{ borderColor: '#444', color: '#ccc' }}>
             Baixar app passageiro
           </Button>
         </Box>
