@@ -54,6 +54,7 @@ export default function CompleteRide() {
   const [waitActiveSeconds, setWaitActiveSeconds] = useState(0);
   const [boardingCode, setBoardingCode] = useState('');
   const [postWaitLegStarted, setPostWaitLegStarted] = useState(false);
+  const [arrivedCooldown, setArrivedCooldown] = useState(60);
 
   // B2: Completion screen
   const [completionData, setCompletionData] = useState<{ credit?: { cost: number; matchType: string; balance: number }; waitMin?: number; waitCharge?: number; finalPrice?: number } | null>(null);
@@ -95,6 +96,13 @@ export default function CompleteRide() {
     const id = setInterval(() => setWaitSeconds(Math.floor((Date.now() - arrivedAt) / 1000)), 1000);
     return () => clearInterval(id);
   }, [rideStatus, arrivedAt]);
+
+  // Cooldown: prevent instant "Cheguei" after accepting
+  useEffect(() => {
+    if (rideStatus !== 'accepted' || arrivedCooldown <= 0) return;
+    const id = setInterval(() => setArrivedCooldown(prev => Math.max(0, prev - 1)), 1000);
+    return () => clearInterval(id);
+  }, [rideStatus, arrivedCooldown]);
 
   // B1b: Wait active timer
   useEffect(() => {
@@ -152,6 +160,10 @@ export default function CompleteRide() {
         }));
         setRide(current);
         setRideStatus(current.status as RideStatus);
+        if (current.status === 'accepted' && current.accepted_at) {
+          const elapsed = Math.floor((Date.now() - new Date(current.accepted_at).getTime()) / 1000);
+          setArrivedCooldown(Math.max(0, 60 - elapsed));
+        }
         if (current.status === 'arrived' && current.arrived_at) {
           setArrivedAt(new Date(current.arrived_at).getTime());
         }
@@ -255,7 +267,7 @@ export default function CompleteRide() {
     } catch (e: any) {
       if (e.response?.status === 400) {
         const msg = e.response?.data?.error || '';
-        if (msg.includes('Código de embarque')) { Alert.alert('Código incorreto', 'O código informado não confere. Peça o código correto ao passageiro.'); setBoardingCode(''); }
+        if (msg.includes('Código de embarque')) { Alert.alert('Código incorreto', 'Código incorreto. Peça ao passageiro o código de embarque.'); setBoardingCode(''); }
         else if (msg.includes('Encerre a espera')) Alert.alert('Atenção', msg);
         else setRideStatus('canceled_by_passenger' as RideStatus);
       } else if (!e.response) {
@@ -582,7 +594,7 @@ export default function CompleteRide() {
         <Button title={rideStatus === 'in_progress' ? '📍 Navegar até o destino' : '📍 Navegar até o passageiro'} onPress={openNavigation} style={{ backgroundColor: '#1a73e8', marginBottom: 8, paddingVertical: 18 }} />
 
         {rideStatus === 'accepted' && (
-          <Button title={loading ? 'Aguarde...' : 'Cheguei no local'} onPress={handleArrived} disabled={loading} style={{ backgroundColor: COLORS.primary, minHeight: 56 }} />
+          <Button title={loading ? 'Aguarde...' : arrivedCooldown > 0 ? `Cheguei no local (${arrivedCooldown}s)` : 'Cheguei no local'} onPress={handleArrived} disabled={loading || arrivedCooldown > 0} style={{ backgroundColor: arrivedCooldown > 0 ? '#555' : COLORS.primary, minHeight: 56 }} />
         )}
         {rideStatus === 'arrived' && (
           <View style={{ marginBottom: 8 }}>
@@ -599,7 +611,7 @@ export default function CompleteRide() {
           </View>
         )}
         {rideStatus === 'arrived' && (
-          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading} style={{ backgroundColor: COLORS.warning, minHeight: 56 }} />
+          <Button title={loading ? 'Aguarde...' : 'Iniciar corrida'} onPress={handleStart} disabled={loading || boardingCode.length !== 4} style={{ backgroundColor: boardingCode.length === 4 ? COLORS.warning : '#555', minHeight: 56 }} />
         )}
         {rideStatus === 'in_progress' && ride?.wait_requested && !ride?.wait_started_at && (
           <Button title={loading ? 'Aguarde...' : '⏳ Iniciar espera'} onPress={handleStartWait} disabled={loading} style={{ backgroundColor: '#f57f17', minHeight: 56, marginBottom: 8 }} />

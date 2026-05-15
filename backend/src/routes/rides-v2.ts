@@ -657,13 +657,15 @@ router.post('/:ride_id/start', authenticateDriver, async (req: Request, res: Res
       return res.status(400).json({ error: 'Operação não permitida no estado atual da corrida' });
     }
 
-    // Boarding code validation (feature flag controlled)
+    // Boarding code validation (mandatory when ride has boarding_code)
     const { boarding_code } = req.body || {};
-    if (process.env.BOARDING_CODE_REQUIRED === 'true' && ride.boarding_code && !boarding_code) {
-      return res.status(400).json({ error: 'Código de embarque obrigatório' });
-    }
-    if (boarding_code && ride.boarding_code && boarding_code !== ride.boarding_code) {
-      return res.status(400).json({ error: 'Código de embarque incorreto' });
+    if (ride.boarding_code) {
+      if (!boarding_code || !boarding_code.trim()) {
+        return res.status(400).json({ error: 'Código de embarque obrigatório' });
+      }
+      if (boarding_code.trim() !== ride.boarding_code) {
+        return res.status(400).json({ error: 'Código de embarque incorreto' });
+      }
     }
 
     await prisma.rides_v2.update({
