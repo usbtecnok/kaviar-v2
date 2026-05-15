@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db';
 import { applyCreditDelta } from '../services/credit.service';
+import { sendPushToDriver } from '../services/push.service';
 
 const router = Router();
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN || '';
@@ -71,6 +72,10 @@ router.post('/asaas', async (req: Request, res: Response) => {
         `compensation:ride:${c.ride_id}`, 'system:compensation', `comp:${c.id}`
       );
       console.log(`[ASAAS_WEBHOOK] Compensation paid id=${c.id} driver=${c.driver_id} credits=${c.credits_amount} balance=${creditResult.balance} alreadyProcessed=${creditResult.alreadyProcessed}`);
+      if (!creditResult.alreadyProcessed) {
+        sendPushToDriver(c.driver_id, 'Compensação recebida', 'O passageiro cancelou após sua chegada e a compensação foi paga. +1 crédito foi adicionado à sua conta KAVIAR.')
+          .catch((pushErr) => console.warn('[ASAAS_WEBHOOK] Failed to send compensation push:', pushErr));
+      }
       if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'processed', processed_at = NOW() WHERE id = $1", [eventId]);
       return res.status(200).json({ received: true });
     }
