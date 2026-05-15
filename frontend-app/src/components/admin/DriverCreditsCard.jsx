@@ -110,14 +110,23 @@ export function DriverCreditsCard({ driverId }) {
     }
   };
 
+  const formatCredits = (value) => {
+    const n = parseFloat(value) || 0;
+    const formatted = Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',');
+    return `${formatted} ${Math.abs(n) === 1 ? 'crédito' : 'créditos'}`;
+  };
+
   return (
     <Card>
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6">Créditos do Motorista</Typography>
+          <Box>
+            <Typography variant="h6">Créditos do Motorista</Typography>
+            <Typography variant="caption" color="text.secondary">1 crédito = R$ 5,00</Typography>
+          </Box>
           <Box display="flex" gap={2} alignItems="center">
             <Chip 
-              label={`R$ ${(parseFloat(balance) || 0).toFixed(2)}`} 
+              label={formatCredits(balance)} 
               color="primary" 
               size="large"
             />
@@ -169,12 +178,11 @@ export function DriverCreditsCard({ driverId }) {
                           color={parseFloat(entry.delta) > 0 ? 'success.main' : 'error.main'}
                           fontWeight="bold"
                         >
-                          {parseFloat(entry.delta) > 0 ? '+' : ''}
-                          R$ {(parseFloat(entry.delta) || 0).toFixed(2)}
+                          {parseFloat(entry.delta) > 0 ? '+' : ''}{formatCredits(entry.delta)}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        R$ {(parseFloat(entry.balance_after) || 0).toFixed(2)}
+                        {formatCredits(entry.balance_after)}
                       </TableCell>
                       <TableCell>{entry.reason}</TableCell>
                     </TableRow>
