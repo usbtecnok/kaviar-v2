@@ -76,16 +76,17 @@ export default function PassengersManagement() {
         Gestão de Passageiros
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 3, alignItems: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
         <TextField
+          variant="outlined"
           size="small"
           placeholder="Buscar por nome, email ou telefone"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          sx={{ flex: 1, maxWidth: 400 }}
+          sx={{ minWidth: 250, flex: 1, maxWidth: 400, bgcolor: '#fff', borderRadius: 1, '& .MuiOutlinedInput-root': { color: '#111827' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#d1d5db' }, '& input::placeholder': { color: '#6b7280', opacity: 1 } }}
           InputProps={{
-            startAdornment: <InputAdornment position="start"><Search /></InputAdornment>
+            startAdornment: <InputAdornment position="start"><Search sx={{ color: '#6b7280' }} /></InputAdornment>
           }}
         />
         <Button variant="contained" size="small" onClick={handleSearch}>Buscar</Button>
