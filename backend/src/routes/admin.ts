@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess, requireRole } from '../middlewares/auth';
 import { auditWrite } from '../middlewares/audit-write';
+import { audit, auditCtx } from '../utils/audit';
 import { prisma } from '../lib/prisma';
 import { RideAdminController } from '../modules/admin/ride-controller';
 import {
@@ -132,6 +133,88 @@ router.get('/passengers/:id', allowReadAccess, async (req, res) => {
       success: false,
       error: 'Erro ao buscar passageiro'
     });
+  }
+});
+
+// PATCH /api/admin/passengers/:id
+router.patch('/passengers/:id', requireSuperAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, reason } = req.body;
+    const ctx = auditCtx(req);
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, error: 'Motivo da alteração é obrigatório' });
+    }
+
+    const passenger = await prisma.passengers.findUnique({ where: { id } });
+    if (!passenger) {
+      return res.status(404).json({ success: false, error: 'Passageiro não encontrado' });
+    }
+
+    const updates: any = {};
+    const oldValues: any = {};
+    const newValues: any = {};
+
+    if (name !== undefined && name !== passenger.name) {
+      if (!name.trim()) return res.status(400).json({ success: false, error: 'Nome não pode ser vazio' });
+      oldValues.name = passenger.name;
+      newValues.name = name.trim();
+      updates.name = name.trim();
+    }
+
+    if (email !== undefined && email !== passenger.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ success: false, error: 'Email em formato inválido' });
+      }
+      const existing = await prisma.passengers.findUnique({ where: { email } });
+      if (existing && existing.id !== id) {
+        return res.status(409).json({ success: false, error: 'Email já cadastrado em outro passageiro' });
+      }
+      oldValues.email = passenger.email;
+      newValues.email = email;
+      updates.email = email;
+    }
+
+    if (phone !== undefined && phone !== passenger.phone) {
+      if (phone && !/^\+?\d{10,15}$/.test(phone.replace(/[\s\-()]/g, ''))) {
+        return res.status(400).json({ success: false, error: 'Telefone em formato inválido' });
+      }
+      if (phone) {
+        const existingPhone = await prisma.passengers.findFirst({ where: { phone, id: { not: id } } });
+        if (existingPhone) {
+          return res.status(409).json({ success: false, error: 'Telefone já cadastrado em outro passageiro' });
+        }
+      }
+      oldValues.phone = passenger.phone;
+      newValues.phone = phone || null;
+      updates.phone = phone || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhuma alteração detectada' });
+    }
+
+    updates.updated_at = new Date();
+    const updated = await prisma.passengers.update({ where: { id }, data: updates });
+
+    audit({
+      adminId: ctx.adminId,
+      adminEmail: ctx.adminEmail,
+      action: 'update_passenger',
+      entityType: 'passenger',
+      entityId: id,
+      oldValue: oldValues,
+      newValue: newValues,
+      reason: reason.trim(),
+      ipAddress: ctx.ip,
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Error updating passenger:', error);
+    res.status(500).json({ success: false, error: 'Erro ao atualizar passageiro' });
   }
 });
 
