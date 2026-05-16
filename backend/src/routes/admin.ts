@@ -51,10 +51,21 @@ router.get('/passengers', allowReadAccess, async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
+    const search = (req.query.search as string || '').trim();
     const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     const [passengers, total] = await Promise.all([
       prisma.passengers.findMany({
+        where,
         take: limit,
         skip,
         orderBy: { created_at: 'desc' },
@@ -67,7 +78,7 @@ router.get('/passengers', allowReadAccess, async (req, res) => {
           created_at: true
         }
       }),
-      prisma.passengers.count()
+      prisma.passengers.count({ where })
     ]);
 
     res.json({
