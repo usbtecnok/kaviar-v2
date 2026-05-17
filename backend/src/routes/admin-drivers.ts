@@ -270,6 +270,13 @@ router.get('/drivers/:id/documents', allowReadAccess, async (req: Request, res: 
   }
 });
 
+// PUT /api/admin/drivers/:id/documents/:docId/verify
+// PUT /api/admin/drivers/:id/documents/:docId/reject
+import { DriverAdminController } from '../modules/admin/driver-admin-controller';
+const driverAdminController = new DriverAdminController();
+router.put('/drivers/:id/documents/:docId/verify', requireSuperAdmin, driverAdminController.verifyDocument);
+router.put('/drivers/:id/documents/:docId/reject', requireSuperAdmin, driverAdminController.rejectDocument);
+
 // POST/PUT /api/admin/drivers/:id/approve (delegado ao ApprovalController)
 // Aceita ambos métodos para compatibilidade frontend
 router.post('/drivers/:id/approve', requireSuperAdmin, approvalController.approveDriver);

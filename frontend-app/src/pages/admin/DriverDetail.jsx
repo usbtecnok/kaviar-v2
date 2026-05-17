@@ -79,6 +79,9 @@ export default function AdminDriverDetail() {
   const [rejectReason, setRejectReason] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [docVerifyConfirm, setDocVerifyConfirm] = useState(null);
+  const [docRejectTarget, setDocRejectTarget] = useState(null);
+  const [docRejectReason, setDocRejectReason] = useState('');
 
   useEffect(() => {
     loadDriver();
@@ -153,6 +156,46 @@ export default function AdminDriverDetail() {
       }
     } catch (error) {
       setError(error.response?.data?.error || 'Erro ao rejeitar motorista');
+    }
+  };
+
+  const handleDocVerify = async () => {
+    if (!docVerifyConfirm) return;
+    try {
+      setError('');
+      const response = await api.put(`/api/admin/drivers/${id}/documents/${docVerifyConfirm.id}/verify`);
+      if (response.data.success) {
+        setSuccess(`Documento ${docVerifyConfirm.type} aprovado com sucesso`);
+        setDocVerifyConfirm(null);
+        loadDocuments();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erro ao aprovar documento');
+      setDocVerifyConfirm(null);
+    }
+  };
+
+  const handleDocReject = async () => {
+    if (!docRejectTarget) return;
+    if (docRejectReason.trim().length < 10) {
+      setError('Motivo deve ter pelo menos 10 caracteres');
+      return;
+    }
+    try {
+      setError('');
+      const response = await api.put(`/api/admin/drivers/${id}/documents/${docRejectTarget.id}/reject`, {
+        reason: docRejectReason
+      });
+      if (response.data.success) {
+        setSuccess(`Documento ${docRejectTarget.type} rejeitado`);
+        setDocRejectTarget(null);
+        setDocRejectReason('');
+        loadDocuments();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erro ao rejeitar documento');
+      setDocRejectTarget(null);
+      setDocRejectReason('');
     }
   };
 
@@ -244,14 +287,14 @@ export default function AdminDriverDetail() {
             {documents.length > 0 ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {documents.map((doc) => (
-                  <Box key={doc.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Box key={doc.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, bgcolor: 'grey.50', borderRadius: 1, flexWrap: 'wrap' }}>
                     <Typography variant="body2" sx={{ minWidth: 150, fontWeight: 600 }}>
                       {doc.type}
                     </Typography>
                     <Chip 
                       label={doc.status} 
                       size="small" 
-                      color={doc.status === 'VERIFIED' ? 'success' : doc.status === 'SUBMITTED' ? 'warning' : 'default'}
+                      color={doc.status === 'VERIFIED' ? 'success' : doc.status === 'SUBMITTED' ? 'warning' : doc.status === 'rejected' ? 'error' : 'default'}
                     />
                     {(doc.file_url || doc.document_url) && (
                       <Button
@@ -272,6 +315,31 @@ export default function AdminDriverDetail() {
                       >
                         Ver Documento
                       </Button>
+                    )}
+                    {isSuperAdmin() && doc.status === 'SUBMITTED' && (
+                      <>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          color="success"
+                          onClick={() => setDocVerifyConfirm(doc)}
+                        >
+                          Aprovar
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          color="error"
+                          onClick={() => setDocRejectTarget(doc)}
+                        >
+                          Rejeitar
+                        </Button>
+                      </>
+                    )}
+                    {doc.status === 'rejected' && doc.reject_reason && (
+                      <Typography variant="caption" color="error" sx={{ width: '100%', mt: 0.5 }}>
+                        Motivo: {doc.reject_reason}
+                      </Typography>
                     )}
                   </Box>
                 ))}
@@ -485,7 +553,7 @@ export default function AdminDriverDetail() {
         <SecondaryBaseCard driverId={id} />
       </Box>
 
-      {/* Dialog de rejeição */}
+      {/* Dialog de rejeição do motorista */}
       <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)}>
         <DialogTitle>Rejeitar Motorista</DialogTitle>
         <DialogContent>
@@ -510,6 +578,57 @@ export default function AdminDriverDetail() {
             color="error" 
             variant="contained"
             disabled={!rejectReason.trim()}
+          >
+            Confirmar Rejeição
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de confirmação de aprovação de documento */}
+      <Dialog open={!!docVerifyConfirm} onClose={() => setDocVerifyConfirm(null)}>
+        <DialogTitle>Aprovar Documento</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Confirma a aprovação do documento <strong>{docVerifyConfirm?.type}</strong>?
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+            Esta ação será registrada no audit log.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDocVerifyConfirm(null)}>Cancelar</Button>
+          <Button onClick={handleDocVerify} color="success" variant="contained">
+            Confirmar Aprovação
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de rejeição de documento */}
+      <Dialog open={!!docRejectTarget} onClose={() => { setDocRejectTarget(null); setDocRejectReason(''); }}>
+        <DialogTitle>Rejeitar Documento</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            Rejeitar documento <strong>{docRejectTarget?.type}</strong>?
+          </Typography>
+          <TextField
+            label="Motivo da Rejeição"
+            multiline
+            rows={3}
+            fullWidth
+            value={docRejectReason}
+            onChange={(e) => setDocRejectReason(e.target.value)}
+            required
+            helperText="Mínimo 10 caracteres"
+            error={docRejectReason.length > 0 && docRejectReason.length < 10}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setDocRejectTarget(null); setDocRejectReason(''); }}>Cancelar</Button>
+          <Button
+            onClick={handleDocReject}
+            color="error"
+            variant="contained"
+            disabled={docRejectReason.trim().length < 10}
           >
             Confirmar Rejeição
           </Button>
