@@ -16,7 +16,7 @@ function usePlaceSearch() {
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const { data } = await api.get(`/api/geo/autocomplete?input=${encodeURIComponent(input)}&lat=-22.97&lng=-43.18`);
+        const { data } = await api.get(`/api/geo-proxy/autocomplete?input=${encodeURIComponent(input)}`);
         setOptions((data.predictions || []).map(p => ({ label: p.description, place_id: p.place_id })));
       } catch { setOptions([]); }
       finally { setLoading(false); }
@@ -24,7 +24,7 @@ function usePlaceSearch() {
   }, []);
 
   const resolve = useCallback(async (place_id) => {
-    const { data } = await api.get(`/api/geo/place-details?place_id=${place_id}`);
+    const { data } = await api.get(`/api/geo-proxy/place-details?place_id=${place_id}`);
     const loc = data.result?.geometry?.location;
     return loc ? { lat: loc.lat, lng: loc.lng } : null;
   }, []);
