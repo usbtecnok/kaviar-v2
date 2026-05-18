@@ -715,6 +715,24 @@ export default function AdminDashboard() {
             </Box>
           </Button>
         </Grid>
+
+        <Grid item xs={12} sm={6} md={4}>
+          <Button
+            variant="outlined"
+            fullWidth
+            sx={{ p: 2, textAlign: 'left' }}
+            component={Link} to="/admin/pricing"
+          >
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                💰 Preços e Taxas
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Ajuste preços, taxas e adicionais usados nas estimativas de corrida.
+              </Typography>
+            </Box>
+          </Button>
+        </Grid>
       </Grid>
     </Box>
   );
