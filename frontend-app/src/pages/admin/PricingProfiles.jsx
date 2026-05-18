@@ -88,7 +88,10 @@ export default function PricingProfiles() {
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ mb: 2 }}>Configuração de Preços</Typography>
+      <Typography variant="h5" sx={{ mb: 1 }}>Configuração de Preços e Taxas</Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Ajuste os valores usados nas estimativas de corrida. As alterações valem apenas para novas corridas e exigem senha, motivo e auditoria.
+      </Typography>
       {error && !editProfile && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
 
