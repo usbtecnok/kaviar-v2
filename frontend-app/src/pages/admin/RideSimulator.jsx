@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Box, Typography, Paper, Button, TextField, Alert, Grid, Chip,
   Autocomplete, CircularProgress
@@ -8,15 +8,19 @@ import api from '../../api/index';
 function usePlaceSearch() {
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const debounceRef = useRef(null);
 
-  const search = useCallback(async (input) => {
+  const search = useCallback((input) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!input || input.length < 3) { setOptions([]); return; }
     setLoading(true);
-    try {
-      const { data } = await api.get(`/api/geo/autocomplete?input=${encodeURIComponent(input)}&lat=-22.97&lng=-43.18`);
-      setOptions((data.predictions || []).map(p => ({ label: p.description, place_id: p.place_id })));
-    } catch { setOptions([]); }
-    finally { setLoading(false); }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const { data } = await api.get(`/api/geo/autocomplete?input=${encodeURIComponent(input)}&lat=-22.97&lng=-43.18`);
+        setOptions((data.predictions || []).map(p => ({ label: p.description, place_id: p.place_id })));
+      } catch { setOptions([]); }
+      finally { setLoading(false); }
+    }, 400);
   }, []);
 
   const resolve = useCallback(async (place_id) => {
@@ -33,6 +37,8 @@ export default function RideSimulator() {
   const dest = usePlaceSearch();
   const [originValue, setOriginValue] = useState(null);
   const [destValue, setDestValue] = useState(null);
+  const [originInput, setOriginInput] = useState('');
+  const [destInput, setDestInput] = useState('');
   const [originCoords, setOriginCoords] = useState(null);
   const [destCoords, setDestCoords] = useState(null);
   const [result, setResult] = useState(null);
@@ -89,20 +95,34 @@ export default function RideSimulator() {
           {!manualMode ? (<>
           <Grid item xs={12} sm={6}>
             <Autocomplete
-              options={origin.options} loading={origin.loading}
-              value={originValue} onChange={handleOriginSelect}
-              onInputChange={(_, v) => origin.search(v)}
-              isOptionEqualToValue={(o, v) => o.place_id === v.place_id}
-              renderInput={p => <TextField {...p} label="Origem" size="small" InputProps={{ ...p.InputProps, endAdornment: <>{origin.loading && <CircularProgress size={18} />}{p.InputProps.endAdornment}</> }} />}
+              freeSolo
+              options={origin.options}
+              loading={origin.loading}
+              value={originValue}
+              inputValue={originInput}
+              onInputChange={(_, v, reason) => { setOriginInput(v); if (reason === 'input') origin.search(v); }}
+              onChange={handleOriginSelect}
+              getOptionLabel={o => typeof o === 'string' ? o : o.label || ''}
+              isOptionEqualToValue={(o, v) => o.place_id === v?.place_id}
+              filterOptions={x => x}
+              noOptionsText={originInput.length < 3 ? 'Digite ao menos 3 caracteres' : origin.loading ? 'Buscando...' : 'Nenhuma sugestão encontrada'}
+              renderInput={p => <TextField {...p} label="Origem" size="small" placeholder="Ex: Estrada das Furnas 3001" InputProps={{ ...p.InputProps, endAdornment: <>{origin.loading && <CircularProgress size={18} />}{p.InputProps.endAdornment}</> }} />}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
             <Autocomplete
-              options={dest.options} loading={dest.loading}
-              value={destValue} onChange={handleDestSelect}
-              onInputChange={(_, v) => dest.search(v)}
-              isOptionEqualToValue={(o, v) => o.place_id === v.place_id}
-              renderInput={p => <TextField {...p} label="Destino" size="small" InputProps={{ ...p.InputProps, endAdornment: <>{dest.loading && <CircularProgress size={18} />}{p.InputProps.endAdornment}</> }} />}
+              freeSolo
+              options={dest.options}
+              loading={dest.loading}
+              value={destValue}
+              inputValue={destInput}
+              onInputChange={(_, v, reason) => { setDestInput(v); if (reason === 'input') dest.search(v); }}
+              onChange={handleDestSelect}
+              getOptionLabel={o => typeof o === 'string' ? o : o.label || ''}
+              isOptionEqualToValue={(o, v) => o.place_id === v?.place_id}
+              filterOptions={x => x}
+              noOptionsText={destInput.length < 3 ? 'Digite ao menos 3 caracteres' : dest.loading ? 'Buscando...' : 'Nenhuma sugestão encontrada'}
+              renderInput={p => <TextField {...p} label="Destino" size="small" placeholder="Ex: Museu do Açude" InputProps={{ ...p.InputProps, endAdornment: <>{dest.loading && <CircularProgress size={18} />}{p.InputProps.endAdornment}</> }} />}
             />
           </Grid>
           </>) : (<>
