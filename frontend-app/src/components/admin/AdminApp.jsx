@@ -8,6 +8,7 @@ import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
 import PricingProfiles from "../../pages/admin/PricingProfiles";
+import RideSimulator from "../../pages/admin/RideSimulator";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
 import OperationsMonitor from "../../pages/admin/OperationsMonitor";
 import ExecutiveOperations from "../../pages/admin/ExecutiveOperations";
@@ -398,6 +399,7 @@ function AdminHome() {
             { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
             ...(isSuperAdmin ? [
               { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais usados nas estimativas de corrida', to: '/admin/pricing' },
+              { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem e destino para ver preço, perfil, área e ganho do motorista', to: '/admin/ride-simulator' },
               { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e trilha de proteção', to: '/admin/emergency-events', accent: '#DC2626' },
               { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
             ] : []),
@@ -668,6 +670,15 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <PricingProfiles />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/ride-simulator" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <RideSimulator />
               </Container>
             </ProtectedAdminRoute>
           } />

@@ -5,6 +5,9 @@ import { pool } from '../db';
 import { z } from 'zod';
 import * as bcrypt from 'bcryptjs';
 
+import { resolveTerritory } from '../services/territory-resolver.service';
+import * as pricingEngine from '../services/pricing-engine';
+
 const router = Router();
 router.use(authenticateAdmin);
 router.use(requireSuperAdmin);
@@ -22,6 +25,61 @@ const updateSchema = z.object({
   surcharge_external: z.number().min(0).optional(),
   password: z.string().min(1, 'Senha é obrigatória'),
   reason: z.string().min(10, 'Motivo deve ter pelo menos 10 caracteres'),
+});
+
+// POST /api/admin/pricing-profiles/simulate
+router.post('/simulate', async (req: Request, res: Response) => {
+  try {
+    const { origin_lat, origin_lng, dest_lat, dest_lng } = req.body;
+    if (!origin_lat || !origin_lng || !dest_lat || !dest_lng) {
+      return res.status(400).json({ success: false, error: 'origin_lat, origin_lng, dest_lat, dest_lng são obrigatórios' });
+    }
+
+    const profile = await pricingEngine.resolveProfile(origin_lat, origin_lng);
+    const distance_km = Math.round(pricingEngine.haversineKm(origin_lat, origin_lng, dest_lat, dest_lng) * 100) / 100;
+
+    const [originRes, destRes] = await Promise.all([
+      resolveTerritory(origin_lng, origin_lat),
+      resolveTerritory(dest_lng, dest_lat),
+    ]);
+    const route_territory = pricingEngine.classifyRouteFromIds(
+      originRes.neighborhood?.id || null,
+      destRes.neighborhood?.id || null
+    );
+
+    const raw = profile.base_fare + distance_km * profile.per_km;
+    let price = Math.round(Math.max(raw, profile.minimum_fare) * 100) / 100;
+    const surcharge_applied = route_territory === 'external' && profile.surcharge_external > 0 ? profile.surcharge_external : 0;
+    price = Math.round((price + surcharge_applied) * 100) / 100;
+
+    const fee_percent = pricingEngine.feeForTerritory(profile, route_territory as any);
+    const fee_amount = Math.round(price * fee_percent / 100 * 100) / 100;
+    const driver_earnings = Math.round((price - fee_amount) * 100) / 100;
+    const { cost: credit_cost } = pricingEngine.creditForTerritory(profile, route_territory as any);
+    const credit_value = credit_cost * 2.00;
+    const driver_net_after_credit = Math.round((driver_earnings - credit_value) * 100) / 100;
+
+    res.json({
+      success: true,
+      data: {
+        pricing_profile: profile.slug,
+        route_territory,
+        distance_km,
+        price,
+        surcharge_applied,
+        fee_percent,
+        fee_amount,
+        driver_earnings,
+        credit_cost,
+        credit_value,
+        driver_net_after_credit,
+        origin_neighborhood: originRes.neighborhood?.name || null,
+        dest_neighborhood: destRes.neighborhood?.name || null,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro na simulação' });
+  }
 });
 
 // GET /api/admin/pricing-profiles

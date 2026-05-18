@@ -112,7 +112,7 @@ export function feeForTerritory(profile: PricingProfile, territory: TerritoryTyp
   return profile.fee_external;
 }
 
-function creditForTerritory(profile: PricingProfile, territory: TerritoryType): { cost: number; matchType: string } {
+export function creditForTerritory(profile: PricingProfile, territory: TerritoryType): { cost: number; matchType: string } {
   if (territory === 'local' || territory === 'adjacent') {
     return { cost: profile.credit_cost_local, matchType: 'LOCAL' };
   }
