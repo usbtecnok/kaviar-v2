@@ -30,6 +30,7 @@ export interface PricingProfile {
   fee_adjacent: number;
   fee_external: number;
   fee_homebound: number | null;
+  surcharge_external: number;
   credit_cost_local: number;
   credit_cost_external: number;
   max_dispatch_km: number;
@@ -79,6 +80,14 @@ function classifyRoute(
   if (!originNeighborhoodId || !destNeighborhoodId) return 'external';
   if (originNeighborhoodId === destNeighborhoodId) return 'local';
   return 'adjacent';
+}
+
+/** Public wrapper for classifyRoute */
+export function classifyRouteFromIds(
+  originNeighborhoodId: string | null,
+  destNeighborhoodId: string | null
+): TerritoryType {
+  return classifyRoute(originNeighborhoodId, destNeighborhoodId);
 }
 
 function classifyWithDriver(
@@ -161,6 +170,7 @@ function toProfile(row: any): PricingProfile {
     fee_adjacent: Number(row.fee_adjacent),
     fee_external: Number(row.fee_external),
     fee_homebound: row.fee_homebound != null ? Number(row.fee_homebound) : null,
+    surcharge_external: Number(row.surcharge_external || 0),
     credit_cost_local: Number(row.credit_cost_local),
     credit_cost_external: Number(row.credit_cost_external),
     max_dispatch_km: Number(row.max_dispatch_km),
@@ -223,7 +233,7 @@ export async function quote(rideId: string, originLat: number, originLng: number
 
   const raw = profile.base_fare + (distance_km * profile.per_km);
   // V1: per_minute não usado (sem duração estimada)
-  const quoted_price = round2(Math.max(raw, profile.minimum_fare));
+  let quoted_price = round2(Math.max(raw, profile.minimum_fare));
 
   // Territory: promote to most external classification across all legs
   let route_territory = classifyRoute(resolvedOriginId, resolvedDestId);
@@ -232,6 +242,12 @@ export async function quote(rideId: string, originLat: number, originLng: number
     const rank: Record<TerritoryType, number> = { local: 0, adjacent: 1, external: 2 };
     if (rank[postLeg] > rank[route_territory]) route_territory = postLeg;
   }
+
+  // Apply external surcharge (Área 2)
+  if (route_territory === 'external' && profile.surcharge_external > 0) {
+    quoted_price = round2(quoted_price + profile.surcharge_external);
+  }
+
   const fee_percent = feeForTerritory(profile, route_territory);
   const fee_amount = round2(quoted_price * fee_percent / 100);
   const driver_earnings = round2(quoted_price - fee_amount);

@@ -46,14 +46,27 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
 
     const profile = await pricingEngine.resolveProfile(origin.lat, origin.lng);
     const raw = profile.base_fare + distance_km * profile.per_km;
-    const price = Math.round(Math.max(raw, profile.minimum_fare) * 100) / 100;
+    let price = Math.round(Math.max(raw, profile.minimum_fare) * 100) / 100;
+
+    // Resolve territory for surcharge
+    const [originRes, destRes] = await Promise.all([
+      resolveTerritory(origin.lng, origin.lat),
+      resolveTerritory(destination.lng, destination.lat),
+    ]);
+    const route_territory = pricingEngine.classifyRouteFromIds(
+      originRes.neighborhood?.id || null,
+      destRes.neighborhood?.id || null
+    );
+    if (route_territory === 'external' && profile.surcharge_external > 0) {
+      price = Math.round((price + profile.surcharge_external) * 100) / 100;
+    }
 
     // Wait estimate (informational only — real charge is by actual time)
     const wait_charge_estimate = wait_estimated_min && wait_estimated_min > 0
       ? Math.round(wait_estimated_min * config.wait.ratePerMin * 100) / 100
       : null;
 
-    res.json({ success: true, data: { price, distance_km, wait_charge_estimate } });
+    res.json({ success: true, data: { price, distance_km, route_territory, wait_charge_estimate } });
   } catch (error: any) {
     console.error('[RIDE_ESTIMATE_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
