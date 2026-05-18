@@ -7,6 +7,7 @@ import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
+import PricingProfiles from "../../pages/admin/PricingProfiles";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
 import OperationsMonitor from "../../pages/admin/OperationsMonitor";
 import ExecutiveOperations from "../../pages/admin/ExecutiveOperations";
@@ -657,6 +658,15 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <FeatureFlags />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/pricing" element={
+            <ProtectedAdminRoute>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <PricingProfiles />
               </Container>
             </ProtectedAdminRoute>
           } />
