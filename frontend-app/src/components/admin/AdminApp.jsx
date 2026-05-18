@@ -397,6 +397,7 @@ function AdminHome() {
             { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
             { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
             ...(isSuperAdmin ? [
+              { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais usados nas estimativas de corrida', to: '/admin/pricing' },
               { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e trilha de proteção', to: '/admin/emergency-events', accent: '#DC2626' },
               { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
             ] : []),
