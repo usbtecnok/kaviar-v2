@@ -90,7 +90,7 @@ export function classifyRouteFromIds(
   return classifyRoute(originNeighborhoodId, destNeighborhoodId);
 }
 
-function classifyWithDriver(
+export function classifyWithDriver(
   driverNeighborhoodId: string | null,
   originNeighborhoodId: string | null,
   destNeighborhoodId: string | null

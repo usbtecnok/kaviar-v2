@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import {
   Box, Typography, Paper, Button, TextField, Alert, Grid, Chip,
-  Autocomplete, CircularProgress
+  Autocomplete, CircularProgress, MenuItem
 } from '@mui/material';
 import api from '../../api/index';
 
@@ -47,6 +47,14 @@ export default function RideSimulator() {
   const [manualMode, setManualMode] = useState(false);
   const [manualOrigin, setManualOrigin] = useState({ lat: '', lng: '' });
   const [manualDest, setManualDest] = useState({ lat: '', lng: '' });
+  const [neighborhoods, setNeighborhoods] = useState([]);
+  const [driverNeighborhood, setDriverNeighborhood] = useState('');
+
+  useState(() => {
+    api.get('/api/governance/neighborhoods').then(({ data }) => {
+      if (data.success) setNeighborhoods(data.data.filter(n => n.is_active));
+    }).catch(() => {});
+  });
 
   const handleOriginSelect = async (_, val) => {
     setOriginValue(val);
@@ -73,6 +81,7 @@ export default function RideSimulator() {
       const { data } = await api.post('/api/admin/pricing-profiles/simulate', {
         origin_lat: oCoords.lat, origin_lng: oCoords.lng,
         dest_lat: dCoords.lat, dest_lng: dCoords.lng,
+        ...(driverNeighborhood ? { driver_neighborhood_id: driverNeighborhood } : {}),
       });
       if (data.success) setResult(data.data);
       else setError(data.error || 'Erro na simulação');
@@ -131,6 +140,15 @@ export default function RideSimulator() {
           <Grid item xs={3}><TextField label="Destino lat" size="small" fullWidth type="number" value={manualDest.lat} onChange={e => setManualDest({ ...manualDest, lat: e.target.value })} /></Grid>
           <Grid item xs={3}><TextField label="Destino lng" size="small" fullWidth type="number" value={manualDest.lng} onChange={e => setManualDest({ ...manualDest, lng: e.target.value })} /></Grid>
           </>)}
+          <Grid item xs={12} sm={6}>
+            <TextField select label="Bairro do motorista (opcional)" size="small" fullWidth
+              value={driverNeighborhood} onChange={e => setDriverNeighborhood(e.target.value)}
+              helperText={!driverNeighborhood ? 'Sem bairro: mostra visão da rota' : ''}
+            >
+              <MenuItem value="">Nenhum (visão da rota)</MenuItem>
+              {neighborhoods.map(n => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}
+            </TextField>
+          </Grid>
           <Grid item xs={12}>
             <Button variant="contained" onClick={simulate} disabled={loading}>
               {loading ? 'Simulando...' : 'Simular'}
@@ -150,6 +168,11 @@ export default function RideSimulator() {
 
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Área</Typography></Grid>
             <Grid item xs={6}><Typography variant="body2" fontWeight={600}>{territoryLabel[result.route_territory] || result.route_territory}</Typography></Grid>
+
+            {result.driver_territory && result.driver_territory !== result.route_territory && (
+              <><Grid item xs={6}><Typography variant="body2" color="text.secondary">Área (motorista)</Typography></Grid>
+              <Grid item xs={6}><Typography variant="body2" fontWeight={600}>{territoryLabel[result.driver_territory] || result.driver_territory}</Typography></Grid></>
+            )}
 
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Distância</Typography></Grid>
             <Grid item xs={6}><Typography variant="body2">{result.distance_km} km</Typography></Grid>

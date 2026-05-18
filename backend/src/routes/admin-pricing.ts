@@ -30,7 +30,7 @@ const updateSchema = z.object({
 // POST /api/admin/pricing-profiles/simulate
 router.post('/simulate', async (req: Request, res: Response) => {
   try {
-    const { origin_lat, origin_lng, dest_lat, dest_lng } = req.body;
+    const { origin_lat, origin_lng, dest_lat, dest_lng, driver_neighborhood_id } = req.body;
     if (!origin_lat || !origin_lng || !dest_lat || !dest_lng) {
       return res.status(400).json({ success: false, error: 'origin_lat, origin_lng, dest_lat, dest_lng são obrigatórios' });
     }
@@ -42,20 +42,26 @@ router.post('/simulate', async (req: Request, res: Response) => {
       resolveTerritory(origin_lng, origin_lat),
       resolveTerritory(dest_lng, dest_lat),
     ]);
-    const route_territory = pricingEngine.classifyRouteFromIds(
-      originRes.neighborhood?.id || null,
-      destRes.neighborhood?.id || null
-    );
+    const originNeighborhoodId = originRes.neighborhood?.id || null;
+    const destNeighborhoodId = destRes.neighborhood?.id || null;
+
+    // Route territory (visão do passageiro / preço)
+    const route_territory = pricingEngine.classifyRouteFromIds(originNeighborhoodId, destNeighborhoodId);
+
+    // Driver territory (visão do motorista / taxa + crédito)
+    const driver_territory = driver_neighborhood_id
+      ? pricingEngine.classifyWithDriver(driver_neighborhood_id, originNeighborhoodId, destNeighborhoodId)
+      : route_territory;
 
     const raw = profile.base_fare + distance_km * profile.per_km;
     let price = Math.round(Math.max(raw, profile.minimum_fare) * 100) / 100;
     const surcharge_applied = route_territory === 'external' && profile.surcharge_external > 0 ? profile.surcharge_external : 0;
     price = Math.round((price + surcharge_applied) * 100) / 100;
 
-    const fee_percent = pricingEngine.feeForTerritory(profile, route_territory as any);
+    const fee_percent = pricingEngine.feeForTerritory(profile, driver_territory as any);
     const fee_amount = Math.round(price * fee_percent / 100 * 100) / 100;
     const driver_earnings = Math.round((price - fee_amount) * 100) / 100;
-    const { cost: credit_cost } = pricingEngine.creditForTerritory(profile, route_territory as any);
+    const { cost: credit_cost } = pricingEngine.creditForTerritory(profile, driver_territory as any);
     const credit_value = credit_cost * 2.00;
     const driver_net_after_credit = Math.round((driver_earnings - credit_value) * 100) / 100;
 
@@ -64,6 +70,7 @@ router.post('/simulate', async (req: Request, res: Response) => {
       data: {
         pricing_profile: profile.slug,
         route_territory,
+        driver_territory: driver_neighborhood_id ? driver_territory : null,
         distance_km,
         price,
         surcharge_applied,
