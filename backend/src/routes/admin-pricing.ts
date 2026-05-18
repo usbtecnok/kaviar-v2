@@ -39,6 +39,73 @@ router.get('/', async (_req: Request, res: Response) => {
   }
 });
 
+const createSchema = z.object({
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, 'Slug deve conter apenas letras minúsculas, números e hífens'),
+  name: z.string().min(1, 'Nome é obrigatório'),
+  base_fare: z.number().min(0),
+  per_km: z.number().min(0),
+  per_minute: z.number().min(0),
+  minimum_fare: z.number().min(0),
+  fee_local: z.number().min(0).max(100),
+  fee_adjacent: z.number().min(0).max(100),
+  fee_external: z.number().min(0).max(100),
+  surcharge_external: z.number().min(0),
+  credit_cost_local: z.number().int().min(0),
+  credit_cost_external: z.number().int().min(0),
+  max_dispatch_km: z.number().min(0),
+  center_lat: z.number().min(-90).max(90).nullable().optional(),
+  center_lng: z.number().min(-180).max(180).nullable().optional(),
+  radius_km: z.number().min(0).nullable().optional(),
+  password: z.string().min(1, 'Senha é obrigatória'),
+  reason: z.string().min(10, 'Motivo deve ter pelo menos 10 caracteres'),
+});
+
+// POST /api/admin/pricing-profiles
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const ctx = auditCtx(req);
+    const parsed = createSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+    }
+    const { password, reason, ...fields } = parsed.data;
+
+    // Re-authenticate admin
+    const adminRow = await pool.query('SELECT password FROM admins WHERE id = $1', [ctx.adminId]);
+    if (!adminRow.rows[0] || !(await bcrypt.compare(password, adminRow.rows[0].password))) {
+      return res.status(401).json({ success: false, error: 'Senha incorreta' });
+    }
+
+    // Check slug unique
+    const existing = await pool.query('SELECT id FROM pricing_profiles WHERE slug = $1', [fields.slug]);
+    if (existing.rows[0]) {
+      return res.status(409).json({ success: false, error: 'Slug já existe' });
+    }
+
+    await pool.query(
+      `INSERT INTO pricing_profiles (slug, name, base_fare, per_km, per_minute, minimum_fare,
+        fee_local, fee_adjacent, fee_external, surcharge_external,
+        credit_cost_local, credit_cost_external, max_dispatch_km,
+        center_lat, center_lng, radius_km, is_default, is_active, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,false,true,now())`,
+      [fields.slug, fields.name, fields.base_fare, fields.per_km, fields.per_minute, fields.minimum_fare,
+       fields.fee_local, fields.fee_adjacent, fields.fee_external, fields.surcharge_external,
+       fields.credit_cost_local, fields.credit_cost_external, fields.max_dispatch_km,
+       fields.center_lat || null, fields.center_lng || null, fields.radius_km || null]
+    );
+
+    await audit({
+      adminId: ctx.adminId, adminEmail: ctx.adminEmail,
+      action: 'create_pricing_profile', entityType: 'pricing_profile', entityId: fields.slug,
+      newValue: fields, reason, ipAddress: ctx.ip, userAgent: ctx.ua,
+    });
+
+    res.status(201).json({ success: true, message: 'Perfil criado com sucesso' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao criar perfil' });
+  }
+});
+
 // PUT /api/admin/pricing-profiles/:slug
 router.put('/:slug', async (req: Request, res: Response) => {
   try {
