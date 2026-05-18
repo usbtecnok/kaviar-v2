@@ -66,7 +66,7 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
       ? Math.round(wait_estimated_min * config.wait.ratePerMin * 100) / 100
       : null;
 
-    res.json({ success: true, data: { price, distance_km, route_territory, wait_charge_estimate } });
+    res.json({ success: true, data: { price, distance_km, route_territory, pricing_profile: profile.slug, wait_charge_estimate } });
   } catch (error: any) {
     console.error('[RIDE_ESTIMATE_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
