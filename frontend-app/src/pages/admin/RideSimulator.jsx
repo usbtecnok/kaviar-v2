@@ -141,9 +141,9 @@ export default function RideSimulator() {
           <Grid item xs={3}><TextField label="Destino lng" size="small" fullWidth type="number" value={manualDest.lng} onChange={e => setManualDest({ ...manualDest, lng: e.target.value })} /></Grid>
           </>)}
           <Grid item xs={12} sm={6}>
-            <TextField select label="Bairro do motorista (opcional)" size="small" fullWidth
+            <TextField select label="Bairro/base cadastrada do motorista (opcional)" size="small" fullWidth
               value={driverNeighborhood} onChange={e => setDriverNeighborhood(e.target.value)}
-              helperText={!driverNeighborhood ? 'Sem bairro: mostra visão da rota' : ''}
+              helperText="Use apenas para bairros já cadastrados no KAVIAR. Para cidades novas, deixe vazio."
             >
               <MenuItem value="">Nenhum (visão da rota)</MenuItem>
               {neighborhoods.map(n => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}
