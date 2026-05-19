@@ -244,7 +244,7 @@ export default function PartnerPortal() {
                 <Typography variant="caption" sx={{ color: '#666', display: 'block', mt: 1 }}>Código: <strong style={{ color: gold }}>{user.referral_code}</strong></Typography>
                 <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 2, flexWrap: 'wrap' }}>
                   <Button size="small" variant="outlined" sx={{ borderColor: '#333', color: gold }} onClick={() => { navigator.clipboard.writeText(`https://kaviar.com.br/driver/register?partner_code=${user.referral_code}`); alert('Link copiado!'); }}>Copiar link motorista</Button>
-                  <Button size="small" variant="outlined" sx={{ borderColor: '#333', color: '#4caf50' }} onClick={() => { navigator.clipboard.writeText('https://downloads.kaviar.com.br/kaviar-passageiro-v1.12.2-regiao.apk'); alert('Link copiado!'); }}>Copiar link passageiro</Button>
+                  <Button size="small" variant="outlined" sx={{ borderColor: '#333', color: '#4caf50' }} onClick={() => { navigator.clipboard.writeText('https://downloads.kaviar.com.br/kaviar-passageiro-v1.12.3-driver-photo-mapok-passengerfix.apk'); alert('Link copiado!'); }}>Copiar link passageiro</Button>
                 </Box>
               </Box>
             )}
