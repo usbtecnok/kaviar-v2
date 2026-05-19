@@ -282,7 +282,7 @@ export default function KaviarLanding() {
               <li>Recebimento de corridas da sua região</li>
               <li>Operação focada em proximidade e confiança</li>
             </Box>
-            <Button variant="contained" href="https://downloads.kaviar.com.br/kaviar-motorista-v1.12.0-boarding-code.apk" target="_blank" rel="noopener" sx={sx.goldBtn}>
+            <Button variant="contained" href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.22-fix-adjusted-price-mapok.apk" target="_blank" rel="noopener" sx={sx.goldBtn}>
               Baixar app do motorista
             </Button>
           </Box>
