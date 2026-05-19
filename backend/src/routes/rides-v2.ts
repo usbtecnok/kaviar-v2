@@ -23,6 +23,16 @@ const toPhotoUrl = async (key: string | null | undefined): Promise<string | null
 };
 import { triggerEmergency, appendTrailPoint } from '../services/ride-emergency.service';
 
+const getVehiclePhotoUrl = async (driverId: string | null | undefined): Promise<string | null> => {
+  if (!driverId) return null;
+  const doc = await prisma.driver_documents.findUnique({
+    where: { driver_id_type: { driver_id: driverId, type: 'VEHICLE_PHOTO' } },
+    select: { file_url: true, status: true }
+  });
+  if (doc?.status !== 'VERIFIED' || !doc.file_url) return null;
+  return toPhotoUrl(doc.file_url);
+};
+
 const router = Router();
 
 // 5.0 Estimativa de preço (sem criar corrida)
@@ -91,7 +101,7 @@ router.get('/active', authenticatePassenger, async (req: Request, res: Response)
       origin_lng: Number(ride.origin_lng),
       dest_lat: Number(ride.dest_lat),
       dest_lng: Number(ride.dest_lng),
-      driver: ride.driver ? { ...ride.driver, photo_url: await toPhotoUrl(ride.driver.photo_url) } : null,
+      driver: ride.driver ? { ...ride.driver, photo_url: await toPhotoUrl(ride.driver.photo_url), vehicle_photo_url: await getVehiclePhotoUrl(ride.driver.id) } : null,
     } : null });
   } catch (error: any) {
     console.error('[PASSENGER_ACTIVE_RIDE_ERROR]', error);
@@ -423,6 +433,7 @@ router.get('/:ride_id', authenticatePassenger, async (req: Request, res: Respons
         last_lat: ride.driver.last_lat ? Number(ride.driver.last_lat) : null,
         last_lng: ride.driver.last_lng ? Number(ride.driver.last_lng) : null,
         photo_url: await toPhotoUrl(ride.driver.photo_url),
+        vehicle_photo_url: await getVehiclePhotoUrl(ride.driver.id),
       } : null,
     } });
   } catch (error: any) {

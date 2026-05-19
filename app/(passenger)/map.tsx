@@ -123,6 +123,10 @@ export default function PassengerMap() {
   const [photoError, setPhotoError] = useState(false);
   const stablePhotoUrl = useRef<string | null>(null);
 
+  // Vehicle photo
+  const [vehiclePhotoError, setVehiclePhotoError] = useState(false);
+  const stableVehiclePhotoUrl = useRef<string | null>(null);
+
   // Adjustment modal
   const [showAdjustment, setShowAdjustment] = useState(false);
   const adjustmentShownForRef = useRef<string | null>(null);
@@ -233,6 +237,7 @@ export default function PassengerMap() {
       if (active && !['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(active.status)) {
         setRide(active);
         stablePhotoUrl.current = active.driver?.photo_url || null;
+        stableVehiclePhotoUrl.current = active.driver?.vehicle_photo_url || null;
         setScreen('tracking');
         stopPolling();
         startPolling(active.id);
@@ -357,6 +362,10 @@ export default function PassengerMap() {
         const newBase = updated.driver?.photo_url?.split('?')[0] || null;
         const oldBase = stablePhotoUrl.current?.split('?')[0] || null;
         if (newBase !== oldBase) stablePhotoUrl.current = updated.driver?.photo_url || null;
+        // Stabilize vehicle photo URL
+        const newVBase = updated.driver?.vehicle_photo_url?.split('?')[0] || null;
+        const oldVBase = stableVehiclePhotoUrl.current?.split('?')[0] || null;
+        if (newVBase !== oldVBase) stableVehiclePhotoUrl.current = updated.driver?.vehicle_photo_url || null;
         // Update driver location from polling
         if (updated.driver?.last_lat && updated.driver?.last_lng) {
           setDriverLocation({ lat: updated.driver.last_lat, lng: updated.driver.last_lng });
@@ -375,6 +384,7 @@ export default function PassengerMap() {
             setShowRedispatch(false);
             setShowAcceptedBanner(true);
             setPhotoError(false);
+            setVehiclePhotoError(false);
             Animated.sequence([
               Animated.timing(bannerOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
               Animated.delay(4000),
@@ -916,6 +926,14 @@ export default function PassengerMap() {
                   <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.accent} />
                   <Text style={s.safetyTipText}>Confira a placa e a cor do veículo antes de entrar.</Text>
                 </View>
+                {!vehiclePhotoError && stableVehiclePhotoUrl.current && (
+                  <Image
+                    source={{ uri: stableVehiclePhotoUrl.current }}
+                    style={s.vehiclePhoto}
+                    resizeMode="cover"
+                    onError={() => setVehiclePhotoError(true)}
+                  />
+                )}
               </View>
             )}
             {/* Q3: ETA do motorista */}
@@ -1349,6 +1367,7 @@ const s = StyleSheet.create({
   tripToggleText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   driverPhoto: { width: 40, height: 40, borderRadius: 20 },
+  vehiclePhoto: { width: '100%', height: 80, borderRadius: 8, marginTop: 10 },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 
