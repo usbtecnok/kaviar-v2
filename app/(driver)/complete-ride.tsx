@@ -313,8 +313,9 @@ export default function CompleteRide() {
         waitMin = Math.floor((new Date(ride.wait_ended_at).getTime() - new Date(ride.wait_started_at).getTime()) / 60000);
         waitCharge = Math.round(waitMin * 0.50 * 100) / 100;
       }
-      const finalPrice = ride?.quoted_price != null
-        ? Math.round((Number(ride.quoted_price) + (waitCharge || 0)) * 100) / 100
+      const basePrice = Number(ride?.adjusted_price ?? ride?.quoted_price ?? 0);
+      const finalPrice = basePrice > 0
+        ? Math.round((basePrice + (waitCharge || 0)) * 100) / 100
         : undefined;
       setCompletionData({ credit: result?.credit || undefined, waitMin, waitCharge, finalPrice });
     } catch (e: any) {
