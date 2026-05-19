@@ -121,6 +121,7 @@ export default function PassengerMap() {
 
   // Driver photo
   const [photoError, setPhotoError] = useState(false);
+  const stablePhotoUrl = useRef<string | null>(null);
 
   // Adjustment modal
   const [showAdjustment, setShowAdjustment] = useState(false);
@@ -231,6 +232,7 @@ export default function PassengerMap() {
       const active = await passengerApi.getActiveRide();
       if (active && !['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(active.status)) {
         setRide(active);
+        stablePhotoUrl.current = active.driver?.photo_url || null;
         setScreen('tracking');
         stopPolling();
         startPolling(active.id);
@@ -351,6 +353,10 @@ export default function PassengerMap() {
       try {
         const updated = await passengerApi.getRide(rideId);
         setRide(updated);
+        // Stabilize driver photo URL (avoid flicker from changing presigned params)
+        const newBase = updated.driver?.photo_url?.split('?')[0] || null;
+        const oldBase = stablePhotoUrl.current?.split('?')[0] || null;
+        if (newBase !== oldBase) stablePhotoUrl.current = updated.driver?.photo_url || null;
         // Update driver location from polling
         if (updated.driver?.last_lat && updated.driver?.last_lng) {
           setDriverLocation({ lat: updated.driver.last_lat, lng: updated.driver.last_lng });
@@ -887,14 +893,15 @@ export default function PassengerMap() {
               <View style={s.driverCard}>
                 <View style={s.driverRow}>
                   <View style={s.driverAvatar}>
-                    {!photoError && ride.driver.photo_url ? (
+                    {!photoError && stablePhotoUrl.current ? (
                       <Image
-                        source={{ uri: ride.driver.photo_url }}
-                        style={[s.driverPhoto, { position: 'absolute' }]}
+                        source={{ uri: stablePhotoUrl.current }}
+                        style={s.driverPhoto}
                         onError={() => setPhotoError(true)}
                       />
-                    ) : null}
-                    <Ionicons name="person" size={20} color={COLORS.primary} />
+                    ) : (
+                      <Ionicons name="person" size={20} color={COLORS.primary} />
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.driverName}>{ride.driver.name}</Text>
@@ -1341,7 +1348,7 @@ const s = StyleSheet.create({
   tripToggleOn: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   tripToggleText: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.surfaceLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  driverPhoto: { width: 56, height: 56, borderRadius: 28, marginRight: 12, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surfaceLight },
+  driverPhoto: { width: 40, height: 40, borderRadius: 20 },
   driverName: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   driverVehicle: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 
