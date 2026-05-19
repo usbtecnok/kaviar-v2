@@ -28,7 +28,7 @@ export interface Ride {
   adjusted_price?: number | string;
   updated_at?: string;
   passenger?: { name: string; phone?: string };
-  driver?: { name: string; phone?: string; vehicle_model?: string; vehicle_plate?: string; vehicle_color?: string; id?: string; last_lat?: number; last_lng?: number };
+  driver?: { name: string; phone?: string; vehicle_model?: string; vehicle_plate?: string; vehicle_color?: string; id?: string; last_lat?: number; last_lng?: number; photo_url?: string; vehicle_photo_url?: string };
   trip_details?: { passengers: number; has_luggage: boolean; post_wait_destination?: { lat: number; lng: number; text?: string | null } };
   boarding_status?: 'at_door' | 'descending' | '2_minutes' | null;
   scheduled_for?: string | null;
