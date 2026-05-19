@@ -278,6 +278,10 @@ router.post('/:ride_id/adjustment-response', authenticatePassenger, async (req: 
     }
 
     if (accept) {
+      const adjustedPrice = ride.quoted_price && offer.driver_adjustment
+        ? Number(ride.quoted_price) + Number(offer.driver_adjustment)
+        : null;
+
       await prisma.$transaction(async (tx) => {
         await tx.ride_offers.update({
           where: { id: offer.id },
@@ -287,9 +291,16 @@ router.post('/:ride_id/adjustment-response', authenticatePassenger, async (req: 
           where: { id: ride_id },
           data: { status: 'accepted', accepted_at: new Date() }
         });
+        if (adjustedPrice !== null) {
+          await tx.$executeRaw`
+            UPDATE ride_settlements
+            SET locked_price = ${adjustedPrice}, locked_at = NOW()
+            WHERE ride_id = ${ride_id}
+          `;
+        }
       });
 
-      console.log(`[ADJUSTMENT_ACCEPTED] ride_id=${ride_id} driver_id=${ride.driver_id} adjustment=${offer.driver_adjustment}`);
+      console.log(`[ADJUSTMENT_ACCEPTED] ride_id=${ride_id} driver_id=${ride.driver_id} adjustment=${offer.driver_adjustment} adjusted_price=${adjustedPrice}`);
 
       realTimeService.emitToRide(ride_id, {
         type: 'ride.status.changed',
