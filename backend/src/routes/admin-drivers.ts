@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { uploadToS3 } from '../config/s3-upload';
 import { ApprovalController } from '../modules/admin/approval-controller';
 import { config } from '../config';
@@ -87,14 +88,20 @@ router.post('/drivers/create', requireSuperAdmin, async (req: Request, res: Resp
 });
 
 // GET /api/admin/drivers?status=pending
-router.get('/drivers', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/drivers', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
-    const where = status ? { status } : {};
+    const where: any = status ? { status } : {};
+
+    // Escopo territorial: filtra por neighborhood_id se admin tem restrição
+    const scope = (req as any).territoryScope;
+    if (scope) {
+      where.neighborhood_id = { in: scope.neighborhoodIds };
+    }
 
     const [drivers, total] = await Promise.all([
       prisma.drivers.findMany({
