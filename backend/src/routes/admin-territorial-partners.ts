@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { authenticateAdmin } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { audit, auditCtx } from '../utils/audit';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
@@ -61,12 +62,18 @@ router.get('/summary', authenticateAdmin, async (req: Request, res: Response) =>
 });
 
 // List all partners
-router.get('/', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const { status, partner_type } = req.query;
     const where: any = {};
     if (status) where.status = status;
     if (partner_type) where.partner_type = partner_type;
+
+    // Escopo territorial: filtra por territory_id se admin tem restrição
+    const scope = (req as any).territoryScope;
+    if (scope) {
+      where.territory_id = { in: scope.territoryIds };
+    }
 
     const partners = await prisma.territorial_partners.findMany({
       where,
