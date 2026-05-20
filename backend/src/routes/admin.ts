@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess, requireRole } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { auditWrite } from '../middlewares/audit-write';
 import { audit, auditCtx } from '../utils/audit';
 import { prisma } from '../lib/prisma';
@@ -48,7 +49,7 @@ router.get('/admins', requireSuperAdmin, async (req, res) => {
 });
 
 // GET /api/admin/passengers
-router.get('/passengers', allowReadAccess, async (req, res) => {
+router.get('/passengers', allowReadAccess, applyTerritoryScope, async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -62,6 +63,12 @@ router.get('/passengers', allowReadAccess, async (req, res) => {
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    // Escopo territorial: filtra por neighborhood_id se admin tem restrição
+    const scope = (req as any).territoryScope;
+    if (scope) {
+      where.neighborhood_id = { in: scope.neighborhoodIds };
     }
 
     const [passengers, total] = await Promise.all([
