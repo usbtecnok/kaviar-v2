@@ -319,6 +319,7 @@ model neighborhoods {
   parent_neighborhood_id String?
   population             Int?
   area_km2               Decimal?                @db.Decimal(10, 2)
+  territory_id           String?
   community_leaders      community_leaders[]
   drivers                drivers[]
   match_logs             match_logs[]
@@ -328,12 +329,14 @@ model neighborhoods {
   rides_dropoff          rides[]                 @relation("dropoff_neighborhood")
   rides_v2_origin        rides_v2[]              @relation("RideOriginV2")
   rides_v2_dest          rides_v2[]              @relation("RideDestV2")
+  territory              operational_territories? @relation(fields: [territory_id], references: [id])
 
   @@unique([name, city])
   @@index([city])
   @@index([area_type], map: "idx_neighborhoods_area_type")
   @@index([city, area_type], map: "idx_neighborhoods_city_type")
   @@index([parent_neighborhood_id], map: "idx_neighborhoods_parent")
+  @@index([territory_id], map: "idx_neighborhoods_territory")
 }
 
 model community_leaders {
@@ -1471,6 +1474,7 @@ model territorial_partners {
   logo_url            String?
   status              String   @default("active") // active | paused | inactive
   notes               String?
+  territory_id        String?
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
@@ -1482,10 +1486,12 @@ model territorial_partners {
   transactions        partner_transactions[]
   users               partner_users[]
   member_payments     partner_member_payments[]
+  territory           operational_territories? @relation(fields: [territory_id], references: [id])
 
   @@index([status])
   @@index([partner_type])
   @@index([billing_status])
+  @@index([territory_id], map: "idx_territorial_partners_territory")
 }
 
 model partner_commissions {
@@ -1664,4 +1670,27 @@ model local_businesses {
   updated_at  DateTime @default(now()) @updatedAt
 
   @@index([region_slug, is_active])
+}
+
+// ─── Territórios Operacionais (Multioperação) ────────────────────────────────
+model operational_territories {
+  id         String   @id @default(uuid())
+  name       String
+  level      String   // "state" | "city" | "region"
+  parent_id  String?
+  center_lat Decimal? @db.Decimal(10, 8)
+  center_lng Decimal? @db.Decimal(11, 8)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  parent   operational_territories?  @relation("TerritoryHierarchy", fields: [parent_id], references: [id])
+  children operational_territories[] @relation("TerritoryHierarchy")
+
+  neighborhoods        neighborhoods[]
+  territorial_partners territorial_partners[]
+
+  @@unique([name, level, parent_id])
+  @@index([level])
+  @@index([parent_id])
 }

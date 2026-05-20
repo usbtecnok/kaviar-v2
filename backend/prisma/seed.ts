@@ -122,6 +122,37 @@ async function main() {
   });
   console.log('✅ Passageiro: passageiro@kaviar.com / pass123 (ACTIVE + LGPD)');
 
+  // Território operacional RJ
+  const rjState = await prisma.operational_territories.upsert({
+    where: { id: 'territory-rj-state' },
+    update: {},
+    create: {
+      id: 'territory-rj-state',
+      name: 'Rio de Janeiro',
+      level: 'state',
+      center_lat: -22.90685,
+      center_lng: -43.1729,
+    },
+  });
+  const rjCity = await prisma.operational_territories.upsert({
+    where: { id: 'territory-rj-city' },
+    update: {},
+    create: {
+      id: 'territory-rj-city',
+      name: 'Rio de Janeiro',
+      level: 'city',
+      parent_id: rjState.id,
+      center_lat: -22.90685,
+      center_lng: -43.1729,
+    },
+  });
+  // Vincular bairro de teste ao território
+  await prisma.neighborhoods.update({
+    where: { id: 'bairro-centro-rj' },
+    data: { territory_id: rjCity.id },
+  });
+  console.log('✅ Território: RJ (state) → Rio de Janeiro (city)');
+
   console.log('\n🎉 Seed completo!');
 }
 
