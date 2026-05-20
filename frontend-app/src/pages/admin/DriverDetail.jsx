@@ -283,6 +283,62 @@ export default function AdminDriverDetail() {
             <Typography variant="body1">{driver.pix_key_type || 'Não informado'}</Typography>
           </Grid>
           <Grid item xs={12}>
+            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Fotos</Typography>
+            {(() => {
+              const profilePhoto = documents.find(d => d.type === 'PROFILE_PHOTO');
+              const vehiclePhoto = documents.find(d => d.type === 'VEHICLE_PHOTO');
+              const sixMonthsAgo = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+              const isExpired = (doc) => doc?.verified_at && new Date(doc.verified_at) < sixMonthsAgo;
+              const statusColor = (s) => s === 'VERIFIED' ? 'success' : s === 'SUBMITTED' ? 'warning' : s === 'rejected' ? 'error' : 'default';
+              const statusLabel = (s) => s === 'VERIFIED' ? 'Aprovada' : s === 'SUBMITTED' ? 'Pendente' : s === 'rejected' ? 'Rejeitada' : s || '—';
+              const openPhoto = async (doc) => {
+                const key = (doc.file_url || doc.document_url || '').replace(/^\//, '');
+                if (!key) return;
+                try {
+                  const { data } = await api.get(`/api/admin/presign?key=${encodeURIComponent(key)}`);
+                  if (data.success && data.url) window.open(data.url, '_blank', 'noopener,noreferrer');
+                } catch { alert('Erro ao abrir foto'); }
+              };
+              const PhotoCard = ({ label, doc }) => (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  {doc && (doc.file_url || doc.document_url) ? (
+                    <Box component="img" src="" alt={label} sx={{ width: 56, height: 56, borderRadius: 1, objectFit: 'cover', bgcolor: 'grey.300', cursor: 'pointer' }}
+                      ref={el => { if (el && !el.dataset.loaded) { el.dataset.loaded = '1'; const key = (doc.file_url || doc.document_url).replace(/^\//, ''); api.get(`/api/admin/presign?key=${encodeURIComponent(key)}`).then(r => { if (r.data?.url) el.src = r.data.url; }).catch(() => {}); }}}
+                      onClick={() => openPhoto(doc)}
+                    />
+                  ) : (
+                    <Box sx={{ width: 56, height: 56, borderRadius: 1, bgcolor: 'grey.200', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Typography variant="caption" color="text.disabled">—</Typography>
+                    </Box>
+                  )}
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{label}</Typography>
+                    {doc ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
+                        <Chip label={statusLabel(doc.status)} size="small" color={statusColor(doc.status)} />
+                        {isExpired(doc) && <Chip label="⚠️ Renovação necessária" size="small" color="warning" variant="outlined" />}
+                        {doc.verified_at && <Typography variant="caption" color="text.secondary">Aprovada em {new Date(doc.verified_at).toLocaleDateString('pt-BR')}</Typography>}
+                        {!doc.verified_at && doc.submitted_at && <Typography variant="caption" color="text.secondary">Enviada em {new Date(doc.submitted_at).toLocaleDateString('pt-BR')}</Typography>}
+                      </Box>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">Não enviada</Typography>
+                    )}
+                  </Box>
+                  {doc && (doc.file_url || doc.document_url) && (
+                    <Button size="small" variant="outlined" onClick={() => openPhoto(doc)}>Ver foto</Button>
+                  )}
+                </Box>
+              );
+              return (
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <PhotoCard label="Foto do motorista" doc={profilePhoto} />
+                  <PhotoCard label="Foto do veículo" doc={vehiclePhoto} />
+                </Box>
+              );
+            })()}
+          </Grid>
+
+          <Grid item xs={12}>
             <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>Documentos</Typography>
             {documents.length > 0 ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
