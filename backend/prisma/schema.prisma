@@ -25,6 +25,7 @@ model admins {
   created_at                  DateTime            @default(now())
   updated_at                  DateTime            @updatedAt
   community_leaders           community_leaders[]
+  territory_access            admin_territory_access[]
 }
 
 model communities {
@@ -1689,8 +1690,24 @@ model operational_territories {
 
   neighborhoods        neighborhoods[]
   territorial_partners territorial_partners[]
+  admin_access         admin_territory_access[]
 
   @@unique([name, level, parent_id])
   @@index([level])
   @@index([parent_id])
+}
+
+model admin_territory_access {
+  id           String   @id @default(uuid())
+  admin_id     String
+  territory_id String
+  access_level String   @default("full") // "full" | "read_only"
+  created_at   DateTime @default(now())
+
+  admin     admins                  @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+  territory operational_territories @relation(fields: [territory_id], references: [id], onDelete: Cascade)
+
+  @@unique([admin_id, territory_id])
+  @@index([admin_id])
+  @@index([territory_id])
 }
