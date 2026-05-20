@@ -299,7 +299,27 @@ export default function AdminDriverDetail() {
                   if (data.success && data.url) window.open(data.url, '_blank', 'noopener,noreferrer');
                 } catch { alert('Erro ao abrir foto'); }
               };
-              const PhotoCard = ({ label, doc }) => (
+              const handleUpload = async (type) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/jpeg,image/png,image/webp';
+                input.onchange = async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) { alert('Arquivo muito grande (máx 5MB)'); return; }
+                  const fd = new FormData();
+                  fd.append('photo', file);
+                  fd.append('type', type);
+                  try {
+                    await api.post(`/api/admin/drivers/${id}/photo-upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                    loadDocuments();
+                    if (type === 'PROFILE_PHOTO') loadDriver();
+                    alert('Foto atualizada com sucesso!');
+                  } catch (err) { alert(err.response?.data?.error || 'Erro ao enviar foto'); }
+                };
+                input.click();
+              };
+              const PhotoCard = ({ label, doc, docType }) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
                   {doc && (doc.file_url || doc.document_url) ? (
                     <Box component="img" src="" alt={label} sx={{ width: 56, height: 56, borderRadius: 1, objectFit: 'cover', bgcolor: 'grey.300', cursor: 'pointer' }}
@@ -327,12 +347,17 @@ export default function AdminDriverDetail() {
                   {doc && (doc.file_url || doc.document_url) && (
                     <Button size="small" variant="outlined" onClick={() => openPhoto(doc)}>Ver foto</Button>
                   )}
+                  {isSuperAdmin() && (
+                    <Button size="small" variant="contained" color="primary" onClick={() => handleUpload(docType)}>
+                      {doc ? 'Trocar' : 'Adicionar'}
+                    </Button>
+                  )}
                 </Box>
               );
               return (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <PhotoCard label="Foto do motorista" doc={profilePhoto} />
-                  <PhotoCard label="Foto do veículo" doc={vehiclePhoto} />
+                  <PhotoCard label="Foto do motorista" doc={profilePhoto} docType="PROFILE_PHOTO" />
+                  <PhotoCard label="Foto do veículo" doc={vehiclePhoto} docType="VEHICLE_PHOTO" />
                 </Box>
               );
             })()}

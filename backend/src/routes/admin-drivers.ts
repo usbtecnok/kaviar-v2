@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import fs from 'fs';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
+import { uploadToS3 } from '../config/s3-upload';
 import { ApprovalController } from '../modules/admin/approval-controller';
 import { config } from '../config';
 import { createAuditLog } from '../utils/audit';
@@ -778,6 +779,39 @@ router.get('/drivers/:id/audit', allowReadAccess, async (req: Request, res: Resp
   } catch (error: any) {
     console.error('[ADMIN_DRIVER_AUDIT_ERROR]', error);
     res.json({ success: true, data: [] });
+  }
+});
+
+// POST /api/admin/drivers/:id/photo-upload — admin uploads/replaces driver or vehicle photo
+router.post('/drivers/:id/photo-upload', requireSuperAdmin, uploadToS3.single('photo'), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body;
+    if (!['PROFILE_PHOTO', 'VEHICLE_PHOTO'].includes(type)) {
+      return res.status(400).json({ success: false, error: 'type deve ser PROFILE_PHOTO ou VEHICLE_PHOTO' });
+    }
+    const file = req.file as any;
+    if (!file) return res.status(400).json({ success: false, error: 'Arquivo não enviado' });
+    if (!file.mimetype.startsWith('image/')) return res.status(400).json({ success: false, error: 'Apenas imagens são permitidas' });
+
+    const fileUrl = file.key || `certidoes/${file.filename}`;
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.driver_documents.upsert({
+        where: { driver_id_type: { driver_id: id, type } },
+        create: { id: `doc_${id}_${type}_${Date.now()}`, driver_id: id, type, file_url: fileUrl, status: 'VERIFIED', verified_at: now, submitted_at: now, updated_at: now },
+        update: { file_url: fileUrl, status: 'VERIFIED', verified_at: now, submitted_at: now, updated_at: now },
+      });
+      if (type === 'PROFILE_PHOTO') {
+        await tx.drivers.update({ where: { id }, data: { photo_url: fileUrl } });
+      }
+    });
+
+    res.json({ success: true, data: { type, file_url: fileUrl, status: 'VERIFIED' } });
+  } catch (error: any) {
+    console.error('[ADMIN_PHOTO_UPLOAD_ERROR]', error);
+    res.status(500).json({ success: false, error: 'Erro ao enviar foto' });
   }
 });
 
