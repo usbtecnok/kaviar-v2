@@ -31,8 +31,9 @@ export default function TerritorialPayoutsPage() {
   const [payForm, setPayForm] = useState({ payment_method: 'pix', payment_ref: '', receipt_url: '', fiscal_document_url: '', fiscal_document_ref: '', fiscal_notes: '' });
   const [paySaving, setPaySaving] = useState(false);
 
-  // Admins for operator creation
-  const [admins, setAdmins] = useState([]);
+  // Admins for operator creation (loaded per territory)
+  const [territoryAdmins, setTerritoryAdmins] = useState([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -52,6 +53,22 @@ export default function TerritorialPayoutsPage() {
   };
 
   useEffect(() => { fetchAll(); }, []);
+
+  // Fetch admins when territory changes in operator form
+  useEffect(() => {
+    if (!opForm.territory_id) { setTerritoryAdmins([]); return; }
+    setLoadingAdmins(true);
+    fetch(`${API_BASE_URL}/api/admin/territories/${opForm.territory_id}`, { headers })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data.admin_access) {
+          setTerritoryAdmins(d.data.admin_access.map(a => a.admin).filter(a => a.is_active));
+        } else { setTerritoryAdmins([]); }
+      })
+      .catch(() => setTerritoryAdmins([]))
+      .finally(() => setLoadingAdmins(false));
+    setOpForm(f => ({ ...f, admin_id: '' }));
+  }, [opForm.territory_id]);
 
   // Operator actions
   const handleCreateOperator = async () => {
@@ -199,7 +216,15 @@ export default function TerritorialPayoutsPage() {
               <MenuItem value="cpf">CPF</MenuItem><MenuItem value="cnpj">CNPJ</MenuItem><MenuItem value="email">Email</MenuItem><MenuItem value="phone">Telefone</MenuItem><MenuItem value="random">Aleatória</MenuItem>
             </TextField></Box>
           </Box>
-          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Admin vinculado (ID)</Typography><TextField value={opForm.admin_id} onChange={e => setOpForm({ ...opForm, admin_id: e.target.value })} fullWidth size="small" placeholder="ID do admin regional" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Admin Regional vinculado</Typography>
+            {opForm.territory_id && !loadingAdmins && territoryAdmins.length === 0 && (
+              <Alert severity="warning" sx={{ mb: 1 }}>Cadastre ou vincule um Admin Regional a este território antes de criar o Operador Territorial.</Alert>
+            )}
+            {loadingAdmins ? <CircularProgress size={20} sx={{ color: '#B8942E' }} /> : (
+              <TextField select value={opForm.admin_id} onChange={e => setOpForm({ ...opForm, admin_id: e.target.value })} fullWidth size="small" disabled={!opForm.territory_id || territoryAdmins.length === 0} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
+                {territoryAdmins.map(a => <MenuItem key={a.id} value={a.id}>{a.name} — {a.email} ({a.role})</MenuItem>)}
+              </TextField>
+            )}</Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setOpOpen(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
