@@ -133,24 +133,7 @@ export default function TerritoryDetailPage() {
         </TableContainer>
       )}
 
-      {tab === 4 && (
-        <Card sx={{ border: '1px solid #E8E5DE', borderTop: '3px solid #B8942E' }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ color: '#C8A84E', fontWeight: 700, mb: 2 }}>💰 KAVIAR Finance — Territorial</Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 2, mb: 3 }}>
-              {['Corridas', 'Receita Bruta', 'Créditos Comprados', 'Consumo Créditos', 'Comissões Parceiros', 'Mensalidades', 'Compensações', 'Repasses'].map((label) => (
-                <Box key={label} sx={{ p: 2, bgcolor: '#FAFAF8', borderRadius: 1, border: '1px solid #E8E5DE' }}>
-                  <Typography variant="caption" sx={{ color: '#6B7280' }}>{label}</Typography>
-                  <Typography variant="h6" sx={{ color: '#9CA3AF', fontWeight: 700 }}>—</Typography>
-                </Box>
-              ))}
-            </Box>
-            <Box sx={{ p: 3, bgcolor: '#FAFAF8', borderRadius: 2, textAlign: 'center' }}>
-              <Typography sx={{ color: '#6B7280', fontStyle: 'italic' }}>Financeiro territorial em preparação. Este território ainda não possui regras financeiras próprias ativas.</Typography>
-            </Box>
-          </CardContent>
-        </Card>
-      )}
+      {tab === 4 && <FinanceTab territoryId={id} token={token} />}
 
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Editar Território</DialogTitle>
@@ -171,5 +154,68 @@ export default function TerritoryDetailPage() {
         </DialogActions>
       </Dialog>
     </Box>
+  );
+}
+
+function FinanceTab({ territoryId, token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/admin/territories/${territoryId}/finance`, { headers: { Authorization: `Bearer ${token}` } });
+        const json = await res.json();
+        if (json.success) setData(json.data);
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    })();
+  }, [territoryId]);
+
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress sx={{ color: '#B8942E' }} /></Box>;
+
+  const fmt = (v) => typeof v === 'number' ? v.toLocaleString('pt-BR') : '—';
+  const fmtBRL = (v) => typeof v === 'number' ? `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+  const fmtCents = (v) => typeof v === 'number' ? `R$ ${(v / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+
+  const d = data || {};
+  const cards = [
+    { label: 'Corridas Total', value: fmt(d.rides?.total), color: '#B8942E' },
+    { label: 'Concluídas', value: fmt(d.rides?.completed), color: '#059669' },
+    { label: 'Canceladas', value: fmt(d.rides?.canceled), color: '#DC2626' },
+    { label: 'Sem Motorista', value: fmt(d.rides?.no_driver), color: '#D97706' },
+    { label: 'Motoristas', value: fmt(d.entities?.drivers), color: '#B8942E' },
+    { label: 'Passageiros', value: fmt(d.entities?.passengers), color: '#B8942E' },
+    { label: 'Parceiros', value: fmt(d.entities?.partners), color: '#B8942E' },
+    { label: 'Créditos Comprados', value: fmt(d.credits?.purchased), color: '#059669' },
+    { label: 'Créditos Consumidos', value: fmt(d.credits?.consumed), color: '#D97706' },
+    { label: 'Receita Bruta Estimada', value: fmtBRL(d.revenue?.gross_estimated), color: '#059669' },
+    { label: 'Compensações', value: `${fmt(d.compensations?.total)} (${fmtCents(d.compensations?.amount_cents)})`, color: '#6B7280' },
+    { label: 'Comissões Parceiros', value: fmtBRL(d.partner_finance?.commissions_total), color: '#B8942E' },
+    { label: 'Pagamentos Parceiros', value: fmtCents(d.partner_finance?.payments_total), color: '#6B7280' },
+    { label: 'Mensalidades', value: fmtCents(d.partner_finance?.mensalidades_total), color: '#6B7280' },
+  ];
+
+  return (
+    <Card sx={{ border: '1px solid #E8E5DE', borderTop: '3px solid #B8942E' }}>
+      <CardContent>
+        <Typography variant="h6" sx={{ color: '#C8A84E', fontWeight: 700, mb: 1 }}>💰 KAVIAR Finance — Territorial</Typography>
+        <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mb: 3 }}>Financeiro territorial em modo leitura. Não há repasse, split ou movimentação financeira automática nesta fase.</Typography>
+
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 2, mb: 3 }}>
+          {cards.map((c) => (
+            <Box key={c.label} sx={{ p: 2, bgcolor: '#FAFAF8', borderRadius: 1, border: '1px solid #E8E5DE' }}>
+              <Typography variant="caption" sx={{ color: '#6B7280' }}>{c.label}</Typography>
+              <Typography variant="h6" sx={{ color: c.color, fontWeight: 700 }}>{c.value}</Typography>
+            </Box>
+          ))}
+        </Box>
+
+        <Box sx={{ p: 2, bgcolor: '#FAFAF8', borderRadius: 2, border: '1px dashed #E8E5DE' }}>
+          <Typography variant="subtitle2" sx={{ color: '#9CA3AF', mb: 1 }}>📋 Em preparação</Typography>
+          <Typography variant="body2" sx={{ color: '#9CA3AF' }}>Repasses • Saldo pendente • Participação do operador regional • Financeiro ativo por território</Typography>
+        </Box>
+      </CardContent>
+    </Card>
   );
 }

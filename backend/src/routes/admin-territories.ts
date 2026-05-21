@@ -140,6 +140,124 @@ router.patch('/:id', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/territories/:id/finance (read-only)
+router.get('/:id/finance', async (req: Request, res: Response) => {
+  try {
+    const territory = await prisma.operational_territories.findUnique({ where: { id: req.params.id } });
+    if (!territory) return res.status(404).json({ success: false, error: 'Território não encontrado' });
+
+    // Resolve neighborhood_ids for this territory
+    const neighborhoods = await prisma.neighborhoods.findMany({
+      where: { territory_id: req.params.id },
+      select: { id: true },
+    });
+    const nIds = neighborhoods.map((n) => n.id);
+
+    // Resolve partner_ids for this territory
+    const partners = await prisma.territorial_partners.findMany({
+      where: { territory_id: req.params.id },
+      select: { id: true },
+    });
+    const pIds = partners.map((p) => p.id);
+
+    // Resolve driver_ids in territory
+    const drivers = await prisma.drivers.findMany({
+      where: { neighborhood_id: { in: nIds } },
+      select: { id: true },
+    });
+    const dIds = drivers.map((d) => d.id);
+
+    // Rides
+    const rideFilter = nIds.length > 0 ? { origin_neighborhood_id: { in: nIds } } : { id: '__none__' };
+    const [ridesTotal, ridesCompleted, ridesCanceled, ridesNoDriver] = await Promise.all([
+      prisma.rides_v2.count({ where: rideFilter }),
+      prisma.rides_v2.count({ where: { ...rideFilter, status: 'completed' } }),
+      prisma.rides_v2.count({ where: { ...rideFilter, status: { in: ['canceled_by_passenger', 'canceled_by_driver'] } } }),
+      prisma.rides_v2.count({ where: { ...rideFilter, status: 'no_driver' } }),
+    ]);
+
+    // Entities
+    const passengersCount = nIds.length > 0
+      ? await prisma.passengers.count({ where: { neighborhood_id: { in: nIds } } })
+      : 0;
+
+    // Credits
+    let creditsPurchased = 0;
+    let creditsConsumed = 0;
+    if (dIds.length > 0) {
+      const purchased = await prisma.driver_credit_purchases.aggregate({
+        where: { driver_id: { in: dIds }, status: 'confirmed' },
+        _sum: { credits_amount: true },
+      });
+      creditsPurchased = purchased._sum.credits_amount || 0;
+
+      const consumed = await prisma.driver_credit_ledger.aggregate({
+        where: { driver_id: { in: dIds }, delta: { lt: 0 } },
+        _sum: { delta: true },
+      });
+      creditsConsumed = Math.abs(Number(consumed._sum.delta || 0));
+    }
+
+    // Compensations
+    const compensations = dIds.length > 0
+      ? await prisma.ride_compensations.aggregate({
+          where: { driver_id: { in: dIds } },
+          _count: true,
+          _sum: { amount_cents: true },
+        })
+      : { _count: 0, _sum: { amount_cents: 0 } };
+
+    // Partner finance
+    let commissionsTotal = 0;
+    let paymentsTotal = 0;
+    let mensalidadesTotal = 0;
+    if (pIds.length > 0) {
+      const comms = await prisma.partner_commissions.aggregate({
+        where: { partner_id: { in: pIds } },
+        _sum: { commission_amount: true },
+      });
+      commissionsTotal = Number(comms._sum.commission_amount || 0);
+
+      const payments = await prisma.partner_payments.aggregate({
+        where: { partner_id: { in: pIds } },
+        _sum: { amount_cents: true },
+      });
+      paymentsTotal = payments._sum.amount_cents || 0;
+
+      const mensalidades = await prisma.partner_member_payments.aggregate({
+        where: { partner_id: { in: pIds } },
+        _sum: { amount_cents: true },
+      });
+      mensalidadesTotal = mensalidades._sum.amount_cents || 0;
+    }
+
+    // Revenue estimate from settlements
+    let grossEstimated = 0;
+    if (nIds.length > 0) {
+      const revenue = await prisma.ride_settlements.aggregate({
+        where: { origin_neighborhood_id: { in: nIds }, settled_at: { not: null } },
+        _sum: { final_price: true },
+      });
+      grossEstimated = Number(revenue._sum.final_price || 0);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        rides: { total: ridesTotal, completed: ridesCompleted, canceled: ridesCanceled, no_driver: ridesNoDriver },
+        entities: { drivers: dIds.length, passengers: passengersCount, partners: pIds.length },
+        credits: { purchased: creditsPurchased, consumed: creditsConsumed },
+        revenue: { gross_estimated: grossEstimated },
+        compensations: { total: compensations._count, amount_cents: compensations._sum.amount_cents || 0 },
+        partner_finance: { commissions_total: commissionsTotal, payments_total: paymentsTotal, mensalidades_total: mensalidadesTotal },
+        status: territory.status,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar financeiro territorial' });
+  }
+});
+
 // ─── Regional Admins ─────────────────────────────────────────────────────────
 
 // GET /api/admin/territories/regional-admins
