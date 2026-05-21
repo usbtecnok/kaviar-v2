@@ -35,6 +35,9 @@ export default function TerritorialPayoutsPage() {
   const [territoryAdmins, setTerritoryAdmins] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
 
+  // Feedback
+  const [feedback, setFeedback] = useState({ open: false, severity: 'success', message: '' });
+
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchAll = async () => {
@@ -80,8 +83,17 @@ export default function TerritorialPayoutsPage() {
   };
 
   const handleVerify = async (id) => {
-    await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ document_status: 'verified', is_active: true }) });
-    fetchAll();
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ document_status: 'verified', contract_status: 'not_required' }) });
+    const d = await res.json();
+    if (d.success) { setFeedback({ open: true, severity: 'success', message: 'Operador verificado com sucesso.' }); fetchAll(); }
+    else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao verificar operador.' });
+  };
+
+  const handleActivate = async (id) => {
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ is_active: true }) });
+    const d = await res.json();
+    if (d.success) { setFeedback({ open: true, severity: 'success', message: 'Operador ativado com sucesso.' }); fetchAll(); }
+    else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao ativar operador.' });
   };
 
   // Payout actions
@@ -120,6 +132,8 @@ export default function TerritorialPayoutsPage() {
       <Alert severity="warning" sx={{ mb: 2, bgcolor: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.3)' }}>Repasse manual. O sistema não faz Pix automático, split, saque ou pagamento automático.</Alert>
       <Alert severity="info" sx={{ mb: 3, bgcolor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.2)' }}>Este registro não substitui orientação contábil, contrato ou obrigação fiscal. Consulte o contador antes de repasses recorrentes.</Alert>
 
+      {feedback.open && <Alert severity={feedback.severity} onClose={() => setFeedback({ ...feedback, open: false })} sx={{ mb: 2 }}>{feedback.message}</Alert>}
+
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, '& .MuiTab-root': { fontWeight: 600, color: '#9CA3AF' }, '& .Mui-selected': { color: '#C8A84E !important' }, '& .MuiTabs-indicator': { bgcolor: '#B8942E' } }}>
         <Tab label={`Operadores (${operators.length})`} />
         <Tab label={`Repasses (${payouts.length})`} />
@@ -143,7 +157,10 @@ export default function TerritorialPayoutsPage() {
                     <TableCell><Chip label={o.document_status} size="small" sx={{ color: STATUS_COLORS[o.document_status], bgcolor: `${STATUS_COLORS[o.document_status]}15` }} /></TableCell>
                     <TableCell><Chip label={o.contract_status} size="small" /></TableCell>
                     <TableCell><Chip label={o.is_active ? 'Ativo' : 'Inativo'} size="small" color={o.is_active ? 'success' : 'default'} /></TableCell>
-                    <TableCell>{o.document_status === 'pending' && <Button size="small" onClick={() => handleVerify(o.id)} sx={{ color: '#059669' }}>Verificar</Button>}</TableCell>
+                    <TableCell>
+                      {o.document_status === 'pending' && <Button size="small" onClick={() => handleVerify(o.id)} sx={{ color: '#059669' }}>Verificar</Button>}
+                      {o.document_status === 'verified' && !o.is_active && <Button size="small" onClick={() => handleActivate(o.id)} sx={{ color: '#2563EB' }}>Ativar</Button>}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {!operators.length && <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', color: '#6B7280', py: 4 }}>Nenhum operador cadastrado</TableCell></TableRow>}
