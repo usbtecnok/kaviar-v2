@@ -226,7 +226,7 @@ router.patch('/passengers/:id', requireSuperAdmin, async (req, res) => {
 });
 
 // GET /api/admin/rides - Using RideAdminController with filters
-router.get('/rides', allowReadAccess, rideController.getRides);
+router.get('/rides', allowReadAccess, applyTerritoryScope, rideController.getRides);
 
 // GET /api/admin/rides/:id - Using RideAdminController
 router.get('/rides/:id', allowReadAccess, rideController.getRideById);

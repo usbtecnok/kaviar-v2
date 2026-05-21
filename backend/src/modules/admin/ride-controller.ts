@@ -17,7 +17,8 @@ export class RideAdminController {
   getRides = async (req: Request, res: Response) => {
     try {
       const query = ridesQuerySchema.parse(req.query);
-      const result = await this.rideService.getRides(query);
+      const scope = (req as any).territoryScope;
+      const result = await this.rideService.getRides(query, { neighborhoodIds: scope?.neighborhoodIds });
 
       res.json({
         success: true,

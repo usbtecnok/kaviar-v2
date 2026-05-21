@@ -35,7 +35,7 @@ export class RideAdminService {
   }
 
   // Get rides with filters
-  async getRides(query: RidesQuery) {
+  async getRides(query: RidesQuery, options?: { neighborhoodIds?: string[] }) {
     const { 
       page = 1, 
       limit = 10, 
@@ -73,6 +73,11 @@ export class RideAdminService {
       where.created_at = {};
       if (dateFrom) where.created_at.gte = new Date(dateFrom);
       if (dateTo) where.created_at.lte = new Date(dateTo);
+    }
+
+    // Escopo territorial: filtra por origin_neighborhood_id se admin tem restrição
+    if (options?.neighborhoodIds) {
+      where.origin_neighborhood_id = { in: options.neighborhoodIds };
     }
 
     const [rides, total] = await Promise.all([
