@@ -159,18 +159,40 @@ export default function TerritoryDetailPage() {
 
 function FinanceTab({ territoryId, token }) {
   const [data, setData] = useState(null);
+  const [simulation, setSimulation] = useState(null);
+  const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ruleOpen, setRuleOpen] = useState(false);
+  const [ruleForm, setRuleForm] = useState({ matrix_share_percent: 60, regional_share_percent: 40, partner_commission_percent: 5, description: '' });
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/admin/territories/${territoryId}/finance`, { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.success) setData(json.data);
-      } catch (e) { console.error(e); }
-      setLoading(false);
-    })();
-  }, [territoryId]);
+  const fetchAll = async () => {
+    try {
+      const [finRes, rulesRes, simRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/territories/${territoryId}/finance`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/api/admin/territories/${territoryId}/finance-rules`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/api/admin/territories/${territoryId}/finance-simulation`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const [finData, rulesData, simData] = await Promise.all([finRes.json(), rulesRes.json(), simRes.json()]);
+      if (finData.success) setData(finData.data);
+      if (rulesData.success) setRules(rulesData.data);
+      if (simData.success) setSimulation(simData.data);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchAll(); }, [territoryId]);
+
+  const handleCreateRule = async () => {
+    setSaving(true);
+    const res = await fetch(`${API_BASE_URL}/api/admin/territories/${territoryId}/finance-rules`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(ruleForm),
+    });
+    const d = await res.json();
+    if (d.success) { setRuleOpen(false); fetchAll(); }
+    else alert(d.error || 'Erro');
+    setSaving(false);
+  };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress sx={{ color: '#B8942E' }} /></Box>;
 
@@ -202,7 +224,7 @@ function FinanceTab({ territoryId, token }) {
         <Typography variant="h6" sx={{ color: '#C8A84E', fontWeight: 700 }}>💰 KAVIAR Finance — Territorial</Typography>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, px: 2, py: 1, bgcolor: 'rgba(184,148,46,0.08)', borderRadius: 1, border: '1px solid rgba(184,148,46,0.2)' }}>
-        <Typography variant="caption" sx={{ color: '#B8942E' }}>ℹ️ Modo leitura — Não há repasse, split ou movimentação financeira automática nesta fase.</Typography>
+        <Typography variant="caption" sx={{ color: '#B8942E' }}>ℹ️ Simulação financeira. Estes valores não representam repasse real, saldo disponível, cobrança, split ou pagamento automático.</Typography>
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 2, mb: 3 }}>
@@ -214,10 +236,67 @@ function FinanceTab({ territoryId, token }) {
         ))}
       </Box>
 
+      {/* Regras Financeiras */}
+      <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(184,148,46,0.15)' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="subtitle1" sx={{ color: '#C8A84E', fontWeight: 700 }}>📐 Regras Financeiras</Typography>
+          <Button size="small" onClick={() => setRuleOpen(true)} sx={{ color: '#B8942E' }}>+ Nova Regra</Button>
+        </Box>
+        {rules.filter(r => r.is_active).map(r => (
+          <Box key={r.id} sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+            <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Matriz</Typography><Typography sx={{ color: '#C8A84E', fontWeight: 700 }}>{Number(r.matrix_share_percent)}%</Typography></Box>
+            <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Regional</Typography><Typography sx={{ color: '#34D399', fontWeight: 700 }}>{Number(r.regional_share_percent)}%</Typography></Box>
+            <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Parceiro</Typography><Typography sx={{ color: '#9CA3AF', fontWeight: 700 }}>{Number(r.partner_commission_percent)}%</Typography></Box>
+            {r.description && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Obs</Typography><Typography sx={{ color: '#9CA3AF' }}>{r.description}</Typography></Box>}
+          </Box>
+        ))}
+        {!rules.some(r => r.is_active) && <Typography variant="body2" sx={{ color: '#4B5563' }}>Nenhuma regra ativa. Crie uma para simular.</Typography>}
+      </Box>
+
+      {/* Simulação */}
+      {simulation?.has_rule && simulation.simulation && (
+        <Box sx={{ mb: 3, p: 2, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px solid rgba(34,211,153,0.2)' }}>
+          <Typography variant="subtitle1" sx={{ color: '#34D399', fontWeight: 700, mb: 2 }}>📊 Simulação — {simulation.period?.label || 'Mês atual'}</Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 2 }}>
+            {[
+              { label: 'Corridas', value: fmt(simulation.simulation.rides_completed), color: '#C8A84E' },
+              { label: 'Taxa Plataforma', value: fmtBRL(simulation.simulation.platform_fee_total), color: '#C8A84E' },
+              { label: 'Parte Matriz', value: fmtBRL(simulation.simulation.matrix_share_simulated), color: '#C8A84E' },
+              { label: 'Parte Regional', value: fmtBRL(simulation.simulation.regional_share_simulated), color: '#34D399' },
+              { label: 'Comissões Parceiros', value: fmtBRL(simulation.simulation.partner_commissions), color: '#FBBF24' },
+              { label: 'Líquido Regional', value: fmtBRL(simulation.simulation.net_regional_simulated), color: '#34D399' },
+            ].map(c => (
+              <Box key={c.label} sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <Typography variant="caption" sx={{ color: '#6B7280', fontSize: '0.65rem', textTransform: 'uppercase' }}>{c.label}</Typography>
+                <Typography sx={{ color: c.color, fontWeight: 700 }}>{c.value}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      )}
+
       <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 2, border: '1px dashed rgba(184,148,46,0.2)' }}>
         <Typography variant="subtitle2" sx={{ color: '#6B7280', mb: 0.5 }}>📋 Em preparação</Typography>
         <Typography variant="body2" sx={{ color: '#4B5563' }}>Repasses • Saldo pendente • Participação do operador regional • Financeiro ativo por território</Typography>
       </Box>
+
+      {/* Modal criar regra */}
+      <Dialog open={ruleOpen} onClose={() => setRuleOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Nova Regra Financeira</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField label="% Matriz" type="number" value={ruleForm.matrix_share_percent} onChange={(e) => { const v = Number(e.target.value); setRuleForm({ ...ruleForm, matrix_share_percent: v, regional_share_percent: 100 - v }); }} fullWidth />
+            <TextField label="% Regional" type="number" value={ruleForm.regional_share_percent} onChange={(e) => { const v = Number(e.target.value); setRuleForm({ ...ruleForm, regional_share_percent: v, matrix_share_percent: 100 - v }); }} fullWidth />
+          </Box>
+          <TextField label="% Comissão Parceiro" type="number" value={ruleForm.partner_commission_percent} onChange={(e) => setRuleForm({ ...ruleForm, partner_commission_percent: Number(e.target.value) })} fullWidth />
+          <TextField label="Descrição (opcional)" value={ruleForm.description} onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })} fullWidth />
+          <Typography variant="caption" sx={{ color: '#6B7280' }}>Soma: {ruleForm.matrix_share_percent + ruleForm.regional_share_percent}% {ruleForm.matrix_share_percent + ruleForm.regional_share_percent === 100 ? '✅' : '❌ deve ser 100%'}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRuleOpen(false)}>Cancelar</Button>
+          <Button onClick={handleCreateRule} disabled={ruleForm.matrix_share_percent + ruleForm.regional_share_percent !== 100 || saving} variant="contained" sx={{ bgcolor: '#B8942E' }}>{saving ? 'Salvando...' : 'Criar Regra'}</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

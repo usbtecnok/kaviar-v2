@@ -258,6 +258,199 @@ router.get('/:id/finance', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Finance Rules (Simulação) ───────────────────────────────────────────────
+
+// GET /api/admin/territories/:id/finance-rules
+router.get('/:id/finance-rules', async (req: Request, res: Response) => {
+  try {
+    const rules = await prisma.territory_finance_rules.findMany({
+      where: { territory_id: req.params.id },
+      orderBy: { created_at: 'desc' },
+    });
+    res.json({ success: true, data: rules });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar regras' });
+  }
+});
+
+const financeRuleSchema = z.object({
+  matrix_share_percent: z.number().min(0).max(100),
+  regional_share_percent: z.number().min(0).max(100),
+  partner_commission_percent: z.number().min(0).max(100).default(5),
+  min_monthly_fee_cents: z.number().int().optional().nullable(),
+  revenue_threshold_cents: z.number().int().optional().nullable(),
+  description: z.string().optional().nullable(),
+  valid_from: z.string().optional().nullable(),
+  valid_until: z.string().optional().nullable(),
+});
+
+// POST /api/admin/territories/:id/finance-rules
+router.post('/:id/finance-rules', async (req: Request, res: Response) => {
+  try {
+    const data = financeRuleSchema.parse(req.body);
+
+    if (Math.abs(data.matrix_share_percent + data.regional_share_percent - 100) > 0.01) {
+      return res.status(400).json({ success: false, error: 'matrix_share_percent + regional_share_percent deve ser 100%' });
+    }
+
+    const territory = await prisma.operational_territories.findUnique({ where: { id: req.params.id } });
+    if (!territory) return res.status(404).json({ success: false, error: 'Território não encontrado' });
+
+    // Desativar regra ativa anterior
+    await prisma.territory_finance_rules.updateMany({
+      where: { territory_id: req.params.id, is_active: true },
+      data: { is_active: false },
+    });
+
+    const rule = await prisma.territory_finance_rules.create({
+      data: {
+        territory_id: req.params.id,
+        matrix_share_percent: data.matrix_share_percent,
+        regional_share_percent: data.regional_share_percent,
+        partner_commission_percent: data.partner_commission_percent,
+        min_monthly_fee_cents: data.min_monthly_fee_cents ?? null,
+        revenue_threshold_cents: data.revenue_threshold_cents ?? null,
+        description: data.description || null,
+        is_active: true,
+        valid_from: data.valid_from ? new Date(data.valid_from) : null,
+        valid_until: data.valid_until ? new Date(data.valid_until) : null,
+        created_by: (req as any).admin.id,
+      },
+    });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'create_territory_finance_rule', entityType: 'territory_finance_rule', entityId: rule.id, newValue: { matrix: data.matrix_share_percent, regional: data.regional_share_percent, partner: data.partner_commission_percent }, ipAddress: ctx.ip });
+
+    res.status(201).json({ success: true, data: rule });
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, error: error.errors[0].message });
+    res.status(500).json({ success: false, error: 'Erro ao criar regra' });
+  }
+});
+
+// PATCH /api/admin/territories/:id/finance-rules/:ruleId
+router.patch('/:id/finance-rules/:ruleId', async (req: Request, res: Response) => {
+  try {
+    const existing = await prisma.territory_finance_rules.findUnique({ where: { id: req.params.ruleId } });
+    if (!existing || existing.territory_id !== req.params.id) return res.status(404).json({ success: false, error: 'Regra não encontrada' });
+
+    const data = financeRuleSchema.partial().parse(req.body);
+
+    const matrix = data.matrix_share_percent ?? Number(existing.matrix_share_percent);
+    const regional = data.regional_share_percent ?? Number(existing.regional_share_percent);
+    if (Math.abs(matrix + regional - 100) > 0.01) {
+      return res.status(400).json({ success: false, error: 'matrix_share_percent + regional_share_percent deve ser 100%' });
+    }
+
+    const rule = await prisma.territory_finance_rules.update({
+      where: { id: req.params.ruleId },
+      data: {
+        ...(data.matrix_share_percent !== undefined && { matrix_share_percent: data.matrix_share_percent }),
+        ...(data.regional_share_percent !== undefined && { regional_share_percent: data.regional_share_percent }),
+        ...(data.partner_commission_percent !== undefined && { partner_commission_percent: data.partner_commission_percent }),
+        ...(data.min_monthly_fee_cents !== undefined && { min_monthly_fee_cents: data.min_monthly_fee_cents }),
+        ...(data.revenue_threshold_cents !== undefined && { revenue_threshold_cents: data.revenue_threshold_cents }),
+        ...(data.description !== undefined && { description: data.description }),
+      },
+    });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'update_territory_finance_rule', entityType: 'territory_finance_rule', entityId: rule.id, oldValue: { matrix: Number(existing.matrix_share_percent), regional: Number(existing.regional_share_percent) }, newValue: { matrix, regional }, ipAddress: ctx.ip });
+
+    res.json({ success: true, data: rule });
+  } catch (error) {
+    if (error instanceof z.ZodError) return res.status(400).json({ success: false, error: error.errors[0].message });
+    res.status(500).json({ success: false, error: 'Erro ao atualizar regra' });
+  }
+});
+
+// DELETE /api/admin/territories/:id/finance-rules/:ruleId
+router.delete('/:id/finance-rules/:ruleId', async (req: Request, res: Response) => {
+  try {
+    const existing = await prisma.territory_finance_rules.findUnique({ where: { id: req.params.ruleId } });
+    if (!existing || existing.territory_id !== req.params.id) return res.status(404).json({ success: false, error: 'Regra não encontrada' });
+
+    await prisma.territory_finance_rules.update({ where: { id: req.params.ruleId }, data: { is_active: false } });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'deactivate_territory_finance_rule', entityType: 'territory_finance_rule', entityId: req.params.ruleId, ipAddress: ctx.ip });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao desativar regra' });
+  }
+});
+
+// GET /api/admin/territories/:id/finance-simulation
+router.get('/:id/finance-simulation', async (req: Request, res: Response) => {
+  try {
+    const territory = await prisma.operational_territories.findUnique({ where: { id: req.params.id } });
+    if (!territory) return res.status(404).json({ success: false, error: 'Território não encontrado' });
+
+    const rule = await prisma.territory_finance_rules.findFirst({
+      where: { territory_id: req.params.id, is_active: true },
+    });
+
+    if (!rule) return res.json({ success: true, data: { has_rule: false, message: 'Nenhuma regra financeira ativa para este território.' } });
+
+    // Período: mês atual
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const nIds = (await prisma.neighborhoods.findMany({ where: { territory_id: req.params.id }, select: { id: true } })).map(n => n.id);
+    const pIds = (await prisma.territorial_partners.findMany({ where: { territory_id: req.params.id }, select: { id: true } })).map(p => p.id);
+
+    if (nIds.length === 0) return res.json({ success: true, data: { has_rule: true, no_data: true, message: 'Território sem bairros vinculados.' } });
+
+    // Fee total from settlements
+    const settlements = await prisma.ride_settlements.aggregate({
+      where: { origin_neighborhood_id: { in: nIds }, settled_at: { gte: monthStart } },
+      _sum: { fee_amount: true, final_price: true },
+      _count: true,
+    });
+
+    const totalFee = Number(settlements._sum.fee_amount || 0);
+    const totalGross = Number(settlements._sum.final_price || 0);
+    const ridesCount = settlements._count;
+
+    const matrixShare = totalFee * Number(rule.matrix_share_percent) / 100;
+    const regionalShare = totalFee * Number(rule.regional_share_percent) / 100;
+
+    // Partner commissions in period
+    let partnerCommissions = 0;
+    if (pIds.length > 0) {
+      const comms = await prisma.partner_commissions.aggregate({
+        where: { partner_id: { in: pIds }, created_at: { gte: monthStart } },
+        _sum: { commission_amount: true },
+      });
+      partnerCommissions = Number(comms._sum.commission_amount || 0);
+    }
+
+    const netRegional = regionalShare - partnerCommissions;
+
+    res.json({
+      success: true,
+      data: {
+        has_rule: true,
+        period: { from: monthStart.toISOString(), to: now.toISOString(), label: `${now.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}` },
+        rule: { matrix_share_percent: Number(rule.matrix_share_percent), regional_share_percent: Number(rule.regional_share_percent), partner_commission_percent: Number(rule.partner_commission_percent) },
+        simulation: {
+          rides_completed: ridesCount,
+          gross_revenue: totalGross,
+          platform_fee_total: totalFee,
+          matrix_share_simulated: Math.round(matrixShare * 100) / 100,
+          regional_share_simulated: Math.round(regionalShare * 100) / 100,
+          partner_commissions: partnerCommissions,
+          net_regional_simulated: Math.round(netRegional * 100) / 100,
+        },
+        disclaimer: 'Simulação financeira. Estes valores não representam repasse real, saldo disponível, cobrança, split ou pagamento automático.',
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao simular financeiro' });
+  }
+});
+
 // ─── Regional Admins ─────────────────────────────────────────────────────────
 
 // GET /api/admin/territories/regional-admins

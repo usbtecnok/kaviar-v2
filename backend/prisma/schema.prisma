@@ -1695,6 +1695,7 @@ model operational_territories {
   neighborhoods        neighborhoods[]
   territorial_partners territorial_partners[]
   admin_access         admin_territory_access[]
+  finance_rules        territory_finance_rules[]
 
   @@unique([name, level, parent_id])
   @@index([level])
@@ -1715,4 +1716,27 @@ model admin_territory_access {
   @@unique([admin_id, territory_id])
   @@index([admin_id])
   @@index([territory_id])
+}
+
+// ─── Regras Financeiras Territoriais (Simulação) ─────────────────────────────
+model territory_finance_rules {
+  id                         String   @id @default(uuid())
+  territory_id               String
+  matrix_share_percent       Decimal  @default(60) @db.Decimal(5, 2)
+  regional_share_percent     Decimal  @default(40) @db.Decimal(5, 2)
+  partner_commission_percent Decimal  @default(5) @db.Decimal(5, 2)
+  min_monthly_fee_cents      Int?
+  revenue_threshold_cents    Int?
+  description                String?
+  is_active                  Boolean  @default(true)
+  valid_from                 DateTime?
+  valid_until                DateTime?
+  created_by                 String
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime @updatedAt
+
+  territory operational_territories @relation(fields: [territory_id], references: [id], onDelete: Cascade)
+
+  @@index([territory_id])
+  @@index([is_active])
 }
