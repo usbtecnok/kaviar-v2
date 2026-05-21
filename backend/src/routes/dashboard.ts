@@ -11,8 +11,13 @@ const prisma = new PrismaClient();
 router.use(authenticateAdmin, allowReadAccess);
 
 // GET /api/admin/dashboard/overview
-router.get('/overview', async (req: Request, res: Response) => {
+router.get('/overview', applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const scope = (req as any).territoryScope;
+    const driverFilter = scope ? { neighborhood_id: { in: scope.neighborhoodIds } } : {};
+    const rideFilter = scope ? { origin_neighborhood_id: { in: scope.neighborhoodIds } } : {};
+    const neighborhoodFilter = scope ? { territory_id: { in: scope.territoryIds } } : {};
+
     const [
       totalDrivers,
       activeDrivers,
@@ -23,13 +28,13 @@ router.get('/overview', async (req: Request, res: Response) => {
       activeNeighborhoods,
       neighborhoodsByCity
     ] = await Promise.all([
-      prisma.drivers.count(),
-      prisma.drivers.count({ where: { status: 'APPROVED' } }),
-      prisma.drivers.count({ where: { status: 'PENDING' } }),
-      prisma.passengers.count(),
-      prisma.rides_v2.count(), // corridas reais (v2)
-      prisma.neighborhoods.count(),
-      prisma.neighborhoods.count({ where: { is_active: true } }),
+      prisma.drivers.count({ where: driverFilter }),
+      prisma.drivers.count({ where: { status: 'APPROVED', ...driverFilter } }),
+      prisma.drivers.count({ where: { status: 'PENDING', ...driverFilter } }),
+      prisma.passengers.count({ where: driverFilter }),
+      prisma.rides_v2.count({ where: rideFilter }),
+      prisma.neighborhoods.count({ where: neighborhoodFilter }),
+      prisma.neighborhoods.count({ where: { is_active: true, ...neighborhoodFilter } }),
       prisma.$queryRaw<Array<{ city: string; count: bigint }>>`
         SELECT city, COUNT(*) as count 
         FROM neighborhoods 
