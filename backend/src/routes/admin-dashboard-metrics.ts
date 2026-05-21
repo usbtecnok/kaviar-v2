@@ -1,15 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, allowReadAccess } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 
 const router = Router();
 router.use(authenticateAdmin);
 
 // GET /api/admin/dashboard/metrics
-router.get('/metrics', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/metrics', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    const scope = (req as any).territoryScope;
+    const neighborhoodFilter = scope ? { neighborhood_id: { in: scope.neighborhoodIds } } : {};
+    const rideNeighborhoodFilter = scope ? { origin_neighborhood_id: { in: scope.neighborhoodIds } } : {};
 
     const [
       ridesTotal,
@@ -18,26 +23,21 @@ router.get('/metrics', allowReadAccess, async (req: Request, res: Response) => {
       driversTotal,
       passengersTotal
     ] = await Promise.all([
-      // Total rides (v2 — fonte real de operação)
-      prisma.rides_v2.count(),
+      prisma.rides_v2.count({ where: rideNeighborhoodFilter }),
       
-      // Rides hoje
       prisma.rides_v2.count({
-        where: { requested_at: { gte: today } }
+        where: { requested_at: { gte: today }, ...rideNeighborhoodFilter }
       }),
       
-      // Drivers online (usando driver_status)
       prisma.driver_status.count({
-        where: { availability: 'online' }
+        where: { availability: 'online', driver: neighborhoodFilter }
       }),
       
-      // Total drivers
       prisma.drivers.count({
-        where: { status: 'approved' }
+        where: { status: 'approved', ...neighborhoodFilter }
       }),
       
-      // Total passengers
-      prisma.passengers.count()
+      prisma.passengers.count({ where: neighborhoodFilter })
     ]);
 
     res.json({
