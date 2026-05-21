@@ -38,6 +38,16 @@ export default function TerritorialPayoutsPage() {
   // Feedback
   const [feedback, setFeedback] = useState({ open: false, severity: 'success', message: '' });
 
+  // Verify modal
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyTarget, setVerifyTarget] = useState(null);
+  const [verifyChecks, setVerifyChecks] = useState([false, false, false, false, false, false, false, false]);
+
+  // Details modal
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailTarget, setDetailTarget] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchAll = async () => {
@@ -83,9 +93,9 @@ export default function TerritorialPayoutsPage() {
   };
 
   const handleVerify = async (id) => {
-    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ document_status: 'verified', contract_status: 'not_required' }) });
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ document_status: 'verified', contract_status: 'not_required', terms_accepted_at: new Date().toISOString(), responsibility_terms_accepted_at: new Date().toISOString() }) });
     const d = await res.json();
-    if (d.success) { setFeedback({ open: true, severity: 'success', message: 'Operador verificado com sucesso.' }); fetchAll(); }
+    if (d.success) { setVerifyOpen(false); setFeedback({ open: true, severity: 'success', message: 'Operador verificado com sucesso.' }); fetchAll(); }
     else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao verificar operador.' });
   };
 
@@ -94,6 +104,24 @@ export default function TerritorialPayoutsPage() {
     const d = await res.json();
     if (d.success) { setFeedback({ open: true, severity: 'success', message: 'Operador ativado com sucesso.' }); fetchAll(); }
     else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao ativar operador.' });
+  };
+
+  const handleDeactivate = async (id) => {
+    if (!confirm('Desativar este operador territorial? Ele não poderá receber novos repasses, mas o histórico será preservado.')) return;
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ is_active: false }) });
+    const d = await res.json();
+    if (d.success) { setFeedback({ open: true, severity: 'success', message: 'Operador desativado.' }); fetchAll(); }
+    else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao desativar operador.' });
+  };
+
+  const openVerifyModal = (op) => { setVerifyTarget(op); setVerifyChecks([false, false, false, false, false, false, false, false]); setVerifyOpen(true); };
+
+  const openDetailModal = async (op) => {
+    setDetailLoading(true); setDetailOpen(true);
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${op.id}`, { headers });
+    const d = await res.json();
+    setDetailTarget(d.success ? d.data : op);
+    setDetailLoading(false);
   };
 
   // Payout actions
@@ -157,9 +185,11 @@ export default function TerritorialPayoutsPage() {
                     <TableCell><Chip label={o.document_status} size="small" sx={{ color: STATUS_COLORS[o.document_status], bgcolor: `${STATUS_COLORS[o.document_status]}15` }} /></TableCell>
                     <TableCell><Chip label={o.contract_status} size="small" /></TableCell>
                     <TableCell><Chip label={o.is_active ? 'Ativo' : 'Inativo'} size="small" color={o.is_active ? 'success' : 'default'} /></TableCell>
-                    <TableCell>
-                      {o.document_status === 'pending' && <Button size="small" onClick={() => handleVerify(o.id)} sx={{ color: '#059669' }}>Verificar</Button>}
+                    <TableCell sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                      <Button size="small" onClick={() => openDetailModal(o)} sx={{ color: '#6B7280' }}>Detalhes</Button>
+                      {o.document_status === 'pending' && <Button size="small" onClick={() => openVerifyModal(o)} sx={{ color: '#059669' }}>Verificar</Button>}
                       {o.document_status === 'verified' && !o.is_active && <Button size="small" onClick={() => handleActivate(o.id)} sx={{ color: '#2563EB' }}>Ativar</Button>}
+                      {o.is_active && <Button size="small" onClick={() => handleDeactivate(o.id)} sx={{ color: '#DC2626' }}>Desativar</Button>}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -295,6 +325,72 @@ export default function TerritorialPayoutsPage() {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setPayOpen(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
           <Button onClick={handlePay} disabled={paySaving || !payForm.payment_ref} variant="contained" sx={{ bgcolor: '#059669' }}>{paySaving ? 'Registrando...' : 'Confirmar Pagamento'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Verificação com Checklist */}
+      <Dialog open={verifyOpen} onClose={() => setVerifyOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Verificação do Operador Territorial</DialogTitle>
+        <DialogContent sx={{ mt: 1 }}>
+          {verifyTarget && <Box sx={{ p: 2, mb: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, border: '1px solid rgba(184,148,46,0.2)' }}>
+            <Typography variant="body2" sx={{ color: '#C8A84E' }}>{verifyTarget.display_name}</Typography>
+            <Typography variant="body2" sx={{ color: '#9CA3AF' }}>{RECIPIENT_LABELS[verifyTarget.recipient_type]} — {verifyTarget.territory?.name}</Typography>
+          </Box>}
+          <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 2 }}>Confirme cada item antes de verificar:</Typography>
+          {[
+            'Conferi a identidade do operador.',
+            'Conferi CPF/CNPJ e responsável legal, quando aplicável.',
+            'Conferi que o Pix pertence ao operador cadastrado.',
+            'Conferi que este operador está vinculado ao território correto.',
+            'O operador aceitou o Termo de Responsabilidade do Operador Territorial.',
+            'O operador aceitou as regras de confidencialidade e uso correto de dados do KAVIAR.',
+            'O operador entende que repasse depende de aprovação manual da matriz/SUPER_ADMIN.',
+            'Para PJ/Associação, contrato/termo está assinado ou registrado.',
+          ].map((label, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1, cursor: 'pointer' }} onClick={() => { const c = [...verifyChecks]; c[i] = !c[i]; setVerifyChecks(c); }}>
+              <input type="checkbox" checked={verifyChecks[i]} readOnly style={{ marginTop: 3, accentColor: '#B8942E' }} />
+              <Typography variant="body2" sx={{ color: verifyChecks[i] ? '#E5E7EB' : '#6B7280' }}>{label}</Typography>
+            </Box>
+          ))}
+          <Alert severity="info" sx={{ mt: 2, bgcolor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.2)' }}>Este é um registro interno de aceite/conferência feito pelo SUPER_ADMIN. Não substitui assinatura digital formal, contrato jurídico ou orientação contábil.</Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setVerifyOpen(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
+          <Button onClick={() => handleVerify(verifyTarget.id)} disabled={!verifyChecks.every(Boolean)} variant="contained" sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>Confirmar Verificação</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Detalhes do Operador */}
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Detalhes do Operador</DialogTitle>
+        <DialogContent>
+          {detailLoading ? <CircularProgress size={24} sx={{ color: '#B8942E' }} /> : detailTarget && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
+              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Nome</Typography><Typography>{detailTarget.display_name}</Typography></Box>
+              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Tipo</Typography><Typography>{RECIPIENT_LABELS[detailTarget.recipient_type]}</Typography></Box>
+              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Território</Typography><Typography>{detailTarget.territory?.name}</Typography></Box>
+              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Admin vinculado</Typography><Typography>{detailTarget.admin?.name} — {detailTarget.admin?.email}</Typography></Box>
+              {detailTarget.full_name && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Nome completo</Typography><Typography>{detailTarget.full_name}</Typography></Box>}
+              {detailTarget.document_cpf && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>CPF</Typography><Typography sx={{ fontFamily: 'monospace' }}>{detailTarget.document_cpf}</Typography></Box>}
+              {detailTarget.company_name && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>{detailTarget.recipient_type === 'company' ? 'Razão Social' : 'Associação'}</Typography><Typography>{detailTarget.company_name}</Typography></Box>}
+              {detailTarget.document_cnpj && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>CNPJ</Typography><Typography sx={{ fontFamily: 'monospace' }}>{detailTarget.document_cnpj}</Typography></Box>}
+              {detailTarget.legal_representative_name && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Responsável legal</Typography><Typography>{detailTarget.legal_representative_name}</Typography></Box>}
+              {detailTarget.legal_representative_cpf && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>CPF responsável</Typography><Typography sx={{ fontFamily: 'monospace' }}>{detailTarget.legal_representative_cpf}</Typography></Box>}
+              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Pix</Typography><Typography sx={{ fontFamily: 'monospace' }}>{detailTarget.pix_key || '—'} ({detailTarget.pix_key_type || '—'})</Typography></Box>
+              {detailTarget.bank_name && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Banco</Typography><Typography>{detailTarget.bank_name}</Typography></Box>}
+              <Box sx={{ display: 'flex', gap: 3 }}>
+                <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Doc</Typography><Chip label={detailTarget.document_status} size="small" sx={{ color: STATUS_COLORS[detailTarget.document_status], bgcolor: `${STATUS_COLORS[detailTarget.document_status]}15` }} /></Box>
+                <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Contrato</Typography><Chip label={detailTarget.contract_status} size="small" /></Box>
+                <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Status</Typography><Chip label={detailTarget.is_active ? 'Ativo' : 'Inativo'} size="small" color={detailTarget.is_active ? 'success' : 'default'} /></Box>
+              </Box>
+              {detailTarget.verified_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Verificado em</Typography><Typography variant="body2">{new Date(detailTarget.verified_at).toLocaleString('pt-BR')}</Typography></Box>}
+              {detailTarget.terms_accepted_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Termos aceitos em</Typography><Typography variant="body2">{new Date(detailTarget.terms_accepted_at).toLocaleString('pt-BR')}</Typography></Box>}
+              {detailTarget.notes && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Notas</Typography><Typography variant="body2">{detailTarget.notes}</Typography></Box>}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDetailOpen(false)} sx={{ color: '#9CA3AF' }}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>

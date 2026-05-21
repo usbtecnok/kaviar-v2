@@ -121,7 +121,7 @@ router.patch('/operators/:id', async (req: Request, res: Response) => {
 
     // Field updates
     for (const [k, v] of Object.entries(fields)) {
-      if (['display_name', 'email', 'phone', 'address', 'pix_key', 'pix_key_type', 'bank_name', 'full_name', 'document_cpf', 'document_rg', 'company_name', 'trade_name', 'document_cnpj', 'legal_representative_name', 'legal_representative_cpf', 'notes'].includes(k)) {
+      if (['display_name', 'email', 'phone', 'address', 'pix_key', 'pix_key_type', 'bank_name', 'full_name', 'document_cpf', 'document_rg', 'company_name', 'trade_name', 'document_cnpj', 'legal_representative_name', 'legal_representative_cpf', 'notes', 'terms_accepted_at', 'responsibility_terms_accepted_at'].includes(k)) {
         updates[k] = v;
       }
     }
