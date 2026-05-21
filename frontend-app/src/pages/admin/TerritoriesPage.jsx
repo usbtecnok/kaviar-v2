@@ -43,6 +43,23 @@ export default function TerritoriesPage() {
     setSaving(false);
   };
 
+  const handleToggleStatus = async (t) => {
+    const newStatus = t.status === 'active' ? 'inactive' : 'active';
+    if (!confirm(`${newStatus === 'inactive' ? 'Inativar' : 'Ativar'} território "${t.name}"?`)) return;
+    await fetch(`${API_BASE_URL}/api/admin/territories/${t.id}`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }),
+    });
+    fetchTerritories();
+  };
+
+  const handleDelete = async (t) => {
+    if (!confirm(`ATENÇÃO: Deletar permanentemente o território "${t.name}"?\n\nEsta ação não pode ser desfeita. Se o território tiver vínculos, a exclusão será bloqueada.`)) return;
+    const res = await fetch(`${API_BASE_URL}/api/admin/territories/${t.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    const data = await res.json();
+    if (data.success) { fetchTerritories(); }
+    else { alert(data.error || 'Erro ao deletar'); }
+  };
+
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress sx={{ color: '#B8942E' }} /></Box>;
 
   return (
@@ -70,7 +87,11 @@ export default function TerritoriesPage() {
                   <Typography variant="caption" sx={{ color: '#6B7280' }}>🤝 {t._count?.territorial_partners || 0} parceiros</Typography>
                   <Typography variant="caption" sx={{ color: '#6B7280' }}>👤 {t._count?.admin_access || 0} admins</Typography>
                 </Box>
-                <Button size="small" startIcon={<Visibility />} onClick={() => navigate(`/admin/territories/${t.id}`)} sx={{ color: '#B8942E' }}>Ver Detalhes</Button>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button size="small" startIcon={<Visibility />} onClick={() => navigate(`/admin/territories/${t.id}`)} sx={{ color: '#B8942E' }}>Detalhes</Button>
+                  <Button size="small" onClick={() => handleToggleStatus(t)} sx={{ color: t.status === 'active' ? '#DC2626' : '#059669' }}>{t.status === 'active' ? 'Inativar' : 'Ativar'}</Button>
+                  <Button size="small" color="error" onClick={() => handleDelete(t)}>Deletar</Button>
+                </Box>
               </CardContent>
             </Card>
           </Grid>

@@ -280,4 +280,36 @@ router.delete('/regional-admins/:id/territories/:territoryId', async (req: Reque
   }
 });
 
+// DELETE /api/admin/territories/:id (safe delete)
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const territory = await prisma.operational_territories.findUnique({ where: { id: req.params.id } });
+    if (!territory) return res.status(404).json({ success: false, error: 'Território não encontrado' });
+
+    const [neighborhoods, partners, admins, children] = await Promise.all([
+      prisma.neighborhoods.count({ where: { territory_id: req.params.id } }),
+      prisma.territorial_partners.count({ where: { territory_id: req.params.id } }),
+      prisma.admin_territory_access.count({ where: { territory_id: req.params.id } }),
+      prisma.operational_territories.count({ where: { parent_id: req.params.id } }),
+    ]);
+
+    if (neighborhoods + partners + admins + children > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Este território possui vínculos e não pode ser deletado. Você pode inativá-lo.',
+        details: { neighborhoods, partners, admins, children },
+      });
+    }
+
+    await prisma.operational_territories.delete({ where: { id: req.params.id } });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'delete_territory', entityType: 'territory', entityId: req.params.id, oldValue: { name: territory.name, level: territory.level }, ipAddress: ctx.ip });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao deletar território' });
+  }
+});
+
 export default router;

@@ -105,8 +105,9 @@ export default function RegionalAdminsPage() {
             {territories.map((t) => <MenuItem key={t.id} value={t.id}>{t.name} ({t.level}{t.uf ? ` • ${t.uf}` : ''})</MenuItem>)}
           </TextField>
           <TextField label="Nível de Acesso" select value={form.access_level} onChange={(e) => setForm({ ...form, access_level: e.target.value })} fullWidth>
-            <MenuItem value="full">Completo (leitura)</MenuItem>
-            <MenuItem value="read_only">Somente leitura</MenuItem>
+            <MenuItem value="full">Visualizador Regional (leitura completa)</MenuItem>
+            <MenuItem value="read_only">Visualizador Restrito (somente leitura)</MenuItem>
+            <MenuItem disabled value="manager">Gestor Regional — Em preparação</MenuItem>
           </TextField>
         </DialogContent>
         <DialogActions>
