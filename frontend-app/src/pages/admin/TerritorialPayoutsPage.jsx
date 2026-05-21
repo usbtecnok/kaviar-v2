@@ -118,6 +118,15 @@ export default function TerritorialPayoutsPage() {
 
   const openVerifyModal = (op) => { setVerifyTarget(op); setVerifyChecks([false, false, false, false, false, false, false, false]); setVerifyOpen(true); };
 
+  const handleRegularizeTerms = async (id) => {
+    const now = new Date().toISOString();
+    const adminId = JSON.parse(atob(token.split('.')[1])).id || '';
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ terms_accepted_at: now, responsibility_terms_accepted_at: now, confidentiality_terms_accepted_at: now, terms_version: 'v1.0', terms_accepted_by: adminId }) });
+    const d = await res.json();
+    if (d.success) { setVerifyOpen(false); setFeedback({ open: true, severity: 'success', message: 'Termos regularizados com sucesso.' }); fetchAll(); }
+    else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao regularizar termos.' });
+  };
+
   const openDetailModal = async (op) => {
     setDetailLoading(true); setDetailOpen(true);
     const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${op.id}`, { headers });
@@ -191,6 +200,7 @@ export default function TerritorialPayoutsPage() {
                       <Button size="small" onClick={() => openDetailModal(o)} sx={{ color: '#6B7280' }}>Detalhes</Button>
                       {o.document_status === 'pending' && <Button size="small" onClick={() => openVerifyModal(o)} sx={{ color: '#059669' }}>Verificar</Button>}
                       {o.document_status === 'verified' && !o.is_active && <Button size="small" onClick={() => handleActivate(o.id)} sx={{ color: '#2563EB' }}>Ativar</Button>}
+                      {o.is_active && !o.responsibility_terms_accepted_at && <Button size="small" onClick={() => openVerifyModal(o)} sx={{ color: '#D97706' }}>Regularizar Termos</Button>}
                       {o.is_active && <Button size="small" onClick={() => handleDeactivate(o.id)} sx={{ color: '#DC2626' }}>Desativar</Button>}
                     </TableCell>
                   </TableRow>
@@ -358,7 +368,7 @@ export default function TerritorialPayoutsPage() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setVerifyOpen(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
-          <Button onClick={() => handleVerify(verifyTarget.id)} disabled={!verifyChecks.every(Boolean)} variant="contained" sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>Confirmar Verificação</Button>
+          <Button onClick={() => verifyTarget.document_status === 'verified' ? handleRegularizeTerms(verifyTarget.id) : handleVerify(verifyTarget.id)} disabled={!verifyChecks.every(Boolean)} variant="contained" sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>{verifyTarget?.document_status === 'verified' ? 'Confirmar Regularização' : 'Confirmar Verificação'}</Button>
         </DialogActions>
       </Dialog>
 
