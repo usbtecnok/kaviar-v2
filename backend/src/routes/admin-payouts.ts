@@ -46,27 +46,30 @@ router.get('/operators/:id', async (req: Request, res: Response) => {
   }
 });
 
+const emptyToNull = z.string().optional().nullable().transform(v => v === '' ? null : v);
+const optionalEmail = z.string().optional().nullable().transform(v => v === '' ? null : v).refine(v => v === null || v === undefined || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), { message: 'Invalid email' });
+
 const createOperatorSchema = z.object({
   admin_id: z.string().min(1),
   territory_id: z.string().min(1),
   recipient_type: z.enum(['individual', 'company', 'association']),
   relationship_type: z.enum(['territorial_operator', 'association_partner', 'consultant']).default('territorial_operator'),
   display_name: z.string().min(2),
-  email: z.string().email().optional().nullable(),
-  phone: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  pix_key: z.string().optional().nullable(),
+  email: optionalEmail,
+  phone: emptyToNull,
+  address: emptyToNull,
+  pix_key: emptyToNull,
   pix_key_type: z.enum(['cpf', 'cnpj', 'email', 'phone', 'random']).optional().nullable(),
-  bank_name: z.string().optional().nullable(),
-  full_name: z.string().optional().nullable(),
-  document_cpf: z.string().optional().nullable(),
-  document_rg: z.string().optional().nullable(),
-  company_name: z.string().optional().nullable(),
-  trade_name: z.string().optional().nullable(),
-  document_cnpj: z.string().optional().nullable(),
-  legal_representative_name: z.string().optional().nullable(),
-  legal_representative_cpf: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
+  bank_name: emptyToNull,
+  full_name: emptyToNull,
+  document_cpf: emptyToNull,
+  document_rg: emptyToNull,
+  company_name: emptyToNull,
+  trade_name: emptyToNull,
+  document_cnpj: emptyToNull,
+  legal_representative_name: emptyToNull,
+  legal_representative_cpf: emptyToNull,
+  notes: emptyToNull,
 });
 
 router.post('/operators', async (req: Request, res: Response) => {
