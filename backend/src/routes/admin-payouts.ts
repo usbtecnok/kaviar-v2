@@ -121,7 +121,7 @@ router.patch('/operators/:id', async (req: Request, res: Response) => {
 
     // Field updates
     for (const [k, v] of Object.entries(fields)) {
-      if (['display_name', 'email', 'phone', 'address', 'pix_key', 'pix_key_type', 'bank_name', 'full_name', 'document_cpf', 'document_rg', 'company_name', 'trade_name', 'document_cnpj', 'legal_representative_name', 'legal_representative_cpf', 'notes', 'terms_accepted_at', 'responsibility_terms_accepted_at'].includes(k)) {
+      if (['display_name', 'email', 'phone', 'address', 'pix_key', 'pix_key_type', 'bank_name', 'full_name', 'document_cpf', 'document_rg', 'company_name', 'trade_name', 'document_cnpj', 'legal_representative_name', 'legal_representative_cpf', 'notes', 'terms_accepted_at', 'responsibility_terms_accepted_at', 'confidentiality_terms_accepted_at', 'terms_version', 'terms_accepted_by', 'contract_url', 'contract_signed_at'].includes(k)) {
         updates[k] = v;
       }
     }
@@ -144,6 +144,11 @@ router.patch('/operators/:id', async (req: Request, res: Response) => {
       const cs = updates.contract_status || existing.contract_status;
       if (cs !== 'signed' && cs !== 'not_required') return res.status(400).json({ success: false, error: 'Contrato precisa estar assinado ou dispensado' });
       if (!existing.pix_key && !updates.pix_key) return res.status(400).json({ success: false, error: 'Pix obrigatório para ativar operador' });
+      // Terms validation
+      if (!existing.responsibility_terms_accepted_at && !updates.responsibility_terms_accepted_at) return res.status(400).json({ success: false, error: 'Termo de responsabilidade obrigatório para ativar operador' });
+      if (!existing.confidentiality_terms_accepted_at && !updates.confidentiality_terms_accepted_at) return res.status(400).json({ success: false, error: 'Termo de confidencialidade/LGPD obrigatório para ativar operador' });
+      // PJ/Association: require signed contract
+      if ((existing.recipient_type === 'company' || existing.recipient_type === 'association') && cs !== 'signed') return res.status(400).json({ success: false, error: 'PJ/Associação exige contrato assinado para ativação' });
       // Association without CNPJ warning
       if (existing.recipient_type === 'association' && !existing.document_cnpj && cs !== 'signed') return res.status(400).json({ success: false, error: 'Associação sem CNPJ exige aprovação especial da matriz e termo assinado' });
       const activeInTerritory = await prisma.operator_profiles.findFirst({ where: { territory_id: existing.territory_id, is_active: true, id: { not: req.params.id } } });

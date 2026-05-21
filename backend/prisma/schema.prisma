@@ -1770,6 +1770,11 @@ model operator_profiles {
   contract_status                 String    @default("pending") // "pending" | "signed" | "not_required"
   terms_accepted_at               DateTime?
   responsibility_terms_accepted_at DateTime?
+  confidentiality_terms_accepted_at DateTime?
+  terms_version                   String?   @db.VarChar(20)
+  terms_accepted_by               String?
+  contract_url                    String?
+  contract_signed_at              DateTime?
   verified_by                     String?
   verified_at                     DateTime?
   rejected_reason                 String?

@@ -93,7 +93,9 @@ export default function TerritorialPayoutsPage() {
   };
 
   const handleVerify = async (id) => {
-    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ document_status: 'verified', contract_status: 'not_required', terms_accepted_at: new Date().toISOString(), responsibility_terms_accepted_at: new Date().toISOString() }) });
+    const now = new Date().toISOString();
+    const adminId = JSON.parse(atob(token.split('.')[1])).id || '';
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ document_status: 'verified', contract_status: 'not_required', terms_accepted_at: now, responsibility_terms_accepted_at: now, confidentiality_terms_accepted_at: now, terms_version: 'v1.0', terms_accepted_by: adminId }) });
     const d = await res.json();
     if (d.success) { setVerifyOpen(false); setFeedback({ open: true, severity: 'success', message: 'Operador verificado com sucesso.' }); fetchAll(); }
     else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao verificar operador.' });
@@ -384,7 +386,15 @@ export default function TerritorialPayoutsPage() {
                 <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Status</Typography><Chip label={detailTarget.is_active ? 'Ativo' : 'Inativo'} size="small" color={detailTarget.is_active ? 'success' : 'default'} /></Box>
               </Box>
               {detailTarget.verified_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Verificado em</Typography><Typography variant="body2">{new Date(detailTarget.verified_at).toLocaleString('pt-BR')}</Typography></Box>}
-              {detailTarget.terms_accepted_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Termos aceitos em</Typography><Typography variant="body2">{new Date(detailTarget.terms_accepted_at).toLocaleString('pt-BR')}</Typography></Box>}
+              <Typography variant="subtitle2" sx={{ color: '#C8A84E', mt: 2, mb: 1 }}>Termos e Contrato</Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 1.5, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1, border: '1px solid rgba(184,148,46,0.15)' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Termo de Responsabilidade</Typography><Typography variant="body2" sx={{ color: detailTarget.responsibility_terms_accepted_at ? '#059669' : '#DC2626' }}>{detailTarget.responsibility_terms_accepted_at ? new Date(detailTarget.responsibility_terms_accepted_at).toLocaleString('pt-BR') : 'Pendente'}</Typography></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Confidencialidade/LGPD</Typography><Typography variant="body2" sx={{ color: detailTarget.confidentiality_terms_accepted_at ? '#059669' : '#DC2626' }}>{detailTarget.confidentiality_terms_accepted_at ? new Date(detailTarget.confidentiality_terms_accepted_at).toLocaleString('pt-BR') : 'Pendente'}</Typography></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Versão dos termos</Typography><Typography variant="body2">{detailTarget.terms_version || '—'}</Typography></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Contrato</Typography><Typography variant="body2" sx={{ color: detailTarget.contract_status === 'signed' ? '#059669' : '#6B7280' }}>{detailTarget.contract_status}{detailTarget.contract_signed_at ? ` (${new Date(detailTarget.contract_signed_at).toLocaleDateString('pt-BR')})` : ''}</Typography></Box>
+                {detailTarget.contract_url && <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>URL contrato</Typography><Typography variant="body2" sx={{ color: '#2563EB', wordBreak: 'break-all' }}>{detailTarget.contract_url}</Typography></Box>}
+              </Box>
+              <Alert severity="info" sx={{ mt: 2, bgcolor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.2)' }}>Este aceite interno não substitui contrato jurídico formal nem orientação contábil.</Alert>
               {detailTarget.notes && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Notas</Typography><Typography variant="body2">{detailTarget.notes}</Typography></Box>}
             </Box>
           )}
