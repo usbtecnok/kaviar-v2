@@ -281,20 +281,32 @@ function FinanceTab({ territoryId, token }) {
       </Box>
 
       {/* Modal criar regra */}
-      <Dialog open={ruleOpen} onClose={() => setRuleOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog open={ruleOpen} onClose={() => setRuleOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
         <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Nova Regra Financeira</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <TextField label="% Matriz" type="number" value={ruleForm.matrix_share_percent} onChange={(e) => { const v = Number(e.target.value); setRuleForm({ ...ruleForm, matrix_share_percent: v, regional_share_percent: 100 - v }); }} fullWidth />
-            <TextField label="% Regional" type="number" value={ruleForm.regional_share_percent} onChange={(e) => { const v = Number(e.target.value); setRuleForm({ ...ruleForm, regional_share_percent: v, matrix_share_percent: 100 - v }); }} fullWidth />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" sx={{ color: '#9CA3AF', mb: 0.5, display: 'block' }}>% Matriz</Typography>
+              <TextField type="number" value={ruleForm.matrix_share_percent} onChange={(e) => { const v = Number(e.target.value); setRuleForm({ ...ruleForm, matrix_share_percent: v, regional_share_percent: 100 - v }); }} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="caption" sx={{ color: '#9CA3AF', mb: 0.5, display: 'block' }}>% Regional</Typography>
+              <TextField type="number" value={ruleForm.regional_share_percent} onChange={(e) => { const v = Number(e.target.value); setRuleForm({ ...ruleForm, regional_share_percent: v, matrix_share_percent: 100 - v }); }} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} />
+            </Box>
           </Box>
-          <TextField label="% Comissão Parceiro" type="number" value={ruleForm.partner_commission_percent} onChange={(e) => setRuleForm({ ...ruleForm, partner_commission_percent: Number(e.target.value) })} fullWidth />
-          <TextField label="Descrição (opcional)" value={ruleForm.description} onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })} fullWidth />
-          <Typography variant="caption" sx={{ color: '#6B7280' }}>Soma: {ruleForm.matrix_share_percent + ruleForm.regional_share_percent}% {ruleForm.matrix_share_percent + ruleForm.regional_share_percent === 100 ? '✅' : '❌ deve ser 100%'}</Typography>
+          <Box>
+            <Typography variant="caption" sx={{ color: '#9CA3AF', mb: 0.5, display: 'block' }}>% Comissão Parceiro</Typography>
+            <TextField type="number" value={ruleForm.partner_commission_percent} onChange={(e) => setRuleForm({ ...ruleForm, partner_commission_percent: Number(e.target.value) })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} />
+          </Box>
+          <Box>
+            <Typography variant="caption" sx={{ color: '#9CA3AF', mb: 0.5, display: 'block' }}>Descrição (opcional)</Typography>
+            <TextField value={ruleForm.description} onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} />
+          </Box>
+          <Typography variant="caption" sx={{ color: ruleForm.matrix_share_percent + ruleForm.regional_share_percent === 100 ? '#34D399' : '#F87171' }}>Soma: {ruleForm.matrix_share_percent + ruleForm.regional_share_percent}% {ruleForm.matrix_share_percent + ruleForm.regional_share_percent === 100 ? '✅' : '❌ deve ser 100%'}</Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRuleOpen(false)}>Cancelar</Button>
-          <Button onClick={handleCreateRule} disabled={ruleForm.matrix_share_percent + ruleForm.regional_share_percent !== 100 || saving} variant="contained" sx={{ bgcolor: '#B8942E' }}>{saving ? 'Salvando...' : 'Criar Regra'}</Button>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setRuleOpen(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
+          <Button onClick={handleCreateRule} disabled={ruleForm.matrix_share_percent + ruleForm.regional_share_percent !== 100 || saving} variant="contained" sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>{saving ? 'Salvando...' : 'Criar Regra'}</Button>
         </DialogActions>
       </Dialog>
     </Box>
