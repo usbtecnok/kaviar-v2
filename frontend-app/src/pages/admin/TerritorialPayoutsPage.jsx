@@ -186,9 +186,9 @@ export default function TerritorialPayoutsPage() {
       )}
 
       {/* Modal Criar Operador */}
-      <Dialog open={opOpen} onClose={() => setOpOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
+      <Dialog open={opOpen} onClose={() => setOpOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB', maxHeight: '90vh' } }}>
         <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Cadastrar Operador Territorial</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, pb: 4, overflowY: 'auto' }}>
           {opError && <Alert severity="error">{opError}</Alert>}
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Tipo</Typography>
             <TextField select value={opForm.recipient_type} onChange={e => setOpForm({ ...opForm, recipient_type: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
