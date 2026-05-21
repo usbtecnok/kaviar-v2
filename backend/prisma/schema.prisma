@@ -1677,10 +1677,14 @@ model local_businesses {
 model operational_territories {
   id         String   @id @default(uuid())
   name       String
-  level      String   // "state" | "city" | "region"
+  level      String   // "country" | "state" | "city" | "region" | "operation"
+  status     String   @default("active") // "planning" | "preparation" | "active" | "inactive"
   parent_id  String?
+  uf         String?  // sigla do estado: RJ, SP, MG
+  city_name  String?
   center_lat Decimal? @db.Decimal(10, 8)
   center_lng Decimal? @db.Decimal(11, 8)
+  notes      String?
   is_active  Boolean  @default(true)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -1694,6 +1698,7 @@ model operational_territories {
 
   @@unique([name, level, parent_id])
   @@index([level])
+  @@index([status])
   @@index([parent_id])
 }
 

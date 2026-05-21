@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -54,6 +54,9 @@ import AuditLogs from "../../pages/admin/AuditLogs";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
 import FinancePayments from "../../pages/admin/FinancePayments";
 import CreditPurchases from "../../pages/admin/CreditPurchases";
+import TerritoriesPage from "../../pages/admin/TerritoriesPage";
+import TerritoryDetailPage from "../../pages/admin/TerritoryDetailPage";
+import RegionalAdminsPage from "../../pages/admin/RegionalAdminsPage";
 import { useState, useEffect } from 'react';
 
 function FinanceHomeRedirect() {
@@ -398,6 +401,8 @@ function AdminHome() {
             { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
             { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
             ...(isSuperAdmin ? [
+              { Icon: Public, title: 'Territórios', desc: 'Gestão de territórios operacionais', to: '/admin/territories' },
+              { Icon: PersonAdd, title: 'Admins Regionais', desc: 'Gestão de admins por território', to: '/admin/regional-admins' },
               { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais usados nas estimativas de corrida', to: '/admin/pricing' },
               { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem e destino para ver preço, perfil, área e ganho do motorista', to: '/admin/ride-simulator' },
               { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e trilha de proteção', to: '/admin/emergency-events', accent: '#DC2626' },
@@ -847,6 +852,11 @@ export default function AdminApp() {
             </ProtectedAdminRoute>
           } />
           
+          {/* Territórios e Admins Regionais */}
+          <Route path="/territories" element={<ProtectedAdminRoute requireSuperAdmin><TerritoriesPage /></ProtectedAdminRoute>} />
+          <Route path="/territories/:id" element={<ProtectedAdminRoute requireSuperAdmin><TerritoryDetailPage /></ProtectedAdminRoute>} />
+          <Route path="/regional-admins" element={<ProtectedAdminRoute requireSuperAdmin><RegionalAdminsPage /></ProtectedAdminRoute>} />
+
           {/* Redirects para rotas antigas */}
           <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
         </Routes>
