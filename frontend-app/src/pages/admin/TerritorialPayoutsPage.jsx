@@ -48,6 +48,12 @@ export default function TerritorialPayoutsPage() {
   const [detailTarget, setDetailTarget] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Contract modal
+  const [contractOpen, setContractOpen] = useState(false);
+  const [contractTarget, setContractTarget] = useState(null);
+  const [contractForm, setContractForm] = useState({ contract_url: '', contract_signed_at: '', contract_status: 'signed', notes: '' });
+  const [contractSaving, setContractSaving] = useState(false);
+
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchAll = async () => {
@@ -133,6 +139,19 @@ export default function TerritorialPayoutsPage() {
     const d = await res.json();
     setDetailTarget(d.success ? d.data : op);
     setDetailLoading(false);
+  };
+
+  const handleSaveContract = async () => {
+    setContractSaving(true);
+    const payload = { contract_status: contractForm.contract_status };
+    if (contractForm.contract_url) payload.contract_url = contractForm.contract_url;
+    if (contractForm.contract_signed_at) payload.contract_signed_at = new Date(contractForm.contract_signed_at).toISOString();
+    if (contractForm.notes) payload.notes = contractForm.notes;
+    const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}`, { method: 'PATCH', headers, body: JSON.stringify(payload) });
+    const d = await res.json();
+    if (d.success) { setContractOpen(false); setFeedback({ open: true, severity: 'success', message: 'Contrato registrado com sucesso.' }); fetchAll(); }
+    else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro ao registrar contrato.' });
+    setContractSaving(false);
   };
 
   // Payout actions
@@ -410,7 +429,30 @@ export default function TerritorialPayoutsPage() {
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => { setContractTarget(detailTarget); setContractForm({ contract_url: detailTarget?.contract_url || '', contract_signed_at: detailTarget?.contract_signed_at ? detailTarget.contract_signed_at.slice(0, 10) : '', contract_status: detailTarget?.contract_status || 'pending', notes: '' }); setContractOpen(true); }} sx={{ color: '#C8A84E' }}>Registrar Contrato</Button>
           <Button onClick={() => setDetailOpen(false)} sx={{ color: '#9CA3AF' }}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal Registrar Contrato */}
+      <Dialog open={contractOpen} onClose={() => setContractOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Registrar Contrato</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Status do contrato</Typography>
+            <TextField select value={contractForm.contract_status} onChange={e => setContractForm({ ...contractForm, contract_status: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
+              <MenuItem value="signed">Assinado</MenuItem><MenuItem value="pending">Pendente</MenuItem><MenuItem value="not_required">Não necessário</MenuItem>
+            </TextField></Box>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Link do contrato assinado</Typography>
+            <TextField value={contractForm.contract_url} onChange={e => setContractForm({ ...contractForm, contract_url: e.target.value })} fullWidth size="small" placeholder="https://..." InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Data de assinatura</Typography>
+            <TextField type="date" value={contractForm.contract_signed_at} onChange={e => setContractForm({ ...contractForm, contract_signed_at: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Observações (opcional)</Typography>
+            <TextField value={contractForm.notes} onChange={e => setContractForm({ ...contractForm, notes: e.target.value })} fullWidth size="small" multiline rows={2} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
+          <Alert severity="info" sx={{ bgcolor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.2)' }}>Registro interno. Não substitui contrato jurídico formal nem orientação contábil.</Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setContractOpen(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
+          <Button onClick={handleSaveContract} disabled={contractSaving} variant="contained" sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>{contractSaving ? 'Salvando...' : 'Salvar Contrato'}</Button>
         </DialogActions>
       </Dialog>
     </Box>
