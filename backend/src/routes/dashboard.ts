@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin, allowReadAccess } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { pool } from '../db';
 
 const router = Router();
@@ -62,15 +63,18 @@ router.get('/overview', async (req: Request, res: Response) => {
 });
 
 // GET /api/admin/dashboard/territory
-router.get('/territory', async (req: Request, res: Response) => {
+router.get('/territory', applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const scope = (req as any).territoryScope;
+    const nf = scope ? { origin_neighborhood_id: { in: scope.neighborhoodIds } } : {};
+
     const [total, homebound, local, adjacent, external, homeboundReduced] = await Promise.all([
-      prisma.rides_v2.count({ where: { status: 'completed' } }),
-      prisma.rides_v2.count({ where: { status: 'completed', is_homebound: true } }),
-      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'local' } }),
-      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'adjacent' } }),
-      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'external' } }),
-      prisma.rides_v2.count({ where: { status: 'completed', is_homebound: true, territory_match: { in: ['local', 'adjacent'] } } }),
+      prisma.rides_v2.count({ where: { status: 'completed', ...nf } }),
+      prisma.rides_v2.count({ where: { status: 'completed', is_homebound: true, ...nf } }),
+      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'local', ...nf } }),
+      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'adjacent', ...nf } }),
+      prisma.rides_v2.count({ where: { status: 'completed', territory_match: 'external', ...nf } }),
+      prisma.rides_v2.count({ where: { status: 'completed', is_homebound: true, territory_match: { in: ['local', 'adjacent'] }, ...nf } }),
     ]);
     res.json({ success: true, data: { total, homebound, local, adjacent, external, homeboundReduced } });
   } catch (error) {
