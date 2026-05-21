@@ -36,6 +36,7 @@ import communityLeadersRoutes from './routes/community-leaders';
 import localOperatorsRoutes from './routes/admin-local-operators';
 import territorialPartnersRoutes from './routes/admin-territorial-partners';
 import adminTerritoriesRoutes from './routes/admin-territories';
+import adminPayoutsRoutes from './routes/admin-payouts';
 import partnerManagementRoutes from './routes/admin-partner-management';
 import partnerPortalRoutes from './routes/partner-portal';
 import privateRidesRoutes from './routes/private-rides';
@@ -278,6 +279,7 @@ app.get('/api/partners/:id/logo', async (req, res) => {
 
 app.use('/api/admin/territorial-partners', territorialPartnersRoutes);
 app.use('/api/admin/territories', adminTerritoriesRoutes);
+app.use('/api/admin/territorial-payouts', adminPayoutsRoutes);
 app.use('/api/admin/territorial-partners', partnerManagementRoutes);
 app.use('/api', complianceRoutes);
 app.use('/api/ratings', ratingsRoutes);

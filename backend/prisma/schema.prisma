@@ -26,6 +26,7 @@ model admins {
   updated_at                  DateTime            @updatedAt
   community_leaders           community_leaders[]
   territory_access            admin_territory_access[]
+  operator_profile            operator_profiles?
 }
 
 model communities {
@@ -1696,6 +1697,8 @@ model operational_territories {
   territorial_partners territorial_partners[]
   admin_access         admin_territory_access[]
   finance_rules        territory_finance_rules[]
+  operator_profiles    operator_profiles[]
+  payouts              territory_payouts[]
 
   @@unique([name, level, parent_id])
   @@index([level])
@@ -1739,4 +1742,80 @@ model territory_finance_rules {
 
   @@index([territory_id])
   @@index([is_active])
+}
+
+// ─── Operadores Territoriais e Repasses ──────────────────────────────────────
+model operator_profiles {
+  id                              String    @id @default(uuid())
+  admin_id                        String    @unique
+  territory_id                    String
+  recipient_type                  String    @default("individual") // "individual" | "company" | "association"
+  relationship_type               String    @default("territorial_operator") // "territorial_operator" | "association_partner" | "consultant"
+  display_name                    String
+  email                           String?
+  phone                           String?
+  address                         String?
+  pix_key                         String?
+  pix_key_type                    String?   // "cpf" | "cnpj" | "email" | "phone" | "random"
+  bank_name                       String?
+  full_name                       String?   // PF
+  document_cpf                    String?   // PF
+  document_rg                     String?   // PF opcional
+  company_name                    String?   // PJ/Associação
+  trade_name                      String?   // PJ
+  document_cnpj                   String?   // PJ/Associação
+  legal_representative_name       String?   // PJ/Associação
+  legal_representative_cpf        String?   // PJ/Associação
+  document_status                 String    @default("pending") // "pending" | "verified" | "rejected"
+  contract_status                 String    @default("pending") // "pending" | "signed" | "not_required"
+  terms_accepted_at               DateTime?
+  responsibility_terms_accepted_at DateTime?
+  verified_by                     String?
+  verified_at                     DateTime?
+  rejected_reason                 String?
+  notes                           String?
+  is_active                       Boolean   @default(false)
+  created_at                      DateTime  @default(now())
+  updated_at                      DateTime  @updatedAt
+
+  admin     admins                  @relation(fields: [admin_id], references: [id], onDelete: Cascade)
+  territory operational_territories @relation(fields: [territory_id], references: [id], onDelete: Cascade)
+  payouts   territory_payouts[]
+
+  @@index([territory_id])
+  @@index([is_active])
+}
+
+model territory_payouts {
+  id                  String    @id @default(uuid())
+  territory_id        String
+  operator_profile_id String
+  reference_month     String
+  calculated_amount   Decimal   @db.Decimal(10, 2)
+  approved_amount     Decimal?  @db.Decimal(10, 2)
+  status              String    @default("calculated") // "calculated" | "approved" | "paid" | "canceled"
+  calculation_details Json?
+  approved_by         String?
+  approved_at         DateTime?
+  paid_by             String?
+  paid_at             DateTime?
+  payment_method      String?
+  payment_ref         String?
+  receipt_url         String?
+  fiscal_document_required Boolean @default(false)
+  fiscal_document_type String  @default("none") // "none" | "receipt" | "nfse" | "invoice" | "other"
+  fiscal_document_url String?
+  fiscal_document_ref String?
+  fiscal_notes        String?
+  cancel_reason       String?
+  notes               String?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  territory operational_territories @relation(fields: [territory_id], references: [id], onDelete: Cascade)
+  operator  operator_profiles       @relation(fields: [operator_profile_id], references: [id], onDelete: Cascade)
+
+  @@unique([territory_id, reference_month])
+  @@index([status])
+  @@index([operator_profile_id])
 }

@@ -57,6 +57,7 @@ import CreditPurchases from "../../pages/admin/CreditPurchases";
 import TerritoriesPage from "../../pages/admin/TerritoriesPage";
 import TerritoryDetailPage from "../../pages/admin/TerritoryDetailPage";
 import RegionalAdminsPage from "../../pages/admin/RegionalAdminsPage";
+import TerritorialPayoutsPage from "../../pages/admin/TerritorialPayoutsPage";
 import { useState, useEffect } from 'react';
 
 function FinanceHomeRedirect() {
@@ -403,6 +404,7 @@ function AdminHome() {
             ...(isSuperAdmin ? [
               { Icon: Public, title: 'Territórios', desc: 'Gestão de territórios operacionais', to: '/admin/territories' },
               { Icon: PersonAdd, title: 'Admins Regionais', desc: 'Gestão de admins por território', to: '/admin/regional-admins' },
+              { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
               { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais usados nas estimativas de corrida', to: '/admin/pricing' },
               { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem e destino para ver preço, perfil, área e ganho do motorista', to: '/admin/ride-simulator' },
               { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e trilha de proteção', to: '/admin/emergency-events', accent: '#DC2626' },
@@ -856,6 +858,7 @@ export default function AdminApp() {
           <Route path="/territories" element={<ProtectedAdminRoute requireSuperAdmin><TerritoriesPage /></ProtectedAdminRoute>} />
           <Route path="/territories/:id" element={<ProtectedAdminRoute requireSuperAdmin><TerritoryDetailPage /></ProtectedAdminRoute>} />
           <Route path="/regional-admins" element={<ProtectedAdminRoute requireSuperAdmin><RegionalAdminsPage /></ProtectedAdminRoute>} />
+          <Route path="/territorial-payouts" element={<ProtectedAdminRoute requireSuperAdmin><TerritorialPayoutsPage /></ProtectedAdminRoute>} />
 
           {/* Redirects para rotas antigas */}
           <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
