@@ -260,8 +260,9 @@ function AdminHome() {
   }
 
   return (
-    <Box sx={{ background: 'radial-gradient(circle at top right, rgba(0,166,90,0.035), transparent 34%), radial-gradient(circle at top left, rgba(184,148,46,0.035), transparent 30%), linear-gradient(180deg, #FAFAF8 0%, #F5F5F1 100%)', minHeight: '100vh', pt: 1 }}>
-    <Container maxWidth="lg" sx={{ mt: 3, pb: 6 }}>
+    <Box sx={{ background: 'radial-gradient(circle at top right, rgba(0,166,90,0.035), transparent 34%), radial-gradient(circle at top left, rgba(184,148,46,0.035), transparent 30%), linear-gradient(180deg, #FAFAF8 0%, #F5F5F1 100%)', minHeight: '100vh', pt: 1, position: 'relative' }}>
+      <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: 280, background: 'radial-gradient(ellipse at top center, rgba(184,148,46,0.08) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+    <Container maxWidth="lg" sx={{ mt: 3, pb: 6, position: 'relative', zIndex: 1 }}>
       <AdminHeader />
       
       {/* Header compacto */}
