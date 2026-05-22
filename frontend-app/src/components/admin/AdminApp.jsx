@@ -260,7 +260,7 @@ function AdminHome() {
   }
 
   return (
-    <Box sx={{ bgcolor: '#FAFAF8', minHeight: '100vh', pt: 1 }}>
+    <Box sx={{ background: 'radial-gradient(circle at top right, rgba(0,166,90,0.05), transparent 32%), radial-gradient(circle at top left, rgba(184,148,46,0.07), transparent 28%), linear-gradient(180deg, #fffdf7 0%, #f8f6ef 100%)', minHeight: '100vh', pt: 1 }}>
     <Container maxWidth="lg" sx={{ mt: 3, pb: 6 }}>
       <AdminHeader />
       
