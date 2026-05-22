@@ -746,6 +746,37 @@ export default function TerritorialPartners() {
             <Button variant="contained" color="error" disabled={deleteConfirm !== 'EXCLUIR'} onClick={() => handleDelete(deleteTarget?.id)}>Excluir definitivamente</Button>
           </DialogActions>
         </Dialog>
+
+        {/* Modal Registrar Contrato */}
+        <Dialog open={contractDialog.open} onClose={() => setContractDialog({ ...contractDialog, open: false })} maxWidth="sm" fullWidth>
+          <DialogTitle>Registrar Contrato</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Status do contrato</InputLabel>
+              <Select value={contractDialog.form.contract_status} label="Status do contrato" onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_status: e.target.value } })}>
+                <MenuItem value="pending">Pendente</MenuItem><MenuItem value="signed">Assinado</MenuItem><MenuItem value="not_required">Não necessário</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField label="Link do contrato assinado" value={contractDialog.form.contract_url} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_url: e.target.value } })} fullWidth size="small" placeholder="https://..." />
+            <TextField label="Data de assinatura" type="date" value={contractDialog.form.contract_signed_at} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_signed_at: e.target.value } })} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+            <TextField label="Observações" value={contractDialog.form.contract_notes} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_notes: e.target.value } })} fullWidth size="small" multiline rows={2} />
+            <Alert severity="info">Registro interno. Não substitui contrato jurídico formal nem orientação contábil.</Alert>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setContractDialog({ ...contractDialog, open: false })}>Cancelar</Button>
+            <Button variant="contained" sx={{ bgcolor: '#B8942E' }} onClick={async () => {
+              const { partnerId, form } = contractDialog;
+              const payload = { contract_status: form.contract_status };
+              if (form.contract_url) payload.contract_url = form.contract_url;
+              if (form.contract_signed_at) payload.contract_signed_at = new Date(form.contract_signed_at).toISOString();
+              if (form.contract_notes) payload.contract_notes = form.contract_notes;
+              const res = await fetch(`${API_BASE_URL}/api/admin/territorial-partners/${partnerId}`, { method: 'PUT', headers, body: JSON.stringify(payload) });
+              const d = await res.json();
+              if (d.success) { setContractDialog({ ...contractDialog, open: false }); fetchDetail(partnerId); }
+              else alert(d.error || 'Erro ao salvar contrato');
+            }}>Salvar Contrato</Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     );
   }
@@ -812,36 +843,6 @@ export default function TerritorialPartners() {
         <DialogActions><Button onClick={() => setDialogOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleSave}>Salvar</Button></DialogActions>
       </Dialog>
 
-      {/* Modal Registrar Contrato */}
-      <Dialog open={contractDialog.open} onClose={() => setContractDialog({ ...contractDialog, open: false })} maxWidth="sm" fullWidth>
-        <DialogTitle>Registrar Contrato</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Status do contrato</InputLabel>
-            <Select value={contractDialog.form.contract_status} label="Status do contrato" onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_status: e.target.value } })}>
-              <MenuItem value="pending">Pendente</MenuItem><MenuItem value="signed">Assinado</MenuItem><MenuItem value="not_required">Não necessário</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField label="Link do contrato assinado" value={contractDialog.form.contract_url} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_url: e.target.value } })} fullWidth size="small" placeholder="https://..." />
-          <TextField label="Data de assinatura" type="date" value={contractDialog.form.contract_signed_at} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_signed_at: e.target.value } })} fullWidth size="small" InputLabelProps={{ shrink: true }} />
-          <TextField label="Observações" value={contractDialog.form.contract_notes} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_notes: e.target.value } })} fullWidth size="small" multiline rows={2} />
-          <Alert severity="info">Registro interno. Não substitui contrato jurídico formal nem orientação contábil.</Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setContractDialog({ ...contractDialog, open: false })}>Cancelar</Button>
-          <Button variant="contained" sx={{ bgcolor: '#B8942E' }} onClick={async () => {
-            const { partnerId, form } = contractDialog;
-            const payload = { contract_status: form.contract_status };
-            if (form.contract_url) payload.contract_url = form.contract_url;
-            if (form.contract_signed_at) payload.contract_signed_at = new Date(form.contract_signed_at).toISOString();
-            if (form.contract_notes) payload.contract_notes = form.contract_notes;
-            const res = await fetch(`${API_BASE_URL}/api/admin/territorial-partners/${partnerId}`, { method: 'PUT', headers, body: JSON.stringify(payload) });
-            const d = await res.json();
-            if (d.success) { setContractDialog({ ...contractDialog, open: false }); fetchDetail(partnerId); }
-            else alert(d.error || 'Erro ao salvar contrato');
-          }}>Salvar Contrato</Button>
-        </DialogActions>
-      </Dialog>
     </Container>
   );
 }
