@@ -13,6 +13,7 @@ import conformidade from '../../../../docs/conformidade-juridica-operacional-kav
 import apresentacao from '../../../../docs/apresentacao-institucional-kaviar.md?raw';
 import checklistCidade from '../../../../docs/frentes/checklist-abertura-cidade.md?raw';
 import politicaRelacionamento from '../../../../docs/politica-relacionamento-institucional-kaviar.md?raw';
+import smtrRio from '../../../../docs/regulatorio/rio-de-janeiro-smtr-credenciamento.md?raw';
 
 const DOCUMENTS = [
   { name: 'Termos de Uso — Passageiro', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Cobre responsabilidades, limitações, operação territorial e privacidade.', content: termosPassageiro },
@@ -26,6 +27,7 @@ const DOCUMENTS = [
   { name: 'Apresentação Institucional', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Para prefeitura, associação, órgão público ou liderança local.', content: apresentacao },
   { name: 'Checklist Abertura de Cidade', version: 'v1.0', date: 'Maio/2026', status: 'Operacional', note: 'Passos obrigatórios antes de iniciar operação em nova cidade.', content: checklistCidade },
   { name: 'Política de Relacionamento Institucional', version: 'v1.0', date: 'Maio/2026', status: 'Operacional', note: 'Limites, canais, anticorrupção e postura perante órgão público.', content: politicaRelacionamento },
+  { name: 'SMTR Rio — Credenciamento', version: 'v1.0', date: 'Maio/2026', status: 'Diagnóstico', note: 'Decreto 48.612/2021, credenciamento, 1,5% viário, pendências.', content: smtrRio },
 ];
 
 export default function LegalCompliancePage() {
