@@ -104,10 +104,9 @@ function AdminHeader() {
         <Typography variant="h6" sx={{ color: '#1A1A1A', fontWeight: 700 }}>
           <span style={{ color: '#B8942E' }}>KAVIAR</span> Admin — {admin?.name || 'Usuário'}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <Typography variant="body2" sx={{ color: '#6B7280' }}>
-            {admin?.role || 'ADMIN'}
-          </Typography>
+        <Typography sx={{ color: '#9CA3AF', fontSize: 10, mt: 0.2 }}>Produto/plataforma da USB Tecnok • CNPJ 07.710.691/0001-66</Typography>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
+          <Chip label={admin?.role || 'ADMIN'} size="small" sx={{ fontSize: 10, height: 20, bgcolor: 'rgba(184,148,46,0.08)', color: '#B8942E', fontWeight: 600 }} />
           {isAngelViewer && (
             <Chip 
               label="👁️ Modo Leitura" 
