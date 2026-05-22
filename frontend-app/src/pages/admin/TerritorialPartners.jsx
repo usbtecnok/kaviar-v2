@@ -39,6 +39,7 @@ export default function TerritorialPartners() {
   const [editingId, setEditingId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailTab, setDetailTab] = useState(0);
+  const [contractDialog, setContractDialog] = useState({ open: false, partnerId: null, form: { contract_status: 'pending', contract_url: '', contract_signed_at: '', contract_notes: '' } });
   const [commissions, setCommissions] = useState([]);
   const [payments, setPayments] = useState([]);
   const [linkRequests, setLinkRequests] = useState([]);
@@ -363,6 +364,23 @@ export default function TerritorialPartners() {
                 </Box>
               );
             })()}
+
+            {/* Seção Contrato */}
+            <Box sx={{ mt: 3, p: 2, border: '1px solid #E8E5DE', borderRadius: 2 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>📋 Contrato</Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Typography variant="body2"><strong>Status:</strong> <Chip label={detail.contract_status || 'pending'} size="small" color={detail.contract_status === 'signed' ? 'success' : detail.contract_status === 'not_required' ? 'default' : 'warning'} /></Typography>
+                {detail.contract_signed_at && <Typography variant="body2"><strong>Assinado em:</strong> {new Date(detail.contract_signed_at).toLocaleDateString('pt-BR')}</Typography>}
+              </Box>
+              {detail.contract_url && (
+                <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Button size="small" onClick={() => window.open(detail.contract_url, '_blank')} sx={{ textTransform: 'none' }}>Abrir contrato</Button>
+                  <Button size="small" onClick={() => navigator.clipboard.writeText(detail.contract_url)} sx={{ textTransform: 'none', color: '#6B7280' }}>Copiar link</Button>
+                </Box>
+              )}
+              {detail.contract_notes && <Typography variant="body2" sx={{ mt: 1, color: '#666' }}><strong>Obs:</strong> {detail.contract_notes}</Typography>}
+              <Button size="small" variant="outlined" sx={{ mt: 1.5 }} onClick={() => { setContractDialog({ open: true, partnerId: detail.id, form: { contract_status: detail.contract_status || 'pending', contract_url: detail.contract_url || '', contract_signed_at: detail.contract_signed_at ? detail.contract_signed_at.slice(0, 10) : '', contract_notes: detail.contract_notes || '' } }); }}>Registrar Contrato</Button>
+            </Box>
           </CardContent></Card>
         )}
 
@@ -792,6 +810,37 @@ export default function TerritorialPartners() {
           <TextField label="Notas" multiline rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         </DialogContent>
         <DialogActions><Button onClick={() => setDialogOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleSave}>Salvar</Button></DialogActions>
+      </Dialog>
+
+      {/* Modal Registrar Contrato */}
+      <Dialog open={contractDialog.open} onClose={() => setContractDialog({ ...contractDialog, open: false })} maxWidth="sm" fullWidth>
+        <DialogTitle>Registrar Contrato</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Status do contrato</InputLabel>
+            <Select value={contractDialog.form.contract_status} label="Status do contrato" onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_status: e.target.value } })}>
+              <MenuItem value="pending">Pendente</MenuItem><MenuItem value="signed">Assinado</MenuItem><MenuItem value="not_required">Não necessário</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField label="Link do contrato assinado" value={contractDialog.form.contract_url} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_url: e.target.value } })} fullWidth size="small" placeholder="https://..." />
+          <TextField label="Data de assinatura" type="date" value={contractDialog.form.contract_signed_at} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_signed_at: e.target.value } })} fullWidth size="small" InputLabelProps={{ shrink: true }} />
+          <TextField label="Observações" value={contractDialog.form.contract_notes} onChange={e => setContractDialog({ ...contractDialog, form: { ...contractDialog.form, contract_notes: e.target.value } })} fullWidth size="small" multiline rows={2} />
+          <Alert severity="info">Registro interno. Não substitui contrato jurídico formal nem orientação contábil.</Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setContractDialog({ ...contractDialog, open: false })}>Cancelar</Button>
+          <Button variant="contained" sx={{ bgcolor: '#B8942E' }} onClick={async () => {
+            const { partnerId, form } = contractDialog;
+            const payload = { contract_status: form.contract_status };
+            if (form.contract_url) payload.contract_url = form.contract_url;
+            if (form.contract_signed_at) payload.contract_signed_at = new Date(form.contract_signed_at).toISOString();
+            if (form.contract_notes) payload.contract_notes = form.contract_notes;
+            const res = await fetch(`${API_BASE_URL}/api/admin/territorial-partners/${partnerId}`, { method: 'PUT', headers, body: JSON.stringify(payload) });
+            const d = await res.json();
+            if (d.success) { setContractDialog({ ...contractDialog, open: false }); fetchDetail(partnerId); }
+            else alert(d.error || 'Erro ao salvar contrato');
+          }}>Salvar Contrato</Button>
+        </DialogActions>
       </Dialog>
     </Container>
   );

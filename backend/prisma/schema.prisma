@@ -1476,6 +1476,10 @@ model territorial_partners {
   logo_url            String?
   status              String   @default("active") // active | paused | inactive
   notes               String?
+  contract_status     String   @default("pending") // pending | signed | not_required
+  contract_url        String?
+  contract_signed_at  DateTime?
+  contract_notes      String?
   territory_id        String?
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt

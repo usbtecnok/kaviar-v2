@@ -261,8 +261,9 @@ router.post('/:id/generate-code', authenticateAdmin, async (req: Request, res: R
 // Update partner
 router.put('/:id', authenticateAdmin, async (req: Request, res: Response) => {
   try {
-    const { name, partner_type, address, responsible_name, responsible_role, responsible_phone, responsible_email, commission_percent, monthly_fee_cents, billing_due_day, billing_status, status, notes } = req.body;
+    const { name, partner_type, address, responsible_name, responsible_role, responsible_phone, responsible_email, commission_percent, monthly_fee_cents, billing_due_day, billing_status, status, notes, contract_status, contract_url, contract_signed_at, contract_notes } = req.body;
     const VALID_BILLING = ['current', 'pending', 'overdue', 'blocked', 'canceled'];
+    const VALID_CONTRACT = ['pending', 'signed', 'not_required'];
     const partner = await prisma.territorial_partners.update({
       where: { id: req.params.id },
       data: {
@@ -279,6 +280,10 @@ router.put('/:id', authenticateAdmin, async (req: Request, res: Response) => {
         ...(billing_status !== undefined && VALID_BILLING.includes(billing_status) && { billing_status }),
         ...(status !== undefined && VALID_STATUSES.includes(status) && { status }),
         ...(notes !== undefined && { notes }),
+        ...(contract_status !== undefined && VALID_CONTRACT.includes(contract_status) && { contract_status }),
+        ...(contract_url !== undefined && { contract_url: contract_url || null }),
+        ...(contract_signed_at !== undefined && { contract_signed_at: contract_signed_at ? new Date(contract_signed_at) : null }),
+        ...(contract_notes !== undefined && { contract_notes: contract_notes || null }),
       },
     });
     res.json({ success: true, data: partner });
