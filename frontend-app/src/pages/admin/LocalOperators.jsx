@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Container, Typography, Box, Card, CardContent, Grid, Chip, TextField, CircularProgress, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, MenuItem, Select, FormControl, InputLabel, Switch, FormControlLabel, Snackbar } from '@mui/material';
 import { Phone, Add, Edit, Close, OpenInNew, CheckCircle, Cancel, WhatsApp, Email, ContentCopy } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import Markdown from 'react-markdown';
+import prospeccaoMd from '../../../../docs/comercial/prospeccao-associacoes-kaviar.md?raw';
 
 const STATUS_MAP = {
   researching: { label: 'A pesquisar', color: 'default' },
@@ -38,6 +40,8 @@ export default function LocalOperators() {
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [prospOpen, setProspOpen] = useState(false);
+  const [copied, setCopied] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,6 +114,7 @@ export default function LocalOperators() {
         <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 700 }}>Associações / Operadores Locais</Typography>
         <Button startIcon={<Add />} variant="contained" onClick={openNew} sx={{ bgcolor: '#C8A84E', color: '#0a0a0a', fontWeight: 700, '&:hover': { bgcolor: '#A08030' } }}>Novo</Button>
         <Button size="small" onClick={() => window.open('/associacoes', '_blank')} sx={{ color: '#6B7280', textTransform: 'none', ml: 1 }}>Abrir página pública →</Button>
+        <Button size="small" onClick={() => setProspOpen(true)} sx={{ color: '#2563EB', textTransform: 'none', ml: 1 }}>Material de Prospecção</Button>
       </Box>
 
       {/* Counters */}
@@ -251,6 +256,32 @@ export default function LocalOperators() {
       </Dialog>
 
       <Snackbar open={snackOpen} autoHideDuration={2000} onClose={() => setSnackOpen(false)} message="✅ Proposta copiada" anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
+
+      {/* Modal Material de Prospecção */}
+      <Dialog open={prospOpen} onClose={() => setProspOpen(false)} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Material de Prospecção — Associações</DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
+            {[
+              { label: 'WhatsApp curto', text: 'Olá! Sou da equipe KAVIAR, uma plataforma de mobilidade comunitária que organiza corridas locais com privacidade para moradores e valorização dos motoristas da região.\n\nEstamos buscando associações e lideranças locais para parceria. A associação ajuda a divulgar e indica motoristas, e pode receber participação na operação.\n\nQuer saber mais? Veja aqui: https://kaviar.com.br/associacoes\n\nPosso explicar como funciona?' },
+              { label: 'Roteiro de ligação', text: 'Boa tarde, [nome]. Meu nome é [seu nome], da equipe KAVIAR. Estou entrando em contato porque temos uma proposta de parceria para associações de moradores na área de mobilidade local. Posso explicar rapidamente?\n\nO KAVIAR é uma plataforma que organiza corridas dentro da comunidade. Em vez de grupos de WhatsApp onde todo mundo vê destino e horário dos moradores, o passageiro pede pelo app de forma privada e só o motorista designado vê. Os motoristas são da própria comunidade.\n\nA associação pode ser parceira: ajuda a divulgar, indica motoristas locais e acompanha a operação. Em troca, pode receber participação nos créditos operacionais da região. Sem investimento inicial — a tecnologia é toda nossa.\n\nPosso enviar um link com mais detalhes? É uma página rápida que explica tudo: kaviar.com.br/associacoes. Quando podemos conversar com mais calma?' },
+              { label: 'Apresentação 30s', text: 'O KAVIAR é uma plataforma de mobilidade comunitária. Organizamos corridas locais com privacidade — o morador pede pelo app e só o motorista vê. Motoristas são da própria comunidade. Estamos buscando associações parceiras para ajudar a divulgar e indicar motoristas. A associação pode receber participação na operação, sem investimento inicial.' },
+              { label: 'Apresentação 2min', text: 'O KAVIAR é uma plataforma de mobilidade urbana local, feita para comunidades. Hoje, na maioria dos bairros, as corridas são pedidas em grupos de WhatsApp com dezenas de pessoas. Todo mundo vê quando você sai, para onde vai, quando volta. Isso expõe a rotina dos moradores.\n\nO KAVIAR resolve isso: o morador pede a corrida pelo celular, de forma privada. Apenas o motorista designado vê o pedido. Os motoristas são da própria comunidade.\n\nPara a associação, a proposta é simples: vocês ajudam a divulgar o KAVIAR na comunidade, indicam motoristas locais para cadastro e apoiam a comunicação com moradores. Em troca, a associação pode receber uma participação nos créditos operacionais da região.\n\nNão precisa investir nada. A tecnologia, os apps e a operação são do KAVIAR. A associação entra como parceira local.\n\nTemos uma página que explica tudo: kaviar.com.br/associacoes' },
+              { label: 'Link página', text: 'https://kaviar.com.br/associacoes' },
+            ].map(b => (
+              <Button key={b.label} size="small" variant="outlined" startIcon={<ContentCopy sx={{ fontSize: 14 }} />} onClick={() => { navigator.clipboard.writeText(b.text); setCopied(b.label); setTimeout(() => setCopied(''), 2000); }} sx={{ textTransform: 'none', fontSize: 11, borderColor: copied === b.label ? '#059669' : '#E8E5DE', color: copied === b.label ? '#059669' : '#6B7280' }}>
+                {copied === b.label ? '✓ Copiado' : b.label}
+              </Button>
+            ))}
+          </Box>
+          <Box sx={{ '& h1': { fontSize: '1.3rem', mt: 2 }, '& h2': { fontSize: '1.1rem', mt: 2, mb: 1 }, '& h3': { fontSize: '1rem', mt: 1.5 }, '& p': { mb: 1 }, '& li': { mb: 0.3 }, '& table': { width: '100%', borderCollapse: 'collapse', mb: 2 }, '& th, & td': { border: '1px solid #ddd', padding: '6px 10px', fontSize: '0.85rem' }, '& th': { bgcolor: '#f5f5f5' }, '& code': { bgcolor: '#f5f5f5', p: '2px 6px', borderRadius: 1, fontSize: '0.85rem' }, '& pre': { bgcolor: '#f5f5f5', p: 2, borderRadius: 1, overflow: 'auto', fontSize: '0.8rem' } }}>
+            <Markdown>{prospeccaoMd}</Markdown>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProspOpen(false)}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
