@@ -4,121 +4,87 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KAVIAR para Associações e Lideranças Locais</title>
-  <meta name="description" content="Mobilidade comunitária com privacidade, organização e valorização dos motoristas da sua região.">
+  <meta name="description" content="Parceria de mobilidade comunitária com privacidade, organização e valorização dos motoristas da sua região. Plataforma da USB Tecnok.">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #fff; line-height: 1.7; }
     a { color: #d4af37; text-decoration: none; }
     a:hover { text-decoration: underline; }
-
-    /* Header */
     .header { display: flex; align-items: center; justify-content: space-between; padding: 1.2rem 1.5rem; max-width: 900px; margin: 0 auto; }
     .header .logo { font-size: 1.5rem; font-weight: bold; color: #d4af37; }
     .header .nav-link { font-size: 0.9rem; color: #aaa; }
-    .header .nav-link:hover { color: #d4af37; }
-
-    /* Sections */
     section { padding: 3rem 1.5rem; max-width: 900px; margin: 0 auto; }
     .alt-bg { background: #111; }
     .alt-bg section { max-width: 900px; margin: 0 auto; }
-
     h1 { font-size: 2rem; color: #d4af37; margin-bottom: 0.8rem; }
     h2 { font-size: 1.5rem; color: #d4af37; margin-bottom: 1rem; }
     .subtitle { font-size: 1.1rem; color: #ccc; margin-bottom: 2rem; }
-
-    /* Cards */
     .cards { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 1.5rem; }
     .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 1.2rem; }
     .card .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
     .card h3 { font-size: 1rem; color: #d4af37; margin-bottom: 0.3rem; }
     .card p { font-size: 0.9rem; color: #bbb; }
-
-    /* Benefits list */
     .benefits { list-style: none; margin-top: 1rem; }
     .benefits li { padding: 0.7rem 0; border-bottom: 1px solid #1a1a1a; font-size: 0.95rem; color: #ddd; }
     .benefits li:last-child { border-bottom: none; }
     .benefits li span { margin-right: 0.5rem; }
-
-    /* Highlights */
     .highlights { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1.5rem; }
     .highlight { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 0.6rem 1rem; font-size: 0.9rem; color: #ddd; }
     .highlight span { color: #d4af37; margin-right: 0.4rem; }
-
-    /* Simulation */
     .sim-box { background: #1a1a1a; border: 1px solid #d4af37; border-radius: 12px; padding: 1.5rem; margin-top: 1.5rem; }
     .sim-box h3 { color: #d4af37; font-size: 1.1rem; margin-bottom: 1rem; }
     .sim-row { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.95rem; color: #ddd; }
     .sim-row.total { border-top: 1px solid #333; margin-top: 0.8rem; padding-top: 0.8rem; font-weight: bold; color: #d4af37; }
     .disclaimer { margin-top: 1.2rem; font-size: 0.8rem; color: #888; font-style: italic; }
-
-    /* CTA */
+    .warning-box { background: #1a1a0a; border: 1px solid #d4af37; border-radius: 10px; padding: 1.2rem; margin-top: 1.5rem; }
+    .warning-box h3 { color: #f59e0b; margin-bottom: 0.8rem; font-size: 1rem; }
+    .warning-box li { color: #ccc; font-size: 0.9rem; margin-bottom: 0.5rem; list-style: none; }
+    .warning-box li::before { content: "⚠️ "; }
+    .institutional { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1.5rem; margin-top: 2rem; text-align: center; }
+    .institutional img { height: 48px; margin-bottom: 0.8rem; }
+    .institutional p { font-size: 0.85rem; color: #999; }
+    .institutional .company { color: #ccc; font-size: 0.95rem; margin-bottom: 0.3rem; }
     .cta-section { text-align: center; padding: 3rem 1.5rem; }
-    .cta-section h2 { margin-bottom: 0.8rem; }
-    .cta-section p { color: #bbb; margin-bottom: 1.5rem; font-size: 0.95rem; }
     .cta-btn { display: inline-block; background: #d4af37; color: #0a0a0a; font-size: 1.1rem; font-weight: bold; padding: 1rem 2rem; border-radius: 50px; text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; }
     .cta-btn:hover { transform: scale(1.03); box-shadow: 0 4px 20px rgba(212,175,55,0.3); text-decoration: none; }
-
-    /* Footer */
     .footer { border-top: 1px solid #1a1a1a; padding: 2rem 1.5rem; text-align: center; max-width: 900px; margin: 0 auto; }
-    .footer-links { margin-bottom: 1rem; }
-    .footer-links a { display: block; margin: 0.5rem 0; font-size: 0.9rem; color: #aaa; }
-    .footer-links a:hover { color: #d4af37; }
-    .footer-copy { font-size: 0.8rem; color: #555; }
-
-    @media (min-width: 600px) {
-      .cards { grid-template-columns: 1fr 1fr; }
-      h1 { font-size: 2.4rem; }
-    }
+    .footer p { font-size: 0.8rem; color: #555; margin-top: 0.5rem; }
+    .footer a { color: #aaa; font-size: 0.9rem; }
+    @media (min-width: 600px) { .cards { grid-template-columns: 1fr 1fr; } h1 { font-size: 2.4rem; } }
   </style>
 </head>
 <body>
 
   <header class="header">
     <a href="/" class="logo">KAVIAR</a>
-    <a href="/" class="nav-link">← Início</a>
+    <img src="usb-tecnok-logo.png" alt="USB Tecnok" style="height: 32px; opacity: 0.85;">
   </header>
 
   <section>
     <h1>KAVIAR para Associações e Lideranças Locais</h1>
-    <p class="subtitle">Mobilidade comunitária com privacidade, organização e valorização dos motoristas da sua região.</p>
-    <a href="https://wa.me/5521968648777?text=Ol%C3%A1%2C%20sou%20representante%20de%20uma%20associa%C3%A7%C3%A3o%2Flideran%C3%A7a%20local%20e%20quero%20saber%20mais%20sobre%20o%20piloto%20KAVIAR%20para%20comunidades." class="cta-btn">💬 Quero conversar sobre o KAVIAR na minha comunidade</a>
+    <p class="subtitle">Parceria de mobilidade comunitária com privacidade, organização e valorização dos motoristas da sua região.</p>
+    <a href="https://wa.me/5521968648777?text=Ol%C3%A1%2C%20sou%20representante%20de%20uma%20associa%C3%A7%C3%A3o%2Flideran%C3%A7a%20local%20e%20quero%20saber%20mais%20sobre%20parceria%20com%20o%20KAVIAR." class="cta-btn">💬 Quero conversar sobre parceria</a>
   </section>
 
   <div class="alt-bg">
     <section>
       <h2>Como funciona o transporte na maioria das comunidades hoje?</h2>
       <div class="cards">
-        <div class="card">
-          <div class="icon">🔓</div>
-          <h3>Grupos de WhatsApp abertos</h3>
-          <p>Moradores pedem corrida em grupos com dezenas ou centenas de pessoas.</p>
-        </div>
-        <div class="card">
-          <div class="icon">👁️</div>
-          <h3>Todos veem tudo</h3>
-          <p>Quando você sai, para onde vai, quando volta. Sua rotina fica exposta para o grupo inteiro.</p>
-        </div>
-        <div class="card">
-          <div class="icon">📍</div>
-          <h3>Sem privacidade</h3>
-          <p>Endereços, horários e destinos ficam visíveis para qualquer membro do grupo.</p>
-        </div>
-        <div class="card">
-          <div class="icon">⚠️</div>
-          <h3>Sem organização</h3>
-          <p>Mensagens se perdem, motoristas não respondem, não há controle de quem está disponível.</p>
-        </div>
+        <div class="card"><div class="icon">🔓</div><h3>Grupos de WhatsApp abertos</h3><p>Moradores pedem corrida em grupos com dezenas de pessoas.</p></div>
+        <div class="card"><div class="icon">👁️</div><h3>Todos veem tudo</h3><p>Quando você sai, para onde vai, quando volta. Rotina exposta.</p></div>
+        <div class="card"><div class="icon">📍</div><h3>Sem privacidade</h3><p>Endereços e horários visíveis para qualquer membro do grupo.</p></div>
+        <div class="card"><div class="icon">⚠️</div><h3>Sem organização</h3><p>Mensagens se perdem, sem controle de quem está disponível.</p></div>
       </div>
     </section>
   </div>
 
   <section>
     <h2>O KAVIAR organiza a mobilidade da sua comunidade</h2>
-    <p style="color:#ccc; margin-bottom:1.2rem;">O morador solicita a corrida pelo celular, de forma privada. Apenas o motorista designado vê o pedido. Sem exposição em grupos, sem compartilhar sua rotina com dezenas de pessoas.</p>
+    <p style="color:#ccc; margin-bottom:1.2rem;">O morador solicita a corrida pelo celular, de forma privada. Apenas o motorista designado vê o pedido.</p>
     <div class="highlights">
       <div class="highlight"><span>📱</span> App próprio para passageiro e motorista</div>
-      <div class="highlight"><span>🔒</span> Solicitação privada — só o motorista vê</div>
-      <div class="highlight"><span>🚗</span> Motoristas locais da própria comunidade</div>
+      <div class="highlight"><span>🔒</span> Solicitação privada</div>
+      <div class="highlight"><span>🚗</span> Motoristas locais da comunidade</div>
       <div class="highlight"><span>⚡</span> Organização automática</div>
       <div class="highlight"><span>🛡️</span> Mais segurança e discrição</div>
     </div>
@@ -126,58 +92,85 @@
 
   <div class="alt-bg">
     <section>
-      <h2>O que muda para os moradores</h2>
+      <h2>Como funciona a parceria</h2>
       <ul class="benefits">
-        <li><span>🔒</span> Menos exposição — ninguém precisa saber sua rotina</li>
-        <li><span>🚗</span> Motoristas locais valorizados — trabalho organizado</li>
-        <li><span>📱</span> Praticidade — pedir corrida em segundos, sem esperar resposta no grupo</li>
-        <li><span>💰</span> Economia local — dinheiro circula na própria comunidade</li>
-        <li><span>⭐</span> Qualidade — avaliações e histórico de corridas</li>
+        <li><span>1️⃣</span> A associação ajuda a divulgar o KAVIAR na comunidade</li>
+        <li><span>2️⃣</span> Indica motoristas locais para cadastro na plataforma</li>
+        <li><span>3️⃣</span> Apoia a comunicação com moradores sobre o serviço</li>
+        <li><span>4️⃣</span> Acompanha indicadores de operação no painel</li>
+        <li><span>5️⃣</span> Pode receber participação conforme modelo aprovado pela USB Tecnok</li>
+        <li><span>6️⃣</span> Parceria depende de aprovação e contrato com a USB Tecnok/KAVIAR</li>
       </ul>
     </section>
   </div>
 
   <section>
-    <h2>Por que lideranças locais estão olhando para o KAVIAR</h2>
+    <h2>O que a associação ganha</h2>
     <ul class="benefits">
-      <li><span>🤝</span> <strong>Piloto comunitário</strong> — sua associação pode ser parceira no lançamento do KAVIAR na região</li>
-      <li><span>🏛️</span> <strong>Fortalecimento institucional</strong> — a associação traz uma solução real para os moradores</li>
-      <li><span>📊</span> <strong>Participação na operação</strong> — acompanhar e apoiar a mobilidade local</li>
-      <li><span>💰</span> <strong>Receita futura</strong> — modelo de participação nos créditos operacionais da região</li>
-      <li><span>✅</span> <strong>Sem investimento inicial</strong> — a tecnologia e os apps são do KAVIAR</li>
+      <li><span>🤝</span> <strong>Parceria institucional</strong> — a associação traz solução real para moradores</li>
+      <li><span>🏛️</span> <strong>Fortalecimento local</strong> — organiza mobilidade sem expor moradores</li>
+      <li><span>📊</span> <strong>Acompanhamento</strong> — acesso a indicadores da operação</li>
+      <li><span>💰</span> <strong>Participação financeira</strong> — modelo de participação nos créditos operacionais</li>
+      <li><span>✅</span> <strong>Sem investimento inicial</strong> — tecnologia e apps são do KAVIAR</li>
     </ul>
   </section>
 
   <div class="alt-bg">
     <section>
-      <h2>Simulação de participação financeira</h2>
-      <p style="color:#ccc; margin-bottom:1rem;">O KAVIAR opera com créditos operacionais. Cada corrida concluída consome um crédito do motorista. A associação parceira pode receber uma participação sobre os créditos da sua região.</p>
-      <div class="sim-box">
-        <h3>Exemplo simulado</h3>
-        <div class="sim-row"><span>Motoristas ativos</span><span>6</span></div>
-        <div class="sim-row"><span>Corridas/dia por motorista</span><span>10</span></div>
-        <div class="sim-row"><span>Corridas/dia total</span><span>60</span></div>
-        <div class="sim-row"><span>Corridas/mês</span><span>1.800</span></div>
-        <div class="sim-row"><span>Crédito operacional</span><span>R$ 1,00</span></div>
-        <div class="sim-row total"><span>Participação 20%</span><span>R$ 360/mês</span></div>
-        <div class="sim-row total"><span>Participação 30%</span><span>R$ 540/mês</span></div>
+      <h2>O que a associação NÃO pode prometer</h2>
+      <div class="warning-box">
+        <h3>Limites importantes da parceria</h3>
+        <ul>
+          <li>Não pode prometer autorização municipal ou credenciamento pela prefeitura</li>
+          <li>Não pode prometer regularidade perante órgão público</li>
+          <li>Não pode prometer renda fixa ou ganho mínimo garantido</li>
+          <li>Não pode prometer exclusividade territorial sem contrato formal</li>
+          <li>Não pode se apresentar como prefeitura, órgão público ou concessionária</li>
+          <li>Não pode assinar documentos em nome da USB Tecnok/KAVIAR</li>
+        </ul>
       </div>
-      <p class="disclaimer">Esta é uma simulação ilustrativa. Os valores reais dependem do número de motoristas ativos, volume de corridas e condições da operação local. O KAVIAR não garante receita mínima. A participação financeira será definida em acordo entre as partes.</p>
+      <p class="disclaimer">A operação do KAVIAR depende das regras municipais aplicáveis em cada cidade. A USB Tecnok mantém controle da plataforma e define as condições de parceria.</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>Simulação de participação financeira</h2>
+    <p style="color:#ccc; margin-bottom:1rem;">O KAVIAR opera com créditos operacionais. A associação parceira pode receber participação sobre os créditos da região.</p>
+    <div class="sim-box">
+      <h3>Exemplo ilustrativo</h3>
+      <div class="sim-row"><span>Motoristas ativos</span><span>6</span></div>
+      <div class="sim-row"><span>Corridas/dia por motorista</span><span>10</span></div>
+      <div class="sim-row"><span>Corridas/mês</span><span>1.800</span></div>
+      <div class="sim-row"><span>Crédito operacional</span><span>R$ 1,00</span></div>
+      <div class="sim-row total"><span>Participação 20%</span><span>R$ 360/mês</span></div>
+      <div class="sim-row total"><span>Participação 30%</span><span>R$ 540/mês</span></div>
+    </div>
+    <p class="disclaimer">Valores meramente ilustrativos. Não representam promessa de ganho, renda mínima, comissão obrigatória ou garantia de resultado. Os valores reais dependem do volume de corridas, motoristas ativos e condições da operação local.</p>
+  </section>
+
+  <div class="alt-bg">
+    <section>
+      <div class="institutional">
+        <img src="usb-tecnok-logo.png" alt="USB Tecnok">
+        <p class="company"><strong>Quem está por trás do KAVIAR</strong></p>
+        <p class="company">KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda</p>
+        <p>CNPJ: 07.710.691/0001-66</p>
+        <p style="margin-top: 0.8rem;">Plataforma privada de intermediação de mobilidade local. Não constitui transporte público, concessão municipal, cooperativa ou serviço público delegado.</p>
+      </div>
     </section>
   </div>
 
   <section class="cta-section">
     <h2>Quer trazer o KAVIAR para a sua comunidade?</h2>
-    <p>Converse com nossa equipe. Vamos entender sua região e avaliar juntos se faz sentido um piloto comunitário.</p>
-    <a href="https://wa.me/5521968648777?text=Ol%C3%A1%2C%20sou%20representante%20de%20uma%20associa%C3%A7%C3%A3o%2Flideran%C3%A7a%20local%20e%20quero%20saber%20mais%20sobre%20o%20piloto%20KAVIAR%20para%20comunidades." class="cta-btn">💬 Quero conversar sobre o KAVIAR na minha comunidade</a>
+    <p style="color:#bbb; margin-bottom:1.5rem;">Converse com nossa equipe. Vamos avaliar juntos se faz sentido uma parceria na sua região.</p>
+    <a href="https://wa.me/5521968648777?text=Ol%C3%A1%2C%20sou%20representante%20de%20uma%20associa%C3%A7%C3%A3o%2Flideran%C3%A7a%20local%20e%20quero%20saber%20mais%20sobre%20parceria%20com%20o%20KAVIAR." class="cta-btn">💬 Quero conversar sobre parceria</a>
   </section>
 
   <footer class="footer">
-    <div class="footer-links">
-      <a href="/">← Voltar para a página inicial do KAVIAR</a>
-      <a href="/">Conhecer o KAVIAR para passageiros e motoristas</a>
-    </div>
-    <p class="footer-copy">KAVIAR — Mobilidade Urbana Comunitária<br>contato@kaviar.com.br</p>
+    <a href="/">← Voltar para kaviar.com.br</a>
+    <p>KAVIAR — Plataforma de mobilidade urbana comunitária</p>
+    <p>USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66</p>
+    <p>WhatsApp: +55 21 96864-8777 • suporte@usbtecnok.com.br</p>
   </footer>
 
 </body>
