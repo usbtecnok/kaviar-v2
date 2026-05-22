@@ -18,6 +18,9 @@ export default function TerritorialPayoutsPage() {
   const [opForm, setOpForm] = useState({ admin_id: '', territory_id: '', recipient_type: 'individual', display_name: '', full_name: '', document_cpf: '', company_name: '', document_cnpj: '', legal_representative_name: '', legal_representative_cpf: '', pix_key: '', pix_key_type: 'cpf', email: '', phone: '' });
   const [opSaving, setOpSaving] = useState(false);
   const [opError, setOpError] = useState('');
+  const [createAccess, setCreateAccess] = useState(false);
+  const [accessForm, setAccessForm] = useState({ name: '', email: '', password: '' });
+  const [accessSaving, setAccessSaving] = useState(false);
 
   // Payout calculate
   const [calcOpen, setCalcOpen] = useState(false);
@@ -96,6 +99,20 @@ export default function TerritorialPayoutsPage() {
     const d = await res.json();
     if (d.success) { setOpOpen(false); fetchAll(); } else setOpError(d.error);
     setOpSaving(false);
+  };
+
+  const handleCreateAccess = async () => {
+    if (!accessForm.name || !accessForm.email || !accessForm.password || !opForm.territory_id) return;
+    setAccessSaving(true); setOpError('');
+    const res = await fetch(`${API_BASE_URL}/api/admin/territories/regional-admins`, { method: 'POST', headers, body: JSON.stringify({ name: accessForm.name, email: accessForm.email, password: accessForm.password, territory_id: opForm.territory_id }) });
+    const d = await res.json();
+    if (d.success) {
+      setOpForm(f => ({ ...f, admin_id: d.data.id }));
+      setTerritoryAdmins(prev => [...prev, { id: d.data.id, name: d.data.name, email: d.data.email, role: d.data.role || 'ANGEL_VIEWER', is_active: true }]);
+      setCreateAccess(false);
+      setFeedback({ open: true, severity: 'success', message: 'Acesso criado e selecionado para este operador.' });
+    } else setOpError(d.error || 'Erro ao criar acesso');
+    setAccessSaving(false);
   };
 
   const handleVerify = async (id) => {
@@ -296,13 +313,30 @@ export default function TerritorialPayoutsPage() {
           </Box>
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Usuário de acesso autorizado (gestor operacional)</Typography>
             <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mb: 1, fontSize: '0.7rem' }}>Este usuário acessa o painel em modo leitura. O operador financeiro/contratual é quem recebe do KAVIAR.</Typography>
-            {opForm.territory_id && !loadingAdmins && territoryAdmins.length === 0 && (
-              <Alert severity="warning" sx={{ mb: 1 }}>Cadastre ou vincule um Admin Regional a este território antes de criar o Operador Territorial.</Alert>
+            {opForm.territory_id && !loadingAdmins && territoryAdmins.length === 0 && !createAccess && (
+              <Alert severity="warning" sx={{ mb: 1 }}>Nenhum acesso vinculado a este território. Crie um abaixo.</Alert>
             )}
-            {loadingAdmins ? <CircularProgress size={20} sx={{ color: '#B8942E' }} /> : (
-              <TextField select value={opForm.admin_id} onChange={e => setOpForm({ ...opForm, admin_id: e.target.value })} fullWidth size="small" disabled={!opForm.territory_id || territoryAdmins.length === 0} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
-                {territoryAdmins.map(a => <MenuItem key={a.id} value={a.id}>{a.name} — {a.email} ({a.role})</MenuItem>)}
-              </TextField>
+            {!createAccess && (
+              <>
+                {loadingAdmins ? <CircularProgress size={20} sx={{ color: '#B8942E' }} /> : (
+                  <TextField select value={opForm.admin_id} onChange={e => setOpForm({ ...opForm, admin_id: e.target.value })} fullWidth size="small" disabled={!opForm.territory_id || territoryAdmins.length === 0} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
+                    {territoryAdmins.map(a => <MenuItem key={a.id} value={a.id}>{a.name} — {a.email} ({a.role})</MenuItem>)}
+                  </TextField>
+                )}
+                <Button size="small" onClick={() => { setCreateAccess(true); setAccessForm({ name: '', email: '', password: '' }); }} disabled={!opForm.territory_id} sx={{ mt: 1, color: '#C8A84E', textTransform: 'none' }}>+ Criar acesso do operador</Button>
+              </>
+            )}
+            {createAccess && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, p: 1.5, border: '1px solid rgba(184,148,46,0.3)', borderRadius: 1, mt: 0.5 }}>
+                <Typography variant="caption" sx={{ color: '#C8A84E', fontWeight: 600 }}>Criar acesso do operador</Typography>
+                <TextField size="small" placeholder="Nome" value={accessForm.name} onChange={e => setAccessForm({ ...accessForm, name: e.target.value })} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} />
+                <TextField size="small" placeholder="E-mail" value={accessForm.email} onChange={e => setAccessForm({ ...accessForm, email: e.target.value })} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} />
+                <TextField size="small" placeholder="Senha provisória (min 6)" type="password" value={accessForm.password} onChange={e => setAccessForm({ ...accessForm, password: e.target.value })} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button size="small" variant="contained" disabled={accessSaving || !accessForm.name || !accessForm.email || accessForm.password.length < 6} onClick={handleCreateAccess} sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' } }}>{accessSaving ? 'Criando...' : 'Criar'}</Button>
+                  <Button size="small" onClick={() => setCreateAccess(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
+                </Box>
+              </Box>
             )}</Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
