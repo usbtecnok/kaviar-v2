@@ -3,6 +3,8 @@
 **Versão:** v1.0
 **Data:** Maio/2026
 **Status:** Diagnóstico regulatório — NÃO é parecer jurídico
+**Empresa responsável:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Plataforma:** KAVIAR — produto/plataforma da USB Tecnok
 
 ---
 
@@ -123,7 +125,7 @@ Para credenciamento, a USB Tecnok pode precisar apresentar:
 4. Verificação se o modelo territorial/comunitário do KAVIAR se enquadra na mesma categoria regulada pelo Decreto.
 5. Consulta formal à SMTR sobre enquadramento.
 
-**Nota:** O KAVIAR opera como plataforma de intermediação de mobilidade local/comunitária. Pode haver argumentos jurídicos sobre diferenciação do modelo em relação a plataformas de transporte por aplicativo tradicionais (Uber, 99, etc.). Essa análise deve ser feita por advogado especializado.
+**Nota:** O KAVIAR é uma plataforma de intermediação de mobilidade local/comunitária, mantida pela USB Tecnok. Pode haver argumentos jurídicos sobre diferenciação do modelo em relação a plataformas de transporte por aplicativo tradicionais (Uber, 99, etc.). Essa análise deve ser feita por advogado especializado.
 
 ---
 
@@ -131,7 +133,7 @@ Para credenciamento, a USB Tecnok pode precisar apresentar:
 
 Argumentos que podem ser explorados juridicamente (não são garantia):
 
-- O KAVIAR opera em territórios específicos, não em toda a cidade.
+- A plataforma KAVIAR opera em territórios específicos, não em toda a cidade.
 - O foco é mobilidade comunitária local, não transporte metropolitano.
 - Motoristas são da própria comunidade.
 - O modelo pode se assemelhar mais a "transporte privado de vizinhança" do que a "transporte por aplicativo" no sentido do Decreto.
