@@ -40,12 +40,12 @@ export function RatingsOverviewCard({ compact, linkTo }) {
 
   if (compact) {
     return (
-      <Paper sx={{ p: 3, bgcolor: cardBg, border: `1px solid #E8E5DE`, borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Paper sx={{ p: 2, bgcolor: cardBg, border: `1px solid #E8E5DE`, borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
           <Typography variant="h6" sx={{ color: '#1A1A1A', fontWeight: 700, letterSpacing: 0.3 }}>⭐ Avaliações</Typography>
           {linkTo && <Chip label="Ver tudo →" size="small" component={Link} to={linkTo} clickable sx={{ bgcolor: `${gold}15`, color: gold, fontSize: 11, textDecoration: 'none' }} />}
         </Box>
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           <MetricBox label="Motoristas" value={data.driverAvg?.toFixed(1) || '—'} stars={data.driverAvg} subtitle={`${data.driverTotal || 0}`} />
           <MetricBox label="Passageiros" value={data.passengerAvg?.toFixed(1) || '—'} stars={data.passengerAvg} subtitle={`${data.passengerTotal || 0}`} />
           <MetricBox label="Alertas" value={attentionDrivers.length} subtitle="motoristas" />
