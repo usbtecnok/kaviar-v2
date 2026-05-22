@@ -60,6 +60,7 @@ import RegionalAdminsPage from "../../pages/admin/RegionalAdminsPage";
 import TerritorialPayoutsPage from "../../pages/admin/TerritorialPayoutsPage";
 import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
 import MyContractPage from "../../pages/admin/MyContractPage";
+import usbTecnokLogo from "../../assets/usb-tecnok-logo-transparent.png";
 import { useState, useEffect } from 'react';
 
 function FinanceHomeRedirect() {
@@ -92,9 +93,14 @@ function AdminHeader() {
       borderRadius: 2,
       border: '1px solid #E8E5DE',
       borderTop: '3px solid #B8942E',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
-      <Box>
+      <Box sx={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', opacity: 0.06, pointerEvents: 'none' }}>
+        <img src={usbTecnokLogo} alt="" style={{ height: 60 }} />
+      </Box>
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
         <Typography variant="h6" sx={{ color: '#1A1A1A', fontWeight: 700 }}>
           <span style={{ color: '#B8942E' }}>KAVIAR</span> Admin — {admin?.name || 'Usuário'}
         </Typography>
@@ -121,6 +127,8 @@ function AdminHeader() {
         variant="outlined"
         size="small"
         sx={{
+          position: 'relative',
+          zIndex: 1,
           borderColor: '#E8E5DE',
           color: '#6B7280',
           '&:hover': {
