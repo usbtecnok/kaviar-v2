@@ -260,7 +260,7 @@ function AdminHome() {
   }
 
   return (
-    <Box sx={{ background: 'radial-gradient(circle at top right, rgba(0,166,90,0.05), transparent 32%), radial-gradient(circle at top left, rgba(184,148,46,0.07), transparent 28%), linear-gradient(180deg, #fffdf7 0%, #f8f6ef 100%)', minHeight: '100vh', pt: 1 }}>
+    <Box sx={{ background: 'radial-gradient(circle at top right, rgba(0,166,90,0.035), transparent 34%), radial-gradient(circle at top left, rgba(184,148,46,0.035), transparent 30%), linear-gradient(180deg, #FAFAF8 0%, #F5F5F1 100%)', minHeight: '100vh', pt: 1 }}>
     <Container maxWidth="lg" sx={{ mt: 3, pb: 6 }}>
       <AdminHeader />
       
@@ -348,7 +348,7 @@ function AdminHome() {
         <Grid item xs={12} md={7}>
           {territoryData && territoryData.total > 0 && (
             <Card sx={{ background: 'linear-gradient(135deg, #FAFAF8 0%, #FFFFFF 100%)', border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-              <CardContent sx={{ p: 2.5 }}>
+              <CardContent sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Box>
                     <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Painel Executivo</Typography>
@@ -375,7 +375,7 @@ function AdminHome() {
                   ))}
                 </Grid>
                 {opsData && (
-                  <Box sx={{ display: 'flex', gap: 2.5, mt: 2, pt: 2, borderTop: '1px solid #F3F4F6', flexWrap: 'wrap' }}>
+                  <Box sx={{ display: 'flex', gap: 2, mt: 1.5, pt: 1.5, borderTop: '1px solid #F3F4F6', flexWrap: 'wrap' }}>
                     {[
                       { label: 'Corridas hoje', value: opsData.rides?.completed },
                       { label: 'Bruto', value: opsData.financials?.gross_total != null ? `R$\u00a0${Number(opsData.financials.gross_total).toFixed(0)}` : '—' },
