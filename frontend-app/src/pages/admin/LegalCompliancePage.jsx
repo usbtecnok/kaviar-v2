@@ -1,18 +1,32 @@
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Alert } from '@mui/material';
+import { useState } from 'react';
+import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Alert, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import Markdown from 'react-markdown';
+
+import termosPassageiro from '../../../../docs/termos-uso-passageiro-kaviar-v1.md?raw';
+import termosMotorista from '../../../../docs/termos-uso-motorista-kaviar-v1.md?raw';
+import politicaPrivacidade from '../../../../docs/politica-privacidade-kaviar-v1.md?raw';
+import regrasCancelamento from '../../../../docs/regras-cancelamento-kaviar-v1.md?raw';
+import regrasPagamento from '../../../../docs/regras-pagamento-creditos-kaviar-v1.md?raw';
+import avisoIntermediacao from '../../../../docs/aviso-plataforma-intermediacao-kaviar.md?raw';
+import termoOperador from '../../../../docs/termo-operador-territorial-kaviar-v1.md?raw';
+import conformidade from '../../../../docs/conformidade-juridica-operacional-kaviar.md?raw';
+import apresentacao from '../../../../docs/apresentacao-institucional-kaviar.md?raw';
 
 const DOCUMENTS = [
-  { name: 'Termos de Uso — Passageiro', file: 'docs/termos-uso-passageiro-kaviar-v1.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Cobre responsabilidades, limitações, operação territorial e privacidade.' },
-  { name: 'Termos de Uso — Motorista', file: 'docs/termos-uso-motorista-kaviar-v1.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Relação sem vínculo, requisitos, remuneração por créditos, LGPD.' },
-  { name: 'Política de Privacidade', file: 'docs/politica-privacidade-kaviar-v1.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'LGPD, dados coletados, finalidade, direitos do titular.' },
-  { name: 'Regras de Cancelamento', file: 'docs/regras-cancelamento-kaviar-v1.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Cancelamento por passageiro/motorista, penalidades, reembolso.' },
-  { name: 'Regras de Pagamento, Créditos e Compensações', file: 'docs/regras-pagamento-creditos-kaviar-v1.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Modelo de créditos, taxa, repasse territorial, ausência de garantias.' },
-  { name: 'Aviso de Plataforma de Intermediação', file: 'docs/aviso-plataforma-intermediacao-kaviar.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Declaração formal: não é concessão, transporte coletivo ou cooperativa.' },
-  { name: 'Termo do Operador Territorial', file: 'docs/termo-operador-territorial-kaviar-v1.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Responsabilidade, confidencialidade, LGPD, repasse manual.' },
-  { name: 'Conformidade Jurídica e Operacional', file: 'docs/conformidade-juridica-operacional-kaviar.md', version: 'v1.0', date: 'Maio/2026', status: 'Referência', note: 'Consolidação de status, riscos e recomendações.' },
-  { name: 'Apresentação Institucional', file: 'docs/apresentacao-institucional-kaviar.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Para prefeitura, associação, órgão público ou liderança local.' },
+  { name: 'Termos de Uso — Passageiro', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Cobre responsabilidades, limitações, operação territorial e privacidade.', content: termosPassageiro },
+  { name: 'Termos de Uso — Motorista', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Relação sem vínculo, requisitos, remuneração por créditos, LGPD.', content: termosMotorista },
+  { name: 'Política de Privacidade', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'LGPD, dados coletados, finalidade, direitos do titular.', content: politicaPrivacidade },
+  { name: 'Regras de Cancelamento', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Cancelamento por passageiro/motorista, penalidades, reembolso.', content: regrasCancelamento },
+  { name: 'Regras de Pagamento, Créditos e Compensações', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Modelo de créditos, taxa, repasse territorial, ausência de garantias.', content: regrasPagamento },
+  { name: 'Aviso de Plataforma de Intermediação', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Declaração formal: não é concessão, transporte coletivo ou cooperativa.', content: avisoIntermediacao },
+  { name: 'Termo do Operador Territorial', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Responsabilidade, confidencialidade, LGPD, repasse manual.', content: termoOperador },
+  { name: 'Conformidade Jurídica e Operacional', version: 'v1.0', date: 'Maio/2026', status: 'Referência', note: 'Consolidação de status, riscos e recomendações.', content: conformidade },
+  { name: 'Apresentação Institucional', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Para prefeitura, associação, órgão público ou liderança local.', content: apresentacao },
 ];
 
 export default function LegalCompliancePage() {
+  const [viewDoc, setViewDoc] = useState(null);
+
   return (
     <Box>
       <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 800, mb: 1 }}>📋 Conformidade Jurídica e Operacional</Typography>
@@ -24,30 +38,42 @@ export default function LegalCompliancePage() {
           <TableHead>
             <TableRow sx={{ bgcolor: '#FAFAF8' }}>
               <TableCell sx={{ fontWeight: 700 }}>Documento</TableCell>
-              <TableCell>Arquivo</TableCell>
               <TableCell>Versão</TableCell>
               <TableCell>Data</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Observação</TableCell>
+              <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {DOCUMENTS.map((doc, i) => (
               <TableRow key={i}>
                 <TableCell sx={{ fontWeight: 600 }}>{doc.name}</TableCell>
-                <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#6B7280' }}>{doc.file}</TableCell>
                 <TableCell><Chip label={doc.version} size="small" sx={{ bgcolor: 'rgba(184,148,46,0.1)', color: '#B8942E' }} /></TableCell>
                 <TableCell>{doc.date}</TableCell>
                 <TableCell><Chip label={doc.status} size="small" sx={{ bgcolor: 'rgba(217,119,6,0.1)', color: '#D97706' }} /></TableCell>
-                <TableCell sx={{ fontSize: '0.8rem', color: '#6B7280', maxWidth: 280 }}>{doc.note}</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem', color: '#6B7280', maxWidth: 240 }}>{doc.note}</TableCell>
+                <TableCell><Button size="small" onClick={() => setViewDoc(doc)} sx={{ color: '#2563EB', textTransform: 'none' }}>Visualizar</Button></TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
       <Alert severity="info" sx={{ mt: 3, bgcolor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.2)' }}>
-        Para revisão jurídica formal, consulte advogado especializado em direito digital e mobilidade urbana. Estes documentos servem como base para formalização.
+        Para revisão jurídica formal, consulte advogado especializado em direito digital e mobilidade urbana.
       </Alert>
+
+      <Dialog open={!!viewDoc} onClose={() => setViewDoc(null)} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+        {viewDoc && <>
+          <DialogTitle sx={{ fontWeight: 700 }}>{viewDoc.name} <Chip label={viewDoc.version} size="small" sx={{ ml: 1 }} /></DialogTitle>
+          <DialogContent dividers sx={{ '& h1': { fontSize: '1.4rem', mt: 2 }, '& h2': { fontSize: '1.1rem', mt: 2, mb: 1 }, '& h3': { fontSize: '1rem', mt: 1.5 }, '& p': { mb: 1 }, '& li': { mb: 0.3 }, '& table': { width: '100%', borderCollapse: 'collapse', mb: 2 }, '& th, & td': { border: '1px solid #ddd', padding: '6px 10px', fontSize: '0.85rem' }, '& th': { bgcolor: '#f5f5f5' } }}>
+            <Markdown>{viewDoc.content}</Markdown>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setViewDoc(null)}>Fechar</Button>
+          </DialogActions>
+        </>}
+      </Dialog>
     </Box>
   );
 }
