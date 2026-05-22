@@ -142,7 +142,9 @@ export default function RideList() {
   };
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('pt-BR');
+    if (!dateString) return '—';
+    const d = new Date(dateString);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR');
   };
 
   return (
@@ -316,7 +318,7 @@ export default function RideList() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {formatDateTime(ride.createdAt)}
+                        {formatDateTime(ride.created_at || ride.createdAt)}
                       </Typography>
                     </TableCell>
                     <TableCell>
