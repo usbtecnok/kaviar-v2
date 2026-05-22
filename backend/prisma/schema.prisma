@@ -1690,6 +1690,10 @@ model operational_territories {
   center_lat Decimal? @db.Decimal(10, 8)
   center_lng Decimal? @db.Decimal(11, 8)
   notes      String?
+  regulatory_status     String   @default("not_evaluated")
+  regulatory_notes      String?
+  regulatory_checked_at DateTime?
+  regulatory_checked_by String?
   is_active  Boolean  @default(true)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

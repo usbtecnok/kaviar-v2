@@ -107,6 +107,8 @@ const updateTerritorySchema = z.object({
   center_lat: z.number().min(-90).max(90).optional().nullable(),
   center_lng: z.number().min(-180).max(180).optional().nullable(),
   notes: z.string().optional().nullable(),
+  regulatory_status: z.enum(['not_evaluated', 'in_review', 'credentialing_required', 'controlled_operation', 'approved', 'blocked', 'suspended'] as const).optional(),
+  regulatory_notes: z.string().optional().nullable(),
 });
 
 // PATCH /api/admin/territories/:id
@@ -124,6 +126,8 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (data.center_lat !== undefined) updates.center_lat = data.center_lat;
     if (data.center_lng !== undefined) updates.center_lng = data.center_lng;
     if (data.notes !== undefined) updates.notes = data.notes;
+    if (data.regulatory_status !== undefined) { updates.regulatory_status = data.regulatory_status; updates.regulatory_checked_at = new Date(); updates.regulatory_checked_by = (req as any).admin.id; }
+    if (data.regulatory_notes !== undefined) updates.regulatory_notes = data.regulatory_notes;
 
     if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'Nenhuma alteração' });
 

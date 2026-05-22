@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Card, CardContent, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem } from '@mui/material';
+import { Box, Typography, Card, CardContent, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert } from '@mui/material';
 import { ArrowBack, Edit, PersonAdd, Delete } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
@@ -86,6 +86,37 @@ export default function TerritoryDetailPage() {
               <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Criado em</Typography><Typography sx={{ fontWeight: 600 }}>{new Date(t.created_at).toLocaleDateString('pt-BR')}</Typography></Box>
             </Box>
             {t.notes && <Box sx={{ mt: 2, p: 2, bgcolor: '#FAFAF8', borderRadius: 1 }}><Typography variant="caption" sx={{ color: '#6B7280' }}>Observações</Typography><Typography>{t.notes}</Typography></Box>}
+
+            {/* Conformidade Regulatória */}
+            <Box sx={{ mt: 3, p: 2, border: '1px solid #E8E5DE', borderRadius: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>📋 Conformidade Regulatória</Typography>
+              {t.status === 'active' && t.regulatory_status !== 'approved' && (
+                <Alert severity="warning" sx={{ mb: 2 }}>Território operacionalmente ativo sem aprovação regulatória.</Alert>
+              )}
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 1.5 }}>
+                <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Status regulatório</Typography>
+                  <TextField select value={t.regulatory_status || 'not_evaluated'} onChange={async (e) => {
+                    const res = await fetch(`${API_BASE_URL}/api/admin/territories/${id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ regulatory_status: e.target.value }) });
+                    if ((await res.json()).success) fetchTerritory();
+                  }} size="small" sx={{ minWidth: 200, mt: 0.5 }}>
+                    <MenuItem value="not_evaluated">Não avaliado</MenuItem>
+                    <MenuItem value="in_review">Em análise</MenuItem>
+                    <MenuItem value="credentialing_required">Credenciamento necessário</MenuItem>
+                    <MenuItem value="controlled_operation">Operação controlada</MenuItem>
+                    <MenuItem value="approved">Aprovado</MenuItem>
+                    <MenuItem value="blocked">Bloqueado</MenuItem>
+                    <MenuItem value="suspended">Suspenso</MenuItem>
+                  </TextField>
+                </Box>
+                {t.regulatory_checked_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Última verificação</Typography><Typography variant="body2">{new Date(t.regulatory_checked_at).toLocaleString('pt-BR')}</Typography></Box>}
+              </Box>
+              <TextField label="Notas regulatórias" value={t.regulatory_notes || ''} onChange={() => {}} onBlur={async (e) => {
+                if (e.target.value !== (t.regulatory_notes || '')) {
+                  const res = await fetch(`${API_BASE_URL}/api/admin/territories/${id}`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ regulatory_notes: e.target.value }) });
+                  if ((await res.json()).success) fetchTerritory();
+                }
+              }} fullWidth size="small" multiline rows={2} sx={{ mt: 1 }} InputLabelProps={{ shrink: true }} />
+            </Box>
           </CardContent>
         </Card>
       )}
