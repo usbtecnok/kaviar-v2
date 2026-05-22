@@ -97,9 +97,6 @@ function AdminHeader() {
       position: 'relative',
       overflow: 'hidden'
     }}>
-      <Box sx={{ position: 'absolute', right: 60, top: '50%', transform: 'translateY(-50%)', opacity: 0.07, pointerEvents: 'none' }}>
-        <img src={usbTecnokLogo} alt="" style={{ width: 480, height: 'auto' }} />
-      </Box>
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         <Typography variant="h6" sx={{ color: '#1A1A1A', fontWeight: 700 }}>
           <span style={{ color: '#B8942E' }}>KAVIAR</span> Admin — {admin?.name || 'Usuário'}
@@ -121,24 +118,25 @@ function AdminHeader() {
           )}
         </Box>
       </Box>
-      <Button 
-        onClick={handleLogout} 
-        variant="outlined"
-        size="small"
-        sx={{
-          position: 'relative',
-          zIndex: 1,
-          borderColor: '#E8E5DE',
-          color: '#6B7280',
-          '&:hover': {
-            borderColor: '#B8942E',
-            color: '#B8942E',
-            bgcolor: 'rgba(184,148,46,0.04)'
-          }
-        }}
-      >
-        Sair
-      </Button>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 1 }}>
+        <img src={usbTecnokLogo} alt="USB Tecnok" style={{ height: 48, opacity: 1 }} />
+        <Button 
+          onClick={handleLogout} 
+          variant="outlined"
+          size="small"
+          sx={{
+            borderColor: '#E8E5DE',
+            color: '#6B7280',
+            '&:hover': {
+              borderColor: '#B8942E',
+              color: '#B8942E',
+              bgcolor: 'rgba(184,148,46,0.04)'
+            }
+          }}
+        >
+          Sair
+        </Button>
+      </Box>
     </Box>
   );
 }
