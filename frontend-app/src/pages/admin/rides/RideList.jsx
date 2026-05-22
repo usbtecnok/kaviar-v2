@@ -23,7 +23,11 @@ import {
   InputLabel, 
   Pagination,
   CircularProgress,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { Visibility, Search } from '@mui/icons-material';
 
@@ -53,6 +57,8 @@ export default function RideList() {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [checkModal, setCheckModal] = useState({ open: false, rideId: null, status: 'resolved', notes: '' });
+  const [checkedRides, setCheckedRides] = useState(new Set());
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -139,6 +145,14 @@ export default function RideList() {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
+  };
+
+  const handleSafetyCheck = async () => {
+    const { rideId, status, notes } = checkModal;
+    if (!notes.trim()) return;
+    const token = localStorage.getItem('kaviar_admin_token');
+    const res = await fetch(`${API_BASE_URL}/api/admin/emergency-events/safety-check`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ ride_id: rideId, status, notes }) });
+    if ((await res.json()).success) { setCheckedRides(prev => new Set([...prev, rideId])); setCheckModal({ open: false, rideId: null, status: 'resolved', notes: '' }); }
   };
 
   const formatDateTime = (dateString) => {
@@ -322,7 +336,9 @@ export default function RideList() {
                         return (
                           <>
                             <Typography sx={{ fontSize: 10, color: '#6B7280', mt: 0.5 }}>Em andamento há {mins}min</Typography>
-                            {mins > 30 && <Chip label="⚠️ Demora incomum" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(217,119,6,0.1)', color: '#D97706', fontSize: 10, height: 20 }} />}
+                            {mins > 30 && !checkedRides.has(ride.id) && <Chip label="⚠️ Demora incomum" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(217,119,6,0.1)', color: '#D97706', fontSize: 10, height: 20 }} />}
+                            {mins > 30 && !checkedRides.has(ride.id) && <Button size="small" onClick={() => setCheckModal({ open: true, rideId: ride.id, status: 'resolved', notes: '' })} sx={{ mt: 0.5, fontSize: 10, color: '#2563EB', textTransform: 'none', minWidth: 'auto', p: 0 }}>Verificar</Button>}
+                            {checkedRides.has(ride.id) && <Chip label="✅ Verificada" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(5,150,105,0.1)', color: '#059669', fontSize: 10, height: 20 }} />}
                           </>
                         );
                       })()}
@@ -362,6 +378,28 @@ export default function RideList() {
           </Typography>
         </>
       )}
+
+      <Dialog open={checkModal.open} onClose={() => setCheckModal({ ...checkModal, open: false })} maxWidth="sm" fullWidth>
+        <DialogTitle>Verificação de Corrida</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Status da verificação</InputLabel>
+            <Select value={checkModal.status} label="Status da verificação" onChange={e => setCheckModal({ ...checkModal, status: e.target.value })}>
+              <MenuItem value="resolved">Tudo certo</MenuItem>
+              <MenuItem value="resolved">Motorista respondeu</MenuItem>
+              <MenuItem value="resolved">Passageiro respondeu</MenuItem>
+              <MenuItem value="active">Precisa acompanhar</MenuItem>
+              <MenuItem value="active">Encaminhar para suporte</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField label="Observação" value={checkModal.notes} onChange={e => setCheckModal({ ...checkModal, notes: e.target.value })} fullWidth size="small" multiline rows={2} placeholder="Descreva a verificação realizada..." />
+          <Alert severity="info" sx={{ fontSize: 12 }}>Registro interno de atenção operacional. Não altera a corrida nem notifica motorista/passageiro.</Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCheckModal({ ...checkModal, open: false })}>Cancelar</Button>
+          <Button variant="contained" onClick={handleSafetyCheck} disabled={!checkModal.notes.trim()} sx={{ bgcolor: '#059669' }}>Registrar</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

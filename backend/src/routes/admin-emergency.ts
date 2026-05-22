@@ -90,4 +90,37 @@ router.patch('/:id/resolve', async (req: Request, res: Response) => {
   }
 });
 
+// Create safety check (admin verification of active ride)
+router.post('/safety-check', async (req: Request, res: Response) => {
+  try {
+    const { ride_id, status, notes } = req.body;
+    if (!ride_id) return res.status(400).json({ error: 'ride_id obrigatório' });
+    if (!notes || notes.trim().length < 2) return res.status(400).json({ error: 'Observação obrigatória' });
+
+    const validStatuses = ['resolved', 'active'];
+    const finalStatus = validStatuses.includes(status) ? status : 'resolved';
+    const admin = (req as any).admin;
+
+    const event = await prisma.ride_emergency_events.create({
+      data: {
+        ride_id,
+        triggered_by_type: 'admin',
+        triggered_by_id: admin.id,
+        trigger_source: 'admin_safety_check',
+        status: finalStatus,
+        snapshot: { type: 'safety_check', notes: notes.trim(), checked_at: new Date().toISOString() },
+        resolved_by: finalStatus === 'resolved' ? admin.id : null,
+        resolved_at: finalStatus === 'resolved' ? new Date() : null,
+        resolution_notes: notes.trim(),
+      },
+    });
+
+    console.log(`[SAFETY_CHECK] admin_id=${admin.id} ride_id=${ride_id} status=${finalStatus}`);
+    res.status(201).json({ success: true, data: event });
+  } catch (error: any) {
+    console.error('[SAFETY_CHECK_ERROR]', error);
+    res.status(500).json({ error: 'Erro ao registrar verificação' });
+  }
+});
+
 export default router;
