@@ -294,7 +294,8 @@ export default function TerritorialPayoutsPage() {
               <MenuItem value="cpf">CPF</MenuItem><MenuItem value="cnpj">CNPJ</MenuItem><MenuItem value="email">Email</MenuItem><MenuItem value="phone">Telefone</MenuItem><MenuItem value="random">Aleatória</MenuItem>
             </TextField></Box>
           </Box>
-          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Admin Regional vinculado</Typography>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Usuário de acesso autorizado (gestor operacional)</Typography>
+            <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mb: 1, fontSize: '0.7rem' }}>Este usuário acessa o painel em modo leitura. O operador financeiro/contratual é quem recebe do KAVIAR.</Typography>
             {opForm.territory_id && !loadingAdmins && territoryAdmins.length === 0 && (
               <Alert severity="warning" sx={{ mb: 1 }}>Cadastre ou vincule um Admin Regional a este território antes de criar o Operador Territorial.</Alert>
             )}
@@ -400,7 +401,8 @@ export default function TerritorialPayoutsPage() {
               <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Nome</Typography><Typography>{detailTarget.display_name}</Typography></Box>
               <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Tipo</Typography><Typography>{RECIPIENT_LABELS[detailTarget.recipient_type]}</Typography></Box>
               <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Território</Typography><Typography>{detailTarget.territory?.name}</Typography></Box>
-              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Admin vinculado</Typography><Typography>{detailTarget.admin?.name} — {detailTarget.admin?.email}</Typography></Box>
+              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Acesso autorizado</Typography><Typography>{detailTarget.admin?.name} — {detailTarget.admin?.email}</Typography></Box>
+              <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mt: 0.5, fontSize: '0.7rem' }}>O operador financeiro/contratual é o responsável por recebimentos, contrato e repasses. O acesso autorizado apenas permite entrada no painel conforme permissão concedida.</Typography>
               {detailTarget.full_name && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Nome completo</Typography><Typography>{detailTarget.full_name}</Typography></Box>}
               {detailTarget.document_cpf && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>CPF</Typography><Typography sx={{ fontFamily: 'monospace' }}>{detailTarget.document_cpf}</Typography></Box>}
               {detailTarget.company_name && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>{detailTarget.recipient_type === 'company' ? 'Razão Social' : 'Associação'}</Typography><Typography>{detailTarget.company_name}</Typography></Box>}
