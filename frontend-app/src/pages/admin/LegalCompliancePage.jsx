@@ -11,6 +11,8 @@ import avisoIntermediacao from '../../../../docs/aviso-plataforma-intermediacao-
 import termoOperador from '../../../../docs/termo-operador-territorial-kaviar-v1.md?raw';
 import conformidade from '../../../../docs/conformidade-juridica-operacional-kaviar.md?raw';
 import apresentacao from '../../../../docs/apresentacao-institucional-kaviar.md?raw';
+import checklistCidade from '../../../../docs/frentes/checklist-abertura-cidade.md?raw';
+import politicaRelacionamento from '../../../../docs/politica-relacionamento-institucional-kaviar.md?raw';
 
 const DOCUMENTS = [
   { name: 'Termos de Uso — Passageiro', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Cobre responsabilidades, limitações, operação territorial e privacidade.', content: termosPassageiro },
@@ -22,6 +24,8 @@ const DOCUMENTS = [
   { name: 'Termo do Operador Territorial', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Responsabilidade, confidencialidade, LGPD, repasse manual.', content: termoOperador },
   { name: 'Conformidade Jurídica e Operacional', version: 'v1.0', date: 'Maio/2026', status: 'Referência', note: 'Consolidação de status, riscos e recomendações.', content: conformidade },
   { name: 'Apresentação Institucional', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Para prefeitura, associação, órgão público ou liderança local.', content: apresentacao },
+  { name: 'Checklist Abertura de Cidade', version: 'v1.0', date: 'Maio/2026', status: 'Operacional', note: 'Passos obrigatórios antes de iniciar operação em nova cidade.', content: checklistCidade },
+  { name: 'Política de Relacionamento Institucional', version: 'v1.0', date: 'Maio/2026', status: 'Operacional', note: 'Limites, canais, anticorrupção e postura perante órgão público.', content: politicaRelacionamento },
 ];
 
 export default function LegalCompliancePage() {
@@ -66,14 +70,17 @@ export default function LegalCompliancePage() {
       <Dialog open={!!viewDoc} onClose={() => setViewDoc(null)} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
         {viewDoc && <>
           <DialogTitle sx={{ fontWeight: 700 }}>{viewDoc.name} <Chip label={viewDoc.version} size="small" sx={{ ml: 1 }} /></DialogTitle>
-          <DialogContent dividers sx={{ '& h1': { fontSize: '1.4rem', mt: 2 }, '& h2': { fontSize: '1.1rem', mt: 2, mb: 1 }, '& h3': { fontSize: '1rem', mt: 1.5 }, '& p': { mb: 1 }, '& li': { mb: 0.3 }, '& table': { width: '100%', borderCollapse: 'collapse', mb: 2 }, '& th, & td': { border: '1px solid #ddd', padding: '6px 10px', fontSize: '0.85rem' }, '& th': { bgcolor: '#f5f5f5' } }}>
+          <DialogContent dividers id="legal-doc-content" sx={{ '& h1': { fontSize: '1.4rem', mt: 2 }, '& h2': { fontSize: '1.1rem', mt: 2, mb: 1 }, '& h3': { fontSize: '1rem', mt: 1.5 }, '& p': { mb: 1 }, '& li': { mb: 0.3 }, '& table': { width: '100%', borderCollapse: 'collapse', mb: 2 }, '& th, & td': { border: '1px solid #ddd', padding: '6px 10px', fontSize: '0.85rem' }, '& th': { bgcolor: '#f5f5f5' } }}>
             <Markdown>{viewDoc.content}</Markdown>
           </DialogContent>
           <DialogActions>
+            <Button onClick={() => window.print()} sx={{ color: '#6B7280' }}>Imprimir</Button>
             <Button onClick={() => setViewDoc(null)}>Fechar</Button>
           </DialogActions>
         </>}
       </Dialog>
+
+      <style>{`@media print { body * { visibility: hidden; } #legal-doc-content, #legal-doc-content * { visibility: visible; } #legal-doc-content { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; } }`}</style>
     </Box>
   );
 }
