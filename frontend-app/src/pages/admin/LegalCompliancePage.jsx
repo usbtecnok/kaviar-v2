@@ -9,6 +9,7 @@ const DOCUMENTS = [
   { name: 'Aviso de Plataforma de Intermediação', file: 'docs/aviso-plataforma-intermediacao-kaviar.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Declaração formal: não é concessão, transporte coletivo ou cooperativa.' },
   { name: 'Termo do Operador Territorial', file: 'docs/termo-operador-territorial-kaviar-v1.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Responsabilidade, confidencialidade, LGPD, repasse manual.' },
   { name: 'Conformidade Jurídica e Operacional', file: 'docs/conformidade-juridica-operacional-kaviar.md', version: 'v1.0', date: 'Maio/2026', status: 'Referência', note: 'Consolidação de status, riscos e recomendações.' },
+  { name: 'Apresentação Institucional', file: 'docs/apresentacao-institucional-kaviar.md', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Para prefeitura, associação, órgão público ou liderança local.' },
 ];
 
 export default function LegalCompliancePage() {
