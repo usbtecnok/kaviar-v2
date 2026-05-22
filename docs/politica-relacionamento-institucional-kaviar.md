@@ -14,7 +14,7 @@ Definir regras e limites para o relacionamento da USB Tecnok / KAVIAR com prefei
 
 ## 2. Quem Pode Falar Oficialmente pela USB Tecnok / KAVIAR
 
-- **Sócios/diretores** da USB Tecnok Manutenção e Instalação de Computadores Ltda.
+- **Sócios/diretores** da USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66).
 - **Pessoa expressamente autorizada** por procuração ou delegação formal da matriz.
 
 **Nenhum Operador Territorial, Admin Regional, Parceiro ou Consultor pode falar oficialmente em nome da USB Tecnok sem autorização expressa.**
