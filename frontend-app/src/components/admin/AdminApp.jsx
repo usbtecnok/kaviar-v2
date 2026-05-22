@@ -1,6 +1,6 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
-import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab } from "@mui/material";
+import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab, TextField } from "@mui/material";
 import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
@@ -147,6 +147,8 @@ function AdminHome() {
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchModules, setSearchModules] = useState('');
+  const [filterSection, setFilterSection] = useState('Todos');
 
   useEffect(() => {
     fetchDashboardData();
@@ -388,72 +390,86 @@ function AdminHome() {
 
       {/* Atalhos de Gerenciamento */}
       <Box sx={{ mb: 4 }}>
-        {[
-          { section: 'Operação', items: [
-            { Icon: DirectionsCar, title: 'Corridas', desc: 'Gestão operacional de corridas', to: '/admin/rides' },
-            { Icon: CreditCard, title: 'Compras de Créditos', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
-            { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp', accent: '#16A34A' },
-            { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
-            { Icon: Paid, title: 'Compensações', desc: 'Apoio ao motorista em cancelamentos', to: '/admin/compensations' },
-          ]},
-          { section: 'Comercial', items: [
-            { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
-            { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
-            { Icon: Handshake, title: 'Parceiros Territoriais', desc: 'Comissão por corridas de motoristas vinculados', to: '/admin/territorial-partners' },
-            { Icon: Handshake, title: 'KAVIAR Particular', desc: 'Solicitações de motorista reservado', to: '/admin/private-rides', accent: '#B8942E' },
-            { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
-            { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
-            { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages', accent: '#2563EB' },
-          ]},
-          { section: 'Gestão', items: [
-            { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
-            { Icon: People, title: 'Passageiros', desc: 'Gerenciar passageiros', to: '/admin/passengers' },
-            { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },
-            { Icon: Star, title: 'Avaliações', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
-            { Icon: Apartment, title: 'Comunidades', desc: 'Gestão de comunidades e ativação', to: '/admin/communities' },
-          ]},
-          { section: 'Configuração', items: [
-            { Icon: Map, title: 'Bairros', desc: 'Gestão de bairros administrativos', to: '/admin/neighborhoods' },
-            { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
-            { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
-            ...(isSuperAdmin ? [
-              { Icon: Public, title: 'Territórios', desc: 'Gestão de territórios operacionais', to: '/admin/territories' },
-              { Icon: PersonAdd, title: 'Admins Regionais', desc: 'Gestão de admins por território', to: '/admin/regional-admins' },
-              { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
-              { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
-              { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais usados nas estimativas de corrida', to: '/admin/pricing' },
-              { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem e destino para ver preço, perfil, área e ganho do motorista', to: '/admin/ride-simulator' },
-              { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e trilha de proteção', to: '/admin/emergency-events', accent: '#DC2626' },
-              { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
-            ] : []),
-          ]},
-        ].map(({ section, items }) => (
-          <Box key={section} sx={{ mb: 4 }}>
-            <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 0.5 }}>Painel</Typography>
-            <Typography sx={{ fontWeight: 700, color: '#1A1A1A', fontSize: 18, mb: 2 }}>{section}</Typography>
-            <Grid container spacing={2}>
-              {items.map(c => {
-                const color = c.accent || '#B8942E';
+        {(() => {
+          const SECTION_COLORS = { 'Operação': '#D97706', 'Comercial': '#059669', 'Gestão': '#2563EB', 'Configuração': '#7C3AED' };
+          const sections = [
+            { section: 'Operação', items: [
+              { Icon: DirectionsCar, title: 'Corridas', desc: 'Gestão operacional de corridas', to: '/admin/rides' },
+              { Icon: CreditCard, title: 'Compras de Créditos', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
+              { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp' },
+              { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
+              { Icon: Paid, title: 'Compensações', desc: 'Apoio ao motorista em cancelamentos', to: '/admin/compensations' },
+            ]},
+            { section: 'Comercial', items: [
+              { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
+              { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
+              { Icon: Handshake, title: 'Parceiros Territoriais', desc: 'Comissão por corridas de motoristas vinculados', to: '/admin/territorial-partners' },
+              { Icon: Handshake, title: 'KAVIAR Particular', desc: 'Solicitações de motorista reservado', to: '/admin/private-rides' },
+              { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
+              { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
+              { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages' },
+            ]},
+            { section: 'Gestão', items: [
+              { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
+              { Icon: People, title: 'Passageiros', desc: 'Gerenciar passageiros', to: '/admin/passengers' },
+              { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },
+              { Icon: Star, title: 'Avaliações', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
+              { Icon: Apartment, title: 'Comunidades', desc: 'Gestão de comunidades e ativação', to: '/admin/communities' },
+            ]},
+            { section: 'Configuração', items: [
+              { Icon: Map, title: 'Bairros', desc: 'Gestão de bairros administrativos', to: '/admin/neighborhoods' },
+              { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
+              { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
+              ...(isSuperAdmin ? [
+                { Icon: Public, title: 'Territórios', desc: 'Gestão de territórios operacionais', to: '/admin/territories' },
+                { Icon: PersonAdd, title: 'Admins Regionais', desc: 'Gestão de admins por território', to: '/admin/regional-admins' },
+                { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
+                { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
+                { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais', to: '/admin/pricing' },
+                { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem/destino, preço e ganho', to: '/admin/ride-simulator' },
+                { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e proteção', to: '/admin/emergency-events' },
+                { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
+              ] : []),
+            ]},
+          ];
+          const filtered = sections.map(s => ({ ...s, items: s.items.filter(c => c.title.toLowerCase().includes(searchModules.toLowerCase()) || c.desc.toLowerCase().includes(searchModules.toLowerCase())) })).filter(s => (filterSection === 'Todos' || s.section === filterSection) && s.items.length > 0);
+          return (
+            <>
+              <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+                <TextField size="small" placeholder="Buscar módulo..." value={searchModules} onChange={e => setSearchModules(e.target.value)} sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
+                {['Todos', 'Operação', 'Comercial', 'Gestão', 'Configuração'].map(f => (
+                  <Chip key={f} label={f} size="small" onClick={() => setFilterSection(f)} sx={{ fontWeight: 600, bgcolor: filterSection === f ? (SECTION_COLORS[f] || '#B8942E') : 'transparent', color: filterSection === f ? '#fff' : '#6B7280', border: `1px solid ${filterSection === f ? 'transparent' : '#E8E5DE'}`, cursor: 'pointer', '&:hover': { bgcolor: filterSection === f ? undefined : '#F3F4F6' } }} />
+                ))}
+              </Box>
+              {filtered.map(({ section, items }) => {
+                const sColor = SECTION_COLORS[section] || '#B8942E';
                 return (
-                  <Grid item xs={12} sm={6} md={4} key={c.to}>
-                    <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid rgba(184,148,46,0.18)', borderRadius: 2, height: '100%', transition: 'all 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: color, transform: 'translateY(-2px)', boxShadow: `0 4px 12px rgba(0,0,0,0.08)` } }}>
-                      <CardContent sx={{ textAlign: 'center', pt: 3.5, pb: 3, px: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%' }}>
-                        <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: `${color}0D`, display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2, border: `1px solid ${color}20` }}>
-                          <c.Icon sx={{ fontSize: 24, color }} />
-                        </Box>
-                        <Typography sx={{ color: '#1A1A1A', fontWeight: 600, fontSize: 14, mb: 0.5 }}>{c.title}</Typography>
-                        <Typography sx={{ color: '#6B7280', fontSize: 12, lineHeight: 1.5, mb: 'auto', pb: 2 }}>{c.desc}</Typography>
-                        <Button variant="outlined" component={Link} to={c.to} sx={{ borderColor: '#E8E5DE', color: '#6B7280', fontWeight: 600, fontSize: 12, px: 3, py: 0.7, '&:hover': { bgcolor: color, color: '#fff', borderColor: color } }}>
-                          Acessar
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Grid>
+                  <Box key={section} sx={{ mb: 3 }}>
+                    <Typography sx={{ fontWeight: 700, color: sColor, fontSize: 15, mb: 1.5 }}>{section}</Typography>
+                    <Grid container spacing={1.5}>
+                      {items.map(c => (
+                        <Grid item xs={12} sm={6} md={4} key={c.to}>
+                          <Card sx={{ bgcolor: '#FFFFFF', borderTop: `3px solid ${sColor}`, border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', transition: 'all 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' } }}>
+                            <CardContent sx={{ pt: 2, pb: 1.5, px: 2.5, display: 'flex', alignItems: 'center', gap: 1.5, height: '100%' }}>
+                              <Box sx={{ width: 40, height: 40, borderRadius: '50%', bgcolor: `${sColor}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <c.Icon sx={{ fontSize: 20, color: sColor }} />
+                              </Box>
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography sx={{ color: '#1A1A1A', fontWeight: 600, fontSize: 13 }}>{c.title}</Typography>
+                                <Typography sx={{ color: '#6B7280', fontSize: 11, lineHeight: 1.4 }}>{c.desc}</Typography>
+                              </Box>
+                              <Button component={Link} to={c.to} size="small" sx={{ color: sColor, fontWeight: 600, fontSize: 11, minWidth: 'auto', px: 1.5, '&:hover': { bgcolor: `${sColor}10` } }}>→</Button>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
                 );
               })}
-            </Grid>
-          </Box>
-        ))}
+            </>
+          );
+        })()}
       </Box>
 
       {/* Build Stamp */}
