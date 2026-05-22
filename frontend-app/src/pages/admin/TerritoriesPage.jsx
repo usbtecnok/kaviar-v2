@@ -6,6 +6,8 @@ import { API_BASE_URL } from '../../config/api';
 
 const STATUS_COLORS = { planning: '#6B7280', preparation: '#D97706', active: '#059669', inactive: '#DC2626' };
 const STATUS_LABELS = { planning: 'Planejamento', preparation: 'Preparação', active: 'Ativo', inactive: 'Inativo' };
+const REG_COLORS = { not_evaluated: '#6B7280', in_review: '#D97706', credentialing_required: '#EA580C', controlled_operation: '#2563EB', approved: '#059669', blocked: '#DC2626', suspended: '#DC2626' };
+const REG_LABELS = { not_evaluated: 'Não avaliado', in_review: 'Em análise', credentialing_required: 'Exige credenciamento', controlled_operation: 'Operação controlada', approved: 'Aprovado', blocked: 'Bloqueado', suspended: 'Suspenso' };
 const LEVEL_ICONS = { country: <Public />, state: <Map />, city: <LocationCity />, region: <Map />, operation: <LocationCity /> };
 const LEVEL_LABELS = { country: 'País', state: 'Estado', city: 'Cidade', region: 'Região', operation: 'Operação' };
 
@@ -80,6 +82,7 @@ export default function TerritoriesPage() {
                     <Typography variant="h6" sx={{ fontWeight: 700, color: '#1A1A1A' }}>{t.name}</Typography>
                   </Box>
                   <Chip label={STATUS_LABELS[t.status] || t.status} size="small" sx={{ bgcolor: `${STATUS_COLORS[t.status]}15`, color: STATUS_COLORS[t.status], fontWeight: 600 }} />
+                  <Chip label={REG_LABELS[t.regulatory_status] || 'Não avaliado'} size="small" sx={{ bgcolor: `${REG_COLORS[t.regulatory_status] || '#6B7280'}12`, color: REG_COLORS[t.regulatory_status] || '#6B7280', fontWeight: 500, fontSize: 10 }} />
                 </Box>
                 <Typography variant="body2" sx={{ color: '#6B7280', mb: 1 }}>{LEVEL_LABELS[t.level] || t.level}{t.uf ? ` • ${t.uf}` : ''}{t.parent?.name ? ` • ${t.parent.name}` : ''}</Typography>
                 <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
