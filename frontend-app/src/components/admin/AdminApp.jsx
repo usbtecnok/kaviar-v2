@@ -59,6 +59,7 @@ import TerritoryDetailPage from "../../pages/admin/TerritoryDetailPage";
 import RegionalAdminsPage from "../../pages/admin/RegionalAdminsPage";
 import TerritorialPayoutsPage from "../../pages/admin/TerritorialPayoutsPage";
 import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
+import MyContractPage from "../../pages/admin/MyContractPage";
 import { useState, useEffect } from 'react';
 
 function FinanceHomeRedirect() {
@@ -269,6 +270,19 @@ function AdminHome() {
             <Box>
               <Typography sx={{ color: '#1A1A1A', fontWeight: 700, fontSize: 15 }}>Visão do Projeto</Typography>
               <Typography sx={{ color: '#6B7280', fontSize: 12, mt: 0.3 }}>Visão estratégica, modelo e potencial de expansão</Typography>
+            </Box>
+            <Typography sx={{ color: '#B8942E', fontSize: 20 }}>→</Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      {admin?.role === 'ANGEL_VIEWER' && (
+        <Card sx={{ mb: 3, bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', cursor: 'pointer', borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: '#B8942E', boxShadow: '0 2px 8px rgba(184,148,46,0.1)' } }}
+          onClick={() => window.location.href = '/admin/meu-contrato'}>
+          <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 2 }}>
+            <Box>
+              <Typography sx={{ color: '#1A1A1A', fontWeight: 700, fontSize: 15 }}>📋 Meu Contrato</Typography>
+              <Typography sx={{ color: '#6B7280', fontSize: 12, mt: 0.3 }}>Visualizar contrato, termos e status</Typography>
             </Box>
             <Typography sx={{ color: '#B8942E', fontSize: 20 }}>→</Typography>
           </CardContent>
@@ -862,6 +876,7 @@ export default function AdminApp() {
           <Route path="/regional-admins" element={<ProtectedAdminRoute requireSuperAdmin><RegionalAdminsPage /></ProtectedAdminRoute>} />
           <Route path="/territorial-payouts" element={<ProtectedAdminRoute requireSuperAdmin><TerritorialPayoutsPage /></ProtectedAdminRoute>} />
           <Route path="/legal-compliance" element={<ProtectedAdminRoute requireSuperAdmin><LegalCompliancePage /></ProtectedAdminRoute>} />
+          <Route path="/meu-contrato" element={<ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'SUPER_ADMIN']}><MyContractPage /></ProtectedAdminRoute>} />
 
           {/* Redirects para rotas antigas */}
           <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
