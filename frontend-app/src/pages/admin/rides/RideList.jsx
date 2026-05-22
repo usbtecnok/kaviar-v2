@@ -315,6 +315,17 @@ export default function RideList() {
                         color={statusColors[ride.status] || 'default'}
                         size="small"
                       />
+                      {ride.status === 'in_progress' && (() => {
+                        const start = ride.started_at || ride.startedAt;
+                        if (!start) return null;
+                        const mins = Math.round((Date.now() - new Date(start).getTime()) / 60000);
+                        return (
+                          <>
+                            <Typography sx={{ fontSize: 10, color: '#6B7280', mt: 0.5 }}>Em andamento há {mins}min</Typography>
+                            {mins > 30 && <Chip label="⚠️ Demora incomum" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(217,119,6,0.1)', color: '#D97706', fontSize: 10, height: 20 }} />}
+                          </>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
