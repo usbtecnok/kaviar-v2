@@ -109,6 +109,7 @@ export default function LocalOperators() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 700 }}>Associações / Operadores Locais</Typography>
         <Button startIcon={<Add />} variant="contained" onClick={openNew} sx={{ bgcolor: '#C8A84E', color: '#0a0a0a', fontWeight: 700, '&:hover': { bgcolor: '#A08030' } }}>Novo</Button>
+        <Button size="small" onClick={() => window.open('/associacoes', '_blank')} sx={{ color: '#6B7280', textTransform: 'none', ml: 1 }}>Abrir página pública →</Button>
       </Box>
 
       {/* Counters */}
