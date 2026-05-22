@@ -296,17 +296,20 @@ function AdminHome() {
         <Grid container spacing={1.5} sx={{ mb: 3 }}>
           {/* KPIs */}
           {[
-            { icon: <People sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalPassengers || 0, label: 'Passageiros' },
-            { icon: <DirectionsCar sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalDrivers || 0, label: 'Motoristas' },
-            { icon: <LocationCity sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalNeighborhoods || 0, label: 'Bairros' },
-            { icon: <Tour sx={{ fontSize: 22, color: '#B8942E' }} />, value: stats.totalGuides || 0, label: 'Guias' },
+            { icon: <People sx={{ fontSize: 20, color: '#B8942E' }} />, value: stats.totalPassengers || 0, label: 'Passageiros' },
+            { icon: <DirectionsCar sx={{ fontSize: 20, color: '#B8942E' }} />, value: stats.totalDrivers || 0, label: 'Motoristas' },
+            { icon: <LocationCity sx={{ fontSize: 20, color: '#B8942E' }} />, value: stats.totalNeighborhoods || 0, label: 'Bairros' },
+            { icon: <Tour sx={{ fontSize: 20, color: '#B8942E' }} />, value: stats.totalGuides || 0, label: 'Guias' },
           ].map(k => (
             <Grid item xs={6} sm={3} key={k.label}>
-              <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-                <CardContent sx={{ textAlign: 'center', py: 2, px: 1.5 }}>
-                  {k.icon}
-                  <Typography sx={{ color: '#1A1A1A', fontSize: 26, fontWeight: 700, lineHeight: 1.2, mt: 0.5 }}>{k.value}</Typography>
-                  <Typography sx={{ color: '#9CA3AF', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{k.label}</Typography>
+              <Card sx={{ background: 'linear-gradient(135deg, #FFFDF7 0%, #FFFFFF 100%)', borderTop: '3px solid #B8942E', border: '1px solid #E8E5DE', borderRadius: 2, boxShadow: '0 2px 8px rgba(184,148,46,0.06)' }}>
+                <CardContent sx={{ textAlign: 'center', py: 2.5, px: 1.5 }}>
+                  <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(184,148,46,0.08)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                    {k.icon}
+                  </Box>
+                  <Typography sx={{ color: '#1A1A1A', fontSize: 32, fontWeight: 800, lineHeight: 1.1 }}>{k.value}</Typography>
+                  <Typography sx={{ color: '#6B7280', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mt: 0.5 }}>{k.label}</Typography>
+                  <Typography sx={{ color: '#9CA3AF', fontSize: 9, mt: 0.2 }}>Total cadastrado</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -318,11 +321,13 @@ function AdminHome() {
             { value: pending.passengers || 0, label: 'Passageiros pendentes', to: '/admin/passengers?status=pending', active: pending.passengers > 0 },
             { value: pending.guides || 0, label: 'Guias pendentes', to: '/admin/guides?status=pending', active: pending.guides > 0 },
           ].map(p => (
-            <Grid item xs={4} sm={4} md={4} key={p.label}>
-              <Card component={p.active ? Link : 'div'} to={p.active ? p.to : undefined} sx={{ bgcolor: p.active ? '#FFFBEB' : '#FFFFFF', border: `1px solid ${p.active ? '#FDE68A' : '#E8E5DE'}`, borderRadius: 2, textDecoration: 'none', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', ...(p.active && { '&:hover': { borderColor: '#B8942E', transform: 'translateY(-1px)', boxShadow: '0 3px 8px rgba(184,148,46,0.12)' } }) }}>
-                <CardContent sx={{ textAlign: 'center', py: 1.5, px: 1 }}>
-                  <Typography sx={{ color: p.active ? '#92400E' : '#D1D5DB', fontSize: 22, fontWeight: 700, lineHeight: 1.2 }}>{p.value}</Typography>
-                  <Typography sx={{ color: p.active ? '#B45309' : '#D1D5DB', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{p.label}</Typography>
+            <Grid item xs={4} key={p.label}>
+              <Card component={p.active ? Link : 'div'} to={p.active ? p.to : undefined} sx={{ bgcolor: p.active ? '#FFFBEB' : '#F9FAFB', borderLeft: `4px solid ${p.active ? '#D97706' : '#E5E7EB'}`, border: '1px solid #E8E5DE', borderRadius: 2, textDecoration: 'none', transition: 'all 0.2s', boxShadow: 'none', ...(p.active && { '&:hover': { borderLeftColor: '#B45309', transform: 'translateY(-1px)', boxShadow: '0 3px 8px rgba(217,119,6,0.12)' } }) }}>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2 }}>
+                  <Box sx={{ width: 32, height: 32, borderRadius: '50%', bgcolor: p.active ? 'rgba(217,119,6,0.1)' : '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Typography sx={{ color: p.active ? '#D97706' : '#D1D5DB', fontSize: 16, fontWeight: 800 }}>{p.value}</Typography>
+                  </Box>
+                  <Typography sx={{ color: p.active ? '#92400E' : '#9CA3AF', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{p.label}</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -335,14 +340,14 @@ function AdminHome() {
         {/* Operações */}
         <Grid item xs={12} md={7}>
           {territoryData && territoryData.total > 0 && (
-            <Card sx={{ bgcolor: '#FFFFFF', border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <Card sx={{ background: 'linear-gradient(135deg, #FAFAF8 0%, #FFFFFF 100%)', border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Box>
                     <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Painel Executivo</Typography>
                     <Typography sx={{ fontWeight: 700, color: '#1A1A1A', fontSize: 16 }}>Operações</Typography>
                   </Box>
-                  <Button component={Link} to="/admin/executive-operations" variant="outlined" size="small" sx={{ borderColor: '#E8E5DE', color: '#B8942E', fontSize: 11, fontWeight: 600, '&:hover': { bgcolor: '#B8942E', color: '#fff', borderColor: '#B8942E' } }}>
+                  <Button component={Link} to="/admin/executive-operations" size="small" sx={{ bgcolor: '#B8942E', color: '#fff', fontSize: 11, fontWeight: 600, px: 2, '&:hover': { bgcolor: '#9A7B24' } }}>
                     Abrir →
                   </Button>
                 </Box>
@@ -355,9 +360,9 @@ function AdminHome() {
                     { symbol: '∑', value: territoryData.total, label: 'Total', accent: '#B8942E' },
                   ].map((t, i) => (
                     <Grid item xs key={i}>
-                      <Box sx={{ textAlign: 'center', py: 1 }}>
-                        <Typography sx={{ color: t.accent, fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{t.value}</Typography>
-                        <Typography sx={{ color: '#9CA3AF', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3 }}>{t.label}</Typography>
+                      <Box sx={{ textAlign: 'center', py: 1, px: 0.5, bgcolor: `${t.accent}08`, borderRadius: 1.5 }}>
+                        <Typography sx={{ color: t.accent, fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{t.value}</Typography>
+                        <Typography sx={{ color: t.accent, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.3, opacity: 0.8 }}>{t.label}</Typography>
                       </Box>
                     </Grid>
                   ))}
@@ -437,9 +442,10 @@ function AdminHome() {
             <>
               <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
                 <TextField size="small" placeholder="Buscar módulo..." value={searchModules} onChange={e => setSearchModules(e.target.value)} sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                {['Todos', 'Operação', 'Comercial', 'Gestão', 'Configuração'].map(f => (
-                  <Chip key={f} label={f} size="small" onClick={() => setFilterSection(f)} sx={{ fontWeight: 600, bgcolor: filterSection === f ? (SECTION_COLORS[f] || '#B8942E') : 'transparent', color: filterSection === f ? '#fff' : '#6B7280', border: `1px solid ${filterSection === f ? 'transparent' : '#E8E5DE'}`, cursor: 'pointer', '&:hover': { bgcolor: filterSection === f ? undefined : '#F3F4F6' } }} />
-                ))}
+                {['Todos', 'Operação', 'Comercial', 'Gestão', 'Configuração'].map(f => {
+                  const chipColor = SECTION_COLORS[f] || '#B8942E';
+                  return <Chip key={f} label={f} size="small" onClick={() => setFilterSection(f)} sx={{ fontWeight: 600, bgcolor: filterSection === f ? chipColor : '#fff', color: filterSection === f ? '#fff' : chipColor, border: `1px solid ${chipColor}${filterSection === f ? '' : '40'}`, cursor: 'pointer', '&:hover': { bgcolor: filterSection === f ? chipColor : `${chipColor}10` } }} />;
+                })}
               </Box>
               {filtered.map(({ section, items }) => {
                 const sColor = SECTION_COLORS[section] || '#B8942E';
