@@ -60,6 +60,7 @@ import RegionalAdminsPage from "../../pages/admin/RegionalAdminsPage";
 import TerritorialPayoutsPage from "../../pages/admin/TerritorialPayoutsPage";
 import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
 import MyContractPage from "../../pages/admin/MyContractPage";
+import InvestorsPage from "../../pages/admin/InvestorsPage";
 import usbTecnokLogo from "../../assets/usb-tecnok-logo-transparent.png";
 import { useState, useEffect } from 'react';
 
@@ -436,6 +437,7 @@ function AdminHome() {
                 { Icon: PersonAdd, title: 'Admins Regionais', desc: 'Gestão de admins por território', to: '/admin/regional-admins' },
                 { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
                 { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
+              { Icon: Analytics, title: 'Pacote Investidores', desc: 'Material para investidores e anjos', to: '/admin/investidores' },
                 { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais', to: '/admin/pricing' },
                 { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem/destino, preço e ganho', to: '/admin/ride-simulator' },
                 { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e proteção', to: '/admin/emergency-events' },
@@ -905,6 +907,7 @@ export default function AdminApp() {
           <Route path="/territorial-payouts" element={<ProtectedAdminRoute requireSuperAdmin><TerritorialPayoutsPage /></ProtectedAdminRoute>} />
           <Route path="/legal-compliance" element={<ProtectedAdminRoute requireSuperAdmin><LegalCompliancePage /></ProtectedAdminRoute>} />
           <Route path="/meu-contrato" element={<ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'SUPER_ADMIN']}><MyContractPage /></ProtectedAdminRoute>} />
+          <Route path="/investidores" element={<ProtectedAdminRoute requireSuperAdmin><InvestorsPage /></ProtectedAdminRoute>} />
 
           {/* Redirects para rotas antigas */}
           <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
