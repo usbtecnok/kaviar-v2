@@ -343,11 +343,11 @@ function AdminHome() {
       )}
 
       {/* ── Operações + Avaliações lado a lado ── */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      <Grid container spacing={2} sx={{ mb: 3, alignItems: 'flex-start' }}>
         {/* Operações */}
         <Grid item xs={12} md={7}>
           {territoryData && territoryData.total > 0 && (
-            <Card sx={{ background: 'linear-gradient(135deg, #FAFAF8 0%, #FFFFFF 100%)', border: '1px solid #E8E5DE', borderRadius: 2, height: '100%', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+            <Card sx={{ background: 'linear-gradient(135deg, #FAFAF8 0%, #FFFFFF 100%)', border: '1px solid #E8E5DE', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <CardContent sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Box>
