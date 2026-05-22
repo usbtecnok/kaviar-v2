@@ -18,9 +18,13 @@ export default function InvestorsPage() {
 
   const handleView = async (id) => {
     setLoading(true);
-    const res = await fetch(`${API_BASE_URL}/api/admin/investor-docs/${id}`, { headers });
-    const d = await res.json();
-    if (d.success) setViewDoc(d.data);
+    setViewDoc(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/investor-docs/${id}`, { headers });
+      const d = await res.json();
+      if (d.success) setViewDoc(d.data);
+      else alert(d.error || 'Erro ao carregar documento');
+    } catch { alert('Erro de conexão ao carregar documento'); }
     setLoading(false);
   };
 
@@ -42,7 +46,8 @@ export default function InvestorsPage() {
         </Table>
       </TableContainer>
 
-      <Dialog open={!!viewDoc} onClose={() => setViewDoc(null)} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+      <Dialog open={!!viewDoc || loading} onClose={() => { setViewDoc(null); setLoading(false); }} maxWidth="md" fullWidth PaperProps={{ sx: { maxHeight: '90vh' } }}>
+        {loading && <DialogContent sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress sx={{ color: '#B8942E' }} /></DialogContent>}
         {viewDoc && <>
           <DialogTitle sx={{ fontWeight: 700 }}>{viewDoc.name}</DialogTitle>
           <DialogContent dividers id="investor-doc-content" sx={{ '& h1': { fontSize: '1.4rem', mt: 2 }, '& h2': { fontSize: '1.1rem', mt: 2, mb: 1 }, '& h3': { fontSize: '1rem', mt: 1.5 }, '& p': { mb: 1 }, '& li': { mb: 0.3 }, '& table': { width: '100%', borderCollapse: 'collapse', mb: 2 }, '& th, & td': { border: '1px solid #ddd', padding: '6px 10px', fontSize: '0.85rem' }, '& th': { bgcolor: '#f5f5f5' } }}>
@@ -53,7 +58,6 @@ export default function InvestorsPage() {
             <Button onClick={() => setViewDoc(null)}>Fechar</Button>
           </DialogActions>
         </>}
-        {loading && <DialogContent><CircularProgress sx={{ color: '#B8942E' }} /></DialogContent>}
       </Dialog>
 
       <style>{`@media print { body * { visibility: hidden; } #investor-doc-content, #investor-doc-content * { visibility: visible; } #investor-doc-content { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; } }`}</style>

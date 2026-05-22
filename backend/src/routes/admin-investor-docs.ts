@@ -33,7 +33,8 @@ router.get('/:id', (req: Request, res: Response) => {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     res.json({ success: true, data: { id: doc.id, name: doc.name, content } });
-  } catch {
+  } catch (err: any) {
+    console.error(`[INVESTOR_DOCS] Failed to read: ${filePath}`, err.message);
     res.status(500).json({ success: false, error: 'Erro ao ler documento' });
   }
 });
