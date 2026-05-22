@@ -472,3 +472,6 @@ O mercado de mobilidade em comunidades é **grande, crescente e mal atendido**. 
 **Preparado por:** Kiro (AWS AI Assistant)  
 **Para:** USB Tecnok Manutenção e Instalação de Computadores Ltda - Captação de Investimento  
 **Fontes:** ABTM, IBGE, Pesquisas de mercado 2025-2026
+
+---
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*

@@ -1,4 +1,7 @@
 # Script de Pitch - 90 Segundos
+**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Plataforma:** KAVIAR — Mobilidade urbana comunitária
+
 **Produto:** Kaviar  
 **Formato:** Elevator pitch  
 **Duração:** 90 segundos (cronometrado)
@@ -177,3 +180,6 @@ Para gravar e enviar:
 **Versão:** 1.0  
 **Testado:** Sim (90 segundos cronometrados)  
 **Formato:** Texto + variações
+
+---
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*

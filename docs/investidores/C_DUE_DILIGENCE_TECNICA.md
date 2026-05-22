@@ -642,3 +642,6 @@ A plataforma está **tecnicamente sólida** e pronta para escalar. Os pontos de 
 **Para:** USB Tecnok Manutenção e Instalação de Computadores Ltda - Due Diligence de Investimento  
 **Confidencial:** Uso exclusivo para investidores qualificados  
 **Validade:** 30 dias (tecnologia evolui rapidamente)
+
+---
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*

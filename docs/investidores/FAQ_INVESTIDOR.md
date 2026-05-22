@@ -1,4 +1,7 @@
 # FAQ Investidor - Kaviar
+**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Plataforma:** KAVIAR — Mobilidade urbana comunitária
+
 **Atualizado:** 03/02/2026  
 **Versão:** 1.0
 
@@ -420,3 +423,6 @@ GMV estimado: R$ 0,9–1,8 bi/ano; Receita potencial (18%): R$ 168–336M/ano
 **Versão:** 1.0  
 **Atualizado:** 03/02/2026  
 **Próxima revisão:** Após piloto (Mês 3)
+
+---
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*

@@ -1,4 +1,7 @@
 # Changelog - Documentação de Investidores V2.0
+**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Plataforma:** KAVIAR — Mobilidade urbana comunitária
+
 **Data:** 03/02/2026 19:33 BRT  
 **Objetivo:** Aumentar credibilidade e conversão
 
@@ -411,3 +414,6 @@ Se precisar de ajustes ou tiver dúvidas, estou disponível para:
 **Versão:** 2.0  
 **Preparado por:** Kiro (AWS AI Assistant)  
 **Data:** 03/02/2026 19:33 BRT
+
+---
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*

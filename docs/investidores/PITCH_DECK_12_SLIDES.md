@@ -14,7 +14,7 @@
 KAVIAR
 Mobilidade Urbana para Comunidades
 
-USB Tecnok Manutenção e Instalação de Computadores Ltda
+USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
 Fevereiro 2026
 
 [Seu Nome] - Fundador
@@ -296,3 +296,6 @@ Go-to-Market (30%): R$ 15.000
 **Versão:** 1.0  
 **Formato:** Texto (converter para slides visuais)  
 **Duração:** 10 minutos + 5 min Q&A
+
+---
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*

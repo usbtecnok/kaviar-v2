@@ -593,3 +593,6 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 **Versão:** 1.0  
 **Formato:** Guia de implementação  
 **Ferramentas:** Google Slides (recomendado) ou PowerPoint
+
+---
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*
