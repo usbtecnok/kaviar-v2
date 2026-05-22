@@ -97,8 +97,8 @@ function AdminHeader() {
       position: 'relative',
       overflow: 'hidden'
     }}>
-      <Box sx={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', opacity: 0.06, pointerEvents: 'none' }}>
-        <img src={usbTecnokLogo} alt="" style={{ height: 60 }} />
+      <Box sx={{ position: 'absolute', right: 60, top: '50%', transform: 'translateY(-50%)', opacity: 0.07, pointerEvents: 'none' }}>
+        <img src={usbTecnokLogo} alt="" style={{ width: 480, height: 'auto' }} />
       </Box>
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         <Typography variant="h6" sx={{ color: '#1A1A1A', fontWeight: 700 }}>
