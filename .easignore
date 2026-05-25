@@ -1,4 +1,4 @@
-# Diretórios do monorepo (não relacionados ao app mobile)
+# ─── Diretórios do monorepo (não relacionados ao app mobile) ───
 api/
 audit-final/
 backend/
@@ -16,61 +16,68 @@ webhooks/
 apps/
 driver-pwa/
 
-# Git
+# ─── Git / CI ───
 .git/
 .github/
+.kiro/
 
-# Documentos
+# ─── Ambientes virtuais / ferramentas ───
+.venv/
+.wrangler/
+
+# ─── Builds / APKs / binários ───
+builds/
+apks/
+*.apk
+*.aab
+*.tar.gz
+*.gpg
+
+# ─── Node modules (EAS instala no servidor) ───
+node_modules/
+
+# ─── Cache / temporários ───
+.expo/
+.cache/
+coverage/
+dist/
+tmp/
+temp/
+*.bak
+*.tmp
+.DS_Store
+
+# ─── Android/iOS local (EAS faz prebuild no servidor) ───
+android/
+ios/
+
+# ─── Documentos / logs ───
 *.md
 !README.md
-
-# Scripts
 *.sh
-
-# SQL
 *.sql
-
-# Logs
 *.log
 npm-debug.log*
 yarn-error.log*
 
-# Backups
+# ─── Backups / evidências ───
 backup-*.sql
 *-compliance-*.log
 diagnostico-*.log
 evidencias-run-*.log
 fix-offer-status-*.log
+evidencias-prod-*/
 
-# Env files da raiz (não do app)
+# ─── Env files da raiz ───
 .env
 rds.env
 aws-resources.env
 
-# APKs locais e ferramentas
-apks/
-.wrangler/
-*.tar.gz
+# ─── Credenciais ───
+credentials/
+GoogleService-Info.plist
 
-# Arquivos temporários
-*.bak
-*.tmp
-.DS_Store
-tmp/
-temp/
-.cache/
-coverage/
-
-# Build/cache local
-.expo/
-dist/
-android/
-ios/
-
-# Node modules da raiz (se existir)
-node_modules/
-
-# Manter apenas o necessário (explícito)
+# ─── Manter apenas o necessário para build mobile ───
 !.nvmrc
 !app.config.js
 !app.json
