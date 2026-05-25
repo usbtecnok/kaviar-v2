@@ -626,7 +626,7 @@ export default function PassengerMap() {
     if (driverLocation && mapTarget && mapRef.current) {
       mapRef.current.fitToCoordinates(
         [{ latitude: driverLocation.lat, longitude: driverLocation.lng }, { latitude: mapTarget.lat, longitude: mapTarget.lng }],
-        { edgePadding: { top: 290, right: 80, bottom: 320, left: 80 }, animated: true }
+        { edgePadding: { top: 180, right: 80, bottom: 320, left: 80 }, animated: true }
       );
     }
   }, [driverLocation]);
@@ -818,8 +818,8 @@ export default function PassengerMap() {
           </SafeAreaView>
           )}
 
-          {/* Safety tip card — shown during active ride states */}
-          {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
+          {/* Safety tip card — shown only during in_progress (accepted/arrived rely on driverCard safetyTip) */}
+          {rideStatus === 'in_progress' && (
             <View style={s.safetyCard}>
               <Text style={s.safetyCardIcon}>🛡️</Text>
               <View style={{ flex: 1 }}>
@@ -952,6 +952,22 @@ export default function PassengerMap() {
                   })()}
                 </Text>
               </View>
+            )}
+            {rideStatus === 'accepted' && driverLocation && mapTarget && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 10, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }}
+                onPress={() => {
+                  if (mapRef.current && driverLocation && mapTarget) {
+                    mapRef.current.fitToCoordinates(
+                      [{ latitude: driverLocation.lat, longitude: driverLocation.lng }, { latitude: mapTarget.lat, longitude: mapTarget.lng }],
+                      { edgePadding: { top: 180, right: 80, bottom: 320, left: 80 }, animated: true }
+                    );
+                  }
+                }}
+              >
+                <Ionicons name="car" size={16} color={COLORS.accent} />
+                <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '600' }}>Ver motorista no mapa</Text>
+              </TouchableOpacity>
             )}
             {rideStatus === 'in_progress' && (
               <KaviarHub
