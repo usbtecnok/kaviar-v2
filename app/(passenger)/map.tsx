@@ -610,11 +610,12 @@ export default function PassengerMap() {
       Alert.alert('Mapa', 'Mapa ainda carregando. Tente novamente em alguns segundos.');
       return;
     }
+    Alert.alert('Motorista localizado', `Centralizando no mapa.\n\nLat: ${driverLocation.lat.toFixed(4)}\nLng: ${driverLocation.lng.toFixed(4)}`);
     mapRef.current.animateToRegion({
       latitude: driverLocation.lat,
       longitude: driverLocation.lng,
-      latitudeDelta: 0.003,
-      longitudeDelta: 0.003,
+      latitudeDelta: 0.0015,
+      longitudeDelta: 0.0015,
     }, 800);
   };
 
