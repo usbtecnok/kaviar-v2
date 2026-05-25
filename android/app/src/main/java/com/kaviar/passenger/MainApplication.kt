@@ -40,6 +40,18 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    // --- KAVIAR: Native notification channels ---
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+      val nm = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+      val chRides = android.app.NotificationChannel("rides", "Corridas", android.app.NotificationManager.IMPORTANCE_HIGH)
+      chRides.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI, android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+      nm.createNotificationChannel(chRides)
+      val chKaviar = android.app.NotificationChannel("rides_kaviar_native_v1", "Corridas KAVIAR", android.app.NotificationManager.IMPORTANCE_HIGH)
+      chKaviar.setSound(android.net.Uri.parse("android.resource://" + packageName + "/raw/kaviar_ride"), android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION).setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+      chKaviar.enableVibration(true)
+      nm.createNotificationChannel(chKaviar)
+    }
+    // --- END KAVIAR ---
     DefaultNewArchitectureEntryPoint.releaseLevel = try {
       ReleaseLevel.valueOf(BuildConfig.REACT_NATIVE_RELEASE_LEVEL.uppercase())
     } catch (e: IllegalArgumentException) {
