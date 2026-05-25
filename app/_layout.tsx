@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { startNetInfoListener, stopNetInfoListener } from "../src/services/net-info-listener";
 
@@ -30,10 +30,24 @@ if (variant === 'driver') {
 }
 
 export default function RootLayout() {
+  const router = useRouter();
+
   useEffect(() => {
     startNetInfoListener();
-    return () => stopNetInfoListener();
-  }, []);
+
+    // Driver: navigate to online screen when tapping push notification
+    let responseSub: Notifications.Subscription | undefined;
+    if (variant === 'driver') {
+      responseSub = Notifications.addNotificationResponseReceivedListener(() => {
+        router.push('/(driver)/online');
+      });
+    }
+
+    return () => {
+      stopNetInfoListener();
+      responseSub?.remove();
+    };
+  }, [router]);
 
   return (
     <Stack
