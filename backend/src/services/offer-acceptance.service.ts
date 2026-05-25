@@ -79,6 +79,15 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
       update: { availability: 'busy' }
     });
 
+    // Copy last known location so passenger can see driver on map immediately
+    const driverLoc = await tx.driver_locations.findUnique({ where: { driver_id: driverId } });
+    if (driverLoc) {
+      await tx.drivers.update({
+        where: { id: driverId },
+        data: { last_lat: driverLoc.lat, last_lng: driverLoc.lng, last_location_updated_at: new Date() }
+      });
+    }
+
     const logAdj = adjustment ? ` adjustment=${adjustment} adjustment_status=${adjustmentStatus}` : '';
     console.log(`[OFFER_ACCEPTED] offer_id=${offerId} ride_id=${offer.ride_id} driver_id=${driverId}${logAdj}`);
     console.log(`[RIDE_STATUS_CHANGED] ride_id=${offer.ride_id} status=${rideStatus} driver_id=${driverId}`);
