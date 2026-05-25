@@ -26,6 +26,14 @@ export async function sendPushToDriver(driverId: string, title: string, body: st
 
     if (!res.ok) {
       console.warn(`[PUSH] Failed for driver ${driverId}: HTTP ${res.status}`);
+      return;
+    }
+
+    const json: any = await res.json();
+    const ticket = json?.data?.[0];
+    if (ticket?.status === 'error' && ['DeviceNotRegistered', 'InvalidCredentials'].includes(ticket?.details?.error)) {
+      try { await prisma.drivers.update({ where: { id: driverId }, data: { expo_push_token: null } }); } catch (_) { /* best-effort */ }
+      console.warn(`[PUSH] Invalidated expo token for driver ${driverId}: ${ticket.details.error}`);
     }
   } catch (err) {
     console.warn(`[PUSH] Error sending to driver ${driverId}:`, (err as Error).message);
@@ -57,6 +65,14 @@ export async function sendPushToPassenger(passengerId: string, title: string, bo
 
     if (!res.ok) {
       console.warn(`[PUSH] Failed for passenger ${passengerId}: HTTP ${res.status}`);
+      return;
+    }
+
+    const json: any = await res.json();
+    const ticket = json?.data?.[0];
+    if (ticket?.status === 'error' && ['DeviceNotRegistered', 'InvalidCredentials'].includes(ticket?.details?.error)) {
+      try { await prisma.passengers.update({ where: { id: passengerId }, data: { expo_push_token: null } }); } catch (_) { /* best-effort */ }
+      console.warn(`[PUSH] Invalidated expo token for passenger ${passengerId}: ${ticket.details.error}`);
     }
   } catch (err) {
     console.warn(`[PUSH] Error sending to passenger ${passengerId}:`, (err as Error).message);

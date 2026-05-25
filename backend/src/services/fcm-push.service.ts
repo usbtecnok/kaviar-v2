@@ -32,19 +32,31 @@ export async function sendFcmPushToDriver(driverId: string, title: string, body:
   const app = getFirebaseApp();
   const messaging = app.messaging();
 
-  await messaging.send({
-    token: driver.fcm_push_token,
-    notification: { title, body },
-    android: {
-      priority: 'high',
-      notification: {
-        channelId: 'rides_kaviar_native_v1',
-        sound: 'kaviar_ride.wav',
-        defaultSound: false,
+  try {
+    await messaging.send({
+      token: driver.fcm_push_token,
+      notification: { title, body },
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'rides_kaviar_native_v1',
+          sound: 'kaviar_ride.wav',
+          defaultSound: false,
+        },
       },
-    },
-    data: data || {},
-  });
-
-  console.log(`[FCM] Sent to driver ${driverId}`);
+      data: data || {},
+    });
+    console.log(`[FCM] Sent to driver ${driverId}`);
+  } catch (err: any) {
+    const code = err?.code || err?.errorInfo?.code || '';
+    if (['messaging/registration-token-not-registered', 'messaging/invalid-registration-token'].includes(code)) {
+      try {
+        await prisma.drivers.update({ where: { id: driverId }, data: { fcm_push_token: null } });
+      } catch (_) { /* best-effort cleanup */ }
+      console.warn(`[FCM] Invalidated fcm token for driver ${driverId}: ${code}`);
+    } else {
+      console.warn(`[FCM] Error for driver ${driverId}: ${code || err?.message}`);
+    }
+    throw err;
+  }
 }
