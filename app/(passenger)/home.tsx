@@ -157,6 +157,18 @@ export default function PassengerHome() {
         <View style={s.whitePanel}>
           <Text style={s.panelTitle}>O que você deseja fazer?</Text>
 
+          {/* Card principal — Chamar corrida */}
+          <TouchableOpacity style={s.callCard} onPress={() => router.push('/(passenger)/map')} activeOpacity={0.8}>
+            <View style={s.callCardIcon}>
+              <Ionicons name="car-sport" size={24} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.callCardTitle}>Chamar corrida agora</Text>
+              <Text style={s.callCardSub}>Solicite uma viagem local</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+
           {/* Ações rápidas — 4 compactos lado a lado */}
           <View style={s.actionsRow}>
             {QUICK_ACTIONS.map(a => (
@@ -296,6 +308,22 @@ const s = StyleSheet.create({
     shadowOpacity: 0.06, shadowRadius: 6, elevation: 6,
   },
   panelTitle: { fontSize: 13, fontWeight: '700', color: '#444', marginBottom: 14, letterSpacing: 0.2 },
+
+  // ── Call card
+  callCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: '#1A1A2E', borderRadius: 16, padding: 16, marginBottom: 18,
+    borderWidth: 1.5, borderColor: 'rgba(214,169,40,0.4)',
+    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2, shadowRadius: 8, elevation: 5,
+  },
+  callCardIcon: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: 'rgba(214,169,40,0.15)', borderWidth: 1.5, borderColor: 'rgba(214,169,40,0.4)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  callCardTitle: { fontSize: 16, fontWeight: '800', color: '#F5F5F5', marginBottom: 2 },
+  callCardSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
 
   // ── Action cards — 4 compactos
   actionsRow: {

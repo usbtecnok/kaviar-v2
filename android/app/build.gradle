@@ -92,8 +92,8 @@ android {
         applicationId 'com.kaviar.passenger'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 12
-        versionName "1.12.12-driver-map-focus-mode"
+        versionCode 13
+        versionName "1.12.13-home-call-card"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
