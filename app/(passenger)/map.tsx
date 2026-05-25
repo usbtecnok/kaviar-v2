@@ -626,7 +626,7 @@ export default function PassengerMap() {
     if (driverLocation && mapTarget && mapRef.current) {
       mapRef.current.fitToCoordinates(
         [{ latitude: driverLocation.lat, longitude: driverLocation.lng }, { latitude: mapTarget.lat, longitude: mapTarget.lng }],
-        { edgePadding: { top: 80, right: 80, bottom: 260, left: 80 }, animated: true }
+        { edgePadding: { top: 290, right: 80, bottom: 320, left: 80 }, animated: true }
       );
     }
   }, [driverLocation]);
@@ -725,7 +725,11 @@ export default function PassengerMap() {
             <Marker coordinate={{ latitude: Number(ride.dest_lat), longitude: Number(ride.dest_lng) }} title="Destino" description={ride.destination_text} pinColor={COLORS.danger} />
           )}
           {driverLocation && (
-            <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }} title="Motorista" pinColor={COLORS.warning} />
+            <Marker coordinate={{ latitude: driverLocation.lat, longitude: driverLocation.lng }} title="Motorista">
+              <View style={{ backgroundColor: '#F39C12', borderRadius: 20, padding: 8, borderWidth: 2, borderColor: '#fff' }}>
+                <Ionicons name="car" size={20} color="#fff" />
+              </View>
+            </Marker>
           )}
         </MapView>
         {showRadarOverlay && (
