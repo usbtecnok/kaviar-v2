@@ -600,6 +600,24 @@ export default function PassengerMap() {
     router.replace('/(auth)/login');
   };
 
+  // --- Focus driver on map ---
+  const handleFocusDriverOnMap = () => {
+    if (!driverLocation) {
+      Alert.alert('Aguarde', 'Ainda aguardando localização do motorista.');
+      return;
+    }
+    if (!mapRef.current) {
+      Alert.alert('Mapa', 'Mapa ainda carregando. Tente novamente em alguns segundos.');
+      return;
+    }
+    mapRef.current.animateToRegion({
+      latitude: driverLocation.lat,
+      longitude: driverLocation.lng,
+      latitudeDelta: 0.003,
+      longitudeDelta: 0.003,
+    }, 800);
+  };
+
   // --- Map region ---
   const rideStatus = ride?.status as RideStatus | undefined;
   const mapTarget = ride ? (
@@ -982,12 +1000,7 @@ export default function PassengerMap() {
             {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
               <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8, flexWrap: 'wrap' }}>
                 {rideStatus === 'accepted' && (
-                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }} onPress={() => {
-                    Alert.alert('Teste', 'Botão Ver motorista pressionado');
-                    if (!driverLocation) { Alert.alert('Aguarde', 'Ainda aguardando localização do motorista.'); return; }
-                    if (!mapRef.current) { Alert.alert('Mapa', 'Mapa ainda carregando.'); return; }
-                    mapRef.current.animateToRegion({ latitude: driverLocation.lat, longitude: driverLocation.lng, latitudeDelta: 0.003, longitudeDelta: 0.003 }, 800);
-                  }}>
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }} onPress={handleFocusDriverOnMap}>
                     <Ionicons name="car" size={15} color={COLORS.accent} />
                     <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '600' }}>Ver motorista</Text>
                   </TouchableOpacity>
