@@ -158,14 +158,10 @@ export default function Register() {
   const loadSmartNeighborhoods = async (coords: { lat: number; lng: number }) => {
     try {
       const url = `${API_URL}/api/neighborhoods/smart-list?lat=${coords.lat}&lng=${coords.lng}`;
-      console.log('[loadSmartNeighborhoods] URL:', url);
-      console.log('[loadSmartNeighborhoods] Coords:', coords);
       
       const response = await fetch(url);
-      console.log('[loadSmartNeighborhoods] Status:', response.status);
       
       const data = await response.json();
-      console.log('[loadSmartNeighborhoods] Response:', JSON.stringify(data).substring(0, 200));
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -174,7 +170,6 @@ export default function Register() {
       if (data.success) {
         // Detectado via GPS
         if (data.detected) {
-          console.log('[loadSmartNeighborhoods] Detected:', data.detected.name);
           setDetectedNeighborhood(data.detected);
           setSelectedNeighborhood(data.detected);
           
@@ -184,7 +179,6 @@ export default function Register() {
         
         // Usar nearby se existir, senão usar data (lista completa)
         const neighborhoodList = (data.nearby && data.nearby.length > 0) ? data.nearby : (data.data || []);
-        console.log('[loadSmartNeighborhoods] Neighborhoods count:', neighborhoodList.length);
         setNeighborhoods(neighborhoodList);
         setNeighborhoodsLoadFailed(neighborhoodList.length === 0 && !data.detected);
       } else {
@@ -201,13 +195,11 @@ export default function Register() {
   const loadCommunitiesForNeighborhood = async (neighborhoodId: string) => {
     try {
       const url = `${API_URL}/api/communities?neighborhoodId=${neighborhoodId}`;
-      console.log('[loadCommunities] URL:', url);
       
       const response = await fetch(url);
       const data = await response.json();
       
       if (data.success && data.data) {
-        console.log('[loadCommunities] Communities count:', data.data.length);
         setCommunities(data.data);
       } else {
         setCommunities([]);
@@ -221,20 +213,16 @@ export default function Register() {
   const loadNeighborhoods = async () => {
     try {
       const url = `${API_URL}/api/neighborhoods/smart-list`;
-      console.log('[loadNeighborhoods] URL:', url);
       
       const response = await fetch(url);
-      console.log('[loadNeighborhoods] Status:', response.status);
       
       const data = await response.json();
-      console.log('[loadNeighborhoods] Response:', JSON.stringify(data).substring(0, 200));
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
       
       if (data.success && data.data) {
-        console.log('[loadNeighborhoods] Neighborhoods count:', data.data.length);
         setNeighborhoods(data.data);
         if (data.data.length === 0) setNeighborhoodsLoadFailed(true);
       } else {
@@ -315,7 +303,6 @@ export default function Register() {
       registerPayload.lng = location!.lng;
       registerPayload.verificationMethod = 'GPS_AUTO';
 
-      console.log('[performRegister] Payload:', JSON.stringify(registerPayload, null, 2));
 
       // ✅ Endpoint público (sem token)
       const registerResponse = await fetch(`${API_URL}/api/auth/driver/register`, {
@@ -325,7 +312,6 @@ export default function Register() {
       });
 
       const registerJson = await registerResponse.json();
-      console.log('[performRegister] Response:', registerJson);
 
       if (!registerResponse.ok || !registerJson?.success) {
         Alert.alert('Erro', registerJson?.error || 'Falha no cadastro');
