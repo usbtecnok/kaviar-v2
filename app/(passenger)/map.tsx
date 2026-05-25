@@ -139,6 +139,9 @@ export default function PassengerMap() {
   // Redispatch banner
   const [showRedispatch, setShowRedispatch] = useState(false);
 
+  // Map focus mode (compact bottomSheet to show driver on map)
+  const [mapFocusMode, setMapFocusMode] = useState(false);
+
   // Search microcopy rotation
   const SEARCH_PHRASES = [
     'Procurando motoristas da sua região...',
@@ -403,6 +406,7 @@ export default function PassengerMap() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
           }
           lastStatusRef.current = updated.status;
+          setMapFocusMode(false);
         }
         if (['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(updated.status)) {
           stopAll();
@@ -610,7 +614,7 @@ export default function PassengerMap() {
       Alert.alert('Mapa', 'Mapa ainda carregando. Tente novamente em alguns segundos.');
       return;
     }
-    Alert.alert('Motorista localizado', `Centralizando no mapa.\n\nLat: ${driverLocation.lat.toFixed(4)}\nLng: ${driverLocation.lng.toFixed(4)}`);
+    setMapFocusMode(true);
     mapRef.current.animateToRegion({
       latitude: driverLocation.lat,
       longitude: driverLocation.lng,
@@ -849,6 +853,30 @@ export default function PassengerMap() {
           )}
 
           <View style={s.bottomSheet}>
+            {/* Map focus mode — compact view */}
+            {mapFocusMode && rideStatus === 'accepted' ? (
+              <>
+                {ride?.boarding_code && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+                    <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>Embarque:</Text>
+                    <Text style={{ fontSize: 20, fontWeight: '900', color: '#C8A84E', letterSpacing: 6 }}>{ride.boarding_code}</Text>
+                  </View>
+                )}
+                {ride?.driver && (
+                  <Text style={{ fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 8 }}>
+                    🚗 {ride.driver.name} • {ride.driver.vehicle_plate || ''}
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 10, backgroundColor: COLORS.surfaceLight, borderWidth: 1, borderColor: COLORS.border }}
+                  onPress={() => setMapFocusMode(false)}
+                >
+                  <Ionicons name="chevron-up" size={16} color={COLORS.textPrimary} />
+                  <Text style={{ color: COLORS.textPrimary, fontSize: 14, fontWeight: '600' }}>Voltar aos detalhes</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+            <>
             {/* Boarding code — inside bottomSheet to avoid z-index overlap */}
             {(rideStatus === 'accepted' || rideStatus === 'arrived') && ride?.boarding_code && (
               <View style={s.boardingCodeInlineCard}>
@@ -1021,6 +1049,8 @@ export default function PassengerMap() {
                   <Text style={s.emergencyBtnText}>Emergência</Text>
                 </TouchableOpacity>
               </View>
+            )}
+            </>
             )}
           </View>
         </>
