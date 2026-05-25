@@ -955,15 +955,22 @@ export default function PassengerMap() {
             {rideStatus === 'accepted' && (
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 10, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }}
+                activeOpacity={0.6}
                 onPress={() => {
-                  if (mapRef.current && driverLocation && mapTarget) {
-                    mapRef.current.fitToCoordinates(
-                      [{ latitude: driverLocation.lat, longitude: driverLocation.lng }, { latitude: mapTarget.lat, longitude: mapTarget.lng }],
-                      { edgePadding: { top: 100, right: 60, bottom: 200, left: 60 }, animated: true }
-                    );
-                  } else {
+                  if (!driverLocation) {
                     Alert.alert('Aguarde', 'Ainda aguardando localização do motorista.');
+                    return;
                   }
+                  if (!mapRef.current) {
+                    Alert.alert('Mapa', 'Mapa ainda carregando. Tente novamente em alguns segundos.');
+                    return;
+                  }
+                  mapRef.current.animateToRegion({
+                    latitude: driverLocation.lat,
+                    longitude: driverLocation.lng,
+                    latitudeDelta: 0.003,
+                    longitudeDelta: 0.003,
+                  }, 800);
                 }}
               >
                 <Ionicons name="car" size={16} color={COLORS.accent} />

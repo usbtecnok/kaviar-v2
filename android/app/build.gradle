@@ -92,8 +92,8 @@ android {
         applicationId 'com.kaviar.passenger'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
-        versionName "1.12.7-boarding-code-visible"
+        versionCode 8
+        versionName "1.12.8-driver-focus-button"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
