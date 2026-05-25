@@ -10,8 +10,8 @@ const config = {
     adaptiveIcon: './assets/adaptive-icon-driver.png',
     scheme: 'kaviar-driver',
     projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85',
-    version: '1.11.21-play-store-prep',
-    versionCode: 1,
+    version: '1.11.22-push-tap-navigate',
+    versionCode: 2,
   },
   passenger: {
     name: 'Kaviar Passageiro',
