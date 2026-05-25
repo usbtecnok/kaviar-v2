@@ -829,16 +829,15 @@ export default function PassengerMap() {
             </View>
           )}
 
-          {/* Boarding code card */}
-          {(rideStatus === 'accepted' || rideStatus === 'arrived') && ride?.boarding_code && (
-            <View style={s.boardingCodeCard}>
-              <Text style={s.boardingCodeLabel}>Código de embarque</Text>
-              <Text style={s.boardingCodeValue}>{ride.boarding_code}</Text>
-              <Text style={s.boardingCodeHint}>Informe este código somente ao motorista indicado no app.</Text>
-            </View>
-          )}
-
           <View style={s.bottomSheet}>
+            {/* Boarding code — inside bottomSheet to avoid z-index overlap */}
+            {(rideStatus === 'accepted' || rideStatus === 'arrived') && ride?.boarding_code && (
+              <View style={s.boardingCodeInlineCard}>
+                <Text style={s.boardingCodeLabel}>Código de embarque</Text>
+                <Text style={s.boardingCodeValue}>{ride.boarding_code}</Text>
+                <Text style={s.boardingCodeHint}>Informe este código somente ao motorista indicado no app.</Text>
+              </View>
+            )}
             {/* Redispatch banner */}
             {showRedispatch && (rideStatus === 'requested' || rideStatus === 'offered') && (
               <View style={s.redispatchCard}>
@@ -953,15 +952,17 @@ export default function PassengerMap() {
                 </Text>
               </View>
             )}
-            {rideStatus === 'accepted' && driverLocation && mapTarget && (
+            {rideStatus === 'accepted' && (
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 10, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }}
                 onPress={() => {
                   if (mapRef.current && driverLocation && mapTarget) {
                     mapRef.current.fitToCoordinates(
                       [{ latitude: driverLocation.lat, longitude: driverLocation.lng }, { latitude: mapTarget.lat, longitude: mapTarget.lng }],
-                      { edgePadding: { top: 180, right: 80, bottom: 320, left: 80 }, animated: true }
+                      { edgePadding: { top: 100, right: 60, bottom: 200, left: 60 }, animated: true }
                     );
+                  } else {
+                    Alert.alert('Aguarde', 'Ainda aguardando localização do motorista.');
                   }
                 }}
               >
@@ -1306,6 +1307,11 @@ const s = StyleSheet.create({
     position: 'absolute', top: 170, left: 20, right: 20, zIndex: 9,
     alignItems: 'center', backgroundColor: 'rgba(10,10,10,0.92)', borderRadius: 16, padding: 18,
     borderWidth: 1.5, borderColor: 'rgba(200,168,78,0.4)',
+  },
+  boardingCodeInlineCard: {
+    alignItems: 'center', marginBottom: 12, paddingVertical: 14, paddingHorizontal: 18,
+    borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(200,168,78,0.4)',
+    backgroundColor: 'rgba(10,10,10,0.92)',
   },
   boardingCodeLabel: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
   boardingCodeValue: { fontSize: 36, fontWeight: '900', color: '#C8A84E', letterSpacing: 12 },

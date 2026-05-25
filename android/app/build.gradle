@@ -92,8 +92,8 @@ android {
         applicationId 'com.kaviar.passenger'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 6
-        versionName "1.12.6-driver-map-visibility"
+        versionCode 7
+        versionName "1.12.7-boarding-code-visible"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
