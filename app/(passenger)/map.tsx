@@ -952,31 +952,6 @@ export default function PassengerMap() {
                 </Text>
               </View>
             )}
-            {rideStatus === 'accepted' && (
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginBottom: 10, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }}
-                activeOpacity={0.6}
-                onPress={() => {
-                  if (!driverLocation) {
-                    Alert.alert('Aguarde', 'Ainda aguardando localização do motorista.');
-                    return;
-                  }
-                  if (!mapRef.current) {
-                    Alert.alert('Mapa', 'Mapa ainda carregando. Tente novamente em alguns segundos.');
-                    return;
-                  }
-                  mapRef.current.animateToRegion({
-                    latitude: driverLocation.lat,
-                    longitude: driverLocation.lng,
-                    latitudeDelta: 0.003,
-                    longitudeDelta: 0.003,
-                  }, 800);
-                }}
-              >
-                <Ionicons name="car" size={16} color={COLORS.accent} />
-                <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '600' }}>Ver motorista no mapa</Text>
-              </TouchableOpacity>
-            )}
             {rideStatus === 'in_progress' && (
               <KaviarHub
                 rideId={ride?.id}
@@ -1005,7 +980,17 @@ export default function PassengerMap() {
               </TouchableOpacity>
             )}
             {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
-              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8, flexWrap: 'wrap' }}>
+                {rideStatus === 'accepted' && (
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }} onPress={() => {
+                    if (!driverLocation) { Alert.alert('Aguarde', 'Ainda aguardando localização do motorista.'); return; }
+                    if (!mapRef.current) { Alert.alert('Mapa', 'Mapa ainda carregando.'); return; }
+                    mapRef.current.animateToRegion({ latitude: driverLocation.lat, longitude: driverLocation.lng, latitudeDelta: 0.003, longitudeDelta: 0.003 }, 800);
+                  }}>
+                    <Ionicons name="car" size={15} color={COLORS.accent} />
+                    <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '600' }}>Ver motorista</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a3a' }} onPress={async () => {
                   if (!ride?.id) return;
                   try {
