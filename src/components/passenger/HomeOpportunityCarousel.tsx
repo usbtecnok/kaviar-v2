@@ -13,6 +13,7 @@ const SLIDES = [
   { icon: '🚗', title: 'Trabalhe como motorista', sub: 'Dirija na sua comunidade com segurança e autonomia.', cta: 'Quero dirigir', action: 'refer' },
   { icon: '🤝', title: 'Indique e ganhe', sub: 'Indique motoristas e passageiros e receba créditos KAVIAR.', cta: 'Indicar agora', action: 'refer' },
   { icon: '📍', title: 'Sua região KAVIAR', sub: 'Veja novidades, parceiros, serviços e comércios locais da sua região.', cta: 'Ver região', action: 'regiao' },
+  { icon: '🐾', title: 'KAVIAR Pet', sub: 'Transporte pet com motoristas certificados e operação assistida.', cta: 'Conhecer', action: 'pet' },
 ] as const;
 
 export function HomeOpportunityCarousel() {
@@ -23,6 +24,7 @@ export function HomeOpportunityCarousel() {
     else if (action === 'consultor') Linking.openURL('https://kaviar.com.br/#consultor');
     else if (action === 'particular') Linking.openURL('https://kaviar.com.br/particular');
     else if (action === 'regiao') Linking.openURL('https://kaviar.com.br/regiao/alto-da-boa-vista');
+    else if (action === 'pet') Linking.openURL('https://kaviar.com.br/pet');
     else if (action === 'help') router.push('/(passenger)/help');
   };
 

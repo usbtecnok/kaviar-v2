@@ -34,6 +34,7 @@ import ReceiptValidation from "./pages/ReceiptValidation";
 import PrivateRideRequest from "./pages/PrivateRideRequest";
 import RegionPage from "./pages/RegionPage";
 import KaviarLanding from "./pages/KaviarLanding";
+import PetLanding from "./pages/PetLanding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
 import { DriverProvider } from "./contexts/DriverContext";
@@ -442,6 +443,7 @@ export default function App() {
           <Route path="/driver/register" element={<DriverRegister />} />
           <Route path="/comprovante/:code" element={<ReceiptValidation />} />
           <Route path="/particular" element={<PrivateRideRequest />} />
+          <Route path="/pet" element={<PetLanding />} />
           <Route path="/regiao/:slug" element={<RegionPage />} />
           <Route path="/motorista" element={<MotoristaReferral />} />
           {/* Convite curto — redireciona para backend que valida e redireciona para reset-password */}
