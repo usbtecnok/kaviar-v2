@@ -3,7 +3,7 @@ import { Box, Typography, Button, TextField, Container, Snackbar, Alert } from '
 
 const gold = '#D4AF37';
 const bg = '#070707';
-const WHATSAPP_NUMBER = '5521999999999';
+const WHATSAPP_NUMBER = '5521968648777';
 
 const sx = {
   page: { minHeight: '100vh', bgcolor: bg, color: '#fff' },
@@ -30,7 +30,7 @@ const STEPS = [
 ];
 
 const REQUIREMENTS = [
-  'Carro com banco traseiro adequado',
+  'Carro 4 portas com banco traseiro adequado',
   'Capa protetora resistente (nylon 600D)',
   'Cinto de segurança pet',
   'Kit de higienização (desinfetante + pano)',
@@ -54,10 +54,13 @@ export default function PetLanding() {
       <Box sx={sx.glow} />
 
       {/* Header */}
-      <Box sx={{ borderBottom: '1px solid rgba(255,255,255,0.06)', py: 2, px: 3, position: 'relative', zIndex: 10 }}>
+      <Box sx={{ borderBottom: '1px solid rgba(255,255,255,0.06)', py: 2, px: 3, position: 'relative', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography sx={{ fontWeight: 800, fontSize: 18, color: gold, letterSpacing: 2 }}>
           KAVIAR <span style={{ color: '#fff' }}>PET</span> 🐾
         </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <img src={new URL('../assets/usb-tecnok-logo-transparent.png', import.meta.url).href} alt="USB Tecnok" style={{ height: 24 }} />
+        </Box>
       </Box>
 
       <Box sx={sx.section}>
@@ -135,8 +138,14 @@ export default function PetLanding() {
 
         {/* Footer */}
         <Box sx={{ textAlign: 'center', py: 4, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: 2 }}>
+          <Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: 2, mb: 3 }}>
             KAVIAR PET — OPERAÇÃO CERTIFICADA DE TRANSPORTE PET
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
+            <img src={new URL('../assets/usb-tecnok-logo-transparent.png', import.meta.url).href} alt="USB Tecnok" style={{ height: 32 }} />
+          </Box>
+          <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', mt: 1 }}>
+            USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66
           </Typography>
         </Box>
       </Box>
