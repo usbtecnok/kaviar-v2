@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 180" width="600" height="180">
+  <!-- Fundo escuro -->
+  <rect width="600" height="180" fill="#1A1A1A"/>
+  
+  <!-- Escudo com pata (lado esquerdo) -->
+  <g transform="translate(60, 30)">
+    <!-- Escudo shape -->
+    <path d="M30 0 L60 10 L60 50 C60 75 45 90 30 100 C15 90 0 75 0 50 L0 10 Z" 
+          fill="none" stroke="#B8942E" stroke-width="2"/>
+    <!-- Pata dentro do escudo -->
+    <ellipse cx="30" cy="58" rx="10" ry="9" fill="#B8942E" opacity="0.9"/>
+    <circle cx="18" cy="42" r="5" fill="#B8942E" opacity="0.9"/>
+    <circle cx="42" cy="42" r="5" fill="#B8942E" opacity="0.9"/>
+    <circle cx="24" cy="32" r="4.5" fill="#B8942E" opacity="0.9"/>
+    <circle cx="36" cy="32" r="4.5" fill="#B8942E" opacity="0.9"/>
+  </g>
+  
+  <!-- KAVIAR -->
+  <text x="150" y="85" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="48" fill="#FFFFFF" letter-spacing="4">KAVIAR</text>
+  
+  <!-- Separador vertical -->
+  <line x1="430" y1="50" x2="430" y2="130" stroke="#B8942E" stroke-width="1" opacity="0.5"/>
+  
+  <!-- Pet -->
+  <text x="450" y="95" font-family="Montserrat, Arial, sans-serif" font-weight="300" font-size="40" fill="#B8942E" letter-spacing="2">Pet</text>
+  
+  <!-- Linha inferior -->
+  <line x1="60" y1="145" x2="540" y2="145" stroke="#B8942E" stroke-width="0.5" opacity="0.3"/>
+  
+  <!-- Tagline -->
+  <text x="300" y="165" font-family="Inter, Arial, sans-serif" font-weight="400" font-size="11" fill="#4A4A4A" text-anchor="middle" letter-spacing="2">MOTORISTAS CERTIFICADOS · CENTRAL ASSISTIDA · PROTOCOLO DE SEGURANÇA</text>
+</svg>

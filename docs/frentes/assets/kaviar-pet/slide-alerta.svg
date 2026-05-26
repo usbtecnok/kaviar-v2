@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1A1A1A"/>
+      <stop offset="100%" style="stop-color:#2A2A2A"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="540" fill="url(#bg3)"/>
+  
+  <!-- Linha dourada superior -->
+  <rect x="0" y="0" width="960" height="3" fill="#B8942E"/>
+  
+  <!-- Header -->
+  <text x="40" y="45" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
+  <text x="880" y="45" font-family="Inter, Arial, sans-serif" font-weight="400" font-size="13" fill="#999999" text-anchor="end">Vídeo 1 | 6/22</text>
+  
+  <!-- Separador header -->
+  <line x1="40" y1="60" x2="920" y2="60" stroke="#333333" stroke-width="0.5"/>
+  
+  <!-- Ícone de alerta grande -->
+  <g transform="translate(430, 85)">
+    <path d="M50 0 L100 87 L0 87 Z" fill="none" stroke="#C0392B" stroke-width="3"/>
+    <rect x="46" y="25" width="8" height="35" rx="2" fill="#C0392B"/>
+    <circle cx="50" cy="72" r="5" fill="#C0392B"/>
+  </g>
+  
+  <!-- Título alerta -->
+  <text x="480" y="215" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="34" fill="#C0392B" text-anchor="middle">ATENÇÃO</text>
+  
+  <!-- Mensagem principal - contraste melhorado -->
+  <text x="480" y="275" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="26" fill="#FFFFFF" text-anchor="middle">Pet NÃO pode colocar a cabeça</text>
+  <text x="480" y="312" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="26" fill="#FFFFFF" text-anchor="middle">para fora da janela.</text>
+  
+  <!-- Explicação - contraste melhorado -->
+  <text x="480" y="365" font-family="Inter, Arial, sans-serif" font-weight="400" font-size="18" fill="#CCCCCC" text-anchor="middle">Risco de acidente. Janelas fechadas ou abertura mínima.</text>
+  
+  <!-- Barra vermelha lateral -->
+  <rect x="0" y="190" width="5" height="200" fill="#C0392B" opacity="0.7"/>
+  
+  <!-- Regra -->
+  <rect x="220" y="400" width="520" height="50" rx="8" fill="#1F1515" stroke="#C0392B" stroke-width="1.5"/>
+  <text x="480" y="430" font-family="Inter, Arial, sans-serif" font-weight="600" font-size="16" fill="#EEEEEE" text-anchor="middle">Motorista deve manter janelas controladas durante todo o trajeto</text>
+  
+  <!-- Footer reforçado -->
+  <rect x="0" y="490" width="960" height="50" fill="#111111"/>
+  <rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
+  <text x="480" y="520" font-family="Montserrat, Arial, sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+  <rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <!-- Fundo escuro -->
+  <rect width="400" height="280" fill="#1A1A1A"/>
+  
+  <!-- KAVIAR - centralizado -->
+  <text x="200" y="110" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="56" fill="#FFFFFF" text-anchor="middle" letter-spacing="6">KAVIAR</text>
+  
+  <!-- Separador dourado -->
+  <line x1="140" y1="130" x2="260" y2="130" stroke="#B8942E" stroke-width="2"/>
+  
+  <!-- Pet - abaixo, menor -->
+  <text x="200" y="165" font-family="Montserrat, Arial, sans-serif" font-weight="300" font-size="36" fill="#B8942E" text-anchor="middle" letter-spacing="8">Pet</text>
+  
+  <!-- Pata geométrica minimalista - centralizada abaixo -->
+  <g transform="translate(185, 185)" opacity="0.7">
+    <!-- Almofada principal -->
+    <ellipse cx="15" cy="18" rx="8" ry="7" fill="#B8942E"/>
+    <!-- Dedos -->
+    <circle cx="5" cy="8" r="4" fill="#B8942E"/>
+    <circle cx="25" cy="8" r="4" fill="#B8942E"/>
+    <circle cx="10" cy="2" r="3.5" fill="#B8942E"/>
+    <circle cx="20" cy="2" r="3.5" fill="#B8942E"/>
+  </g>
+  
+  <!-- Tagline -->
+  <text x="200" y="250" font-family="Inter, Arial, sans-serif" font-weight="400" font-size="11" fill="#4A4A4A" text-anchor="middle" letter-spacing="2.5">OPERAÇÃO CERTIFICADA DE TRANSPORTE PET</text>
+</svg>
