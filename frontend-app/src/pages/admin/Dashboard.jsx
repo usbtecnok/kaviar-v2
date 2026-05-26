@@ -28,7 +28,8 @@ import {
   Home,
   MyLocation,
   NearMe,
-  PublicOff
+  PublicOff,
+  Pets
 } from '@mui/icons-material';
 
 import { API_BASE_URL } from '../../config/api';
@@ -226,6 +227,20 @@ export default function AdminDashboard() {
               <Typography color="text.secondary">
                 Guias Turísticos
               </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* KAVIAR Pet */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={4}>
+          <Card sx={{ bgcolor: '#111217', border: '1px solid #b8960c', cursor: 'pointer' }} component={Link} to="/admin/pet" style={{ textDecoration: 'none' }}>
+            <CardContent sx={{ textAlign: 'center', py: 2 }}>
+              <Pets sx={{ fontSize: 36, color: '#b8960c', mb: 1 }} />
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#E8E3D5' }}>KAVIAR Pet</Typography>
+              <Typography variant="body2" sx={{ color: '#aaa' }}>Central de operação</Typography>
+              <Chip label="Piloto" size="small" sx={{ mt: 1, bgcolor: '#b8960c', color: '#000', fontWeight: 600 }} />
             </CardContent>
           </Card>
         </Grid>

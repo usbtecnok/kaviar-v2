@@ -61,6 +61,7 @@ import TerritorialPayoutsPage from "../../pages/admin/TerritorialPayoutsPage";
 import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
 import MyContractPage from "../../pages/admin/MyContractPage";
 import InvestorsPage from "../../pages/admin/InvestorsPage";
+import PetCentral from "../../pages/admin/PetCentral";
 import usbTecnokLogo from "../../assets/usb-tecnok-logo-transparent.png";
 import { useState, useEffect } from 'react';
 
@@ -908,6 +909,9 @@ export default function AdminApp() {
           <Route path="/legal-compliance" element={<ProtectedAdminRoute requireSuperAdmin><LegalCompliancePage /></ProtectedAdminRoute>} />
           <Route path="/meu-contrato" element={<ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'SUPER_ADMIN']}><MyContractPage /></ProtectedAdminRoute>} />
           <Route path="/investidores" element={<ProtectedAdminRoute requireSuperAdmin><InvestorsPage /></ProtectedAdminRoute>} />
+
+          {/* KAVIAR Pet */}
+          <Route path="/pet" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN']}><PetCentral /></ProtectedAdminRoute>} />
 
           {/* Redirects para rotas antigas */}
           <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
