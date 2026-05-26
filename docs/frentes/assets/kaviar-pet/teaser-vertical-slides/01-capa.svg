@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+<defs>
+<linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" style="stop-color:#0D0D0D"/>
+<stop offset="50%" style="stop-color:#1A1A2E"/>
+<stop offset="100%" style="stop-color:#0D0D0D"/>
+</linearGradient>
+<linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" style="stop-color:#C9A84C"/>
+<stop offset="50%" style="stop-color:#F4D675"/>
+<stop offset="100%" style="stop-color:#C9A84C"/>
+</linearGradient>
+</defs>
+<rect width="1080" height="1920" fill="url(#bg)"/>
+<!-- Linha decorativa superior -->
+<rect x="140" y="580" width="800" height="2" fill="url(#gold)" opacity="0.6"/>
+<!-- Badge -->
+<rect x="340" y="620" width="400" height="50" rx="25" fill="none" stroke="url(#gold)" stroke-width="2"/>
+<text x="540" y="652" font-family="Arial, sans-serif" font-size="22" fill="#F4D675" text-anchor="middle" font-weight="bold" letter-spacing="3">KAVIAR PET</text>
+<!-- Título principal -->
+<text x="540" y="800" font-family="Arial, sans-serif" font-size="72" fill="#FFFFFF" text-anchor="middle" font-weight="bold">TREINAMENTO</text>
+<text x="540" y="890" font-family="Arial, sans-serif" font-size="72" fill="#FFFFFF" text-anchor="middle" font-weight="bold">OBRIGATÓRIO</text>
+<!-- Subtítulo -->
+<text x="540" y="1020" font-family="Arial, sans-serif" font-size="38" fill="#F4D675" text-anchor="middle" font-weight="bold">Segurança e Condução</text>
+<text x="540" y="1075" font-family="Arial, sans-serif" font-size="38" fill="#F4D675" text-anchor="middle" font-weight="bold">de Pets</text>
+<!-- Linha decorativa inferior -->
+<rect x="140" y="1150" width="800" height="2" fill="url(#gold)" opacity="0.6"/>
+<!-- CTA -->
+<text x="540" y="1260" font-family="Arial, sans-serif" font-size="28" fill="#AAAAAA" text-anchor="middle">Assista até o final</text>
+<!-- Footer -->
+<text x="540" y="1780" font-family="Arial, sans-serif" font-size="20" fill="#666666" text-anchor="middle" letter-spacing="2">OPERAÇÃO CERTIFICADA DE TRANSPORTE PET</text>
+</svg>

@@ -7,13 +7,33 @@
 <line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
 <text x="480" y="110" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="28" fill="#FFF" text-anchor="middle">PREPARAÇÃO: CINTO PET E AMBIENTE</text>
 <rect x="120" y="140" width="28" height="28" rx="5" fill="#2D6B4F" opacity="0.2" stroke="#2D6B4F" stroke-width="2"/><text x="134" y="161" font-family="Arial" font-size="18" fill="#2D6B4F" text-anchor="middle">✓</text>
-<text x="165" y="161" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Cinto de segurança pet disponível (clip para peitoral)</text>
+<text x="165" y="161" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Cinto de segurança pet disponível</text>
 <rect x="120" y="187" width="28" height="28" rx="5" fill="#2D6B4F" opacity="0.2" stroke="#2D6B4F" stroke-width="2"/><text x="134" y="208" font-family="Arial" font-size="18" fill="#2D6B4F" text-anchor="middle">✓</text>
 <text x="165" y="208" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Retirar objetos soltos do banco traseiro</text>
 <rect x="120" y="234" width="28" height="28" rx="5" fill="#C0392B" opacity="0.2" stroke="#C0392B" stroke-width="2"/><text x="134" y="255" font-family="Arial" font-size="18" fill="#C0392B" text-anchor="middle">✗</text>
 <text x="165" y="255" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Evitar aromatizantes fortes (incomoda o animal)</text>
 <rect x="120" y="281" width="28" height="28" rx="5" fill="#2D6B4F" opacity="0.2" stroke="#2D6B4F" stroke-width="2"/><text x="134" y="302" font-family="Arial" font-size="18" fill="#2D6B4F" text-anchor="middle">✓</text>
 <text x="165" y="302" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Desinfetante veterinário acessível</text>
+<!-- Ilustração: cinto pet preso ao peitoral -->
+<g transform="translate(600,130) scale(0.82)">
+<rect width="380" height="260" rx="10" fill="#141414"/>
+<path d="M40,200 Q40,140 60,130 L320,130 Q340,140 340,200 L340,240 L40,240 Z" fill="#1E1E1E" stroke="#333" stroke-width="1"/>
+<path d="M50,130 Q50,80 70,70 L310,70 Q330,80 330,130" fill="#252525" stroke="#333" stroke-width="1"/>
+<path d="M260,75 Q270,100 265,140 L260,180" fill="none" stroke="#B8942E" stroke-width="3" stroke-linecap="round"/>
+<rect x="250" y="175" width="20" height="12" rx="3" fill="#C9A84C"/>
+<rect x="255" y="172" width="10" height="4" rx="2" fill="#8B6914"/>
+<path d="M150,155 Q170,145 190,150 Q210,155 220,165 Q230,180 225,195 Q215,205 200,200 Q180,195 165,185 Q150,175 150,155 Z" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
+<path d="M170,148 L180,135 Q190,130 200,135 L210,148" fill="none" stroke="#C9A84C" stroke-width="2"/>
+<line x1="255" y1="181" x2="222" y2="170" stroke="#F4D675" stroke-width="2" stroke-dasharray="4,2"/>
+<ellipse cx="185" cy="170" rx="35" ry="28" fill="#2A2A2A"/>
+<ellipse cx="155" cy="148" rx="18" ry="15" fill="#2A2A2A"/>
+<ellipse cx="148" cy="140" rx="6" ry="8" fill="#2A2A2A"/>
+<circle cx="158" cy="146" r="2" fill="#C9A84C"/>
+<path d="M145,132 Q140,120 148,125" fill="#333"/>
+<path d="M162,132 Q167,120 160,125" fill="#333"/>
+<text x="190" y="248" font-family="Arial,sans-serif" font-size="11" fill="#B8942E" text-anchor="middle" letter-spacing="1">CINTO PET → PEITORAL</text>
+</g>
+<text x="755" y="355" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="12" fill="#666" text-anchor="middle">Observe a posição correta</text>
 <rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
 <text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
 <rect x="0" y="537" width="960" height="3" fill="#B8942E"/>

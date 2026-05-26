@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920">
+<defs>
+<linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" style="stop-color:#0D0D0D"/>
+<stop offset="50%" style="stop-color:#1A1A2E"/>
+<stop offset="100%" style="stop-color:#0D0D0D"/>
+</linearGradient>
+<linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" style="stop-color:#C9A84C"/>
+<stop offset="50%" style="stop-color:#F4D675"/>
+<stop offset="100%" style="stop-color:#C9A84C"/>
+</linearGradient>
+</defs>
+<rect width="1080" height="1920" fill="url(#bg)"/>
+<!-- Header -->
+<text x="540" y="600" font-family="Arial, sans-serif" font-size="28" fill="#F4D675" text-anchor="middle" letter-spacing="2">PREPARAÇÃO</text>
+<!-- Título -->
+<text x="540" y="740" font-family="Arial, sans-serif" font-size="52" fill="#FFFFFF" text-anchor="middle" font-weight="bold">CINTO PET E</text>
+<text x="540" y="810" font-family="Arial, sans-serif" font-size="52" fill="#FFFFFF" text-anchor="middle" font-weight="bold">AMBIENTE</text>
+<!-- Checklist -->
+<text x="140" y="1000" font-family="Arial, sans-serif" font-size="38" fill="#4CAF50">✓</text>
+<text x="200" y="1000" font-family="Arial, sans-serif" font-size="32" fill="#EEEEEE">Cinto de segurança pet</text>
+<text x="200" y="1045" font-family="Arial, sans-serif" font-size="26" fill="#999999">Observe a posição correta</text>
+<text x="140" y="1140" font-family="Arial, sans-serif" font-size="38" fill="#4CAF50">✓</text>
+<text x="200" y="1140" font-family="Arial, sans-serif" font-size="32" fill="#EEEEEE">Retirar objetos soltos</text>
+<text x="140" y="1240" font-family="Arial, sans-serif" font-size="38" fill="#FF5252">✗</text>
+<text x="200" y="1240" font-family="Arial, sans-serif" font-size="32" fill="#EEEEEE">Evitar aromatizantes fortes</text>
+<text x="140" y="1340" font-family="Arial, sans-serif" font-size="38" fill="#4CAF50">✓</text>
+<text x="200" y="1340" font-family="Arial, sans-serif" font-size="32" fill="#EEEEEE">Desinfetante veterinário</text>
+<text x="200" y="1385" font-family="Arial, sans-serif" font-size="26" fill="#999999">acessível</text>
+<!-- Footer -->
+<text x="540" y="1780" font-family="Arial, sans-serif" font-size="20" fill="#666666" text-anchor="middle" letter-spacing="2">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+</svg>

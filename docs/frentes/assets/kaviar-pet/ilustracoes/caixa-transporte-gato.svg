@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 260" width="380" height="260">
+<rect width="380" height="260" rx="10" fill="#141414"/>
+<!-- Banco traseiro -->
+<path d="M40,200 Q40,160 55,150 L325,150 Q340,160 340,200 L340,230 L40,230 Z" fill="#1E1E1E" stroke="#333" stroke-width="1"/>
+<!-- Capa protetora -->
+<rect x="45" y="155" width="290" height="70" rx="4" fill="#1A2A1A" stroke="#2D6B4F" stroke-width="1" opacity="0.6"/>
+<!-- Caixa de transporte -->
+<rect x="120" y="80" width="160" height="110" rx="8" fill="#252525" stroke="#444" stroke-width="2"/>
+<!-- Grade frontal -->
+<rect x="120" y="80" width="60" height="110" rx="8" fill="none" stroke="#444" stroke-width="2"/>
+<line x1="130" y1="80" x2="130" y2="190" stroke="#555" stroke-width="1.5"/>
+<line x1="140" y1="80" x2="140" y2="190" stroke="#555" stroke-width="1.5"/>
+<line x1="150" y1="80" x2="150" y2="190" stroke="#555" stroke-width="1.5"/>
+<line x1="160" y1="80" x2="160" y2="190" stroke="#555" stroke-width="1.5"/>
+<line x1="170" y1="80" x2="170" y2="190" stroke="#555" stroke-width="1.5"/>
+<!-- Ventilação lateral -->
+<line x1="200" y1="95" x2="200" y2="175" stroke="#333" stroke-width="1"/>
+<line x1="215" y1="95" x2="215" y2="175" stroke="#333" stroke-width="1"/>
+<line x1="230" y1="95" x2="230" y2="175" stroke="#333" stroke-width="1"/>
+<!-- Alça superior -->
+<path d="M170,80 Q190,65 210,80" fill="none" stroke="#666" stroke-width="3" stroke-linecap="round"/>
+<!-- Gato dentro (olhos brilhantes) -->
+<circle cx="245" cy="135" r="4" fill="#C9A84C" opacity="0.8"/>
+<circle cx="260" cy="135" r="4" fill="#C9A84C" opacity="0.8"/>
+<circle cx="245" cy="135" r="2" fill="#111"/>
+<circle cx="260" cy="135" r="2" fill="#111"/>
+<!-- Orelhas do gato (silhueta) -->
+<path d="M240,115 L244,105 L248,115" fill="#2A2A2A"/>
+<path d="M257,115 L261,105 L265,115" fill="#2A2A2A"/>
+<!-- Cinto prendendo a caixa -->
+<path d="M100,80 Q110,75 120,85" fill="none" stroke="#B8942E" stroke-width="2.5" stroke-linecap="round"/>
+<path d="M280,85 Q290,75 300,80" fill="none" stroke="#B8942E" stroke-width="2.5" stroke-linecap="round"/>
+<!-- Checkmark -->
+<circle cx="330" cy="90" r="12" fill="none" stroke="#2D6B4F" stroke-width="2"/>
+<path d="M324,90 L328,94 L337,85" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round"/>
+<!-- Label -->
+<text x="190" y="248" font-family="Arial,sans-serif" font-size="11" fill="#B8942E" text-anchor="middle" letter-spacing="1">CAIXA DE TRANSPORTE — GATO</text>
+</svg>
