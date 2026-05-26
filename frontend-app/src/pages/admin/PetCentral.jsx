@@ -1,5 +1,6 @@
 import { Box, Container, Typography, Card, CardContent, Grid, Button, Chip, Divider, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
-import { Pets, OpenInNew, CheckCircle, RadioButtonUnchecked, Info } from '@mui/icons-material';
+import { Pets, OpenInNew, CheckCircle, RadioButtonUnchecked, Info, People } from '@mui/icons-material';
+import { Link } from 'react-router-dom';
 
 const links = [
   { label: 'Landing /pet', url: 'https://kaviar.com.br/pet', desc: 'Página pública do KAVIAR Pet' },
@@ -46,6 +47,12 @@ export default function PetCentral() {
             Fase piloto — operação via Forms/Sheets/Drive + WhatsApp. Gestão integrada ao sistema em breve.
           </Typography>
         </Box>
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <Button component={Link} to="/admin/pet/operators" variant="outlined" startIcon={<People />} sx={{ borderColor: '#b8960c', color: '#b8960c', textTransform: 'none', '&:hover': { borderColor: '#d4af37', bgcolor: 'rgba(184,150,12,0.08)' } }}>
+          Gerenciar operadores Pet
+        </Button>
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 4 }}>
