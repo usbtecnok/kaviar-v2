@@ -18,7 +18,7 @@
 | Vídeo 1 — Protocolo | [PREENCHER] | A gravar |
 | Vídeo 2 — Situações práticas | [PREENCHER] | A gravar |
 | WhatsApp da Central | [PREENCHER NÚMERO] | A configurar |
-| Pasta Drive — Fotos | [PREENCHER] | A criar |
+| Pasta Drive — Fotos | https://drive.google.com/drive/folders/1flpwFHhBsHfmwAUET59-84r_BsMcw1tc?usp=drive_link | ✅ Live |
 
 **Responsável pela operação:** [NOME DA OPERADORA]  
 **Backup:** SUPER_ADMIN
