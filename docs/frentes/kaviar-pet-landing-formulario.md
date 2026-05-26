@@ -96,10 +96,10 @@ Captar motoristas interessados em se tornar "Motorista KAVIAR Pet Aprovado", exp
 ### Seção 7 — Dúvidas frequentes
 
 **Preciso ter experiência com animais?**  
-> Não. O treinamento cobre tudo que você precisa saber.
+> Não. O treinamento cobre todo o protocolo operacional que você precisa seguir.
 
 **Quanto custa para me tornar Motorista KAVIAR Pet?**  
-> Você compra os itens obrigatórios por conta (capa, desinfetante, panos, sacos, luvas — estimativa R$80-150) e paga a Taxa de Homologação (R$29-49 via Pix). Em breve teremos o Kit Oficial KAVIAR Pet como opção.
+> Você compra os itens obrigatórios por conta (capa, cinto pet, desinfetante, panos, sacos, luvas — estimativa R$80-150) e paga a Taxa de Homologação (R$29-49 via Pix). Em breve teremos o Kit Oficial KAVIAR Pet como opção.
 
 **Quanto tempo leva o processo?**  
 > De 2 a 5 dias, dependendo da sua disponibilidade para comprar os itens, assistir os vídeos e enviar as fotos.
@@ -108,7 +108,13 @@ Captar motoristas interessados em se tornar "Motorista KAVIAR Pet Aprovado", exp
 > Sim. Você pode desativar o selo pet a qualquer momento.
 
 **E se o animal sujar meu carro?**  
-> A capa protege o banco. Para sujeira extraordinária, o tutor paga taxa de limpeza.
+> A capa protege o banco. Para sujeira extraordinária, a central avalia e cobra taxa do tutor. Você não precisa cobrar nada diretamente.
+
+**O KAVIAR Pet é serviço veterinário?**  
+> Não. O KAVIAR Pet é uma operação especializada de transporte assistido. Não prestamos serviço veterinário, de hospedagem ou de emergência animal.
+
+**Quem é responsável pelo animal?**  
+> O tutor é integralmente responsável pelo animal. Você segue o protocolo de segurança e pode recusar transporte por condição insegura.
 
 ---
 

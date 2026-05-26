@@ -456,7 +456,72 @@ A Central KAVIAR Pet é o núcleo de coordenação do serviço. Toda corrida pet
 
 ---
 
-## 8. Termos e Responsabilidade
+## 8. Posicionamento Regulatório e Jurídico
+
+### O que o KAVIAR Pet É:
+
+| Definição | Descrição |
+|-----------|-----------|
+| Operação especializada de transporte assistido | Transporte de animais acompanhados por tutores, com protocolo operacional |
+| Plataforma de intermediação | KAVIAR conecta tutor a motorista homologado — não presta serviço diretamente |
+| Central operacional | Suporte, validação e acompanhamento — não é serviço de emergência |
+| Certificação profissional | Motoristas passam por homologação, treinamento e aprovação |
+
+### O que o KAVIAR Pet NÃO é:
+
+| Não é | Motivo |
+|-------|--------|
+| Serviço veterinário | Não diagnostica, não trata, não medica |
+| Serviço de pet sitting/hospedagem | Não cuida do animal — transporta |
+| Serviço de emergência animal | Não substitui SAMU, bombeiros ou veterinário |
+| Garantia de segurança absoluta | Protocolo reduz risco, não elimina |
+| Transporte de carga viva | Animal é acompanhado por tutor responsável |
+
+### Responsabilidades claramente definidas:
+
+| Responsável | Pelo quê |
+|-------------|----------|
+| **Tutor** | Pelo animal: comportamento, saúde, contenção (caixa/guia/peitoral), declaração de porte/quantidade, auxílio na colocação do peitoral, presença durante a corrida |
+| **Motorista** | Pelo protocolo: veículo preparado, capa instalada, higienização, checklist, foto de embarque, janelas fechadas, sistema de segurança, acionar central em divergência |
+| **Central KAVIAR Pet** | Pela operação: coordenação, validação, decisão em divergências, registro de incidentes, cobrança de taxas, suporte ao motorista e tutor |
+| **KAVIAR (plataforma)** | Pela intermediação: homologação de motoristas, treinamento, infraestrutura, termos, compliance |
+
+### Posicionamento da cobrança:
+
+A taxa pet NÃO é "cobrança por levar animal no carro". É remuneração por:
+
+| Componente | Justificativa |
+|-----------|---------------|
+| Operação especializada | Motorista homologado, treinado e equipado |
+| Central assistida | Operador acompanha cada corrida pet |
+| Protocolo operacional | Checklist, foto, validação, higienização |
+| Suporte especializado | Central disponível durante toda a corrida |
+| Higienização | Desinfecção obrigatória após cada corrida pet |
+| Validação operacional | Conferência de porte, quantidade, contenção |
+| Desgaste adicional | Capa, produtos, tempo de higienização |
+
+### Linguagem operacional recomendada:
+
+| Evitar | Usar |
+|--------|------|
+| "Taxa por levar pet" | "Taxa de operação especializada KAVIAR Pet" |
+| "Cobrança extra por animal" | "Serviço de transporte assistido com protocolo" |
+| "Preço do pet" | "Valor da operação pet (inclui central, protocolo e higienização)" |
+| "Motorista de pet" | "Motorista certificado KAVIAR Pet" |
+| "Corrida com cachorro" | "Corrida pet assistida" |
+
+### Declarações obrigatórias (termos):
+
+1. "O KAVIAR Pet é um serviço de intermediação de transporte especializado de animais de estimação acompanhados por seus tutores."
+2. "O KAVIAR não presta serviço veterinário, de hospedagem, de adestramento ou de emergência animal."
+3. "O tutor é integralmente responsável pelo animal, incluindo comportamento, saúde, contenção e declaração de informações."
+4. "A central KAVIAR Pet atua como suporte operacional e de segurança, não como serviço de emergência."
+5. "Fotos operacionais servem como registro e proteção operacional para todas as partes."
+6. "O motorista certificado segue protocolo de segurança e pode recusar transporte por condição insegura."
+
+---
+
+## 9. Termos e Responsabilidade
 
 ### 7.1 Termo do Motorista KAVIAR Pet
 
@@ -493,7 +558,7 @@ O tutor declara que:
 
 ---
 
-## 9. Riscos e Mitigação
+## 10. Riscos e Mitigação
 
 | Risco | Prob. | Impacto | Mitigação |
 |-------|-------|---------|-----------|
@@ -510,7 +575,7 @@ O tutor declara que:
 
 ---
 
-## 10. Fases Futuras
+## 11. Fases Futuras
 
 ### Fase 0 — Documento operacional ✅
 - Este documento.
@@ -554,7 +619,7 @@ O tutor declara que:
 
 ---
 
-## 11. Arquitetura de Acesso Restrito
+## 12. Arquitetura de Acesso Restrito
 
 ### Princípio: isolamento total do módulo pet
 
@@ -618,7 +683,7 @@ O KAVIAR Pet opera como um módulo fechado dentro da plataforma. Nenhum elemento
 
 ---
 
-## 12. Regras de Proteção
+## 13. Regras de Proteção
 
 | Regra | Aplicação |
 |-------|-----------|
