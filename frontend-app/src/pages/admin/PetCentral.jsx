@@ -2,9 +2,6 @@ import { Box, Container, Typography, Card, CardContent, Grid, Button, Chip, Divi
 import { Pets, OpenInNew, CheckCircle, RadioButtonUnchecked, Info, People } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
-const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
-const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
-
 const links = [
   { label: 'Landing /pet', url: 'https://kaviar.com.br/pet', desc: 'Página pública do KAVIAR Pet' },
   { label: 'Pré-cadastro (Forms)', url: 'https://forms.gle/tDHdK1bW1ckiuNrg7', desc: 'Formulário de interesse de motoristas' },
@@ -35,6 +32,9 @@ const fluxo = [
 ];
 
 export default function PetCentral() {
+  const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
+  const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+
   return (
     <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
