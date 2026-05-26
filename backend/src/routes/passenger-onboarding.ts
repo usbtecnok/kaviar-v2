@@ -44,7 +44,7 @@ const locationSchema = z.object({
 // POST /api/passenger/onboarding
 router.post('/', async (req, res) => {
   try {
-    console.log('[passenger/onboarding] Received payload:', JSON.stringify(req.body, null, 2));
+    console.log('[passenger/onboarding] Received payload for:', req.body?.email || 'unknown');
     const { name, email, password, phone, neighborhoodId, communityId: communityInput, lgpdAccepted } = registerSchema.parse(req.body);
     
     // Resolver communityId (UUID ou slug)
