@@ -20,33 +20,36 @@ Captar motoristas interessados em se tornar "Motorista KAVIAR Pet Aprovado", exp
 ### Seção 1 — Chamada principal
 
 **Título:**  
-> Seja um Motorista KAVIAR Pet Aprovado
+> Seja um Motorista Certificado KAVIAR Pet
 
 **Subtítulo:**  
-> Transporte pets com segurança, profissionalismo e ganhe mais por corrida.
+> Operação especializada de transporte pet. Acesso restrito para motoristas homologados.
 
 **CTA:**  
-> [Quero me cadastrar]
+> [Quero me certificar]
 
 ---
 
 ### Seção 2 — O que é o KAVIAR Pet
 
-> O KAVIAR Pet é o serviço de transporte de animais de estimação da plataforma KAVIAR. Motoristas aprovados recebem corridas exclusivas de tutores que precisam levar seus pets ao veterinário, banho, viagem ou qualquer destino — com segurança e higiene garantidas.
+> O KAVIAR Pet é a operação certificada de transporte de animais de estimação da plataforma KAVIAR. Não é uma corrida comum — é um serviço restrito, assistido por uma central dedicada, operado exclusivamente por motoristas que passaram por homologação completa: adequação veicular, treinamento, questionário, fotos e aprovação.
+
+> Motoristas comuns não veem e não recebem corridas pet. Apenas certificados.
 
 ---
 
-### Seção 3 — Como funciona
+### Seção 3 — Como funciona a certificação
 
 | Etapa | Descrição |
 |-------|-----------|
 | 1. Cadastro | Preencha o formulário de interesse |
-| 2. Kit | Adquira ou comprove o Kit KAVIAR Pet |
-| 3. Treinamento | Assista 2 vídeos obrigatórios (15-20 min total) |
-| 4. Questionário | Responda 10 perguntas (nota mínima 7/10) |
-| 5. Fotos | Envie fotos do kit instalado no veículo |
-| 6. Aprovação | Nossa equipe confere e aprova |
-| 7. Selo | Você recebe o selo "Motorista KAVIAR Pet Aprovado" |
+| 2. Adequação | Adquira os itens obrigatórios para seu veículo |
+| 3. Homologação | Pague a Taxa de Homologação (acesso ao treinamento + validação) |
+| 4. Treinamento | Assista 2 vídeos obrigatórios (15-20 min total) |
+| 5. Questionário | Responda 10 perguntas (nota mínima 7/10) |
+| 6. Fotos | Envie fotos do veículo preparado |
+| 7. Aprovação | Nossa equipe confere e certifica |
+| 8. Selo | Você recebe o selo "Motorista KAVIAR Pet Aprovado" e acesso à Central Pet |
 
 ---
 
@@ -70,10 +73,11 @@ Captar motoristas interessados em se tornar "Motorista KAVIAR Pet Aprovado", exp
 
 ### Seção 5 — Benefícios
 
-- 💰 Ganhe taxa pet adicional por corrida (R$5-8 a mais)
-- 🏅 Selo exclusivo "Motorista KAVIAR Pet Aprovado"
-- 🐾 Corridas exclusivas que motoristas comuns não recebem
-- 📈 Mais corridas disponíveis = mais ganhos
+- 🔒 Acesso exclusivo — motoristas comuns não recebem corridas pet
+- 💰 Taxa pet adicional por corrida (R$5-8 a mais)
+- 🏅 Selo "Motorista KAVIAR Pet Aprovado" — certificação profissional
+- 📞 Suporte da Central KAVIAR Pet durante cada corrida
+- 🐾 Demanda crescente — tutores precisam de transporte seguro para pets
 - 🧼 Investimento baixo: você monta seu kit + paga apenas a taxa de homologação
 
 ---
@@ -110,9 +114,11 @@ Captar motoristas interessados em se tornar "Motorista KAVIAR Pet Aprovado", exp
 
 ### Seção 8 — CTA final
 
-> **Pronto para começar?**  
+> **Pronto para se certificar?**  
 > [Preencher formulário de interesse]  
 > ou fale conosco: WhatsApp (21) XXXXX-XXXX
+
+> *Vagas limitadas por região. Processo seletivo com aprovação manual.*
 
 ---
 

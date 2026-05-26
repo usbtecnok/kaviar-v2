@@ -10,11 +10,29 @@
 
 ## 1. Visão do Produto
 
-O KAVIAR Pet é a vertical de transporte de animais de estimação acompanhados por seus tutores, operada por motoristas treinados, equipados e aprovados pela plataforma KAVIAR.
+O KAVIAR Pet é uma **operação especializada, certificada e assistida** de transporte de animais de estimação acompanhados por seus tutores. Não é uma "categoria de corrida" dentro do app comum — é um serviço restrito operado por motoristas homologados, coordenado por uma central dedicada.
 
-O objetivo é oferecer transporte seguro, higiênico e profissional para pets, com motoristas que passaram por treinamento obrigatório, possuem kit de adequação veicular e foram aprovados pela equipe operacional.
+**Princípio fundamental:** KAVIAR Pet é um módulo fechado. Motoristas comuns não veem, não recebem e não acessam nada relacionado a pet. Apenas motoristas que passaram por todo o processo de homologação operam neste serviço.
 
-**Diferencial:** operação profissional desde o início — não é "aceitar pet no carro comum", é um serviço estruturado com kit, treinamento, aprovação e selo.
+### Posicionamento
+
+| Aspecto | KAVIAR Pet |
+|---------|-----------|
+| Tipo | Operação especializada e certificada |
+| Acesso | Restrito — apenas motoristas homologados |
+| Coordenação | Central KAVIAR Pet (operador assistido) |
+| Visibilidade | Motorista comum não vê corridas pet |
+| Qualidade | Kit obrigatório, treinamento, aprovação, selo |
+| Operação | Assistida — checklist, validação, acompanhamento |
+
+### Quem acessa o quê
+
+| Perfil | Acesso |
+|--------|--------|
+| **Motorista comum** | Não vê corridas pet. Não acessa checklist pet. Não recebe treinamento. Não aparece como apto. |
+| **Motorista KAVIAR Pet Aprovado** | Recebe corridas pet. Acessa checklist de chegada. Tem suporte da central. Selo ativo. |
+| **Operador/Central KAVIAR Pet** | Coordena corridas pet. Valida checklists. Decide divergências. Registra incidentes. Cobra taxas. |
+| **Admin** | Aprova motoristas. Gerencia selos. Visualiza métricas. Suspende/reativa. |
 
 ---
 
@@ -23,10 +41,11 @@ O objetivo é oferecer transporte seguro, higiênico e profissional para pets, c
 | Item | Valor |
 |------|-------|
 | Nome | KAVIAR Pet |
+| Nome operacional | Central KAVIAR Pet |
 | Selo | "Motorista KAVIAR Pet Aprovado" |
 | Público | Tutores de cães e gatos que precisam de transporte (veterinário, banho, viagem, mudança) |
-| Posicionamento | Transporte pet profissional, seguro e higiênico — não improvisado |
-| Diferencial vs concorrentes | Kit obrigatório, treinamento com vídeo + questionário, aprovação com fotos, selo visível |
+| Posicionamento | Operação certificada, restrita e assistida — não é corrida comum com pet |
+| Diferencial vs concorrentes | Acesso restrito, central dedicada, checklist obrigatório, homologação completa, operador acompanha |
 
 ---
 
@@ -119,7 +138,168 @@ O objetivo é oferecer transporte seguro, higiênico e profissional para pets, c
 
 ## 5. Regras Operacionais
 
-### Obrigatórias (MVP):
+### 5.1 Modo Assistido — Central KAVIAR Pet
+
+O KAVIAR Pet opera em **modo assistido**: a central/operador acompanha as etapas críticas da corrida pet, validando condições antes e durante o transporte. Isso não é uma corrida comum onde o motorista apenas aceita e segue viagem.
+
+**Princípio:** nenhuma corrida pet inicia sem validação humana das condições do animal e do veículo.
+
+#### Por que modo assistido?
+
+- Animal não é carga nem passageiro comum — requer verificação de contenção, porte e segurança.
+- Divergências entre o que o tutor informou e o que o motorista encontra são comuns.
+- Decisões de ajuste de cobrança, recusa ou cancelamento precisam de respaldo operacional.
+- No MVP manual, o operador É o sistema — ele coordena tudo via WhatsApp.
+- Mesmo em escala futura, partes do fluxo devem permanecer humanas (decisão de incidente, cobrança extraordinária).
+
+---
+
+### 5.2 Protocolo de Solicitação — Informações do Tutor
+
+Ao solicitar corrida pet, o tutor informa:
+
+| Campo | Tipo | Obrigatório | Exemplo |
+|-------|------|-------------|---------|
+| Tipo do animal | Seleção | ✅ | Cão / Gato / Outro |
+| Porte | Seleção | ✅ | Pequeno (até 10kg) / Médio (10-25kg) / Grande (25kg+) |
+| Quantidade de pets | Número | ✅ | 1 |
+| Caixa de transporte? | Sim/Não | ✅ (obrigatório se gato) | Sim |
+| Guia/peitoral? | Sim/Não | ✅ (obrigatório se cão) | Sim |
+| Tutor acompanha? | Sim/Não | ✅ (obrigatório no MVP) | Sim |
+| Observações | Texto livre | ❌ | "Cão idoso, precisa de ajuda para subir" |
+
+**No MVP (Fase 1):** tutor informa via WhatsApp ao operador. Operador registra na planilha e repassa ao motorista.
+
+**Futuro (Fase 3+):** campos no app do passageiro ao selecionar "Corrida Pet".
+
+---
+
+### 5.3 Checklist de Chegada — Validação pelo Motorista
+
+Quando o motorista chega ao local de embarque, ANTES de iniciar a corrida, ele confirma:
+
+| # | Item | Esperado | Se divergente |
+|---|------|----------|---------------|
+| 1 | Quantidade de pets confere? | Igual ao informado | Acionar central |
+| 2 | Porte confere? | Igual ao informado | Acionar central |
+| 3 | Tutor presente? | Sim | Não iniciar. Acionar central. |
+| 4 | Gato em caixa de transporte? | Sim (se gato) | Não iniciar. Acionar central. |
+| 5 | Cão com guia/peitoral? | Sim (se cão) | Não iniciar. Acionar central. |
+| 6 | Animal aparenta condição segura? | Sim | Se agressivo/doente: acionar central. |
+| 7 | Veículo preparado (capa instalada)? | Sim | Motorista resolve antes de embarcar. |
+
+**No MVP:** motorista envia checklist por WhatsApp ao operador (mensagem rápida ou áudio). Operador confirma "OK, pode iniciar" ou orienta.
+
+**Futuro:** checklist in-app com botões Sim/Não antes de "Iniciar corrida".
+
+---
+
+### 5.4 Fluxo de Divergência
+
+Quando o motorista identifica divergência entre o informado e o encontrado:
+
+```
+Motorista identifica divergência
+        ↓
+Motorista NÃO inicia a corrida
+        ↓
+Motorista aciona central via WhatsApp
+  "Tutor informou 1 cão pequeno, mas são 2 cães médios"
+        ↓
+Operador avalia e decide:
+        ↓
+┌─────────────────────────────────────────────────┐
+│ Opção A: Ajustar cobrança                       │
+│   → Informar tutor do novo valor                │
+│   → Se aceitar: motorista inicia                │
+│   → Se recusar: cancelar sem penalidade         │
+├─────────────────────────────────────────────────┤
+│ Opção B: Orientar motorista                     │
+│   → "Pode seguir, porte médio ainda cabe"      │
+│   → Motorista inicia normalmente               │
+├─────────────────────────────────────────────────┤
+│ Opção C: Cancelar corrida                       │
+│   → Animal sem contenção / agressivo / tutor    │
+│     ausente / condição insegura                 │
+│   → Cancelar sem penalidade para motorista      │
+│   → Registrar ocorrência                        │
+├─────────────────────────────────────────────────┤
+│ Opção D: Registrar ocorrência e continuar       │
+│   → Divergência menor (ex: porte levemente      │
+│     diferente mas aceitável)                    │
+│   → Registrar para histórico do tutor           │
+│   → Motorista inicia                            │
+└─────────────────────────────────────────────────┘
+```
+
+**Regra de ouro:** na dúvida, o operador decide. Motorista não precisa tomar decisão sozinho em situação ambígua.
+
+---
+
+### 5.5 Papel do Operador / Central KAVIAR Pet
+
+| Momento | Ação do operador |
+|---------|-----------------|
+| Solicitação recebida | Registrar dados do pet na planilha. Encaminhar para motorista pet disponível. |
+| Motorista aceita | Confirmar aceite. Repassar dados do pet ao motorista. |
+| Motorista chega | Aguardar checklist de chegada do motorista. |
+| Checklist OK | Confirmar "pode iniciar". |
+| Divergência | Avaliar, decidir (ajustar/orientar/cancelar/registrar). |
+| Corrida em andamento | Monitorar (disponível se motorista precisar). |
+| Incidente durante corrida | Orientar motorista. Registrar. Acionar taxa se necessário. |
+| Corrida finalizada | Confirmar conclusão. Perguntar se houve sujeira/incidente. |
+| Higienização | Motorista confirma que higienizou. |
+| Taxa extraordinária | Se houve dano/sujeira: pedir fotos, avaliar, cobrar tutor. |
+
+**No MVP:** 1 operador dedicado (ou o próprio admin) gerencia via WhatsApp + planilha.
+
+**Escala futura:** painel admin com status da corrida pet + checklist digital + alertas automáticos.
+
+---
+
+### 5.6 Acompanhamento da Corrida Pet (timeline)
+
+```
+[1] Tutor solicita corrida pet (WhatsApp → operador)
+[2] Operador registra dados do pet na planilha
+[3] Operador encaminha para motorista pet disponível
+[4] Motorista aceita
+[5] Motorista a caminho
+[6] Motorista chega → envia checklist de chegada
+[7] Operador valida checklist
+    → OK: "pode iniciar"
+    → Divergência: operador decide
+[8] Corrida iniciada
+[9] (Se incidente) Motorista aciona operador
+[10] Corrida finalizada
+[11] Motorista confirma higienização
+[12] (Se sujeira/dano) Motorista envia fotos → operador avalia → cobra tutor
+[13] Corrida pet encerrada
+```
+
+---
+
+### 5.7 Evolução do Modo Assistido por Fase
+
+| Fase | Como funciona | Papel humano |
+|------|--------------|-------------|
+| **Fase 1 (MVP manual)** | Tudo via WhatsApp. Operador coordena cada etapa. | 100% humano |
+| **Fase 2 (cadastro no sistema)** | Dados do pet no formulário. Checklist no admin. Operador valida. | 80% humano, 20% sistema |
+| **Fase 3 (app + dispatch)** | Tutor informa no app. Checklist in-app. Operador só intervém em divergência. | 40% humano, 60% sistema |
+| **Fase 4 (cobrança integrada)** | Ajuste de cobrança automático por porte. Operador só em incidentes. | 20% humano, 80% sistema |
+
+**O que SEMPRE permanece humano (mesmo em escala):**
+- Decisão sobre incidente com animal (agressividade, fuga, doença).
+- Avaliação de fotos de dano/sujeira para cobrança extraordinária.
+- Cancelamento por condição insegura.
+- Suspensão de tutor ou motorista por reincidência.
+- Qualquer situação ambígua que o sistema não pode resolver com regra fixa.
+
+---
+
+### 5.8 Regras operacionais básicas
+
+#### Obrigatórias (MVP):
 
 | # | Regra | Motivo |
 |---|-------|--------|
@@ -141,7 +321,50 @@ O objetivo é oferecer transporte seguro, higiênico e profissional para pets, c
 
 ---
 
-## 6. Modelo de Cobrança
+## 6. Central KAVIAR Pet — Conceito Operacional
+
+A Central KAVIAR Pet é o núcleo de coordenação do serviço. Toda corrida pet passa pela central — não existe corrida pet "self-service".
+
+### Por que central dedicada?
+
+- Pet não é passageiro comum. Requer validação de condições antes do embarque.
+- Divergências são frequentes (porte diferente, sem contenção, tutor ausente).
+- Decisões de ajuste, recusa ou cobrança precisam de respaldo humano.
+- Qualidade do serviço depende de acompanhamento, não apenas de regras no app.
+- Incidentes com animais exigem decisão humana imediata.
+
+### Responsabilidades da Central
+
+| Responsabilidade | Descrição |
+|-----------------|-----------|
+| Receber solicitação | Tutor informa dados do pet via WhatsApp (MVP) ou app (futuro) |
+| Designar motorista | Encaminhar para motorista pet aprovado e disponível |
+| Validar checklist | Confirmar que condições estão OK antes de autorizar início |
+| Decidir divergências | Ajustar cobrança, orientar, cancelar ou registrar ocorrência |
+| Acompanhar corrida | Estar disponível durante a corrida para suporte |
+| Registrar incidentes | Documentar qualquer problema com fotos e descrição |
+| Cobrar taxa extraordinária | Avaliar fotos de dano/sujeira e acionar cobrança ao tutor |
+| Encerrar corrida | Confirmar higienização e fechar registro |
+
+### Operação por fase
+
+| Fase | Central funciona como |
+|------|----------------------|
+| Fase 1 | 1 operador via WhatsApp + planilha. Coordena tudo manualmente. |
+| Fase 2 | Operador com apoio de tela admin (lista de motoristas pet, status). |
+| Fase 3 | Painel "Central KAVIAR Pet" com corridas em tempo real. Operador intervém em exceções. |
+| Fase 4 | Automação de fluxo normal. Operador só em divergências e incidentes. |
+
+### Quem pode ser operador KAVIAR Pet?
+
+- Admin com role `SUPER_ADMIN` ou futuro `PET_OPERATOR`.
+- Pessoa treinada no protocolo pet (conhece regras, sabe decidir divergências).
+- No MVP: o próprio fundador/admin opera.
+- Em escala: operador dedicado (pode ser o mesmo da central KAVIAR normal).
+
+---
+
+## 7. Modelo de Cobrança
 
 | Item | Modelo | Mecanismo |
 |------|--------|-----------|
@@ -168,7 +391,7 @@ O objetivo é oferecer transporte seguro, higiênico e profissional para pets, c
 
 ---
 
-## 7. Termos e Responsabilidade
+## 8. Termos e Responsabilidade
 
 ### 7.1 Termo do Motorista KAVIAR Pet
 
@@ -205,7 +428,7 @@ O tutor declara que:
 
 ---
 
-## 8. Riscos e Mitigação
+## 9. Riscos e Mitigação
 
 | Risco | Prob. | Impacto | Mitigação |
 |-------|-------|---------|-----------|
@@ -222,7 +445,7 @@ O tutor declara que:
 
 ---
 
-## 9. Fases Futuras
+## 10. Fases Futuras
 
 ### Fase 0 — Documento operacional ✅
 - Este documento.
@@ -243,26 +466,94 @@ O tutor declara que:
 ### Fase 2 — Cadastro pet no sistema
 - Campos `pet_status`, `pet_training_completed`, `pet_quiz_passed` em `drivers`.
 - Upload de fotos do kit via app/admin.
-- Tela admin "KAVIAR Pet — Aprovações".
+- Tela admin "Central KAVIAR Pet — Aprovações".
 - Feature flag `KAVIAR_PET_ENABLED`.
+- **Acesso restrito:** apenas motoristas com `pet_status = 'approved'` veem qualquer coisa pet.
 - **Não toca em dispatcher, pricing ou apps publicados.**
 
-### Fase 3 — Categoria PET no app + dispatch filtrado
-- Passageiro seleciona "Corrida Pet" no app.
-- `ride_type: 'pet'` na criação da corrida.
-- Dispatcher filtra motoristas com `pet_status = 'approved'`.
+### Fase 3 — Módulo Pet restrito + dispatch filtrado
+- Módulo/área restrita no app motorista (visível apenas para aprovados).
+- Painel web "Central KAVIAR Pet" para operadores.
+- Checklist de chegada digital (in-app, apenas motoristas pet).
+- Dispatcher filtra `pet_status = 'approved'` quando `ride_type = 'pet'`.
+- Motorista comum continua sem ver nada pet.
 - **⚠️ Toca em zonas protegidas. Requer autorização explícita + novo APK + testes completos.**
 
-### Fase 4 — Cobrança integrada + painel
-- Taxa pet no pricing-engine.
+### Fase 4 — Cobrança integrada + automação parcial
+- Taxa pet no pricing-engine (surcharge por porte).
 - Venda de kit via Asaas.
-- Painel admin completo "KAVIAR Pet".
-- Relatórios e métricas pet.
+- Ajuste automático de cobrança por divergência de porte.
+- Alertas automáticos para operador (corrida pet > 30min, checklist não enviado).
+- Painel admin completo "Central KAVIAR Pet" com métricas.
 - **⚠️ Toca em pricing. Requer autorização explícita.**
 
 ---
 
-## 10. Regras de Proteção
+## 11. Arquitetura de Acesso Restrito
+
+### Princípio: isolamento total do módulo pet
+
+O KAVIAR Pet opera como um módulo fechado dentro da plataforma. Nenhum elemento pet é visível para quem não tem acesso.
+
+### Camadas de acesso
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    KAVIAR (plataforma)                    │
+│                                                          │
+│  ┌─────────────────────┐  ┌──────────────────────────┐  │
+│  │  Operação normal    │  │  Central KAVIAR Pet      │  │
+│  │  (todos motoristas) │  │  (acesso restrito)       │  │
+│  │                     │  │                          │  │
+│  │  • Corridas normais │  │  • Corridas pet          │  │
+│  │  • Créditos         │  │  • Checklist de chegada  │  │
+│  │  • Avaliações       │  │  • Operador assistido    │  │
+│  │  • Histórico        │  │  • Incidentes            │  │
+│  │                     │  │  • Taxa extraordinária   │  │
+│  └─────────────────────┘  └──────────────────────────┘  │
+│                                    ▲                     │
+│                                    │                     │
+│                           Acesso apenas com:             │
+│                           • pet_status = 'approved'      │
+│                           • Selo ativo                   │
+│                           • Homologação completa         │
+└─────────────────────────────────────────────────────────┘
+```
+
+### O que cada perfil vê
+
+| Elemento | Motorista comum | Motorista Pet Aprovado | Operador Pet | Admin |
+|----------|:-:|:-:|:-:|:-:|
+| Corridas normais | ✅ | ✅ | — | ✅ |
+| Corridas pet | ❌ | ✅ | ✅ | ✅ |
+| Checklist de chegada | ❌ | ✅ | ✅ | ✅ |
+| Dados do pet na corrida | ❌ | ✅ | ✅ | ✅ |
+| Painel Central Pet | ❌ | ❌ | ✅ | ✅ |
+| Aprovação de motoristas pet | ❌ | ❌ | ❌ | ✅ |
+| Suspensão de selo | ❌ | ❌ | ❌ | ✅ |
+| Métricas pet | ❌ | ❌ | ✅ | ✅ |
+| Treinamento pet | ❌ | Durante homologação | — | — |
+
+### Implementação por fase
+
+| Fase | Como o acesso restrito funciona |
+|------|-------------------------------|
+| **Fase 1 (manual)** | Operador só encaminha corrida pet para motoristas da lista de aprovados. Motorista comum nunca é contatado para pet. |
+| **Fase 2 (sistema)** | Feature flag + `pet_status` controla visibilidade. Backend retorna 403 se motorista sem selo tentar acessar endpoints pet. |
+| **Fase 3 (app)** | Módulo pet no app só renderiza para motoristas com selo. Menu/seção invisível para os demais. |
+| **Fase 4 (painel)** | Central KAVIAR Pet como área admin dedicada com role `PET_OPERATOR`. |
+
+### Modelo futuro de roles (não implementar agora)
+
+| Role | Acesso |
+|------|--------|
+| `SUPER_ADMIN` | Tudo (inclusive pet) |
+| `PET_OPERATOR` | Central KAVIAR Pet: corridas, checklists, incidentes, taxas |
+| `PET_ADMIN` | Aprovação de motoristas, suspensão, métricas, configuração |
+
+---
+
+## 12. Regras de Proteção
 
 | Regra | Aplicação |
 |-------|-----------|

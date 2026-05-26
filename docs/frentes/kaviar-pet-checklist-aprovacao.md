@@ -256,20 +256,30 @@ Pode enviar novas fotos? Sem pressa, mas precisamos disso para aprovar.
 — Equipe KAVIAR Pet
 ```
 
-### 3.9 Corrida pet disponível (dispatch manual)
+### 3.9 Corrida pet disponível (dispatch manual — modo assistido)
 
 ```
 🐾 [NOME], corrida pet disponível!
 
 📍 Origem: [BAIRRO/ENDEREÇO APROXIMADO]
 📍 Destino: [BAIRRO/ENDEREÇO APROXIMADO]
-🐕 Animal: [TIPO — cão/gato] / [PORTE — pequeno/médio/grande]
-👤 Tutor: [NOME DO TUTOR]
 ⏰ Horário: [AGORA / AGENDADA PARA X]
 
-Pode aceitar? Responda:
+🐕 Dados do pet:
+• Animal: [Cão/Gato/Outro]
+• Porte: [Pequeno/Médio/Grande]
+• Quantidade: [X]
+• Contenção: [Caixa / Guia+peitoral]
+• Tutor acompanha: Sim
+• Obs: [observação do tutor, se houver]
+
+👤 Tutor: [NOME DO TUTOR]
+
+Pode aceitar?
 ✅ Aceito
 ❌ Não posso agora
+
+Lembre-se: ao chegar, envie o checklist de chegada antes de iniciar.
 
 — KAVIAR Pet
 ```
@@ -297,7 +307,114 @@ Alguma dúvida? 🧴
 
 ---
 
-## 4. Fluxo de Recusa/Problemas
+## 4. Protocolo Operacional — Corrida Pet (Modo Assistido MVP)
+
+### 4.1 Checklist do operador ao receber solicitação
+
+- [ ] Tutor informou tipo do animal
+- [ ] Tutor informou porte
+- [ ] Tutor informou quantidade
+- [ ] Tutor confirmou contenção (caixa/guia)
+- [ ] Tutor confirmou que acompanha
+- [ ] Dados registrados na planilha
+- [ ] Motorista pet disponível identificado
+- [ ] Motorista aceitou a corrida
+- [ ] Dados do pet repassados ao motorista
+
+### 4.2 Checklist de chegada (motorista envia ao operador)
+
+Motorista confirma via WhatsApp (mensagem rápida ou copiar/colar):
+
+```
+✅ Checklist KAVIAR Pet — Chegada
+
+Corrida: [TUTOR] → [DESTINO]
+1. Quantidade de pets confere? [ ]
+2. Porte confere? [ ]
+3. Tutor presente? [ ]
+4. Gato em caixa? [ ] (se aplicável)
+5. Cão com guia/peitoral? [ ] (se aplicável)
+6. Animal aparenta condição segura? [ ]
+7. Veículo preparado (capa instalada)? [ ]
+
+Tudo OK? Posso iniciar?
+```
+
+### 4.3 Respostas do operador
+
+**Se tudo OK:**
+```
+✅ Checklist conferido. Pode iniciar a corrida. Boa viagem! 🐾
+```
+
+**Se divergência:**
+```
+⚠️ Entendi a divergência. Aguarde, vou avaliar.
+
+[Após avaliar:]
+→ "Pode seguir. Vou ajustar a cobrança com o tutor."
+→ "Pode seguir normalmente, divergência menor."
+→ "Cancele a corrida. Motivo: [X]. Sem penalidade para você."
+→ "Registrei a ocorrência. Pode seguir, mas anote se houver problema."
+```
+
+### 4.4 Checklist de finalização (motorista envia ao operador)
+
+```
+✅ Corrida pet finalizada
+
+1. Corrida concluída sem incidente? [ ]
+2. Higienização realizada? [ ]
+3. Houve sujeira/dano extraordinário? [ ]
+4. (Se sim) Fotos enviadas? [ ]
+
+Observações: ___
+```
+
+### 4.5 Registro de incidente (operador preenche)
+
+```
+⚠️ Incidente KAVIAR Pet
+
+Corrida: [TUTOR] → [DESTINO]
+Motorista: [NOME]
+Data/hora: [X]
+
+Tipo:
+[ ] Sujeira extraordinária (vômito/urina/fezes)
+[ ] Dano ao veículo
+[ ] Animal agressivo
+[ ] Fuga do animal
+[ ] Tutor abandonou animal
+[ ] Outro: ___
+
+Descrição: ___
+Fotos enviadas: Sim/Não
+Ação do operador: ___
+Taxa de limpeza aplicada: Sim (R$___) / Não
+```
+
+### 4.6 Timeline completa de uma corrida pet (operador acompanha)
+
+| # | Etapa | Quem age | Operador faz |
+|---|-------|----------|-------------|
+| 1 | Tutor solicita corrida pet | Tutor → WhatsApp | Registra dados do pet |
+| 2 | Operador encaminha para motorista | Operador | Envia mensagem ao motorista |
+| 3 | Motorista aceita | Motorista | Confirma aceite |
+| 4 | Motorista a caminho | Motorista | Monitora |
+| 5 | Motorista chega | Motorista | Aguarda checklist |
+| 6 | Checklist de chegada | Motorista → WhatsApp | Valida e autoriza início |
+| 7 | Divergência (se houver) | Motorista reporta | Decide ação |
+| 8 | Corrida iniciada | Motorista | Registra início |
+| 9 | Incidente (se houver) | Motorista reporta | Orienta, registra |
+| 10 | Corrida finalizada | Motorista | Confirma conclusão |
+| 11 | Higienização | Motorista confirma | Registra |
+| 12 | Taxa extraordinária (se houver) | Operador avalia fotos | Cobra tutor |
+| 13 | Corrida encerrada | — | Fecha registro na planilha |
+
+---
+
+## 5. Fluxo de Recusa/Problemas
 
 ### Motorista recusa corrida pet:
 
@@ -327,7 +444,7 @@ Você não precisa cobrar nada diretamente.
 
 ---
 
-## 5. Critérios de Suspensão do Selo
+## 6. Critérios de Suspensão do Selo
 
 | Motivo | Ação |
 |--------|------|
@@ -340,7 +457,7 @@ Você não precisa cobrar nada diretamente.
 
 ---
 
-## 6. Métricas de Acompanhamento (Fase 1)
+## 7. Métricas de Acompanhamento (Fase 1)
 
 | Métrica | Onde registrar | Frequência |
 |---------|---------------|-----------|
@@ -351,6 +468,8 @@ Você não precisa cobrar nada diretamente.
 | Fotos aprovadas | Planilha | Semanal |
 | Motoristas com selo ativo | Planilha | Semanal |
 | Corridas pet realizadas | Planilha | Semanal |
+| Corridas com divergência | Planilha | Semanal |
+| Corridas canceladas por condição insegura | Planilha | Semanal |
 | Incidentes | Planilha | Por ocorrência |
 | Receita (taxas de homologação + kits) | Planilha financeira | Mensal |
 
