@@ -1,5 +1,5 @@
 import { Box, Container, Typography, Card, CardContent, Grid, Button, Chip, Divider, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
-import { Pets, OpenInNew, CheckCircle, RadioButtonUnchecked, Info, People } from '@mui/icons-material';
+import { Pets, OpenInNew, CheckCircle, RadioButtonUnchecked, Info, People, Assignment } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
 const links = [
@@ -52,7 +52,10 @@ export default function PetCentral() {
         </Box>
       </Box>
 
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Button component={Link} to="/admin/pet/homologations" variant="outlined" startIcon={<Assignment />} sx={{ borderColor: '#b8960c', color: '#b8960c', textTransform: 'none', '&:hover': { borderColor: '#d4af37', bgcolor: 'rgba(184,150,12,0.08)' } }}>
+          Homologações
+        </Button>
         {isSuperAdmin && (
           <Button component={Link} to="/admin/pet/operators" variant="outlined" startIcon={<People />} sx={{ borderColor: '#b8960c', color: '#b8960c', textTransform: 'none', '&:hover': { borderColor: '#d4af37', bgcolor: 'rgba(184,150,12,0.08)' } }}>
             Gerenciar operadores Pet

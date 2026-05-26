@@ -1832,3 +1832,62 @@ model territory_payouts {
   @@index([status])
   @@index([operator_profile_id])
 }
+
+// ─── KAVIAR Pet ─────────────────────────────────────────────────────────────
+
+model pet_homologations {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String    @db.VarChar(255)
+  phone           String    @db.VarChar(30)
+  email           String?   @db.VarChar(255)
+  region          String?   @db.VarChar(100)
+  vehicle_model   String?   @db.VarChar(100)
+  vehicle_year    String?   @db.VarChar(10)
+  four_doors      Boolean   @default(true)
+
+  status          String    @default("NOVO") @db.VarChar(30)
+  operator_id     String?   @db.Uuid
+  assigned_at     DateTime?
+  assigned_by     String?   @db.Uuid
+
+  videos_sent_at  DateTime?
+  quiz_sent_at    DateTime?
+  quiz_score      Int?
+  quiz_passed     Boolean?
+  photos_sent_at  DateTime?
+  photos_approved Boolean?
+
+  approved_at     DateTime?
+  approved_by     String?   @db.Uuid
+  rejected_at     DateTime?
+  rejection_reason String?
+
+  notes           String?
+  source          String    @default("manual") @db.VarChar(30)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  logs            pet_homologation_logs[]
+
+  @@index([status])
+  @@index([operator_id])
+}
+
+model pet_homologation_logs {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  homologation_id String    @db.Uuid
+  action          String    @db.VarChar(50)
+  admin_id        String    @db.Uuid
+  admin_name      String?   @db.VarChar(255)
+  old_status      String?   @db.VarChar(30)
+  new_status      String?   @db.VarChar(30)
+  old_operator_id String?   @db.Uuid
+  new_operator_id String?   @db.Uuid
+  note            String?
+  created_at      DateTime  @default(now())
+
+  homologation    pet_homologations @relation(fields: [homologation_id], references: [id], onDelete: Cascade)
+
+  @@index([homologation_id])
+  @@index([admin_id])
+}
