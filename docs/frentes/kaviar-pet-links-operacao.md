@@ -14,7 +14,7 @@
 | Landing `/pet` | https://kaviar.com.br/pet | ✅ Live |
 | Forms — Pré-cadastro | https://forms.gle/tDHdK1bW1ckiuNrg7 | ✅ Live |
 | Forms — Questionário | https://forms.gle/rRc5rbCSSvcnEeVc6 | ✅ Live |
-| Sheets — Central | [PREENCHER] | A criar |
+| Sheets — Central | https://docs.google.com/spreadsheets/d/1CqbvsZga7zXtFiDw2gVdkVF06ARrcNTWtrwgvge8nB4/edit?usp=sharing | ✅ Live |
 | Vídeo 1 — Protocolo | [PREENCHER] | A gravar |
 | Vídeo 2 — Situações práticas | [PREENCHER] | A gravar |
 | WhatsApp da Central | [PREENCHER NÚMERO] | A configurar |
