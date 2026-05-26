@@ -70,6 +70,7 @@ function FinanceHomeRedirect() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   if (admin?.role === 'FINANCE') return <FinancePayments />;
+  if (['PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN'].includes(admin?.role)) return <Navigate to="/admin/pet" replace />;
   return <AdminHome />;
 }
 

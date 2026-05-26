@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 
+const PET_ROLES = ['PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN'];
+
 export const ProtectedAdminRoute = ({ children, requireSuperAdmin = false, allowedRoles = null }) => {
   const location = useLocation();
   const token = localStorage.getItem('kaviar_admin_token');
@@ -11,13 +13,14 @@ export const ProtectedAdminRoute = ({ children, requireSuperAdmin = false, allow
 
   if (adminData) {
     const admin = JSON.parse(adminData);
+    const petRedirect = PET_ROLES.includes(admin.role) ? '/admin/pet' : '/admin';
     
     if (requireSuperAdmin && admin.role !== 'SUPER_ADMIN') {
-      return <Navigate to="/admin" replace />;
+      return <Navigate to={petRedirect} replace />;
     }
 
     if (allowedRoles && !allowedRoles.includes(admin.role)) {
-      return <Navigate to="/admin" replace />;
+      return <Navigate to={petRedirect} replace />;
     }
     
     if (admin.mustChangePassword && location.pathname !== '/admin/change-password') {

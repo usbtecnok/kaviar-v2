@@ -2,6 +2,9 @@ import { Box, Container, Typography, Card, CardContent, Grid, Button, Chip, Divi
 import { Pets, OpenInNew, CheckCircle, RadioButtonUnchecked, Info, People } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 
+const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
+const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+
 const links = [
   { label: 'Landing /pet', url: 'https://kaviar.com.br/pet', desc: 'Página pública do KAVIAR Pet' },
   { label: 'Pré-cadastro (Forms)', url: 'https://forms.gle/tDHdK1bW1ckiuNrg7', desc: 'Formulário de interesse de motoristas' },
@@ -50,9 +53,11 @@ export default function PetCentral() {
       </Box>
 
       <Box sx={{ mb: 3 }}>
-        <Button component={Link} to="/admin/pet/operators" variant="outlined" startIcon={<People />} sx={{ borderColor: '#b8960c', color: '#b8960c', textTransform: 'none', '&:hover': { borderColor: '#d4af37', bgcolor: 'rgba(184,150,12,0.08)' } }}>
-          Gerenciar operadores Pet
-        </Button>
+        {isSuperAdmin && (
+          <Button component={Link} to="/admin/pet/operators" variant="outlined" startIcon={<People />} sx={{ borderColor: '#b8960c', color: '#b8960c', textTransform: 'none', '&:hover': { borderColor: '#d4af37', bgcolor: 'rgba(184,150,12,0.08)' } }}>
+            Gerenciar operadores Pet
+          </Button>
+        )}
       </Box>
 
       <Grid container spacing={2} sx={{ mb: 4 }}>

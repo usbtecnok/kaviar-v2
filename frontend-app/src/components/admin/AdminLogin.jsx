@@ -43,6 +43,8 @@ export default function AdminLogin() {
         
         if (data.data.mustChangePassword) {
           navigate('/admin/change-password', { replace: true });
+        } else if (['PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN'].includes(data.data.user.role)) {
+          navigate('/admin/pet', { replace: true });
         } else {
           navigate(from, { replace: true });
         }
