@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1A1A1A"/><stop offset="100%" style="stop-color:#2A2A2A"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#bg)"/>
+<rect x="0" y="0" width="960" height="3" fill="#B8942E"/>
+<text x="40" y="45" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
+<text x="880" y="45" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#999" text-anchor="end">Vídeo 1 | 8/17</text>
+<line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
+<text x="480" y="105" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="26" fill="#FFF" text-anchor="middle">SE HOUVER DIVERGÊNCIA</text>
+<rect x="0" y="120" width="5" height="320" fill="#D4A843" opacity="0.7"/>
+<text x="150" y="165" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="20" fill="#D4A843">Exemplo: tutor informou 1 pet pequeno,</text>
+<text x="150" y="195" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="20" fill="#D4A843">mas aparecem 2 pets grandes.</text>
+<text x="150" y="250" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="22" fill="#FFF">→ NÃO inicie a corrida</text>
+<text x="150" y="290" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="22" fill="#FFF">→ Acione a Central KAVIAR Pet</text>
+<text x="150" y="330" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="22" fill="#FFF">→ A Central decide</text>
+<rect x="150" y="365" width="660" height="70" rx="8" fill="#222" stroke="#2D6B4F" stroke-width="1.5"/>
+<text x="480" y="395" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="16" fill="#EEE" text-anchor="middle">A central pode: ajustar cobrança · orientar · cancelar · registrar</text>
+<text x="480" y="420" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="16" fill="#2D6B4F" text-anchor="middle">Você não precisa tomar essa decisão sozinho.</text>
+<rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
+<text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+<rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
+</svg>

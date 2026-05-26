@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1A1A1A"/><stop offset="100%" style="stop-color:#2A2A2A"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#bg)"/>
+<rect x="0" y="0" width="960" height="3" fill="#B8942E"/>
+<text x="40" y="45" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
+<text x="880" y="45" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#999" text-anchor="end">Vídeo 2 | 5/16</text>
+<line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
+<text x="480" y="105" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="26" fill="#FFF" text-anchor="middle">ATENDIMENTO AO TUTOR</text>
+<text x="480" y="145" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="17" fill="#999" text-anchor="middle">O tutor é seu cliente. Respeito e paciência.</text>
+<rect x="150" y="170" width="660" height="50" rx="8" fill="#222" stroke="#2D6B4F" stroke-width="1"/>
+<text x="480" y="200" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="17" fill="#EEE" text-anchor="middle">💬 "Pode ficar tranquilo, estou preparado para transportar pets."</text>
+<rect x="150" y="235" width="660" height="50" rx="8" fill="#222" stroke="#2D6B4F" stroke-width="1"/>
+<text x="480" y="265" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="17" fill="#EEE" text-anchor="middle">💬 "O banco está protegido, sem problema."</text>
+<rect x="150" y="300" width="660" height="50" rx="8" fill="#222" stroke="#2D6B4F" stroke-width="1"/>
+<text x="480" y="330" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="17" fill="#EEE" text-anchor="middle">💬 "Se precisar de algo durante a corrida, é só falar."</text>
+<text x="150" y="395" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="18" fill="#C0392B">❌  Não fazer comentários negativos sobre o animal</text>
+<text x="150" y="430" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="18" fill="#C0392B">❌  Não oferecer comida/água sem autorização do tutor</text>
+<rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
+<text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+<rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
+</svg>

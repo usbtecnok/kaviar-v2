@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1A1A1A"/><stop offset="100%" style="stop-color:#2A2A2A"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#bg)"/>
+<rect x="0" y="0" width="960" height="3" fill="#B8942E"/>
+<text x="40" y="45" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
+<text x="880" y="45" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#999" text-anchor="end">Vídeo 2 | 4/16</text>
+<line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
+<text x="480" y="105" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="26" fill="#FFF" text-anchor="middle">SUJEIRA EXTRAORDINÁRIA</text>
+<text x="150" y="160" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Se o animal vomitar, urinar ou defecar:</text>
+<text x="170" y="205" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="18" fill="#CCC">1. Usar luvas + sacos higiênicos</text>
+<text x="170" y="240" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="18" fill="#CCC">2. Limpeza imediata + borrifar desinfetante</text>
+<text x="170" y="275" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="18" fill="#CCC">3. Após a corrida: tirar fotos do estado</text>
+<text x="170" y="310" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="18" fill="#CCC">4. Enviar fotos à Central</text>
+<text x="170" y="345" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="18" fill="#CCC">5. Central avalia e cobra tutor se necessário</text>
+<rect x="150" y="380" width="660" height="60" rx="8" fill="#222" stroke="#2D6B4F" stroke-width="1.5"/>
+<text x="480" y="405" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="17" fill="#2D6B4F" text-anchor="middle">Você NÃO cobra diretamente do tutor.</text>
+<text x="480" y="428" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="15" fill="#CCC" text-anchor="middle">A Central KAVIAR Pet cuida da cobrança.</text>
+<rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
+<text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+<rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
+</svg>

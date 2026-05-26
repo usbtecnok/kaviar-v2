@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1A1A1A"/><stop offset="100%" style="stop-color:#2A2A2A"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#bg)"/>
+<rect x="0" y="0" width="960" height="3" fill="#B8942E"/>
+<text x="40" y="45" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
+<text x="880" y="45" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#999" text-anchor="end">Vídeo 1 | 14/17</text>
+<line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
+<text x="480" y="105" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="26" fill="#FFF" text-anchor="middle">CHEGADA E ENTREGA DO PET</text>
+<text x="150" y="165" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">✓  Parar em local seguro</text>
+<text x="150" y="205" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">✓  Esperar tutor/responsável estar pronto</text>
+<text x="150" y="245" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">✓  Entregar pet diretamente ao responsável</text>
+<text x="150" y="285" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">✓  Nunca deixar o pet sozinho</text>
+<text x="150" y="325" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">✓  Verificar banco traseiro antes de sair</text>
+<rect x="150" y="360" width="330" height="50" rx="8" fill="#222" stroke="#B8942E" stroke-width="1"/>
+<text x="315" y="390" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="15" fill="#EEE" text-anchor="middle">🏠 Cliente comum: porta</text>
+<rect x="500" y="360" width="330" height="50" rx="8" fill="#222" stroke="#B8942E" stroke-width="1"/>
+<text x="665" y="390" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="15" fill="#EEE" text-anchor="middle">🏢 Corporativo: pode entrar</text>
+<rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
+<text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+<rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
+</svg>

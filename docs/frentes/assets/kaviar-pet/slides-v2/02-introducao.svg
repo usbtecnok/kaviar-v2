@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1A1A1A"/><stop offset="100%" style="stop-color:#2A2A2A"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#bg)"/>
+<rect x="0" y="0" width="960" height="3" fill="#B8942E"/>
+<text x="40" y="45" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
+<text x="880" y="45" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#999" text-anchor="end">Vídeo 2 | 2/16</text>
+<line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
+<text x="480" y="120" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="28" fill="#FFF" text-anchor="middle">NESTE VÍDEO</text>
+<rect x="200" y="160" width="560" height="60" rx="8" fill="#222" stroke="#B8942E" stroke-width="1.5"/>
+<text x="480" y="197" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE" text-anchor="middle">🧴  Higienização obrigatória</text>
+<rect x="200" y="240" width="560" height="60" rx="8" fill="#222" stroke="#B8942E" stroke-width="1.5"/>
+<text x="480" y="277" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE" text-anchor="middle">🤝  Atendimento ao tutor</text>
+<rect x="200" y="320" width="560" height="60" rx="8" fill="#222" stroke="#B8942E" stroke-width="1.5"/>
+<text x="480" y="357" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE" text-anchor="middle">📋  Suas responsabilidades e o que NÃO fazer</text>
+<text x="480" y="440" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="16" fill="#999" text-anchor="middle">Depois: questionário de 10 perguntas</text>
+<rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
+<text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+<rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
+</svg>

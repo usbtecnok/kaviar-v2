@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540">
+<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#1A1A1A"/><stop offset="100%" style="stop-color:#2A2A2A"/></linearGradient></defs>
+<rect width="960" height="540" fill="url(#bg)"/>
+<rect x="0" y="0" width="960" height="3" fill="#B8942E"/>
+<text x="40" y="45" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
+<text x="880" y="45" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#999" text-anchor="end">Vídeo 2 | 12/16</text>
+<line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
+<text x="480" y="100" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="26" fill="#FFF" text-anchor="middle">QUEM É RESPONSÁVEL?</text>
+<rect x="80" y="120" width="380" height="130" rx="10" fill="#222" stroke="#B8942E" stroke-width="1.5"/>
+<text x="270" y="150" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="16" fill="#B8942E" text-anchor="middle">TUTOR</text>
+<text x="100" y="175" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Pelo animal: comportamento, saúde</text>
+<text x="100" y="197" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Contenção (caixa/guia/peitoral)</text>
+<text x="100" y="219" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Declaração de porte/quantidade</text>
+<text x="100" y="241" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Auxílio com peitoral</text>
+<rect x="500" y="120" width="380" height="130" rx="10" fill="#222" stroke="#2D6B4F" stroke-width="1.5"/>
+<text x="690" y="150" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="16" fill="#2D6B4F" text-anchor="middle">MOTORISTA CERTIFICADO</text>
+<text x="520" y="175" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Pelo protocolo operacional</text>
+<text x="520" y="197" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Veículo, capa, cinto, higienização</text>
+<text x="520" y="219" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Checklist, foto, acionar central</text>
+<text x="520" y="241" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Pode recusar por segurança</text>
+<rect x="80" y="270" width="380" height="130" rx="10" fill="#222" stroke="#D4A843" stroke-width="1.5"/>
+<text x="270" y="300" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="16" fill="#D4A843" text-anchor="middle">CENTRAL KAVIAR PET</text>
+<text x="100" y="325" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Coordenação operacional</text>
+<text x="100" y="347" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Validação e acompanhamento</text>
+<text x="100" y="369" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Decisão em divergências</text>
+<text x="100" y="391" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Registro e cobrança</text>
+<rect x="500" y="270" width="380" height="130" rx="10" fill="#222" stroke="#666" stroke-width="1.5"/>
+<text x="690" y="300" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="16" fill="#999" text-anchor="middle">KAVIAR (PLATAFORMA)</text>
+<text x="520" y="325" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Intermediação do transporte</text>
+<text x="520" y="347" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Homologação e treinamento</text>
+<text x="520" y="369" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• Infraestrutura e termos</text>
+<text x="520" y="391" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#EEE">• NÃO é serviço veterinário</text>
+<text x="480" y="445" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="16" fill="#B8942E" text-anchor="middle">Cada parte tem seu papel. Ninguém faz tudo sozinho.</text>
+<rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
+<text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
+<rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
+</svg>
