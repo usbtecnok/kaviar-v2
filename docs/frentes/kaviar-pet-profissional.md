@@ -103,13 +103,15 @@ O KAVIAR Pet é uma **operação especializada, certificada e assistida** de tra
 
 | # | Item | Obrigatório | Observação |
 |---|------|-------------|------------|
-| 1 | Capa protetora impermeável para banco traseiro | ✅ Sim | Protege estofado. Lavável. |
-| 2 | Desinfetante veterinário (spray 200ml) | ✅ Sim | Higienização entre corridas. Não tóxico para animais. |
-| 3 | Pano/lenço de limpeza reutilizável | ✅ Sim | Limpeza rápida. |
-| 4 | Sacos higiênicos (5 unidades) | ✅ Sim | Para emergências. |
-| 5 | Luvas descartáveis (2 pares) | ✅ Sim | Para limpeza pesada. |
-| 6 | Cinto/guia de segurança pet | ⚠️ Opcional | Para cães que aceitam. Tutor geralmente traz guia própria. |
+| 1 | Capa protetora impermeável para banco traseiro | ✅ Sim | Resistente a unhas, sujeira e pequenos acidentes. Lavável. Deve cobrir todo o banco. |
+| 2 | Guia/cinto de segurança pet (clip para peitoral) | ✅ Sim | Prende o pet ao cinto do carro. Essencial para segurança durante o trajeto. |
+| 3 | Desinfetante veterinário (spray 200ml) | ✅ Sim | Higienização entre corridas. Não tóxico para animais. |
+| 4 | Pano/lenço de limpeza reutilizável | ✅ Sim | Limpeza rápida. |
+| 5 | Sacos higiênicos (5 unidades) | ✅ Sim | Para emergências. |
+| 6 | Luvas descartáveis (2 pares) | ✅ Sim | Para limpeza pesada. |
 | 7 | Orientação digital KAVIAR Pet (PDF) | ✅ Sim | Enviado pelo KAVIAR após pagamento da taxa. Custo zero. |
+
+**Nota sobre a capa:** deve ser resistente às unhas do pet. Capas finas de tecido comum rasgam facilmente. Preferir material impermeável reforçado (nylon 600D ou similar). As fotos de homologação devem mostrar a capa instalada.
 
 ### Caminhos de adequação:
 
@@ -185,12 +187,24 @@ Quando o motorista chega ao local de embarque, ANTES de iniciar a corrida, ele c
 | 3 | Tutor presente? | Sim | Não iniciar. Acionar central. |
 | 4 | Gato em caixa de transporte? | Sim (se gato) | Não iniciar. Acionar central. |
 | 5 | Cão com guia/peitoral? | Sim (se cão) | Não iniciar. Acionar central. |
-| 6 | Animal aparenta condição segura? | Sim | Se agressivo/doente: acionar central. |
-| 7 | Veículo preparado (capa instalada)? | Sim | Motorista resolve antes de embarcar. |
+| 6 | Animal aparenta condição segura? (sem agressividade) | Sim | Se agressivo: exigir focinheira ou acionar central. |
+| 7 | Focinheira necessária? | Não (ou já colocada) | Se risco percebido: exigir ou acionar central. |
+| 8 | Veículo preparado (capa instalada)? | Sim | Motorista resolve antes de embarcar. |
+| 9 | **Foto do pet no embarque enviada à central?** | ✅ Obrigatória | Não iniciar sem enviar foto. |
 
-**No MVP:** motorista envia checklist por WhatsApp ao operador (mensagem rápida ou áudio). Operador confirma "OK, pode iniciar" ou orienta.
+#### Foto obrigatória de embarque:
 
-**Futuro:** checklist in-app com botões Sim/Não antes de "Iniciar corrida".
+A foto deve mostrar (quando aplicável):
+- O pet embarcado ou pronto para embarcar.
+- O peitoral/guia visível.
+- A quantidade de pets.
+- A condição de transporte (caixa, banco, capa).
+
+**Finalidade:** prova operacional positiva para o motorista. Protege em caso de divergência, dano ou cobrança posterior. A central arquiva.
+
+**No MVP:** motorista envia foto por WhatsApp à central junto com o checklist.
+
+**Futuro:** foto capturada in-app, vinculada à corrida.
 
 ---
 
@@ -304,20 +318,71 @@ Operador avalia e decide:
 | # | Regra | Motivo |
 |---|-------|--------|
 | 1 | Tutor acompanha o animal durante toda a corrida | Responsabilidade e segurança |
-| 2 | Gatos somente em caixa de transporte | Segurança — gato solto no carro é risco |
+| 2 | Gatos somente em caixa de transporte (responsabilidade do tutor) | Segurança — gato solto no carro é risco |
 | 3 | Cães com guia ou peitoral | Contenção mínima |
-| 4 | Animal no banco traseiro | Segurança do motorista e do animal |
+| 4 | Animal no banco traseiro, preso ao sistema de segurança | Segurança do motorista e do animal |
 | 5 | Motorista pode recusar animal agressivo, sujo ou sem condição segura | Proteção do motorista e do veículo |
-| 6 | Higienização simples após cada corrida pet | Spray + pano. Manter veículo pronto para próxima corrida |
-| 7 | Motorista comum (sem selo) não recebe corrida pet | Garantia de qualidade |
-| 8 | Sem transporte de animal sozinho (sem tutor) na primeira fase | Responsabilidade jurídica |
+| 6 | Motorista pode exigir focinheira se perceber risco | Proteção do motorista |
+| 7 | Foto obrigatória do pet no embarque (enviada à central) | Prova operacional e proteção do motorista |
+| 8 | Janelas fechadas ou com abertura mínima — pet não pode colocar cabeça para fora | Risco de acidente |
+| 9 | Ar-condicionado funcionando durante corrida pet | Bem-estar do animal |
+| 10 | Higienização simples após cada corrida pet | Spray + pano. Manter veículo pronto para próxima corrida |
+| 11 | Motorista comum (sem selo) não recebe corrida pet | Garantia de qualidade |
+| 12 | Sem transporte de animal sozinho (sem tutor) na primeira fase | Responsabilidade jurídica |
+| 13 | Limite de até 3 pets por corrida (acima: autorização da central) | Segurança e controle |
+| 14 | Entrega do pet somente ao tutor/responsável presente | Responsabilidade na entrega |
+| 15 | Em caso de dúvida ou risco: acionar central antes de iniciar | Suporte operacional |
 
-### Recomendadas (futuro):
+#### Regras sobre gatos:
+- Gato viaja obrigatoriamente em caixa de transporte.
+- A caixa é responsabilidade do tutor — motorista não é obrigado a ter caixa.
+- Sem caixa = corrida bloqueada ou decisão da central.
+
+#### Regras sobre cães:
+- Cão viaja com guia ou peitoral.
+- Peitoral deve aparecer na foto de embarque quando possível.
+- Se precisar colocar/ajustar peitoral, motorista pede ajuda ao tutor — não se expor ao risco.
+
+#### Regras sobre focinheira:
+- Motorista pode exigir focinheira se perceber risco de agressividade.
+- Se tutor recusar e motorista perceber risco: acionar central.
+- Decisão fica registrada (quem decidiu, motivo, resultado).
+
+#### Regras sobre janelas e segurança:
+- Janelas fechadas ou com abertura mínima segura.
+- Pet NÃO pode viajar com cabeça para fora da janela.
+- Pet deve permanecer preso ao sistema de segurança durante todo o trajeto.
+- Ar-condicionado deve estar funcionando.
+
+#### Regras sobre entrega:
+- Motorista espera o tutor/responsável chegar.
+- Pet entregue diretamente ao responsável.
+- Cliente comum: entrega na porta, sem entrar no imóvel.
+- Cliente corporativo (creche, veterinária, pet shop, parceiro): pode entrar no estabelecimento conforme protocolo da central.
+
+#### Limite de pets:
+- Até 3 pets por corrida (padrão).
+- Acima de 3: autorização prévia da central.
+- Quantidade confirmada na chegada (checklist).
+
+#### Transporte sem tutor (futuro — não ativar no MVP):
+- Regra atual: tutor SEMPRE acompanha.
+- Protocolo futuro (quando/se habilitado):
+  - Pet obrigatoriamente preso ao sistema de segurança.
+  - Janelas 100% fechadas.
+  - Ar-condicionado funcionando.
+  - Central acompanhando em tempo real.
+  - Entrega somente ao tutor/responsável autorizado (confirmação por código ou presença).
+  - Requer aprovação específica da central para cada corrida.
+
+#### Recomendadas (futuro):
 
 - Foto do veículo pós-corrida (comprovação de higienização).
 - Limite de porte por tipo de veículo.
 - Avaliação específica do serviço pet (estrelas + comentário).
 - Revalidação periódica do motorista (trimestral ou semestral).
+- Transporte sem tutor com protocolo rígido (ver acima).
+- Integração com parceiros (creches, veterinárias, pet shops) para entrega assistida.
 
 ---
 

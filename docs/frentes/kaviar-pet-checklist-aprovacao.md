@@ -335,10 +335,20 @@ Corrida: [TUTOR] → [DESTINO]
 4. Gato em caixa? [ ] (se aplicável)
 5. Cão com guia/peitoral? [ ] (se aplicável)
 6. Animal aparenta condição segura? [ ]
-7. Veículo preparado (capa instalada)? [ ]
+7. Focinheira necessária? [ ] (se risco percebido)
+8. Veículo preparado (capa instalada)? [ ]
+9. 📸 FOTO DO PET ENVIADA? [ ] ← OBRIGATÓRIA
 
 Tudo OK? Posso iniciar?
 ```
+
+**Foto obrigatória:** motorista envia foto do pet embarcado/pronto mostrando:
+- O pet
+- Peitoral/guia (quando aplicável)
+- Quantidade de pets
+- Condição de transporte
+
+A foto é prova operacional e proteção do motorista.
 
 ### 4.3 Respostas do operador
 

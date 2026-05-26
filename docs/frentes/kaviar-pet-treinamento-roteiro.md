@@ -45,26 +45,39 @@
 - Sem objetos soltos no banco traseiro.
 - Sem cheiros fortes (aromatizante forte pode incomodar o animal).
 
-**Bloco 3 — Recebendo o animal (2min)**
+**Bloco 3 — Recebendo o animal (3min)**
 - Cumprimentar o tutor normalmente.
 - Perguntar: "O animal está tranquilo? Precisa de algo especial?"
 - Verificar contenção: guia/peitoral para cães, caixa para gatos.
-- Se o animal parecer agressivo ou sem contenção: você pode recusar educadamente.
+- Conferir quantidade e porte — bate com o que foi informado?
+- Se divergência (mais pets, porte diferente): NÃO iniciar. Acionar central.
+- Se o animal parecer agressivo ou sem contenção: você pode recusar ou exigir focinheira.
+- Se tutor recusar focinheira e você perceber risco: acionar central. Não se expor.
+- Se precisar colocar/ajustar peitoral: peça ajuda ao tutor. Não manipule o animal sozinho.
 - Tutor entra primeiro, depois o animal (ou tutor coloca o animal e entra).
 - Nunca pegar o animal no colo sem autorização do tutor.
+- **FOTO OBRIGATÓRIA:** tire foto do pet embarcado mostrando peitoral/guia, quantidade e condição. Envie à central.
+- Limite: até 3 pets por corrida. Acima disso, autorização da central.
 
 **Bloco 4 — Durante a corrida (2min)**
 - Dirigir com suavidade: evitar freadas bruscas, curvas rápidas, acelerações fortes.
 - Manter velocidade moderada.
+- **Janelas fechadas ou com abertura mínima.** Pet NÃO pode colocar a cabeça para fora — risco de acidente.
+- **Ar-condicionado ligado** em temperatura confortável.
+- **Pet deve permanecer preso ao sistema de segurança** (cinto/guia preso ao clip do peitoral) durante todo o trajeto.
 - Se o animal ficar agitado: manter a calma, falar com voz baixa, perguntar ao tutor se está tudo bem.
 - Não buzinar desnecessariamente.
 - Se o animal vomitar ou urinar: manter a calma, parar em local seguro se necessário.
 - Não repreender o animal — é responsabilidade do tutor.
 
-**Bloco 5 — Chegada e desembarque (1min)**
+**Bloco 5 — Chegada e desembarque (1.5min)**
 - Parar em local seguro.
+- **Esperar o tutor/responsável estar pronto para receber o pet.**
 - Tutor desce primeiro ou segura o animal enquanto desce.
 - Verificar se o animal não vai pular para fora sozinho.
+- **Entrega somente ao tutor/responsável presente.** Não deixar o pet sozinho.
+- Cliente comum: entrega na porta, sem entrar no imóvel.
+- Cliente corporativo (veterinária, creche, pet shop): pode entrar no estabelecimento conforme orientação da central.
 - Agradecer o tutor.
 - Verificar o banco traseiro antes de sair.
 
@@ -135,16 +148,21 @@
 - Informar o KAVIAR se houver qualquer incidente.
 - Você pode desativar o selo pet temporariamente se precisar (manutenção, férias, etc).
 
-**Bloco 5 — O que você NÃO deve fazer (1.5min)**
-- ❌ Transportar animal sem tutor presente.
+**Bloco 5 — O que você NÃO deve fazer (2min)**
+- ❌ Transportar animal sem tutor presente (no MVP).
 - ❌ Aceitar animal sem contenção (sem guia, sem caixa).
 - ❌ Deixar animal no banco da frente.
-- ❌ Abrir janela totalmente com animal solto.
+- ❌ Abrir janela totalmente — pet NÃO pode colocar cabeça para fora.
+- ❌ Deixar pet solto sem prender ao sistema de segurança.
 - ❌ Dar medicamento, comida ou água sem autorização.
 - ❌ Pegar o animal no colo.
 - ❌ Repreender ou gritar com o animal.
 - ❌ Cobrar taxa de limpeza diretamente do tutor (o KAVIAR faz isso).
 - ❌ Aceitar corrida pet sem os itens instalados.
+- ❌ Iniciar corrida sem enviar foto do pet à central.
+- ❌ Iniciar corrida com divergência de porte/quantidade sem validação da central.
+- ❌ Manipular animal agressivo sem focinheira — acionar central.
+- ❌ Aceitar mais de 3 pets sem autorização da central.
 
 **Bloco 6 — Selo e benefícios (1min)**
 - Com o selo "Motorista KAVIAR Pet Aprovado" você:
@@ -182,12 +200,12 @@
 **2. Gatos devem ser transportados:**
 - a) No colo do tutor
 - b) Soltos no banco traseiro
-- c) Em caixa de transporte ✅
+- c) Em caixa de transporte (responsabilidade do tutor) ✅
 - d) No porta-malas
 
 **3. Se o animal parecer agressivo ou sem contenção, você deve:**
 - a) Aceitar mesmo assim para não perder a corrida
-- b) Recusar educadamente e informar o motivo ✅
+- b) Exigir focinheira ou recusar e acionar a central ✅
 - c) Pedir para o tutor segurar o animal com força
 - d) Cancelar sem avisar
 
@@ -203,11 +221,11 @@
 - c) Encerrar a corrida imediatamente
 - d) Gritar com o animal
 
-**6. O animal deve ficar:**
-- a) No banco da frente
-- b) No banco traseiro com capa protetora ✅
-- c) No porta-malas
-- d) No colo do motorista
+**6. O que é OBRIGATÓRIO fazer ao chegar no local de embarque?**
+- a) Iniciar a corrida imediatamente
+- b) Enviar foto do pet à central + confirmar checklist de chegada ✅
+- c) Apenas cumprimentar o tutor
+- d) Ligar o ar-condicionado
 
 **7. Quem é responsável pelo animal durante a corrida?**
 - a) O motorista
@@ -215,17 +233,17 @@
 - c) O tutor/passageiro ✅
 - d) Ninguém
 
-**8. Você pode oferecer comida ou água ao animal?**
-- a) Sim, sempre
-- b) Não, nunca, em nenhuma circunstância
-- c) Somente com autorização do tutor ✅
-- d) Somente água
+**8. Sobre janelas durante a corrida pet:**
+- a) Podem ficar totalmente abertas
+- b) Devem ficar fechadas ou com abertura mínima — pet não pode colocar cabeça para fora ✅
+- c) Devem ficar abertas para o animal respirar
+- d) Tanto faz
 
-**9. Se o tutor não trouxer guia/peitoral para o cão, você deve:**
+**9. Se o tutor informou 1 pet pequeno e aparecem 2 pets grandes, você deve:**
 - a) Aceitar mesmo assim
-- b) Emprestar sua guia do kit
-- c) Recusar a corrida — cão sem contenção não pode ser transportado ✅
-- d) Colocar o cão no porta-malas
+- b) Não iniciar a corrida e acionar a central para validação ✅
+- c) Cobrar o dobro diretamente
+- d) Recusar e ir embora sem avisar
 
 **10. Para cobrar taxa de limpeza por sujeira extraordinária:**
 - a) Você cobra diretamente do tutor no final da corrida
@@ -246,8 +264,8 @@
 | 5 | B |
 | 6 | B |
 | 7 | C |
-| 8 | C |
-| 9 | C |
+| 8 | B |
+| 9 | B |
 | 10 | B |
 
 ---
