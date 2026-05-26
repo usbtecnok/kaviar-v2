@@ -5,17 +5,23 @@
 <text x="40" y="45" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="14" fill="#B8942E" letter-spacing="2">KAVIAR Pet</text>
 <text x="880" y="45" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#999" text-anchor="end">Vídeo 2 | 3/16</text>
 <line x1="40" y1="60" x2="920" y2="60" stroke="#333" stroke-width="0.5"/>
-<text x="480" y="105" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="26" fill="#FFF" text-anchor="middle">HIGIENIZAÇÃO — OBRIGATÓRIA APÓS CADA CORRIDA PET</text>
-<rect x="150" y="130" width="50" height="50" rx="25" fill="#2D6B4F" opacity="0.3"/><text x="175" y="163" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="22" fill="#2D6B4F" text-anchor="middle">1</text>
-<text x="220" y="163" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Retirar pelos visíveis com pano</text>
-<rect x="150" y="195" width="50" height="50" rx="25" fill="#2D6B4F" opacity="0.3"/><text x="175" y="228" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="22" fill="#2D6B4F" text-anchor="middle">2</text>
-<text x="220" y="228" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Borrifar desinfetante veterinário na capa e banco</text>
-<rect x="150" y="260" width="50" height="50" rx="25" fill="#2D6B4F" opacity="0.3"/><text x="175" y="293" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="22" fill="#2D6B4F" text-anchor="middle">3</text>
-<text x="220" y="293" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Passar pano limpo</text>
-<rect x="150" y="325" width="50" height="50" rx="25" fill="#2D6B4F" opacity="0.3"/><text x="175" y="358" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="22" fill="#2D6B4F" text-anchor="middle">4</text>
-<text x="220" y="358" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="19" fill="#EEE">Verificar chão e portas</text>
-<rect x="250" y="400" width="460" height="55" rx="8" fill="#1F1A10" stroke="#B8942E" stroke-width="1.5"/>
-<text x="480" y="433" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="18" fill="#B8942E" text-anchor="middle">⏱️ Tempo total: 2-3 minutos</text>
+<text x="480" y="100" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="24" fill="#FFF" text-anchor="middle">HIGIENIZAÇÃO — OBRIGATÓRIA APÓS CADA CORRIDA</text>
+<!-- Coluna esquerda: passos -->
+<rect x="60" y="120" width="440" height="310" rx="10" fill="#222" stroke="#333" stroke-width="1"/>
+<rect x="80" y="140" width="40" height="40" rx="20" fill="#2D6B4F" opacity="0.4"/><text x="100" y="167" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="20" fill="#2D6B4F" text-anchor="middle">1</text>
+<text x="135" y="167" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE">Retirar pelos com pano</text>
+<rect x="80" y="195" width="40" height="40" rx="20" fill="#2D6B4F" opacity="0.4"/><text x="100" y="222" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="20" fill="#2D6B4F" text-anchor="middle">2</text>
+<text x="135" y="222" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE">Borrifar desinfetante</text>
+<rect x="80" y="250" width="40" height="40" rx="20" fill="#2D6B4F" opacity="0.4"/><text x="100" y="277" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="20" fill="#2D6B4F" text-anchor="middle">3</text>
+<text x="135" y="277" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE">Passar pano limpo</text>
+<rect x="80" y="305" width="40" height="40" rx="20" fill="#2D6B4F" opacity="0.4"/><text x="100" y="332" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="20" fill="#2D6B4F" text-anchor="middle">4</text>
+<text x="135" y="332" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE">Verificar chão e portas</text>
+<text x="280" y="400" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="22" fill="#B8942E" text-anchor="middle">⏱️ 2-3 minutos</text>
+<!-- Coluna direita: placeholder cena real -->
+<rect x="530" y="120" width="380" height="310" rx="10" fill="#1A1A1A" stroke="#B8942E" stroke-width="1" stroke-dasharray="6,4"/>
+<text x="720" y="250" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="16" fill="#B8942E" text-anchor="middle">📹 CENA REAL</text>
+<text x="720" y="280" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="15" fill="#999" text-anchor="middle">Motorista higienizando</text>
+<text x="720" y="305" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="15" fill="#999" text-anchor="middle">o veículo após corrida pet</text>
 <rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
 <text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
 <rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
