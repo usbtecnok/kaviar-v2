@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Container, Typography, Box, Card, CardContent, Grid, Chip, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert, IconButton, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
-import { Add, Pets, ArrowBack, PersonAdd } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Add, Pets, ArrowBack, PersonAdd, DirectionsCar } from '@mui/icons-material';
+import { Link, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 
 const STATUSES = ['NOVO','EM_CONTATO','AGUARDANDO_TREINAMENTO','AGUARDANDO_QUESTIONARIO','AGUARDANDO_FOTOS','EM_ANALISE','APROVADO','REPROVADO','SUSPENSO','DESISTIU'];
 const STATUS_COLORS = { NOVO:'#FFF2CC', EM_CONTATO:'#CFE2F3', AGUARDANDO_TREINAMENTO:'#FCE5CD', AGUARDANDO_QUESTIONARIO:'#FCE5CD', AGUARDANDO_FOTOS:'#FCE5CD', EM_ANALISE:'#D9EAD3', APROVADO:'#4caf50', REPROVADO:'#f44336', SUSPENSO:'#ff9800', DESISTIU:'#9e9e9e' };
 
 export default function PetHomologations() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,13 +20,41 @@ export default function PetHomologations() {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [operatorFilter, setOperatorFilter] = useState('');
-
+  const [driverDialog, setDriverDialog] = useState(false);
+  const [driverSearch, setDriverSearch] = useState('');
+  const [driverResults, setDriverResults] = useState([]);
+  const [driverSearching, setDriverSearching] = useState(false);
   const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
   const token = () => localStorage.getItem('kaviar_admin_token');
   const headers = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
 
   useEffect(() => { fetchItems(); if (isSuperAdmin) fetchOperators(); }, []);
+
+  const searchDrivers = async () => {
+    if (driverSearch.trim().length < 3) return;
+    setDriverSearching(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/pet/homologations/search-drivers?q=${encodeURIComponent(driverSearch)}`, { headers: headers() });
+      const json = await res.json();
+      if (json.success) setDriverResults(json.data);
+    } catch {}
+    finally { setDriverSearching(false); }
+  };
+
+  const handleInviteDriver = async (driver) => {
+    setSaving(true); setError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/pet/homologations`, { method:'POST', headers:headers(), body:JSON.stringify({ driver_id: driver.id }) });
+      const json = await res.json();
+      if (json.success) {
+        const hId = json.duplicate ? json.id : json.data.id;
+        setDriverDialog(false); setDriverSearch(''); setDriverResults([]);
+        navigate(`/admin/pet/homologations/${hId}`);
+      } else { setError(json.error); }
+    } catch { setError('Erro ao criar'); }
+    finally { setSaving(false); }
+  };
 
   const fetchItems = async () => {
     try {
@@ -91,7 +120,10 @@ export default function PetHomologations() {
           <Pets sx={{ color:'#b8960c', fontSize:28 }} />
           <Typography variant="h5" fontWeight="700" sx={{ color:'#E8E3D5' }}>Homologações KAVIAR Pet</Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => setDialog(true)} sx={{ bgcolor:'#b8960c', '&:hover':{ bgcolor:'#d4af37' }, textTransform:'none' }}>Nova homologação</Button>
+        <Box sx={{ display:'flex', gap:1 }}>
+          {isSuperAdmin && <Button variant="outlined" startIcon={<DirectionsCar />} onClick={() => setDriverDialog(true)} sx={{ borderColor:'#b8960c', color:'#b8960c', textTransform:'none', '&:hover':{ borderColor:'#d4af37', bgcolor:'rgba(184,150,12,0.08)' } }}>Convidar motorista KAVIAR</Button>}
+          <Button variant="contained" startIcon={<Add />} onClick={() => setDialog(true)} sx={{ bgcolor:'#b8960c', '&:hover':{ bgcolor:'#d4af37' }, textTransform:'none' }}>Nova homologação</Button>
+        </Box>
       </Box>
 
       <Box sx={{ mb:2, display:'flex', gap:1, flexWrap:'wrap', alignItems:'center' }}>
@@ -186,6 +218,32 @@ export default function PetHomologations() {
           ))}
           <Button fullWidth onClick={() => handleAssign(assignDialog?.id, null)} sx={{ justifyContent:'flex-start', color:'#888', textTransform:'none', mt:1 }}>Remover atribuição</Button>
         </DialogContent>
+      </Dialog>
+      {/* Dialog buscar motorista KAVIAR */}
+      <Dialog open={driverDialog} onClose={() => { setDriverDialog(false); setDriverSearch(''); setDriverResults([]); }} maxWidth="sm" fullWidth PaperProps={{ sx:{ bgcolor:'#1a1a2e', color:'#E8E3D5' } }}>
+        <DialogTitle>Convidar motorista KAVIAR para Pet</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display:'flex', gap:1, mb:2, mt:1 }}>
+            <TextField value={driverSearch} onChange={e => setDriverSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && searchDrivers()} placeholder="Nome ou telefone (mín. 3 chars)..." fullWidth size="small" InputProps={{ sx:{color:'#E8E3D5'} }} />
+            <Button onClick={searchDrivers} disabled={driverSearching || driverSearch.trim().length < 3} variant="contained" size="small" sx={{ bgcolor:'#b8960c', '&:hover':{ bgcolor:'#d4af37' } }}>Buscar</Button>
+          </Box>
+          {driverSearching && <CircularProgress size={20} sx={{ color:'#b8960c' }} />}
+          {driverResults.map(d => (
+            <Box key={d.id} sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', py:1, borderBottom:'1px solid #333' }}>
+              <Box>
+                <Typography sx={{ color:'#E8E3D5', fontSize:14 }}>{d.name}</Typography>
+                <Typography sx={{ color:'#888', fontSize:12 }}>{d.phone} • {d.vehicle_model || '—'} • <Chip label={d.status} size="small" sx={{ fontSize:10, height:16, bgcolor: d.status === 'approved' ? '#4caf5033' : '#ff980033', color: d.status === 'approved' ? '#4caf50' : '#ff9800' }} /></Typography>
+              </Box>
+              <Button onClick={() => handleInviteDriver(d)} size="small" disabled={saving} sx={{ color:'#b8960c', textTransform:'none', fontSize:12 }}>
+                {d.status !== 'approved' ? '⚠️ Convidar' : 'Convidar'}
+              </Button>
+            </Box>
+          ))}
+          {driverResults.length === 0 && driverSearch.length >= 3 && !driverSearching && <Typography sx={{ color:'#888', fontSize:13, mt:1 }}>Nenhum motorista encontrado.</Typography>}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setDriverDialog(false); setDriverSearch(''); setDriverResults([]); }} sx={{ color:'#888' }}>Fechar</Button>
+        </DialogActions>
       </Dialog>
     </Container>
   );

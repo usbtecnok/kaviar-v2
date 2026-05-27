@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Cancel, ArrowBack } from '@mui/icons-material';
+import { Pets } from '@mui/icons-material';
 import api from '../../api/index';
 import { VirtualFenceCenterCard } from '../../components/admin/VirtualFenceCenterCard';
 import { SecondaryBaseCard } from '../../components/admin/SecondaryBaseCard';
@@ -595,6 +596,39 @@ export default function AdminDriverDetail() {
             >
               Rejeitar Motorista
             </Button>
+          </Box>
+        )}
+
+        {isSuperAdmin() && (
+          <Box mt={2}>
+            <Button
+              variant="outlined"
+              startIcon={<Pets />}
+              onClick={async () => {
+                try {
+                  setError('');
+                  const token = localStorage.getItem('kaviar_admin_token');
+                  const res = await fetch(`${API_BASE_URL}/api/admin/pet/homologations`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ driver_id: driver.id }),
+                  });
+                  const json = await res.json();
+                  if (json.success) {
+                    const hId = json.duplicate ? json.id : json.data.id;
+                    navigate(`/admin/pet/homologations/${hId}`);
+                  } else {
+                    setError(json.error);
+                  }
+                } catch { setError('Erro ao criar homologação Pet'); }
+              }}
+              sx={{ borderColor: '#b8960c', color: '#b8960c', textTransform: 'none', '&:hover': { borderColor: '#d4af37', bgcolor: 'rgba(184,150,12,0.08)' } }}
+            >
+              Iniciar homologação Pet
+            </Button>
+            {driver.status !== 'approved' && (
+              <Typography variant="caption" sx={{ ml: 1, color: '#ff9800' }}>⚠️ Motorista ainda não aprovado</Typography>
+            )}
           </Box>
         )}
       </Paper>

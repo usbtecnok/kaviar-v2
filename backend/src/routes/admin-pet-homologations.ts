@@ -14,6 +14,32 @@ async function addLog(homologation_id: string, action: string, admin: any, extra
   });
 }
 
+// GET /api/admin/pet/homologations/search-drivers?q=
+router.get('/search-drivers', async (req: Request, res: Response) => {
+  try {
+    const { q } = req.query;
+    if (!q || String(q).trim().length < 3) {
+      return res.json({ success: true, data: [] });
+    }
+    const search = String(q).trim();
+    const drivers = await prisma.drivers.findMany({
+      where: {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search } },
+        ],
+      },
+      select: { id: true, name: true, phone: true, email: true, status: true, vehicle_model: true, approved_at: true },
+      take: 10,
+      orderBy: { name: 'asc' },
+    });
+    return res.json({ success: true, data: drivers });
+  } catch (err) {
+    console.error('[PET_HOMOLOGATIONS] search-drivers error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao buscar motoristas' });
+  }
+});
+
 // GET /api/admin/pet/homologations
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -53,14 +79,44 @@ router.get('/', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
-    const { name, phone, email, region, vehicle_model, vehicle_year, four_doors, notes } = req.body;
+    let { name, phone, email, region, vehicle_model, vehicle_year, four_doors, notes, driver_id } = req.body;
+
+    // Se driver_id fornecido, buscar dados do motorista e preencher automaticamente
+    if (driver_id) {
+      // Anti-duplicidade por driver_id
+      const existingByDriver = await prisma.pet_homologations.findFirst({ where: { driver_id } });
+      if (existingByDriver) {
+        return res.json({ success: true, duplicate: true, id: existingByDriver.id });
+      }
+
+      const driver = await prisma.drivers.findUnique({
+        where: { id: driver_id },
+        select: { name: true, phone: true, email: true, vehicle_model: true, status: true },
+      });
+      if (driver) {
+        name = name || driver.name;
+        phone = phone || driver.phone;
+        email = email || driver.email;
+        vehicle_model = vehicle_model || driver.vehicle_model;
+      }
+    }
 
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'Nome e telefone são obrigatórios' });
     }
 
+    // Anti-duplicidade por telefone
+    const digits = (phone || '').replace(/\D/g, '');
+    if (digits.length >= 9) {
+      const all = await prisma.pet_homologations.findMany({ where: { phone: { not: '' } }, select: { id: true, phone: true } });
+      const dup = all.find(h => h.phone.replace(/\D/g, '').slice(-9) === digits.slice(-9));
+      if (dup) {
+        return res.json({ success: true, duplicate: true, id: dup.id });
+      }
+    }
+
     const homologation = await prisma.pet_homologations.create({
-      data: { name, phone, email, region, vehicle_model, vehicle_year, four_doors: four_doors !== false, notes, operator_id: admin.role === 'PET_OPERATOR' ? admin.id : null },
+      data: { name, phone, email, region, vehicle_model, vehicle_year, four_doors: four_doors !== false, notes, driver_id: driver_id || null, source: driver_id ? 'admin_driver_invite' : 'manual', operator_id: admin.role === 'PET_OPERATOR' ? admin.id : null },
     });
 
     await addLog(homologation.id, 'created', admin);
