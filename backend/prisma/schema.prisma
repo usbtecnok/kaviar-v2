@@ -1877,7 +1877,7 @@ model pet_homologation_logs {
   id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   homologation_id String    @db.Uuid
   action          String    @db.VarChar(50)
-  admin_id        String    @db.Uuid
+  admin_id        String?   @db.Uuid
   admin_name      String?   @db.VarChar(255)
   old_status      String?   @db.VarChar(30)
   new_status      String?   @db.VarChar(30)
