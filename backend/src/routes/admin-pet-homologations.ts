@@ -75,19 +75,31 @@ router.post('/', async (req: Request, res: Response) => {
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
-    const { status, notes } = req.body;
+    const { status, notes, name, phone, email, region, vehicle_model, vehicle_year, four_doors, driver_id } = req.body;
 
     const existing = await prisma.pet_homologations.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ success: false, error: 'Homologação não encontrada' });
 
-    // PET_OPERATOR só altera os seus
     if (admin.role === 'PET_OPERATOR' && existing.operator_id !== admin.id) {
       return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    // Bloquear aprovação sem motorista oficial vinculado
+    if (status === 'APROVADO' && !existing.driver_id && !driver_id) {
+      return res.status(400).json({ success: false, error: 'Não é possível aprovar sem vínculo com motorista oficial KAVIAR.' });
     }
 
     const data: any = { updated_at: new Date() };
     if (status && status !== existing.status) data.status = status;
     if (notes !== undefined) data.notes = notes;
+    if (name !== undefined) data.name = name;
+    if (phone !== undefined) data.phone = phone;
+    if (email !== undefined) data.email = email;
+    if (region !== undefined) data.region = region;
+    if (vehicle_model !== undefined) data.vehicle_model = vehicle_model;
+    if (vehicle_year !== undefined) data.vehicle_year = vehicle_year;
+    if (four_doors !== undefined) data.four_doors = four_doors;
+    if (driver_id !== undefined) data.driver_id = driver_id || null;
 
     const updated = await prisma.pet_homologations.update({ where: { id: req.params.id }, data });
 
@@ -96,6 +108,9 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
     if (notes !== undefined && notes !== existing.notes) {
       await addLog(updated.id, 'note_added', admin, { note: notes });
+    }
+    if (driver_id !== undefined && driver_id !== existing.driver_id) {
+      await addLog(updated.id, 'driver_linked', admin, { note: driver_id ? `Vinculado ao motorista ${driver_id}` : 'Vínculo removido' });
     }
 
     return res.json({ success: true, data: updated });
@@ -162,6 +177,45 @@ router.post('/:id/notes', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[PET_HOMOLOGATIONS] note error:', err);
     return res.status(500).json({ success: false, error: 'Erro ao adicionar observação' });
+  }
+});
+
+// GET /api/admin/pet/homologations/:id/driver — busca motorista vinculado ou por telefone
+router.get('/:id/driver', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const homologation = await prisma.pet_homologations.findUnique({ where: { id: req.params.id } });
+    if (!homologation) return res.status(404).json({ success: false, error: 'Homologação não encontrada' });
+
+    if (admin.role === 'PET_OPERATOR' && homologation.operator_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    // Se já tem driver_id, buscar direto
+    if (homologation.driver_id) {
+      const driver = await prisma.drivers.findUnique({
+        where: { id: homologation.driver_id },
+        select: { id: true, name: true, phone: true, status: true, approved_at: true, vehicle_model: true, vehicle_plate: true, document_cpf: true },
+      });
+      if (driver) return res.json({ success: true, linked: true, driver });
+    }
+
+    // Buscar por telefone (últimos 9 dígitos)
+    const digits = (homologation.phone || '').replace(/\D/g, '');
+    if (digits.length >= 9) {
+      const suffix = digits.slice(-9);
+      const drivers = await prisma.drivers.findMany({
+        where: { phone: { not: null } },
+        select: { id: true, name: true, phone: true, status: true, approved_at: true, vehicle_model: true, vehicle_plate: true, document_cpf: true },
+      });
+      const match = drivers.find(d => (d.phone || '').replace(/\D/g, '').slice(-9) === suffix);
+      if (match) return res.json({ success: true, linked: false, driver: match });
+    }
+
+    return res.json({ success: true, linked: false, driver: null });
+  } catch (err) {
+    console.error('[PET_HOMOLOGATIONS] driver lookup error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao buscar motorista' });
   }
 });
 

@@ -1846,6 +1846,7 @@ model pet_homologations {
   four_doors      Boolean   @default(true)
 
   status          String    @default("NOVO") @db.VarChar(30)
+  driver_id       String?   @db.VarChar(255)
   operator_id     String?   @db.Uuid
   assigned_at     DateTime?
   assigned_by     String?   @db.Uuid
@@ -1871,6 +1872,7 @@ model pet_homologations {
 
   @@index([status])
   @@index([operator_id])
+  @@index([driver_id])
 }
 
 model pet_homologation_logs {
