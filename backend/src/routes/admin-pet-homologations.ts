@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const router = Router();
+const S3_BUCKET = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
+const s3 = new S3Client({ region: 'us-east-2' });
 const PET_ROLES = ['SUPER_ADMIN', 'PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN'];
 
 router.use(authenticateAdmin);
@@ -324,6 +328,151 @@ router.post('/:id/actions', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[PET_HOMOLOGATIONS] action error:', err);
     return res.status(500).json({ success: false, error: 'Erro ao executar ação' });
+  }
+});
+
+// ─── DOCUMENTOS DA HOMOLOGAÇÃO ─────────────────────────────────────────────
+
+// POST /api/admin/pet/homologations/:id/documents — salvar mídia como documento
+router.post('/:id/documents', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const { wa_message_id, document_type } = req.body;
+
+    const homologation = await prisma.pet_homologations.findUnique({ where: { id: req.params.id } });
+    if (!homologation) return res.status(404).json({ success: false, error: 'Homologação não encontrada' });
+    if (admin.role === 'PET_OPERATOR' && homologation.operator_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    if (!wa_message_id) return res.status(400).json({ success: false, error: 'wa_message_id obrigatório' });
+
+    const message = await prisma.wa_messages.findUnique({ where: { id: wa_message_id } });
+    if (!message?.media_url) return res.status(400).json({ success: false, error: 'Mensagem sem mídia' });
+
+    // Buscar mídia do Twilio
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const twilioRes = await fetch(message.media_url, {
+      headers: { Authorization: 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64') },
+    });
+    if (!twilioRes.ok) return res.status(502).json({ success: false, error: 'Erro ao buscar mídia do Twilio' });
+
+    const buffer = Buffer.from(await twilioRes.arrayBuffer());
+    const ext = (message.media_type || 'application/octet-stream').split('/')[1] || 'bin';
+    const s3Key = `pet-documents/${req.params.id}/${Date.now()}.${ext}`;
+
+    // Upload para S3
+    await s3.send(new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Body: buffer,
+      ContentType: message.media_type || 'application/octet-stream',
+    }));
+
+    const doc = await prisma.pet_homologation_documents.create({
+      data: {
+        homologation_id: req.params.id,
+        wa_message_id,
+        original_media_url: message.media_url,
+        s3_key: s3Key,
+        file_name: `${document_type || 'documento'}_${Date.now()}.${ext}`,
+        mime_type: message.media_type,
+        document_type: document_type || 'outro',
+        created_by_admin_id: admin.id,
+        created_by_admin_name: admin.name,
+      },
+    });
+
+    await addLog(req.params.id, 'document_saved', admin, { note: `Documento: ${document_type || 'outro'}` });
+    return res.json({ success: true, data: doc });
+  } catch (err) {
+    console.error('[PET_DOCS] save error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao salvar documento' });
+  }
+});
+
+// GET /api/admin/pet/homologations/:id/documents
+router.get('/:id/documents', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const homologation = await prisma.pet_homologations.findUnique({ where: { id: req.params.id } });
+    if (!homologation) return res.status(404).json({ success: false, error: 'Homologação não encontrada' });
+    if (admin.role === 'PET_OPERATOR' && homologation.operator_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    const where: any = { homologation_id: req.params.id };
+    if (admin.role !== 'SUPER_ADMIN') where.is_hidden = false;
+
+    const docs = await prisma.pet_homologation_documents.findMany({ where, orderBy: { created_at: 'desc' } });
+    return res.json({ success: true, data: docs });
+  } catch (err) {
+    console.error('[PET_DOCS] list error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao listar documentos' });
+  }
+});
+
+// PATCH /api/admin/pet/homologations/documents/:docId
+router.patch('/documents/:docId', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const { status, rejection_reason, hide_reason } = req.body;
+
+    const doc = await prisma.pet_homologation_documents.findUnique({ where: { id: req.params.docId } });
+    if (!doc) return res.status(404).json({ success: false, error: 'Documento não encontrado' });
+
+    const homologation = await prisma.pet_homologations.findUnique({ where: { id: doc.homologation_id } });
+    if (admin.role === 'PET_OPERATOR' && homologation?.operator_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    const data: any = {};
+
+    if (status === 'approved') {
+      data.status = 'approved';
+      data.approved_by_admin_id = admin.id;
+      data.approved_at = new Date();
+    } else if (status === 'rejected') {
+      data.status = 'rejected';
+      data.rejected_by_admin_id = admin.id;
+      data.rejected_at = new Date();
+      data.rejection_reason = rejection_reason || null;
+    } else if (status === 'hidden') {
+      if (admin.role !== 'SUPER_ADMIN') return res.status(403).json({ success: false, error: 'Apenas SUPER_ADMIN pode ocultar' });
+      if (!hide_reason) return res.status(400).json({ success: false, error: 'Motivo obrigatório para ocultar' });
+      data.is_hidden = true;
+      data.hidden_at = new Date();
+      data.hidden_by_admin_id = admin.id;
+      data.hide_reason = hide_reason;
+    }
+
+    const updated = await prisma.pet_homologation_documents.update({ where: { id: req.params.docId }, data });
+    await addLog(doc.homologation_id, `document_${status}`, admin, { note: rejection_reason || hide_reason || doc.document_type });
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    console.error('[PET_DOCS] update error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao atualizar documento' });
+  }
+});
+
+// GET /api/admin/pet/homologations/documents/:docId/file
+router.get('/documents/:docId/file', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const doc = await prisma.pet_homologation_documents.findUnique({ where: { id: req.params.docId } });
+    if (!doc) return res.status(404).json({ success: false, error: 'Documento não encontrado' });
+
+    const homologation = await prisma.pet_homologations.findUnique({ where: { id: doc.homologation_id } });
+    if (admin.role === 'PET_OPERATOR' && homologation?.operator_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: S3_BUCKET, Key: doc.s3_key }), { expiresIn: 300 });
+    return res.json({ success: true, url });
+  } catch (err) {
+    console.error('[PET_DOCS] file error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao gerar URL do documento' });
   }
 });
 

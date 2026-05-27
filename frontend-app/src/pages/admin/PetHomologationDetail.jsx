@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Chip, Button, TextField, CircularProgress, Alert, MenuItem, Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { ArrowBack, Pets, Timeline, Send, WhatsApp, OndemandVideo, Quiz, CameraAlt, Edit, LinkOff, Link as LinkIcon, Warning, CheckCircle, Chat } from '@mui/icons-material';
+import { ArrowBack, Pets, Timeline, Send, WhatsApp, OndemandVideo, Quiz, CameraAlt, Edit, LinkOff, Link as LinkIcon, Warning, CheckCircle, Chat, SaveAlt, Description, Visibility } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 
 const STATUSES = ['NOVO','EM_CONTATO','AGUARDANDO_TREINAMENTO','AGUARDANDO_QUESTIONARIO','AGUARDANDO_FOTOS','EM_ANALISE','APROVADO','REPROVADO','SUSPENSO','DESISTIU'];
 const STATUS_COLORS = { NOVO:'#FFF2CC', EM_CONTATO:'#CFE2F3', AGUARDANDO_TREINAMENTO:'#FCE5CD', AGUARDANDO_QUESTIONARIO:'#FCE5CD', AGUARDANDO_FOTOS:'#FCE5CD', EM_ANALISE:'#D9EAD3', APROVADO:'#4caf50', REPROVADO:'#f44336', SUSPENSO:'#ff9800', DESISTIU:'#9e9e9e' };
-const ACTION_LABELS = { created:'Criado', auto_created:'Cadastro automático', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', driver_linked:'Motorista vinculado', photos_received:'Fotos recebidas', photos_approved:'Fotos aprovadas', photos_rejected:'Fotos reprovadas', approved:'Aprovado', rejected:'Reprovado', WHATSAPP_OPENED:'WhatsApp aberto', TRAINING_SENT:'Treinamento enviado', QUESTIONNAIRE_SENT:'Questionário enviado', PHOTOS_REQUESTED:'Fotos solicitadas' };
+const ACTION_LABELS = { created:'Criado', auto_created:'Cadastro automático', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', driver_linked:'Motorista vinculado', photos_received:'Fotos recebidas', photos_approved:'Fotos aprovadas', photos_rejected:'Fotos reprovadas', document_saved:'Documento salvo', document_approved:'Documento aprovado', document_rejected:'Documento reprovado', document_hidden:'Documento ocultado', approved:'Aprovado', rejected:'Reprovado', WHATSAPP_OPENED:'WhatsApp aberto', TRAINING_SENT:'Treinamento enviado', QUESTIONNAIRE_SENT:'Questionário enviado', PHOTOS_REQUESTED:'Fotos solicitadas' };
 
 function ActionButton({ icon, label, color, onClick }) {
   return (
@@ -30,6 +30,9 @@ export default function PetHomologationDetail() {
   const [error, setError] = useState('');
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [documents, setDocuments] = useState([]);
+  const [saveDocDialog, setSaveDocDialog] = useState(null);
+  const [docType, setDocType] = useState('outro');
 
   const token = () => localStorage.getItem('kaviar_admin_token');
   const headers = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
@@ -49,6 +52,13 @@ export default function PetHomologationDetail() {
       if (jsonItems.success) setItem(jsonItems.data.find(h => h.id === id) || null);
       if (jsonLogs.success) setLogs(jsonLogs.data);
       if (jsonDriver.success) setDriverInfo(jsonDriver);
+
+      // Buscar documentos
+      try {
+        const resDocs = await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}/documents`, { headers: headers() });
+        const jsonDocs = await resDocs.json();
+        if (jsonDocs.success) setDocuments(jsonDocs.data);
+      } catch {}
 
       // Buscar conversa WhatsApp vinculada
       const foundItem = jsonItems.success ? jsonItems.data.find(h => h.id === id) : null;
@@ -132,6 +142,25 @@ export default function PetHomologationDetail() {
       else setError(json.error);
     } catch { setError('Erro ao vincular'); }
     finally { setSaving(false); }
+  };
+
+  const handleSaveDocument = async () => {
+    if (!saveDocDialog) return;
+    setSaving(true); setError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}/documents`, { method:'POST', headers:headers(), body:JSON.stringify({ wa_message_id: saveDocDialog, document_type: docType }) });
+      const json = await res.json();
+      if (json.success) { setSaveDocDialog(null); setDocType('outro'); fetchData(); }
+      else setError(json.error);
+    } catch { setError('Erro ao salvar documento'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDocStatus = async (docId, status) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/admin/pet/homologations/documents/${docId}`, { method:'PATCH', headers:headers(), body:JSON.stringify({ status }) });
+      fetchData();
+    } catch {}
   };
 
   const openEdit = () => {
@@ -254,6 +283,9 @@ export default function PetHomologationDetail() {
                           {msg.media_url && !msg.media_type?.startsWith('image/') && (
                             <Chip label={`📎 ${msg.media_type || 'Arquivo'}`} size="small" component="a" href={`${API_BASE_URL}/api/admin/whatsapp/messages/${msg.id}/media?token=${token()}`} target="_blank" clickable sx={{ mb:0.3, height:18, fontSize:9, bgcolor:'#1a2332', color:'#8a9aaa' }} />
                           )}
+                          {msg.media_url && msg.direction === 'inbound' && (
+                            <Chip label="💾 Salvar como documento" size="small" onClick={() => setSaveDocDialog(msg.id)} clickable sx={{ mt:0.3, height:18, fontSize:9, bgcolor:'#D4AF3722', color:'#D4AF37', border:'1px solid #D4AF3744', cursor:'pointer' }} />
+                          )}
                           {msg.body && <Typography sx={{ fontSize:12, color:'#ddd', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{msg.body}</Typography>}
                           <Typography sx={{ fontSize:9, color:'#555', textAlign:'right', mt:0.2 }}>{new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</Typography>
                         </Box>
@@ -294,6 +326,37 @@ export default function PetHomologationDetail() {
             )}
           </Box>
           {item.photos_sent_at && <Typography sx={{ color:'#888', fontSize:11, mt:1 }}>Recebidas em: {new Date(item.photos_sent_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</Typography>}
+        </CardContent>
+      </Card>
+
+      {/* Documentos da Homologação */}
+      <Card sx={{ bgcolor:'#111217', border:'1px solid #222', mb:3 }}>
+        <CardContent>
+          <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:1.5 }}>
+            <Description sx={{ color:'#D4AF37', fontSize:18 }} />
+            <Typography variant="subtitle2" sx={{ color:'#E8E3D5' }}>Documentos da Homologação</Typography>
+            <Chip label={documents.length} size="small" sx={{ height:18, fontSize:10, bgcolor:'#D4AF3722', color:'#D4AF37' }} />
+          </Box>
+          {documents.length === 0 ? (
+            <Typography sx={{ color:'#888', fontSize:13 }}>Nenhum documento salvo. Use "Salvar como documento" nas fotos recebidas pelo WhatsApp.</Typography>
+          ) : (
+            <Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
+              {documents.map(doc => (
+                <Box key={doc.id} sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', p:1, bgcolor:'#0a0e14', borderRadius:1, border:'1px solid #1a2332' }}>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                    <Chip label={doc.document_type.replace(/_/g,' ')} size="small" sx={{ height:20, fontSize:10, bgcolor:'#1a2332', color:'#ccc' }} />
+                    <Chip label={doc.status} size="small" sx={{ height:18, fontSize:9, bgcolor: doc.status === 'approved' ? '#4caf5033' : doc.status === 'rejected' ? '#f4433633' : '#ff980033', color: doc.status === 'approved' ? '#4caf50' : doc.status === 'rejected' ? '#f44336' : '#ff9800' }} />
+                    <Typography sx={{ color:'#888', fontSize:10 }}>{new Date(doc.created_at).toLocaleDateString('pt-BR')}</Typography>
+                  </Box>
+                  <Box sx={{ display:'flex', gap:0.5 }}>
+                    <Button size="small" onClick={async () => { const r = await fetch(`${API_BASE_URL}/api/admin/pet/homologations/documents/${doc.id}/file`, { headers:headers() }); const j = await r.json(); if (j.success) window.open(j.url, '_blank'); }} sx={{ color:'#8a9aaa', fontSize:10, minWidth:0, textTransform:'none' }}>Abrir</Button>
+                    {doc.status === 'pending' && <Button size="small" onClick={() => handleDocStatus(doc.id, 'approved')} sx={{ color:'#4caf50', fontSize:10, minWidth:0, textTransform:'none' }}>Aprovar</Button>}
+                    {doc.status === 'pending' && <Button size="small" onClick={() => handleDocStatus(doc.id, 'rejected')} sx={{ color:'#f44336', fontSize:10, minWidth:0, textTransform:'none' }}>Reprovar</Button>}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
@@ -351,6 +414,22 @@ export default function PetHomologationDetail() {
         <DialogActions>
           <Button onClick={() => setEditOpen(false)} sx={{ color:'#888' }}>Cancelar</Button>
           <Button onClick={handleEdit} disabled={saving} variant="contained" sx={{ bgcolor:'#b8960c', '&:hover':{ bgcolor:'#d4af37' } }}>{saving ? 'Salvando...' : 'Salvar'}</Button>
+        </DialogActions>
+      </Dialog>
+      {/* Dialog salvar documento */}
+      <Dialog open={!!saveDocDialog} onClose={() => setSaveDocDialog(null)} maxWidth="xs" fullWidth PaperProps={{ sx:{ bgcolor:'#1a1a2e', color:'#E8E3D5' } }}>
+        <DialogTitle>Salvar como documento</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color:'#aaa', fontSize:13, mb:2 }}>Escolha o tipo do documento:</Typography>
+          <FormControl fullWidth size="small">
+            <Select value={docType} onChange={e => setDocType(e.target.value)} sx={{ color:'#E8E3D5', '.MuiOutlinedInput-notchedOutline':{ borderColor:'#444' } }}>
+              {[['banco_traseiro','Banco traseiro'],['capa_protetora','Capa protetora'],['kit_higiene','Kit higiene'],['veiculo_geral','Veículo geral'],['documento_complementar','Documento complementar'],['outro','Outro']].map(([v,l]) => <MenuItem key={v} value={v} sx={{ fontSize:13 }}>{l}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSaveDocDialog(null)} sx={{ color:'#888' }}>Cancelar</Button>
+          <Button onClick={handleSaveDocument} disabled={saving} variant="contained" sx={{ bgcolor:'#D4AF37', '&:hover':{ bgcolor:'#b8960c' } }}>{saving ? 'Salvando...' : 'Salvar'}</Button>
         </DialogActions>
       </Dialog>
     </Container>
