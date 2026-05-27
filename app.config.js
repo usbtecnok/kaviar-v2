@@ -22,8 +22,8 @@ const config = {
     adaptiveIcon: './assets/adaptive-icon-passenger.png',
     scheme: 'kaviar-passenger',
     projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
-    version: '1.12.13-home-call-card',
-    versionCode: 13,
+    version: '1.13.0-pet-card',
+    versionCode: 14,
   }
 };
 
