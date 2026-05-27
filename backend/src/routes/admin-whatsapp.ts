@@ -228,6 +228,12 @@ async function resolveLinkedEntity(type: string, id: string): Promise<any> {
         select: { id: true, name: true, phone: true, status: true, region: true, source: true },
       }).then(l => l ? { ...l, type: 'consultant_lead' } : null);
     }
+    case 'pet_homologation': {
+      return prisma.pet_homologations.findUnique({
+        where: { id },
+        select: { id: true, name: true, phone: true, status: true, region: true, driver_id: true, operator_id: true, source: true },
+      }).then(h => h ? { ...h, type: 'pet_homologation' } : null);
+    }
     default:
       return null;
   }

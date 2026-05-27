@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../../config/api';
 const CONTACT_BADGES = {
   driver:     { emoji: '🚗', label: 'Motorista', color: '#2196F3' },
   passenger:  { emoji: '🧍', label: 'Passageiro', color: '#4CAF50' },
+  pet:        { emoji: '🐾', label: 'Pet', color: '#D4AF37' },
   guide:      { emoji: '🏖️', label: 'Guia', color: '#FF9800' },
   consultant: { emoji: '💼', label: 'Consultor', color: '#9C27B0' },
   lead:       { emoji: '✨', label: 'Lead', color: '#FFD700' },
@@ -134,6 +135,10 @@ function ContextPanel({ chatData, badge, token, onUpdate }) {
               {chatData.linked_entity_type === 'passenger' && (
                 <Chip label="Abrir passageiro →" size="small" component="a" href={`/admin/passengers/${le.id}`} clickable
                   sx={{ height: 24, fontSize: 10, bgcolor: '#4CAF5022', color: '#4CAF50', border: '1px solid #4CAF5044', cursor: 'pointer' }} />
+              )}
+              {chatData.linked_entity_type === 'pet_homologation' && (
+                <Chip label="Abrir homologação Pet →" size="small" component="a" href={`/admin/pet/homologations/${le.id}`} clickable
+                  sx={{ height: 24, fontSize: 10, bgcolor: '#D4AF3722', color: '#D4AF37', border: '1px solid #D4AF3744', cursor: 'pointer' }} />
               )}
             </Box>
           </Box>

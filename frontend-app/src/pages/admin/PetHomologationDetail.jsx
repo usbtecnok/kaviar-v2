@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Chip, Button, TextField, CircularProgress, Alert, MenuItem, Select, FormControl, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import { ArrowBack, Pets, Timeline, Send, WhatsApp, OndemandVideo, Quiz, CameraAlt, Edit, LinkOff, Link as LinkIcon, Warning, CheckCircle } from '@mui/icons-material';
+import { ArrowBack, Pets, Timeline, Send, WhatsApp, OndemandVideo, Quiz, CameraAlt, Edit, LinkOff, Link as LinkIcon, Warning, CheckCircle, Chat } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 
@@ -22,6 +22,7 @@ export default function PetHomologationDetail() {
   const [item, setItem] = useState(null);
   const [logs, setLogs] = useState([]);
   const [driverInfo, setDriverInfo] = useState(null);
+  const [waConversation, setWaConversation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -47,6 +48,17 @@ export default function PetHomologationDetail() {
       if (jsonItems.success) setItem(jsonItems.data.find(h => h.id === id) || null);
       if (jsonLogs.success) setLogs(jsonLogs.data);
       if (jsonDriver.success) setDriverInfo(jsonDriver);
+
+      // Buscar conversa WhatsApp vinculada
+      const foundItem = jsonItems.success ? jsonItems.data.find(h => h.id === id) : null;
+      if (foundItem?.phone) {
+        try {
+          const resWa = await fetch(`${API_BASE_URL}/api/admin/whatsapp/conversations?search=${encodeURIComponent(foundItem.phone.replace(/\D/g, '').slice(-9))}&limit=1`, { headers: headers() });
+          const jsonWa = await resWa.json();
+          if (jsonWa.success && jsonWa.data.length > 0) setWaConversation(jsonWa.data[0]);
+          else setWaConversation(null);
+        } catch { setWaConversation(null); }
+      }
     } catch { setError('Erro ao carregar'); }
     finally { setLoading(false); }
   };
@@ -200,6 +212,31 @@ export default function PetHomologationDetail() {
             <ActionButton icon={<Quiz />} label="Enviar questionário" color="#2196F3" onClick={() => handleAction('QUESTIONNAIRE_SENT', `Olá ${item.name}! Agora responda o questionário de certificação (nota mínima 7/10):\n📝 https://forms.gle/rRc5rbCSSvcnEeVc6\nBoa sorte!`)} />
             <ActionButton icon={<CameraAlt />} label="Solicitar fotos" color="#9C27B0" onClick={() => handleAction('PHOTOS_REQUESTED', `Olá ${item.name}! Agora envie as fotos do veículo preparado:\n📸 1. Capa protetora instalada no banco traseiro\n📸 2. Kit de higienização visível\n📸 3. Banco traseiro (visão geral)\nPode enviar aqui mesmo neste chat.`)} />
           </Box>
+        </CardContent>
+      </Card>
+
+      {/* Conversa WhatsApp */}
+      <Card sx={{ bgcolor:'#111217', border: waConversation ? '1px solid #25D366' : '1px solid #222', mb:3 }}>
+        <CardContent>
+          <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:1 }}>
+            <Chat sx={{ color:'#25D366', fontSize:18 }} />
+            <Typography variant="subtitle2" sx={{ color:'#E8E3D5' }}>Central WhatsApp</Typography>
+          </Box>
+          {waConversation ? (
+            <Box>
+              <Typography sx={{ color:'#ccc', fontSize:13, mb:1 }}>
+                {waConversation.message_count} mensagem{waConversation.message_count !== 1 ? 's' : ''} • Última: {waConversation.last_message_at ? new Date(waConversation.last_message_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'}
+              </Typography>
+              {waConversation.last_message_preview && (
+                <Typography sx={{ color:'#888', fontSize:12, fontStyle:'italic', mb:1 }}>"{waConversation.last_message_preview}"</Typography>
+              )}
+              <Button component={Link} to={`/admin/whatsapp`} size="small" startIcon={<WhatsApp />} sx={{ color:'#25D366', textTransform:'none', fontSize:12 }}>
+                Abrir na Central WhatsApp
+              </Button>
+            </Box>
+          ) : (
+            <Typography sx={{ color:'#888', fontSize:13 }}>Nenhuma conversa WhatsApp encontrada para este contato.</Typography>
+          )}
         </CardContent>
       </Card>
 

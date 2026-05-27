@@ -67,6 +67,18 @@ async function resolveContact(phone: string): Promise<{
   });
   if (lead) return { contact_type: 'lead', contact_name: lead.name, linked_entity_type: 'consultant_lead', linked_entity_id: lead.id };
 
+  // Pet homologation (phone pode estar formatado diferente)
+  const cleanDigits = clean.replace(/\D/g, '');
+  const suffix9 = cleanDigits.slice(-9);
+  if (suffix9.length === 9) {
+    const petAll = await prisma.pet_homologations.findMany({
+      where: { phone: { not: '' } },
+      select: { id: true, name: true, phone: true },
+    });
+    const petMatch = petAll.find(h => h.phone.replace(/\D/g, '').slice(-9) === suffix9);
+    if (petMatch) return { contact_type: 'pet', contact_name: petMatch.name, linked_entity_type: 'pet_homologation', linked_entity_id: petMatch.id };
+  }
+
   return { contact_type: 'unknown', contact_name: null, linked_entity_type: null, linked_entity_id: null };
 }
 
