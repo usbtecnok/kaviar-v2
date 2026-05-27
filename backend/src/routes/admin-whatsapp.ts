@@ -64,6 +64,83 @@ router.get('/conversations', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/whatsapp/conversations/send — enviar mensagem criando/usando conversa existente
+router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), async (req: Request, res: Response) => {
+  try {
+    const { phone, body, contact_type, linked_entity_type, linked_entity_id, assignee_id } = req.body;
+    if (!phone || !body?.trim()) {
+      return res.status(400).json({ success: false, error: 'phone e body são obrigatórios' });
+    }
+
+    const admin = (req as any).admin;
+    const cleanPhone = phone.replace(/[^\d+]/g, '');
+    const normalizedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
+
+    // Buscar conversa existente por telefone (tentar variantes)
+    const variants = [normalizedPhone, cleanPhone, cleanPhone.replace(/^\+/, '')];
+    let conversation = await prisma.wa_conversations.findFirst({ where: { phone: { in: variants } } });
+
+    if (!conversation) {
+      conversation = await prisma.wa_conversations.create({
+        data: {
+          phone: normalizedPhone,
+          contact_type: contact_type || 'pet',
+          linked_entity_type: linked_entity_type || null,
+          linked_entity_id: linked_entity_id || null,
+          assignee_id: assignee_id || null,
+          status: 'in_progress',
+          priority: 'normal',
+          unread_count: 0,
+          message_count: 0,
+          last_message_at: new Date(),
+          last_message_preview: body.trim().substring(0, 200),
+        },
+      });
+    }
+
+    // Enviar via Twilio
+    let twilioSid: string | null = null;
+    if (WHATSAPP_ENV.enabled) {
+      const client = getTwilioClient();
+      const msg = await client.messages.create({
+        from: getWhatsAppFrom(),
+        to: normalizeWhatsAppTo(conversation.phone),
+        body: body.trim(),
+      });
+      twilioSid = msg.sid;
+    }
+
+    // Persistir mensagem outbound
+    const message = await prisma.wa_messages.create({
+      data: {
+        conversation_id: conversation.id,
+        direction: 'outbound',
+        body: body.trim(),
+        twilio_sid: twilioSid,
+        sent_by_admin_id: admin.id,
+        sent_by_admin_name: admin.name,
+      },
+    });
+
+    // Atualizar conversa
+    await prisma.wa_conversations.update({
+      where: { id: conversation.id },
+      data: {
+        message_count: { increment: 1 },
+        last_message_at: new Date(),
+        last_message_preview: body.trim().substring(0, 200),
+        status: conversation.status === 'new' ? 'in_progress' : undefined,
+      },
+    });
+
+    console.log(`[WA_SEND] conv=${conversation.id} admin=${admin.name} twilio=${twilioSid || 'disabled'}`);
+    res.json({ success: true, data: { conversation_id: conversation.id, message } });
+  } catch (err: any) {
+    console.error('[WA_SEND] error:', err);
+    res.status(500).json({ success: false, error: 'Erro ao enviar mensagem' });
+  }
+});
+
 // GET /api/admin/whatsapp/conversations/:id
 router.get('/conversations/:id', async (req: Request, res: Response) => {
   try {

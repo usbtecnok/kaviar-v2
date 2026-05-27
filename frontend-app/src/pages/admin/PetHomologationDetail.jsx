@@ -92,12 +92,22 @@ export default function PetHomologationDetail() {
   };
 
   const handleAction = async (action, message) => {
+    setError('');
+    try {
+      // Enviar via Central WhatsApp/Twilio
+      const phone = (item?.phone || '').replace(/\D/g, '');
+      const waPhone = phone.startsWith('55') ? `+${phone}` : `+55${phone}`;
+      const res = await fetch(`${API_BASE_URL}/api/admin/whatsapp/conversations/send`, {
+        method: 'POST', headers: headers(),
+        body: JSON.stringify({ phone: waPhone, body: message, contact_type: 'pet', linked_entity_type: 'pet_homologation', linked_entity_id: id, assignee_id: item?.operator_id || null }),
+      });
+      const json = await res.json();
+      if (!json.success) setError(json.error || 'Erro ao enviar mensagem');
+    } catch { setError('Erro ao enviar mensagem'); }
+    // Registrar ação na homologação
     try {
       await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}/actions`, { method:'POST', headers:headers(), body:JSON.stringify({ action }) });
     } catch {}
-    const phone = (item?.phone || '').replace(/\D/g, '');
-    const waPhone = phone.startsWith('55') ? phone : '55' + phone;
-    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
     fetchData();
   };
 
