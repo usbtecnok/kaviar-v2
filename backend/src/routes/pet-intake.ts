@@ -62,4 +62,57 @@ router.post('/intake', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/public/pet/quiz-result — Google Forms questionário webhook
+router.post('/quiz-result', async (req: Request, res: Response) => {
+  const incoming = req.headers['x-pet-intake-token'] as string;
+  if (!TOKEN || incoming !== TOKEN) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  const { email, phone, score, total } = req.body;
+  if (score === undefined || total === undefined) {
+    return res.status(400).json({ success: false, error: 'score and total are required' });
+  }
+
+  try {
+    let homologation: any = null;
+
+    // Buscar por email
+    if (email) {
+      homologation = await prisma.pet_homologations.findFirst({ where: { email: { equals: email, mode: 'insensitive' } } });
+    }
+
+    // Fallback: buscar por telefone (últimos 9 dígitos)
+    if (!homologation && phone) {
+      const digits = (phone || '').replace(/\D/g, '');
+      if (digits.length >= 9) {
+        const suffix = digits.slice(-9);
+        const all = await prisma.pet_homologations.findMany({ where: { phone: { not: '' } }, select: { id: true, phone: true } });
+        const match = all.find(h => h.phone.replace(/\D/g, '').slice(-9) === suffix);
+        if (match) homologation = await prisma.pet_homologations.findUnique({ where: { id: match.id } });
+      }
+    }
+
+    if (!homologation) {
+      return res.json({ success: true, matched: false, message: 'Homologação não encontrada' });
+    }
+
+    const passed = score >= 7;
+    await prisma.pet_homologations.update({
+      where: { id: homologation.id },
+      data: { quiz_score: score, quiz_passed: passed, quiz_sent_at: new Date(), updated_at: new Date() },
+    });
+
+    await prisma.pet_homologation_logs.create({
+      data: { homologation_id: homologation.id, action: 'quiz_received', admin_id: null, admin_name: 'Google Forms', note: `Nota: ${score}/${total} — ${passed ? 'APROVADO' : 'REPROVADO'}` },
+    });
+
+    console.log(`[PET_QUIZ] id=${homologation.id} score=${score}/${total} passed=${passed}`);
+    return res.json({ success: true, matched: true, id: homologation.id, passed });
+  } catch (err) {
+    console.error('[PET_QUIZ] error:', err);
+    return res.status(500).json({ success: false, error: 'Internal error' });
+  }
+});
+
 export default router;

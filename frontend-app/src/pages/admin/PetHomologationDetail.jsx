@@ -7,7 +7,7 @@ import { API_BASE_URL } from '../../config/api';
 
 const STATUSES = ['NOVO','EM_CONTATO','AGUARDANDO_TREINAMENTO','AGUARDANDO_QUESTIONARIO','AGUARDANDO_FOTOS','EM_ANALISE','APROVADO','REPROVADO','SUSPENSO','DESISTIU'];
 const STATUS_COLORS = { NOVO:'#FFF2CC', EM_CONTATO:'#CFE2F3', AGUARDANDO_TREINAMENTO:'#FCE5CD', AGUARDANDO_QUESTIONARIO:'#FCE5CD', AGUARDANDO_FOTOS:'#FCE5CD', EM_ANALISE:'#D9EAD3', APROVADO:'#4caf50', REPROVADO:'#f44336', SUSPENSO:'#ff9800', DESISTIU:'#9e9e9e' };
-const ACTION_LABELS = { created:'Criado', auto_created:'Cadastro automático', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', driver_linked:'Motorista vinculado', photos_received:'Fotos recebidas', photos_approved:'Fotos aprovadas', photos_rejected:'Fotos reprovadas', document_saved:'Documento salvo', document_approved:'Documento aprovado', document_rejected:'Documento reprovado', document_hidden:'Documento ocultado', approved:'Aprovado', rejected:'Reprovado', WHATSAPP_OPENED:'WhatsApp aberto', TRAINING_SENT:'Treinamento enviado', QUESTIONNAIRE_SENT:'Questionário enviado', PHOTOS_REQUESTED:'Fotos solicitadas' };
+const ACTION_LABELS = { created:'Criado', auto_created:'Cadastro automático', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', driver_linked:'Motorista vinculado', photos_received:'Fotos recebidas', photos_approved:'Fotos aprovadas', photos_rejected:'Fotos reprovadas', document_saved:'Documento salvo', document_approved:'Documento aprovado', document_rejected:'Documento reprovado', document_hidden:'Documento ocultado', quiz_received:'Questionário respondido', approved:'Aprovado', rejected:'Reprovado', WHATSAPP_OPENED:'WhatsApp aberto', TRAINING_SENT:'Treinamento enviado', QUESTIONNAIRE_SENT:'Questionário enviado', PHOTOS_REQUESTED:'Fotos solicitadas' };
 
 function ActionButton({ icon, label, color, onClick }) {
   return (
@@ -257,6 +257,27 @@ export default function PetHomologationDetail() {
             <ActionButton icon={<Quiz />} label="Enviar questionário" color="#2196F3" onClick={() => handleAction('QUESTIONNAIRE_SENT', `Olá ${item.name}! Agora responda o questionário de certificação (nota mínima 7/10):\n📝 https://forms.gle/rRc5rbCSSvcnEeVc6\nBoa sorte!`)} />
             <ActionButton icon={<CameraAlt />} label="Solicitar fotos" color="#9C27B0" onClick={() => handleAction('PHOTOS_REQUESTED', `Olá ${item.name}! Agora envie as fotos do veículo preparado:\n📸 1. Capa protetora instalada no banco traseiro\n📸 2. Kit de higienização visível\n📸 3. Banco traseiro (visão geral)\nPode enviar aqui mesmo neste chat.`)} />
           </Box>
+        </CardContent>
+      </Card>
+
+      {/* Questionário de Certificação */}
+      <Card sx={{ bgcolor:'#111217', border: item.quiz_passed === true ? '1px solid #4caf50' : item.quiz_passed === false ? '1px solid #f44336' : '1px solid #222', mb:3 }}>
+        <CardContent>
+          <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:1 }}>
+            <Quiz sx={{ color:'#2196F3', fontSize:18 }} />
+            <Typography variant="subtitle2" sx={{ color:'#E8E3D5' }}>Questionário de Certificação</Typography>
+            {item.quiz_passed === true && <Chip label="Aprovado" size="small" sx={{ height:18, fontSize:10, bgcolor:'#4caf5033', color:'#4caf50' }} />}
+            {item.quiz_passed === false && <Chip label="Reprovado" size="small" sx={{ height:18, fontSize:10, bgcolor:'#f4433633', color:'#f44336' }} />}
+          </Box>
+          {item.quiz_score !== null && item.quiz_score !== undefined ? (
+            <Box>
+              <Typography sx={{ color:'#E8E3D5', fontSize:22, fontWeight:700 }}>{item.quiz_score}/10</Typography>
+              <Typography sx={{ color:'#888', fontSize:12 }}>Respondido em: {item.quiz_sent_at ? new Date(item.quiz_sent_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'}</Typography>
+              <Typography sx={{ color: item.quiz_passed ? '#4caf50' : '#f44336', fontSize:12, mt:0.5 }}>{item.quiz_passed ? '✅ Nota mínima atingida (7/10)' : '❌ Nota abaixo do mínimo (7/10)'}</Typography>
+            </Box>
+          ) : (
+            <Typography sx={{ color:'#888', fontSize:13 }}>Aguardando resposta do questionário.</Typography>
+          )}
         </CardContent>
       </Card>
 
