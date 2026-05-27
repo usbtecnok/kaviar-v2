@@ -165,4 +165,45 @@ router.post('/:id/notes', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/pet/homologations/:id/actions
+const ALLOWED_ACTIONS = ['WHATSAPP_OPENED', 'TRAINING_SENT', 'QUESTIONNAIRE_SENT', 'PHOTOS_REQUESTED'] as const;
+const STATUS_FLOW: Record<string, { from: string[]; to: string }> = {
+  WHATSAPP_OPENED: { from: ['NOVO'], to: 'EM_CONTATO' },
+  TRAINING_SENT: { from: ['NOVO', 'EM_CONTATO'], to: 'AGUARDANDO_TREINAMENTO' },
+  QUESTIONNAIRE_SENT: { from: ['NOVO', 'EM_CONTATO', 'AGUARDANDO_TREINAMENTO'], to: 'AGUARDANDO_QUESTIONARIO' },
+  PHOTOS_REQUESTED: { from: ['NOVO', 'EM_CONTATO', 'AGUARDANDO_TREINAMENTO', 'AGUARDANDO_QUESTIONARIO'], to: 'AGUARDANDO_FOTOS' },
+};
+
+router.post('/:id/actions', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const { action } = req.body;
+
+    if (!action || !ALLOWED_ACTIONS.includes(action)) {
+      return res.status(400).json({ success: false, error: 'Ação inválida' });
+    }
+
+    const existing = await prisma.pet_homologations.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Homologação não encontrada' });
+
+    if (admin.role === 'PET_OPERATOR' && existing.operator_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    const flow = STATUS_FLOW[action];
+    let newStatus: string | null = null;
+    if (flow && flow.from.includes(existing.status)) {
+      newStatus = flow.to;
+      await prisma.pet_homologations.update({ where: { id: req.params.id }, data: { status: newStatus, updated_at: new Date() } });
+    }
+
+    await addLog(req.params.id, action, admin, newStatus ? { old_status: existing.status, new_status: newStatus } : {});
+
+    return res.json({ success: true, status_changed: !!newStatus, new_status: newStatus || existing.status });
+  } catch (err) {
+    console.error('[PET_HOMOLOGATIONS] action error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao executar ação' });
+  }
+});
+
 export default router;

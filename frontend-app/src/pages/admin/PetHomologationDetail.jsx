@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Chip, Button, TextField, CircularProgress, Alert, MenuItem, Select, FormControl, InputLabel, Divider } from '@mui/material';
-import { ArrowBack, Pets, Timeline, Send } from '@mui/icons-material';
+import { ArrowBack, Pets, Timeline, Send, WhatsApp, OndemandVideo, Quiz, CameraAlt } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
 
 const STATUSES = ['NOVO','EM_CONTATO','AGUARDANDO_TREINAMENTO','AGUARDANDO_QUESTIONARIO','AGUARDANDO_FOTOS','EM_ANALISE','APROVADO','REPROVADO','SUSPENSO','DESISTIU'];
 const STATUS_COLORS = { NOVO:'#FFF2CC', EM_CONTATO:'#CFE2F3', AGUARDANDO_TREINAMENTO:'#FCE5CD', AGUARDANDO_QUESTIONARIO:'#FCE5CD', AGUARDANDO_FOTOS:'#FCE5CD', EM_ANALISE:'#D9EAD3', APROVADO:'#4caf50', REPROVADO:'#f44336', SUSPENSO:'#ff9800', DESISTIU:'#9e9e9e' };
-const ACTION_LABELS = { created:'Criado', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', approved:'Aprovado', rejected:'Reprovado' };
+const ACTION_LABELS = { created:'Criado', auto_created:'Cadastro automático', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', approved:'Aprovado', rejected:'Reprovado', WHATSAPP_OPENED:'WhatsApp aberto', TRAINING_SENT:'Treinamento enviado', QUESTIONNAIRE_SENT:'Questionário enviado', PHOTOS_REQUESTED:'Fotos solicitadas' };
+
+function ActionButton({ icon, label, color, onClick }) {
+  return (
+    <Button onClick={onClick} startIcon={icon} variant="outlined" size="small" sx={{ borderColor: color, color, textTransform:'none', fontSize:12, '&:hover':{ borderColor: color, bgcolor:`${color}15` } }}>
+      {label}
+    </Button>
+  );
+}
 
 export default function PetHomologationDetail() {
   const { id } = useParams();
@@ -56,6 +64,16 @@ export default function PetHomologationDetail() {
     finally { setSaving(false); }
   };
 
+  const handleAction = async (action, message) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}/actions`, { method:'POST', headers:headers(), body:JSON.stringify({ action }) });
+    } catch {}
+    const phone = (item?.phone || '').replace(/\D/g, '');
+    const waPhone = phone.startsWith('55') ? phone : '55' + phone;
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    fetchData();
+  };
+
   if (loading) return <Container maxWidth="md" sx={{ mt:4 }}><Box sx={{ display:'flex', justifyContent:'center', py:8 }}><CircularProgress sx={{ color:'#b8960c' }} /></Box></Container>;
   if (!item) return <Container maxWidth="md" sx={{ mt:4 }}><Alert severity="error">Homologação não encontrada</Alert></Container>;
 
@@ -91,6 +109,19 @@ export default function PetHomologationDetail() {
             </FormControl>
           </Box>
           {item.notes && <Box sx={{ mt:2 }}><Typography variant="caption" sx={{ color:'#888' }}>Notas</Typography><Typography sx={{ color:'#ccc', fontSize:13 }}>{item.notes}</Typography></Box>}
+        </CardContent>
+      </Card>
+
+      {/* Ações rápidas */}
+      <Card sx={{ bgcolor:'#111217', border:'1px solid #222', mb:3 }}>
+        <CardContent>
+          <Typography variant="subtitle2" sx={{ color:'#E8E3D5', mb:1.5 }}>Ações rápidas</Typography>
+          <Box sx={{ display:'flex', gap:1, flexWrap:'wrap' }}>
+            <ActionButton icon={<WhatsApp />} label="Chamar no WhatsApp" color="#25D366" onClick={() => handleAction('WHATSAPP_OPENED', `Olá ${item.name}! Aqui é a Central KAVIAR Pet 🐾. Você se cadastrou para ser motorista certificado. Vou te acompanhar no processo de homologação. Pode falar?`)} />
+            <ActionButton icon={<OndemandVideo />} label="Enviar treinamento" color="#FF9800" onClick={() => handleAction('TRAINING_SENT', `Olá ${item.name}! Seguem os vídeos de treinamento obrigatórios do KAVIAR Pet:\n📹 Vídeo 1 — Segurança: https://youtu.be/HAVkF30EIpg\n📹 Vídeo 2 — Higiene: https://youtu.be/48EpByNv3GI\nAssista os dois e me avise quando terminar para eu enviar o questionário.`)} />
+            <ActionButton icon={<Quiz />} label="Enviar questionário" color="#2196F3" onClick={() => handleAction('QUESTIONNAIRE_SENT', `Olá ${item.name}! Agora responda o questionário de certificação (nota mínima 7/10):\n📝 https://forms.gle/rRc5rbCSSvcnEeVc6\nBoa sorte!`)} />
+            <ActionButton icon={<CameraAlt />} label="Solicitar fotos" color="#9C27B0" onClick={() => handleAction('PHOTOS_REQUESTED', `Olá ${item.name}! Agora envie as fotos do veículo preparado:\n📸 1. Capa protetora instalada no banco traseiro\n📸 2. Kit de higienização visível\n📸 3. Banco traseiro (visão geral)\nPode enviar aqui mesmo neste chat.`)} />
+          </Box>
         </CardContent>
       </Card>
 
