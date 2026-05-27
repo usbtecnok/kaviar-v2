@@ -102,9 +102,10 @@ router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), 
     let twilioSid: string | null = null;
     if (WHATSAPP_ENV.enabled) {
       const client = getTwilioClient();
+      const toPhone = conversation.phone.startsWith('+') ? conversation.phone : `+${conversation.phone}`;
       const msg = await client.messages.create({
         from: getWhatsAppFrom(),
-        to: normalizeWhatsAppTo(conversation.phone),
+        to: normalizeWhatsAppTo(toPhone),
         body: body.trim(),
       });
       twilioSid = msg.sid;
