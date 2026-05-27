@@ -249,10 +249,10 @@ export default function PetHomologationDetail() {
                       <Box key={msg.id} sx={{ display:'flex', justifyContent: isOut ? 'flex-end' : 'flex-start', mb:0.8 }}>
                         <Box sx={{ maxWidth:'80%', px:1.2, py:0.8, borderRadius: isOut ? '10px 10px 2px 10px' : '10px 10px 10px 2px', bgcolor: isOut ? '#0B3D2E' : '#141e2a', border: isOut ? '1px solid #1a5c40' : '1px solid #1a2a3a' }}>
                           {msg.media_url && msg.media_type?.startsWith('image/') && (
-                            <Box component="img" src={msg.media_url} alt="Foto" sx={{ maxWidth:'100%', maxHeight:180, borderRadius:1, mb:0.3, cursor:'pointer' }} onClick={() => window.open(msg.media_url, '_blank')} />
+                            <Box component="img" src={`${API_BASE_URL}/api/admin/whatsapp/messages/${msg.id}/media?token=${token()}`} alt="Foto" sx={{ maxWidth:'100%', maxHeight:180, borderRadius:1, mb:0.3, cursor:'pointer' }} onClick={() => window.open(`${API_BASE_URL}/api/admin/whatsapp/messages/${msg.id}/media?token=${token()}`, '_blank')} />
                           )}
                           {msg.media_url && !msg.media_type?.startsWith('image/') && (
-                            <Chip label={`📎 ${msg.media_type || 'Arquivo'}`} size="small" component="a" href={msg.media_url} target="_blank" clickable sx={{ mb:0.3, height:18, fontSize:9, bgcolor:'#1a2332', color:'#8a9aaa' }} />
+                            <Chip label={`📎 ${msg.media_type || 'Arquivo'}`} size="small" component="a" href={`${API_BASE_URL}/api/admin/whatsapp/messages/${msg.id}/media?token=${token()}`} target="_blank" clickable sx={{ mb:0.3, height:18, fontSize:9, bgcolor:'#1a2332', color:'#8a9aaa' }} />
                           )}
                           {msg.body && <Typography sx={{ fontSize:12, color:'#ddd', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{msg.body}</Typography>}
                           <Typography sx={{ fontSize:9, color:'#555', textAlign:'right', mt:0.2 }}>{new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</Typography>

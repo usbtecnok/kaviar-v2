@@ -334,4 +334,57 @@ async function resolveLinkedEntity(type: string, id: string): Promise<any> {
   }
 }
 
+// GET /api/admin/whatsapp/messages/:id/media — proxy seguro para mídia Twilio
+router.get('/messages/:id/media', async (req: Request, res: Response) => {
+  try {
+    // Aceitar token via header OU query param (para uso em <img src>)
+    let admin = (req as any).admin;
+    if (!admin && req.query.token) {
+      const jwt = require('jsonwebtoken');
+      try {
+        const decoded = jwt.verify(req.query.token, process.env.JWT_SECRET) as any;
+        const adminId = decoded.userId || decoded.adminId;
+        if (adminId) {
+          const found = await prisma.admins.findUnique({ where: { id: adminId } });
+          if (found?.is_active) admin = { id: found.id, role: found.role, name: found.name };
+        }
+      } catch {}
+    }
+    if (!admin) return res.status(401).json({ success: false, error: 'Não autorizado' });
+
+    const message = await prisma.wa_messages.findUnique({
+      where: { id: req.params.id },
+      include: { conversation: { select: { assignee_id: true } } },
+    });
+
+    if (!message || !message.media_url) {
+      return res.status(404).json({ success: false, error: 'Mídia não encontrada' });
+    }
+
+    if (admin.role === 'PET_OPERATOR' && message.conversation.assignee_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    const twilioUrl = message.media_url;
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+    const response = await fetch(twilioUrl, {
+      headers: { Authorization: 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64') },
+    });
+
+    if (!response.ok) {
+      return res.status(502).json({ success: false, error: 'Erro ao buscar mídia' });
+    }
+
+    res.set('Content-Type', message.media_type || 'application/octet-stream');
+    res.set('Cache-Control', 'private, max-age=3600');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    res.send(buffer);
+  } catch (err: any) {
+    console.error('[WA_MEDIA] proxy error:', err.message);
+    res.status(500).json({ success: false, error: 'Erro ao servir mídia' });
+  }
+});
+
 export default router;
