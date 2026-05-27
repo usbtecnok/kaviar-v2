@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Box, Container, Typography, Card, CardContent, Grid, Button, Chip, Divider, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 import { Pets, OpenInNew, CheckCircle, RadioButtonUnchecked, Info, People, Assignment } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../../config/api';
 
 const links = [
   { label: 'Landing /pet', url: 'https://kaviar.com.br/pet', desc: 'Página pública do KAVIAR Pet' },
@@ -34,6 +36,18 @@ const fluxo = [
 export default function PetCentral() {
   const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+  const [counts, setCounts] = useState({ total:0, novo:0, andamento:0, aprovados:0 });
+
+  useEffect(() => {
+    const token = localStorage.getItem('kaviar_admin_token');
+    fetch(`${API_BASE_URL}/api/admin/pet/homologations`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(json => {
+        if (json.success) {
+          const d = json.data;
+          setCounts({ total: d.length, novo: d.filter(h => h.status === 'NOVO').length, andamento: d.filter(h => !['NOVO','APROVADO','REPROVADO','DESISTIU','SUSPENSO'].includes(h.status)).length, aprovados: d.filter(h => h.status === 'APROVADO').length });
+        }
+      }).catch(() => {});
+  }, []);
 
   return (
     <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
@@ -51,6 +65,19 @@ export default function PetCentral() {
           </Typography>
         </Box>
       </Box>
+
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {[['Total', counts.total, '#E8E3D5'], ['Novos', counts.novo, '#FFF2CC'], ['Em andamento', counts.andamento, '#CFE2F3'], ['Aprovados', counts.aprovados, '#4caf50']].map(([label, value, color]) => (
+          <Grid item xs={6} sm={3} key={label}>
+            <Card sx={{ bgcolor: '#111217', border: '1px solid #222' }}>
+              <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
+                <Typography variant="h5" fontWeight="800" sx={{ color }}>{value}</Typography>
+                <Typography variant="caption" sx={{ color: '#888' }}>{label}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
 
       <Box sx={{ mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <Button component={Link} to="/admin/pet/homologations" variant="outlined" startIcon={<Assignment />} sx={{ borderColor: '#b8960c', color: '#b8960c', textTransform: 'none', '&:hover': { borderColor: '#d4af37', bgcolor: 'rgba(184,150,12,0.08)' } }}>

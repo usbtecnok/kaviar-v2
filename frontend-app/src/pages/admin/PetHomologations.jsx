@@ -17,6 +17,8 @@ export default function PetHomologations() {
   const [form, setForm] = useState({ name:'', phone:'', email:'', region:'', vehicle_model:'', notes:'' });
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [operatorFilter, setOperatorFilter] = useState('');
 
   const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
@@ -27,8 +29,11 @@ export default function PetHomologations() {
 
   const fetchItems = async () => {
     try {
-      const url = statusFilter ? `${API_BASE_URL}/api/admin/pet/homologations?status=${statusFilter}` : `${API_BASE_URL}/api/admin/pet/homologations`;
-      const res = await fetch(url, { headers: headers() });
+      const params = new URLSearchParams();
+      if (statusFilter) params.set('status', statusFilter);
+      if (search) params.set('search', search);
+      if (operatorFilter) params.set('operator_id', operatorFilter);
+      const res = await fetch(`${API_BASE_URL}/api/admin/pet/homologations?${params}`, { headers: headers() });
       const json = await res.json();
       if (json.success) setItems(json.data);
       else setError(json.error);
@@ -44,7 +49,7 @@ export default function PetHomologations() {
     } catch {}
   };
 
-  useEffect(() => { setLoading(true); fetchItems(); }, [statusFilter]);
+  useEffect(() => { setLoading(true); fetchItems(); }, [statusFilter, search, operatorFilter]);
 
   const handleCreate = async () => {
     setSaving(true); setError('');
@@ -89,6 +94,18 @@ export default function PetHomologations() {
         <Button variant="contained" startIcon={<Add />} onClick={() => setDialog(true)} sx={{ bgcolor:'#b8960c', '&:hover':{ bgcolor:'#d4af37' }, textTransform:'none' }}>Nova homologação</Button>
       </Box>
 
+      <Box sx={{ mb:2, display:'flex', gap:1, flexWrap:'wrap', alignItems:'center' }}>
+        <TextField value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar nome ou telefone..." size="small" sx={{ minWidth:200, '.MuiOutlinedInput-notchedOutline':{ borderColor:'#444' }, input:{ color:'#E8E3D5', fontSize:13 } }} />
+        {isSuperAdmin && operators.length > 0 && (
+          <FormControl size="small" sx={{ minWidth:140 }}>
+            <Select value={operatorFilter} onChange={e => setOperatorFilter(e.target.value)} displayEmpty sx={{ color:'#E8E3D5', fontSize:12, '.MuiOutlinedInput-notchedOutline':{ borderColor:'#444' } }}>
+              <MenuItem value="" sx={{ fontSize:12 }}>Todos operadores</MenuItem>
+              {operators.map(op => <MenuItem key={op.id} value={op.id} sx={{ fontSize:12 }}>{op.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        )}
+      </Box>
+
       <Box sx={{ mb:2, display:'flex', gap:1, flexWrap:'wrap' }}>
         <Chip label="Todos" onClick={() => setStatusFilter('')} variant={!statusFilter ? 'filled' : 'outlined'} sx={{ bgcolor: !statusFilter ? '#b8960c' : 'transparent', color: !statusFilter ? '#000' : '#aaa', borderColor:'#444' }} />
         {STATUSES.map(s => <Chip key={s} label={s.replace(/_/g,' ')} onClick={() => setStatusFilter(s)} variant={statusFilter===s ? 'filled' : 'outlined'} size="small" sx={{ bgcolor: statusFilter===s ? STATUS_COLORS[s] : 'transparent', color: statusFilter===s ? '#000' : '#aaa', borderColor:'#444' }} />)}
@@ -129,7 +146,7 @@ export default function PetHomologations() {
                     {isSuperAdmin && <IconButton size="small" onClick={() => setAssignDialog(item)} sx={{ color:'#b8960c', ml:0.5 }}><PersonAdd sx={{ fontSize:16 }} /></IconButton>}
                   </TableCell>
                   <TableCell sx={{ borderColor:'#333' }}>
-                    <Button size="small" sx={{ color:'#b8960c', textTransform:'none', fontSize:11 }}>Ver</Button>
+                    <Button component={Link} to={`/admin/pet/homologations/${item.id}`} size="small" sx={{ color:'#b8960c', textTransform:'none', fontSize:11 }}>Ver</Button>
                   </TableCell>
                 </TableRow>
               ))}

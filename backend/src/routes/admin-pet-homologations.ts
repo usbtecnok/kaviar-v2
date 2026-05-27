@@ -18,11 +18,18 @@ async function addLog(homologation_id: string, action: string, admin: any, extra
 router.get('/', async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
-    const { status, operator_id } = req.query;
+    const { status, operator_id, search } = req.query;
     const where: any = {};
 
     if (status) where.status = status;
     if (operator_id) where.operator_id = operator_id;
+    if (search) {
+      const s = String(search).trim();
+      where.OR = [
+        { name: { contains: s, mode: 'insensitive' } },
+        { phone: { contains: s } },
+      ];
+    }
 
     // PET_OPERATOR vê apenas os seus
     if (admin.role === 'PET_OPERATOR') {
@@ -131,6 +138,30 @@ router.get('/:id/logs', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[PET_HOMOLOGATIONS] logs error:', err);
     return res.status(500).json({ success: false, error: 'Erro ao buscar logs' });
+  }
+});
+
+// POST /api/admin/pet/homologations/:id/notes
+router.post('/:id/notes', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const { note } = req.body;
+    if (!note || !note.trim()) return res.status(400).json({ success: false, error: 'Observação não pode ser vazia' });
+
+    const existing = await prisma.pet_homologations.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Homologação não encontrada' });
+
+    if (admin.role === 'PET_OPERATOR' && existing.operator_id !== admin.id) {
+      return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+
+    await prisma.pet_homologations.update({ where: { id: req.params.id }, data: { updated_at: new Date() } });
+    await addLog(req.params.id, 'note_added', admin, { note: note.trim() });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[PET_HOMOLOGATIONS] note error:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao adicionar observação' });
   }
 });
 

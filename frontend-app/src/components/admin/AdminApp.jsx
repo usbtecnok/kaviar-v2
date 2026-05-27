@@ -64,6 +64,7 @@ import InvestorsPage from "../../pages/admin/InvestorsPage";
 import PetCentral from "../../pages/admin/PetCentral";
 import PetOperators from "../../pages/admin/PetOperators";
 import PetHomologations from "../../pages/admin/PetHomologations";
+import PetHomologationDetail from "../../pages/admin/PetHomologationDetail";
 import usbTecnokLogo from "../../assets/usb-tecnok-logo-transparent.png";
 import { useState, useEffect } from 'react';
 
@@ -918,6 +919,7 @@ export default function AdminApp() {
           <Route path="/pet" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN']}><PetCentral /></ProtectedAdminRoute>} />
           <Route path="/pet/operators" element={<ProtectedAdminRoute requireSuperAdmin><PetOperators /></ProtectedAdminRoute>} />
           <Route path="/pet/homologations" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN']}><PetHomologations /></ProtectedAdminRoute>} />
+          <Route path="/pet/homologations/:id" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN']}><PetHomologationDetail /></ProtectedAdminRoute>} />
 
           {/* Redirects para rotas antigas */}
           <Route path="/bairros" element={<Navigate to="/admin/neighborhoods" replace />} />
