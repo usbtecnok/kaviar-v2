@@ -7,7 +7,7 @@ import { getTwilioClient, getWhatsAppFrom, normalizeWhatsAppTo, WHATSAPP_ENV } f
 const router = Router();
 
 router.use(authenticateAdmin);
-router.use(requireRole(['SUPER_ADMIN', 'OPERATOR']));
+router.use(requireRole(['SUPER_ADMIN', 'OPERATOR', 'PET_OPERATOR']));
 
 // GET /api/admin/whatsapp/conversations
 router.get('/conversations', async (req: Request, res: Response) => {
@@ -19,6 +19,12 @@ router.get('/conversations', async (req: Request, res: Response) => {
     const where: any = {};
     if (status) where.status = status;
     if (contact_type) where.contact_type = contact_type;
+
+    // PET_OPERATOR vê apenas conversas pet atribuídas a ele
+    const admin = (req as any).admin;
+    if (admin.role === 'PET_OPERATOR') {
+      where.assignee_id = admin.id;
+    }
     if (search) {
       const s = String(search).trim();
       where.OR = [

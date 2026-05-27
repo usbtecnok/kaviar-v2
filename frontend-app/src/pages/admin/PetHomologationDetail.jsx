@@ -7,7 +7,7 @@ import { API_BASE_URL } from '../../config/api';
 
 const STATUSES = ['NOVO','EM_CONTATO','AGUARDANDO_TREINAMENTO','AGUARDANDO_QUESTIONARIO','AGUARDANDO_FOTOS','EM_ANALISE','APROVADO','REPROVADO','SUSPENSO','DESISTIU'];
 const STATUS_COLORS = { NOVO:'#FFF2CC', EM_CONTATO:'#CFE2F3', AGUARDANDO_TREINAMENTO:'#FCE5CD', AGUARDANDO_QUESTIONARIO:'#FCE5CD', AGUARDANDO_FOTOS:'#FCE5CD', EM_ANALISE:'#D9EAD3', APROVADO:'#4caf50', REPROVADO:'#f44336', SUSPENSO:'#ff9800', DESISTIU:'#9e9e9e' };
-const ACTION_LABELS = { created:'Criado', auto_created:'Cadastro automático', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', driver_linked:'Motorista vinculado', approved:'Aprovado', rejected:'Reprovado', WHATSAPP_OPENED:'WhatsApp aberto', TRAINING_SENT:'Treinamento enviado', QUESTIONNAIRE_SENT:'Questionário enviado', PHOTOS_REQUESTED:'Fotos solicitadas' };
+const ACTION_LABELS = { created:'Criado', auto_created:'Cadastro automático', status_changed:'Status alterado', assigned:'Operador atribuído', note_added:'Observação', driver_linked:'Motorista vinculado', photos_received:'Fotos recebidas', photos_approved:'Fotos aprovadas', photos_rejected:'Fotos reprovadas', approved:'Aprovado', rejected:'Reprovado', WHATSAPP_OPENED:'WhatsApp aberto', TRAINING_SENT:'Treinamento enviado', QUESTIONNAIRE_SENT:'Questionário enviado', PHOTOS_REQUESTED:'Fotos solicitadas' };
 
 function ActionButton({ icon, label, color, onClick }) {
   return (
@@ -23,6 +23,7 @@ export default function PetHomologationDetail() {
   const [logs, setLogs] = useState([]);
   const [driverInfo, setDriverInfo] = useState(null);
   const [waConversation, setWaConversation] = useState(null);
+  const [waMessages, setWaMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -55,9 +56,14 @@ export default function PetHomologationDetail() {
         try {
           const resWa = await fetch(`${API_BASE_URL}/api/admin/whatsapp/conversations?search=${encodeURIComponent(foundItem.phone.replace(/\D/g, '').slice(-9))}&limit=1`, { headers: headers() });
           const jsonWa = await resWa.json();
-          if (jsonWa.success && jsonWa.data.length > 0) setWaConversation(jsonWa.data[0]);
-          else setWaConversation(null);
-        } catch { setWaConversation(null); }
+          if (jsonWa.success && jsonWa.data.length > 0) {
+            setWaConversation(jsonWa.data[0]);
+            // Buscar mensagens da conversa
+            const resMsgs = await fetch(`${API_BASE_URL}/api/admin/whatsapp/conversations/${jsonWa.data[0].id}`, { headers: headers() });
+            const jsonMsgs = await resMsgs.json();
+            if (jsonMsgs.success) setWaMessages((jsonMsgs.data.messages || []).slice(-20));
+          } else { setWaConversation(null); setWaMessages([]); }
+        } catch { setWaConversation(null); setWaMessages([]); }
       }
     } catch { setError('Erro ao carregar'); }
     finally { setLoading(false); }
@@ -221,22 +227,63 @@ export default function PetHomologationDetail() {
           <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:1 }}>
             <Chat sx={{ color:'#25D366', fontSize:18 }} />
             <Typography variant="subtitle2" sx={{ color:'#E8E3D5' }}>Central WhatsApp</Typography>
+            {waConversation && <Chip label={`${waConversation.message_count} msg`} size="small" sx={{ height:18, fontSize:10, bgcolor:'#25D36622', color:'#25D366' }} />}
           </Box>
           {waConversation ? (
             <Box>
-              <Typography sx={{ color:'#ccc', fontSize:13, mb:1 }}>
-                {waConversation.message_count} mensagem{waConversation.message_count !== 1 ? 's' : ''} • Última: {waConversation.last_message_at ? new Date(waConversation.last_message_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'}
-              </Typography>
-              {waConversation.last_message_preview && (
-                <Typography sx={{ color:'#888', fontSize:12, fontStyle:'italic', mb:1 }}>"{waConversation.last_message_preview}"</Typography>
+              {waMessages.length > 0 && (
+                <Box sx={{ maxHeight:300, overflowY:'auto', mb:1.5, p:1, bgcolor:'#0a0e14', borderRadius:1.5, border:'1px solid #1a2332' }}>
+                  {waMessages.map(msg => {
+                    const isOut = msg.direction === 'outbound';
+                    return (
+                      <Box key={msg.id} sx={{ display:'flex', justifyContent: isOut ? 'flex-end' : 'flex-start', mb:0.8 }}>
+                        <Box sx={{ maxWidth:'80%', px:1.2, py:0.8, borderRadius: isOut ? '10px 10px 2px 10px' : '10px 10px 10px 2px', bgcolor: isOut ? '#0B3D2E' : '#141e2a', border: isOut ? '1px solid #1a5c40' : '1px solid #1a2a3a' }}>
+                          {msg.media_url && msg.media_type?.startsWith('image/') && (
+                            <Box component="img" src={msg.media_url} alt="Foto" sx={{ maxWidth:'100%', maxHeight:180, borderRadius:1, mb:0.3, cursor:'pointer' }} onClick={() => window.open(msg.media_url, '_blank')} />
+                          )}
+                          {msg.media_url && !msg.media_type?.startsWith('image/') && (
+                            <Chip label={`📎 ${msg.media_type || 'Arquivo'}`} size="small" component="a" href={msg.media_url} target="_blank" clickable sx={{ mb:0.3, height:18, fontSize:9, bgcolor:'#1a2332', color:'#8a9aaa' }} />
+                          )}
+                          {msg.body && <Typography sx={{ fontSize:12, color:'#ddd', whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{msg.body}</Typography>}
+                          <Typography sx={{ fontSize:9, color:'#555', textAlign:'right', mt:0.2 }}>{new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
               )}
-              <Button component={Link} to={`/admin/whatsapp`} size="small" startIcon={<WhatsApp />} sx={{ color:'#25D366', textTransform:'none', fontSize:12 }}>
+              <Button component={Link} to="/admin/whatsapp" size="small" startIcon={<WhatsApp />} sx={{ color:'#25D366', textTransform:'none', fontSize:12 }}>
                 Abrir na Central WhatsApp
               </Button>
             </Box>
           ) : (
             <Typography sx={{ color:'#888', fontSize:13 }}>Nenhuma conversa WhatsApp encontrada para este contato.</Typography>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Controle de fotos */}
+      <Card sx={{ bgcolor:'#111217', border:'1px solid #222', mb:3 }}>
+        <CardContent>
+          <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:1 }}>
+            <CameraAlt sx={{ color:'#9C27B0', fontSize:18 }} />
+            <Typography variant="subtitle2" sx={{ color:'#E8E3D5' }}>Fotos do veículo</Typography>
+            {item.photos_approved === true && <Chip label="Aprovadas" size="small" sx={{ height:18, fontSize:10, bgcolor:'#4caf5033', color:'#4caf50' }} />}
+            {item.photos_approved === false && <Chip label="Reprovadas" size="small" sx={{ height:18, fontSize:10, bgcolor:'#f4433633', color:'#f44336' }} />}
+            {item.photos_sent_at && !item.photos_approved && <Chip label="Recebidas" size="small" sx={{ height:18, fontSize:10, bgcolor:'#ff980033', color:'#ff9800' }} />}
+          </Box>
+          <Box sx={{ display:'flex', gap:1, flexWrap:'wrap' }}>
+            {!item.photos_sent_at && (
+              <Button size="small" variant="outlined" onClick={async () => { await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}`, { method:'PATCH', headers:headers(), body:JSON.stringify({ photos_received: true }) }); fetchData(); }} sx={{ borderColor:'#ff9800', color:'#ff9800', textTransform:'none', fontSize:11 }}>Marcar fotos recebidas</Button>
+            )}
+            {item.photos_sent_at && item.photos_approved !== true && (
+              <Button size="small" variant="outlined" onClick={async () => { await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}`, { method:'PATCH', headers:headers(), body:JSON.stringify({ photos_approved: true }) }); fetchData(); }} sx={{ borderColor:'#4caf50', color:'#4caf50', textTransform:'none', fontSize:11 }}>Aprovar fotos</Button>
+            )}
+            {item.photos_sent_at && item.photos_approved !== false && (
+              <Button size="small" variant="outlined" onClick={async () => { await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}`, { method:'PATCH', headers:headers(), body:JSON.stringify({ photos_approved: false }) }); fetchData(); }} sx={{ borderColor:'#f44336', color:'#f44336', textTransform:'none', fontSize:11 }}>Reprovar fotos</Button>
+            )}
+          </Box>
+          {item.photos_sent_at && <Typography sx={{ color:'#888', fontSize:11, mt:1 }}>Recebidas em: {new Date(item.photos_sent_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</Typography>}
         </CardContent>
       </Card>
 

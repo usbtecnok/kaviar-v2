@@ -30,6 +30,7 @@ async function resolveContact(phone: string): Promise<{
   contact_name: string | null;
   linked_entity_type: string | null;
   linked_entity_id: string | null;
+  assignee_id?: string | null;
 }> {
   // Normalizar: remover whatsapp: prefix, manter só dígitos e +
   const clean = phone.replace('whatsapp:', '').trim();
@@ -73,10 +74,10 @@ async function resolveContact(phone: string): Promise<{
   if (suffix9.length === 9) {
     const petAll = await prisma.pet_homologations.findMany({
       where: { phone: { not: '' } },
-      select: { id: true, name: true, phone: true },
+      select: { id: true, name: true, phone: true, operator_id: true },
     });
     const petMatch = petAll.find(h => h.phone.replace(/\D/g, '').slice(-9) === suffix9);
-    if (petMatch) return { contact_type: 'pet', contact_name: petMatch.name, linked_entity_type: 'pet_homologation', linked_entity_id: petMatch.id };
+    if (petMatch) return { contact_type: 'pet', contact_name: petMatch.name, linked_entity_type: 'pet_homologation', linked_entity_id: petMatch.id, assignee_id: petMatch.operator_id };
   }
 
   return { contact_type: 'unknown', contact_name: null, linked_entity_type: null, linked_entity_id: null };
@@ -123,6 +124,7 @@ integrationsRoutes.post('/twilio/whatsapp', async (req, res) => {
           contact_type: resolved.contact_type,
           linked_entity_type: resolved.linked_entity_type,
           linked_entity_id: resolved.linked_entity_id,
+          assignee_id: resolved.assignee_id || null,
           status: 'new',
           priority: isUrgent ? 'urgent' : 'normal',
           unread_count: 1,

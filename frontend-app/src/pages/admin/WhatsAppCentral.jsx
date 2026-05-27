@@ -474,9 +474,17 @@ export default function WhatsAppCentral() {
                               {msg.sent_by_admin_name}
                             </Typography>
                           )}
+                          {msg.media_url && msg.media_type?.startsWith('image/') && (
+                            <Box component="img" src={msg.media_url} alt="Mídia" sx={{ maxWidth: '100%', maxHeight: 280, borderRadius: 1.5, mb: 0.5, cursor: 'pointer' }} onClick={() => window.open(msg.media_url, '_blank')} />
+                          )}
+                          {msg.media_url && !msg.media_type?.startsWith('image/') && (
+                            <Chip label={`📎 ${msg.media_type || 'Arquivo'}`} size="small" component="a" href={msg.media_url} target="_blank" clickable sx={{ mb: 0.5, height: 22, fontSize: 10, bgcolor: '#1a2332', color: '#8a9aaa', cursor: 'pointer' }} />
+                          )}
+                          {msg.body && (
                           <Typography sx={{ fontSize: 13, color: '#ddd', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                             {msg.body}
                           </Typography>
+                          )}
                           <Typography sx={{ fontSize: 9, color: '#555', textAlign: 'right', mt: 0.3 }}>
                             {fmtTime(msg.created_at)}
                           </Typography>

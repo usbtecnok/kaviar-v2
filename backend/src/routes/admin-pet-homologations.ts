@@ -131,7 +131,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
-    const { status, notes, name, phone, email, region, vehicle_model, vehicle_year, four_doors, driver_id } = req.body;
+    const { status, notes, name, phone, email, region, vehicle_model, vehicle_year, four_doors, driver_id, photos_received, photos_approved } = req.body;
 
     const existing = await prisma.pet_homologations.findUnique({ where: { id: req.params.id } });
     if (!existing) return res.status(404).json({ success: false, error: 'Homologação não encontrada' });
@@ -156,6 +156,8 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (vehicle_year !== undefined) data.vehicle_year = vehicle_year;
     if (four_doors !== undefined) data.four_doors = four_doors;
     if (driver_id !== undefined) data.driver_id = driver_id || null;
+    if (photos_received) data.photos_sent_at = new Date();
+    if (photos_approved !== undefined) data.photos_approved = photos_approved;
 
     const updated = await prisma.pet_homologations.update({ where: { id: req.params.id }, data });
 
@@ -167,6 +169,15 @@ router.patch('/:id', async (req: Request, res: Response) => {
     }
     if (driver_id !== undefined && driver_id !== existing.driver_id) {
       await addLog(updated.id, 'driver_linked', admin, { note: driver_id ? `Vinculado ao motorista ${driver_id}` : 'Vínculo removido' });
+    }
+    if (photos_received) {
+      await addLog(updated.id, 'photos_received', admin);
+    }
+    if (photos_approved === true) {
+      await addLog(updated.id, 'photos_approved', admin);
+    }
+    if (photos_approved === false) {
+      await addLog(updated.id, 'photos_rejected', admin);
     }
 
     return res.json({ success: true, data: updated });
