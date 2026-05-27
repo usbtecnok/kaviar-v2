@@ -15,8 +15,8 @@
 | Forms — Pré-cadastro | https://forms.gle/tDHdK1bW1ckiuNrg7 | ✅ Live |
 | Forms — Questionário | https://forms.gle/rRc5rbCSSvcnEeVc6 | ✅ Live |
 | Sheets — Central | https://docs.google.com/spreadsheets/d/1CqbvsZga7zXtFiDw2gVdkVF06ARrcNTWtrwgvge8nB4/edit?usp=sharing | ✅ Live |
-| Vídeo 1 — Protocolo | [PREENCHER] | A gravar |
-| Vídeo 2 — Situações práticas | [PREENCHER] | A gravar |
+| Vídeo 1 — Protocolo | https://youtu.be/HAVkF30EIpg | ✅ Live |
+| Vídeo 2 — Situações práticas | https://youtu.be/fpn2e4ZOgPw | ✅ Live |
 | WhatsApp da Central | [PREENCHER NÚMERO] | A configurar |
 | Pasta Drive — Fotos | https://drive.google.com/drive/folders/1flpwFHhBsHfmwAUET59-84r_BsMcw1tc?usp=drive_link | ✅ Live |
 

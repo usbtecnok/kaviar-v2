@@ -10,6 +10,8 @@ const links = [
   { label: 'Questionário (Forms)', url: 'https://forms.gle/rRc5rbCSSvcnEeVc6', desc: 'Certificação — nota mínima 7/10' },
   { label: 'Planilha Central (Sheets)', url: 'https://docs.google.com/spreadsheets/d/1CqbvsZga7zXtFiDw2gVdkVF06ARrcNTWtrwgvge8nB4/edit?usp=sharing', desc: '9 abas operacionais' },
   { label: 'Pasta de Fotos (Drive)', url: 'https://drive.google.com/drive/folders/1flpwFHhBsHfmwAUET59-84r_BsMcw1tc?usp=drive_link', desc: 'Fotos de homologação dos motoristas' },
+  { label: 'Vídeo 1 — Segurança e Condução', url: 'https://youtu.be/HAVkF30EIpg', desc: 'Treinamento obrigatório (5 min)' },
+  { label: 'Vídeo 2 — Higiene e Atendimento', url: 'https://youtu.be/fpn2e4ZOgPw', desc: 'Treinamento obrigatório (5 min)' },
 ];
 
 const checklist = [
@@ -19,7 +21,7 @@ const checklist = [
   { text: 'Google Forms questionário publicado', done: true },
   { text: 'Pasta Drive de fotos criada', done: true },
   { text: 'Landing /pet live', done: true },
-  { text: 'Vídeos de treinamento gravados', done: false },
+  { text: 'Vídeos de treinamento publicados', done: true },
   { text: 'Primeiro motorista convidado', done: false },
 ];
 
