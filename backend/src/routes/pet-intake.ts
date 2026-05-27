@@ -22,10 +22,13 @@ router.post('/intake', async (req: Request, res: Response) => {
   }
 
   try {
-    // Anti-duplicidade por telefone normalizado
-    const existing = await prisma.pet_homologations.findFirst({
-      where: { phone: { contains: digits.slice(-9) } },
+    // Anti-duplicidade por telefone (últimos 9 dígitos)
+    const suffix = digits.slice(-9);
+    const all = await prisma.pet_homologations.findMany({
+      where: { phone: { not: '' } },
+      select: { id: true, phone: true },
     });
+    const existing = all.find(h => h.phone.replace(/\D/g, '').slice(-9) === suffix);
     if (existing) {
       return res.json({ success: true, duplicate: true, id: existing.id });
     }
