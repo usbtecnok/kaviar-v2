@@ -227,6 +227,8 @@ app.use('/api', investorView);
 
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/match', matchRoutes);
+// Media proxy (antes do adminRoutes que tem auth global)
+app.use('/api/admin/whatsapp', adminWhatsappRoutes);
 app.use('/api/admin', adminApprovalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes);
@@ -339,7 +341,6 @@ app.use('/api/admin/staff', adminStaffRoutes);
 app.use('/api/admin/pet/operators', adminPetOperatorsRoutes);
 app.use('/api/admin/pet/homologations', adminPetHomologationsRoutes);
 app.use('/api/public/pet', petIntakeRoutes);
-app.use('/api/admin/whatsapp', adminWhatsappRoutes);
 app.use('/api/admin/operations', adminOperationsRoutes);
 app.use('/api/admin/pricing-profiles', adminPricingRoutes);
 import communityHealthRoutes from './routes/community-health';
