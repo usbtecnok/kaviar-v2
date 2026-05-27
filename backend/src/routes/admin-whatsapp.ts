@@ -96,6 +96,17 @@ router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), 
           last_message_preview: body.trim().substring(0, 200),
         },
       });
+    } else if (contact_type && linked_entity_type && linked_entity_id) {
+      // Conversa existente recebe contexto Pet: atualizar classificação e vínculo
+      conversation = await prisma.wa_conversations.update({
+        where: { id: conversation.id },
+        data: {
+          contact_type,
+          linked_entity_type,
+          linked_entity_id,
+          ...(assignee_id ? { assignee_id } : {}),
+        },
+      });
     }
 
     // Enviar via Twilio
