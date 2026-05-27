@@ -106,7 +106,7 @@ export default function KaviarLanding() {
             </Box>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
-            {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#particular', 'Particular'], ['#downloads', 'Downloads']].map(([href, label]) => (
+            {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#particular', 'Particular'], ['#pet', 'Pet'], ['#downloads', 'Downloads']].map(([href, label]) => (
               <Typography key={href} component="a" href={href} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textDecoration: 'none', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>{label}</Typography>
             ))}
             <Button component={Link} to="/login" variant="outlined" size="small" sx={{ borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.85)', borderRadius: 2.5, textTransform: 'none', fontSize: 13, px: 2.5 }}>Já tenho conta</Button>
@@ -337,6 +337,25 @@ export default function KaviarLanding() {
         </Box>
       </Box>
 
+      {/* ─── KAVIAR Pet ─── */}
+      <Box id="pet" sx={{ ...sx.section, py: { xs: 4, md: 7 } }}>
+        <Box sx={{ borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(135deg, #0a0d0f, #0a0a0a)', p: { xs: 4, md: 6 }, textAlign: 'center', boxShadow: '0 30px 120px rgba(0,0,0,0.3)' }}>
+          <Typography sx={{ fontSize: 32, mb: 1 }}>🐾</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 600, letterSpacing: '-0.01em', fontSize: { xs: '1.6rem', md: '2.2rem' }, mb: 1 }}>
+            KAVIAR Pet
+          </Typography>
+          <Typography sx={{ fontSize: 14, color: gold, letterSpacing: '0.05em', mb: 3 }}>
+            Transporte pet com operação assistida
+          </Typography>
+          <Typography sx={{ fontSize: 15, lineHeight: 1.8, color: 'rgba(255,255,255,0.6)', maxWidth: 600, mx: 'auto', mb: 4 }}>
+            Motoristas homologados, treinamento obrigatório, segurança no embarque e acompanhamento da Central KAVIAR Pet.
+          </Typography>
+          <Button variant="contained" component={Link} to="/pet" sx={sx.goldBtn}>
+            Conhecer KAVIAR Pet
+          </Button>
+        </Box>
+      </Box>
+
       {/* ─── Footer ─── */}
       <Box sx={{ position: 'relative', zIndex: 10, mt: 5, borderTop: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(0,0,0,0.3)' }}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, justifyContent: 'space-between', gap: 3, px: { xs: 3, md: 5 }, py: 4 }}>
@@ -346,6 +365,7 @@ export default function KaviarLanding() {
               ['/login', 'Entrar'],
               ['/admin/login', 'Admin'],
               ['/particular', 'Motorista Particular'],
+              ['/pet', 'KAVIAR Pet'],
               ['/turismo', 'Turismo Premium'],
             ].map(([href, label]) => (
               <Typography key={href} component={Link} to={href} sx={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>{label}</Typography>
