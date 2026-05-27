@@ -15,12 +15,16 @@
 <text x="90" y="312" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE">✓  Cobra taxa de limpeza (você não cobra)</text>
 <text x="90" y="350" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="20" fill="#EEE">✓  Disponível durante toda a corrida</text>
 <text x="90" y="400" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="18" fill="#B8942E">Na dúvida: acione a Central antes de iniciar.</text>
-<!-- Placeholder cena real -->
-<rect x="610" y="120" width="300" height="310" rx="10" fill="#1A1A1A" stroke="#B8942E" stroke-width="1" stroke-dasharray="6,4"/>
-<text x="760" y="260" font-family="Inter,Arial,sans-serif" font-weight="500" font-size="16" fill="#B8942E" text-anchor="middle">📹 CENA REAL</text>
-<text x="760" y="288" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#999" text-anchor="middle">Motorista em contato</text>
-<text x="760" y="310" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#999" text-anchor="middle">com a Central</text>
-<text x="760" y="332" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="14" fill="#999" text-anchor="middle">via WhatsApp</text>
+<!-- Card Central WhatsApp -->
+<rect x="610" y="120" width="300" height="310" rx="10" fill="#1A1A1A" stroke="#B8942E" stroke-width="1"/>
+<text x="760" y="200" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="36" fill="#B8942E" text-anchor="middle">💬</text>
+<text x="760" y="245" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="16" fill="#FFF" text-anchor="middle">Central disponível</text>
+<text x="760" y="270" font-family="Montserrat,Arial,sans-serif" font-weight="700" font-size="16" fill="#FFF" text-anchor="middle">via WhatsApp</text>
+<line x1="700" y1="290" x2="820" y2="290" stroke="#B8942E" stroke-width="0.5" opacity="0.5"/>
+<text x="760" y="320" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#CCC" text-anchor="middle">Antes, durante e</text>
+<text x="760" y="340" font-family="Inter,Arial,sans-serif" font-weight="400" font-size="13" fill="#CCC" text-anchor="middle">depois da corrida</text>
+<text x="760" y="390" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="12" fill="#B8942E" text-anchor="middle">Acione a Central</text>
+<text x="760" y="410" font-family="Inter,Arial,sans-serif" font-weight="600" font-size="12" fill="#B8942E" text-anchor="middle">antes de iniciar</text>
 <rect x="0" y="490" width="960" height="50" fill="#111"/><rect x="0" y="490" width="960" height="1" fill="#B8942E" opacity="0.4"/>
 <text x="480" y="520" font-family="Montserrat,Arial,sans-serif" font-weight="600" font-size="13" fill="#B8942E" text-anchor="middle" letter-spacing="3">KAVIAR PET — TREINAMENTO OBRIGATÓRIO</text>
 <rect x="0" y="537" width="960" height="3" fill="#B8942E"/>
