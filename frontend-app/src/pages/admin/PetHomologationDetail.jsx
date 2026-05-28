@@ -253,6 +253,18 @@ export default function PetHomologationDetail() {
         <CardContent>
           <Typography variant="subtitle2" sx={{ color:'#E8E3D5', mb:1.5 }}>Ações rápidas</Typography>
           <Box sx={{ display:'flex', gap:1, flexWrap:'wrap' }}>
+            <ActionButton icon={<WhatsApp />} label="Enviar convite inicial" color="#D4AF37" onClick={async () => {
+              setError('');
+              try {
+                const digits = (item?.phone || '').replace(/\D/g, '');
+                const waPhone = digits.length === 13 && digits.startsWith('55') ? `+${digits}` : digits.length === 11 ? `+55${digits}` : `+55${digits}`;
+                const res = await fetch(`${API_BASE_URL}/api/admin/whatsapp/conversations/send-template`, { method:'POST', headers:headers(), body:JSON.stringify({ phone: waPhone, template: 'kaviar_pet_invite_v1', variables: { '1': item.name }, contact_type: 'pet', linked_entity_type: 'pet_homologation', linked_entity_id: id, assignee_id: item?.operator_id || null }) });
+                const json = await res.json();
+                if (!json.success) setError(json.error);
+                else { await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}/actions`, { method:'POST', headers:headers(), body:JSON.stringify({ action: 'WHATSAPP_OPENED' }) }); }
+              } catch { setError('Erro ao enviar convite'); }
+              fetchData();
+            }} />
             <ActionButton icon={<WhatsApp />} label="Chamar no WhatsApp" color="#25D366" onClick={() => handleAction('WHATSAPP_OPENED', `Olá ${item.name}! Aqui é a Central KAVIAR Pet 🐾. Você se cadastrou para ser motorista certificado. Vou te acompanhar no processo de homologação. Pode falar?`)} />
             <ActionButton icon={<OndemandVideo />} label="Enviar treinamento" color="#FF9800" onClick={() => handleAction('TRAINING_SENT', `Olá ${item.name}! Seguem os vídeos de treinamento obrigatórios do KAVIAR Pet:\n📹 Vídeo 1 — Segurança: https://youtu.be/HAVkF30EIpg\n📹 Vídeo 2 — Higiene: https://youtu.be/48EpByNv3GI\nAssista os dois e me avise quando terminar para eu enviar o questionário.`)} />
             <ActionButton icon={<Quiz />} label="Enviar questionário" color="#2196F3" onClick={() => handleAction('QUESTIONNAIRE_SENT', `Olá ${item.name}! Agora responda o questionário de certificação (nota mínima 7/10):\n📝 https://forms.gle/rRc5rbCSSvcnEeVc6\nBoa sorte!`)} />

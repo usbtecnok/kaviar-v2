@@ -212,6 +212,52 @@ router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), 
   }
 });
 
+// POST /api/admin/whatsapp/conversations/send-template — enviar template para primeiro contato
+router.post('/conversations/send-template', auditWrite('send_whatsapp_template', 'conversation'), async (req: Request, res: Response) => {
+  try {
+    const { phone, template, variables, contact_type, linked_entity_type, linked_entity_id, assignee_id } = req.body;
+    if (!phone || !template) {
+      return res.status(400).json({ success: false, error: 'phone e template são obrigatórios' });
+    }
+
+    const admin = (req as any).admin;
+    const { WhatsAppService } = require('../modules/whatsapp/whatsapp.service');
+    const wa = new WhatsAppService();
+
+    // Normalizar telefone
+    const digits = phone.replace(/[^\d]/g, '');
+    let normalizedPhone = digits.length === 11 ? `+55${digits}` : digits.length === 13 && digits.startsWith('55') ? `+${digits}` : phone.startsWith('+') ? phone : `+${digits}`;
+
+    // Enviar template
+    const result = await wa.sendTemplate({ to: normalizedPhone, template, variables: variables || {} });
+
+    // Buscar ou criar conversa
+    const suffix9 = digits.slice(-9);
+    const allConvs = await prisma.wa_conversations.findMany({ where: { phone: { contains: suffix9 }, status: { not: 'spam' } }, take: 5 });
+    let conversation = allConvs.find(c => c.phone.replace(/\D/g, '').slice(-9) === suffix9) || null;
+
+    if (!conversation) {
+      conversation = await prisma.wa_conversations.create({
+        data: { phone: normalizedPhone, contact_type: contact_type || 'pet', linked_entity_type: linked_entity_type || null, linked_entity_id: linked_entity_id || null, assignee_id: assignee_id || null, status: 'in_progress', priority: 'normal', unread_count: 0, message_count: 0, last_message_at: new Date(), last_message_preview: `[Template: ${template}]` },
+      });
+    } else if (contact_type && linked_entity_type && linked_entity_id) {
+      conversation = await prisma.wa_conversations.update({ where: { id: conversation.id }, data: { contact_type, linked_entity_type, linked_entity_id, ...(assignee_id ? { assignee_id } : {}) } });
+    }
+
+    // Salvar outbound
+    await prisma.wa_messages.create({
+      data: { conversation_id: conversation.id, direction: 'outbound', body: `[Template: ${template}]`, twilio_sid: result.sid || null, sent_by_admin_id: admin.id, sent_by_admin_name: admin.name },
+    });
+    await prisma.wa_conversations.update({ where: { id: conversation.id }, data: { message_count: { increment: 1 }, last_message_at: new Date(), last_message_preview: `[Template: ${template}]` } });
+
+    console.log(`[WA_TEMPLATE] conv=${conversation.id} template=${template} admin=${admin.name} sid=${result.sid || 'skipped'}`);
+    res.json({ success: true, data: { conversation_id: conversation.id, twilio_sid: result.sid } });
+  } catch (err: any) {
+    console.error('[WA_TEMPLATE] error:', err.message);
+    res.status(500).json({ success: false, error: err.message || 'Erro ao enviar template' });
+  }
+});
+
 // GET /api/admin/whatsapp/conversations/:id
 router.get('/conversations/:id', async (req: Request, res: Response) => {
   try {

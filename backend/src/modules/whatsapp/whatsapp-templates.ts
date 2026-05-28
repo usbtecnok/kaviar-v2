@@ -26,6 +26,7 @@ export const WHATSAPP_TEMPLATES = {
   kaviar_rides_scheduled_searching_v2: env.WA_TPL_SCHEDULED_SEARCHING || "",
   kaviar_followup_angel_v1: env.WA_TPL_FOLLOWUP_ANGEL || "",
   kaviar_driver_reactivation_v1: env.WA_TPL_DRIVER_REACTIVATION || "",
+  kaviar_pet_invite_v1: env.WA_TPL_PET_INVITE || "",
 } as const;
 
 export type WhatsAppTemplateName = keyof typeof WHATSAPP_TEMPLATES;
