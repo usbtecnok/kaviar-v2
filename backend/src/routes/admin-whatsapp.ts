@@ -136,7 +136,7 @@ router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), 
 
     // Buscar conversa existente por telefone (variantes para evitar duplicidade)
     const suffix9 = digits.slice(-9);
-    const allConvs = await prisma.wa_conversations.findMany({ where: { phone: { contains: suffix9 } }, take: 5 });
+    const allConvs = await prisma.wa_conversations.findMany({ where: { phone: { contains: suffix9 }, status: { not: 'spam' } }, take: 5 });
     let conversation = allConvs.find(c => c.phone.replace(/\D/g, '').slice(-9) === suffix9) || null;
 
     if (!conversation) {
