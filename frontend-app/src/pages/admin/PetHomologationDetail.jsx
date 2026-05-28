@@ -105,8 +105,9 @@ export default function PetHomologationDetail() {
     setError('');
     try {
       // Enviar via Central WhatsApp/Twilio
-      const phone = (item?.phone || '').replace(/\D/g, '');
-      const waPhone = phone.startsWith('55') ? `+${phone}` : `+55${phone}`;
+      // Normalizar telefone para E.164
+      const digits = (item?.phone || '').replace(/\D/g, '');
+      const waPhone = digits.length === 13 && digits.startsWith('55') ? `+${digits}` : digits.length === 11 ? `+55${digits}` : digits.length >= 12 ? `+${digits}` : `+55${digits}`;
       const res = await fetch(`${API_BASE_URL}/api/admin/whatsapp/conversations/send`, {
         method: 'POST', headers: headers(),
         body: JSON.stringify({ phone: waPhone, body: message, contact_type: 'pet', linked_entity_type: 'pet_homologation', linked_entity_id: id, assignee_id: item?.operator_id || null }),

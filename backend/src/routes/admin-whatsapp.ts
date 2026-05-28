@@ -127,11 +127,17 @@ router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), 
 
     const admin = (req as any).admin;
     const cleanPhone = phone.replace(/[^\d+]/g, '');
-    const normalizedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
+    // Normalizar para E.164: +55DDDNÚMERO
+    let normalizedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
+    const digits = normalizedPhone.replace(/\D/g, '');
+    if (digits.length === 11) normalizedPhone = `+55${digits}`; // DDD+num sem código país
+    else if (digits.length === 13 && digits.startsWith('55')) normalizedPhone = `+${digits}`;
+    else if (digits.length >= 12 && !digits.startsWith('55')) normalizedPhone = `+${digits}`;
 
-    // Buscar conversa existente por telefone (tentar variantes)
-    const variants = [normalizedPhone, cleanPhone, cleanPhone.replace(/^\+/, '')];
-    let conversation = await prisma.wa_conversations.findFirst({ where: { phone: { in: variants } } });
+    // Buscar conversa existente por telefone (variantes para evitar duplicidade)
+    const suffix9 = digits.slice(-9);
+    const allConvs = await prisma.wa_conversations.findMany({ where: { phone: { contains: suffix9 } }, take: 5 });
+    let conversation = allConvs.find(c => c.phone.replace(/\D/g, '').slice(-9) === suffix9) || null;
 
     if (!conversation) {
       conversation = await prisma.wa_conversations.create({
