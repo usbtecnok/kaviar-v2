@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert, Chip } from '@mui/material';
-import { DirectionsCar, People, Explore, Handshake, Science, Description } from '@mui/icons-material';
+import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert } from '@mui/material';
+import { DirectionsCar, Explore, Description } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 export default function OperatorHome() {
@@ -70,7 +70,6 @@ export default function OperatorHome() {
               <span style={{ color: '#B8942E' }}>KAVIAR</span> Operador Territorial
             </Typography>
             <Typography sx={{ color: '#6B7280', fontSize: 12 }}>{admin?.name || 'Operador'}</Typography>
-            <Chip label="TERRITORIAL_OPERATOR" size="small" sx={{ mt: 0.5, fontSize: 10, height: 20, bgcolor: 'rgba(184,148,46,0.08)', color: '#B8942E', fontWeight: 600 }} />
           </Box>
           <Button onClick={handleLogout} variant="outlined" size="small" sx={{ borderColor: '#E8E5DE', color: '#6B7280', '&:hover': { borderColor: '#B8942E', color: '#B8942E' } }}>
             Sair
@@ -84,8 +83,6 @@ export default function OperatorHome() {
           <Grid container spacing={1.5} sx={{ mb: 3 }}>
             {[
               { label: 'Motoristas', value: metrics.drivers?.total ?? 0 },
-              { label: 'Online', value: metrics.drivers?.online ?? 0 },
-              { label: 'Passageiros', value: metrics.passengers?.total ?? 0 },
               { label: 'Corridas', value: metrics.rides?.total ?? 0 },
             ].map(k => (
               <Grid item xs={6} sm={3} key={k.label}>
@@ -134,10 +131,7 @@ export default function OperatorHome() {
         <Grid container spacing={1.5} sx={{ mb: 4 }}>
           {[
             { Icon: DirectionsCar, title: 'Motoristas', desc: 'Ver motoristas do território', to: '/admin/drivers' },
-            { Icon: People, title: 'Passageiros', desc: 'Ver passageiros do território', to: '/admin/passengers' },
             { Icon: Explore, title: 'Corridas', desc: 'Ver corridas do território', to: '/admin/rides' },
-            { Icon: Handshake, title: 'Parceiros', desc: 'Ver parceiros territoriais', to: '/admin/territorial-partners' },
-            { Icon: Science, title: 'KAVIAR Lab', desc: 'Maturidade territorial', to: '/admin/lab' },
             { Icon: Description, title: 'Meu Contrato', desc: 'Perfil e contrato', to: '/admin/meu-contrato' },
           ].map(c => (
             <Grid item xs={12} sm={6} key={c.to}>
