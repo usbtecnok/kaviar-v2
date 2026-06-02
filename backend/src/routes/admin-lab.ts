@@ -77,7 +77,7 @@ function derivedStatus(score: number): string {
 }
 
 // GET /api/admin/lab/territorial-maturity?days=30
-router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR']), applyTerritoryScope, async (req: Request, res: Response) => {
+router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_OPERATOR']), applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const rawDays = parseInt(String(req.query.days ?? DEFAULT_DAYS), 10);
     const days = VALID_DAYS.includes(rawDays) ? rawDays : DEFAULT_DAYS;
@@ -442,7 +442,7 @@ router.post('/snapshot', requireRole(['SUPER_ADMIN']), applyTerritoryScope, asyn
 });
 
 // GET /api/admin/lab/history?neighborhood_id=X&days=30&limit=30
-router.get('/history', requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req: Request, res: Response) => {
+router.get('/history', requireRole(['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_OPERATOR']), async (req: Request, res: Response) => {
   try {
     const neighborhoodId = String(req.query.neighborhood_id ?? '');
     if (!neighborhoodId) {

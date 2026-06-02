@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess, requireRole } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { requireTerritoryScope } from '../middlewares/require-territory-scope';
 import { auditWrite } from '../middlewares/audit-write';
 import { audit, auditCtx } from '../utils/audit';
 import { prisma } from '../lib/prisma';
@@ -49,7 +50,7 @@ router.get('/admins', requireSuperAdmin, async (req, res) => {
 });
 
 // GET /api/admin/passengers
-router.get('/passengers', allowReadAccess, applyTerritoryScope, async (req, res) => {
+router.get('/passengers', allowReadAccess, applyTerritoryScope, requireTerritoryScope, async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -108,7 +109,7 @@ router.get('/passengers', allowReadAccess, applyTerritoryScope, async (req, res)
 });
 
 // GET /api/admin/passengers/:id
-router.get('/passengers/:id', allowReadAccess, async (req, res) => {
+router.get('/passengers/:id', allowReadAccess, applyTerritoryScope, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -130,9 +131,28 @@ router.get('/passengers/:id', allowReadAccess, async (req, res) => {
       });
     }
 
+    // Scope check: TERRITORIAL_OPERATOR só vê passageiro do seu território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.neighborhoodIds.length === 0) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+      if (!passenger.neighborhood_id || !scope.neighborhoodIds.includes(passenger.neighborhood_id)) {
+        return res.status(403).json({ success: false, error: 'Passageiro fora do seu território' });
+      }
+    }
+
+    // Masking para TERRITORIAL_OPERATOR
+    const data: any = { ...passenger };
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (data.document_cpf) data.document_cpf = '***' + data.document_cpf.slice(-4);
+      data.password_hash = undefined;
+    }
+
     res.json({
       success: true,
-      data: passenger
+      data
     });
   } catch (error) {
     console.error('Error fetching passenger:', error);
@@ -226,10 +246,30 @@ router.patch('/passengers/:id', requireSuperAdmin, async (req, res) => {
 });
 
 // GET /api/admin/rides - Using RideAdminController with filters
-router.get('/rides', allowReadAccess, applyTerritoryScope, rideController.getRides);
+router.get('/rides', allowReadAccess, applyTerritoryScope, requireTerritoryScope, rideController.getRides);
 
-// GET /api/admin/rides/:id - Using RideAdminController
-router.get('/rides/:id', allowReadAccess, rideController.getRideById);
+// GET /api/admin/rides/:id - Using RideAdminController with territory scope check
+router.get('/rides/:id', allowReadAccess, applyTerritoryScope, async (req, res) => {
+  const admin = (req as any).admin;
+  const scope = (req as any).territoryScope;
+
+  // TERRITORIAL_OPERATOR: verificar que corrida pertence ao território
+  if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (!scope || scope.neighborhoodIds.length === 0) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: req.params.id },
+      select: { origin_neighborhood_id: true },
+    });
+    if (!ride || !ride.origin_neighborhood_id || !scope.neighborhoodIds.includes(ride.origin_neighborhood_id)) {
+      return res.status(403).json({ success: false, error: 'Corrida fora do seu território' });
+    }
+  }
+
+  // Delegar ao controller
+  return rideController.getRideById(req, res);
+});
 
 // PATCH /api/admin/rides/:id/status
 router.patch('/rides/:id/status', requireSuperAdmin, auditWrite('update_ride_status', 'ride'), rideController.updateRideStatus);

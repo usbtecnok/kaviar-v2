@@ -2,12 +2,13 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, allowReadAccess } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { requireTerritoryScope } from '../middlewares/require-territory-scope';
 
 const router = Router();
 router.use(authenticateAdmin);
 
 // GET /api/admin/dashboard/metrics
-router.get('/metrics', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
+router.get('/metrics', allowReadAccess, applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

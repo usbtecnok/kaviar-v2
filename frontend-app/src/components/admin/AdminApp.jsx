@@ -66,6 +66,7 @@ import PetCentral from "../../pages/admin/PetCentral";
 import PetOperators from "../../pages/admin/PetOperators";
 import PetHomologations from "../../pages/admin/PetHomologations";
 import PetHomologationDetail from "../../pages/admin/PetHomologationDetail";
+import OperatorHome from "../../pages/admin/OperatorHome";
 import usbTecnokLogo from "../../assets/usb-tecnok-logo-transparent.png";
 import { useState, useEffect } from 'react';
 
@@ -73,6 +74,7 @@ function FinanceHomeRedirect() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   if (admin?.role === 'FINANCE') return <FinancePayments />;
+  if (admin?.role === 'TERRITORIAL_OPERATOR') return <OperatorHome />;
   if (['PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN'].includes(admin?.role)) return <Navigate to="/admin/pet" replace />;
   return <AdminHome />;
 }
@@ -778,7 +780,7 @@ export default function AdminApp() {
           } />
 
           <Route path="/lab" element={
-            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_OPERATOR']}>
               <Container maxWidth="xl" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <KaviarLab />
@@ -923,7 +925,7 @@ export default function AdminApp() {
           <Route path="/regional-admins" element={<ProtectedAdminRoute requireSuperAdmin><RegionalAdminsPage /></ProtectedAdminRoute>} />
           <Route path="/territorial-payouts" element={<ProtectedAdminRoute requireSuperAdmin><TerritorialPayoutsPage /></ProtectedAdminRoute>} />
           <Route path="/legal-compliance" element={<ProtectedAdminRoute requireSuperAdmin><LegalCompliancePage /></ProtectedAdminRoute>} />
-          <Route path="/meu-contrato" element={<ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'SUPER_ADMIN']}><MyContractPage /></ProtectedAdminRoute>} />
+          <Route path="/meu-contrato" element={<ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'TERRITORIAL_OPERATOR', 'SUPER_ADMIN']}><MyContractPage /></ProtectedAdminRoute>} />
           <Route path="/investidores" element={<ProtectedAdminRoute requireSuperAdmin><InvestorsPage /></ProtectedAdminRoute>} />
 
           {/* KAVIAR Pet */}

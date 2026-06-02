@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { requireTerritoryScope } from '../middlewares/require-territory-scope';
 import { uploadToS3 } from '../config/s3-upload';
 import { ApprovalController } from '../modules/admin/approval-controller';
 import { config } from '../config';
@@ -88,7 +89,7 @@ router.post('/drivers/create', requireSuperAdmin, async (req: Request, res: Resp
 });
 
 // GET /api/admin/drivers?status=pending
-router.get('/drivers', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
+router.get('/drivers', allowReadAccess, applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string;
     const page = parseInt(req.query.page as string) || 1;
@@ -175,7 +176,7 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, async (req: Request
 });
 
 // GET /api/admin/drivers/:id
-router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   const requestId = (req as any).requestId || req.headers['x-request-id'] || 'unknown';
   
   try {
@@ -205,6 +206,18 @@ router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) 
 
     const driver = driverRaw[0];
 
+    // Scope check: TERRITORIAL_OPERATOR só vê motorista do seu território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || !scope.neighborhoodIds || scope.neighborhoodIds.length === 0) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+      if (!driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
+      }
+    }
+
     // Reconstruct nested objects for compatibility
     const result = {
       ...driver,
@@ -224,6 +237,16 @@ router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) 
     delete result.neighborhood_name;
     delete result.community_id_obj;
     delete result.community_name;
+
+    // Masking para TERRITORIAL_OPERATOR: ocultar dados sensíveis
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (result.document_cpf) result.document_cpf = '***' + result.document_cpf.slice(-4);
+      if (result.document_rg) result.document_rg = '***' + result.document_rg.slice(-3);
+      if (result.document_cnh) result.document_cnh = '***' + result.document_cnh.slice(-4);
+      if (result.pix_key) result.pix_key = result.pix_key.substring(0, 3) + '***';
+      result.password_hash = undefined;
+      result.certidao_nada_consta_url = undefined;
+    }
 
     // Log qual campo casou
     let matchedBy = 'id';
@@ -256,14 +279,46 @@ router.get('/drivers/:id', allowReadAccess, async (req: Request, res: Response) 
 });
 
 // GET /api/admin/drivers/:id/documents
-router.get('/drivers/:id/documents', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/drivers/:id/documents', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // TERRITORIAL_OPERATOR: verificar que motorista pertence ao território
+    const admin = (req as any).admin;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      const scope = (req as any).territoryScope;
+      if (!scope || scope.neighborhoodIds.length === 0) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+      const driver = await prisma.drivers.findUnique({ where: { id }, select: { neighborhood_id: true } });
+      if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
+      }
+    }
 
     const documents = await prisma.driver_documents.findMany({
       where: { driver_id: id },
       orderBy: { created_at: 'desc' }
     });
+
+    // Masking para TERRITORIAL_OPERATOR: ocultar URLs dos documentos
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      const masked = documents.map(doc => ({
+        id: doc.id,
+        driver_id: doc.driver_id,
+        type: doc.type,
+        status: doc.status,
+        submitted_at: doc.submitted_at,
+        verified_at: doc.verified_at,
+        rejected_at: doc.rejected_at,
+        reject_reason: doc.reject_reason,
+        created_at: doc.created_at,
+        // Ocultar URLs sensíveis
+        document_url: undefined,
+        file_url: undefined,
+      }));
+      return res.json({ success: true, data: masked });
+    }
 
     res.json({
       success: true,

@@ -1,19 +1,14 @@
 import { prisma } from '../lib/prisma';
 
 /**
- * Territory Scope Service — preparação para Fase 2B (permissões regionais).
+ * Territory Scope Service — Fase 1 (deny-by-default para TERRITORIAL_OPERATOR).
  *
- * REGRAS ATUAIS (Fase 2A):
- * - Este service NÃO é chamado por nenhum middleware ou endpoint.
- * - Existe apenas como preparação para uso futuro.
- * - SUPER_ADMIN sempre retorna null (acesso global, sem filtro).
- * - Admin sem registros em admin_territory_access retorna null (acesso global).
- *
- * REGRAS FUTURAS (Fase 2B — quando implementada):
- * - Admins regionais SEM territory_access configurado NÃO devem ganhar acesso
- *   global automaticamente. Devem receber 403 ou ver apenas dados sem território.
- * - Apenas SUPER_ADMIN tem bypass incondicional.
- * - O middleware applyTerritoryScope usará este helper para injetar filtros.
+ * REGRAS:
+ * - SUPER_ADMIN → retorna null (acesso global, sem filtro)
+ * - TERRITORIAL_OPERATOR sem territory_access → retorna scope VAZIO (vê nada)
+ * - TERRITORIAL_OPERATOR com territory_access → retorna scope preenchido (vê só seu território)
+ * - Demais roles sem territory_access → retorna null (backward compatible, acesso global)
+ * - Demais roles com territory_access → retorna scope preenchido
  */
 
 export interface TerritoryScope {
@@ -24,7 +19,8 @@ export interface TerritoryScope {
 
 /**
  * Resolve o escopo territorial de um admin.
- * Retorna null se o admin tem acesso global (SUPER_ADMIN ou sem restrição configurada).
+ * Retorna null se o admin tem acesso global (SUPER_ADMIN ou role sem restrição configurada).
+ * Retorna scope vazio para TERRITORIAL_OPERATOR sem vínculo (deny-by-default).
  */
 export async function getAdminTerritoryScope(
   adminId: string,
@@ -38,9 +34,15 @@ export async function getAdminTerritoryScope(
     select: { territory_id: true, access_level: true },
   });
 
-  // Sem registros = acesso global (backward compatible na Fase 2A)
-  // NOTA FASE 2B: mudar para retornar escopo vazio (bloquear) em vez de null
-  if (access.length === 0) return null;
+  // Sem registros de territory_access:
+  if (access.length === 0) {
+    // TERRITORIAL_OPERATOR sem vínculo → scope vazio (deny-by-default)
+    if (role === 'TERRITORIAL_OPERATOR') {
+      return { territoryIds: [], neighborhoodIds: [], accessLevel: 'none' };
+    }
+    // Demais roles → acesso global (backward compatible)
+    return null;
+  }
 
   const territoryIds = access.map((a) => a.territory_id);
 

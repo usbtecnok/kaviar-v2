@@ -6,11 +6,13 @@ import { getAdminTerritoryScope, TerritoryScope } from '../services/territory-sc
  * Seta req.territoryScope para uso nos handlers.
  *
  * - SUPER_ADMIN → req.territoryScope = null (sem filtro)
- * - Admin sem territory_access → req.territoryScope = null (backward compatible)
- * - Admin com territory_access → req.territoryScope = { territoryIds, neighborhoodIds, accessLevel }
+ * - TERRITORIAL_OPERATOR sem territory_access → req.territoryScope = { territoryIds: [], neighborhoodIds: [], accessLevel: 'none' }
+ * - TERRITORIAL_OPERATOR com territory_access → req.territoryScope = { territoryIds, neighborhoodIds, accessLevel }
+ * - Demais roles sem territory_access → req.territoryScope = null (backward compatible)
+ * - Demais roles com territory_access → req.territoryScope = { territoryIds, neighborhoodIds, accessLevel }
  *
  * Este middleware NÃO bloqueia acesso. Apenas resolve o escopo.
- * Cada handler decide como usar req.territoryScope.
+ * Use requireTerritoryScope APÓS este middleware para bloquear operadores sem escopo.
  */
 export async function applyTerritoryScope(req: Request, _res: Response, next: NextFunction) {
   try {
@@ -21,8 +23,14 @@ export async function applyTerritoryScope(req: Request, _res: Response, next: Ne
     (req as any).territoryScope = scope;
     next();
   } catch (err) {
-    // Fail-open: se resolver falhar, não bloqueia (SUPER_ADMIN behavior)
-    (req as any).territoryScope = null;
+    // TERRITORIAL_OPERATOR: falha no resolver = scope vazio (deny-by-default)
+    const admin = (req as any).admin;
+    if (admin?.role === 'TERRITORIAL_OPERATOR') {
+      (req as any).territoryScope = { territoryIds: [], neighborhoodIds: [], accessLevel: 'none' };
+    } else {
+      // Demais roles: fail-open para backward compat
+      (req as any).territoryScope = null;
+    }
     next();
   }
 }

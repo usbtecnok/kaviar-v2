@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import { auditWrite } from '../middlewares/audit-write';
 
 const router = Router();
@@ -48,7 +48,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST /api/admin/showcase
-router.post('/', auditWrite('create_showcase_item', 'showcase_item'), async (req: Request, res: Response) => {
+router.post('/', requireSuperAdmin, auditWrite('create_showcase_item', 'showcase_item'), async (req: Request, res: Response) => {
   try {
     const { title, description, icon, type, community_id, neighborhood_id, cta_label, cta_url, is_active, priority, starts_at, ends_at, exposure_quota } = req.body;
     if (!title || !description || !cta_label || !cta_url) {
@@ -72,7 +72,7 @@ router.post('/', auditWrite('create_showcase_item', 'showcase_item'), async (req
 });
 
 // PUT /api/admin/showcase/:id
-router.put('/:id', auditWrite('update_showcase_item', 'showcase_item'), async (req: Request, res: Response) => {
+router.put('/:id', requireSuperAdmin, auditWrite('update_showcase_item', 'showcase_item'), async (req: Request, res: Response) => {
   try {
     const { title, description, icon, type, community_id, neighborhood_id, cta_label, cta_url, is_active, priority, starts_at, ends_at, exposure_quota } = req.body;
     const item = await prisma.showcase_items.update({
@@ -92,7 +92,7 @@ router.put('/:id', auditWrite('update_showcase_item', 'showcase_item'), async (r
 });
 
 // PATCH /api/admin/showcase/:id — ativar/desativar/aprovar
-router.patch('/:id', auditWrite('patch_showcase_item', 'showcase_item'), async (req: Request, res: Response) => {
+router.patch('/:id', requireSuperAdmin, auditWrite('patch_showcase_item', 'showcase_item'), async (req: Request, res: Response) => {
   try {
     const { is_active, approved } = req.body;
     const data: any = {};

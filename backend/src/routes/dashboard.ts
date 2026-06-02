@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin, allowReadAccess } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { requireTerritoryScope } from '../middlewares/require-territory-scope';
 import { pool } from '../db';
 
 const router = Router();
@@ -11,7 +12,7 @@ const prisma = new PrismaClient();
 router.use(authenticateAdmin, allowReadAccess);
 
 // GET /api/admin/dashboard/overview
-router.get('/overview', applyTerritoryScope, async (req: Request, res: Response) => {
+router.get('/overview', applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const scope = (req as any).territoryScope;
     const driverFilter = scope ? { neighborhood_id: { in: scope.neighborhoodIds } } : {};
@@ -68,7 +69,7 @@ router.get('/overview', applyTerritoryScope, async (req: Request, res: Response)
 });
 
 // GET /api/admin/dashboard/territory
-router.get('/territory', applyTerritoryScope, async (req: Request, res: Response) => {
+router.get('/territory', applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const scope = (req as any).territoryScope;
     const nf = scope ? { origin_neighborhood_id: { in: scope.neighborhoodIds } } : {};

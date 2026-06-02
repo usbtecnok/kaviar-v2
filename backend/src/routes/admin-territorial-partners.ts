@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { requireTerritoryScope } from '../middlewares/require-territory-scope';
 import { audit, auditCtx } from '../utils/audit';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
@@ -62,7 +63,7 @@ router.get('/summary', authenticateAdmin, async (req: Request, res: Response) =>
 });
 
 // List all partners
-router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
+router.get('/', authenticateAdmin, applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const { status, partner_type } = req.query;
     const where: any = {};
@@ -105,7 +106,7 @@ router.get('/:id/logo', async (req: Request, res: Response) => {
 });
 
 // Get partner detail with financial summary
-router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/:id', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const partner = await prisma.territorial_partners.findUnique({
       where: { id: req.params.id },
@@ -115,6 +116,18 @@ router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
       },
     });
     if (!partner) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    // Scope check: TERRITORIAL_OPERATOR só vê parceiro do seu território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+      if (!partner.territory_id || !scope.territoryIds.includes(partner.territory_id)) {
+        return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });
+      }
+    }
 
     // Per-driver stats
     const driverIds = partner.drivers.map(d => d.id);
@@ -213,7 +226,7 @@ async function generateReferralCode(name: string): Promise<string> {
 }
 
 // Create partner
-router.post('/', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { name, partner_type, address, responsible_name, responsible_role, responsible_phone, responsible_email, commission_percent, monthly_fee_cents, notes } = req.body;
     if (!name || !responsible_name) {
@@ -239,7 +252,7 @@ router.post('/', authenticateAdmin, async (req: Request, res: Response) => {
 });
 
 // Generate referral code for existing partner without one
-router.post('/:id/generate-code', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/generate-code', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const partner = await prisma.territorial_partners.findUnique({ where: { id: req.params.id } });
     if (!partner) return res.status(404).json({ success: false, error: 'Não encontrado' });
@@ -259,7 +272,7 @@ router.post('/:id/generate-code', authenticateAdmin, async (req: Request, res: R
 });
 
 // Update partner
-router.put('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.put('/:id', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { name, partner_type, address, responsible_name, responsible_role, responsible_phone, responsible_email, commission_percent, monthly_fee_cents, billing_due_day, billing_status, status, notes, contract_status, contract_url, contract_signed_at, contract_notes } = req.body;
     const VALID_BILLING = ['current', 'pending', 'overdue', 'blocked', 'canceled'];
@@ -293,7 +306,7 @@ router.put('/:id', authenticateAdmin, async (req: Request, res: Response) => {
 });
 
 // Change status
-router.patch('/:id/status', authenticateAdmin, async (req: Request, res: Response) => {
+router.patch('/:id/status', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     if (!VALID_STATUSES.includes(status)) {
@@ -307,7 +320,7 @@ router.patch('/:id/status', authenticateAdmin, async (req: Request, res: Respons
 });
 
 // Archive partner (safe - keeps all history)
-router.post('/:id/archive', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/archive', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     // Unlink all drivers
     await prisma.drivers.updateMany({ where: { territorial_partner_id: req.params.id }, data: { territorial_partner_id: null, territorial_partner_linked_at: null } });
@@ -323,7 +336,7 @@ router.post('/:id/archive', authenticateAdmin, async (req: Request, res: Respons
 });
 
 // Delete partner (only if no real data)
-router.delete('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.delete('/:id', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const [commCount, payCount, linkedDrivers] = await Promise.all([
       prisma.partner_commissions.count({ where: { partner_id: req.params.id } }),
@@ -352,7 +365,7 @@ router.delete('/:id', authenticateAdmin, async (req: Request, res: Response) => 
 });
 
 // Link driver to partner
-router.post('/:id/drivers', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/drivers', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { driver_id } = req.body;
     if (!driver_id) return res.status(400).json({ success: false, error: 'driver_id obrigatório' });
@@ -364,7 +377,7 @@ router.post('/:id/drivers', authenticateAdmin, async (req: Request, res: Respons
 });
 
 // Unlink driver from partner
-router.delete('/:id/drivers/:driverId', authenticateAdmin, async (req: Request, res: Response) => {
+router.delete('/:id/drivers/:driverId', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     await prisma.drivers.update({ where: { id: req.params.driverId }, data: { territorial_partner_id: null, territorial_partner_linked_at: null } });
     const ctx = auditCtx(req);
@@ -484,7 +497,7 @@ router.get('/:id/link-requests', authenticateAdmin, async (req: Request, res: Re
 });
 
 // Approve link request
-router.post('/:id/link-requests/:requestId/approve', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/link-requests/:requestId/approve', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).admin?.id || 'unknown';
     const request = await prisma.partner_link_requests.findUnique({ where: { id: req.params.requestId } });
@@ -506,7 +519,7 @@ router.post('/:id/link-requests/:requestId/approve', authenticateAdmin, async (r
 });
 
 // Reject link request
-router.post('/:id/link-requests/:requestId/reject', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/link-requests/:requestId/reject', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const adminId = (req as any).admin?.id || 'unknown';
     const request = await prisma.partner_link_requests.findUnique({ where: { id: req.params.requestId } });
@@ -543,7 +556,7 @@ router.get('/:id/commissions', authenticateAdmin, async (req: Request, res: Resp
 });
 
 // Mark commissions as paid (batch)
-router.post('/:id/commissions/mark-paid', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/commissions/mark-paid', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { commission_ids } = req.body;
     const adminId = (req as any).admin?.id || 'unknown';
@@ -575,7 +588,7 @@ router.post('/:id/commissions/mark-paid', authenticateAdmin, async (req: Request
 });
 
 // Create partner user (admin creates login for the partner)
-router.post('/:id/users', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/users', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email) return res.status(400).json({ success: false, error: 'name e email obrigatórios' });
@@ -599,7 +612,7 @@ router.post('/:id/users', authenticateAdmin, async (req: Request, res: Response)
 });
 
 // Admin reset password for partner user
-router.post('/:id/reset-password', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/reset-password', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const user = await prisma.partner_users.findFirst({ where: { partner_id: req.params.id } });
     if (!user) return res.status(404).json({ success: false, error: 'Parceiro não possui acesso criado' });
@@ -633,7 +646,7 @@ router.get('/:id/payments', authenticateAdmin, async (req: Request, res: Respons
 });
 
 // Register monthly payment
-router.post('/:id/payments', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/:id/payments', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { amount_cents, reference_month, paid_at, receipt_url, notes } = req.body;
     const adminId = (req as any).admin?.id || 'unknown';
@@ -696,7 +709,7 @@ const uploadLogo = multer({
   },
 });
 
-router.post('/:id/logo', authenticateAdmin, uploadLogo.single('logo'), async (req: Request, res: Response) => {
+router.post('/:id/logo', authenticateAdmin, requireSuperAdmin, uploadLogo.single('logo'), async (req: Request, res: Response) => {
   try {
     const file = req.file as any;
     if (!file) return res.status(400).json({ success: false, error: 'Arquivo obrigatório' });

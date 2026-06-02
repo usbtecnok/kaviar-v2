@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -35,7 +35,7 @@ router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
 });
 
 // POST /api/admin/local-businesses — cria um novo comércio
-router.post('/', authenticateAdmin, async (req: Request, res: Response) => {
+router.post('/', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { name, category, description, whatsapp, address, logo_url, region_slug, is_active } = req.body;
     if (!name || !region_slug) {
@@ -61,7 +61,7 @@ router.post('/', authenticateAdmin, async (req: Request, res: Response) => {
 });
 
 // PATCH /api/admin/local-businesses/:id — atualiza (inclui ativar/desativar via is_active)
-router.patch('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.patch('/:id', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { name, category, description, whatsapp, address, logo_url, region_slug, is_active } = req.body;
     const data: Record<string, unknown> = {};

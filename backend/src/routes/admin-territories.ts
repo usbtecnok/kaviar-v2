@@ -10,7 +10,7 @@ router.use(authenticateAdmin, requireSuperAdmin);
 
 const VALID_LEVELS = ['country', 'state', 'city', 'region', 'operation'];
 const VALID_STATUSES = ['planning', 'preparation', 'active', 'inactive'];
-const ALLOWED_REGIONAL_ROLE = 'ANGEL_VIEWER';
+const ALLOWED_REGIONAL_ROLE = 'TERRITORIAL_OPERATOR';
 
 // ─── Territories ─────────────────────────────────────────────────────────────
 
