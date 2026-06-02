@@ -140,7 +140,11 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR']), ap
       local_rides: bigint;
       external_rides: bigint;
       canceled_rides: bigint;
+      completed_rides: bigint;
+      no_driver_rides: bigint;
       avg_accept_min: number | null;
+      avg_trip_duration_min: number | null;
+      revenue_total: number | null;
     }>>`
       SELECT
         r.origin_neighborhood_id AS neighborhood_id,
@@ -150,11 +154,20 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR']), ap
         COUNT(*) FILTER (
           WHERE r.status IN ('canceled_by_passenger', 'canceled_by_driver')
         ) AS canceled_rides,
+        COUNT(*) FILTER (WHERE r.status = 'completed') AS completed_rides,
+        COUNT(*) FILTER (WHERE r.status = 'no_driver') AS no_driver_rides,
         AVG(
           EXTRACT(EPOCH FROM (r.accepted_at - r.offered_at)) / 60.0
         ) FILTER (
           WHERE r.accepted_at IS NOT NULL AND r.offered_at IS NOT NULL
-        ) AS avg_accept_min
+        ) AS avg_accept_min,
+        AVG(
+          EXTRACT(EPOCH FROM (r.completed_at - r.started_at)) / 60.0
+        ) FILTER (
+          WHERE r.completed_at IS NOT NULL AND r.started_at IS NOT NULL
+            AND EXTRACT(EPOCH FROM (r.completed_at - r.started_at)) < 10800
+        ) AS avg_trip_duration_min,
+        COALESCE(SUM(rs.final_price) FILTER (WHERE rs.settled_at IS NOT NULL AND rs.final_price IS NOT NULL), 0) AS revenue_total
       FROM rides_v2 r
       LEFT JOIN ride_settlements rs
         ON rs.ride_id = r.id AND rs.settled_at IS NOT NULL
@@ -186,27 +199,63 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR']), ap
       HAVING COUNT(rt.id) >= 3
     `;
 
+    // Query 4 — passageiros recorrentes (>1 corrida no período por bairro)
+    const repeatStats = await prisma.$queryRaw<Array<{
+      neighborhood_id: string;
+      total_pax: bigint;
+      repeat_pax: bigint;
+    }>>`
+      SELECT
+        origin_neighborhood_id AS neighborhood_id,
+        COUNT(DISTINCT passenger_id) AS total_pax,
+        COUNT(DISTINCT passenger_id) FILTER (WHERE ride_count > 1) AS repeat_pax
+      FROM (
+        SELECT origin_neighborhood_id, passenger_id, COUNT(*) AS ride_count
+        FROM rides_v2
+        WHERE requested_at >= ${since}
+          AND origin_neighborhood_id IS NOT NULL
+          AND status NOT IN ('no_driver')
+        ${rideFilter}
+        GROUP BY origin_neighborhood_id, passenger_id
+      ) sub
+      GROUP BY neighborhood_id
+    `;
+
     // Índices de lookup por neighborhood_id
     const rideMap = new Map(rideStats.map((r) => [r.neighborhood_id, r]));
     const ratingMap = new Map(ratingStats.map((r) => [r.neighborhood_id, r]));
+    const repeatMap = new Map(repeatStats.map((r) => [r.neighborhood_id, r]));
 
     const results = structural.map((n) => {
       const rides = rideMap.get(n.id);
       const rating = ratingMap.get(n.id);
+      const repeat = repeatMap.get(n.id);
 
       const totalDrivers = Number(n.total_drivers);
       const totalRides = Number(rides?.total_rides ?? 0);
       const localRides = Number(rides?.local_rides ?? 0);
       const externalRides = Number(rides?.external_rides ?? 0);
       const canceledRides = Number(rides?.canceled_rides ?? 0);
+      const completedRides = Number(rides?.completed_rides ?? 0);
+      const noDriverRides = Number(rides?.no_driver_rides ?? 0);
       const avgAcceptMin =
         rides?.avg_accept_min != null
           ? Math.round(Number(rides.avg_accept_min) * 10) / 10
           : null;
+      const avgTripDurationMin =
+        rides?.avg_trip_duration_min != null
+          ? Math.round(Number(rides.avg_trip_duration_min) * 10) / 10
+          : null;
+      const revenueTotal = Math.round(Number(rides?.revenue_total ?? 0) * 100) / 100;
       const avgRating =
         rating != null
           ? Math.round(Number(rating.avg_rating) * 10) / 10
           : null;
+
+      const totalPax = Number(repeat?.total_pax ?? 0);
+      const repeatPax = Number(repeat?.repeat_pax ?? 0);
+      const completionRate = totalRides > 0 ? Math.round((completedRides / totalRides) * 1000) / 10 : 0;
+      const repeatPassengerPct = totalPax > 0 ? Math.round((repeatPax / totalPax) * 1000) / 10 : 0;
 
       const scoreInput = {
         total_drivers: totalDrivers,
@@ -233,10 +282,17 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR']), ap
         rides_local: localRides,
         rides_external: externalRides,
         rides_canceled: canceledRides,
+        rides_completed: completedRides,
+        rides_no_driver: noDriverRides,
+        completion_rate: completionRate,
+        revenue_total: revenueTotal,
         avg_accept_min: avgAcceptMin,
+        avg_trip_duration_min: avgTripDurationMin,
         avg_rating: avgRating,
         has_operator: n.has_operator ?? false,
         has_partner: n.has_partner ?? false,
+        repeat_passengers: repeatPax,
+        repeat_passenger_pct: repeatPassengerPct,
         maturity_score: score,
         maturity_status: derivedStatus(score),
       };

@@ -103,10 +103,16 @@ const COLUMNS = [
   { id: 'drivers_online', label: 'Mot. online', numeric: true },
   { id: 'passengers_total', label: 'Passageiros', numeric: true },
   { id: 'rides_total', label: 'Corridas', numeric: true },
+  { id: 'rides_completed', label: 'Concluídas', numeric: true },
+  { id: 'completion_rate', label: '% Conclusão', numeric: true },
+  { id: 'rides_no_driver', label: 'S/ motorista', numeric: true },
   { id: 'rides_local', label: 'Locais', numeric: true },
   { id: 'rides_external', label: 'Externas', numeric: true },
   { id: 'rides_canceled', label: 'Canceladas', numeric: true },
   { id: 'avg_accept_min', label: 'T. aceite', numeric: true },
+  { id: 'avg_trip_duration_min', label: 'T. viagem', numeric: true },
+  { id: 'revenue_total', label: 'Receita (R$)', numeric: true },
+  { id: 'repeat_passenger_pct', label: '% Recorrentes', numeric: true },
   { id: 'avg_rating', label: 'Avaliação', numeric: true },
   { id: 'has_operator', label: 'Operador' },
   { id: 'has_partner', label: 'Parceiro' },
@@ -119,8 +125,11 @@ function exportCSV(rows) {
     csvRows.push([
       row.neighborhood, row.city, row.territory, row.maturity_status,
       row.maturity_score, row.drivers_approved, row.drivers_online, row.passengers_total,
-      row.rides_total, row.rides_local, row.rides_external, row.rides_canceled,
-      row.avg_accept_min ?? '', row.avg_rating != null ? row.avg_rating.toFixed(1) : '',
+      row.rides_total, row.rides_completed ?? 0, row.completion_rate ?? 0,
+      row.rides_no_driver ?? 0, row.rides_local, row.rides_external, row.rides_canceled,
+      row.avg_accept_min ?? '', row.avg_trip_duration_min ?? '',
+      row.revenue_total ?? 0, row.repeat_passenger_pct ?? 0,
+      row.avg_rating != null ? row.avg_rating.toFixed(1) : '',
       row.has_operator ? 'Sim' : 'Não', row.has_partner ? 'Sim' : 'Não',
     ].join(';'));
   }
@@ -483,11 +492,23 @@ export default function KaviarLab() {
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.drivers_online}</TableCell>
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.passengers_total}</TableCell>
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.rides_total}</TableCell>
+                    <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.rides_completed ?? 0}</TableCell>
+                    <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.completion_rate ?? 0}%</TableCell>
+                    <TableCell sx={{ fontSize: 12, textAlign: 'center', color: (row.rides_no_driver ?? 0) > 0 ? '#DC2626' : '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.rides_no_driver ?? 0}</TableCell>
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.rides_local}</TableCell>
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.rides_external}</TableCell>
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>{row.rides_canceled}</TableCell>
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>
                       {row.avg_accept_min != null ? `${row.avg_accept_min} min` : '—'}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>
+                      {row.avg_trip_duration_min != null ? `${row.avg_trip_duration_min} min` : '—'}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>
+                      {(row.revenue_total ?? 0) > 0 ? `R$ ${row.revenue_total.toFixed(0)}` : '—'}
+                    </TableCell>
+                    <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>
+                      {(row.repeat_passenger_pct ?? 0) > 0 ? `${row.repeat_passenger_pct}%` : '—'}
                     </TableCell>
                     <TableCell sx={{ fontSize: 12, textAlign: 'center', color: '#E5E5E5', borderBottom: '1px solid #1A1A1A' }}>
                       {row.avg_rating != null ? row.avg_rating.toFixed(1) : '—'}
