@@ -126,7 +126,11 @@ export default function OperatorHome() {
         )}
 
         {/* Shortcuts */}
-        <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5, fontWeight: 600 }}>Módulos</Typography>
+        <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5, fontWeight: 600 }}>Indicar Motoristas</Typography>
+        <ReferralSection token={token} />
+
+        {/* Módulos */}
+        <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5, mt: 3, fontWeight: 600 }}>Módulos</Typography>
         <Grid container spacing={1.5} sx={{ mb: 4 }}>
           {[
             { Icon: DirectionsCar, title: 'Motoristas', desc: 'Ver motoristas do território', to: '/admin/drivers' },
@@ -163,5 +167,101 @@ export default function OperatorHome() {
         </Box>
       </Container>
     </Box>
+  );
+}
+
+function ReferralSection({ token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => { fetchReferral(); }, []);
+
+  const fetchReferral = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/operator/referrals`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const json = await res.json();
+      if (json.success) setData(json.data);
+    } catch {} finally { setLoading(false); }
+  };
+
+  const handleGenerate = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/operator/referrals/generate`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+      const json = await res.json();
+      if (json.success) fetchReferral();
+    } catch {}
+  };
+
+  const handleCopy = () => {
+    if (data?.referral_link) {
+      navigator.clipboard.writeText(data.referral_link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleWhatsApp = () => {
+    if (data?.referral_link) {
+      const msg = encodeURIComponent(`Quer ser motorista KAVIAR na nossa região? Cadastre-se pelo meu link:\n${data.referral_link}`);
+      window.open(`https://wa.me/?text=${msg}`, '_blank');
+    }
+  };
+
+  if (loading) return null;
+
+  if (!data?.has_code) {
+    return (
+      <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+        <CardContent sx={{ p: 2, textAlign: 'center' }}>
+          <Typography sx={{ color: '#6B7280', fontSize: 13, mb: 1.5 }}>Você ainda não tem um link de indicação.</Typography>
+          <Button onClick={handleGenerate} variant="contained" size="small" sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>
+            Gerar meu link de indicação
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+      <CardContent sx={{ p: 2 }}>
+        {/* Link */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, p: 1.5, bgcolor: '#FAFAF8', borderRadius: 1, border: '1px solid #E8E5DE' }}>
+          <Typography sx={{ flex: 1, fontSize: 12, color: '#1A1A1A', fontFamily: 'monospace', wordBreak: 'break-all' }}>{data.referral_link}</Typography>
+          <Button onClick={handleCopy} size="small" sx={{ minWidth: 'auto', fontSize: 11, color: copied ? '#16A34A' : '#B8942E' }}>
+            {copied ? '✓ Copiado' : 'Copiar'}
+          </Button>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <Button onClick={handleWhatsApp} size="small" variant="outlined" sx={{ fontSize: 11, borderColor: '#25D366', color: '#25D366', '&:hover': { borderColor: '#128C7E', bgcolor: 'rgba(37,211,102,0.04)' } }}>
+            📱 Compartilhar no WhatsApp
+          </Button>
+        </Box>
+
+        {/* Stats */}
+        {data.stats && (
+          <Grid container spacing={1}>
+            {[
+              { label: 'Indicados', value: data.stats.total, color: '#1A1A1A' },
+              { label: 'Pendentes', value: data.stats.pending, color: '#D97706' },
+              { label: 'Aprovados', value: data.stats.qualified, color: '#16A34A' },
+              { label: 'Rejeitados', value: data.stats.rejected, color: '#DC2626' },
+            ].map(s => (
+              <Grid item xs={3} key={s.label}>
+                <Box sx={{ textAlign: 'center', py: 1, bgcolor: '#FAFAF8', borderRadius: 1 }}>
+                  <Typography sx={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</Typography>
+                  <Typography sx={{ fontSize: 9, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+
+        <Typography sx={{ fontSize: 9, color: '#9CA3AF', mt: 1.5, textAlign: 'center' }}>
+          Código: {data.referral_code} • Motoristas indicados são aprovados pelo KAVIAR
+        </Typography>
+      </CardContent>
+    </Card>
   );
 }
