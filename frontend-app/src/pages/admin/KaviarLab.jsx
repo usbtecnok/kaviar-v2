@@ -3,9 +3,9 @@ import {
   Container, Box, Typography, Card, CardContent, Grid, Chip,
   CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Tooltip, TextField, TableSortLabel, Button, GlobalStyles
+  Tooltip, TextField, TableSortLabel, Button, GlobalStyles, Snackbar
 } from '@mui/material';
-import { Science, TrendingUp, TrendingDown, Circle, Download, Search, Print } from '@mui/icons-material';
+import { Science, TrendingUp, TrendingDown, Circle, Download, Search, Print, CameraAlt } from '@mui/icons-material';
 import api from '../../api';
 
 const printStyles = (
@@ -152,6 +152,9 @@ export default function KaviarLab() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('maturity_score');
   const [sortDir, setSortDir] = useState('desc');
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snackMsg, setSnackMsg] = useState('');
+  const [snapshots, setSnapshots] = useState([]);
 
   useEffect(() => {
     setLoading(true);
@@ -168,6 +171,31 @@ export default function KaviarLab() {
       .catch(() => setError('Erro ao carregar dados do KAVIAR Lab.'))
       .finally(() => setLoading(false));
   }, [days]);
+
+  const loadSnapshots = () => {
+    api.get('/api/admin/lab/history?neighborhood_id=_summary&days=' + days + '&limit=10')
+      .then(res => { if (res.data.success) setSnapshots(res.data.data); })
+      .catch(() => {});
+  };
+
+  useEffect(() => { if (!loading && data.length > 0) loadSnapshots(); }, [loading, days]);
+
+  const handleSnapshot = async () => {
+    setSnapshotLoading(true);
+    try {
+      const res = await api.post('/api/admin/lab/snapshot', { days });
+      if (res.data.success) {
+        setSnackMsg(`✅ Snapshot salvo: ${res.data.snapshots_saved} territórios em ${res.data.snapshot_date}`);
+        loadSnapshots();
+      } else {
+        setSnackMsg('❌ Erro ao salvar snapshot');
+      }
+    } catch {
+      setSnackMsg('❌ Erro ao salvar snapshot');
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
 
   const cities = useMemo(() => [...new Set(data.map(d => d.city))].sort(), [data]);
 
@@ -439,6 +467,16 @@ export default function KaviarLab() {
             <Box sx={{ flex: 1 }} />
             <Button
               size="small"
+              startIcon={<CameraAlt sx={{ fontSize: 16 }} />}
+              onClick={handleSnapshot}
+              disabled={snapshotLoading}
+              sx={{ color: '#16A34A', borderColor: '#3A3A3A', fontSize: 12, textTransform: 'none', '&:hover': { borderColor: '#16A34A', bgcolor: 'rgba(22,163,74,0.05)' } }}
+              variant="outlined"
+            >
+              {snapshotLoading ? 'Salvando...' : 'Salvar Snapshot'}
+            </Button>
+            <Button
+              size="small"
               startIcon={<Print sx={{ fontSize: 16 }} />}
               onClick={() => window.print()}
               sx={{ color: '#E5E5E5', borderColor: '#3A3A3A', fontSize: 12, textTransform: 'none', '&:hover': { borderColor: '#B8942E', bgcolor: 'rgba(184,148,46,0.05)' } }}
@@ -564,6 +602,31 @@ export default function KaviarLab() {
           </Box>
         )}
 
+        {/* === HISTÓRICO DE SNAPSHOTS === */}
+        {!loading && data.length > 0 && (
+          <Box className="no-print" sx={{ mt: 3, p: 2.5, bgcolor: '#1A1A1A', border: '1px solid #2A2A2A', borderRadius: 2 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#B8942E', mb: 1.5 }}>
+              📸 Histórico de Snapshots
+            </Typography>
+            {snapshots.length === 0 ? (
+              <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Nenhum snapshot salvo ainda.</Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                {snapshots.map(s => (
+                  <Box key={s.id} sx={{ px: 1.5, py: 1, bgcolor: '#0D0D0D', border: '1px solid #2A2A2A', borderRadius: 1.5 }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#E5E5E5' }}>
+                      {new Date(s.snapshot_date).toLocaleDateString('pt-BR')}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: '#9CA3AF' }}>
+                      Score: {s.maturity_score} · {s.maturity_status}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
+
         {/* === RODAPÉ INSTITUCIONAL (aparece na tela e no print) === */}
         {!loading && data.length > 0 && (
           <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid #2A2A2A', textAlign: 'center' }}>
@@ -573,6 +636,13 @@ export default function KaviarLab() {
           </Box>
         )}
       </Container>
+      <Snackbar
+        open={!!snackMsg}
+        autoHideDuration={4000}
+        onClose={() => setSnackMsg('')}
+        message={snackMsg}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </>
   );
 }
