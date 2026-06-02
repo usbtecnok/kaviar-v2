@@ -332,6 +332,7 @@ model neighborhoods {
   rides_v2_origin        rides_v2[]              @relation("RideOriginV2")
   rides_v2_dest          rides_v2[]              @relation("RideDestV2")
   territory              operational_territories? @relation(fields: [territory_id], references: [id])
+  lab_snapshots          lab_maturity_snapshots[] @relation("LabSnapshots")
 
   @@unique([name, city])
   @@index([city])
@@ -1920,4 +1921,26 @@ model pet_homologation_documents {
 
   @@index([homologation_id])
   @@index([status])
+}
+
+// ─── KAVIAR Lab: Snapshots Históricos ───
+
+model lab_maturity_snapshots {
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  neighborhood_id      String
+  territory_id         String?
+  period_days          Int
+  snapshot_date        DateTime      @db.Date
+  maturity_score       Int
+  maturity_status      String
+  methodology_version  String        @default("v1")
+  components           Json
+  created_at           DateTime      @default(now())
+
+  neighborhood         neighborhoods @relation("LabSnapshots", fields: [neighborhood_id], references: [id])
+
+  @@unique([neighborhood_id, period_days, snapshot_date])
+  @@index([neighborhood_id, snapshot_date(sort: Desc)])
+  @@index([snapshot_date(sort: Desc)])
+  @@map("lab_maturity_snapshots")
 }

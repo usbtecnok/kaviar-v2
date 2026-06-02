@@ -319,4 +319,164 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR']), ap
   }
 });
 
+// POST /api/admin/lab/snapshot — Gera snapshot manual do score atual
+router.post('/snapshot', requireRole(['SUPER_ADMIN']), applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const rawDays = parseInt(String(req.body.days ?? DEFAULT_DAYS), 10);
+    const days = VALID_DAYS.includes(rawDays) ? rawDays : DEFAULT_DAYS;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const scope = (req as any).territoryScope as { neighborhoodIds: string[] } | null;
+    const nhFilter = scope && scope.neighborhoodIds.length > 0
+      ? Prisma.sql`AND n.id = ANY(${scope.neighborhoodIds}::text[])` : Prisma.empty;
+    const rideFilter = scope && scope.neighborhoodIds.length > 0
+      ? Prisma.sql`AND r.origin_neighborhood_id = ANY(${scope.neighborhoodIds}::text[])` : Prisma.empty;
+
+    // Reutiliza mesmas queries do endpoint territorial-maturity
+    const structural = await prisma.$queryRaw<Array<any>>`
+      SELECT n.id, n.name, n.city, n.territory_id, ot.name AS territory_name,
+        COUNT(DISTINCT d.id) FILTER (WHERE d.status = 'approved') AS total_drivers,
+        COUNT(DISTINCT ds.driver_id) FILTER (WHERE ds.availability = 'online') AS online_drivers,
+        COUNT(DISTINCT p.id) AS total_passengers,
+        BOOL_OR(op.is_active = true) AS has_operator,
+        BOOL_OR(tp.status = 'active') AS has_partner
+      FROM neighborhoods n
+      LEFT JOIN operational_territories ot ON ot.id = n.territory_id
+      LEFT JOIN drivers d ON d.neighborhood_id = n.id AND d.deleted_at IS NULL
+      LEFT JOIN driver_status ds ON ds.driver_id = d.id
+      LEFT JOIN passengers p ON p.neighborhood_id = n.id
+      LEFT JOIN operator_profiles op ON op.territory_id = n.territory_id
+      LEFT JOIN territorial_partners tp ON tp.territory_id = n.territory_id
+      WHERE n.is_active = true ${nhFilter}
+      GROUP BY n.id, n.name, n.city, n.territory_id, ot.name
+    `;
+
+    const rideStats = await prisma.$queryRaw<Array<any>>`
+      SELECT r.origin_neighborhood_id AS neighborhood_id,
+        COUNT(*) AS total_rides,
+        COUNT(*) FILTER (WHERE rs.settlement_territory = 'local') AS local_rides,
+        COUNT(*) FILTER (WHERE rs.settlement_territory = 'external') AS external_rides,
+        COUNT(*) FILTER (WHERE r.status IN ('canceled_by_passenger','canceled_by_driver')) AS canceled_rides,
+        COUNT(*) FILTER (WHERE r.status = 'completed') AS completed_rides,
+        COUNT(*) FILTER (WHERE r.status = 'no_driver') AS no_driver_rides,
+        AVG(EXTRACT(EPOCH FROM (r.accepted_at - r.offered_at))/60.0) FILTER (WHERE r.accepted_at IS NOT NULL AND r.offered_at IS NOT NULL) AS avg_accept_min,
+        AVG(EXTRACT(EPOCH FROM (r.completed_at - r.started_at))/60.0) FILTER (WHERE r.completed_at IS NOT NULL AND r.started_at IS NOT NULL AND EXTRACT(EPOCH FROM (r.completed_at - r.started_at)) < 10800) AS avg_trip_duration_min,
+        COALESCE(SUM(rs.final_price) FILTER (WHERE rs.settled_at IS NOT NULL AND rs.final_price IS NOT NULL), 0) AS revenue_total
+      FROM rides_v2 r
+      LEFT JOIN ride_settlements rs ON rs.ride_id = r.id AND rs.settled_at IS NOT NULL
+      WHERE r.origin_neighborhood_id IS NOT NULL AND r.requested_at >= ${since} ${rideFilter}
+      GROUP BY r.origin_neighborhood_id
+    `;
+
+    const ratingStats = await prisma.$queryRaw<Array<any>>`
+      SELECT sub.neighborhood_id, AVG(rt.rating) AS avg_rating, COUNT(rt.id) AS rating_count
+      FROM (SELECT origin_neighborhood_id AS neighborhood_id, id AS ride_id FROM rides_v2 WHERE requested_at >= ${since} AND origin_neighborhood_id IS NOT NULL ${rideFilter}) sub
+      JOIN ratings rt ON rt.ride_id = sub.ride_id
+      GROUP BY sub.neighborhood_id HAVING COUNT(rt.id) >= 3
+    `;
+
+    const rideMap = new Map(rideStats.map((r: any) => [r.neighborhood_id, r]));
+    const ratingMap = new Map(ratingStats.map((r: any) => [r.neighborhood_id, r]));
+
+    let saved = 0;
+    for (const n of structural) {
+      const rides = rideMap.get(n.id);
+      const rating = ratingMap.get(n.id);
+
+      const totalDrivers = Number(n.total_drivers);
+      const totalRides = Number(rides?.total_rides ?? 0);
+      const localRides = Number(rides?.local_rides ?? 0);
+      const canceledRides = Number(rides?.canceled_rides ?? 0);
+      const completedRides = Number(rides?.completed_rides ?? 0);
+      const noDriverRides = Number(rides?.no_driver_rides ?? 0);
+      const avgAcceptMin = rides?.avg_accept_min != null ? Math.round(Number(rides.avg_accept_min) * 10) / 10 : null;
+      const avgTripDurationMin = rides?.avg_trip_duration_min != null ? Math.round(Number(rides.avg_trip_duration_min) * 10) / 10 : null;
+      const revenueTotal = Math.round(Number(rides?.revenue_total ?? 0) * 100) / 100;
+      const avgRating = rating != null ? Math.round(Number(rating.avg_rating) * 10) / 10 : null;
+
+      const scoreInput = {
+        total_drivers: totalDrivers,
+        total_rides: totalRides,
+        local_rides: localRides,
+        canceled_rides: canceledRides,
+        avg_accept_min: avgAcceptMin,
+        avg_rating: avgRating,
+        has_operator: n.has_operator ?? false,
+        has_partner: n.has_partner ?? false,
+      };
+      const score = calcScore(scoreInput);
+
+      const components = {
+        drivers_approved: totalDrivers,
+        drivers_online: Number(n.online_drivers),
+        passengers_total: Number(n.total_passengers),
+        rides_total: totalRides,
+        rides_local: localRides,
+        rides_external: Number(rides?.external_rides ?? 0),
+        rides_canceled: canceledRides,
+        rides_completed: completedRides,
+        rides_no_driver: noDriverRides,
+        avg_accept_min: avgAcceptMin,
+        avg_trip_duration_min: avgTripDurationMin,
+        avg_rating: avgRating,
+        revenue_total: revenueTotal,
+        has_operator: n.has_operator ?? false,
+        has_partner: n.has_partner ?? false,
+      };
+
+      await prisma.$executeRaw`
+        INSERT INTO lab_maturity_snapshots (id, neighborhood_id, territory_id, period_days, snapshot_date, maturity_score, maturity_status, methodology_version, components, created_at)
+        VALUES (gen_random_uuid(), ${n.id}, ${n.territory_id}, ${days}, ${today}::date, ${score}, ${derivedStatus(score)}, 'v1', ${JSON.stringify(components)}::jsonb, NOW())
+        ON CONFLICT (neighborhood_id, period_days, snapshot_date)
+        DO UPDATE SET maturity_score = EXCLUDED.maturity_score, maturity_status = EXCLUDED.maturity_status, components = EXCLUDED.components, created_at = NOW()
+      `;
+      saved++;
+    }
+
+    return res.json({ success: true, snapshots_saved: saved, snapshot_date: today, period_days: days });
+  } catch (err) {
+    console.error('[admin-lab] erro ao gerar snapshot:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao gerar snapshot' });
+  }
+});
+
+// GET /api/admin/lab/history?neighborhood_id=X&days=30&limit=30
+router.get('/history', requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req: Request, res: Response) => {
+  try {
+    const neighborhoodId = String(req.query.neighborhood_id ?? '');
+    if (!neighborhoodId) {
+      return res.status(400).json({ success: false, error: 'neighborhood_id é obrigatório' });
+    }
+    const rawDays = parseInt(String(req.query.days ?? DEFAULT_DAYS), 10);
+    const days = VALID_DAYS.includes(rawDays) ? rawDays : DEFAULT_DAYS;
+    const limit = Math.min(parseInt(String(req.query.limit ?? '30'), 10) || 30, 100);
+
+    const snapshots = await prisma.$queryRaw<Array<{
+      id: string;
+      snapshot_date: Date;
+      maturity_score: number;
+      maturity_status: string;
+      methodology_version: string;
+      components: any;
+      created_at: Date;
+    }>>`
+      SELECT id, snapshot_date, maturity_score, maturity_status, methodology_version, components, created_at
+      FROM lab_maturity_snapshots
+      WHERE neighborhood_id = ${neighborhoodId} AND period_days = ${days}
+      ORDER BY snapshot_date DESC
+      LIMIT ${limit}
+    `;
+
+    return res.json({
+      success: true,
+      meta: { neighborhood_id: neighborhoodId, period_days: days, total: snapshots.length },
+      data: snapshots,
+    });
+  } catch (err) {
+    console.error('[admin-lab] erro ao buscar histórico:', err);
+    return res.status(500).json({ success: false, error: 'Erro ao buscar histórico' });
+  }
+});
+
 export default router;
