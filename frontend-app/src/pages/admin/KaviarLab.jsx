@@ -103,9 +103,9 @@ export default function KaviarLab() {
               O que é o KAVIAR Lab
             </Typography>
             <Typography sx={{ color: '#E5E5E5', fontSize: 13, lineHeight: 1.7 }}>
-              Centro de inteligência territorial da plataforma KAVIAR. Analisa dados reais e agregados
-              da operação para medir o grau de maturidade de cada bairro como território de mobilidade
-              comunitária. Todos os dados são agregados — nenhuma informação individual é exposta.
+              O KAVIAR Lab é o centro de inteligência territorial da plataforma KAVIAR. Ele analisa dados
+              reais e agregados da operação para medir o grau de maturidade de cada bairro, comunidade ou
+              território de mobilidade comunitária. Todos os dados são agregados — nenhuma informação individual é exposta.
             </Typography>
           </Grid>
           <Grid item xs={12} md={6}>
@@ -113,9 +113,9 @@ export default function KaviarLab() {
               Score de Maturidade Territorial
             </Typography>
             <Typography sx={{ color: '#E5E5E5', fontSize: 13, lineHeight: 1.7 }}>
-              Índice de 0 a 100 que combina densidade de motoristas, volume de corridas locais,
-              rapidez de aceite, taxa de não-cancelamento, avaliação média e presença de operadores
-              e parceiros no território. Quanto maior o score, mais maduro e autossuficiente é o bairro.
+              O Score de Maturidade Territorial é um índice de 0 a 100 que combina densidade de motoristas,
+              volume de corridas locais, rapidez de aceite, taxa de não cancelamento, avaliação média e
+              presença de operadores/parceiros no território. Quanto maior o score, mais maduro e autossuficiente é o território.
             </Typography>
           </Grid>
         </Grid>
@@ -205,7 +205,7 @@ export default function KaviarLab() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <TrendingDown sx={{ color: '#DC2626', fontSize: 20 }} />
                 <Typography sx={{ fontWeight: 700, fontSize: 14, color: '#DC2626' }}>
-                  Territórios que Precisam de Atenção
+                  Territórios Cadastrados que Precisam de Atenção
                 </Typography>
               </Box>
               {bottom3.map((t, i) => (
