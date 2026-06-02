@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { pool } from '../db';
+import { prisma } from '../lib/prisma';
 import { authenticateAdmin, allowReadAccess, allowFinanceAccess } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { applyCreditDelta } from '../services/credit.service';
 import { auditWrite } from '../middlewares/audit-write';
 
@@ -9,8 +11,19 @@ const router = Router();
 router.use(authenticateAdmin);
 
 // GET /api/admin/drivers/:driverId/credits/balance
-router.get('/:driverId/credits/balance', allowReadAccess, async (req, res) => {
+router.get('/:driverId/credits/balance', allowReadAccess, applyTerritoryScope, async (req, res) => {
   try {
+    // Scope check
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ error: 'Acesso negado' });
+      const driver = await prisma.drivers.findUnique({ where: { id: req.params.driverId }, select: { neighborhood_id: true } });
+      if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ error: 'Motorista fora do seu território' });
+      }
+    }
+
     const { driverId } = req.params;
     const result = await pool.query(
       'SELECT balance, updated_at FROM credit_balance WHERE driver_id = $1',
@@ -29,8 +42,19 @@ router.get('/:driverId/credits/balance', allowReadAccess, async (req, res) => {
 });
 
 // GET /api/admin/drivers/:driverId/credits/ledger
-router.get('/:driverId/credits/ledger', allowReadAccess, async (req, res) => {
+router.get('/:driverId/credits/ledger', allowReadAccess, applyTerritoryScope, async (req, res) => {
   try {
+    // Scope check
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ error: 'Acesso negado' });
+      const driver = await prisma.drivers.findUnique({ where: { id: req.params.driverId }, select: { neighborhood_id: true } });
+      if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ error: 'Motorista fora do seu território' });
+      }
+    }
+
     const { driverId } = req.params;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;

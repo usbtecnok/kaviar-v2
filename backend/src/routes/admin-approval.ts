@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { ApprovalController } from '../modules/admin/approval-controller';
 import { authenticateAdmin, requireSuperAdmin, allowReadAccess } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { auditWrite } from '../middlewares/audit-write';
 import { prisma } from '../lib/prisma';
 
@@ -11,7 +12,21 @@ const approvalController = new ApprovalController();
 router.use(authenticateAdmin);
 
 // Driver approval routes
-router.get('/drivers', allowReadAccess, approvalController.getDrivers);
+router.get('/drivers', allowReadAccess, applyTerritoryScope, async (req, res) => {
+  // TERRITORIAL_OPERATOR: filtrar motoristas pendentes do seu território
+  const admin = (req as any).admin;
+  const scope = (req as any).territoryScope;
+  if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (!scope || scope.neighborhoodIds.length === 0) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
+    // Inject neighborhood filter into query for the controller
+    if (!req.query.neighborhood_ids) {
+      (req as any).scopeNeighborhoodFilter = scope.neighborhoodIds;
+    }
+  }
+  return approvalController.getDrivers(req, res);
+});
 router.get('/drivers/metrics/by-neighborhood', allowReadAccess, approvalController.getDriversByNeighborhood);
 router.put('/drivers/:id/approve', requireSuperAdmin, auditWrite('approve_driver', 'driver'), approvalController.approveDriver);
 router.put('/drivers/:id/reject', requireSuperAdmin, auditWrite('reject_driver', 'driver'), approvalController.rejectDriver);

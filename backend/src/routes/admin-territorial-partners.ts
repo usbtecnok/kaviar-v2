@@ -19,28 +19,51 @@ const VALID_TYPES = ['association', 'condominium', 'business', 'community_leader
 const VALID_STATUSES = ['active', 'paused', 'inactive', 'archived'];
 
 // Dashboard summary
-router.get('/summary', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/summary', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
-    const active = await prisma.territorial_partners.count({ where: { status: 'active' } });
-    const alerts = await prisma.territorial_partners.count({ where: { billing_status: { in: ['pending', 'overdue', 'blocked'] } } });
+    // Scope filter: TERRITORIAL_OPERATOR vê somente parceiros do seu território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    let partnerFilter: any = {};
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+      partnerFilter = { territory_id: { in: scope.territoryIds } };
+    }
+
+    const active = await prisma.territorial_partners.count({ where: { status: 'active', ...partnerFilter } });
+    const alerts = await prisma.territorial_partners.count({ where: { billing_status: { in: ['pending', 'overdue', 'blocked'] }, ...partnerFilter } });
 
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
 
+    // Commission filter: restringir por parceiros do território quando operador
+    const commFilter: any = { created_at: { gte: monthStart } };
+    const pendingFilter: any = { status: 'pending' };
+    const lastFilter: any = {};
+    if (admin.role === 'TERRITORIAL_OPERATOR' && scope) {
+      const pIds = (await prisma.territorial_partners.findMany({ where: partnerFilter, select: { id: true } })).map(p => p.id);
+      commFilter.partner_id = { in: pIds };
+      pendingFilter.partner_id = { in: pIds };
+      lastFilter.partner_id = { in: pIds };
+    }
+
     const monthCommissions = await prisma.partner_commissions.aggregate({
-      where: { created_at: { gte: monthStart } },
+      where: commFilter,
       _sum: { commission_amount: true },
       _count: true,
     });
 
     const pendingTotal = await prisma.partner_commissions.aggregate({
-      where: { status: 'pending' },
+      where: pendingFilter,
       _sum: { commission_amount: true },
       _count: true,
     });
 
     const lastCommission = await prisma.partner_commissions.findFirst({
+      where: lastFilter,
       orderBy: { created_at: 'desc' },
       include: { partner: { select: { name: true } } },
     });
@@ -483,8 +506,17 @@ router.get('/:id/report', authenticateAdmin, applyTerritoryScope, async (req: Re
 });
 
 // List link requests for a partner
-router.get('/:id/link-requests', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/:id/link-requests', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    // Scope check: TERRITORIAL_OPERATOR
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
+      const p = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { territory_id: true } });
+      if (!p || !p.territory_id || !scope.territoryIds.includes(p.territory_id)) return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });
+    }
+
     const { status } = req.query;
     const where: any = { partner_id: req.params.id };
     if (status) where.status = status;
@@ -550,8 +582,17 @@ router.post('/:id/link-requests/:requestId/reject', authenticateAdmin, requireSu
 });
 
 // List commissions for a partner
-router.get('/:id/commissions', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/:id/commissions', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    // Scope check: TERRITORIAL_OPERATOR
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
+      const p = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { territory_id: true } });
+      if (!p || !p.territory_id || !scope.territoryIds.includes(p.territory_id)) return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });
+    }
+
     const { status } = req.query;
     const where: any = { partner_id: req.params.id };
     if (status) where.status = status;
@@ -645,8 +686,17 @@ router.post('/:id/reset-password', authenticateAdmin, requireSuperAdmin, async (
 });
 
 // List payments for a partner
-router.get('/:id/payments', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/:id/payments', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    // Scope check: TERRITORIAL_OPERATOR
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
+      const p = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { territory_id: true } });
+      if (!p || !p.territory_id || !scope.territoryIds.includes(p.territory_id)) return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });
+    }
+
     const payments = await prisma.partner_payments.findMany({
       where: { partner_id: req.params.id },
       orderBy: { paid_at: 'desc' },

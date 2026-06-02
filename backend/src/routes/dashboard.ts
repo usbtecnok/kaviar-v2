@@ -103,6 +103,12 @@ router.get('/territory', applyTerritoryScope, requireTerritoryScope, async (req:
  */
 router.get('/operations', async (req: Request, res: Response) => {
   try {
+    // TERRITORIAL_OPERATOR: bloqueado nesta rota (métricas globais complexas)
+    const admin = (req as any).admin;
+    if (admin?.role === 'TERRITORIAL_OPERATOR') {
+      return res.status(403).json({ success: false, error: 'Acesso restrito a operadores internos' });
+    }
+
     const period = (req.query.period as string) || '7d';
     const since = new Date();
     if (period === 'today') {

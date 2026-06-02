@@ -297,7 +297,18 @@ router.delete('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperA
 
 // Passenger Favorite Locations Management
 // GET /api/admin/passengers/:passengerId/favorites
-router.get('/passengers/:passengerId/favorites', allowReadAccess, passengerFavoritesController.getFavorites);
+router.get('/passengers/:passengerId/favorites', allowReadAccess, applyTerritoryScope, async (req, res) => {
+  const admin = (req as any).admin;
+  const scope = (req as any).territoryScope;
+  if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
+    const passenger = await prisma.passengers.findUnique({ where: { id: req.params.passengerId }, select: { neighborhood_id: true } });
+    if (!passenger || !passenger.neighborhood_id || !scope.neighborhoodIds.includes(passenger.neighborhood_id)) {
+      return res.status(403).json({ success: false, error: 'Passageiro fora do seu território' });
+    }
+  }
+  return passengerFavoritesController.getFavorites(req, res);
+});
 
 // PUT /api/admin/passengers/:passengerId/favorites
 router.put('/passengers/:passengerId/favorites', requireOperatorOrSuperAdmin, passengerFavoritesController.upsertFavorite);

@@ -183,6 +183,12 @@ export class ApprovalController {
         where.status = status;
       }
 
+      // Territory scope filter (injected by route handler for TERRITORIAL_OPERATOR)
+      const scopeFilter = (req as any).scopeNeighborhoodFilter;
+      if (scopeFilter) {
+        where.neighborhood_id = { in: scopeFilter };
+      }
+
       const drivers = await prisma.drivers.findMany({
         where,
         select: {

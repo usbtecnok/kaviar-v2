@@ -508,13 +508,22 @@ router.patch('/drivers/:id/activate', requireSuperAdmin, async (req: Request, re
 });
 
 // GET /api/admin/drivers/:id/premium-eligibility
-router.get('/drivers/:id/premium-eligibility', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/drivers/:id/premium-eligibility', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
     const driver = await prisma.drivers.findUnique({ where: { id } });
     if (!driver) {
       return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    }
+
+    // Scope check
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.neighborhoodIds.length === 0 || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
+      }
     }
 
     const requiredMonths = parseInt(process.env.PREMIUM_TOURISM_MIN_MONTHS || '6');
@@ -556,7 +565,7 @@ router.get('/drivers/:id/premium-eligibility', allowReadAccess, async (req: Requ
 });
 
 // GET /api/admin/drivers/:id/eligibility (MVP - tenure-based)
-router.get('/drivers/:id/eligibility', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/drivers/:id/eligibility', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   const requestId = (req as any).requestId || req.headers['x-request-id'] || 'unknown';
   
   try {
@@ -571,6 +580,15 @@ router.get('/drivers/:id/eligibility', allowReadAccess, async (req: Request, res
 
     if (!driver) {
       return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
+    }
+
+    // Scope check
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.neighborhoodIds.length === 0 || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
+      }
     }
 
     // Calcular tenure desde createdAt
@@ -841,8 +859,19 @@ router.put('/drivers/:id/photo-reject', requireSuperAdmin, async (req: Request, 
 });
 
 // GET /api/admin/drivers/:id/audit — audit log for a driver
-router.get('/drivers/:id/audit', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/drivers/:id/audit', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    // Scope check
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
+      const driver = await prisma.drivers.findUnique({ where: { id: req.params.id }, select: { neighborhood_id: true } });
+      if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
+      }
+    }
+
     const { pool } = require('../db');
     const result = await pool.query(
       `SELECT id, admin_id, action, old_value, new_value, reason, created_at
