@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { auditWrite } from '../middlewares/audit-write';
 
 const router = Router();
@@ -16,7 +17,7 @@ function parseEndsAt(v: string | null | undefined): Date | null {
 }
 
 // GET /api/admin/showcase
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const { status, type, community_id, neighborhood_id } = req.query;
     const where: any = {};
@@ -25,6 +26,16 @@ router.get('/', async (req: Request, res: Response) => {
     if (type) where.type = type;
     if (community_id) where.community_id = community_id;
     if (neighborhood_id) where.neighborhood_id = neighborhood_id;
+
+    // Filtro territorial: TERRITORIAL_OPERATOR vê apenas showcase do seu território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.neighborhoodIds.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      where.neighborhood_id = { in: scope.neighborhoodIds };
+    }
 
     const items = await prisma.showcase_items.findMany({
       where,

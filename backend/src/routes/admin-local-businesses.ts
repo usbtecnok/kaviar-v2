@@ -1,14 +1,38 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/admin/local-businesses — lista todos os comércios
-router.get('/', authenticateAdmin, async (_req: Request, res: Response) => {
+// GET /api/admin/local-businesses — lista comércios
+router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const where: any = {};
+
+    // Filtro territorial: TERRITORIAL_OPERATOR vê apenas comércios da cidade/região do território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      // Buscar city_names dos territórios do operador
+      const territories = await prisma.operational_territories.findMany({
+        where: { id: { in: scope.territoryIds } },
+        select: { city_name: true },
+      });
+      const cityNames = territories.map(t => t.city_name).filter(Boolean) as string[];
+      if (cityNames.length > 0) {
+        where.OR = cityNames.map(city => ({ region_slug: { contains: city, mode: 'insensitive' as const } }));
+      } else {
+        return res.json({ success: true, data: [] });
+      }
+    }
+
     const businesses = await prisma.local_businesses.findMany({
+      where,
       orderBy: { name: 'asc' },
     });
     res.json({ success: true, data: businesses });

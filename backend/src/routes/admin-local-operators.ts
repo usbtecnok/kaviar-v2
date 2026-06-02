@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -8,12 +9,31 @@ const prisma = new PrismaClient();
 const VALID_STATUSES = ['researching', 'contact_found', 'contacted', 'waiting_reply', 'meeting_scheduled', 'interested', 'in_conversation', 'pilot', 'active', 'paused', 'discarded', 'invalid_data'];
 
 // List all local operators (with filters)
-router.get('/', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const { status, city } = req.query;
     const where: any = {};
     if (status) where.status = status;
     if (city) where.city = { contains: city as string, mode: 'insensitive' };
+
+    // Filtro territorial: TERRITORIAL_OPERATOR vê apenas operadores da cidade do território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      const territories = await prisma.operational_territories.findMany({
+        where: { id: { in: scope.territoryIds } },
+        select: { city_name: true },
+      });
+      const cityNames = territories.map(t => t.city_name).filter(Boolean) as string[];
+      if (cityNames.length > 0) {
+        where.city = { in: cityNames, mode: 'insensitive' };
+      } else {
+        return res.json({ success: true, data: [] });
+      }
+    }
 
     const operators = await prisma.local_operators.findMany({
       where,
