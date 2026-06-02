@@ -59,6 +59,7 @@ import adminAuditRoutes from './routes/admin-audit';
 import passengerRidesRoutes from './routes/passenger-rides';
 import driverAvailabilityRoutes from './routes/driver-availability';
 import adminDashboardMetricsRoutes from './routes/admin-dashboard-metrics';
+import adminLabRoutes from './routes/admin-lab';
 import neighborhoodsSmartRoutes from './routes/neighborhoods-smart';
 import driverTerritoryRoutes from './routes/driver-territory';
 import { publicRoutes } from './routes/public';
@@ -234,6 +235,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes);
 app.use('/api/admin', adminPresignRoutes);
 app.use('/api/admin/dashboard', adminDashboardMetricsRoutes);
+app.use('/api/admin/lab', adminLabRoutes);
 app.use('/api/admin/community-leaders', communityLeadersRoutes);
 app.use('/api/admin/local-operators', localOperatorsRoutes);
 // Public receipt validation (no auth)
