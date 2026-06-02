@@ -689,8 +689,21 @@ router.patch('/drivers/:id/promote-premium-tourism', requireSuperAdmin, async (r
 });
 
 // GET /api/admin/drivers/:id/financial-summary
-router.get('/drivers/:id/financial-summary', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/drivers/:id/financial-summary', allowReadAccess, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    // Scope check: TERRITORIAL_OPERATOR só acessa financeiro de motorista do seu território
+    const admin = (req as any).admin;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      const scope = (req as any).territoryScope;
+      if (!scope || scope.neighborhoodIds.length === 0) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+      const driver = await prisma.drivers.findUnique({ where: { id: req.params.id }, select: { neighborhood_id: true } });
+      if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
+        return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
+      }
+    }
+
     const data = await getDriverFinancialSummary(req.params.id, (req.query.period as string) || '30d');
     res.json({ success: true, data });
   } catch (error: any) {

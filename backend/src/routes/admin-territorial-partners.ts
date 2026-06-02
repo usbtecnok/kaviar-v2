@@ -389,7 +389,7 @@ router.delete('/:id/drivers/:driverId', authenticateAdmin, requireSuperAdmin, as
 });
 
 // Report for a partner (filtered by period)
-router.get('/:id/report', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/:id/report', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const { period, from, to } = req.query;
     const now = new Date();
@@ -409,6 +409,18 @@ router.get('/:id/report', authenticateAdmin, async (req: Request, res: Response)
       include: { drivers: { select: { id: true, name: true, status: true } } },
     });
     if (!partner) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    // Scope check: TERRITORIAL_OPERATOR só acessa relatório de parceiro do seu território
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role === 'TERRITORIAL_OPERATOR') {
+      if (!scope || scope.territoryIds.length === 0) {
+        return res.status(403).json({ success: false, error: 'Acesso negado' });
+      }
+      if (!partner.territory_id || !scope.territoryIds.includes(partner.territory_id)) {
+        return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });
+      }
+    }
 
     const driverIds = partner.drivers.map(d => d.id);
     const activeDrivers = partner.drivers.filter(d => d.status === 'approved').length;
