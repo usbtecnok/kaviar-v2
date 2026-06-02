@@ -509,6 +509,18 @@ router.post('/regional-admins', async (req: Request, res: Response) => {
       const access = await tx.admin_territory_access.create({
         data: { admin_id: admin.id, territory_id: data.territory_id, access_level: data.access_level },
       });
+      await tx.operator_profiles.create({
+        data: {
+          admin_id: admin.id,
+          territory_id: data.territory_id,
+          display_name: data.name,
+          relationship_type: 'territorial_operator',
+          recipient_type: 'individual',
+          contract_status: 'pending',
+          document_status: 'pending',
+          is_active: false,
+        },
+      });
       return { admin, access };
     });
 

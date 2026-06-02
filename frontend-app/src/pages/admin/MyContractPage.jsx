@@ -2,61 +2,120 @@ import { useState, useEffect } from 'react';
 import { Box, Typography, Card, CardContent, Chip, Button, Alert, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from '../../config/api';
 
+const TERM_TEXT = `TERMO DE OPERADOR TERRITORIAL CAPTADOR — KAVIAR v1.0
+
+1. PARTES
+O KAVIAR é produto e plataforma de propriedade da USB Tecnok Manutenção e Instalação de Computadores Ltda, inscrita no CNPJ 07.710.691/0001-66 ("KAVIAR" ou "Plataforma").
+O Operador Territorial Captador ("Operador") é a pessoa física ou jurídica que aceita este termo para atuar como parceiro/captador autônomo em território definido pela Plataforma.
+
+2. NATUREZA DA RELAÇÃO
+O Operador atua como parceiro/captador autônomo. Não há vínculo empregatício, salário fixo, obrigação de jornada, subordinação ou exclusividade automática entre o Operador e a USB Tecnok/KAVIAR.
+
+3. TERRITÓRIO
+O território vinculado define a área de atuação e acompanhamento do Operador. O território não confere propriedade, franquia, licença exclusiva nem direito real sobre a área.
+
+4. LIMITAÇÕES
+O Operador NÃO pode:
+• Se apresentar como funcionário, sócio, representante legal ou procurador da USB Tecnok/KAVIAR;
+• Cobrar valores em nome do KAVIAR sem autorização formal por escrito;
+• Prometer aprovação de motoristas, passageiros, parceiros ou comércios;
+• Alterar preços, taxas, comissões, créditos ou regras operacionais da Plataforma;
+• Tomar decisões que vinculem a USB Tecnok/KAVIAR perante terceiros.
+
+5. INDICAÇÕES
+O Operador pode indicar motoristas usando seu link de indicação pessoal. Eventual bônus ou benefício por indicação segue exclusivamente as regras vigentes do sistema, podendo ser alteradas pela Plataforma a qualquer momento.
+
+6. CONFIDENCIALIDADE E LGPD
+O Operador deve manter sigilo sobre dados e informações acessadas no painel, incluindo dados pessoais de motoristas, passageiros e parceiros. O uso deve respeitar a Lei Geral de Proteção de Dados (LGPD) e as políticas de privacidade do KAVIAR.
+
+7. SUSPENSÃO E CANCELAMENTO
+A USB Tecnok/KAVIAR pode suspender ou cancelar o acesso do Operador em caso de fraude, abuso, mau uso, descumprimento deste termo, conduta incompatível ou risco à operação, sem aviso prévio quando justificado por urgência.
+
+8. ALTERAÇÕES
+Este termo pode ser atualizado pela Plataforma. Mudanças relevantes podem exigir novo aceite. A versão vigente estará sempre disponível no painel do Operador.
+
+9. FORO
+Fica eleito o foro da Comarca de Nova Iguaçu/RJ para dirimir questões deste termo.`;
+
 export default function MyContractPage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState(false);
   const token = localStorage.getItem('kaviar_admin_token');
 
-  useEffect(() => {
+  const fetchProfile = () => {
     fetch(`${API_BASE_URL}/api/admin/my-operator-profile`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => { if (d.success) setProfile(d.data); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { fetchProfile(); }, []);
+
+  const handleAccept = async () => {
+    setAccepting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/accept-terms`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.success) fetchProfile();
+    } catch {}
+    setAccepting(false);
+  };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress sx={{ color: '#B8942E' }} /></Box>;
 
   if (!profile) return (
     <Box sx={{ mt: 4 }}>
       <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 800, mb: 2 }}>📋 Meu Contrato</Typography>
-      <Alert severity="info">Seu contrato ainda não foi registrado pelo KAVIAR. Entre em contato pelos canais oficiais se tiver dúvidas.</Alert>
+      <Alert severity="info">Seu perfil de operador está sendo preparado. Tente novamente em instantes.</Alert>
     </Box>
   );
+
+  const termsAccepted = !!profile.terms_accepted_at;
 
   return (
     <Box>
       <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 800, mb: 2 }}>📋 Meu Contrato</Typography>
+
+      {/* Status */}
       <Card sx={{ border: '1px solid #E8E5DE', mb: 3 }}>
         <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>{profile.display_name}</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {profile.territory && <Typography variant="body2"><strong>Território:</strong> {profile.territory.name}</Typography>}
-            <Typography variant="body2"><strong>Status do contrato:</strong> <Chip label={profile.contract_status || 'pending'} size="small" color={profile.contract_status === 'signed' ? 'success' : profile.contract_status === 'not_required' ? 'default' : 'warning'} /></Typography>
-            {profile.contract_signed_at && <Typography variant="body2"><strong>Assinado em:</strong> {new Date(profile.contract_signed_at).toLocaleDateString('pt-BR')}</Typography>}
-            {profile.contract_url && (
-              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                <Button size="small" variant="outlined" onClick={() => window.open(profile.contract_url, '_blank')}>Abrir contrato</Button>
-                <Button size="small" variant="outlined" sx={{ color: '#6B7280' }} onClick={() => navigator.clipboard.writeText(profile.contract_url)}>Copiar link</Button>
-              </Box>
-            )}
-            {!profile.contract_url && profile.contract_status !== 'signed' && <Alert severity="info" sx={{ mt: 1 }}>Contrato ainda não registrado. O KAVIAR entrará em contato quando necessário.</Alert>}
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>{profile.display_name}</Typography>
+          {profile.territory && <Typography variant="body2" sx={{ color: '#6B7280', mb: 1 }}>Território: {profile.territory.name}</Typography>}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Typography variant="body2"><strong>Status:</strong></Typography>
+            <Chip label={termsAccepted ? 'Termos aceitos' : 'Pendente de aceite'} size="small" color={termsAccepted ? 'success' : 'warning'} />
           </Box>
+          {termsAccepted && <Typography variant="body2" sx={{ color: '#059669', mt: 1 }}>Aceito em {new Date(profile.terms_accepted_at).toLocaleString('pt-BR')} • Versão: {profile.terms_version}</Typography>}
         </CardContent>
       </Card>
 
-      <Card sx={{ border: '1px solid #E8E5DE' }}>
+      {/* Termo */}
+      <Card sx={{ border: '1px solid #E8E5DE', mb: 3 }}>
         <CardContent>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>Termos Aceitos</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#6B7280' }}>Termo de Responsabilidade</Typography><Typography variant="body2" sx={{ color: profile.responsibility_terms_accepted_at ? '#059669' : '#D97706' }}>{profile.responsibility_terms_accepted_at ? new Date(profile.responsibility_terms_accepted_at).toLocaleString('pt-BR') : 'Pendente'}</Typography></Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#6B7280' }}>Confidencialidade / LGPD</Typography><Typography variant="body2" sx={{ color: profile.confidentiality_terms_accepted_at ? '#059669' : '#D97706' }}>{profile.confidentiality_terms_accepted_at ? new Date(profile.confidentiality_terms_accepted_at).toLocaleString('pt-BR') : 'Pendente'}</Typography></Box>
-            {profile.terms_version && <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#6B7280' }}>Versão dos termos</Typography><Typography variant="body2">{profile.terms_version}</Typography></Box>}
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: '#B8942E' }}>Termo de Operador Territorial Captador</Typography>
+          <Box sx={{ maxHeight: 400, overflow: 'auto', bgcolor: '#FAFAF8', p: 2, borderRadius: 1, border: '1px solid #E8E5DE' }}>
+            <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: '#374151', fontSize: 12, lineHeight: 1.7 }}>{TERM_TEXT}</Typography>
           </Box>
         </CardContent>
       </Card>
 
-      <Alert severity="warning" sx={{ mt: 3 }}>Este é um registro interno. Não substitui contrato jurídico formal nem orientação contábil.</Alert>
+      {/* Aceite */}
+      {!termsAccepted && (
+        <Card sx={{ border: '2px solid #D97706', mb: 3 }}>
+          <CardContent sx={{ textAlign: 'center', py: 3 }}>
+            <Typography sx={{ mb: 2, fontWeight: 600, color: '#92400E' }}>Ao clicar abaixo, você declara que leu e aceita todos os termos acima.</Typography>
+            <Button onClick={handleAccept} disabled={accepting} variant="contained" size="large" sx={{ bgcolor: '#B8942E', px: 4, '&:hover': { bgcolor: '#9A7B24' } }}>
+              {accepting ? 'Registrando...' : 'Aceito os termos'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <Alert severity="warning" sx={{ mt: 2, fontSize: 11 }}>Este é um registro interno digital. Não substitui contrato jurídico formal nem orientação contábil/tributária.</Alert>
     </Box>
   );
 }
