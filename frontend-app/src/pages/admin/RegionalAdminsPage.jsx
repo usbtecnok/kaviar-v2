@@ -64,8 +64,8 @@ export default function RegionalAdminsPage() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 800 }}>👤 Admins Regionais</Typography>
-        <Button variant="contained" startIcon={<PersonAdd />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>Novo Admin Regional</Button>
+        <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 800 }}>👤 Operadores Territoriais</Typography>
+        <Button variant="contained" startIcon={<PersonAdd />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>Novo Operador Territorial</Button>
       </Box>
 
       <TableContainer component={Paper} sx={{ border: '1px solid #E8E5DE' }}>
@@ -88,31 +88,31 @@ export default function RegionalAdminsPage() {
                 <TableCell><Switch checked={a.is_active} onChange={() => handleToggle(a.id, a.is_active)} size="small" /></TableCell>
               </TableRow>
             ))}
-            {!admins.length && <TableRow><TableCell colSpan={6} sx={{ textAlign: 'center', color: '#6B7280', py: 4 }}>Nenhum admin regional cadastrado</TableCell></TableRow>}
+            {!admins.length && <TableRow><TableCell colSpan={6} sx={{ textAlign: 'center', color: '#6B7280', py: 4 }}>Nenhum operador territorial cadastrado</TableCell></TableRow>}
           </TableBody>
         </Table>
       </TableContainer>
 
       <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setError(''); }} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Novo Admin Regional</DialogTitle>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Novo Operador Territorial</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          <Alert severity="info" sx={{ mb: 1 }}>Este admin verá apenas dados do território vinculado. Role fixa: ANGEL_VIEWER (leitura).</Alert>
+          <Alert severity="info" sx={{ mb: 1 }}>Este operador verá apenas dados do território vinculado. Role fixa: TERRITORIAL_OPERATOR (operador territorial com acesso limitado ao território vinculado).</Alert>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} fullWidth required />
           <TextField label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} fullWidth required />
-          <TextField label="Senha temporária" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} fullWidth required helperText="O admin deverá trocar no primeiro login" />
+          <TextField label="Senha temporária" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} fullWidth required helperText="O operador deverá trocar no primeiro login" />
           <TextField label="Território" select value={form.territory_id} onChange={(e) => setForm({ ...form, territory_id: e.target.value })} fullWidth required>
             {territories.map((t) => <MenuItem key={t.id} value={t.id}>{t.name} ({t.level}{t.uf ? ` • ${t.uf}` : ''})</MenuItem>)}
           </TextField>
           <TextField label="Nível de Acesso" select value={form.access_level} onChange={(e) => setForm({ ...form, access_level: e.target.value })} fullWidth>
-            <MenuItem value="full">Visualizador Regional (leitura completa)</MenuItem>
-            <MenuItem value="read_only">Visualizador Restrito (somente leitura)</MenuItem>
-            <MenuItem disabled value="manager">Gestor Regional — Em preparação</MenuItem>
+            <MenuItem value="full">Operador Territorial (leitura do território)</MenuItem>
+            <MenuItem value="read_only">Operador Restrito (somente leitura)</MenuItem>
+            <MenuItem disabled value="manager">Gestor Territorial — Em preparação</MenuItem>
           </TextField>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setCreateOpen(false); setError(''); }}>Cancelar</Button>
-          <Button onClick={handleCreate} disabled={!form.name || !form.email || !form.password || !form.territory_id || saving} variant="contained" sx={{ bgcolor: '#B8942E' }}>{saving ? 'Criando...' : 'Criar Admin Regional'}</Button>
+          <Button onClick={handleCreate} disabled={!form.name || !form.email || !form.password || !form.territory_id || saving} variant="contained" sx={{ bgcolor: '#B8942E' }}>{saving ? 'Criando...' : 'Criar Operador Territorial'}</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -443,7 +443,7 @@ function AdminHome() {
               { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
               ...(isSuperAdmin ? [
                 { Icon: Public, title: 'Territórios', desc: 'Gestão de territórios operacionais', to: '/admin/territories' },
-                { Icon: PersonAdd, title: 'Admins Regionais', desc: 'Gestão de admins por território', to: '/admin/regional-admins' },
+                { Icon: PersonAdd, title: 'Operadores Territoriais', desc: 'Gestão de operadores territoriais', to: '/admin/regional-admins' },
                 { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
                 { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
               { Icon: Analytics, title: 'Pacote Investidores', desc: 'Material para investidores e anjos', to: '/admin/investidores' },
@@ -919,7 +919,7 @@ export default function AdminApp() {
             </ProtectedAdminRoute>
           } />
           
-          {/* Territórios e Admins Regionais */}
+          {/* Territórios e Operadores Territoriais */}
           <Route path="/territories" element={<ProtectedAdminRoute requireSuperAdmin><TerritoriesPage /></ProtectedAdminRoute>} />
           <Route path="/territories/:id" element={<ProtectedAdminRoute requireSuperAdmin><TerritoryDetailPage /></ProtectedAdminRoute>} />
           <Route path="/regional-admins" element={<ProtectedAdminRoute requireSuperAdmin><RegionalAdminsPage /></ProtectedAdminRoute>} />
