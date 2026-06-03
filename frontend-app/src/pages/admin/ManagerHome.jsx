@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
-import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance } from '@mui/icons-material';
+import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
@@ -174,6 +174,7 @@ export default function ManagerHome() {
             { Icon: Handshake, title: 'Parceiros', desc: 'Parceiros territoriais', to: '/admin/territorial-partners' },
             { Icon: Apartment, title: 'Associações', desc: 'Operadores e associações locais', to: '/admin/local-operators' },
             { Icon: AccountBalance, title: 'Financeiro', desc: 'Extrato territorial estimado', to: '/admin/manager-finance' },
+            { Icon: Star, title: 'Reputação', desc: 'Avaliações dos motoristas', to: '/admin/manager-reputation' },
             { Icon: Description, title: 'Meu Contrato', desc: 'Perfil e termos', to: '/admin/meu-contrato' },
           ].map(c => (
             <Grid item xs={12} sm={6} md={4} key={c.title}>
