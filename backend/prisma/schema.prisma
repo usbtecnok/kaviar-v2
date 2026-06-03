@@ -1944,3 +1944,71 @@ model lab_maturity_snapshots {
   @@index([snapshot_date(sort: Desc)])
   @@map("lab_maturity_snapshots")
 }
+
+// ─── CRM Comercial KAVIAR (Fase 1) ──────────────────────────────────────────
+
+model crm_leads {
+  id                        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                      String    @db.VarChar(255)
+  business_name             String?   @db.VarChar(255)
+  phone                     String?   @db.VarChar(30)
+  email                     String?   @db.VarChar(255)
+  lead_type                 String    @default("OTHER") @db.VarChar(50)
+  status                    String    @default("NEW") @db.VarChar(30)
+  source                    String    @default("MANUAL") @db.VarChar(50)
+
+  // Comércio local
+  business_category         String?   @db.VarChar(50)
+  business_address          String?
+  contact_person            String?   @db.VarChar(255)
+  wants_showcase            Boolean?
+  wants_delivery_support    Boolean?
+  wants_partnership         Boolean?
+  wants_ads                 Boolean?
+  commercial_notes          String?
+
+  // Vínculos opcionais
+  territory_id              String?   @db.Uuid
+  neighborhood_id           String?
+  assigned_admin_id         String?
+  related_driver_id         String?
+  related_passenger_id      String?
+  related_partner_id        String?   @db.Uuid
+  related_private_ride_id   String?   @db.Uuid
+  related_pet_homologation_id String? @db.Uuid
+  related_showcase_item_id  String?   @db.Uuid
+
+  // Acompanhamento
+  notes                     String?
+  next_action               String?   @db.VarChar(500)
+  next_action_at            DateTime?
+  last_contact_at           DateTime?
+  created_by_admin_id       String?
+  created_at                DateTime  @default(now())
+  updated_at                DateTime  @updatedAt
+  deleted_at                DateTime?
+
+  interactions              crm_interactions[]
+
+  @@index([status], map: "idx_crm_leads_status")
+  @@index([lead_type], map: "idx_crm_leads_lead_type")
+  @@index([territory_id], map: "idx_crm_leads_territory")
+  @@index([assigned_admin_id], map: "idx_crm_leads_assigned")
+  @@index([next_action_at], map: "idx_crm_leads_next_action")
+}
+
+model crm_interactions {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lead_id             String   @db.Uuid
+  event_type          String   @db.VarChar(50)
+  description         String?
+  old_status          String?  @db.VarChar(30)
+  new_status          String?  @db.VarChar(30)
+  created_by_admin_id String?
+  created_at          DateTime @default(now())
+
+  lead                crm_leads @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+
+  @@index([lead_id, created_at(sort: Desc)], map: "idx_crm_interactions_lead")
+  @@index([created_by_admin_id], map: "idx_crm_interactions_admin")
+}
