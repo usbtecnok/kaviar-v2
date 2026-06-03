@@ -177,6 +177,7 @@ export default function ManagerHome() {
             { Icon: Star, title: 'Reputação', desc: 'Avaliações dos motoristas', to: '/admin/manager-reputation' },
             { Icon: Pets, title: 'KAVIAR Pet', desc: 'Pedidos Pet assistidos', to: '/admin/private-rides' },
             { Icon: Description, title: 'Meu Contrato', desc: 'Perfil e termos', to: '/admin/meu-contrato' },
+            { Icon: Description, title: 'Plano Gestor', desc: 'Proposta, termo e FAQ do Gestor Fundador', to: '/admin/comercial-gestor' },
           ].map(c => (
             <Grid item xs={12} sm={6} md={4} key={c.title}>
               <Card component={Link} to={c.to} sx={{ bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2, textDecoration: 'none', display: 'block', '&:hover': { borderColor: GOLD, transform: 'translateY(-1px)', boxShadow: `0 2px 8px rgba(184,148,46,0.1)` }, transition: 'all 0.2s' }}>
