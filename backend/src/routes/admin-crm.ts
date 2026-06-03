@@ -14,12 +14,14 @@ const VALID_SOURCES = ['MANUAL', 'MANAGER_REFERRAL', 'PET_FORM', 'PRIVATE_RIDE',
 const VALID_EVENT_TYPES = ['NOTE', 'CALL', 'WHATSAPP', 'EMAIL', 'STATUS_CHANGE', 'ASSIGNED', 'DOCUMENT_RECEIVED', 'CONTRACT_SENT', 'PAYMENT_DISCUSSION', 'LOCAL_VISIT', 'PROPOSAL_SENT', 'PARTNERSHIP_DISCUSSION', 'SHOWCASE_DISCUSSION', 'OTHER'];
 
 // Helper: build where clause with territory scope
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function buildLeadWhere(admin: any, scope: any, query: any) {
   const where: any = { deleted_at: null };
 
   // Territory scope for non-SUPER_ADMIN
   if (admin.role !== 'SUPER_ADMIN') {
-    const tIds = scope?.territoryIds?.filter((id: string) => id) || [];
+    const tIds = (scope?.territoryIds || []).filter((id: string) => id && UUID_RE.test(id));
     if (tIds.length === 0) {
       where.assigned_admin_id = admin.id;
     } else {
@@ -73,7 +75,7 @@ router.get('/stats', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
     const baseWhere: any = { deleted_at: null };
 
     if (admin.role !== 'SUPER_ADMIN') {
-      const tIds = scope?.territoryIds?.filter((id: string) => id) || [];
+      const tIds = (scope?.territoryIds || []).filter((id: string) => id && UUID_RE.test(id));
       if (tIds.length === 0) {
         baseWhere.assigned_admin_id = admin.id;
       } else {
@@ -166,10 +168,11 @@ router.post('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (
     if (!name) return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
 
     // TERRITORIAL_MANAGER must use own territory
-    let finalTerritoryId = territory_id || null;
+    let finalTerritoryId = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
     if (admin.role !== 'SUPER_ADMIN') {
-      if (scope?.territoryIds?.length > 0) {
-        finalTerritoryId = territory_id && scope.territoryIds.includes(territory_id) ? territory_id : scope.territoryIds[0];
+      const tIds = (scope?.territoryIds || []).filter((id: string) => id && UUID_RE.test(id));
+      if (tIds.length > 0) {
+        finalTerritoryId = territory_id && tIds.includes(territory_id) ? territory_id : tIds[0];
       } else {
         finalTerritoryId = null;
       }
