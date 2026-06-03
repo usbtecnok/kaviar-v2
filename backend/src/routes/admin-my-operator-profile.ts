@@ -14,16 +14,17 @@ router.get('/', async (req: Request, res: Response) => {
       include: { territory: { select: { id: true, name: true, level: true } } },
     });
 
-    // On-demand: criar profile se TERRITORIAL_OPERATOR com territory_access
-    if (!profile && admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
+    // On-demand: criar profile se TERRITORIAL_OPERATOR ou TERRITORIAL_MANAGER com territory_access
+    if (!profile && (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER')) {
       const access = await prisma.admin_territory_access.findFirst({ where: { admin_id: admin.id } });
       if (access) {
+        const relationshipType = admin.role === 'TERRITORIAL_MANAGER' ? 'territorial_manager' : 'territorial_operator';
         profile = await prisma.operator_profiles.create({
           data: {
             admin_id: admin.id,
             territory_id: access.territory_id,
             display_name: admin.name || 'Operador Territorial',
-            relationship_type: 'territorial_operator',
+            relationship_type: relationshipType,
             recipient_type: 'individual',
             contract_status: 'pending',
             document_status: 'pending',

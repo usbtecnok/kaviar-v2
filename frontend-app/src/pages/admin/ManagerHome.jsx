@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert } from '@mui/material';
-import { DirectionsCar, Explore, Handshake, Apartment, Description, BarChart, PersonAdd } from '@mui/icons-material';
+import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 export default function ManagerHome() {
@@ -155,7 +155,6 @@ export default function ManagerHome() {
             { Icon: PersonAdd, title: 'Indicações', desc: 'Link de captação e indicados', to: '/admin' },
             { Icon: Handshake, title: 'Parceiros', desc: 'Parceiros territoriais', to: '/admin/territorial-partners' },
             { Icon: Apartment, title: 'Associações', desc: 'Operadores e associações locais', to: '/admin/local-operators' },
-            { Icon: BarChart, title: 'KAVIAR Lab', desc: 'Maturidade territorial', to: '/admin/lab' },
             { Icon: Description, title: 'Meu Contrato', desc: 'Perfil e termos', to: '/admin/meu-contrato' },
           ].map(c => (
             <Grid item xs={12} sm={6} md={4} key={c.title}>

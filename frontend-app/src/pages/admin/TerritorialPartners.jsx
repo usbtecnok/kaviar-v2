@@ -789,7 +789,7 @@ export default function TerritorialPartners() {
           <Typography variant="h5" sx={{ fontWeight: 700 }}>Parceiros Territoriais</Typography>
           <Typography variant="body2" color="text.secondary">Associações, condomínios e parceiros com comissão por corridas</Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => { setForm(emptyForm); setEditingId(null); setDialogOpen(true); }}>Novo Parceiro</Button>
+        {(() => { const a = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}'); return a.role === 'SUPER_ADMIN' ? <Button variant="contained" startIcon={<Add />} onClick={() => { setForm(emptyForm); setEditingId(null); setDialogOpen(true); }}>Novo Parceiro</Button> : null; })()}
       </Box>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>

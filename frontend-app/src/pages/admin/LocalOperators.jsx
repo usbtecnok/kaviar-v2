@@ -112,7 +112,7 @@ export default function LocalOperators() {
     <Container maxWidth="lg" sx={{ py: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 700 }}>Associações / Operadores Locais</Typography>
-        <Button startIcon={<Add />} variant="contained" onClick={openNew} sx={{ bgcolor: '#C8A84E', color: '#0a0a0a', fontWeight: 700, '&:hover': { bgcolor: '#A08030' } }}>Novo</Button>
+        {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && <Button startIcon={<Add />} variant="contained" onClick={openNew} sx={{ bgcolor: '#C8A84E', color: '#0a0a0a', fontWeight: 700, '&:hover': { bgcolor: '#A08030' } }}>Novo</Button>}
         <Button size="small" onClick={() => window.open('/associacoes', '_blank')} sx={{ color: '#6B7280', textTransform: 'none', ml: 1 }}>Abrir página pública →</Button>
         <Button size="small" onClick={() => setProspOpen(true)} sx={{ color: '#2563EB', textTransform: 'none', ml: 1 }}>Material de Prospecção</Button>
       </Box>
