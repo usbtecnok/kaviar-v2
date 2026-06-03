@@ -359,7 +359,9 @@ app.use('/api/admin', adminReferralRoutes);
 app.use('/api/admin/local-support', adminLocalSupportRoutes);
 app.use('/api/public', adminReferralRoutes);
 import adminEmergencyRoutes from './routes/admin-emergency';
+import adminManagerEmergencyRoutes from './routes/admin-manager-emergency';
 app.use('/api/admin/emergency-events', adminEmergencyRoutes);
+app.use('/api/admin/manager-emergency', adminManagerEmergencyRoutes);
 app.use('/api/geo', geoRoutes);
 // v1 rides routes deleted — see rides-v2.ts
 app.use('/api/governance', governanceRoutes);

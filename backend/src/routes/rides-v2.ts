@@ -1107,6 +1107,29 @@ router.post('/:ride_id/emergency', requireAuth, async (req: Request, res: Respon
         const msg = `🚨 EMERGÊNCIA KAVIAR\nCorrida: ${ride_id}\nAcionado por: ${triggeredByType}\n${snapshot.driver ? `Motorista: ${snapshot.driver.name} • ${snapshot.driver.vehicle_plate}` : ''}\nPassageiro: ${snapshot.passenger.name}`;
         whatsappEvents.driverAlert(adminPhone, { '1': msg }).catch((e: any) => console.error('[WA_FAIL] emergency', e.message));
       }
+
+      // WhatsApp: notify territorial manager (best-effort)
+      try {
+        const ride = await prisma.rides_v2.findUnique({ where: { id: ride_id }, select: { origin_neighborhood_id: true } });
+        if (ride?.origin_neighborhood_id) {
+          const neighborhood = await prisma.neighborhoods.findUnique({ where: { id: ride.origin_neighborhood_id }, select: { territory_id: true, name: true } });
+          if (neighborhood?.territory_id) {
+            const managers = await prisma.admin_territory_access.findMany({
+              where: { territory_id: neighborhood.territory_id, admin: { role: 'TERRITORIAL_MANAGER', is_active: true, phone: { not: null } } },
+              include: { admin: { select: { id: true, phone: true, name: true } } },
+            });
+            for (const m of managers) {
+              if (m.admin.phone) {
+                const mgrMsg = `⚠️ Alerta KAVIAR no seu território (${neighborhood.name || 'área vinculada'}). Uma corrida gerou alerta de emergência. A central foi avisada. Acesse o painel para acompanhar.`;
+                whatsappEvents.driverAlert(m.admin.phone, { '1': mgrMsg }).catch((e: any) => console.error(`[WA_FAIL] emergency_manager ${m.admin.id}`, e.message));
+                console.log(`[EMERGENCY_AUDIT] manager_notified admin_id=${m.admin.id} event_id=${event.id} territory_id=${neighborhood.territory_id}`);
+              }
+            }
+          }
+        }
+      } catch (mgrErr: any) {
+        console.error('[WA_FAIL] emergency_manager_lookup', mgrErr.message);
+      }
     }
 
     res.status(created ? 201 : 200).json({ success: true, event_id: event.id });
