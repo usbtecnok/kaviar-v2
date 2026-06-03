@@ -85,11 +85,20 @@ export default function MyContractPage() {
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>{profile.display_name}</Typography>
           {profile.territory && <Typography variant="body2" sx={{ color: '#6B7280', mb: 1 }}>Território: {profile.territory.name}</Typography>}
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Typography variant="body2"><strong>Status:</strong></Typography>
-            <Chip label={termsAccepted ? 'Termos aceitos' : 'Pendente de aceite'} size="small" color={termsAccepted ? 'success' : 'warning'} />
-          </Box>
-          {termsAccepted && <Typography variant="body2" sx={{ color: '#059669', mt: 1 }}>Aceito em {new Date(profile.terms_accepted_at).toLocaleString('pt-BR')} • Versão: {profile.terms_version}</Typography>}
+          {profile.relationship_type === 'territorial_manager' ? (
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Typography variant="body2"><strong>Status:</strong></Typography>
+              <Chip label="Contrato específico em preparação" size="small" color="info" />
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography variant="body2"><strong>Status:</strong></Typography>
+                <Chip label={termsAccepted ? 'Termos aceitos' : 'Pendente de aceite'} size="small" color={termsAccepted ? 'success' : 'warning'} />
+              </Box>
+              {termsAccepted && <Typography variant="body2" sx={{ color: '#059669', mt: 1 }}>Aceito em {new Date(profile.terms_accepted_at).toLocaleString('pt-BR')} • Versão: {profile.terms_version}</Typography>}
+            </>
+          )}
         </CardContent>
       </Card>
 

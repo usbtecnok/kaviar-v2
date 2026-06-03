@@ -212,13 +212,13 @@ export default function TerritorialPartners() {
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <Button variant="contained" size="small" onClick={() => fetchReport(reportPeriod)} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>Gerar Relatório</Button>
-            <Select size="small" value={detail.status} onChange={(e) => handleStatusChange(detail.id, e.target.value)}>
+            {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && <Select size="small" value={detail.status} onChange={(e) => handleStatusChange(detail.id, e.target.value)}>
               <MenuItem value="active">Ativo</MenuItem>
             <MenuItem value="paused">Pausado</MenuItem>
             <MenuItem value="inactive">Inativo</MenuItem>
-          </Select>
-          {detail.status !== 'archived' && <Button size="small" color="warning" onClick={() => setArchiveTarget(detail)}>Arquivar</Button>}
-          <Button size="small" color="error" onClick={() => setDeleteTarget(detail)}>Excluir</Button>
+          </Select>}
+          {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && detail.status !== 'archived' && <Button size="small" color="warning" onClick={() => setArchiveTarget(detail)}>Arquivar</Button>}
+          {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && <Button size="small" color="error" onClick={() => setDeleteTarget(detail)}>Excluir</Button>}
         </Box>
         </Box>
 
@@ -246,7 +246,7 @@ export default function TerritorialPartners() {
               <Box sx={{ width: 64, height: 64, borderRadius: 2, border: '1px solid #E8E5DE', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', bgcolor: '#f9f9f7' }}>
                 {detail.logo_url ? <img src={detail.logo_url} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <Typography sx={{ color: '#ccc', fontSize: 24 }}>🏢</Typography>}
               </Box>
-              <Button size="small" variant="outlined" component="label">
+              {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && <Button size="small" variant="outlined" component="label">
                 {detail.logo_url ? 'Trocar logo' : 'Adicionar logo'}
                 <input type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={async (e) => {
                   const file = e.target.files?.[0];
@@ -259,7 +259,7 @@ export default function TerritorialPartners() {
                   if (data.success) fetchDetail(detail.id);
                   else alert(data.error || 'Erro ao enviar logo');
                 }} />
-              </Button>
+              </Button>}
             </Box>
             <Typography><strong>Responsável:</strong> {detail.responsible_name} ({detail.responsible_role})</Typography>
             {detail.responsible_phone && <Typography><strong>Telefone:</strong> {detail.responsible_phone}</Typography>}
