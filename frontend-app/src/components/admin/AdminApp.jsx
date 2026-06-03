@@ -782,7 +782,7 @@ export default function AdminApp() {
           } />
 
           <Route path="/lab" element={
-            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_OPERATOR', 'TERRITORIAL_MANAGER']}>
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_OPERATOR']}>
               <Container maxWidth="xl" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <KaviarLab />
