@@ -19,8 +19,8 @@ function buildLeadWhere(admin: any, scope: any, query: any) {
 
   // Territory scope for non-SUPER_ADMIN
   if (admin.role !== 'SUPER_ADMIN') {
-    if (!scope || scope.territoryIds.length === 0) {
-      where.OR = [{ assigned_admin_id: admin.id }];
+    if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
+      where.assigned_admin_id = admin.id;
     } else {
       where.OR = [
         { territory_id: { in: scope.territoryIds } },
@@ -70,7 +70,7 @@ router.get('/stats', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
     const baseWhere: any = { deleted_at: null };
 
     if (admin.role !== 'SUPER_ADMIN') {
-      if (!scope || scope.territoryIds.length === 0) {
+      if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
         baseWhere.assigned_admin_id = admin.id;
       } else {
         baseWhere.OR = [
@@ -80,16 +80,16 @@ router.get('/stats', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
       }
     }
 
-    const [counts, localBusinessCount] = await Promise.all([
-      prisma.crm_leads.groupBy({
-        by: ['status'],
-        where: baseWhere,
-        _count: { _all: true },
-      }),
-      prisma.crm_leads.count({
-        where: { ...baseWhere, lead_type: { in: ['LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP', 'ADVERTISER', 'SUPPORT_POINT'] } },
-      }),
-    ]);
+    const counts = await prisma.crm_leads.groupBy({
+      by: ['status'],
+      where: baseWhere,
+      _count: { _all: true },
+    });
+
+    const localBusinessTypes = ['LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP', 'ADVERTISER', 'SUPPORT_POINT'];
+    const localBusinessCount = await prisma.crm_leads.count({
+      where: { AND: [baseWhere, { lead_type: { in: localBusinessTypes } }] },
+    });
 
     const stats: Record<string, number> = {};
     for (const c of counts) stats[c.status] = c._count._all;
@@ -168,6 +168,8 @@ router.post('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (
     if (admin.role !== 'SUPER_ADMIN') {
       if (scope?.territoryIds?.length > 0) {
         finalTerritoryId = territory_id && scope.territoryIds.includes(territory_id) ? territory_id : scope.territoryIds[0];
+      } else {
+        finalTerritoryId = null;
       }
     }
 
