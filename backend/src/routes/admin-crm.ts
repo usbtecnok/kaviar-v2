@@ -19,11 +19,12 @@ function buildLeadWhere(admin: any, scope: any, query: any) {
 
   // Territory scope for non-SUPER_ADMIN
   if (admin.role !== 'SUPER_ADMIN') {
-    if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
+    const tIds = scope?.territoryIds?.filter((id: string) => id) || [];
+    if (tIds.length === 0) {
       where.assigned_admin_id = admin.id;
     } else {
       where.OR = [
-        { territory_id: { in: scope.territoryIds } },
+        { territory_id: { in: tIds } },
         { assigned_admin_id: admin.id },
       ];
     }
@@ -68,31 +69,28 @@ router.get('/stats', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
 
-    // Build simple where conditions array for raw count
-    let whereConditions: any[] = [{ deleted_at: null }];
+    // Build where based on scope
+    const baseWhere: any = { deleted_at: null };
 
     if (admin.role !== 'SUPER_ADMIN') {
-      if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
-        whereConditions.push({ assigned_admin_id: admin.id });
+      const tIds = scope?.territoryIds?.filter((id: string) => id) || [];
+      if (tIds.length === 0) {
+        baseWhere.assigned_admin_id = admin.id;
       } else {
-        whereConditions.push({
-          OR: [
-            { territory_id: { in: scope.territoryIds } },
-            { assigned_admin_id: admin.id },
-          ],
-        });
+        baseWhere.OR = [
+          { territory_id: { in: tIds } },
+          { assigned_admin_id: admin.id },
+        ];
       }
     }
 
-    const baseWhere = whereConditions.length === 1 ? whereConditions[0] : { AND: whereConditions };
-
-    // Use individual counts to avoid groupBy+OR Prisma issues
+    // Use individual counts for robustness
     const statuses = ['NEW', 'CONTACTED', 'INTERESTED', 'WAITING_DOCUMENTS', 'WAITING_CONTRACT', 'WAITING_APPROVAL', 'ACTIVE', 'LOST', 'REJECTED', 'PAUSED'];
     const localBusinessTypes = ['LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP', 'ADVERTISER', 'SUPPORT_POINT'];
 
     const results = await Promise.all([
-      ...statuses.map(s => prisma.crm_leads.count({ where: { AND: [baseWhere, { status: s }] } })),
-      prisma.crm_leads.count({ where: { AND: [baseWhere, { lead_type: { in: localBusinessTypes } }] } }),
+      ...statuses.map(s => prisma.crm_leads.count({ where: { ...baseWhere, status: s } }).catch(() => 0)),
+      prisma.crm_leads.count({ where: { ...baseWhere, lead_type: { in: localBusinessTypes } } }).catch(() => 0),
     ]);
 
     const stats: Record<string, number> = {};
