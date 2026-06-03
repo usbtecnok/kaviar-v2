@@ -209,7 +209,7 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
     // Scope check: TERRITORIAL_OPERATOR só vê motorista do seu território
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || !scope.neighborhoodIds || scope.neighborhoodIds.length === 0) {
         return res.status(403).json({ success: false, error: 'Acesso negado' });
       }
@@ -239,7 +239,7 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
     delete result.community_name;
 
     // Masking para TERRITORIAL_OPERATOR: ocultar dados sensíveis
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (result.document_cpf) result.document_cpf = '***' + result.document_cpf.slice(-4);
       if (result.document_rg) result.document_rg = '***' + result.document_rg.slice(-3);
       if (result.document_cnh) result.document_cnh = '***' + result.document_cnh.slice(-4);
@@ -285,7 +285,7 @@ router.get('/drivers/:id/documents', allowReadAccess, applyTerritoryScope, async
 
     // TERRITORIAL_OPERATOR: verificar que motorista pertence ao território
     const admin = (req as any).admin;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       const scope = (req as any).territoryScope;
       if (!scope || scope.neighborhoodIds.length === 0) {
         return res.status(403).json({ success: false, error: 'Acesso negado' });
@@ -302,7 +302,7 @@ router.get('/drivers/:id/documents', allowReadAccess, applyTerritoryScope, async
     });
 
     // Masking para TERRITORIAL_OPERATOR: ocultar URLs dos documentos
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       const masked = documents.map(doc => ({
         id: doc.id,
         driver_id: doc.driver_id,
@@ -520,7 +520,7 @@ router.get('/drivers/:id/premium-eligibility', allowReadAccess, applyTerritorySc
     // Scope check
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.neighborhoodIds.length === 0 || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
         return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
       }
@@ -585,7 +585,7 @@ router.get('/drivers/:id/eligibility', allowReadAccess, applyTerritoryScope, asy
     // Scope check
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.neighborhoodIds.length === 0 || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
         return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
       }
@@ -711,7 +711,7 @@ router.get('/drivers/:id/financial-summary', allowReadAccess, applyTerritoryScop
   try {
     // Scope check: TERRITORIAL_OPERATOR só acessa financeiro de motorista do seu território
     const admin = (req as any).admin;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       const scope = (req as any).territoryScope;
       if (!scope || scope.neighborhoodIds.length === 0) {
         return res.status(403).json({ success: false, error: 'Acesso negado' });
@@ -864,7 +864,7 @@ router.get('/drivers/:id/audit', allowReadAccess, applyTerritoryScope, async (re
     // Scope check
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
       const driver = await prisma.drivers.findUnique({ where: { id: req.params.id }, select: { neighborhood_id: true } });
       if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {

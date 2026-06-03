@@ -30,7 +30,7 @@ router.get('/', applyTerritoryScope, async (req: Request, res: Response) => {
     // Filtro territorial: TERRITORIAL_OPERATOR vê apenas showcase do seu território
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.neighborhoodIds.length === 0) {
         return res.json({ success: true, data: [] });
       }

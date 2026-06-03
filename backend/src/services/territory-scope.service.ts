@@ -36,8 +36,8 @@ export async function getAdminTerritoryScope(
 
   // Sem registros de territory_access:
   if (access.length === 0) {
-    // TERRITORIAL_OPERATOR sem vínculo → scope vazio (deny-by-default)
-    if (role === 'TERRITORIAL_OPERATOR') {
+    // TERRITORIAL_OPERATOR / TERRITORIAL_MANAGER sem vínculo → scope vazio (deny-by-default)
+    if (role === 'TERRITORIAL_OPERATOR' || role === 'TERRITORIAL_MANAGER') {
       return { territoryIds: [], neighborhoodIds: [], accessLevel: 'none' };
     }
     // Demais roles → acesso global (backward compatible)

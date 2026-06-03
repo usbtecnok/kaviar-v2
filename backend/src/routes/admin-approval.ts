@@ -16,7 +16,7 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, async (req, res) =>
   // TERRITORIAL_OPERATOR: filtrar motoristas pendentes do seu território
   const admin = (req as any).admin;
   const scope = (req as any).territoryScope;
-  if (admin.role === 'TERRITORIAL_OPERATOR') {
+  if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
     if (!scope || scope.neighborhoodIds.length === 0) {
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }

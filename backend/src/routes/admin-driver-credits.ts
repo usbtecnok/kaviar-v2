@@ -16,7 +16,7 @@ router.get('/:driverId/credits/balance', allowReadAccess, applyTerritoryScope, a
     // Scope check
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ error: 'Acesso negado' });
       const driver = await prisma.drivers.findUnique({ where: { id: req.params.driverId }, select: { neighborhood_id: true } });
       if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
@@ -47,7 +47,7 @@ router.get('/:driverId/credits/ledger', allowReadAccess, applyTerritoryScope, as
     // Scope check
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ error: 'Acesso negado' });
       const driver = await prisma.drivers.findUnique({ where: { id: req.params.driverId }, select: { neighborhood_id: true } });
       if (!driver || !driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {

@@ -18,8 +18,8 @@ export function requireTerritoryScope(req: Request, res: Response, next: NextFun
   // SUPER_ADMIN: bypass incondicional
   if (admin.role === 'SUPER_ADMIN') return next();
 
-  // TERRITORIAL_OPERATOR: exige scope válido
-  if (admin.role === 'TERRITORIAL_OPERATOR') {
+  // TERRITORIAL_OPERATOR / TERRITORIAL_MANAGER: exige scope válido
+  if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
     const scope = (req as any).territoryScope;
     if (!scope || !scope.neighborhoodIds || scope.neighborhoodIds.length === 0) {
       return res.status(403).json({

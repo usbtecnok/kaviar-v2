@@ -25,7 +25,7 @@ router.get('/summary', authenticateAdmin, applyTerritoryScope, async (req: Reque
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
     let partnerFilter: any = {};
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.territoryIds.length === 0) {
         return res.status(403).json({ success: false, error: 'Acesso negado' });
       }
@@ -43,7 +43,7 @@ router.get('/summary', authenticateAdmin, applyTerritoryScope, async (req: Reque
     const commFilter: any = { created_at: { gte: monthStart } };
     const pendingFilter: any = { status: 'pending' };
     const lastFilter: any = {};
-    if (admin.role === 'TERRITORIAL_OPERATOR' && scope) {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER' && scope) {
       const pIds = (await prisma.territorial_partners.findMany({ where: partnerFilter, select: { id: true } })).map(p => p.id);
       commFilter.partner_id = { in: pIds };
       pendingFilter.partner_id = { in: pIds };
@@ -143,7 +143,7 @@ router.get('/:id', authenticateAdmin, applyTerritoryScope, async (req: Request, 
     // Scope check: TERRITORIAL_OPERATOR só vê parceiro do seu território
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.territoryIds.length === 0) {
         return res.status(403).json({ success: false, error: 'Acesso negado' });
       }
@@ -436,7 +436,7 @@ router.get('/:id/report', authenticateAdmin, applyTerritoryScope, async (req: Re
     // Scope check: TERRITORIAL_OPERATOR só acessa relatório de parceiro do seu território
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.territoryIds.length === 0) {
         return res.status(403).json({ success: false, error: 'Acesso negado' });
       }
@@ -511,7 +511,7 @@ router.get('/:id/link-requests', authenticateAdmin, applyTerritoryScope, async (
     // Scope check: TERRITORIAL_OPERATOR
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.territoryIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
       const p = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { territory_id: true } });
       if (!p || !p.territory_id || !scope.territoryIds.includes(p.territory_id)) return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });
@@ -587,7 +587,7 @@ router.get('/:id/commissions', authenticateAdmin, applyTerritoryScope, async (re
     // Scope check: TERRITORIAL_OPERATOR
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.territoryIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
       const p = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { territory_id: true } });
       if (!p || !p.territory_id || !scope.territoryIds.includes(p.territory_id)) return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });
@@ -691,7 +691,7 @@ router.get('/:id/payments', authenticateAdmin, applyTerritoryScope, async (req: 
     // Scope check: TERRITORIAL_OPERATOR
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.territoryIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
       const p = await prisma.territorial_partners.findUnique({ where: { id: req.params.id }, select: { territory_id: true } });
       if (!p || !p.territory_id || !scope.territoryIds.includes(p.territory_id)) return res.status(403).json({ success: false, error: 'Parceiro fora do seu território' });

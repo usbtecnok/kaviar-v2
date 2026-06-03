@@ -134,7 +134,7 @@ router.get('/passengers/:id', allowReadAccess, applyTerritoryScope, async (req, 
     // Scope check: TERRITORIAL_OPERATOR só vê passageiro do seu território
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.neighborhoodIds.length === 0) {
         return res.status(403).json({ success: false, error: 'Acesso negado' });
       }
@@ -145,7 +145,7 @@ router.get('/passengers/:id', allowReadAccess, applyTerritoryScope, async (req, 
 
     // Masking para TERRITORIAL_OPERATOR
     const data: any = { ...passenger };
-    if (admin.role === 'TERRITORIAL_OPERATOR') {
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (data.document_cpf) data.document_cpf = '***' + data.document_cpf.slice(-4);
       data.password_hash = undefined;
     }
@@ -254,7 +254,7 @@ router.get('/rides/:id', allowReadAccess, applyTerritoryScope, async (req, res) 
   const scope = (req as any).territoryScope;
 
   // TERRITORIAL_OPERATOR: verificar que corrida pertence ao território
-  if (admin.role === 'TERRITORIAL_OPERATOR') {
+  if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
     if (!scope || scope.neighborhoodIds.length === 0) {
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }
@@ -300,7 +300,7 @@ router.delete('/drivers/:driverId/virtual-fence-center', requireOperatorOrSuperA
 router.get('/passengers/:passengerId/favorites', allowReadAccess, applyTerritoryScope, async (req, res) => {
   const admin = (req as any).admin;
   const scope = (req as any).territoryScope;
-  if (admin.role === 'TERRITORIAL_OPERATOR') {
+  if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
     if (!scope || scope.neighborhoodIds.length === 0) return res.status(403).json({ success: false, error: 'Acesso negado' });
     const passenger = await prisma.passengers.findUnique({ where: { id: req.params.passengerId }, select: { neighborhood_id: true } });
     if (!passenger || !passenger.neighborhood_id || !scope.neighborhoodIds.includes(passenger.neighborhood_id)) {
