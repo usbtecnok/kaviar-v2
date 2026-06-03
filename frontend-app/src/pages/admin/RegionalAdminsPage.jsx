@@ -10,7 +10,7 @@ export default function RegionalAdminsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ name: '', email: '', password: '', territory_id: '', access_level: 'full' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', territory_id: '', access_level: 'full', role_type: 'operator' });
   const token = localStorage.getItem('kaviar_admin_token');
 
   const fetchAdmins = async () => {
@@ -40,7 +40,7 @@ export default function RegionalAdminsPage() {
         method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (data.success) { setCreateOpen(false); setForm({ name: '', email: '', password: '', territory_id: '', access_level: 'full' }); fetchAdmins(); }
+      if (data.success) { setCreateOpen(false); setForm({ name: '', email: '', password: '', territory_id: '', access_level: 'full', role_type: 'operator' }); fetchAdmins(); }
       else setError(data.error || 'Erro ao criar');
     } catch (e) { setError('Erro de conexão'); }
     setSaving(false);
@@ -96,7 +96,7 @@ export default function RegionalAdminsPage() {
       <Dialog open={createOpen} onClose={() => { setCreateOpen(false); setError(''); }} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Novo Operador Territorial</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          <Alert severity="info" sx={{ mb: 1 }}>Este operador verá apenas dados do território vinculado. Role fixa: TERRITORIAL_OPERATOR (operador territorial com acesso limitado ao território vinculado).</Alert>
+          <Alert severity="info" sx={{ mb: 1 }}>O operador/gestor verá apenas dados do território vinculado. Acesso limitado conforme tipo selecionado.</Alert>
           {error && <Alert severity="error">{error}</Alert>}
           <TextField label="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} fullWidth required />
           <TextField label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} fullWidth required />
@@ -104,10 +104,9 @@ export default function RegionalAdminsPage() {
           <TextField label="Território" select value={form.territory_id} onChange={(e) => setForm({ ...form, territory_id: e.target.value })} fullWidth required>
             {territories.map((t) => <MenuItem key={t.id} value={t.id}>{t.name} ({t.level}{t.uf ? ` • ${t.uf}` : ''})</MenuItem>)}
           </TextField>
-          <TextField label="Nível de Acesso" select value={form.access_level} onChange={(e) => setForm({ ...form, access_level: e.target.value })} fullWidth>
-            <MenuItem value="full">Operador Territorial (leitura do território)</MenuItem>
-            <MenuItem value="read_only">Operador Restrito (somente leitura)</MenuItem>
-            <MenuItem disabled value="manager">Gestor Territorial — Em preparação</MenuItem>
+          <TextField label="Tipo" select value={form.role_type} onChange={(e) => setForm({ ...form, role_type: e.target.value })} fullWidth>
+            <MenuItem value="operator">Operador Territorial Captador</MenuItem>
+            <MenuItem value="manager">Gestor Territorial</MenuItem>
           </TextField>
         </DialogContent>
         <DialogActions>

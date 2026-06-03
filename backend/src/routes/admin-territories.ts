@@ -480,6 +480,7 @@ const createRegionalAdminSchema = z.object({
   password: z.string().min(6),
   territory_id: z.string().min(1),
   access_level: z.enum(['full', 'read_only']).default('full'),
+  role_type: z.enum(['operator', 'manager']).default('operator'),
 });
 
 // POST /api/admin/territories/regional-admins
@@ -494,6 +495,9 @@ router.post('/regional-admins', async (req: Request, res: Response) => {
     if (!territory) return res.status(400).json({ success: false, error: 'Território não encontrado' });
 
     const password = await bcrypt.hash(data.password, 12);
+    const isManager = data.role_type === 'manager';
+    const adminRole = isManager ? 'TERRITORIAL_MANAGER' : ALLOWED_REGIONAL_ROLE;
+    const relationshipType = isManager ? 'territorial_manager' : 'territorial_operator';
 
     const result = await prisma.$transaction(async (tx) => {
       const admin = await tx.admins.create({
@@ -501,7 +505,7 @@ router.post('/regional-admins', async (req: Request, res: Response) => {
           name: data.name,
           email: data.email.toLowerCase(),
           password,
-          role: ALLOWED_REGIONAL_ROLE,
+          role: adminRole,
           is_active: true,
           must_change_password: true,
         },
@@ -514,7 +518,7 @@ router.post('/regional-admins', async (req: Request, res: Response) => {
           admin_id: admin.id,
           territory_id: data.territory_id,
           display_name: data.name,
-          relationship_type: 'territorial_operator',
+          relationship_type: relationshipType,
           recipient_type: 'individual',
           contract_status: 'pending',
           document_status: 'pending',
