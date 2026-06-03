@@ -67,33 +67,37 @@ router.get('/stats', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
   try {
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    const baseWhere: any = { deleted_at: null };
+
+    // Build simple where conditions array for raw count
+    let whereConditions: any[] = [{ deleted_at: null }];
 
     if (admin.role !== 'SUPER_ADMIN') {
       if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
-        baseWhere.assigned_admin_id = admin.id;
+        whereConditions.push({ assigned_admin_id: admin.id });
       } else {
-        baseWhere.OR = [
-          { territory_id: { in: scope.territoryIds } },
-          { assigned_admin_id: admin.id },
-        ];
+        whereConditions.push({
+          OR: [
+            { territory_id: { in: scope.territoryIds } },
+            { assigned_admin_id: admin.id },
+          ],
+        });
       }
     }
 
-    const counts = await prisma.crm_leads.groupBy({
-      by: ['status'],
-      where: baseWhere,
-      _count: { _all: true },
-    });
+    const baseWhere = whereConditions.length === 1 ? whereConditions[0] : { AND: whereConditions };
 
+    // Use individual counts to avoid groupBy+OR Prisma issues
+    const statuses = ['NEW', 'CONTACTED', 'INTERESTED', 'WAITING_DOCUMENTS', 'WAITING_CONTRACT', 'WAITING_APPROVAL', 'ACTIVE', 'LOST', 'REJECTED', 'PAUSED'];
     const localBusinessTypes = ['LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP', 'ADVERTISER', 'SUPPORT_POINT'];
-    const localBusinessCount = await prisma.crm_leads.count({
-      where: { AND: [baseWhere, { lead_type: { in: localBusinessTypes } }] },
-    });
+
+    const results = await Promise.all([
+      ...statuses.map(s => prisma.crm_leads.count({ where: { AND: [baseWhere, { status: s }] } })),
+      prisma.crm_leads.count({ where: { AND: [baseWhere, { lead_type: { in: localBusinessTypes } }] } }),
+    ]);
 
     const stats: Record<string, number> = {};
-    for (const c of counts) stats[c.status] = c._count._all;
-    stats.LOCAL_BUSINESSES = localBusinessCount;
+    statuses.forEach((s, i) => { if (results[i] > 0) stats[s] = results[i]; });
+    stats.LOCAL_BUSINESSES = results[results.length - 1];
 
     res.json({ success: true, data: stats });
   } catch (error) {
