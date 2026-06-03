@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab, TextField } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public, Pets, Science } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public, Pets, Science, Description } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -435,6 +435,7 @@ function AdminHome() {
               { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
               { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages' },
               { Icon: Pets, title: 'KAVIAR Pet', desc: 'Central pet, homologações e operadores', to: '/admin/pet' },
+              { Icon: Description, title: 'Plano Gestor', desc: 'Documentos comerciais do gestor fundador', to: '/admin/comercial-gestor' },
             ]},
             { section: 'Gestão', items: [
               { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
