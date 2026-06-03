@@ -143,4 +143,21 @@ router.post('/accounts/:id/activate', authenticateAdmin, requireSuperAdmin, asyn
   }
 });
 
+// POST /api/admin/commerce/accounts/:id/reset-password — SUPER_ADMIN reset
+router.post('/accounts/:id/reset-password', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.commerce_users.findFirst({ where: { commerce_account_id: req.params.id, role: 'owner' } });
+    if (!user) return res.status(404).json({ success: false, error: 'Usuário do comércio não encontrado' });
+
+    const tempPassword = crypto.randomBytes(4).toString('hex');
+    const password_hash = await bcrypt.hash(tempPassword, 10);
+
+    await prisma.commerce_users.update({ where: { id: user.id }, data: { password_hash, must_change_password: true } });
+
+    res.json({ success: true, data: { email: user.email, temp_password: tempPassword } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao resetar senha' });
+  }
+});
+
 export default router;

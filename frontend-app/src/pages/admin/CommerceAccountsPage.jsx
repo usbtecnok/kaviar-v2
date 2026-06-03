@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Chip, Button, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
-import { Add, CheckCircle, Store } from '@mui/icons-material';
+import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Chip, Button, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip } from '@mui/material';
+import { Add, CheckCircle, LockReset, ContentCopy } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
@@ -12,7 +12,7 @@ export default function CommerceAccountsPage() {
   const [snack, setSnack] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '' });
-  const [activateResult, setActivateResult] = useState(null);
+  const [passwordResult, setPasswordResult] = useState(null); // {email, temp_password, action}
 
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
@@ -20,7 +20,7 @@ export default function CommerceAccountsPage() {
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  const fetch_ = async () => {
+  const fetchAccounts = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { headers });
@@ -30,13 +30,13 @@ export default function CommerceAccountsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetch_(); }, []);
+  useEffect(() => { fetchAccounts(); }, []);
 
   const handleCreate = async () => {
     if (!form.name.trim()) return setSnack('Nome obrigatório');
     const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(form) });
     const data = await res.json();
-    if (data.success) { setCreateOpen(false); fetch_(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '' }); }
+    if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '' }); }
     else setSnack(data.error || 'Erro');
   };
 
@@ -44,8 +44,20 @@ export default function CommerceAccountsPage() {
     if (!window.confirm('Ativar este comércio? Uma senha temporária será gerada.')) return;
     const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers });
     const data = await res.json();
-    if (data.success) { setActivateResult(data.data); fetch_(); setSnack('Comércio ativado!'); }
+    if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); }
     else setSnack(data.error || 'Erro');
+  };
+
+  const handleResetPassword = async (id) => {
+    if (!window.confirm('Gerar nova senha temporária? A senha anterior será invalidada.')) return;
+    const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/reset-password`, { method: 'POST', headers });
+    const data = await res.json();
+    if (data.success) { setPasswordResult({ email: data.data.email, temp_password: data.data.temp_password, action: 'reset' }); }
+    else setSnack(data.error || 'Erro');
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => setSnack('Copiado!')).catch(() => {});
   };
 
   return (
@@ -71,6 +83,7 @@ export default function CommerceAccountsPage() {
                 <TableCell><Chip label={STATUS_MAP[a.status]?.label || a.status} color={STATUS_MAP[a.status]?.color || 'default'} size="small" /></TableCell>
                 <TableCell>
                   {isSuperAdmin && a.status === 'pending' && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
+                  {isSuperAdmin && a.status === 'active' && <Tooltip title="Resetar senha do comércio"><IconButton size="small" onClick={() => handleResetPassword(a.id)} sx={{ color: '#6B7280' }}><LockReset sx={{ fontSize: 18 }} /></IconButton></Tooltip>}
                 </TableCell>
               </TableRow>
             ))}
@@ -86,7 +99,7 @@ export default function CommerceAccountsPage() {
           <TextField label="Nome *" size="small" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           <TextField label="Nome Fantasia" size="small" value={form.trade_name} onChange={e => setForm(f => ({ ...f, trade_name: e.target.value }))} />
           <FormControl size="small"><InputLabel>Categoria</InputLabel><Select value={form.category} label="Categoria" onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-            {['padaria','restaurante','pizzaria','lanchonete','mercado','farmacia','pet_shop','salao','oficina','loja','outro'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+            {['padaria','restaurante','pizzaria','lanchonete','mercado','farmacia','pet_shop','salao','oficina','loja','bar','outro'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
           </Select></FormControl>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField label="Telefone" size="small" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
@@ -98,18 +111,33 @@ export default function CommerceAccountsPage() {
         <DialogActions><Button onClick={() => setCreateOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleCreate} sx={{ bgcolor: GOLD }}>Criar</Button></DialogActions>
       </Dialog>
 
-      {/* Activate Result (temp password) */}
-      <Dialog open={!!activateResult} onClose={() => setActivateResult(null)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, color: '#10B981' }}>✅ Comércio Ativado</DialogTitle>
+      {/* Password Result Modal (activation or reset) */}
+      <Dialog open={!!passwordResult} onClose={() => setPasswordResult(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, color: '#10B981' }}>
+          {passwordResult?.action === 'reset' ? '🔒 Senha Resetada' : '✅ Comércio Ativado'}
+        </DialogTitle>
         <DialogContent>
-          {activateResult && <>
-            <Alert severity="warning" sx={{ mb: 2 }}>A senha abaixo aparece APENAS UMA VEZ. Envie manualmente ao comércio.</Alert>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>Email: <strong>{activateResult.user?.email}</strong></Typography>
-            <Typography sx={{ fontSize: 13, mb: 1 }}>Senha temporária: <strong style={{ fontFamily: 'monospace', fontSize: 16 }}>{activateResult.temp_password}</strong></Typography>
-            <Typography sx={{ fontSize: 11, color: '#6B7280', mt: 1 }}>O comércio será obrigado a trocar a senha no primeiro acesso.</Typography>
+          {passwordResult && <>
+            <Alert severity="warning" sx={{ mb: 2, fontWeight: 600 }}>
+              ⚠️ Esta senha aparece APENAS UMA VEZ. Copie agora.
+            </Alert>
+            <Box sx={{ bgcolor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 2, p: 2, mb: 2 }}>
+              <Typography sx={{ fontSize: 12, color: '#6B7280', mb: 0.5 }}>Login (email):</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{passwordResult.email}</Typography>
+                <IconButton size="small" onClick={() => copyToClipboard(passwordResult.email)}><ContentCopy sx={{ fontSize: 14 }} /></IconButton>
+              </Box>
+              <Typography sx={{ fontSize: 12, color: '#6B7280', mb: 0.5 }}>Senha temporária:</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography sx={{ fontWeight: 800, fontSize: 20, fontFamily: 'monospace', color: '#111', letterSpacing: 2 }}>{passwordResult.temp_password}</Typography>
+                <IconButton size="small" onClick={() => copyToClipboard(passwordResult.temp_password)} sx={{ color: GOLD }}><ContentCopy sx={{ fontSize: 18 }} /></IconButton>
+              </Box>
+            </Box>
+            <Button fullWidth variant="outlined" size="small" onClick={() => copyToClipboard(`Login: ${passwordResult.email}\nSenha: ${passwordResult.temp_password}`)} sx={{ textTransform: 'none', mb: 1 }}>📋 Copiar tudo</Button>
+            <Typography sx={{ fontSize: 11, color: '#6B7280' }}>O comércio será obrigado a trocar a senha no primeiro acesso.</Typography>
           </>}
         </DialogContent>
-        <DialogActions><Button onClick={() => setActivateResult(null)}>Fechar</Button></DialogActions>
+        <DialogActions><Button onClick={() => setPasswordResult(null)} variant="contained" sx={{ bgcolor: GOLD }}>Fechar</Button></DialogActions>
       </Dialog>
 
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')} message={snack} />
