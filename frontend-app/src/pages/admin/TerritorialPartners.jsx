@@ -807,7 +807,7 @@ export default function TerritorialPartners() {
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{p.name}</Typography>
-                  <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEdit(p); }}><Edit fontSize="small" /></IconButton>
+                  {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && <IconButton size="small" onClick={(e) => { e.stopPropagation(); openEdit(p); }}><Edit fontSize="small" /></IconButton>}
                 </Box>
                 <Box sx={{ display: 'flex', gap: 0.5, mb: 1, flexWrap: 'wrap' }}>
                   <Chip label={TYPE_MAP[p.partner_type]?.label || p.partner_type} size="small" color={TYPE_MAP[p.partner_type]?.color || 'default'} />

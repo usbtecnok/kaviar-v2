@@ -155,7 +155,7 @@ export default function LocalOperators() {
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
                       {op.phone && <IconButton size="small" onClick={() => window.open(`https://wa.me/55${op.phone.replace(/\D/g, '')}`, '_blank')} sx={{ color: '#25D366' }}><Phone fontSize="small" /></IconButton>}
                       {op.website && <IconButton size="small" onClick={() => window.open(op.website.startsWith('http') ? op.website : `https://${op.website}`, '_blank')} sx={{ color: '#4FC3F7' }}><OpenInNew fontSize="small" /></IconButton>}
-                      <IconButton size="small" onClick={() => openEdit(op)} sx={{ color: '#C8A84E' }}><Edit fontSize="small" /></IconButton>
+                      {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && <IconButton size="small" onClick={() => openEdit(op)} sx={{ color: '#C8A84E' }}><Edit fontSize="small" /></IconButton>}
                     </Box>
                   </Box>
                   <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1 }}>

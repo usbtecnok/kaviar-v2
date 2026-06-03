@@ -94,6 +94,14 @@ export default function MyContractPage() {
       </Card>
 
       {/* Termo */}
+      {profile.relationship_type === 'territorial_manager' ? (
+        <Card sx={{ border: '1px solid #E8E5DE', mb: 3 }}>
+          <CardContent>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: '#B8942E' }}>Termo de Gestor Territorial KAVIAR</Typography>
+            <Alert severity="info">O Termo de Gestor Territorial KAVIAR está em preparação. Este acesso é controlado e depende de contrato específico a ser formalizado pela central KAVIAR/USB Tecnok.</Alert>
+          </CardContent>
+        </Card>
+      ) : (
       <Card sx={{ border: '1px solid #E8E5DE', mb: 3 }}>
         <CardContent>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: '#B8942E' }}>Termo de Operador Territorial Captador</Typography>
@@ -102,9 +110,10 @@ export default function MyContractPage() {
           </Box>
         </CardContent>
       </Card>
+      )}
 
       {/* Aceite */}
-      {!termsAccepted && (
+      {!termsAccepted && profile.relationship_type !== 'territorial_manager' && (
         <Card sx={{ border: '2px solid #D97706', mb: 3 }}>
           <CardContent sx={{ textAlign: 'center', py: 3 }}>
             <Typography sx={{ mb: 2, fontWeight: 600, color: '#92400E' }}>Ao clicar abaixo, você declara que leu e aceita todos os termos acima.</Typography>

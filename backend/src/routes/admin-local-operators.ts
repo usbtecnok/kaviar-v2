@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateAdmin } from '../middlewares/auth';
+import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
 
 const router = Router();
@@ -73,7 +73,7 @@ router.post('/', authenticateAdmin, async (req: Request, res: Response) => {
 });
 
 // Update operator
-router.put('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.put('/:id', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { organization_name, responsible_name, responsible_role, phone, email, address, website, community, neighborhood, city, source, status, verified, notes, next_followup_at, drivers_referred, drivers_approved } = req.body;
     const op = await prisma.local_operators.update({
@@ -105,7 +105,7 @@ router.put('/:id', authenticateAdmin, async (req: Request, res: Response) => {
 });
 
 // Quick status update
-router.patch('/:id/status', authenticateAdmin, async (req: Request, res: Response) => {
+router.patch('/:id/status', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
     if (!VALID_STATUSES.includes(status)) {
@@ -122,7 +122,7 @@ router.patch('/:id/status', authenticateAdmin, async (req: Request, res: Respons
 });
 
 // Delete operator
-router.delete('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.delete('/:id', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     await prisma.local_operators.delete({ where: { id: req.params.id } });
     res.json({ success: true });
