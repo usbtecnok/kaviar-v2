@@ -9,6 +9,7 @@ const prisma = new PrismaClient();
 const CRM_ROLES = requireRole(['SUPER_ADMIN', 'TERRITORIAL_MANAGER']);
 
 const VALID_STATUSES = ['NEW', 'CONTACTED', 'INTERESTED', 'WAITING_DOCUMENTS', 'WAITING_CONTRACT', 'WAITING_APPROVAL', 'ACTIVE', 'LOST', 'REJECTED', 'PAUSED'];
+const VALID_PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
 const VALID_LEAD_TYPES = ['TERRITORIAL_MANAGER', 'ASSOCIATION', 'DRIVER', 'PASSENGER', 'LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP', 'PRIVATE_RIDE_CLIENT', 'PET_DRIVER', 'PARTNER', 'ADVERTISER', 'SUPPORT_POINT', 'OTHER'];
 const VALID_SOURCES = ['MANUAL', 'MANAGER_REFERRAL', 'PET_FORM', 'PRIVATE_RIDE', 'WHATSAPP', 'ASSOCIATION', 'WEBSITE', 'LOCAL_VISIT', 'LOCAL_BUSINESS_PROSPECTION', 'OTHER'];
 const VALID_EVENT_TYPES = ['NOTE', 'CALL', 'WHATSAPP', 'EMAIL', 'STATUS_CHANGE', 'ASSIGNED', 'DOCUMENT_RECEIVED', 'CONTRACT_SENT', 'PAYMENT_DISCUSSION', 'LOCAL_VISIT', 'PROPOSAL_SENT', 'PARTNERSHIP_DISCUSSION', 'SHOWCASE_DISCUSSION', 'OTHER'];
@@ -39,6 +40,7 @@ function buildLeadWhere(admin: any, scope: any, query: any) {
   if (query.territory_id && admin.role === 'SUPER_ADMIN') where.territory_id = query.territory_id;
   if (query.assigned_admin_id) where.assigned_admin_id = query.assigned_admin_id;
   if (query.business_category) where.business_category = query.business_category;
+  if (query.priority) where.priority = query.priority;
 
   if (query.search) {
     const s = query.search as string;
@@ -163,7 +165,7 @@ router.post('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (
   try {
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    const { name, business_name, phone, email, lead_type, status, source, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at } = req.body;
+    const { name, business_name, phone, email, lead_type, status, source, priority, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at } = req.body;
 
     if (!name) return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
 
@@ -187,6 +189,7 @@ router.post('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (
         lead_type: lead_type && VALID_LEAD_TYPES.includes(lead_type) ? lead_type : 'OTHER',
         status: status && VALID_STATUSES.includes(status) ? status : 'NEW',
         source: source && VALID_SOURCES.includes(source) ? source : 'MANUAL',
+        priority: priority && VALID_PRIORITIES.includes(priority) ? priority : 'NORMAL',
         business_category: business_category || null,
         business_address: business_address || null,
         contact_person: contact_person || null,
@@ -232,7 +235,7 @@ router.patch('/leads/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, as
       if (!inScope) return res.status(403).json({ success: false, error: 'Sem permissão' });
     }
 
-    const { name, business_name, phone, email, lead_type, source, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at, last_contact_at } = req.body;
+    const { name, business_name, phone, email, lead_type, source, priority, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at, last_contact_at } = req.body;
 
     const data: any = {};
     if (name !== undefined) data.name = name;
@@ -241,6 +244,7 @@ router.patch('/leads/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, as
     if (email !== undefined) data.email = email || null;
     if (lead_type !== undefined && VALID_LEAD_TYPES.includes(lead_type)) data.lead_type = lead_type;
     if (source !== undefined && VALID_SOURCES.includes(source)) data.source = source;
+    if (priority !== undefined && VALID_PRIORITIES.includes(priority)) data.priority = priority;
     if (business_category !== undefined) data.business_category = business_category || null;
     if (business_address !== undefined) data.business_address = business_address || null;
     if (contact_person !== undefined) data.contact_person = contact_person || null;
@@ -379,10 +383,10 @@ router.get('/export', authenticateAdmin, requireSuperAdmin, applyTerritoryScope,
     const where = buildLeadWhere((req as any).admin, null, req.query);
     const leads = await prisma.crm_leads.findMany({ where, orderBy: { created_at: 'desc' }, take: 5000 });
 
-    const header = 'id,name,business_name,phone,email,lead_type,status,source,business_category,territory_id,assigned_admin_id,next_action,next_action_at,last_contact_at,created_at\n';
+    const header = 'id,name,business_name,phone,email,lead_type,status,priority,source,business_category,territory_id,assigned_admin_id,next_action,next_action_at,last_contact_at,created_at\n';
     const rows = leads.map(l => [
       l.id, `"${(l.name || '').replace(/"/g, '""')}"`, `"${(l.business_name || '').replace(/"/g, '""')}"`,
-      l.phone || '', l.email || '', l.lead_type, l.status, l.source,
+      l.phone || '', l.email || '', l.lead_type, l.status, l.priority || 'NORMAL', l.source,
       l.business_category || '', l.territory_id || '', l.assigned_admin_id || '',
       `"${(l.next_action || '').replace(/"/g, '""')}"`, l.next_action_at || '', l.last_contact_at || '', l.created_at,
     ].join(',')).join('\n');

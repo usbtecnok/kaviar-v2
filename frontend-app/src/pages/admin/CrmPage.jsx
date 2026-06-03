@@ -3,25 +3,31 @@ import {
   Box, Typography, Card, CardContent, Grid, Chip, Table, TableBody, TableCell, TableHead, TableRow,
   TextField, Select, MenuItem, FormControl, InputLabel, Button, IconButton, Drawer, Divider,
   CircularProgress, Alert, Pagination, Dialog, DialogTitle, DialogContent, DialogActions,
-  Snackbar, Tooltip
+  Snackbar, Tooltip, ToggleButtonGroup, ToggleButton
 } from '@mui/material';
-import { Add, Download, Close, Save, Phone, Email, Business, AccessTime, FilterList } from '@mui/icons-material';
+import { Add, Download, Close, Phone, Email, Business, AccessTime, FilterList, Store, Apartment, Warning } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
-import { downloadCsv } from '../../utils/exportCsv';
 
 const GOLD = '#B8942E';
 
 const STATUS_MAP = {
-  NEW: { label: 'Novo', color: '#3B82F6' },
-  CONTACTED: { label: 'Contatado', color: '#8B5CF6' },
-  INTERESTED: { label: 'Interessado', color: '#F59E0B' },
-  WAITING_DOCUMENTS: { label: 'Aguard. Docs', color: '#F97316' },
-  WAITING_CONTRACT: { label: 'Aguard. Contrato', color: '#EC4899' },
-  WAITING_APPROVAL: { label: 'Aguard. Aprovação', color: '#6366F1' },
-  ACTIVE: { label: 'Ativo', color: '#10B981' },
-  LOST: { label: 'Perdido', color: '#6B7280' },
-  REJECTED: { label: 'Rejeitado', color: '#EF4444' },
-  PAUSED: { label: 'Pausado', color: '#9CA3AF' },
+  NEW: { label: '📥 Entrada', color: '#3B82F6' },
+  CONTACTED: { label: '📞 Em contato', color: '#8B5CF6' },
+  INTERESTED: { label: '🤝 Interessado', color: '#F59E0B' },
+  WAITING_DOCUMENTS: { label: '📄 Aguard. Docs', color: '#F97316' },
+  WAITING_CONTRACT: { label: '📝 Aguard. Contrato', color: '#EC4899' },
+  WAITING_APPROVAL: { label: '⏳ Aguard. Aprovação', color: '#6366F1' },
+  ACTIVE: { label: '✅ Ativo', color: '#10B981' },
+  LOST: { label: '❌ Perdido', color: '#6B7280' },
+  REJECTED: { label: '🚫 Rejeitado', color: '#EF4444' },
+  PAUSED: { label: '⏸️ Pausado', color: '#9CA3AF' },
+};
+
+const PRIORITY_MAP = {
+  LOW: { label: 'Baixa', color: '#9CA3AF', icon: '○' },
+  NORMAL: { label: 'Normal', color: '#6B7280', icon: '●' },
+  HIGH: { label: 'Alta', color: '#F59E0B', icon: '▲' },
+  URGENT: { label: 'Urgente', color: '#EF4444', icon: '🔴' },
 };
 
 const LEAD_TYPES = [
@@ -74,6 +80,9 @@ const EVENT_TYPES = [
   { value: 'OTHER', label: 'Outro' },
 ];
 
+function isOverdue(d) { return d && new Date(d) < new Date(); }
+function isMissing(v) { return !v || v.trim() === ''; }
+
 export default function CrmPage() {
   const [stats, setStats] = useState({});
   const [leads, setLeads] = useState([]);
@@ -84,8 +93,9 @@ export default function CrmPage() {
   const [snack, setSnack] = useState('');
 
   // Filters
-  const [filters, setFilters] = useState({ status: '', lead_type: '', source: '', search: '' });
+  const [filters, setFilters] = useState({ status: '', lead_type: '', source: '', search: '', priority: '', date_from: '', date_to: '' });
   const [showFilters, setShowFilters] = useState(false);
+  const [periodFilter, setPeriodFilter] = useState('');
 
   // Drawer
   const [selectedLead, setSelectedLead] = useState(null);
@@ -95,7 +105,7 @@ export default function CrmPage() {
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '' });
+  const [createForm, setCreateForm] = useState({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', priority: 'NORMAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '' });
 
   // Interaction dialog
   const [interactionOpen, setInteractionOpen] = useState(false);
@@ -123,10 +133,7 @@ export default function CrmPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page: String(page), limit: '30' });
-      if (filters.status) params.set('status', filters.status);
-      if (filters.lead_type) params.set('lead_type', filters.lead_type);
-      if (filters.source) params.set('source', filters.source);
-      if (filters.search) params.set('search', filters.search);
+      Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
       const res = await fetch(`${API_BASE_URL}/api/admin/crm/leads?${params}`, { headers });
       const data = await res.json();
       if (data.success) { setLeads(data.data); setTotal(data.total); }
@@ -137,6 +144,21 @@ export default function CrmPage() {
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  // Period filter helper
+  const applyPeriod = (period) => {
+    setPeriodFilter(period);
+    const now = new Date();
+    let date_from = '';
+    if (period === 'today') {
+      date_from = now.toISOString().slice(0, 10);
+    } else if (period === 'week') {
+      const d = new Date(now); d.setDate(d.getDate() - 7);
+      date_from = d.toISOString().slice(0, 10);
+    }
+    setFilters(f => ({ ...f, date_from, date_to: '' }));
+    setPage(1);
+  };
 
   const openDetail = async (lead) => {
     setSelectedLead(lead);
@@ -150,12 +172,17 @@ export default function CrmPage() {
     setLoadingDetail(false);
   };
 
+  const openCreateWith = (preset) => {
+    setCreateForm({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', priority: 'NORMAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '', ...preset });
+    setCreateOpen(true);
+  };
+
   const handleCreate = async () => {
     if (!createForm.name.trim()) return setSnack('Nome é obrigatório');
     try {
       const res = await fetch(`${API_BASE_URL}/api/admin/crm/leads`, { method: 'POST', headers, body: JSON.stringify(createForm) });
       const data = await res.json();
-      if (data.success) { setCreateOpen(false); setCreateForm({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '' }); fetchLeads(); fetchStats(); setSnack('Lead criado!'); }
+      if (data.success) { setCreateOpen(false); fetchLeads(); fetchStats(); setSnack('Lead criado!'); }
       else setSnack(data.error || 'Erro');
     } catch { setSnack('Erro de conexão'); }
   };
@@ -183,8 +210,7 @@ export default function CrmPage() {
   const handleExportCsv = async () => {
     try {
       const params = new URLSearchParams();
-      if (filters.status) params.set('status', filters.status);
-      if (filters.lead_type) params.set('lead_type', filters.lead_type);
+      Object.entries(filters).forEach(([k, v]) => { if (v) params.set(k, v); });
       const res = await fetch(`${API_BASE_URL}/api/admin/crm/export?${params}`, { headers });
       if (!res.ok) return setSnack('Erro ao exportar');
       const blob = await res.blob();
@@ -196,40 +222,55 @@ export default function CrmPage() {
 
   const statusChip = (status) => {
     const s = STATUS_MAP[status] || { label: status, color: '#6B7280' };
-    return <Chip label={s.label} size="small" sx={{ bgcolor: `${s.color}20`, color: s.color, fontWeight: 600, fontSize: 11 }} />;
+    return <Chip label={s.label} size="small" sx={{ bgcolor: `${s.color}15`, color: s.color, fontWeight: 600, fontSize: 11, border: `1px solid ${s.color}30` }} />;
+  };
+
+  const priorityChip = (priority) => {
+    const p = PRIORITY_MAP[priority] || PRIORITY_MAP.NORMAL;
+    return <Chip label={`${p.icon} ${p.label}`} size="small" sx={{ bgcolor: `${p.color}15`, color: p.color, fontWeight: 600, fontSize: 10 }} />;
   };
 
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
 
+  const totalLeads = Object.entries(stats).filter(([k]) => k !== 'LOCAL_BUSINESSES').reduce((sum, [, v]) => sum + v, 0);
+
   return (
     <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ color: GOLD, fontWeight: 800 }}>📋 CRM KAVIAR</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {isSuperAdmin && <Button size="small" startIcon={<Download />} onClick={handleExportCsv} sx={{ color: '#6B7280' }}>CSV</Button>}
-          <Button variant="contained" size="small" startIcon={<Add />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: GOLD, '&:hover': { bgcolor: '#96782A' } }}>Novo Lead</Button>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+        <Box>
+          <Typography variant="h5" sx={{ color: GOLD, fontWeight: 800 }}>📋 CRM KAVIAR</Typography>
+          <Typography sx={{ fontSize: 12, color: '#6B7280' }}>
+            {isSuperAdmin ? `${totalLeads} leads no total · Visão completa` : `Meus leads · Visão territorial`}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {isSuperAdmin && <Button size="small" startIcon={<Download />} onClick={handleExportCsv} sx={{ color: '#6B7280', textTransform: 'none' }}>CSV</Button>}
+          <Button size="small" variant="outlined" startIcon={<Store />} onClick={() => openCreateWith({ lead_type: 'LOCAL_BUSINESS', source: 'LOCAL_BUSINESS_PROSPECTION', business_category: '' })} sx={{ borderColor: '#059669', color: '#059669', textTransform: 'none' }}>+ Comércio</Button>
+          <Button size="small" variant="outlined" startIcon={<Apartment />} onClick={() => openCreateWith({ lead_type: 'ASSOCIATION', source: 'LOCAL_VISIT' })} sx={{ borderColor: '#7C3AED', color: '#7C3AED', textTransform: 'none' }}>+ Associação</Button>
+          <Button variant="contained" size="small" startIcon={<Add />} onClick={() => openCreateWith({})} sx={{ bgcolor: GOLD, '&:hover': { bgcolor: '#96782A' }, textTransform: 'none' }}>Novo Lead</Button>
         </Box>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {/* Stats Cards */}
-      <Grid container spacing={1.5} sx={{ mb: 3 }}>
+      <Grid container spacing={1} sx={{ mb: 2.5 }}>
         {Object.entries(STATUS_MAP).slice(0, 7).map(([key, val]) => (
           <Grid item xs={6} sm={4} md={3} lg key={key}>
-            <Card sx={{ cursor: 'pointer', border: filters.status === key ? `2px solid ${val.color}` : '1px solid #E8E5DE', transition: 'all .15s' }} onClick={() => setFilters(f => ({ ...f, status: f.status === key ? '' : key }))}>
-              <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-                <Typography sx={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase' }}>{val.label}</Typography>
-                <Typography sx={{ fontSize: 22, fontWeight: 800, color: val.color }}>{stats[key] || 0}</Typography>
+            <Card sx={{ cursor: 'pointer', border: filters.status === key ? `2px solid ${val.color}` : '1px solid #E8E5DE', transition: 'all .15s', '&:hover': { borderColor: val.color, transform: 'translateY(-1px)' } }} onClick={() => { setFilters(f => ({ ...f, status: f.status === key ? '' : key })); setPage(1); }}>
+              <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+                <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{val.label}</Typography>
+                <Typography sx={{ fontSize: 20, fontWeight: 800, color: val.color }}>{stats[key] || 0}</Typography>
               </CardContent>
             </Card>
           </Grid>
         ))}
         <Grid item xs={6} sm={4} md={3} lg>
-          <Card sx={{ border: '1px solid #E8E5DE' }}>
-            <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-              <Typography sx={{ fontSize: 11, color: '#6B7280', textTransform: 'uppercase' }}>Comércios</Typography>
-              <Typography sx={{ fontSize: 22, fontWeight: 800, color: '#059669' }}>{stats.LOCAL_BUSINESSES || 0}</Typography>
+          <Card sx={{ border: '1px solid #E8E5DE', '&:hover': { borderColor: '#059669' } }}>
+            <CardContent sx={{ py: 1, px: 1.5, '&:last-child': { pb: 1 } }}>
+              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase' }}>🏪 Comércios</Typography>
+              <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#059669' }}>{stats.LOCAL_BUSINESSES || 0}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -237,33 +278,44 @@ export default function CrmPage() {
 
       {/* Filters */}
       <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-        <TextField size="small" placeholder="Buscar nome, telefone, email..." value={filters.search} onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }} sx={{ minWidth: 220 }} />
+        <TextField size="small" placeholder="Buscar nome, telefone, email..." value={filters.search} onChange={e => { setFilters(f => ({ ...f, search: e.target.value })); setPage(1); }} sx={{ minWidth: 200, maxWidth: 280 }} />
+        <ToggleButtonGroup size="small" exclusive value={periodFilter} onChange={(_, v) => applyPeriod(v || '')}>
+          <ToggleButton value="today" sx={{ textTransform: 'none', fontSize: 12 }}>Hoje</ToggleButton>
+          <ToggleButton value="week" sx={{ textTransform: 'none', fontSize: 12 }}>7 dias</ToggleButton>
+        </ToggleButtonGroup>
         <IconButton size="small" onClick={() => setShowFilters(!showFilters)} sx={{ color: showFilters ? GOLD : '#6B7280' }}><FilterList /></IconButton>
-        {(filters.status || filters.lead_type || filters.source) && (
-          <Button size="small" onClick={() => { setFilters({ status: '', lead_type: '', source: '', search: '' }); setPage(1); }} sx={{ color: '#EF4444', textTransform: 'none' }}>Limpar filtros</Button>
+        {(filters.status || filters.lead_type || filters.source || filters.priority || filters.date_from) && (
+          <Button size="small" onClick={() => { setFilters({ status: '', lead_type: '', source: '', search: '', priority: '', date_from: '', date_to: '' }); setPeriodFilter(''); setPage(1); }} sx={{ color: '#EF4444', textTransform: 'none', fontSize: 12 }}>Limpar</Button>
         )}
       </Box>
       {showFilters && (
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 140 }}>
+          <FormControl size="small" sx={{ minWidth: 130 }}>
             <InputLabel>Status</InputLabel>
             <Select value={filters.status} label="Status" onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setPage(1); }}>
               <MenuItem value="">Todos</MenuItem>
               {Object.entries(STATUS_MAP).map(([k, v]) => <MenuItem key={k} value={k}>{v.label}</MenuItem>)}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 160 }}>
+          <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>Tipo</InputLabel>
             <Select value={filters.lead_type} label="Tipo" onChange={e => { setFilters(f => ({ ...f, lead_type: e.target.value })); setPage(1); }}>
               <MenuItem value="">Todos</MenuItem>
               {LEAD_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 140 }}>
+          <FormControl size="small" sx={{ minWidth: 130 }}>
             <InputLabel>Origem</InputLabel>
             <Select value={filters.source} label="Origem" onChange={e => { setFilters(f => ({ ...f, source: e.target.value })); setPage(1); }}>
               <MenuItem value="">Todas</MenuItem>
               {SOURCES.map(s => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Prioridade</InputLabel>
+            <Select value={filters.priority} label="Prioridade" onChange={e => { setFilters(f => ({ ...f, priority: e.target.value })); setPage(1); }}>
+              <MenuItem value="">Todas</MenuItem>
+              {Object.entries(PRIORITY_MAP).map(([k, v]) => <MenuItem key={k} value={k}>{v.icon} {v.label}</MenuItem>)}
             </Select>
           </FormControl>
         </Box>
@@ -277,29 +329,39 @@ export default function CrmPage() {
               <TableHead>
                 <TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase', whiteSpace: 'nowrap' } }}>
                   <TableCell>Nome</TableCell>
-                  <TableCell>Comércio</TableCell>
                   <TableCell>Tipo</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell>Origem</TableCell>
+                  <TableCell>Prior.</TableCell>
                   <TableCell>Próxima Ação</TableCell>
                   <TableCell>Último Contato</TableCell>
                   <TableCell>Criado</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {leads.map(lead => (
-                  <TableRow key={lead.id} hover sx={{ cursor: 'pointer' }} onClick={() => openDetail(lead)}>
-                    <TableCell sx={{ fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.name}</TableCell>
-                    <TableCell sx={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#6B7280' }}>{lead.business_name || '—'}</TableCell>
-                    <TableCell><Chip label={LEAD_TYPES.find(t => t.value === lead.lead_type)?.label || lead.lead_type} size="small" sx={{ fontSize: 10 }} /></TableCell>
-                    <TableCell>{statusChip(lead.status)}</TableCell>
-                    <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{SOURCES.find(s => s.value === lead.source)?.label || lead.source}</TableCell>
-                    <TableCell sx={{ fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.next_action || '—'}</TableCell>
-                    <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.last_contact_at)}</TableCell>
-                    <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.created_at)}</TableCell>
-                  </TableRow>
-                ))}
-                {leads.length === 0 && <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum lead encontrado</TableCell></TableRow>}
+                {leads.map(lead => {
+                  const overdue = isOverdue(lead.next_action_at);
+                  const noAction = isMissing(lead.next_action);
+                  return (
+                    <TableRow key={lead.id} hover sx={{ cursor: 'pointer', bgcolor: overdue ? '#FEF2F2' : noAction ? '#FFFBEB' : 'inherit' }} onClick={() => openDetail(lead)}>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          {(overdue || noAction) && <Tooltip title={overdue ? 'Ação vencida!' : 'Sem próxima ação'}><Warning sx={{ fontSize: 14, color: overdue ? '#EF4444' : '#F59E0B' }} /></Tooltip>}
+                          <Box>
+                            <Typography sx={{ fontWeight: 600, fontSize: 13, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lead.name}</Typography>
+                            {lead.business_name && <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{lead.business_name}</Typography>}
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell><Chip label={LEAD_TYPES.find(t => t.value === lead.lead_type)?.label || lead.lead_type} size="small" sx={{ fontSize: 10 }} /></TableCell>
+                      <TableCell>{statusChip(lead.status)}</TableCell>
+                      <TableCell>{priorityChip(lead.priority)}</TableCell>
+                      <TableCell sx={{ fontSize: 12, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: overdue ? '#EF4444' : '#374151' }}>{lead.next_action || <span style={{ color: '#F59E0B', fontStyle: 'italic' }}>definir...</span>}</TableCell>
+                      <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.last_contact_at)}</TableCell>
+                      <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.created_at)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                {leads.length === 0 && <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum lead encontrado</TableCell></TableRow>}
               </TableBody>
             </Table>
           </Box>
@@ -316,20 +378,29 @@ export default function CrmPage() {
               <IconButton onClick={() => setDrawerOpen(false)}><Close /></IconButton>
             </Box>
 
-            {statusChip(selectedLead.status)}
-            <Chip label={LEAD_TYPES.find(t => t.value === selectedLead.lead_type)?.label || selectedLead.lead_type} size="small" sx={{ ml: 1 }} />
+            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 2 }}>
+              {statusChip(selectedLead.status)}
+              <Chip label={LEAD_TYPES.find(t => t.value === selectedLead.lead_type)?.label || selectedLead.lead_type} size="small" />
+              {priorityChip(selectedLead.priority)}
+            </Box>
 
-            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {selectedLead.phone && <Typography sx={{ fontSize: 13 }}><Phone sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />{selectedLead.phone}</Typography>}
               {selectedLead.email && <Typography sx={{ fontSize: 13 }}><Email sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />{selectedLead.email}</Typography>}
               {selectedLead.business_name && <Typography sx={{ fontSize: 13 }}><Business sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />{selectedLead.business_name} {selectedLead.business_category && `(${selectedLead.business_category})`}</Typography>}
               {selectedLead.business_address && <Typography sx={{ fontSize: 12, color: '#6B7280', ml: 2.5 }}>{selectedLead.business_address}</Typography>}
               {selectedLead.contact_person && <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Contato: {selectedLead.contact_person}</Typography>}
-              {selectedLead.next_action && <Typography sx={{ fontSize: 13, mt: 1 }}><AccessTime sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} /><strong>Próxima ação:</strong> {selectedLead.next_action} {selectedLead.next_action_at && `(${fmtDate(selectedLead.next_action_at)})`}</Typography>}
+              {selectedLead.next_action && (
+                <Typography sx={{ fontSize: 13, mt: 1, p: 1, borderRadius: 1, bgcolor: isOverdue(selectedLead.next_action_at) ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${isOverdue(selectedLead.next_action_at) ? '#FECACA' : '#BBF7D0'}` }}>
+                  <AccessTime sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
+                  <strong>Próxima ação:</strong> {selectedLead.next_action} {selectedLead.next_action_at && `(${fmtDate(selectedLead.next_action_at)})`}
+                  {isOverdue(selectedLead.next_action_at) && <Chip label="VENCIDA" size="small" sx={{ ml: 1, bgcolor: '#EF4444', color: '#fff', fontSize: 9, height: 18 }} />}
+                </Typography>
+              )}
+              {!selectedLead.next_action && <Alert severity="warning" sx={{ mt: 1, py: 0, fontSize: 12 }}>Sem próxima ação definida</Alert>}
               {selectedLead.notes && <Typography sx={{ fontSize: 12, mt: 1, p: 1, bgcolor: '#F9FAFB', borderRadius: 1, color: '#374151' }}>{selectedLead.notes}</Typography>}
             </Box>
 
-            {/* Commercial flags */}
             {(selectedLead.wants_showcase || selectedLead.wants_delivery_support || selectedLead.wants_partnership || selectedLead.wants_ads) && (
               <Box sx={{ mt: 2, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                 {selectedLead.wants_showcase && <Chip label="Vitrine" size="small" color="success" variant="outlined" />}
@@ -339,7 +410,6 @@ export default function CrmPage() {
               </Box>
             )}
 
-            {/* Actions */}
             <Box sx={{ display: 'flex', gap: 1, mt: 3, flexWrap: 'wrap' }}>
               <Button size="small" variant="outlined" onClick={() => { setNewStatus(selectedLead.status); setStatusOpen(true); }}>Alterar Status</Button>
               <Button size="small" variant="outlined" onClick={() => setInteractionOpen(true)}>+ Observação</Button>
@@ -347,9 +417,7 @@ export default function CrmPage() {
             </Box>
 
             <Divider sx={{ my: 2 }} />
-
-            {/* Interactions */}
-            <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>Histórico de Interações</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 14, mb: 1 }}>Histórico</Typography>
             {loadingDetail ? <CircularProgress size={20} /> : (
               <Box sx={{ maxHeight: 300, overflow: 'auto' }}>
                 {interactions.map(i => (
@@ -362,7 +430,7 @@ export default function CrmPage() {
                     {i.old_status && i.new_status && <Typography sx={{ fontSize: 11, color: '#6B7280', mt: 0.3 }}>{STATUS_MAP[i.old_status]?.label || i.old_status} → {STATUS_MAP[i.new_status]?.label || i.new_status}</Typography>}
                   </Box>
                 ))}
-                {interactions.length === 0 && <Typography sx={{ color: '#9CA3AF', fontSize: 12 }}>Nenhuma interação registrada</Typography>}
+                {interactions.length === 0 && <Typography sx={{ color: '#9CA3AF', fontSize: 12 }}>Nenhuma interação</Typography>}
               </Box>
             )}
           </Box>
@@ -371,7 +439,9 @@ export default function CrmPage() {
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Novo Lead CRM</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          {createForm.lead_type === 'LOCAL_BUSINESS' ? '🏪 Novo Comércio Local' : createForm.lead_type === 'ASSOCIATION' ? '🏛️ Nova Associação' : '📋 Novo Lead'}
+        </DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
           <TextField label="Nome *" size="small" value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} />
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -380,11 +450,19 @@ export default function CrmPage() {
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <FormControl size="small" fullWidth>
-              <InputLabel>Tipo de Lead</InputLabel>
-              <Select value={createForm.lead_type} label="Tipo de Lead" onChange={e => setCreateForm(f => ({ ...f, lead_type: e.target.value }))}>
+              <InputLabel>Tipo</InputLabel>
+              <Select value={createForm.lead_type} label="Tipo" onChange={e => setCreateForm(f => ({ ...f, lead_type: e.target.value }))}>
                 {LEAD_TYPES.map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
               </Select>
             </FormControl>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Prioridade</InputLabel>
+              <Select value={createForm.priority} label="Prioridade" onChange={e => setCreateForm(f => ({ ...f, priority: e.target.value }))}>
+                {Object.entries(PRIORITY_MAP).map(([k, v]) => <MenuItem key={k} value={k}>{v.icon} {v.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
             <FormControl size="small" fullWidth>
               <InputLabel>Origem</InputLabel>
               <Select value={createForm.source} label="Origem" onChange={e => setCreateForm(f => ({ ...f, source: e.target.value }))}>
@@ -394,16 +472,16 @@ export default function CrmPage() {
           </Box>
           <TextField label="Nome do Comércio" size="small" value={createForm.business_name} onChange={e => setCreateForm(f => ({ ...f, business_name: e.target.value }))} />
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField label="Categoria Comércio" size="small" fullWidth value={createForm.business_category} onChange={e => setCreateForm(f => ({ ...f, business_category: e.target.value }))} placeholder="padaria, restaurante..." />
-            <TextField label="Pessoa de Contato" size="small" fullWidth value={createForm.contact_person} onChange={e => setCreateForm(f => ({ ...f, contact_person: e.target.value }))} />
+            <TextField label="Categoria" size="small" fullWidth value={createForm.business_category} onChange={e => setCreateForm(f => ({ ...f, business_category: e.target.value }))} placeholder="padaria, restaurante..." />
+            <TextField label="Contato" size="small" fullWidth value={createForm.contact_person} onChange={e => setCreateForm(f => ({ ...f, contact_person: e.target.value }))} />
           </Box>
-          <TextField label="Endereço Comércio" size="small" value={createForm.business_address} onChange={e => setCreateForm(f => ({ ...f, business_address: e.target.value }))} />
+          <TextField label="Endereço" size="small" value={createForm.business_address} onChange={e => setCreateForm(f => ({ ...f, business_address: e.target.value }))} />
           <TextField label="Observações" size="small" multiline rows={2} value={createForm.notes} onChange={e => setCreateForm(f => ({ ...f, notes: e.target.value }))} />
           <TextField label="Próxima Ação" size="small" value={createForm.next_action} onChange={e => setCreateForm(f => ({ ...f, next_action: e.target.value }))} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateOpen(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={handleCreate} sx={{ bgcolor: GOLD }}>Criar Lead</Button>
+          <Button variant="contained" onClick={handleCreate} sx={{ bgcolor: GOLD }}>Criar</Button>
         </DialogActions>
       </Dialog>
 

@@ -1979,6 +1979,7 @@ model crm_leads {
   related_showcase_item_id  String?   @db.Uuid
 
   // Acompanhamento
+  priority                  String    @default("NORMAL") @db.VarChar(10)
   notes                     String?
   next_action               String?   @db.VarChar(500)
   next_action_at            DateTime?
@@ -1995,6 +1996,7 @@ model crm_leads {
   @@index([territory_id], map: "idx_crm_leads_territory")
   @@index([assigned_admin_id], map: "idx_crm_leads_assigned")
   @@index([next_action_at], map: "idx_crm_leads_next_action")
+  @@index([priority], map: "idx_crm_leads_priority")
 }
 
 model crm_interactions {
