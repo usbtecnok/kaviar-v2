@@ -43,7 +43,7 @@ export default function ManagerEmergencyAlerts() {
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         {['', 'active', 'resolved', 'false_alarm'].map(s => (
           <Chip key={s} label={s ? STATUS_MAP[s]?.label : 'Todos'} variant={filter === s ? 'filled' : 'outlined'}
-            color={s ? STATUS_MAP[s]?.color : 'default'} onClick={() => { setFilter(s); setLoading(true); }} sx={{ cursor: 'pointer' }} size="small" />
+            color={s ? STATUS_MAP[s]?.color : 'default'} onClick={() => { setFilter(s); setLoading(true); }} sx={{ cursor: 'pointer', ...(!s && filter === '' && { bgcolor: '#C8A84E', color: '#fff' }), ...(!s && filter !== '' && { borderColor: '#C8A84E', color: '#C8A84E' }) }} size="small" />
         ))}
       </Box>
 
