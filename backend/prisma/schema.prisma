@@ -2014,3 +2014,77 @@ model crm_interactions {
   @@index([lead_id, created_at(sort: Desc)], map: "idx_crm_interactions_lead")
   @@index([created_by_admin_id], map: "idx_crm_interactions_admin")
 }
+
+// ─── KAVIAR Comércio Local (Fase 1) ─────────────────────────────────────────
+
+model commerce_accounts {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  crm_lead_id         String?   @db.Uuid
+  name                String    @db.VarChar(255)
+  trade_name          String?   @db.VarChar(255)
+  category            String    @default("outro") @db.VarChar(50)
+  document_cnpj       String?   @db.VarChar(20)
+  document_cpf        String?   @db.VarChar(14)
+  phone               String?   @db.VarChar(30)
+  email               String?   @db.VarChar(255)
+  address             String?
+  neighborhood_id     String?
+  territory_id        String?   @db.Uuid
+  logo_url            String?
+  is_active           Boolean   @default(false)
+  status              String    @default("pending") @db.VarChar(30)
+  commission_percent  Decimal   @default(10.00) @db.Decimal(5, 2)
+  approved_by         String?
+  approved_at         DateTime?
+  notes               String?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  deleted_at          DateTime?
+
+  users               commerce_users[]
+  products            commerce_products[]
+
+  @@index([status], map: "idx_commerce_accounts_status")
+  @@index([territory_id], map: "idx_commerce_accounts_territory")
+  @@index([crm_lead_id], map: "idx_commerce_accounts_crm_lead")
+}
+
+model commerce_users {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  commerce_account_id   String    @db.Uuid
+  name                  String    @db.VarChar(255)
+  email                 String    @unique @db.VarChar(255)
+  password_hash         String    @db.VarChar(255)
+  role                  String    @default("owner") @db.VarChar(20)
+  is_active             Boolean   @default(true)
+  must_change_password  Boolean   @default(true)
+  last_login_at         DateTime?
+  created_at            DateTime  @default(now())
+
+  account               commerce_accounts @relation(fields: [commerce_account_id], references: [id], onDelete: Cascade)
+
+  @@index([commerce_account_id], map: "idx_commerce_users_account")
+}
+
+model commerce_products {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  commerce_account_id String    @db.Uuid
+  name                String    @db.VarChar(255)
+  description         String?
+  category            String?   @db.VarChar(50)
+  price_cents         Int
+  image_url           String?
+  is_available        Boolean   @default(true)
+  is_restricted       Boolean   @default(false)
+  stock_quantity      Int?
+  min_stock_alert     Int?
+  sort_order          Int       @default(0)
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  deleted_at          DateTime?
+
+  account             commerce_accounts @relation(fields: [commerce_account_id], references: [id], onDelete: Cascade)
+
+  @@index([commerce_account_id], map: "idx_commerce_products_account")
+  @@index([commerce_account_id, is_available], map: "idx_commerce_products_available")
+}

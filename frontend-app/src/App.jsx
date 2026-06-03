@@ -29,6 +29,7 @@ import MotoristaReferral from "./pages/MotoristaReferral";
 import ConsultorOnboarding from "./pages/ConsultorOnboarding";
 import PartnerPublicView from "./pages/PartnerPublicView";
 import PartnerPortal from "./pages/PartnerPortal";
+import CommercePortal from "./pages/CommercePortal";
 import DriverRegister from "./pages/DriverRegister";
 import ReceiptValidation from "./pages/ReceiptValidation";
 import PrivateRideRequest from "./pages/PrivateRideRequest";
@@ -441,6 +442,8 @@ export default function App() {
           <Route path="/consultor/:code" element={<ConsultorOnboarding />} />
           <Route path="/parceiro/:code" element={<PartnerPublicView />} />
           <Route path="/parceiro/portal" element={<PartnerPortal />} />
+          <Route path="/commerce" element={<CommercePortal />} />
+          <Route path="/commerce/*" element={<CommercePortal />} />
           <Route path="/driver/register" element={<DriverRegister />} />
           <Route path="/comprovante/:code" element={<ReceiptValidation />} />
           <Route path="/particular" element={<PrivateRideRequest />} />

@@ -62,6 +62,7 @@ import TerritorialPayoutsPage from "../../pages/admin/TerritorialPayoutsPage";
 import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
 import ComercialGestorPage from "../../pages/admin/ComercialGestorPage";
 import CrmPage from "../../pages/admin/CrmPage";
+import CommerceAccountsPage from "../../pages/admin/CommerceAccountsPage";
 import MyContractPage from "../../pages/admin/MyContractPage";
 import ManagerFinance from "../../pages/admin/ManagerFinance";
 import ManagerReputation from "../../pages/admin/ManagerReputation";
@@ -439,6 +440,7 @@ function AdminHome() {
               { Icon: Pets, title: 'KAVIAR Pet', desc: 'Central pet, homologações e operadores', to: '/admin/pet' },
               { Icon: Description, title: 'Plano Gestor', desc: 'Documentos comerciais do gestor fundador', to: '/admin/comercial-gestor' },
               { Icon: Analytics, title: 'CRM KAVIAR', desc: 'Leads, prospecção e comércios locais', to: '/admin/crm' },
+              { Icon: Storefront, title: 'Comércios', desc: 'Comércios locais ativos e catálogo', to: '/admin/commerce' },
             ]},
             { section: 'Gestão', items: [
               { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
@@ -941,6 +943,7 @@ export default function AdminApp() {
           <Route path="/manager-referrals" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerReferrals /></ProtectedAdminRoute>} />
           <Route path="/comercial-gestor" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ComercialGestorPage /></ProtectedAdminRoute>} />
           <Route path="/crm" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><CrmPage /></ProtectedAdminRoute>} />
+          <Route path="/commerce" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><CommerceAccountsPage /></ProtectedAdminRoute>} />
           <Route path="/manager-emergency-alerts" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerEmergencyAlerts /></ProtectedAdminRoute>} />
           <Route path="/investidores" element={<ProtectedAdminRoute requireSuperAdmin><InvestorsPage /></ProtectedAdminRoute>} />
 
