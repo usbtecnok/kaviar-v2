@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Card, CardContent, Chip, Button, Alert, CircularProgress } from '@mui/material';
+import { Link } from 'react-router-dom';
+import { Box, Typography, Card, CardContent, Chip, Button, Alert, CircularProgress, Grid } from '@mui/material';
+import { CheckCircle, Block, ArrowBack } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+
+const GOLD = '#B8942E';
 
 const TERM_TEXT = `TERMO DE OPERADOR TERRITORIAL CAPTADOR — KAVIAR v1.0
 
@@ -37,11 +41,32 @@ Este termo pode ser atualizado pela Plataforma. Mudanças relevantes podem exigi
 9. FORO
 Fica eleito o foro da Comarca de Nova Iguaçu/RJ para dirimir questões deste termo.`;
 
+const RESPONSIBILITIES = [
+  'Captar motoristas, parceiros e associações no território',
+  'Acompanhar métricas e operação local',
+  'Cadastrar interessados para análise da central',
+  'Manter sigilo sobre dados acessados (LGPD)',
+  'Reportar problemas à central KAVIAR/USB Tecnok',
+  'Atuar apenas dentro do território vinculado',
+];
+
+const LIMITS = [
+  'Não pode prometer aprovação de motoristas',
+  'Não pode cobrar valores em nome do KAVIAR sem autorização formal',
+  'Não pode alterar preços, taxas ou comissões',
+  'Não pode garantir repasses específicos',
+  'Não pode se apresentar como sócio, dono, franqueado ou funcionário da USB Tecnok/KAVIAR',
+  'Não pode acessar ou solicitar dados fora do território',
+  'Não pode prometer contratos a parceiros ou associações sem validação da central',
+];
+
 export default function MyContractPage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const token = localStorage.getItem('kaviar_admin_token');
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const admin = adminData ? JSON.parse(adminData) : null;
 
   const fetchProfile = () => {
     fetch(`${API_BASE_URL}/api/admin/my-operator-profile`, { headers: { Authorization: `Bearer ${token}` } })
@@ -65,68 +90,122 @@ export default function MyContractPage() {
     setAccepting(false);
   };
 
-  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress sx={{ color: '#B8942E' }} /></Box>;
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}><CircularProgress sx={{ color: GOLD }} /></Box>;
 
   if (!profile) return (
     <Box sx={{ mt: 4 }}>
-      <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 800, mb: 2 }}>📋 Meu Contrato</Typography>
+      <Typography variant="h5" sx={{ color: GOLD, fontWeight: 800, mb: 2 }}>📋 Meu Contrato</Typography>
       <Alert severity="info">Seu perfil de operador está sendo preparado. Tente novamente em instantes.</Alert>
     </Box>
   );
 
+  // ─── TERRITORIAL_MANAGER view ──────────────────────────────────────────────
+  if (profile.relationship_type === 'territorial_manager') {
+    return (
+      <Box sx={{ minHeight: '100vh', bgcolor: '#FAFAF8', pt: 2, pb: 6 }}>
+        <Box sx={{ maxWidth: 720, mx: 'auto', px: 2 }}>
+          <Button component={Link} to="/admin" startIcon={<ArrowBack />} size="small" sx={{ color: '#6B7280', mb: 2 }}>Voltar ao painel</Button>
+
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+            <span style={{ color: GOLD }}>📋</span> Meu Contrato — Gestor Territorial
+          </Typography>
+
+          {/* Perfil */}
+          <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderTop: `3px solid ${GOLD}`, borderRadius: 2 }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>Perfil</Typography>
+              <Grid container spacing={1}>
+                <Grid item xs={12} sm={6}><Typography sx={{ fontSize: 12, color: '#6B7280' }}>Nome</Typography><Typography sx={{ fontSize: 14, fontWeight: 600 }}>{profile.display_name}</Typography></Grid>
+                <Grid item xs={12} sm={6}><Typography sx={{ fontSize: 12, color: '#6B7280' }}>Território</Typography><Typography sx={{ fontSize: 14, fontWeight: 600 }}>{profile.territory?.name || '—'}</Typography></Grid>
+                <Grid item xs={12} sm={6}><Typography sx={{ fontSize: 12, color: '#6B7280' }}>Função</Typography><Typography sx={{ fontSize: 14, fontWeight: 600 }}>Gestor Territorial</Typography></Grid>
+                <Grid item xs={12} sm={6}><Typography sx={{ fontSize: 12, color: '#6B7280' }}>Desde</Typography><Typography sx={{ fontSize: 14, fontWeight: 600 }}>{profile.created_at ? new Date(profile.created_at).toLocaleDateString('pt-BR') : '—'}</Typography></Grid>
+                {admin?.email && <Grid item xs={12} sm={6}><Typography sx={{ fontSize: 12, color: '#6B7280' }}>Email</Typography><Typography sx={{ fontSize: 14, fontWeight: 600 }}>{admin.email}</Typography></Grid>}
+                <Grid item xs={12} sm={6}>
+                  <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Contrato</Typography>
+                  <Chip label="Em preparação pela central" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontSize: 11, fontWeight: 600 }} />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+
+          {/* Responsabilidades */}
+          <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2 }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>Suas Responsabilidades</Typography>
+              {RESPONSIBILITIES.map(r => (
+                <Box key={r} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.5 }}>
+                  <CheckCircle sx={{ fontSize: 16, color: '#10B981', mt: 0.2 }} />
+                  <Typography sx={{ fontSize: 13, color: '#374151' }}>{r}</Typography>
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Limites */}
+          <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2 }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>Limites do Acesso</Typography>
+              {LIMITS.map(l => (
+                <Box key={l} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 0.5 }}>
+                  <Block sx={{ fontSize: 16, color: '#EF4444', mt: 0.2 }} />
+                  <Typography sx={{ fontSize: 13, color: '#374151' }}>{l}</Typography>
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Institucional */}
+          <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2, bgcolor: '#FAFAF8' }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#1A1A1A', mb: 0.5 }}>KAVIAR</Typography>
+              <Typography sx={{ fontSize: 12, color: '#6B7280' }}>
+                Produto e plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* Aviso legal */}
+          <Alert severity="warning" icon={false} sx={{ bgcolor: 'rgba(184,148,46,0.06)', border: '1px solid #E8E5DE', '& .MuiAlert-message': { color: '#6B7280', fontSize: 11, lineHeight: 1.6 } }}>
+            Este acesso é operacional e restrito ao território vinculado. Não transfere propriedade do sistema, franquia, licença exclusiva, sociedade ou vínculo empregatício. O contrato específico do Gestor Territorial será formalizado pela central KAVIAR/USB Tecnok. Valores financeiros exibidos no painel são informativos e estimados até formalização e apuração contratual.
+          </Alert>
+        </Box>
+      </Box>
+    );
+  }
+
+  // ─── TERRITORIAL_OPERATOR / outros ─────────────────────────────────────────
   const termsAccepted = !!profile.terms_accepted_at;
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ color: '#C8A84E', fontWeight: 800, mb: 2 }}>📋 Meu Contrato</Typography>
+      <Typography variant="h5" sx={{ color: GOLD, fontWeight: 800, mb: 2 }}>📋 Meu Contrato</Typography>
 
-      {/* Status */}
       <Card sx={{ border: '1px solid #E8E5DE', mb: 3 }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>{profile.display_name}</Typography>
           {profile.territory && <Typography variant="body2" sx={{ color: '#6B7280', mb: 1 }}>Território: {profile.territory.name}</Typography>}
-          {profile.relationship_type === 'territorial_manager' ? (
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Typography variant="body2"><strong>Status:</strong></Typography>
-              <Chip label="Contrato específico em preparação" size="small" color="info" />
-            </Box>
-          ) : (
-            <>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography variant="body2"><strong>Status:</strong></Typography>
-                <Chip label={termsAccepted ? 'Termos aceitos' : 'Pendente de aceite'} size="small" color={termsAccepted ? 'success' : 'warning'} />
-              </Box>
-              {termsAccepted && <Typography variant="body2" sx={{ color: '#059669', mt: 1 }}>Aceito em {new Date(profile.terms_accepted_at).toLocaleString('pt-BR')} • Versão: {profile.terms_version}</Typography>}
-            </>
-          )}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Typography variant="body2"><strong>Status:</strong></Typography>
+            <Chip label={termsAccepted ? 'Termos aceitos' : 'Pendente de aceite'} size="small" color={termsAccepted ? 'success' : 'warning'} />
+          </Box>
+          {termsAccepted && <Typography variant="body2" sx={{ color: '#059669', mt: 1 }}>Aceito em {new Date(profile.terms_accepted_at).toLocaleString('pt-BR')} • Versão: {profile.terms_version}</Typography>}
         </CardContent>
       </Card>
 
-      {/* Termo */}
-      {profile.relationship_type === 'territorial_manager' ? (
-        <Card sx={{ border: '1px solid #E8E5DE', mb: 3 }}>
-          <CardContent>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: '#B8942E' }}>Termo de Gestor Territorial KAVIAR</Typography>
-            <Alert severity="info">O Termo de Gestor Territorial KAVIAR está em preparação. Este acesso é controlado e depende de contrato específico a ser formalizado pela central KAVIAR/USB Tecnok.</Alert>
-          </CardContent>
-        </Card>
-      ) : (
       <Card sx={{ border: '1px solid #E8E5DE', mb: 3 }}>
         <CardContent>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: '#B8942E' }}>Termo de Operador Territorial Captador</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2, color: GOLD }}>Termo de Operador Territorial Captador</Typography>
           <Box sx={{ maxHeight: 400, overflow: 'auto', bgcolor: '#FAFAF8', p: 2, borderRadius: 1, border: '1px solid #E8E5DE' }}>
             <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: '#374151', fontSize: 12, lineHeight: 1.7 }}>{TERM_TEXT}</Typography>
           </Box>
         </CardContent>
       </Card>
-      )}
 
-      {/* Aceite */}
-      {!termsAccepted && profile.relationship_type !== 'territorial_manager' && (
+      {!termsAccepted && (
         <Card sx={{ border: '2px solid #D97706', mb: 3 }}>
           <CardContent sx={{ textAlign: 'center', py: 3 }}>
             <Typography sx={{ mb: 2, fontWeight: 600, color: '#92400E' }}>Ao clicar abaixo, você declara que leu e aceita todos os termos acima.</Typography>
-            <Button onClick={handleAccept} disabled={accepting} variant="contained" size="large" sx={{ bgcolor: '#B8942E', px: 4, '&:hover': { bgcolor: '#9A7B24' } }}>
+            <Button onClick={handleAccept} disabled={accepting} variant="contained" size="large" sx={{ bgcolor: GOLD, px: 4, '&:hover': { bgcolor: '#9A7B24' } }}>
               {accepting ? 'Registrando...' : 'Aceito os termos'}
             </Button>
           </CardContent>
