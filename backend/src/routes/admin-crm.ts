@@ -71,7 +71,7 @@ router.get('/stats', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
 
     if (admin.role !== 'SUPER_ADMIN') {
       if (!scope || scope.territoryIds.length === 0) {
-        baseWhere.OR = [{ assigned_admin_id: admin.id }];
+        baseWhere.assigned_admin_id = admin.id;
       } else {
         baseWhere.OR = [
           { territory_id: { in: scope.territoryIds } },
@@ -80,18 +80,19 @@ router.get('/stats', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
       }
     }
 
-    const counts = await prisma.crm_leads.groupBy({
-      by: ['status'],
-      where: baseWhere,
-      _count: true,
-    });
-
-    const localBusinessCount = await prisma.crm_leads.count({
-      where: { ...baseWhere, lead_type: { in: ['LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP', 'ADVERTISER', 'SUPPORT_POINT'] } },
-    });
+    const [counts, localBusinessCount] = await Promise.all([
+      prisma.crm_leads.groupBy({
+        by: ['status'],
+        where: baseWhere,
+        _count: { _all: true },
+      }),
+      prisma.crm_leads.count({
+        where: { ...baseWhere, lead_type: { in: ['LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP', 'ADVERTISER', 'SUPPORT_POINT'] } },
+      }),
+    ]);
 
     const stats: Record<string, number> = {};
-    for (const c of counts) stats[c.status] = c._count;
+    for (const c of counts) stats[c.status] = c._count._all;
     stats.LOCAL_BUSINESSES = localBusinessCount;
 
     res.json({ success: true, data: stats });
