@@ -3,7 +3,7 @@ import { Box, Typography, Button, Chip, Table, TableBody, TableCell, TableHead, 
 import { API_BASE_URL } from '../../config/api';
 
 const STATUS_MAP = { new: { label: 'Nova', color: 'info' }, analyzing: { label: 'Em análise', color: 'warning' }, confirmed: { label: 'Confirmada', color: 'success' }, completed: { label: 'Concluída', color: 'default' }, canceled: { label: 'Cancelada', color: 'error' } };
-const SERVICE_LABELS = { consulta: '🏥 Consulta', mercado: '🛒 Mercado', escola: '🎒 Escola', aeroporto: '✈️ Aeroporto', evento: '🎉 Evento', idoso: '👴 Familiar', compromisso: '📋 Compromisso', outro: '🚗 Outro' };
+const SERVICE_LABELS = { consulta: '🏥 Consulta', mercado: '🛒 Mercado', escola: '🎒 Escola', aeroporto: '✈️ Aeroporto', evento: '🎉 Evento', idoso: '👴 Familiar', compromisso: '📋 Compromisso', pet: '🐾 KAVIAR Pet', outro: '🚗 Outro' };
 
 export default function PrivateRides() {
   const [requests, setRequests] = useState([]);
