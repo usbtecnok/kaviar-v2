@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Typography, Card, CardContent, Grid, Chip, Alert, CircularProgress, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Container, Typography, Card, CardContent, Grid, Chip, Alert, CircularProgress, ToggleButtonGroup, ToggleButton, Button } from '@mui/material';
+import { Download } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { downloadCsv } from '../../utils/exportCsv';
 
 const GOLD = '#B8942E';
 const STATUS_MAP = { calculated: 'Em apuração', approved: 'Aprovado', paid: 'Pago', canceled: 'Cancelado' };
@@ -46,6 +48,19 @@ export default function ManagerFinance() {
           <span style={{ color: GOLD }}>💰</span> Financeiro do Território
         </Typography>
         <Typography sx={{ color: '#6B7280', fontSize: 12, mb: 2 }}>Visão informativa — somente leitura</Typography>
+
+        {summary && !summary.empty && (
+          <Button size="small" startIcon={<Download />} onClick={() => {
+            const headers = ['Período', 'Corridas', 'Bruto Estimado', 'Taxa Plataforma', 'Participação Territorial', 'Comissões Parceiros', 'Líquido Estimado'];
+            const rows = [[summary.period, summary.rides_completed, summary.gross_estimated, summary.platform_fee, summary.regional_estimated, summary.partner_commissions, summary.net_estimated]];
+            if (payouts?.length) {
+              rows.push([]);
+              rows.push(['Mês Referência', 'Valor', 'Status', '', '', '', '']);
+              payouts.forEach(p => rows.push([p.reference_month, Number(p.approved_amount || p.calculated_amount), STATUS_MAP[p.status] || p.status, '', '', '', '']));
+            }
+            downloadCsv(headers, rows, `kaviar-financeiro-${new Date().toISOString().split('T')[0]}.csv`);
+          }} sx={{ mb: 2, color: '#6B7280', borderColor: '#E8E5DE' }} variant="outlined">Exportar CSV</Button>
+        )}
 
         {/* Period selector */}
         <ToggleButtonGroup value={period} exclusive onChange={(_, v) => v && setPeriod(v)} size="small" sx={{ mb: 2 }}>

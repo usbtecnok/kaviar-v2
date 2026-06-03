@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Box, Container, Typography, Card, CardContent, Button, Alert, CircularProgress, Chip, Snackbar } from '@mui/material';
-import { ContentCopy, Share } from '@mui/icons-material';
+import { ContentCopy, Share, Download } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { downloadCsv } from '../../utils/exportCsv';
 
 const GOLD = '#B8942E';
 const STATUS_LABEL = { pending: 'Pendente', qualified: 'Aprovado', rejected: 'Rejeitado' };
@@ -109,6 +110,14 @@ export default function ManagerReferrals() {
         {/* Empty state */}
         {data?.has_code && data.stats?.total === 0 && (
           <Alert severity="info" sx={{ mb: 3 }}>Ainda não há indicados por este link.</Alert>
+        )}
+
+        {data?.has_code && data.stats?.total > 0 && (
+          <Button size="small" startIcon={<Download />} onClick={() => {
+            const headers = ['Código', 'Total Indicados', 'Pendentes', 'Aprovados'];
+            const rows = [[data.referral_code, data.stats.total, data.stats.pending, data.stats.qualified]];
+            downloadCsv(headers, rows, `kaviar-indicacoes-${new Date().toISOString().split('T')[0]}.csv`);
+          }} sx={{ mb: 2, color: '#6B7280', borderColor: '#E8E5DE' }} variant="outlined">Exportar CSV</Button>
         )}
 
         {/* Disclaimer */}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Box, Container, Typography, Card, CardContent, Grid, Chip, Alert, CircularProgress } from '@mui/material';
-import { Star, Warning } from '@mui/icons-material';
+import { Star, Warning, Download } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { downloadCsv } from '../../utils/exportCsv';
 
 const GOLD = '#B8942E';
 
@@ -31,6 +32,14 @@ export default function ManagerReputation() {
           <span style={{ color: GOLD }}>⭐</span> Reputação — Motoristas do Território
         </Typography>
         <Typography sx={{ color: '#6B7280', fontSize: 12, mb: 2 }}>Visão somente leitura</Typography>
+
+        {drivers.length > 0 && (
+          <Button size="small" startIcon={<Download />} onClick={() => {
+            const headers = ['Nome', 'Bairro', 'Veículo', 'Média', 'Avaliações', 'Corridas', 'Status', 'Atenção'];
+            const rows = drivers.map(d => [d.name, d.neighborhood || '', d.vehicle || '', d.avg_rating?.toFixed(1) || '—', d.total_ratings, d.rides_completed, d.availability, d.attention ? 'Sim' : 'Não']);
+            downloadCsv(headers, rows, `kaviar-reputacao-${new Date().toISOString().split('T')[0]}.csv`);
+          }} sx={{ mb: 2, color: '#6B7280', borderColor: '#E8E5DE' }} variant="outlined">Exportar CSV</Button>
+        )}
 
         {/* KPIs */}
         <Grid container spacing={1.5} sx={{ mb: 3 }}>
