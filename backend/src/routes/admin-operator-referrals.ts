@@ -20,7 +20,7 @@ async function findOperatorAgent(adminId: string) {
 router.get('/', applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
-    if (admin.role !== 'TERRITORIAL_OPERATOR' && admin.role !== 'SUPER_ADMIN') {
+    if (admin.role !== 'TERRITORIAL_OPERATOR' && admin.role !== 'TERRITORIAL_MANAGER' && admin.role !== 'SUPER_ADMIN') {
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }
 
@@ -60,7 +60,7 @@ router.get('/', applyTerritoryScope, requireTerritoryScope, async (req: Request,
 router.post('/generate', applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
-    if (admin.role !== 'TERRITORIAL_OPERATOR' && admin.role !== 'SUPER_ADMIN') {
+    if (admin.role !== 'TERRITORIAL_OPERATOR' && admin.role !== 'TERRITORIAL_MANAGER' && admin.role !== 'SUPER_ADMIN') {
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }
 

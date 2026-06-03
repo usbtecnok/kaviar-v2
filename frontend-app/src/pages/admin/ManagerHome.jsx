@@ -170,7 +170,7 @@ export default function ManagerHome() {
           {[
             { Icon: DirectionsCar, title: 'Motoristas', desc: 'Motoristas do território', to: '/admin/drivers' },
             { Icon: Explore, title: 'Corridas', desc: 'Corridas do território', to: '/admin/rides' },
-            { Icon: PersonAdd, title: 'Indicações', desc: 'Link de captação e indicados', to: '/admin' },
+            { Icon: PersonAdd, title: 'Indicações', desc: 'Link de captação e indicados', to: '/admin/manager-referrals' },
             { Icon: Handshake, title: 'Parceiros', desc: 'Parceiros territoriais', to: '/admin/territorial-partners' },
             { Icon: Apartment, title: 'Associações', desc: 'Operadores e associações locais', to: '/admin/local-operators' },
             { Icon: AccountBalance, title: 'Financeiro', desc: 'Extrato territorial estimado', to: '/admin/manager-finance' },

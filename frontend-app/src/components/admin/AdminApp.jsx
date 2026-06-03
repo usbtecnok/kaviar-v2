@@ -63,6 +63,7 @@ import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
 import MyContractPage from "../../pages/admin/MyContractPage";
 import ManagerFinance from "../../pages/admin/ManagerFinance";
 import ManagerReputation from "../../pages/admin/ManagerReputation";
+import ManagerReferrals from "../../pages/admin/ManagerReferrals";
 import InvestorsPage from "../../pages/admin/InvestorsPage";
 import PetCentral from "../../pages/admin/PetCentral";
 import PetOperators from "../../pages/admin/PetOperators";
@@ -932,6 +933,7 @@ export default function AdminApp() {
           <Route path="/meu-contrato" element={<ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'TERRITORIAL_OPERATOR', 'TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><MyContractPage /></ProtectedAdminRoute>} />
           <Route path="/manager-finance" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerFinance /></ProtectedAdminRoute>} />
           <Route path="/manager-reputation" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerReputation /></ProtectedAdminRoute>} />
+          <Route path="/manager-referrals" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerReferrals /></ProtectedAdminRoute>} />
           <Route path="/investidores" element={<ProtectedAdminRoute requireSuperAdmin><InvestorsPage /></ProtectedAdminRoute>} />
 
           {/* KAVIAR Pet */}
