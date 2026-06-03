@@ -1,23 +1,42 @@
-# Material de Prospecção — Associações e Operadores Locais KAVIAR
+# Prospecção — Associação Parceira KAVIAR
 
-**Versão:** v1.0
-**Data:** Maio/2026
+**Versão:** v2.0
+**Data:** Junho/2026
 **Status:** Documento comercial interno
 **Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
 **Plataforma:** KAVIAR — Mobilidade urbana comunitária
 
 ---
 
-## 1. Mensagem Curta para WhatsApp
+## Modelo: Associação Parceira (entrada 0800)
+
+A parceria com associações é **sem cobrança inicial**. Não há taxa de ativação, compra de sistema, franquia ou investimento obrigatório.
+
+A associação pode apoiar a divulgação, confiança local e organização da demanda. Eventuais benefícios, bonificações ou parcerias comerciais futuras dependem de contrato específico, apuração e validação da central KAVIAR/USB Tecnok.
+
+> Este modelo é diferente do Gestor Fundador de Bairro (que possui taxa de ativação e termo operacional próprio).
+
+---
+
+## 1. Mensagem WhatsApp — Convite para Associação
 
 ```
-Olá! Sou da equipe KAVIAR, uma plataforma de mobilidade comunitária que organiza corridas locais com privacidade para moradores e valorização dos motoristas da região.
+Olá! Sou [nome], da equipe KAVIAR — plataforma de mobilidade comunitária.
 
-Estamos buscando associações e lideranças locais para parceria. A associação ajuda a divulgar e indicar motoristas, e pode receber participação na operação.
+Estamos buscando associações parceiras para ajudar a organizar a mobilidade local em bairros do Rio de Janeiro.
 
-Quer saber mais? Veja aqui: https://kaviar.com.br/associacoes
+Como funciona:
+• Sem taxa inicial — entrada 0800
+• A associação apoia a divulgação e indica motoristas e passageiros
+• Os moradores pedem corrida com privacidade pelo app
+• Motoristas são da própria comunidade
+• KAVIAR cuida de toda a tecnologia e operação
 
-Posso explicar como funciona?
+Não é franquia, não é venda de sistema. É parceria comunitária.
+
+Posso explicar melhor? Quando podemos conversar?
+
+Não é promessa de ganho; eventuais benefícios dependem de contrato, apuração e validação da central.
 ```
 
 ---
@@ -25,40 +44,44 @@ Posso explicar como funciona?
 ## 2. Roteiro de Ligação
 
 **Abertura (10s):**
-"Boa tarde, [nome]. Meu nome é [seu nome], da equipe KAVIAR. Estou entrando em contato porque temos uma proposta de parceria para associações de moradores na área de mobilidade local. Posso explicar rapidamente?"
+"Boa tarde, [nome]. Meu nome é [seu nome], da equipe KAVIAR. Temos uma proposta de parceria comunitária para associações de moradores na área de mobilidade local. Posso explicar rapidamente?"
 
 **Se sim (30s):**
-"O KAVIAR é uma plataforma que organiza corridas dentro da comunidade. Em vez de grupos de WhatsApp onde todo mundo vê destino e horário dos moradores, o passageiro pede pelo app de forma privada e só o motorista designado vê. Os motoristas são da própria comunidade."
+"O KAVIAR organiza corridas dentro da comunidade com privacidade. Em vez de grupos de WhatsApp onde todo mundo vê destino e horário dos moradores, o passageiro pede pelo app e só o motorista designado vê. Os motoristas são da própria região."
 
 **Proposta (20s):**
-"A associação pode ser parceira: ajuda a divulgar, indica motoristas locais e acompanha a operação. Em troca, pode receber participação nos créditos operacionais da região. Sem investimento inicial — a tecnologia é toda nossa."
+"A associação pode ser parceira: ajuda a divulgar, indica motoristas e passageiros, e apoia a confiança local. Não tem taxa inicial — a entrada é 0800. A tecnologia é toda do KAVIAR."
 
 **Fechamento:**
-"Posso enviar um link com mais detalhes? É uma página rápida que explica tudo: kaviar.com.br/associacoes. Quando podemos conversar com mais calma?"
+"Posso enviar mais detalhes por WhatsApp? Quando podemos conversar com mais calma para explicar o modelo?"
+
+**Importante:** não prometer receita, comissão fixa ou participação automática. Se perguntarem sobre benefícios financeiros, responder: "Eventuais benefícios dependem de contrato específico, apuração e validação da central KAVIAR."
 
 ---
 
-## 3. Apresentação de 30 Segundos
+## 3. Pitch 30 Segundos
 
-"O KAVIAR é uma plataforma de mobilidade comunitária. Organizamos corridas locais com privacidade — o morador pede pelo app e só o motorista vê. Motoristas são da própria comunidade. Estamos buscando associações parceiras para ajudar a divulgar e indicar motoristas. A associação pode receber participação na operação, sem investimento inicial."
+"O KAVIAR é uma plataforma de mobilidade comunitária. Organizamos corridas locais com privacidade — o morador pede pelo app e só o motorista vê. Motoristas são da própria comunidade. Estamos buscando associações parceiras para ajudar a divulgar e indicar motoristas. Não tem taxa inicial — é parceria comunitária sem custo de entrada."
 
 ---
 
-## 4. Apresentação de 2 Minutos
+## 4. Pitch 2 Minutos
 
 "O KAVIAR é uma plataforma de mobilidade urbana local, feita para comunidades. Hoje, na maioria dos bairros, as corridas são pedidas em grupos de WhatsApp com dezenas de pessoas. Todo mundo vê quando você sai, para onde vai, quando volta. Isso expõe a rotina dos moradores.
 
 O KAVIAR resolve isso: o morador pede a corrida pelo celular, de forma privada. Apenas o motorista designado vê o pedido. Os motoristas são da própria comunidade — gente que já faz corrida no bairro, mas agora com organização, histórico e avaliação.
 
-Para a associação, a proposta é simples: vocês ajudam a divulgar o KAVIAR na comunidade, indicam motoristas locais para cadastro e apoiam a comunicação com moradores. Em troca, a associação pode receber uma participação nos créditos operacionais da região — um percentual sobre cada corrida realizada.
+Para a associação, a proposta é simples: vocês ajudam a divulgar o KAVIAR na comunidade, indicam motoristas e passageiros, e apoiam a confiança local. Não tem taxa de entrada — é 0800.
 
-Não precisa investir nada. A tecnologia, os apps e a operação são do KAVIAR. A associação entra como parceira local, fortalecendo a mobilidade da comunidade e gerando uma receita recorrente.
+Também temos o KAVIAR Pet, um piloto assistido para corridas com animais de estimação. A associação pode ajudar a identificar tutores que precisam desse tipo de corrida na comunidade.
 
-Temos uma página que explica tudo com mais detalhes: kaviar.com.br/associacoes. Posso enviar?"
+A tecnologia, os apps e a operação central são do KAVIAR. A associação entra como parceira local, fortalecendo a mobilidade da comunidade.
+
+Eventuais benefícios, bonificações ou parcerias comerciais futuras dependem de contrato específico, apuração e validação da central."
 
 ---
 
-## 5. Perguntas para Qualificar a Associação
+## 5. Perguntas de Qualificação
 
 | Pergunta | Objetivo |
 |----------|----------|
@@ -68,50 +91,91 @@ Temos uma página que explica tudo com mais detalhes: kaviar.com.br/associacoes.
 | A associação tem presidente/responsável ativo? | Validar interlocutor |
 | Já tiveram parceria com alguma plataforma antes? | Entender experiência |
 | Qual o principal problema de mobilidade da região? | Alinhar proposta de valor |
+| Há demanda por corridas com animais (Pet)? | Validar piloto Pet |
 | A associação tem CNPJ? | Avaliar formalização |
+| Conhecem alguém que gostaria de ser gestor territorial? | Prospectar gestor fundador |
 
 ---
 
-## 6. Benefícios para a Associação
+## 6. Como a Associação Pode Apoiar
 
-- Organiza a mobilidade local sem expor moradores.
-- Valoriza motoristas da própria comunidade.
-- Gera receita recorrente sem investimento.
-- Fortalece a atuação institucional da associação.
-- Acesso a painel de acompanhamento.
-- Tecnologia pronta (apps, sistema, suporte).
-- Parceria com empresa formalizada (USB Tecnok, CNPJ ativo).
+- Divulgar o KAVIAR entre moradores e motoristas locais
+- Indicar motoristas para cadastro na plataforma
+- Indicar passageiros e tutores Pet
+- Indicar possíveis gestores fundadores de bairro
+- Apoiar a confiança local na plataforma
+- Encaminhar demandas e feedback do território
+- Ajudar a identificar pontos de mobilidade e necessidades
 
 ---
 
-## 7. O que NÃO Prometer
+## 7. Benefícios para a Comunidade
+
+- Corridas organizadas com privacidade para moradores
+- Motoristas da própria comunidade valorizados
+- Tecnologia pronta (app, painel, suporte)
+- Sem exposição de rotina em grupos abertos
+- Parceria com empresa formalizada (USB Tecnok, CNPJ ativo)
+- Modelo sem taxa de entrada para a associação
+- KAVIAR Pet assistido para corridas com animais
+
+---
+
+## 8. KAVIAR Pet Assistido
+
+O KAVIAR Pet está em fase piloto. Tutores solicitam corrida com animal pelo formulário público. A associação pode:
+
+- Identificar tutores que precisam de transporte com pet
+- Divulgar o formulário Pet na comunidade
+- Indicar motoristas interessados na modalidade Pet
+
+A homologação de motoristas Pet e a confirmação operacional são feitas pela central KAVIAR/USB Tecnok.
+
+---
+
+## 9. Como Indicar Motoristas e Passageiros
+
+A associação pode divulgar o link de cadastro de motoristas e o app para passageiros. Indicações são registradas pela plataforma.
+
+- Indicação de motorista: compartilhar link de cadastro fornecido pela central
+- Indicação de passageiro: divulgar o app KAVIAR na comunidade
+- Indicação de gestor fundador: encaminhar interessados para a equipe comercial KAVIAR
+
+---
+
+## 10. O que a Associação NÃO Pode Prometer
 
 | Nunca dizer | Por quê |
 |-------------|---------|
-| "O KAVIAR é autorizado pela prefeitura" | Pode não ser verdade na cidade |
-| "A associação vai ganhar R$ X por mês" | Depende do volume real |
-| "Vocês terão exclusividade" | Só com contrato formal |
-| "Não precisa se preocupar com fiscalização" | Cada cidade tem regras |
-| "A associação opera o transporte" | Quem opera é a USB Tecnok/KAVIAR |
-| "É igual Uber/99" | Modelo diferente |
-| "Garantimos renda para motoristas" | Não há garantia |
+| "A associação vai receber X% por corrida" | Não há participação automática |
+| "Vocês terão exclusividade no bairro" | Não há exclusividade absoluta |
+| "O KAVIAR é autorizado pela prefeitura" | Depende da cidade e regulamentação |
+| "Motoristas vão ganhar R$ X por mês" | Resultados dependem de demanda |
+| "A associação pode aprovar motoristas" | Aprovação é da central |
+| "A associação pode cobrar em nome do KAVIAR" | Proibido |
+| "A associação é dona do bairro no KAVIAR" | Não existe compra de território |
+| "É garantia de renda para a comunidade" | Não há garantia de ganho |
+| "É franquia" | Não é franquia |
 
 ---
 
-## 8. Como Enviar o Link
+## 11. O que a KAVIAR NÃO Garante
 
-Após qualificar o interesse, enviar:
+- Receita fixa ou recorrente para a associação
+- Participação automática em resultados financeiros
+- Exclusividade permanente no território
+- Volume mínimo de corridas
+- Aprovação de todos os motoristas indicados
+- Permanência da parceria sem avaliação periódica
 
-```
-Segue o link com mais detalhes sobre a parceria KAVIAR para associações:
-👉 https://kaviar.com.br/associacoes
-
-Qualquer dúvida, estou à disposição por aqui.
-```
+Qualquer benefício, bonificação ou parceria comercial futura depende de:
+- Contrato específico firmado entre as partes
+- Apuração e validação pela central KAVIAR/USB Tecnok
+- Desempenho, atividade e cumprimento de regras
 
 ---
 
-## 9. Observação Institucional
+## 12. Aviso Institucional
 
 Em toda comunicação comercial, manter claro:
 
@@ -119,32 +183,8 @@ Em toda comunicação comercial, manter claro:
 
 Não apresentar KAVIAR como empresa independente, CNPJ próprio ou entidade separada.
 
----
-
-## 10. Linguagem Segura
-
-### Usar:
-- "Plataforma de mobilidade comunitária"
-- "Parceria local"
-- "Participação nos créditos operacionais"
-- "Organização de corridas privadas"
-- "Motoristas parceiros independentes"
-
-### Evitar:
-- "Transporte público"
-- "Concessão"
-- "Autorização da prefeitura"
-- "Renda garantida"
-- "Exclusividade"
-- "Empregador"
-- "Cooperativa"
+Este material é de uso interno da equipe comercial USB Tecnok/KAVIAR. Não constitui proposta comercial vinculante, contrato ou garantia de parceria. Condições reais dependem de avaliação, contrato e aprovação da central.
 
 ---
 
-## 11. Aviso
-
-Este material é de uso interno da equipe comercial USB Tecnok/KAVIAR. Não constitui proposta comercial vinculante, contrato ou garantia de parceria. Condições reais dependem de avaliação, contrato e aprovação da matriz.
-
----
-
-*USB Tecnok / KAVIAR — Prospecção Comercial — v1.0 — Maio/2026*
+*USB Tecnok / KAVIAR — Prospecção Associação Parceira — v2.0 — Junho/2026*
