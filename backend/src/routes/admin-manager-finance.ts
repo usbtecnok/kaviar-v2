@@ -274,6 +274,7 @@ router.post('/team/:memberId/commissions', async (req: Request, res: Response) =
     if (member.contract_status !== 'signed') return res.status(400).json({ success: false, error: 'Membro deve ter termo assinado para registrar comissão' });
     const { description, amount_cents, reference_month, notes } = req.body;
     if (!description || !amount_cents || amount_cents <= 0) return res.status(400).json({ success: false, error: 'Descrição e valor são obrigatórios' });
+    if (reference_month && !/^\d{4}-\d{2}$/.test(reference_month)) return res.status(400).json({ success: false, error: 'Mês referência deve estar no formato AAAA-MM' });
     const scope = (req as any).territoryScope;
     const territory_id = scope?.territoryIds?.[0] || null;
     const commission = await prisma.manager_team_commissions.create({ data: { manager_admin_id: admin.id, member_id: member.id, territory_id, description, amount_cents: Math.round(amount_cents), reference_month: reference_month || null, notes: notes || null } });

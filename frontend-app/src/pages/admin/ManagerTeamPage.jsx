@@ -217,7 +217,7 @@ export default function ManagerTeamPage() {
                 <TextField label="Descrição *" size="small" value={commForm.description} onChange={e => setCommForm(f => ({ ...f, description: e.target.value }))} />
                 <Box sx={{ display: 'flex', gap: 1 }}>
                   <TextField label="Valor (R$) *" size="small" type="number" inputProps={{ step: '0.01', min: '0.01' }} value={commForm.amount} onChange={e => setCommForm(f => ({ ...f, amount: e.target.value }))} sx={{ width: 150 }} />
-                  <TextField label="Mês ref. (ex: 2026-06)" size="small" value={commForm.reference_month} onChange={e => setCommForm(f => ({ ...f, reference_month: e.target.value }))} sx={{ width: 180 }} />
+                  <TextField label="Mês referência" size="small" type="month" InputLabelProps={{ shrink: true }} value={commForm.reference_month} onChange={e => setCommForm(f => ({ ...f, reference_month: e.target.value }))} sx={{ width: 180 }} />
                 </Box>
                 <TextField label="Observações" size="small" multiline rows={1} value={commForm.notes} onChange={e => setCommForm(f => ({ ...f, notes: e.target.value }))} />
                 <Box sx={{ display: 'flex', gap: 1 }}>
