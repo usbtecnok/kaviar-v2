@@ -39,7 +39,7 @@ A USB Tecnok/KAVIAR pode suspender ou cancelar o acesso do Operador em caso de f
 Este termo pode ser atualizado pela Plataforma. Mudanças relevantes podem exigir novo aceite. A versão vigente estará sempre disponível no painel do Operador.
 
 9. FORO
-Fica eleito o foro da Comarca de Nova Iguaçu/RJ para dirimir questões deste termo.`;
+Fica eleito o foro da Comarca da Capital do Estado do Rio de Janeiro/RJ, correspondente à sede da USB Tecnok Manutenção e Instalação de Computadores Ltda, CNPJ 07.710.691/0001-66, salvo disposição específica em contrato definitivo.`;
 
 const RESPONSIBILITIES = [
   'Captar motoristas, parceiros e associações no território',

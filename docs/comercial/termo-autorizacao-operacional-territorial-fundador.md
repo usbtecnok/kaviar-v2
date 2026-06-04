@@ -174,7 +174,7 @@ Este termo pode ser atualizado pela KAVIAR/USB Tecnok. Mudanças relevantes pode
 
 ## 17. FORO
 
-Fica eleito o foro da Comarca de Nova Iguaçu/RJ para dirimir quaisquer questões relativas a este termo.
+Fica eleito o foro da Comarca da Capital do Estado do Rio de Janeiro/RJ, correspondente à sede da USB Tecnok Manutenção e Instalação de Computadores Ltda, CNPJ 07.710.691/0001-66, salvo disposição específica em contrato definitivo.
 
 ---
 
