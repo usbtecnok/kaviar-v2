@@ -352,7 +352,7 @@ export default function TerritorialPayoutsPage() {
           {calcError && <Alert severity="error">{calcError}</Alert>}
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Território</Typography>
             <TextField select value={calcForm.territory_id} onChange={e => setCalcForm({ ...calcForm, territory_id: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
-              {territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
+              {territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name} ({t.level})</MenuItem>)}
             </TextField></Box>
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Mês (YYYY-MM)</Typography>
             <TextField value={calcForm.reference_month} onChange={e => setCalcForm({ ...calcForm, reference_month: e.target.value })} fullWidth size="small" placeholder="2026-05" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
