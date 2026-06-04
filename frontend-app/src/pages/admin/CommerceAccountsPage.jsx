@@ -65,7 +65,7 @@ export default function CommerceAccountsPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1200, mx: 'auto', color: '#E5E7EB', '& .MuiTableCell-root': { color: '#D1D5DB', borderColor: 'rgba(255,255,255,0.08)' }, '& .MuiTableCell-head': { color: '#94A3B8' }, '& .MuiTab-root': { color: '#9CA3AF' }, '& .Mui-selected': { color: '#FFD700 !important' } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ color: GOLD, fontWeight: 800 }}>🏪 Comércios Locais</Typography>
         {isSuperAdmin && <Button variant="contained" size="small" startIcon={<Add />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: GOLD, textTransform: 'none' }}>Novo Comércio</Button>}
