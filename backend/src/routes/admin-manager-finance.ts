@@ -210,7 +210,7 @@ router.post('/team', async (req: Request, res: Response) => {
     const { name, phone, role_type, notes, cpf, address, city, state, zipcode, pix_key, pix_key_type } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Nome obrigatório' });
     const rawTerritoryId = scope?.territoryIds?.[0] || null;
-    const territory_id = rawTerritoryId && /^[0-9a-f]{8}-/.test(rawTerritoryId) ? rawTerritoryId : null;
+    const territory_id = rawTerritoryId || null;
     const member = await prisma.manager_team_members.create({ data: { manager_admin_id: admin.id, territory_id, name, phone: phone || null, role_type: role_type || 'outro', notes: notes || null, cpf: cpf || null, address: address || null, city: city || null, state: state || null, zipcode: zipcode || null, pix_key: pix_key || null, pix_key_type: pix_key_type || null } });
     res.status(201).json({ success: true, data: member });
   } catch { res.status(500).json({ success: false, error: 'Erro ao cadastrar membro' }); }

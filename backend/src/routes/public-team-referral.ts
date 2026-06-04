@@ -27,6 +27,13 @@ router.post('/team-referral', async (req: Request, res: Response) => {
     });
     if (!member) return res.status(400).json({ success: false, error: 'Código inválido ou inativo' });
 
+    // Resolve territory: fallback to admin's territory_access if member has none
+    let territory_id = member.territory_id;
+    if (!territory_id) {
+      const access = await prisma.admin_territory_access.findFirst({ where: { admin_id: member.manager_admin_id }, select: { territory_id: true } });
+      territory_id = access?.territory_id || null;
+    }
+
     // Deduplication: same phone + same captador
     const existing = await prisma.crm_leads.findFirst({
       where: { phone: digits, captured_by_member_id: member.id, deleted_at: null },
@@ -46,7 +53,7 @@ router.post('/team-referral', async (req: Request, res: Response) => {
         priority: 'NORMAL',
         captured_by_member_id: member.id,
         assigned_admin_id: member.manager_admin_id,
-        territory_id: member.territory_id,
+        territory_id,
         created_by_admin_id: null,
       },
     });
