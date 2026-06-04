@@ -7,6 +7,8 @@ import termo from '../../../../docs/comercial/termo-autorizacao-operacional-terr
 import faq from '../../../../docs/comercial/faq-gestor-fundador.md?raw';
 import mensagensWhatsapp from '../../../../docs/comercial/mensagem-whatsapp-convite-gestor.md?raw';
 import prospeccaoAssociacoes from '../../../../docs/comercial/prospeccao-associacoes-kaviar.md?raw';
+import aditivoEquipe from '../../../../docs/comercial/aditivo-equipe-captadores-gestor.md?raw';
+import termoMembro from '../../../../docs/comercial/termo-membro-equipe-gestor.md?raw';
 
 const DOCUMENTS = [
   { name: 'Proposta Comercial — Gestor Fundador', version: 'v1.0', date: 'Jun/2026', status: 'Aprovado', note: 'Resumo do plano, valores, condições e diferenciais.', content: proposta, superAdminOnly: false },
@@ -14,6 +16,8 @@ const DOCUMENTS = [
   { name: 'FAQ — Gestor Fundador', version: 'v1.0', date: 'Jun/2026', status: 'Aprovado', note: 'Perguntas frequentes sobre o plano, custos, repasse e operação.', content: faq, superAdminOnly: false },
   { name: 'Mensagens WhatsApp — Convite Gestor', version: 'v1.0', date: 'Jun/2026', status: 'Interno', note: 'Templates de prospecção para uso interno (SUPER_ADMIN).', content: mensagensWhatsapp, superAdminOnly: true },
   { name: 'Prospecção — Associações Parceiras', version: 'v2.0', date: 'Jun/2026', status: 'Interno', note: 'Roteiro interno para abordagem de associações comunitárias sem cobrança inicial.', content: prospeccaoAssociacoes, superAdminOnly: true },
+  { name: 'Aditivo — Equipe e Captadores do Gestor', version: 'v1.0', date: 'Jun/2026', status: 'Aprovado', note: 'Regras para organização de equipe pelo Gestor Territorial.', content: aditivoEquipe, superAdminOnly: false },
+  { name: 'Termo — Membro da Equipe do Gestor', version: 'v1.0', date: 'Jun/2026', status: 'Aprovado', note: 'Termo de participação para captadores/consultores vinculados ao gestor.', content: termoMembro, superAdminOnly: false },
 ];
 
 export default function ComercialGestorPage() {
