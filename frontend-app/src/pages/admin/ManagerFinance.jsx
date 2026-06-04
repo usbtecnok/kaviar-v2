@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Container, Typography, Card, CardContent, Grid, Chip, Alert, CircularProgress, ToggleButtonGroup, ToggleButton, Button } from '@mui/material';
+import { Box, Container, Typography, Card, CardContent, Grid, Chip, Alert, CircularProgress, ToggleButtonGroup, ToggleButton, Button, Snackbar } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 import { downloadCsv } from '../../utils/exportCsv';
@@ -14,8 +14,11 @@ export default function ManagerFinance() {
   const [rules, setRules] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30d');
+  const [snack, setSnack] = useState('');
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}` };
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const admin = adminData ? JSON.parse(adminData) : null;
 
   useEffect(() => { load(); }, [period]);
 
@@ -27,9 +30,7 @@ export default function ManagerFinance() {
         fetch(`${API_BASE_URL}/api/admin/manager/finance/payouts`, { headers }),
         fetch(`${API_BASE_URL}/api/admin/manager/finance/rules`, { headers }),
       ]);
-      const sData = await sRes.json();
-      const pData = await pRes.json();
-      const rData = await rRes.json();
+      const [sData, pData, rData] = await Promise.all([sRes.json(), pRes.json(), rRes.json()]);
       if (sData.success) setSummary(sData.data);
       if (pData.success) setPayouts(pData.data);
       if (rData.success) setRules(rData.data);
@@ -38,6 +39,17 @@ export default function ManagerFinance() {
   };
 
   const fmt = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—';
+
+  const buildReportText = (forNote) => {
+    const code = `REL-TER-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`;
+    let text = `📊 Relatório do Gestor Territorial — KAVIAR\n👤 Gestor: ${admin?.name || '—'}\nBase operacional: KAVIAR\nCódigo: ${code}\nEmitido: ${new Date().toLocaleString('pt-BR')}\nPeríodo: ${period === '7d' ? '7 dias' : period === '30d' ? '30 dias' : '90 dias'}\n`;
+    if (summary && !summary.empty) {
+      text += `\n🚗 Corridas: ${summary.rides_completed}\n💰 Bruto estimado: ${fmt(summary.gross_estimated)}\n🏦 Taxa plataforma: ${fmt(summary.platform_fee)}\n📍 Participação territorial: ${fmt(summary.regional_estimated)}`;
+      if (summary.has_rule) text += `\n💵 Líquido estimado: ${fmt(summary.net_estimated)}`;
+    }
+    text += `\n\n${forNote ? 'Este documento é uma base operacional para conferência e eventual emissão de nota fiscal pelo Gestor Territorial. Não substitui nota fiscal, recibo fiscal ou documento contábil oficial.' : 'Valores informativos e estimados. A apuração e eventual repasse são feitos pela central KAVIAR.'}`;
+    return text;
+  };
 
   if (loading) return <Container maxWidth="md" sx={{ mt: 6, textAlign: 'center' }}><CircularProgress sx={{ color: GOLD }} /></Container>;
 
@@ -49,18 +61,28 @@ export default function ManagerFinance() {
         </Typography>
         <Typography sx={{ color: '#6B7280', fontSize: 12, mb: 2 }}>Visão informativa — somente leitura</Typography>
 
-        {summary && !summary.empty && (
-          <Button size="small" startIcon={<Download />} onClick={() => {
-            const headers = ['Período', 'Corridas', 'Bruto Estimado', 'Taxa Plataforma', 'Participação Territorial', 'Comissões Parceiros', 'Líquido Estimado'];
-            const rows = [[summary.period, summary.rides_completed, summary.gross_estimated, summary.platform_fee, summary.regional_estimated, summary.partner_commissions, summary.net_estimated]];
-            if (payouts?.length) {
-              rows.push([]);
-              rows.push(['Mês Referência', 'Valor', 'Status', '', '', '', '']);
-              payouts.forEach(p => rows.push([p.reference_month, Number(p.approved_amount || p.calculated_amount), STATUS_MAP[p.status] || p.status, '', '', '', '']));
-            }
-            downloadCsv(headers, rows, `kaviar-financeiro-${new Date().toISOString().split('T')[0]}.csv`);
-          }} sx={{ mb: 2, color: '#6B7280', borderColor: '#E8E5DE' }} variant="outlined">Exportar CSV</Button>
-        )}
+        {/* Action buttons */}
+        <Box className="no-print" sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap', '@media print': { display: 'none' } }}>
+          <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => window.print()}>🖨️ Imprimir</Button>
+          <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => { navigator.clipboard.writeText(buildReportText(false)); setSnack('Resumo copiado!'); }}>📋 Copiar</Button>
+          <Button size="small" sx={{ textTransform: 'none', color: '#25D366' }} onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(buildReportText(false))}`, '_blank')}>📱 WhatsApp</Button>
+          <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => { navigator.clipboard.writeText(buildReportText(true)); setSnack('Base para nota copiada!'); }}>📄 Base para Nota</Button>
+          {summary && !summary.empty && <Button size="small" startIcon={<Download />} onClick={() => {
+            const h = ['Período', 'Corridas', 'Bruto Estimado', 'Taxa Plataforma', 'Participação Territorial', 'Líquido Estimado'];
+            const rows = [[period === '7d' ? '7 dias' : period === '30d' ? '30 dias' : '90 dias', summary.rides_completed, summary.gross_estimated, summary.platform_fee, summary.regional_estimated, summary.net_estimated || '']];
+            downloadCsv(h, rows, `kaviar-financeiro-territorial-${new Date().toISOString().split('T')[0]}.csv`);
+          }} sx={{ textTransform: 'none', color: '#6B7280' }} variant="outlined">CSV</Button>}
+        </Box>
+
+        {/* Print header */}
+        <Box className="print-header" sx={{ display: 'none', '@media print': { display: 'block', mb: 3, borderBottom: '2px solid #B8942E', pb: 2 } }}>
+          <Typography sx={{ fontWeight: 800, fontSize: 20, color: '#B8942E' }}>Relatório do Gestor Territorial — KAVIAR</Typography>
+          <Typography sx={{ fontSize: 12, color: '#374151', mt: 0.5 }}>Gestor responsável: {admin?.name || '—'}</Typography>
+          <Typography sx={{ fontSize: 12, color: '#374151' }}>Base operacional: KAVIAR</Typography>
+          <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Código: REL-TER-{new Date().toISOString().slice(0,10).replace(/-/g,'')}-{String(new Date().getHours()).padStart(2,'0')}{String(new Date().getMinutes()).padStart(2,'0')}</Typography>
+          <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Emitido em: {new Date().toLocaleString('pt-BR')}</Typography>
+          <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Período: {period === '7d' ? '7 dias' : period === '30d' ? '30 dias' : '90 dias'}</Typography>
+        </Box>
 
         {/* Period selector */}
         <ToggleButtonGroup value={period} exclusive onChange={(_, v) => v && setPeriod(v)} size="small" sx={{ mb: 2 }}>
@@ -88,27 +110,16 @@ export default function ManagerFinance() {
               </Grid>
             ))}
           </Grid>
-        ) : (
-          <Alert severity="info" sx={{ mb: 3 }}>Ainda não há dados financeiros calculados para este território.</Alert>
-        )}
+        ) : <Alert severity="info" sx={{ mb: 3 }}>Ainda não há dados financeiros calculados para este território.</Alert>}
 
         {/* Net estimated */}
         {summary && !summary.empty && summary.has_rule && (
           <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
             <CardContent sx={{ p: 2 }}>
               <Grid container spacing={2} alignItems="center">
-                <Grid item xs={4} sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase' }}>Comissões parceiros</Typography>
-                  <Typography sx={{ fontSize: 16, fontWeight: 700 }}>{fmt(summary.partner_commissions)}</Typography>
-                </Grid>
-                <Grid item xs={4} sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase' }}>Líquido estimado</Typography>
-                  <Typography sx={{ fontSize: 20, fontWeight: 800, color: GOLD }}>{fmt(summary.net_estimated)}</Typography>
-                </Grid>
-                <Grid item xs={4} sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase' }}>% Regional</Typography>
-                  <Typography sx={{ fontSize: 16, fontWeight: 700 }}>{summary.regional_percent}%</Typography>
-                </Grid>
+                <Grid item xs={4} sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase' }}>Comissões parceiros</Typography><Typography sx={{ fontSize: 16, fontWeight: 700 }}>{fmt(summary.partner_commissions)}</Typography></Grid>
+                <Grid item xs={4} sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase' }}>Líquido estimado</Typography><Typography sx={{ fontSize: 20, fontWeight: 800, color: GOLD }}>{fmt(summary.net_estimated)}</Typography></Grid>
+                <Grid item xs={4} sx={{ textAlign: 'center' }}><Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase' }}>% Regional</Typography><Typography sx={{ fontSize: 16, fontWeight: 700 }}>{summary.regional_percent}%</Typography></Grid>
               </Grid>
             </CardContent>
           </Card>
@@ -121,13 +132,7 @@ export default function ManagerFinance() {
               <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Histórico de Repasses</Typography>
               {payouts.map(p => (
                 <Box key={p.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #F3F4F6' }}>
-                  <Box>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.reference_month}</Typography>
-                    <Typography sx={{ fontSize: 11, color: '#6B7280' }}>
-                      {fmt(p.approved_amount || p.calculated_amount)}
-                      {p.paid_at && ` • ${p.payment_method || 'PIX'} em ${new Date(p.paid_at).toLocaleDateString('pt-BR')}`}
-                    </Typography>
-                  </Box>
+                  <Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.reference_month}</Typography><Typography sx={{ fontSize: 11, color: '#6B7280' }}>{fmt(p.approved_amount || p.calculated_amount)}{p.paid_at && ` • ${p.payment_method || 'PIX'} em ${new Date(p.paid_at).toLocaleDateString('pt-BR')}`}</Typography></Box>
                   <Chip label={STATUS_MAP[p.status] || p.status} size="small" sx={{ bgcolor: `${STATUS_COLOR[p.status] || '#6B7280'}15`, color: STATUS_COLOR[p.status] || '#6B7280', fontSize: 10, height: 22, fontWeight: 600 }} />
                 </Box>
               ))}
@@ -150,11 +155,22 @@ export default function ManagerFinance() {
           </Card>
         )}
 
+        {/* Print footer */}
+        <Box className="print-footer" sx={{ display: 'none', '@media print': { display: 'block', mt: 4, pt: 2, borderTop: '1px solid #E5E7EB' } }}>
+          <Typography sx={{ fontSize: 10, color: '#6B7280' }}>Relatório do Gestor Territorial — Base operacional KAVIAR.</Typography>
+          <Typography sx={{ fontSize: 9, color: '#9CA3AF', mt: 0.5 }}>Este relatório possui finalidade operacional e gerencial do território. Não substitui nota fiscal, recibo fiscal ou documento contábil oficial.</Typography>
+          <Typography sx={{ fontSize: 9, color: '#9CA3AF' }}>Valores informativos e estimados. A apuração e eventual repasse são feitos pela central KAVIAR.</Typography>
+        </Box>
+
         {/* Disclaimer */}
         <Alert severity="warning" icon={false} sx={{ bgcolor: 'rgba(184,148,46,0.06)', border: '1px solid #E8E5DE', '& .MuiAlert-message': { color: '#6B7280', fontSize: 11 } }}>
-          Valores informativos e estimados. A apuração, aprovação e eventual repasse são feitos exclusivamente pela central KAVIAR/USB Tecnok, conforme contrato específico.
+          Valores informativos e estimados. A apuração, aprovação e eventual repasse são feitos exclusivamente pela central KAVIAR, conforme contrato específico.
         </Alert>
+
+        {/* Print CSS */}
+        <style>{`@media print { .no-print, nav, header { display: none !important; } .print-header, .print-footer { display: block !important; } }`}</style>
       </Container>
+      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')} message={snack} />
     </Box>
   );
 }
