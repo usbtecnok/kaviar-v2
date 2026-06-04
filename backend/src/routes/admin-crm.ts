@@ -125,6 +125,7 @@ router.get('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
         orderBy: { created_at: 'desc' },
         skip: offset,
         take: limit,
+        include: { captured_by_member: { select: { id: true, name: true, role_type: true } } },
       }),
       prisma.crm_leads.count({ where }),
     ]);
@@ -143,7 +144,7 @@ router.get('/leads/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, asyn
     const scope = (req as any).territoryScope;
     const lead = await prisma.crm_leads.findFirst({
       where: { id: req.params.id, deleted_at: null },
-      include: { interactions: { orderBy: { created_at: 'desc' }, take: 50 } },
+      include: { interactions: { orderBy: { created_at: 'desc' }, take: 50 }, captured_by_member: { select: { id: true, name: true, role_type: true } } },
     });
     if (!lead) return res.status(404).json({ success: false, error: 'Lead não encontrado' });
 
@@ -165,9 +166,19 @@ router.post('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (
   try {
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    const { name, business_name, phone, email, lead_type, status, source, priority, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at } = req.body;
+    const { name, business_name, phone, email, lead_type, status, source, priority, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at, captured_by_member_id } = req.body;
 
     if (!name) return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
+
+    // Validate captured_by_member_id ownership
+    let validCapturedBy: string | null = null;
+    if (captured_by_member_id && UUID_RE.test(captured_by_member_id)) {
+      const memberWhere: any = { id: captured_by_member_id };
+      if (admin.role !== 'SUPER_ADMIN') memberWhere.manager_admin_id = admin.id;
+      const member = await prisma.manager_team_members.findFirst({ where: memberWhere });
+      if (!member) return res.status(400).json({ success: false, error: 'Captador não encontrado ou não pertence à sua equipe' });
+      validCapturedBy = member.id;
+    }
 
     // TERRITORIAL_MANAGER must use own territory
     let finalTerritoryId = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
@@ -205,6 +216,7 @@ router.post('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (
         next_action: next_action || null,
         next_action_at: next_action_at ? new Date(next_action_at) : null,
         created_by_admin_id: admin.id,
+        captured_by_member_id: validCapturedBy,
       },
     });
 
@@ -235,7 +247,7 @@ router.patch('/leads/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, as
       if (!inScope) return res.status(403).json({ success: false, error: 'Sem permissão' });
     }
 
-    const { name, business_name, phone, email, lead_type, source, priority, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at, last_contact_at } = req.body;
+    const { name, business_name, phone, email, lead_type, source, priority, business_category, business_address, contact_person, wants_showcase, wants_delivery_support, wants_partnership, wants_ads, commercial_notes, territory_id, neighborhood_id, assigned_admin_id, notes, next_action, next_action_at, last_contact_at, captured_by_member_id } = req.body;
 
     const data: any = {};
     if (name !== undefined) data.name = name;
@@ -258,6 +270,19 @@ router.patch('/leads/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, as
     if (next_action !== undefined) data.next_action = next_action || null;
     if (next_action_at !== undefined) data.next_action_at = next_action_at ? new Date(next_action_at) : null;
     if (last_contact_at !== undefined) data.last_contact_at = last_contact_at ? new Date(last_contact_at) : null;
+
+    // Validate captured_by_member_id ownership
+    if (captured_by_member_id !== undefined) {
+      if (captured_by_member_id === null || captured_by_member_id === '') {
+        data.captured_by_member_id = null;
+      } else if (UUID_RE.test(captured_by_member_id)) {
+        const memberWhere: any = { id: captured_by_member_id };
+        if (admin.role !== 'SUPER_ADMIN') memberWhere.manager_admin_id = admin.id;
+        const member = await prisma.manager_team_members.findFirst({ where: memberWhere });
+        if (!member) return res.status(400).json({ success: false, error: 'Captador não encontrado ou não pertence à sua equipe' });
+        data.captured_by_member_id = member.id;
+      }
+    }
 
     // Only SUPER_ADMIN can reassign or change territory
     if (admin.role === 'SUPER_ADMIN') {

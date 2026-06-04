@@ -1989,6 +1989,10 @@ model crm_leads {
   updated_at                DateTime  @updatedAt
   deleted_at                DateTime?
 
+  // Captação
+  captured_by_member_id     String?   @db.Uuid
+  captured_by_member        manager_team_members? @relation(fields: [captured_by_member_id], references: [id], onDelete: SetNull)
+
   interactions              crm_interactions[]
 
   @@index([status], map: "idx_crm_leads_status")
@@ -1997,6 +2001,7 @@ model crm_leads {
   @@index([assigned_admin_id], map: "idx_crm_leads_assigned")
   @@index([next_action_at], map: "idx_crm_leads_next_action")
   @@index([priority], map: "idx_crm_leads_priority")
+  @@index([captured_by_member_id], map: "idx_crm_leads_captured_by")
 }
 
 model crm_interactions {
@@ -2233,6 +2238,7 @@ model manager_team_members {
   updated_at        DateTime  @updatedAt
 
   commissions manager_team_commissions[]
+  crm_leads   crm_leads[]
 
   @@index([manager_admin_id], map: "idx_manager_team_members_admin")
 }
