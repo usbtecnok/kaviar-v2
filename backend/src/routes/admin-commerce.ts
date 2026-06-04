@@ -240,12 +240,26 @@ router.patch('/orders/:id/confirm-payment', authenticateAdmin, requireSuperAdmin
 // ─── Finance ────────────────────────────────────────────────────────────────
 
 // GET /api/admin/commerce/finance/summary
-router.get('/finance/summary', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+router.get('/finance/summary', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+
+    // Territory filter for TERRITORIAL_MANAGER
+    let accountFilter: any = { deleted_at: null, is_active: true };
+    if (admin.role !== 'SUPER_ADMIN') {
+      const tIds = (scope?.territoryIds || []).filter((id: string) => id && UUID_RE.test(id));
+      if (tIds.length === 0) return res.json({ success: true, data: { total_sold: 0, kaviar_commission: 0, pending_balance: 0, available_balance: 0, total_withdrawn: 0, withdrawals_requested: 0, withdrawals_approved: 0, withdrawals_paid: 0 } });
+      accountFilter.territory_id = { in: tIds };
+    }
+
+    const accountIds = (await prisma.commerce_accounts.findMany({ where: accountFilter, select: { id: true } })).map(a => a.id);
+    if (accountIds.length === 0) return res.json({ success: true, data: { total_sold: 0, kaviar_commission: 0, pending_balance: 0, available_balance: 0, total_withdrawn: 0, withdrawals_requested: 0, withdrawals_approved: 0, withdrawals_paid: 0 } });
+
     const [orders, wallets, wdCounts] = await Promise.all([
-      prisma.commerce_orders.aggregate({ where: { payment_status: 'paid' }, _sum: { total_cents: true, kaviar_commission_cents: true } }),
-      prisma.commerce_wallets.aggregate({ _sum: { pending_balance_cents: true, available_balance_cents: true, total_withdrawn_cents: true } }),
-      prisma.commerce_withdrawal_requests.groupBy({ by: ['status'], _count: true }),
+      prisma.commerce_orders.aggregate({ where: { payment_status: 'paid', commerce_account_id: { in: accountIds } }, _sum: { total_cents: true, kaviar_commission_cents: true } }),
+      prisma.commerce_wallets.aggregate({ where: { commerce_account_id: { in: accountIds } }, _sum: { pending_balance_cents: true, available_balance_cents: true, total_withdrawn_cents: true } }),
+      prisma.commerce_withdrawal_requests.groupBy({ by: ['status'], where: { commerce_account_id: { in: accountIds } }, _count: true }),
     ]);
     const wdMap: Record<string, number> = {};
     for (const w of wdCounts) wdMap[w.status] = w._count;
@@ -263,9 +277,19 @@ router.get('/finance/summary', authenticateAdmin, requireSuperAdmin, async (req:
 });
 
 // GET /api/admin/commerce/finance/by-account
-router.get('/finance/by-account', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+router.get('/finance/by-account', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
-    const accounts = await prisma.commerce_accounts.findMany({ where: { deleted_at: null, is_active: true }, select: { id: true, name: true, category: true, status: true }, orderBy: { name: 'asc' } });
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+
+    let accountFilter: any = { deleted_at: null, is_active: true };
+    if (admin.role !== 'SUPER_ADMIN') {
+      const tIds = (scope?.territoryIds || []).filter((id: string) => id && UUID_RE.test(id));
+      if (tIds.length === 0) return res.json({ success: true, data: [] });
+      accountFilter.territory_id = { in: tIds };
+    }
+
+    const accounts = await prisma.commerce_accounts.findMany({ where: accountFilter, select: { id: true, name: true, category: true, status: true }, orderBy: { name: 'asc' } });
     const result = await Promise.all(accounts.map(async (a) => {
       const [orders, wallet, wdOpen, lastOrder, lastWd] = await Promise.all([
         prisma.commerce_orders.aggregate({ where: { commerce_account_id: a.id, payment_status: 'paid' }, _sum: { total_cents: true, kaviar_commission_cents: true } }),

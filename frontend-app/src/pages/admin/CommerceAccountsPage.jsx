@@ -33,7 +33,7 @@ export default function CommerceAccountsPage() {
 
   const fetchAccounts = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { headers }); const data = await res.json(); if (data.success) setAccounts(data.data); } catch {} setLoading(false); };
   const fetchFinance = async () => { try { const [sRes, aRes] = await Promise.all([fetch(`${API_BASE_URL}/api/admin/commerce/finance/summary`, { headers }), fetch(`${API_BASE_URL}/api/admin/commerce/finance/by-account`, { headers })]); const [s, a] = await Promise.all([sRes.json(), aRes.json()]); if (s.success) setFinanceSummary(s.data); if (a.success) setFinanceAccounts(a.data); } catch {} };
-  useEffect(() => { fetchAccounts(); if (isSuperAdmin) fetchFinance(); }, []);
+  useEffect(() => { fetchAccounts(); if (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') fetchFinance(); }, []);
 
   const handleCreate = async () => { if (!form.name.trim()) return setSnack('Nome obrigatório'); const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(form) }); const data = await res.json(); if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '' }); } else setSnack(data.error || 'Erro'); };
   const handleActivate = async (id) => { if (!window.confirm('Ativar este comércio?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers }); const data = await res.json(); if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); } else setSnack(data.error || 'Erro'); };
@@ -71,9 +71,9 @@ export default function CommerceAccountsPage() {
         {isSuperAdmin && <Button variant="contained" size="small" startIcon={<Add />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: GOLD, textTransform: 'none' }}>Novo Comércio</Button>}
       </Box>
 
-      {isSuperAdmin && <Tabs value={mainTab} onChange={(_, v) => setMainTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
+      {(isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') && <Tabs value={mainTab} onChange={(_, v) => setMainTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
         <Tab label="Comércios" />
-        <Tab label="Financeiro" />
+        <Tab label={isSuperAdmin ? 'Financeiro' : 'Financeiro do Território'} />
       </Tabs>}
 
       {/* Comércios Tab */}
@@ -106,14 +106,20 @@ export default function CommerceAccountsPage() {
       </>)}
 
       {/* Finance Tab */}
-      {mainTab === 1 && isSuperAdmin && (
+      {mainTab === 1 && (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') && (
         <Box>
           {/* Print-only institutional header */}
           <Box className="print-header" sx={{ display: 'none', '@media print': { display: 'block', mb: 3, borderBottom: '2px solid #B8942E', pb: 2 } }}>
-            <Typography sx={{ fontWeight: 800, fontSize: 22, color: '#B8942E' }}>KAVIAR</Typography>
-            <Typography sx={{ fontSize: 11, color: '#374151' }}>Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda</Typography>
-            <Typography sx={{ fontSize: 11, color: '#374151' }}>CNPJ: 07.710.691/0001-66</Typography>
-            <Typography sx={{ fontSize: 13, fontWeight: 700, mt: 1 }}>Relatório Financeiro dos Comércios</Typography>
+            {isSuperAdmin ? <>
+              <Typography sx={{ fontWeight: 800, fontSize: 22, color: '#B8942E' }}>KAVIAR</Typography>
+              <Typography sx={{ fontSize: 11, color: '#374151' }}>Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda</Typography>
+              <Typography sx={{ fontSize: 11, color: '#374151' }}>CNPJ: 07.710.691/0001-66</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, mt: 1 }}>Relatório Financeiro dos Comércios</Typography>
+            </> : <>
+              <Typography sx={{ fontWeight: 800, fontSize: 20, color: '#B8942E' }}>Relatório do Gestor Territorial — KAVIAR</Typography>
+              <Typography sx={{ fontSize: 12, color: '#374151', mt: 0.5 }}>Gestor responsável: {admin?.name || '—'}</Typography>
+              <Typography sx={{ fontSize: 12, color: '#374151' }}>Base operacional: KAVIAR</Typography>
+            </>}
             <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Código: REL-KAV-{new Date().toISOString().slice(0,10).replace(/-/g,'')}-{String(new Date().getHours()).padStart(2,'0')}{String(new Date().getMinutes()).padStart(2,'0')}</Typography>
             <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Emitido em: {new Date().toLocaleString('pt-BR')}</Typography>
           </Box>
@@ -140,23 +146,24 @@ export default function CommerceAccountsPage() {
 
           {/* Action buttons */}
           <Box className="no-print" sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap', '@media print': { display: 'none' } }}>
-            <Button size="small" startIcon={<Download />} sx={{ textTransform: 'none', color: '#6B7280' }} onClick={async () => {
+            {isSuperAdmin && <Button size="small" startIcon={<Download />} sx={{ textTransform: 'none', color: '#6B7280' }} onClick={async () => {
               const res = await fetch(`${API_BASE_URL}/api/admin/commerce/finance/export`, { headers });
               if (!res.ok) return setSnack('Erro');
               const blob = await res.blob(); const url = URL.createObjectURL(blob);
               const a = document.createElement('a'); a.href = url; a.download = `financeiro-comercios-${new Date().toISOString().slice(0,10)}.csv`; a.click();
-            }}>CSV</Button>
+            }}>CSV</Button>}
             <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => window.print()}>🖨️ Imprimir</Button>
             <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => {
               const code = `REL-KAV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`;
-              const text = `📊 Relatório KAVIAR Comércio\n🏢 KAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66\nCódigo: ${code}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n💰 Total vendido: R$ ${((financeSummary?.total_sold||0)/100).toFixed(2)}\n🏦 Comissão KAVIAR: R$ ${((financeSummary?.kaviar_commission||0)/100).toFixed(2)}\n⏳ Pendente: R$ ${((financeSummary?.pending_balance||0)/100).toFixed(2)}\n✅ Disponível: R$ ${((financeSummary?.available_balance||0)/100).toFixed(2)}\n💸 Sacado: R$ ${((financeSummary?.total_withdrawn||0)/100).toFixed(2)}\n\nRelatório operacional KAVIAR/USB Tecnok.`;
+              const header = isSuperAdmin ? `📊 Relatório KAVIAR Comércio\n🏢 KAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66` : `📊 Relatório do Gestor Territorial — KAVIAR\n👤 Gestor: ${admin?.name || '—'}`;
+              const text = `${header}\nCódigo: ${code}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n💰 Total vendido: R$ ${((financeSummary?.total_sold||0)/100).toFixed(2)}\n🏦 Comissão KAVIAR: R$ ${((financeSummary?.kaviar_commission||0)/100).toFixed(2)}\n⏳ Pendente: R$ ${((financeSummary?.pending_balance||0)/100).toFixed(2)}\n✅ Disponível: R$ ${((financeSummary?.available_balance||0)/100).toFixed(2)}\n💸 Sacado: R$ ${((financeSummary?.total_withdrawn||0)/100).toFixed(2)}\n\nRelatório operacional e gerencial. Não substitui nota fiscal.`;
               navigator.clipboard.writeText(text); setSnack('Resumo copiado!');
             }}>📋 Copiar</Button>
-            <Button size="small" sx={{ textTransform: 'none', color: '#25D366' }} onClick={() => {
+            {isSuperAdmin && <Button size="small" sx={{ textTransform: 'none', color: '#25D366' }} onClick={() => {
               const code = `REL-KAV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`;
               const text = `📊 Relatório KAVIAR Comércio\n🏢 KAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66\nCódigo: ${code}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n💰 Total vendido: R$ ${((financeSummary?.total_sold||0)/100).toFixed(2)}\n🏦 Comissão KAVIAR: R$ ${((financeSummary?.kaviar_commission||0)/100).toFixed(2)}\n✅ Disponível: R$ ${((financeSummary?.available_balance||0)/100).toFixed(2)}\n💸 Sacado: R$ ${((financeSummary?.total_withdrawn||0)/100).toFixed(2)}`;
               window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-            }}>📱 WhatsApp</Button>
+            }}>📱 WhatsApp</Button>}
           </Box>
 
           <Table size="small">
@@ -180,9 +187,10 @@ export default function CommerceAccountsPage() {
 
           {/* Print-only footer */}
           <Box className="print-footer" sx={{ display: 'none', '@media print': { display: 'block', mt: 4, pt: 2, borderTop: '1px solid #E5E7EB' } }}>
-            <Typography sx={{ fontSize: 10, color: '#6B7280' }}>KAVIAR é um produto da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.</Typography>
-            <Typography sx={{ fontSize: 9, color: '#9CA3AF', mt: 0.5 }}>Este relatório possui finalidade operacional e gerencial. Não substitui nota fiscal, recibo fiscal ou documento contábil oficial.</Typography>
-            <Typography sx={{ fontSize: 9, color: '#9CA3AF' }}>Documento gerado eletronicamente. Validação interna KAVIAR/USB Tecnok.</Typography>
+            {isSuperAdmin ? <Typography sx={{ fontSize: 10, color: '#6B7280' }}>KAVIAR é um produto da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.</Typography>
+            : <Typography sx={{ fontSize: 10, color: '#6B7280' }}>Relatório do Gestor Territorial — Base operacional KAVIAR.</Typography>}
+            <Typography sx={{ fontSize: 9, color: '#9CA3AF', mt: 0.5 }}>Este relatório possui finalidade operacional e gerencial{isSuperAdmin ? '' : ' do território'}. Não substitui nota fiscal, recibo fiscal ou documento contábil oficial.</Typography>
+            {isSuperAdmin && <Typography sx={{ fontSize: 9, color: '#9CA3AF' }}>Documento gerado eletronicamente. Validação interna KAVIAR/USB Tecnok.</Typography>}
           </Box>
         </Box>
       )}
