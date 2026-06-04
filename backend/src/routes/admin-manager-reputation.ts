@@ -78,6 +78,10 @@ router.get('/', async (req: Request, res: Response) => {
       }
     }
 
+    // Badges count
+    const badges = await prisma.driver_badges.groupBy({ by: ['driver_id'], where: { driver_id: { in: driverIds } }, _count: true });
+    const badgeMap = Object.fromEntries(badges.map(b => [b.driver_id, b._count]));
+
     // Neighborhoods for display
     const neighborhoods = await prisma.neighborhoods.findMany({
       where: { id: { in: neighborhoodIds } },
@@ -90,6 +94,8 @@ router.get('/', async (req: Request, res: Response) => {
       const rating = ratingMap[d.id];
       const avg = rating ? Number(rating.average_rating) : null;
       const neg = negTagsMap[d.id];
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const isInactive = !d.last_active_at || d.last_active_at < thirtyDaysAgo;
       return {
         id: d.id,
         name: d.name,
@@ -99,9 +105,12 @@ router.get('/', async (req: Request, res: Response) => {
         avg_rating: avg,
         total_ratings: rating?.total_ratings || 0,
         rides_completed: rideMap[d.id] || 0,
+        badges_count: badgeMap[d.id] || 0,
         last_active_at: d.last_active_at,
         active_since: d.active_since,
         attention: avg !== null && avg < 3.5,
+        highlight: avg !== null && avg >= 4.8 && (rating?.total_ratings || 0) >= 3,
+        inactive: isInactive,
         neg_tags: neg?.tags?.slice(0, 5) || [],
         last_neg_comment: neg?.lastComment || null,
       };
@@ -118,11 +127,13 @@ router.get('/', async (req: Request, res: Response) => {
     const ratingsWithData = driverList.filter(d => d.avg_rating !== null);
     const avgTerritory = ratingsWithData.length > 0 ? Math.round(ratingsWithData.reduce((s, d) => s + (d.avg_rating || 0), 0) / ratingsWithData.length * 10) / 10 : 0;
     const alerts = driverList.filter(d => d.attention).length;
+    const highlights = driverList.filter(d => d.highlight).length;
+    const inactive = driverList.filter(d => d.inactive).length;
 
     res.json({
       success: true,
       data: {
-        summary: { total: drivers.length, online: totalOnline, avg_rating: avgTerritory, alerts },
+        summary: { total: drivers.length, online: totalOnline, avg_rating: avgTerritory, alerts, highlights, inactive },
         drivers: driverList,
       },
     });
