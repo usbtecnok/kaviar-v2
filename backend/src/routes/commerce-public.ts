@@ -132,7 +132,9 @@ router.post('/orders/:id/pay', async (req: Request, res: Response) => {
 // GET /api/public/commerce/orders/:code/status
 router.get('/orders/:code/status', async (req: Request, res: Response) => {
   try {
-    const order = await prisma.commerce_orders.findFirst({ where: { OR: [{ id: req.params.code }, { order_code: req.params.code }] }, select: { payment_status: true, status: true, delivery_status: true } });
+    const isUuid = /^[0-9a-f]{8}-/.test(req.params.code);
+    const where = isUuid ? { id: req.params.code } : { order_code: req.params.code };
+    const order = await prisma.commerce_orders.findFirst({ where, select: { payment_status: true, status: true, delivery_status: true } });
     if (!order) return res.status(404).json({ success: false, error: 'Não encontrado' });
     res.json({ success: true, data: order });
   } catch { res.status(500).json({ success: false, error: 'Erro' }); }
@@ -141,8 +143,10 @@ router.get('/orders/:code/status', async (req: Request, res: Response) => {
 // GET /api/public/commerce/orders/:code/track
 router.get('/orders/:code/track', async (req: Request, res: Response) => {
   try {
+    const isUuid = /^[0-9a-f]{8}-/.test(req.params.code);
+    const where = isUuid ? { id: req.params.code } : { order_code: req.params.code };
     const order = await prisma.commerce_orders.findFirst({
-      where: { OR: [{ order_code: req.params.code }, { id: req.params.code }] },
+      where,
       include: { account: { select: { name: true, trade_name: true } }, items: true },
     });
     if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
