@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Chip, Button, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Drawer, Divider, Card, CardContent, Grid } from '@mui/material';
-import { Add, CheckCircle, LockReset, ContentCopy, AccountBalanceWallet, Close } from '@mui/icons-material';
+import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Chip, Button, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Drawer, Divider, Card, CardContent, Grid, Tabs, Tab } from '@mui/material';
+import { Add, CheckCircle, LockReset, ContentCopy, AccountBalanceWallet, Close, Download } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
@@ -20,6 +20,10 @@ export default function CommerceAccountsPage() {
   const [walletData, setWalletData] = useState(null);
   const [withdrawals, setWithdrawals] = useState([]);
   const [walletTxs, setWalletTxs] = useState([]);
+  // Finance tab
+  const [mainTab, setMainTab] = useState(0);
+  const [financeSummary, setFinanceSummary] = useState(null);
+  const [financeAccounts, setFinanceAccounts] = useState([]);
 
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
@@ -28,7 +32,8 @@ export default function CommerceAccountsPage() {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchAccounts = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { headers }); const data = await res.json(); if (data.success) setAccounts(data.data); } catch {} setLoading(false); };
-  useEffect(() => { fetchAccounts(); }, []);
+  const fetchFinance = async () => { try { const [sRes, aRes] = await Promise.all([fetch(`${API_BASE_URL}/api/admin/commerce/finance/summary`, { headers }), fetch(`${API_BASE_URL}/api/admin/commerce/finance/by-account`, { headers })]); const [s, a] = await Promise.all([sRes.json(), aRes.json()]); if (s.success) setFinanceSummary(s.data); if (a.success) setFinanceAccounts(a.data); } catch {} };
+  useEffect(() => { fetchAccounts(); if (isSuperAdmin) fetchFinance(); }, []);
 
   const handleCreate = async () => { if (!form.name.trim()) return setSnack('Nome obrigatório'); const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(form) }); const data = await res.json(); if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '' }); } else setSnack(data.error || 'Erro'); };
   const handleActivate = async (id) => { if (!window.confirm('Ativar este comércio?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers }); const data = await res.json(); if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); } else setSnack(data.error || 'Erro'); };
@@ -66,6 +71,38 @@ export default function CommerceAccountsPage() {
         {isSuperAdmin && <Button variant="contained" size="small" startIcon={<Add />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: GOLD, textTransform: 'none' }}>Novo Comércio</Button>}
       </Box>
 
+      {isSuperAdmin && <Tabs value={mainTab} onChange={(_, v) => setMainTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
+        <Tab label="Comércios" />
+        <Tab label="Financeiro" />
+      </Tabs>}
+
+      {/* Comércios Tab */}
+      {(mainTab === 0 || !isSuperAdmin) && (<>
+        <Table size="small">
+          <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
+            <TableCell>Nome</TableCell><TableCell>Categoria</TableCell><TableCell>Email</TableCell><TableCell>Status</TableCell><TableCell>Ações</TableCell>
+          </TableRow></TableHead>
+          <TableBody>
+            {accounts.map(a => (
+              <TableRow key={a.id} hover>
+                <TableCell><Typography sx={{ fontWeight: 600, fontSize: 13 }}>{a.name}</Typography>{a.trade_name && <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{a.trade_name}</Typography>}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{a.category}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{a.email || '—'}</TableCell>
+                <TableCell><Chip label={STATUS_MAP[a.status]?.label || a.status} color={STATUS_MAP[a.status]?.color || 'default'} size="small" /></TableCell>
+                <TableCell>
+                  {isSuperAdmin && a.status === 'pending' && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
+                  {isSuperAdmin && a.status === 'active' && <>
+                    <Tooltip title="Carteira / Saques"><IconButton size="small" onClick={() => openWallet(a)} sx={{ color: GOLD }}><AccountBalanceWallet sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                    <Tooltip title="Resetar senha"><IconButton size="small" onClick={() => handleResetPassword(a.id)} sx={{ color: '#6B7280' }}><LockReset sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                  </>}
+                </TableCell>
+              </TableRow>
+            ))}
+            {accounts.length === 0 && <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum comércio</TableCell></TableRow>}
+          </TableBody>
+        </Table>
+      )}
+
       {loading ? <CircularProgress sx={{ color: GOLD }} /> : (
         <Table size="small">
           <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
@@ -90,6 +127,58 @@ export default function CommerceAccountsPage() {
             {accounts.length === 0 && <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum comércio</TableCell></TableRow>}
           </TableBody>
         </Table>
+      )}
+      </>)}
+
+      {/* Finance Tab */}
+      {mainTab === 1 && isSuperAdmin && (
+        <Box>
+          {financeSummary && (
+            <Grid container spacing={1} sx={{ mb: 3 }}>
+              {[
+                ['Total Vendido', financeSummary.total_sold, '#111'],
+                ['Comissão KAVIAR', financeSummary.kaviar_commission, GOLD],
+                ['Pendente', financeSummary.pending_balance, '#F59E0B'],
+                ['Disponível', financeSummary.available_balance, '#10B981'],
+                ['Sacado', financeSummary.total_withdrawn, '#6B7280'],
+                ['Saques Solicit.', financeSummary.withdrawals_requested, '#F59E0B', true],
+                ['Saques Aprov.', financeSummary.withdrawals_approved, '#3B82F6', true],
+                ['Saques Pagos', financeSummary.withdrawals_paid, '#10B981', true],
+              ].map(([label, val, color, isCount]) => (
+                <Grid item xs={6} sm={3} key={label}><Card><CardContent sx={{ py: 1, textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: 9, color: '#9CA3AF', textTransform: 'uppercase' }}>{label}</Typography>
+                  <Typography sx={{ fontSize: 16, fontWeight: 800, color }}>{isCount ? val : `R$ ${(val / 100).toFixed(2)}`}</Typography>
+                </CardContent></Card></Grid>
+              ))}
+            </Grid>
+          )}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+            <Button size="small" startIcon={<Download />} sx={{ textTransform: 'none', color: '#6B7280' }} onClick={async () => {
+              const res = await fetch(`${API_BASE_URL}/api/admin/commerce/finance/export`, { headers });
+              if (!res.ok) return setSnack('Erro');
+              const blob = await res.blob(); const url = URL.createObjectURL(blob);
+              const a = document.createElement('a'); a.href = url; a.download = `financeiro_comercios.csv`; a.click();
+            }}>CSV</Button>
+          </Box>
+          <Table size="small">
+            <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 10, color: '#6B7280', textTransform: 'uppercase' } }}>
+              <TableCell>Comércio</TableCell><TableCell>Vendido</TableCell><TableCell>Comissão</TableCell><TableCell>Pendente</TableCell><TableCell>Disponível</TableCell><TableCell>Sacado</TableCell><TableCell>Saques</TableCell>
+            </TableRow></TableHead>
+            <TableBody>
+              {financeAccounts.map(a => (
+                <TableRow key={a.id} hover>
+                  <TableCell><Typography sx={{ fontWeight: 600, fontSize: 12 }}>{a.name}</Typography><Typography sx={{ fontSize: 10, color: '#6B7280' }}>{a.category}</Typography></TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>R$ {(a.total_sold / 100).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontSize: 12, color: GOLD }}>R$ {(a.kaviar_commission / 100).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>R$ {(a.pending_balance / 100).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontSize: 12, color: '#10B981' }}>R$ {(a.available_balance / 100).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>R$ {(a.total_withdrawn / 100).toFixed(2)}</TableCell>
+                  <TableCell>{a.withdrawals_open > 0 && <Chip label={a.withdrawals_open} size="small" color="warning" sx={{ fontSize: 10 }} />}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
       )}
 
       {/* Wallet Drawer */}

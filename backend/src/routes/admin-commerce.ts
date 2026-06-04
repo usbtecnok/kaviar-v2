@@ -237,6 +237,66 @@ router.patch('/orders/:id/confirm-payment', authenticateAdmin, requireSuperAdmin
   }
 });
 
+// ─── Finance ────────────────────────────────────────────────────────────────
+
+// GET /api/admin/commerce/finance/summary
+router.get('/finance/summary', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const [orders, wallets, wdCounts] = await Promise.all([
+      prisma.commerce_orders.aggregate({ where: { payment_status: 'paid' }, _sum: { total_cents: true, kaviar_commission_cents: true } }),
+      prisma.commerce_wallets.aggregate({ _sum: { pending_balance_cents: true, available_balance_cents: true, total_withdrawn_cents: true } }),
+      prisma.commerce_withdrawal_requests.groupBy({ by: ['status'], _count: true }),
+    ]);
+    const wdMap: Record<string, number> = {};
+    for (const w of wdCounts) wdMap[w.status] = w._count;
+    res.json({ success: true, data: {
+      total_sold: orders._sum.total_cents || 0,
+      kaviar_commission: orders._sum.kaviar_commission_cents || 0,
+      pending_balance: wallets._sum.pending_balance_cents || 0,
+      available_balance: wallets._sum.available_balance_cents || 0,
+      total_withdrawn: wallets._sum.total_withdrawn_cents || 0,
+      withdrawals_requested: wdMap.REQUESTED || 0,
+      withdrawals_approved: wdMap.APPROVED || 0,
+      withdrawals_paid: wdMap.PAID || 0,
+    } });
+  } catch (error) { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// GET /api/admin/commerce/finance/by-account
+router.get('/finance/by-account', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const accounts = await prisma.commerce_accounts.findMany({ where: { deleted_at: null, is_active: true }, select: { id: true, name: true, category: true, status: true }, orderBy: { name: 'asc' } });
+    const result = await Promise.all(accounts.map(async (a) => {
+      const [orders, wallet, wdOpen, lastOrder, lastWd] = await Promise.all([
+        prisma.commerce_orders.aggregate({ where: { commerce_account_id: a.id, payment_status: 'paid' }, _sum: { total_cents: true, kaviar_commission_cents: true } }),
+        prisma.commerce_wallets.findUnique({ where: { commerce_account_id: a.id } }),
+        prisma.commerce_withdrawal_requests.count({ where: { commerce_account_id: a.id, status: { in: ['REQUESTED', 'APPROVED'] } } }),
+        prisma.commerce_orders.findFirst({ where: { commerce_account_id: a.id, payment_status: 'paid' }, orderBy: { created_at: 'desc' }, select: { created_at: true } }),
+        prisma.commerce_withdrawal_requests.findFirst({ where: { commerce_account_id: a.id }, orderBy: { created_at: 'desc' }, select: { created_at: true } }),
+      ]);
+      return { ...a, total_sold: orders._sum.total_cents || 0, kaviar_commission: orders._sum.kaviar_commission_cents || 0, pending_balance: wallet?.pending_balance_cents || 0, available_balance: wallet?.available_balance_cents || 0, total_withdrawn: wallet?.total_withdrawn_cents || 0, withdrawals_open: wdOpen, last_order_at: lastOrder?.created_at || null, last_withdrawal_at: lastWd?.created_at || null };
+    }));
+    res.json({ success: true, data: result });
+  } catch (error) { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// GET /api/admin/commerce/finance/export
+router.get('/finance/export', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const accounts = await prisma.commerce_accounts.findMany({ where: { deleted_at: null, is_active: true }, select: { id: true, name: true, category: true } });
+    const rows = await Promise.all(accounts.map(async (a) => {
+      const orders = await prisma.commerce_orders.aggregate({ where: { commerce_account_id: a.id, payment_status: 'paid' }, _sum: { total_cents: true, kaviar_commission_cents: true } });
+      const wallet = await prisma.commerce_wallets.findUnique({ where: { commerce_account_id: a.id } });
+      const wdOpen = await prisma.commerce_withdrawal_requests.count({ where: { commerce_account_id: a.id, status: { in: ['REQUESTED', 'APPROVED'] } } });
+      return `"${a.name}","${a.category}",${orders._sum.total_cents || 0},${orders._sum.kaviar_commission_cents || 0},${wallet?.pending_balance_cents || 0},${wallet?.available_balance_cents || 0},${wallet?.total_withdrawn_cents || 0},${wdOpen}`;
+    }));
+    const csv = 'comercio,categoria,total_vendido_cents,comissao_kaviar_cents,saldo_pendente_cents,saldo_disponivel_cents,total_sacado_cents,saques_abertos\n' + rows.join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=financeiro_comercios_${new Date().toISOString().slice(0, 10)}.csv`);
+    res.send(csv);
+  } catch (error) { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
 // POST /api/admin/commerce/orders/:id/assign-driver
 router.post('/orders/:id/assign-driver', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
