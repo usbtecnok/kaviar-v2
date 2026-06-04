@@ -59,6 +59,12 @@ router.post('/accounts', authenticateAdmin, requireSuperAdmin, async (req: Reque
     const { crm_lead_id, name, trade_name, category, document_cnpj, document_cpf, phone, email, address, neighborhood_id, territory_id, commission_percent, notes } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
 
+    // Check duplicate crm_lead_id
+    if (crm_lead_id) {
+      const existing = await prisma.commerce_accounts.findFirst({ where: { crm_lead_id, deleted_at: null } });
+      if (existing) return res.status(409).json({ success: false, error: 'Este lead já possui conta de comércio vinculada.', commerce_id: existing.id });
+    }
+
     const account = await prisma.commerce_accounts.create({
       data: {
         crm_lead_id: crm_lead_id || null,
