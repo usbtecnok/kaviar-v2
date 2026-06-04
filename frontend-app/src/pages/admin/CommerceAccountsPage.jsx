@@ -80,15 +80,15 @@ export default function CommerceAccountsPage() {
       {(mainTab === 0 || !isSuperAdmin) && (<>
       {loading ? <CircularProgress sx={{ color: GOLD }} /> : (
         <Table size="small">
-          <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
+          <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#94A3B8', textTransform: 'uppercase' } }}>
             <TableCell>Nome</TableCell><TableCell>Categoria</TableCell><TableCell>Email</TableCell><TableCell>Status</TableCell><TableCell>Ações</TableCell>
           </TableRow></TableHead>
           <TableBody>
             {accounts.map(a => (
               <TableRow key={a.id} hover>
-                <TableCell><Typography sx={{ fontWeight: 600, fontSize: 13 }}>{a.name}</Typography>{a.trade_name && <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{a.trade_name}</Typography>}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{a.category}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{a.email || '—'}</TableCell>
+                <TableCell><Typography sx={{ fontWeight: 600, fontSize: 13, color: '#E5E7EB' }}>{a.name}</Typography>{a.trade_name && <Typography sx={{ fontSize: 11, color: '#9CA3AF' }}>{a.trade_name}</Typography>}</TableCell>
+                <TableCell sx={{ fontSize: 12, color: '#D1D5DB' }}>{a.category}</TableCell>
+                <TableCell sx={{ fontSize: 12, color: '#D1D5DB' }}>{a.email || '—'}</TableCell>
                 <TableCell><Chip label={STATUS_MAP[a.status]?.label || a.status} color={STATUS_MAP[a.status]?.color || 'default'} size="small" /></TableCell>
                 <TableCell>
                   {isSuperAdmin && a.status === 'pending' && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
@@ -160,18 +160,18 @@ export default function CommerceAccountsPage() {
           </Box>
 
           <Table size="small">
-            <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 10, color: '#6B7280', textTransform: 'uppercase' } }}>
+            <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 10, color: '#94A3B8', textTransform: 'uppercase' } }}>
               <TableCell>Comércio</TableCell><TableCell>Vendido</TableCell><TableCell>Comissão</TableCell><TableCell>Pendente</TableCell><TableCell>Disponível</TableCell><TableCell>Sacado</TableCell><TableCell>Saques</TableCell>
             </TableRow></TableHead>
             <TableBody>
               {financeAccounts.map(a => (
                 <TableRow key={a.id} hover>
-                  <TableCell><Typography sx={{ fontWeight: 600, fontSize: 12 }}>{a.name}</Typography><Typography sx={{ fontSize: 10, color: '#6B7280' }}>{a.category}</Typography></TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>R$ {(a.total_sold / 100).toFixed(2)}</TableCell>
+                  <TableCell><Typography sx={{ fontWeight: 600, fontSize: 12, color: '#E5E7EB' }}>{a.name}</Typography><Typography sx={{ fontSize: 10, color: '#9CA3AF' }}>{a.category}</Typography></TableCell>
+                  <TableCell sx={{ fontSize: 12, color: '#D1D5DB' }}>R$ {(a.total_sold / 100).toFixed(2)}</TableCell>
                   <TableCell sx={{ fontSize: 12, color: GOLD }}>R$ {(a.kaviar_commission / 100).toFixed(2)}</TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>R$ {(a.pending_balance / 100).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontSize: 12, color: '#F59E0B' }}>R$ {(a.pending_balance / 100).toFixed(2)}</TableCell>
                   <TableCell sx={{ fontSize: 12, color: '#10B981' }}>R$ {(a.available_balance / 100).toFixed(2)}</TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>R$ {(a.total_withdrawn / 100).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontSize: 12, color: '#9CA3AF' }}>R$ {(a.total_withdrawn / 100).toFixed(2)}</TableCell>
                   <TableCell>{a.withdrawals_open > 0 && <Chip label={a.withdrawals_open} size="small" color="warning" sx={{ fontSize: 10 }} />}</TableCell>
                 </TableRow>
               ))}
