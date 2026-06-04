@@ -119,6 +119,12 @@ router.get('/leads', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (r
     const scope = (req as any).territoryScope;
     const where = buildLeadWhere(admin, scope, req.query);
 
+    // G2: resolve "my_team" filter
+    if (req.query.captured_by_member_id === 'my_team') {
+      const members = await prisma.manager_team_members.findMany({ where: { manager_admin_id: admin.id }, select: { id: true } });
+      where.captured_by_member_id = members.length > 0 ? { in: members.map((m: any) => m.id) } : 'impossible-no-members';
+    }
+
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     const offset = (page - 1) * limit;

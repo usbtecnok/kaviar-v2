@@ -56,6 +56,7 @@ const LEAD_TYPES = [
 const SOURCES = [
   { value: 'MANUAL', label: 'Manual' },
   { value: 'MANAGER_REFERRAL', label: 'Indicação Gestor' },
+  { value: 'TEAM_MEMBER_REFERRAL', label: 'Indicação da Equipe' },
   { value: 'PET_FORM', label: 'Formulário Pet' },
   { value: 'PRIVATE_RIDE', label: 'Corrida Particular' },
   { value: 'WHATSAPP', label: 'WhatsApp' },
@@ -326,6 +327,7 @@ export default function CrmPage() {
             <Select value={filters.captured_by_member_id} label="Captador" onChange={e => { setFilters(f => ({ ...f, captured_by_member_id: e.target.value })); setPage(1); }}>
               <MenuItem value="">Todos</MenuItem>
               <MenuItem value="none">Não informado</MenuItem>
+              <MenuItem value="my_team"><strong>Minha equipe</strong></MenuItem>
               {teamMembers.map(m => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
             </Select>
           </FormControl>
