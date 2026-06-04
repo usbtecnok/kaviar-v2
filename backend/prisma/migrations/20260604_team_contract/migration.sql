@@ -1,0 +1,11 @@
+ALTER TABLE "manager_team_members" ADD COLUMN "cpf" VARCHAR(14);
+ALTER TABLE "manager_team_members" ADD COLUMN "address" TEXT;
+ALTER TABLE "manager_team_members" ADD COLUMN "city" VARCHAR(100);
+ALTER TABLE "manager_team_members" ADD COLUMN "state" VARCHAR(2);
+ALTER TABLE "manager_team_members" ADD COLUMN "zipcode" VARCHAR(10);
+ALTER TABLE "manager_team_members" ADD COLUMN "pix_key" VARCHAR(100);
+ALTER TABLE "manager_team_members" ADD COLUMN "pix_key_type" VARCHAR(20);
+ALTER TABLE "manager_team_members" ADD COLUMN "contract_status" VARCHAR(20) DEFAULT 'pending';
+ALTER TABLE "manager_team_members" ADD COLUMN "contract_signed_at" TIMESTAMPTZ;
+ALTER TABLE "manager_team_members" ADD COLUMN "contract_version" VARCHAR(30);
+ALTER TABLE "manager_team_members" ADD COLUMN "contract_notes" TEXT;

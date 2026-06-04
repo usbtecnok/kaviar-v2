@@ -207,10 +207,10 @@ router.post('/team', async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
-    const { name, phone, role_type, notes } = req.body;
+    const { name, phone, role_type, notes, cpf, address, city, state, zipcode, pix_key, pix_key_type } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Nome obrigatório' });
     const territory_id = scope?.territoryIds?.[0] || null;
-    const member = await prisma.manager_team_members.create({ data: { manager_admin_id: admin.id, territory_id, name, phone: phone || null, role_type: role_type || 'outro', notes: notes || null } });
+    const member = await prisma.manager_team_members.create({ data: { manager_admin_id: admin.id, territory_id, name, phone: phone || null, role_type: role_type || 'outro', notes: notes || null, cpf: cpf || null, address: address || null, city: city || null, state: state || null, zipcode: zipcode || null, pix_key: pix_key || null, pix_key_type: pix_key_type || null } });
     res.status(201).json({ success: true, data: member });
   } catch { res.status(500).json({ success: false, error: 'Erro ao cadastrar membro' }); }
 });
@@ -223,13 +223,26 @@ router.patch('/team/:id', async (req: Request, res: Response) => {
     if (admin.role !== 'SUPER_ADMIN') where.manager_admin_id = admin.id;
     const existing = await prisma.manager_team_members.findFirst({ where });
     if (!existing) return res.status(404).json({ success: false, error: 'Membro não encontrado' });
-    const { name, phone, role_type, status, notes } = req.body;
+    const { name, phone, role_type, status, notes, cpf, address, city, state, zipcode, pix_key, pix_key_type, contract_status, contract_version, contract_notes } = req.body;
     const data: any = {};
     if (name !== undefined) data.name = name;
     if (phone !== undefined) data.phone = phone || null;
     if (role_type !== undefined) data.role_type = role_type;
     if (status !== undefined && ['active', 'pending', 'inactive'].includes(status)) data.status = status;
     if (notes !== undefined) data.notes = notes || null;
+    if (cpf !== undefined) data.cpf = cpf || null;
+    if (address !== undefined) data.address = address || null;
+    if (city !== undefined) data.city = city || null;
+    if (state !== undefined) data.state = state || null;
+    if (zipcode !== undefined) data.zipcode = zipcode || null;
+    if (pix_key !== undefined) data.pix_key = pix_key || null;
+    if (pix_key_type !== undefined) data.pix_key_type = pix_key_type || null;
+    if (contract_status !== undefined && ['pending', 'delivered', 'signed', 'waived'].includes(contract_status)) {
+      data.contract_status = contract_status;
+      if (contract_status === 'signed' && !existing.contract_signed_at) data.contract_signed_at = new Date();
+    }
+    if (contract_version !== undefined) data.contract_version = contract_version || null;
+    if (contract_notes !== undefined) data.contract_notes = contract_notes || null;
     const updated = await prisma.manager_team_members.update({ where: { id: existing.id }, data });
     res.json({ success: true, data: updated });
   } catch { res.status(500).json({ success: false, error: 'Erro ao atualizar membro' }); }

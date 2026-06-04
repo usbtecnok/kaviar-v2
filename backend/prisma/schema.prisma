@@ -2210,16 +2210,28 @@ model commerce_withdrawal_requests {
 // ─── Equipe do Gestor Territorial ───────────────────────────────────────────
 
 model manager_team_members {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   manager_admin_id  String
-  territory_id      String?  @db.Uuid
-  name              String   @db.VarChar(255)
-  phone             String?  @db.VarChar(30)
-  role_type         String   @default("outro") @db.VarChar(30)
-  status            String   @default("active") @db.VarChar(20)
+  territory_id      String?   @db.Uuid
+  name              String    @db.VarChar(255)
+  phone             String?   @db.VarChar(30)
+  role_type         String    @default("outro") @db.VarChar(30)
+  status            String    @default("active") @db.VarChar(20)
   notes             String?
-  created_at        DateTime @default(now())
-  updated_at        DateTime @updatedAt
+  cpf               String?   @db.VarChar(14)
+  address           String?
+  city              String?   @db.VarChar(100)
+  state             String?   @db.VarChar(2)
+  zipcode           String?   @db.VarChar(10)
+  pix_key           String?   @db.VarChar(100)
+  pix_key_type      String?   @db.VarChar(20)
+  contract_status   String    @default("pending") @db.VarChar(20)
+  contract_signed_at DateTime?
+  contract_version  String?   @db.VarChar(30)
+  contract_notes    String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
 
   @@index([manager_admin_id], map: "idx_manager_team_members_admin")
 }
+
