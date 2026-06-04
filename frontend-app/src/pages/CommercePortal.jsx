@@ -140,9 +140,14 @@ export default function CommercePortal() {
               </Grid>
             )}
             <Button size="small" variant="contained" sx={{ bgcolor: GOLD, textTransform: 'none', mb: 2 }} onClick={async () => {
-              const amount = prompt('Valor do saque em centavos (ex: 5000 = R$50):');
-              if (!amount) return;
-              const res = await fetch(`${API_BASE_URL}/api/commerce/withdrawals`, { method: 'POST', headers, body: JSON.stringify({ amount_cents: parseInt(amount) }) });
+              const input = prompt('Valor do saque (R$):\nEx: 10,80');
+              if (!input) return;
+              const parsed = parseFloat(input.replace(',', '.'));
+              if (isNaN(parsed) || parsed <= 0) return setSnack('Valor inválido');
+              const amount_cents = Math.round(parsed * 100);
+              if (amount_cents > (wallet?.available_balance_cents || 0)) return setSnack(`Saldo insuficiente. Disponível: R$ ${((wallet?.available_balance_cents || 0) / 100).toFixed(2)}`);
+              if (!window.confirm(`Confirmar saque de R$ ${(amount_cents / 100).toFixed(2)}?`)) return;
+              const res = await fetch(`${API_BASE_URL}/api/commerce/withdrawals`, { method: 'POST', headers, body: JSON.stringify({ amount_cents }) });
               const data = await res.json();
               if (data.success) { setSnack('Saque solicitado!'); fetchWallet(); } else setSnack(data.error || 'Erro');
             }}>Solicitar Saque</Button>
