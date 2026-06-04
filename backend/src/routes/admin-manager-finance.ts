@@ -107,6 +107,7 @@ router.get('/payouts', async (req: Request, res: Response) => {
         status: true,
         paid_at: true,
         payment_method: true,
+        receipt_url: true,
         notes: true,
         created_at: true,
       },
