@@ -153,6 +153,51 @@ export default function ManagerTeamPage() {
           </CardContent></Card>
         )}
 
+        {members.length > 0 && (() => {
+          const active = members.filter(m => m.status === 'active').length;
+          const inactive = members.filter(m => m.status !== 'active').length;
+          const termPending = members.filter(m => m.contract_status === 'pending').length;
+          const termDelivered = members.filter(m => m.contract_status === 'delivered').length;
+          const termSigned = members.filter(m => m.contract_status === 'signed').length;
+          const byRole = ROLES.map(r => ({ ...r, count: members.filter(m => m.role_type === r.value).length })).filter(r => r.count > 0);
+
+          const teamReportText = () => {
+            const lines = ['Relatório interno da equipe do Gestor Territorial. Este relatório possui finalidade operacional e gerencial. Não representa vínculo empregatício, pagamento automático, comissão obrigatória ou obrigação financeira do KAVIAR.', '', `Gestor: ${admin.name || '—'}`, `Território: ${territoryName || '—'}`, `Data: ${new Date().toLocaleDateString('pt-BR')}`, '', `Total: ${members.length} | Ativos: ${active} | Inativos: ${inactive}`, `Termo Pendente: ${termPending} | Entregue: ${termDelivered} | Assinado: ${termSigned}`, '', 'Por função:'];
+            byRole.forEach(r => lines.push(`  ${r.label}: ${r.count}`));
+            lines.push('', 'Membros:');
+            members.forEach(m => lines.push(`  ${m.name} | ${ROLES.find(r => r.value === m.role_type)?.label || m.role_type} | ${STATUS_MAP[m.status]?.label || m.status} | Termo: ${CONTRACT_MAP[m.contract_status]?.label || 'Pendente'}`));
+            return lines.join('\n');
+          };
+
+          const copyTeamReport = () => navigator.clipboard.writeText(teamReportText()).then(() => setSnack('Relatório copiado!')).catch(() => setSnack('Erro ao copiar'));
+          const printTeamReport = () => { const w = window.open('', '_blank'); w.document.write(`<html><head><title>Equipe - ${admin.name}</title><style>body{font-family:Arial,sans-serif;padding:40px;white-space:pre-wrap;line-height:1.6;font-size:13px;}</style></head><body>${teamReportText().replace(/\n/g, '<br>')}</body></html>`); w.document.close(); w.print(); };
+
+          return (
+            <Card sx={{ mb: 2, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}><CardContent sx={{ p: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>Resumo da Equipe</Typography>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button size="small" startIcon={<ContentCopy />} onClick={copyTeamReport} sx={{ textTransform: 'none', fontSize: 10 }}>Copiar relatório</Button>
+                  <Button size="small" startIcon={<Print />} onClick={printTeamReport} sx={{ textTransform: 'none', fontSize: 10 }}>Imprimir</Button>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 1.5 }}>
+                {[{ label: 'Total', value: members.length, color: GOLD }, { label: 'Ativos', value: active, color: '#10B981' }, { label: 'Inativos', value: inactive, color: '#6B7280' }, { label: 'Termo Pendente', value: termPending, color: '#F59E0B' }, { label: 'Termo Entregue', value: termDelivered, color: '#3B82F6' }, { label: 'Termo Assinado', value: termSigned, color: '#10B981' }].map(s => (
+                  <Box key={s.label} sx={{ textAlign: 'center', minWidth: 70 }}>
+                    <Typography sx={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</Typography>
+                    <Typography sx={{ fontSize: 9, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</Typography>
+                  </Box>
+                ))}
+              </Box>
+              {byRole.length > 0 && (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {byRole.map(r => <Chip key={r.value} label={`${r.label}: ${r.count}`} size="small" sx={{ fontSize: 10 }} />)}
+                </Box>
+              )}
+            </CardContent></Card>
+          );
+        })()}
+
         {loading ? <CircularProgress sx={{ color: GOLD }} /> : members.length > 0 ? (
           <Card sx={{ bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}><CardContent sx={{ p: 2 }}>
             <Table size="small"><TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
