@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Switch, CircularProgress, Card, CardContent, IconButton, Tabs, Tab } from '@mui/material';
+import { Box, Typography, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Switch, CircularProgress, Card, CardContent, IconButton, Tabs, Tab, Grid } from '@mui/material';
 import { Add, Edit, Delete, ContentCopy } from '@mui/icons-material';
 import { API_BASE_URL } from '../config/api';
 
@@ -25,6 +25,9 @@ export default function CommercePortal() {
   const [tab, setTab] = useState(0);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [wallet, setWallet] = useState(null);
+  const [walletTxs, setWalletTxs] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState('');
   const [editOpen, setEditOpen] = useState(false);
@@ -35,10 +38,11 @@ export default function CommercePortal() {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   useEffect(() => { const stored = localStorage.getItem('kaviar_commerce_data'); if (token && stored) { const d = JSON.parse(stored); setAuthed(true); setMustChange(d.user?.must_change_password); setAccount(d.account); } else setLoading(false); }, []);
-  useEffect(() => { if (authed && !mustChange) { fetchProducts(); fetchOrders(); } }, [authed, mustChange]);
+  useEffect(() => { if (authed && !mustChange) { fetchProducts(); fetchOrders(); fetchWallet(); } }, [authed, mustChange]);
 
   const fetchProducts = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/commerce/products`, { headers }); const data = await res.json(); if (data.success) setProducts(data.data); } catch {} setLoading(false); };
   const fetchOrders = async () => { try { const res = await fetch(`${API_BASE_URL}/api/commerce/orders`, { headers }); const data = await res.json(); if (data.success) setOrders(data.data); } catch {} };
+  const fetchWallet = async () => { try { const [wRes, tRes, wdRes] = await Promise.all([fetch(`${API_BASE_URL}/api/commerce/wallet`, { headers }), fetch(`${API_BASE_URL}/api/commerce/wallet/transactions`, { headers }), fetch(`${API_BASE_URL}/api/commerce/withdrawals`, { headers })]); const [w, t, wd] = await Promise.all([wRes.json(), tRes.json(), wdRes.json()]); if (w.success) setWallet(w.data); if (t.success) setWalletTxs(t.data); if (wd.success) setWithdrawals(wd.data); } catch {} };
 
   const handleLogin = (data) => { setAuthed(true); setAccount(data.account); setMustChange(data.user?.must_change_password); };
   const handlePasswordChanged = () => { setMustChange(false); const d = JSON.parse(localStorage.getItem('kaviar_commerce_data') || '{}'); d.user.must_change_password = false; localStorage.setItem('kaviar_commerce_data', JSON.stringify(d)); };
@@ -75,6 +79,7 @@ export default function CommercePortal() {
         <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
           <Tab label={`Produtos (${products.length})`} />
           <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>Pedidos {pendingOrders > 0 && <Chip label={pendingOrders} size="small" color="error" sx={{ height: 18, fontSize: 10 }} />}</Box>} />
+          <Tab label="Carteira" />
         </Tabs>
 
         {/* Products Tab */}
@@ -117,6 +122,29 @@ export default function CommercePortal() {
                 </CardContent>
               </Card>
             ))}
+          </Box>
+        )}
+
+        {/* Wallet Tab */}
+        {tab === 2 && (
+          <Box>
+            {wallet && (
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={6} sm={3}><Card><CardContent sx={{ textAlign: 'center', py: 1.5 }}><Typography sx={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase' }}>Disponível</Typography><Typography sx={{ fontSize: 20, fontWeight: 800, color: '#10B981' }}>R$ {(wallet.available_balance_cents / 100).toFixed(2)}</Typography></CardContent></Card></Grid>
+                <Grid item xs={6} sm={3}><Card><CardContent sx={{ textAlign: 'center', py: 1.5 }}><Typography sx={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase' }}>Pendente</Typography><Typography sx={{ fontSize: 20, fontWeight: 800, color: '#F59E0B' }}>R$ {(wallet.pending_balance_cents / 100).toFixed(2)}</Typography></CardContent></Card></Grid>
+                <Grid item xs={6} sm={3}><Card><CardContent sx={{ textAlign: 'center', py: 1.5 }}><Typography sx={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase' }}>Total Recebido</Typography><Typography sx={{ fontSize: 20, fontWeight: 800 }}>R$ {(wallet.total_received_cents / 100).toFixed(2)}</Typography></CardContent></Card></Grid>
+                <Grid item xs={6} sm={3}><Card><CardContent sx={{ textAlign: 'center', py: 1.5 }}><Typography sx={{ fontSize: 10, color: '#6B7280', textTransform: 'uppercase' }}>Sacado</Typography><Typography sx={{ fontSize: 20, fontWeight: 800, color: '#6B7280' }}>R$ {(wallet.total_withdrawn_cents / 100).toFixed(2)}</Typography></CardContent></Card></Grid>
+              </Grid>
+            )}
+            <Button size="small" variant="contained" sx={{ bgcolor: GOLD, textTransform: 'none', mb: 2 }} onClick={async () => {
+              const amount = prompt('Valor do saque em centavos (ex: 5000 = R$50):');
+              if (!amount) return;
+              const res = await fetch(`${API_BASE_URL}/api/commerce/withdrawals`, { method: 'POST', headers, body: JSON.stringify({ amount_cents: parseInt(amount) }) });
+              const data = await res.json();
+              if (data.success) { setSnack('Saque solicitado!'); fetchWallet(); } else setSnack(data.error || 'Erro');
+            }}>Solicitar Saque</Button>
+            {withdrawals.length > 0 && <><Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>Solicitações de Saque</Typography>{withdrawals.map(w => <Box key={w.id} sx={{ p: 1, mb: 1, bgcolor: '#F9FAFB', borderRadius: 1, display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 12 }}>R$ {(w.amount_cents / 100).toFixed(2)}</Typography><Chip label={w.status} size="small" sx={{ fontSize: 10 }} /></Box>)}</>}
+            {walletTxs.length > 0 && <><Typography sx={{ fontWeight: 700, fontSize: 13, mt: 2, mb: 1 }}>Movimentações</Typography>{walletTxs.map(t => <Box key={t.id} sx={{ p: 1, mb: 0.5, bgcolor: '#F9FAFB', borderRadius: 1, display: 'flex', justifyContent: 'space-between' }}><Typography sx={{ fontSize: 11 }}>{t.type} — {t.description || ''}</Typography><Typography sx={{ fontSize: 11, fontWeight: 600, color: t.amount_cents >= 0 ? '#10B981' : '#EF4444' }}>{t.amount_cents >= 0 ? '+' : ''}{(t.amount_cents / 100).toFixed(2)}</Typography></Box>)}</>}
           </Box>
         )}
       </Box>

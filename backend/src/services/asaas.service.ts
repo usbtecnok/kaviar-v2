@@ -108,3 +108,27 @@ export async function createPixPayment(customerId: string, amountCents: number, 
     expirationDate,
   };
 }
+
+/** Get or create generic KAVIAR Commerce customer for Pix billing */
+let _commerceCustomerId = '';
+export async function getCommerceCustomerId(): Promise<string> {
+  if (_commerceCustomerId) return _commerceCustomerId;
+  if (process.env.KAVIAR_COMMERCE_CUSTOMER_ID) {
+    _commerceCustomerId = process.env.KAVIAR_COMMERCE_CUSTOMER_ID;
+    return _commerceCustomerId;
+  }
+  // Find existing
+  const existing = await asaasRequest('GET', '/customers?externalReference=kaviar_commerce');
+  if (existing.data?.[0]?.id) {
+    _commerceCustomerId = existing.data[0].id;
+    return _commerceCustomerId;
+  }
+  // Create
+  const customer = await asaasRequest('POST', '/customers', {
+    name: 'KAVIAR Comércio Local',
+    cpfCnpj: '07710691000166',
+    externalReference: 'kaviar_commerce',
+  });
+  _commerceCustomerId = customer.id;
+  return _commerceCustomerId;
+}

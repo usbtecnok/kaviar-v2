@@ -2045,6 +2045,12 @@ model commerce_accounts {
   users               commerce_users[]
   products            commerce_products[]
   orders              commerce_orders[]
+  wallet              commerce_wallets?
+
+  // Payout info (dados para KAVIAR pagar o comércio)
+  payout_pix_key_type String?   @db.VarChar(20)
+  payout_pix_key      String?   @db.VarChar(100)
+  payout_receiver_name String?  @db.VarChar(255)
 
   @@index([status], map: "idx_commerce_accounts_status")
   @@index([territory_id], map: "idx_commerce_accounts_territory")
@@ -2106,6 +2112,11 @@ model commerce_orders {
   total_cents             Int
   payment_method          String?   @db.VarChar(20)
   payment_status          String    @default("pending") @db.VarChar(20)
+  asaas_payment_id        String?
+  pix_qr_code             String?
+  pix_copy_paste          String?
+  pix_expires_at          DateTime?
+  paid_at                 DateTime?
   notes                   String?
   accepted_at             DateTime?
   prepared_at             DateTime?
@@ -2137,4 +2148,53 @@ model commerce_order_items {
   order           commerce_orders @relation(fields: [order_id], references: [id], onDelete: Cascade)
 
   @@index([order_id], map: "idx_commerce_order_items_order")
+}
+
+model commerce_wallets {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  commerce_account_id     String   @unique @db.Uuid
+  available_balance_cents Int      @default(0)
+  pending_balance_cents   Int      @default(0)
+  total_received_cents    Int      @default(0)
+  total_withdrawn_cents   Int      @default(0)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  account                 commerce_accounts @relation(fields: [commerce_account_id], references: [id])
+}
+
+model commerce_wallet_transactions {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  commerce_account_id String   @db.Uuid
+  order_id            String?  @db.Uuid
+  withdrawal_id       String?  @db.Uuid
+  type                String   @db.VarChar(30)
+  amount_cents        Int
+  balance_after_cents Int
+  description         String?  @db.VarChar(500)
+  created_by_admin_id String?
+  created_at          DateTime @default(now())
+
+  @@index([commerce_account_id, created_at(sort: Desc)], map: "idx_commerce_wallet_tx_account")
+}
+
+model commerce_withdrawal_requests {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  commerce_account_id String    @db.Uuid
+  amount_cents        Int
+  status              String    @default("REQUESTED") @db.VarChar(20)
+  pix_key_type        String?   @db.VarChar(20)
+  pix_key             String?   @db.VarChar(100)
+  receiver_name       String?   @db.VarChar(255)
+  requested_at        DateTime  @default(now())
+  approved_by_admin_id String?
+  approved_at         DateTime?
+  paid_by_admin_id    String?
+  paid_at             DateTime?
+  rejection_reason    String?
+  notes               String?
+  created_at          DateTime  @default(now())
+
+  @@index([commerce_account_id, status], map: "idx_commerce_withdrawals_account")
+  @@index([status], map: "idx_commerce_withdrawals_status")
 }

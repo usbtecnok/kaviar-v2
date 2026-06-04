@@ -163,13 +163,74 @@ router.patch('/orders/:id/status', authenticateCommerce, async (req: Request, re
     if (status === 'PREPARING') data.prepared_at = new Date();
     if (status === 'READY') data.ready_at = new Date();
     if (status === 'CANCELED') { data.canceled_at = new Date(); data.cancel_reason = cancel_reason || null; }
-    if (status === 'COMPLETED') data.completed_at = new Date();
+    if (status === 'COMPLETED') {
+      data.completed_at = new Date();
+      // Move pending → available if order was paid
+      if (order.payment_status === 'paid') {
+        const net = order.commerce_net_cents;
+        await prisma.$executeRawUnsafe(`UPDATE commerce_wallets SET pending_balance_cents = pending_balance_cents - $1, available_balance_cents = available_balance_cents + $1, updated_at = NOW() WHERE commerce_account_id = $2`, net, order.commerce_account_id);
+      }
+    }
 
     const updated = await prisma.commerce_orders.update({ where: { id: order.id }, data });
     res.json({ success: true, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao atualizar pedido' });
   }
+});
+
+// ─── Wallet ─────────────────────────────────────────────────────────────────
+
+// GET /api/commerce/wallet
+router.get('/wallet', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const accountId = (req as any).commerceAccount.id;
+    await prisma.$executeRawUnsafe(`INSERT INTO commerce_wallets (commerce_account_id) VALUES ($1) ON CONFLICT (commerce_account_id) DO NOTHING`, accountId);
+    const wallet = await prisma.commerce_wallets.findUnique({ where: { commerce_account_id: accountId } });
+    res.json({ success: true, data: wallet });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// GET /api/commerce/wallet/transactions
+router.get('/wallet/transactions', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const txs = await prisma.commerce_wallet_transactions.findMany({ where: { commerce_account_id: (req as any).commerceAccount.id }, orderBy: { created_at: 'desc' }, take: 50 });
+    res.json({ success: true, data: txs });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// POST /api/commerce/withdrawals
+router.post('/withdrawals', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const accountId = (req as any).commerceAccount.id;
+    const { amount_cents } = req.body;
+    if (!amount_cents || amount_cents <= 0) return res.status(400).json({ success: false, error: 'Valor inválido' });
+
+    const wallet = await prisma.commerce_wallets.findUnique({ where: { commerce_account_id: accountId } });
+    if (!wallet || wallet.available_balance_cents < amount_cents) return res.status(400).json({ success: false, error: 'Saldo disponível insuficiente' });
+
+    const account = await prisma.commerce_accounts.findUnique({ where: { id: accountId }, select: { payout_pix_key_type: true, payout_pix_key: true, payout_receiver_name: true } });
+
+    const wd = await prisma.commerce_withdrawal_requests.create({ data: { commerce_account_id: accountId, amount_cents, pix_key_type: account?.payout_pix_key_type || null, pix_key: account?.payout_pix_key || null, receiver_name: account?.payout_receiver_name || null } });
+    res.status(201).json({ success: true, data: wd });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao solicitar saque' }); }
+});
+
+// GET /api/commerce/withdrawals
+router.get('/withdrawals', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const wds = await prisma.commerce_withdrawal_requests.findMany({ where: { commerce_account_id: (req as any).commerceAccount.id }, orderBy: { created_at: 'desc' }, take: 20 });
+    res.json({ success: true, data: wds });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// PATCH /api/commerce/payout-info
+router.patch('/payout-info', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const { payout_pix_key_type, payout_pix_key, payout_receiver_name } = req.body;
+    await prisma.commerce_accounts.update({ where: { id: (req as any).commerceAccount.id }, data: { payout_pix_key_type: payout_pix_key_type || null, payout_pix_key: payout_pix_key || null, payout_receiver_name: payout_receiver_name || null } });
+    res.json({ success: true });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
 });
 
 export default router;

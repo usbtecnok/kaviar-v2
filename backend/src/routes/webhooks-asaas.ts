@@ -80,6 +80,40 @@ router.post('/asaas', async (req: Request, res: Response) => {
       return res.status(200).json({ received: true });
     }
 
+    // ── Commerce order flow ──
+    const commerceOrder = await pool.query(
+      'SELECT id, commerce_account_id, payment_status, commerce_net_cents FROM commerce_orders WHERE asaas_payment_id = $1',
+      [paymentId]
+    );
+    if (commerceOrder.rows[0]) {
+      const co = commerceOrder.rows[0];
+      if (co.payment_status === 'paid') {
+        console.log(`[ASAAS_WEBHOOK] Commerce order already paid: ${paymentId}`);
+        if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'duplicate', processed_at = NOW() WHERE id = $1", [eventId]);
+        return res.status(200).json({ received: true });
+      }
+      // Transaction: mark paid + credit wallet
+      await pool.query('BEGIN');
+      try {
+        await pool.query("UPDATE commerce_orders SET payment_status = 'paid', paid_at = NOW(), updated_at = NOW() WHERE id = $1", [co.id]);
+        // Ensure wallet exists
+        await pool.query(`INSERT INTO commerce_wallets (commerce_account_id) VALUES ($1) ON CONFLICT (commerce_account_id) DO NOTHING`, [co.commerce_account_id]);
+        // Credit pending balance
+        await pool.query(`UPDATE commerce_wallets SET pending_balance_cents = pending_balance_cents + $1, total_received_cents = total_received_cents + $1, updated_at = NOW() WHERE commerce_account_id = $2`, [co.commerce_net_cents, co.commerce_account_id]);
+        // Get balance after
+        const bal = await pool.query('SELECT pending_balance_cents + available_balance_cents as total FROM commerce_wallets WHERE commerce_account_id = $1', [co.commerce_account_id]);
+        // Transaction log
+        await pool.query(`INSERT INTO commerce_wallet_transactions (commerce_account_id, order_id, type, amount_cents, balance_after_cents, description) VALUES ($1, $2, 'ORDER_CREDIT', $3, $4, $5)`, [co.commerce_account_id, co.id, co.commerce_net_cents, bal.rows[0]?.total || 0, `Pedido pago via Pix`]);
+        await pool.query('COMMIT');
+        console.log(`[ASAAS_WEBHOOK] Commerce order paid: ${co.id} net=${co.commerce_net_cents}`);
+      } catch (txErr) {
+        await pool.query('ROLLBACK');
+        throw txErr;
+      }
+      if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'processed', processed_at = NOW() WHERE id = $1", [eventId]);
+      return res.status(200).json({ received: true });
+    }
+
     // ── Credit purchase flow ──
     // Find purchase
     const purchase = await pool.query(

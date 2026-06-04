@@ -57,12 +57,30 @@ export default function CommerceStorefront() {
 
   if (success) return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
-      <Card sx={{ maxWidth: 400, width: '100%', textAlign: 'center' }}><CardContent sx={{ p: 4 }}>
-        <Typography sx={{ fontSize: 48, mb: 2 }}>✅</Typography>
-        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Pedido enviado!</Typography>
-        <Typography sx={{ color: '#6B7280', mb: 2 }}>Seu pedido foi recebido por {store?.name}. Aguarde a confirmação.</Typography>
-        <Chip label={`Total: R$ ${(success.total_cents / 100).toFixed(2)}`} sx={{ fontWeight: 700, fontSize: 16, px: 2, py: 2.5 }} />
-        <Button fullWidth sx={{ mt: 3, textTransform: 'none' }} onClick={() => { setSuccess(null); setForm({ customer_name: '', customer_phone: '', notes: '' }); }}>Fazer novo pedido</Button>
+      <Card sx={{ maxWidth: 420, width: '100%', textAlign: 'center' }}><CardContent sx={{ p: 4 }}>
+        {!success.pix ? <>
+          <Typography sx={{ fontSize: 48, mb: 2 }}>✅</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Pedido enviado!</Typography>
+          <Typography sx={{ color: '#6B7280', mb: 2 }}>Seu pedido foi recebido por {store?.name}.</Typography>
+          <Chip label={`Total: R$ ${(success.total_cents / 100).toFixed(2)}`} sx={{ fontWeight: 700, fontSize: 16, px: 2, py: 2.5, mb: 2 }} />
+          <Button fullWidth variant="contained" sx={{ bgcolor: '#059669', textTransform: 'none', fontWeight: 700, mb: 1 }}
+            onClick={async () => {
+              const res = await fetch(`${API_BASE_URL}/api/public/commerce/orders/${success.id}/pay`, { method: 'POST' });
+              const data = await res.json();
+              if (data.success) setSuccess(s => ({ ...s, pix: data.data }));
+              else setSnack(data.data?.already_paid ? 'Já pago!' : 'Erro ao gerar Pix');
+            }}>Pagar com Pix</Button>
+          <Button fullWidth sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => { setSuccess(null); setForm({ customer_name: '', customer_phone: '', notes: '' }); }}>Fazer novo pedido</Button>
+        </> : <>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>💳 Pague via Pix</Typography>
+          <Typography sx={{ color: '#6B7280', mb: 2, fontSize: 13 }}>Escaneie o QR Code ou copie o código Pix abaixo.</Typography>
+          {success.pix.pix_qr_code && <Box sx={{ mb: 2 }}><img src={`data:image/png;base64,${success.pix.pix_qr_code}`} alt="QR Pix" style={{ width: 200, height: 200 }} /></Box>}
+          {success.pix.pix_copy_paste && <Box sx={{ bgcolor: '#F3F4F6', p: 1.5, borderRadius: 1, mb: 2, wordBreak: 'break-all' }}>
+            <Typography sx={{ fontSize: 11, fontFamily: 'monospace' }}>{success.pix.pix_copy_paste}</Typography>
+            <Button size="small" sx={{ mt: 1, textTransform: 'none' }} onClick={() => { navigator.clipboard.writeText(success.pix.pix_copy_paste); setSnack('Código copiado!'); }}>📋 Copiar Pix</Button>
+          </Box>}
+          <Typography sx={{ fontSize: 11, color: '#9CA3AF' }}>Após pagar, o comércio será notificado automaticamente.</Typography>
+        </>}
       </CardContent></Card>
     </Box>
   );
