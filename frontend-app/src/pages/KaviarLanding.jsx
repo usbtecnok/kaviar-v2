@@ -356,6 +356,19 @@ export default function KaviarLanding() {
         </Box>
       </Box>
 
+      {/* ─── Comércios Locais ─── */}
+      <Box sx={{ position: 'relative', zIndex: 10, py: 5, px: { xs: 3, md: 5 } }}>
+        <Box sx={{ maxWidth: 700, mx: 'auto', textAlign: 'center' }}>
+          <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#fff', mb: 1 }}>🏪 Comércios Parceiros</Typography>
+          <Typography sx={{ fontSize: 15, color: 'rgba(255,255,255,0.7)', mb: 3 }}>
+            Padarias, pizzarias, lanchonetes, mercados, bares e parceiros locais podem acessar seu painel para gerenciar produtos e catálogo no KAVIAR.
+          </Typography>
+          <Button component={Link} to="/commerce" variant="contained" sx={{ bgcolor: '#059669', px: 4, py: 1.2, fontSize: 15, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#047857' } }}>
+            Acessar painel do comércio
+          </Button>
+        </Box>
+      </Box>
+
       {/* ─── Footer ─── */}
       <Box sx={{ position: 'relative', zIndex: 10, mt: 5, borderTop: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(0,0,0,0.3)' }}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, justifyContent: 'space-between', gap: 3, px: { xs: 3, md: 5 }, py: 4 }}>
@@ -364,6 +377,7 @@ export default function KaviarLanding() {
             {[
               ['/login', 'Entrar'],
               ['/admin/login', 'Admin'],
+              ['/commerce', 'Painel do Comércio'],
               ['/particular', 'Motorista Particular'],
               ['/pet', 'KAVIAR Pet'],
               ['/turismo', 'Turismo Premium'],
