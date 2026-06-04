@@ -235,7 +235,7 @@ export default function CrmPage() {
   const totalLeads = Object.entries(stats).filter(([k]) => k !== 'LOCAL_BUSINESSES').reduce((sum, [, v]) => sum + v, 0);
 
   return (
-    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1400, mx: 'auto', color: '#E5E7EB', '& .MuiInputBase-root': { color: '#E5E7EB', bgcolor: 'rgba(255,255,255,0.05)', '& fieldset': { borderColor: 'rgba(255,255,255,0.15)' }, '&:hover fieldset': { borderColor: 'rgba(184,148,46,0.5)' }, '&.Mui-focused fieldset': { borderColor: '#B8942E' } }, '& .MuiInputLabel-root': { color: '#9CA3AF' }, '& .MuiSelect-icon': { color: '#9CA3AF' }, '& .MuiToggleButton-root': { color: '#9CA3AF', borderColor: 'rgba(255,255,255,0.15)', '&.Mui-selected': { color: '#FFD700', bgcolor: 'rgba(184,148,46,0.15)' } }, '& .MuiTableCell-root': { color: '#D1D5DB', borderColor: 'rgba(255,255,255,0.08)' }, '& .MuiTableCell-head': { color: '#94A3B8' } }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
         <Box>
