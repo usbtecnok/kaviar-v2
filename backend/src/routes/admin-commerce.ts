@@ -211,14 +211,24 @@ router.patch('/orders/:id/confirm-payment', authenticateAdmin, requireSuperAdmin
     if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
     if (order.payment_status === 'paid') return res.json({ success: true, data: { already_paid: true } });
 
-    // Transaction: mark paid + credit wallet
-    await prisma.$transaction(async (tx) => {
-      await tx.commerce_orders.update({ where: { id: order.id }, data: { payment_status: 'paid', paid_at: new Date() } });
-      await tx.$executeRawUnsafe(`INSERT INTO commerce_wallets (commerce_account_id) VALUES ($1) ON CONFLICT (commerce_account_id) DO NOTHING`, order.commerce_account_id);
-      await tx.$executeRawUnsafe(`UPDATE commerce_wallets SET pending_balance_cents = pending_balance_cents + $1, total_received_cents = total_received_cents + $1, updated_at = NOW() WHERE commerce_account_id = $2`, order.commerce_net_cents, order.commerce_account_id);
-      const bal: any = await tx.$queryRawUnsafe(`SELECT pending_balance_cents + available_balance_cents as total FROM commerce_wallets WHERE commerce_account_id = $1`, order.commerce_account_id);
-      await tx.commerce_wallet_transactions.create({ data: { commerce_account_id: order.commerce_account_id, order_id: order.id, type: 'ORDER_CREDIT', amount_cents: order.commerce_net_cents, balance_after_cents: bal[0]?.total || 0, description: 'Pagamento confirmado manualmente', created_by_admin_id: admin.id } });
+    // Mark paid
+    await prisma.commerce_orders.update({ where: { id: order.id }, data: { payment_status: 'paid', paid_at: new Date() } });
+
+    // Ensure wallet exists
+    await prisma.commerce_wallets.upsert({
+      where: { commerce_account_id: order.commerce_account_id },
+      create: { commerce_account_id: order.commerce_account_id },
+      update: {},
     });
+
+    // Credit pending balance
+    const wallet = await prisma.commerce_wallets.update({
+      where: { commerce_account_id: order.commerce_account_id },
+      data: { pending_balance_cents: { increment: order.commerce_net_cents }, total_received_cents: { increment: order.commerce_net_cents } },
+    });
+
+    // Transaction log
+    await prisma.commerce_wallet_transactions.create({ data: { commerce_account_id: order.commerce_account_id, order_id: order.id, type: 'ORDER_CREDIT', amount_cents: order.commerce_net_cents, balance_after_cents: wallet.pending_balance_cents + wallet.available_balance_cents, description: 'Pagamento confirmado manualmente', created_by_admin_id: admin.id } });
 
     res.json({ success: true });
   } catch (error) {
@@ -250,15 +260,17 @@ router.patch('/withdrawals/:id', authenticateAdmin, requireSuperAdmin, async (re
     } else if (action === 'reject' && ['REQUESTED', 'APPROVED'].includes(wd.status)) {
       await prisma.commerce_withdrawal_requests.update({ where: { id: wd.id }, data: { status: 'REJECTED', rejection_reason: rejection_reason || null, approved_by_admin_id: admin.id, approved_at: new Date() } });
     } else if (action === 'pay' && wd.status === 'APPROVED') {
-      // Debit wallet in transaction
-      await prisma.$transaction(async (tx) => {
-        const wallet: any = await tx.$queryRawUnsafe(`SELECT available_balance_cents FROM commerce_wallets WHERE commerce_account_id = $1 FOR UPDATE`, wd.commerce_account_id);
-        if (!wallet[0] || wallet[0].available_balance_cents < wd.amount_cents) throw new Error('Saldo insuficiente');
-        await tx.$executeRawUnsafe(`UPDATE commerce_wallets SET available_balance_cents = available_balance_cents - $1, total_withdrawn_cents = total_withdrawn_cents + $1, updated_at = NOW() WHERE commerce_account_id = $2`, wd.amount_cents, wd.commerce_account_id);
-        await tx.commerce_withdrawal_requests.update({ where: { id: wd.id }, data: { status: 'PAID', paid_by_admin_id: admin.id, paid_at: new Date() } });
-        const bal: any = await tx.$queryRawUnsafe(`SELECT available_balance_cents + pending_balance_cents as total FROM commerce_wallets WHERE commerce_account_id = $1`, wd.commerce_account_id);
-        await tx.commerce_wallet_transactions.create({ data: { commerce_account_id: wd.commerce_account_id, withdrawal_id: wd.id, type: 'WITHDRAWAL_PAID', amount_cents: -wd.amount_cents, balance_after_cents: bal[0]?.total || 0, description: `Saque pago`, created_by_admin_id: admin.id } });
+      // Verify balance
+      const wallet = await prisma.commerce_wallets.findUnique({ where: { commerce_account_id: wd.commerce_account_id } });
+      if (!wallet || wallet.available_balance_cents < wd.amount_cents) return res.status(400).json({ success: false, error: 'Saldo insuficiente' });
+
+      // Debit wallet
+      const updated_wallet = await prisma.commerce_wallets.update({
+        where: { commerce_account_id: wd.commerce_account_id },
+        data: { available_balance_cents: { decrement: wd.amount_cents }, total_withdrawn_cents: { increment: wd.amount_cents } },
       });
+      await prisma.commerce_withdrawal_requests.update({ where: { id: wd.id }, data: { status: 'PAID', paid_by_admin_id: admin.id, paid_at: new Date() } });
+      await prisma.commerce_wallet_transactions.create({ data: { commerce_account_id: wd.commerce_account_id, withdrawal_id: wd.id, type: 'WITHDRAWAL_PAID', amount_cents: -wd.amount_cents, balance_after_cents: updated_wallet.available_balance_cents + updated_wallet.pending_balance_cents, description: 'Saque pago', created_by_admin_id: admin.id } });
     } else {
       return res.status(400).json({ success: false, error: 'Ação inválida para o status atual' });
     }

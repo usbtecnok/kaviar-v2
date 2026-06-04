@@ -168,7 +168,13 @@ router.patch('/orders/:id/status', authenticateCommerce, async (req: Request, re
       // Move pending → available if order was paid
       if (order.payment_status === 'paid') {
         const net = order.commerce_net_cents;
-        await prisma.$executeRawUnsafe(`UPDATE commerce_wallets SET pending_balance_cents = pending_balance_cents - $1, available_balance_cents = available_balance_cents + $1, updated_at = NOW() WHERE commerce_account_id = $2`, net, order.commerce_account_id);
+        const wallet = await prisma.commerce_wallets.findUnique({ where: { commerce_account_id: order.commerce_account_id } });
+        if (wallet && wallet.pending_balance_cents >= net) {
+          await prisma.commerce_wallets.update({
+            where: { commerce_account_id: order.commerce_account_id },
+            data: { pending_balance_cents: { decrement: net }, available_balance_cents: { increment: net } },
+          });
+        }
       }
     }
 
@@ -185,8 +191,11 @@ router.patch('/orders/:id/status', authenticateCommerce, async (req: Request, re
 router.get('/wallet', authenticateCommerce, async (req: Request, res: Response) => {
   try {
     const accountId = (req as any).commerceAccount.id;
-    await prisma.$executeRawUnsafe(`INSERT INTO commerce_wallets (commerce_account_id) VALUES ($1) ON CONFLICT (commerce_account_id) DO NOTHING`, accountId);
-    const wallet = await prisma.commerce_wallets.findUnique({ where: { commerce_account_id: accountId } });
+    const wallet = await prisma.commerce_wallets.upsert({
+      where: { commerce_account_id: accountId },
+      create: { commerce_account_id: accountId },
+      update: {},
+    });
     res.json({ success: true, data: wallet });
   } catch { res.status(500).json({ success: false, error: 'Erro' }); }
 });
