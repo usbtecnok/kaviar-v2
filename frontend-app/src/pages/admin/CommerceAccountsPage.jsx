@@ -108,6 +108,16 @@ export default function CommerceAccountsPage() {
       {/* Finance Tab */}
       {mainTab === 1 && isSuperAdmin && (
         <Box>
+          {/* Print-only institutional header */}
+          <Box className="print-header" sx={{ display: 'none', '@media print': { display: 'block', mb: 3, borderBottom: '2px solid #B8942E', pb: 2 } }}>
+            <Typography sx={{ fontWeight: 800, fontSize: 22, color: '#B8942E' }}>KAVIAR</Typography>
+            <Typography sx={{ fontSize: 11, color: '#374151' }}>Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda</Typography>
+            <Typography sx={{ fontSize: 11, color: '#374151' }}>CNPJ: 07.710.691/0001-66</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, mt: 1 }}>Relatório Financeiro dos Comércios</Typography>
+            <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Código: REL-KAV-{new Date().toISOString().slice(0,10).replace(/-/g,'')}-{String(new Date().getHours()).padStart(2,'0')}{String(new Date().getMinutes()).padStart(2,'0')}</Typography>
+            <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Emitido em: {new Date().toLocaleString('pt-BR')}</Typography>
+          </Box>
+
           {financeSummary && (
             <Grid container spacing={1} sx={{ mb: 3 }}>
               {[
@@ -127,14 +137,28 @@ export default function CommerceAccountsPage() {
               ))}
             </Grid>
           )}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+
+          {/* Action buttons */}
+          <Box className="no-print" sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap', '@media print': { display: 'none' } }}>
             <Button size="small" startIcon={<Download />} sx={{ textTransform: 'none', color: '#6B7280' }} onClick={async () => {
               const res = await fetch(`${API_BASE_URL}/api/admin/commerce/finance/export`, { headers });
               if (!res.ok) return setSnack('Erro');
               const blob = await res.blob(); const url = URL.createObjectURL(blob);
-              const a = document.createElement('a'); a.href = url; a.download = `financeiro_comercios.csv`; a.click();
+              const a = document.createElement('a'); a.href = url; a.download = `financeiro-comercios-${new Date().toISOString().slice(0,10)}.csv`; a.click();
             }}>CSV</Button>
+            <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => window.print()}>🖨️ Imprimir</Button>
+            <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => {
+              const code = `REL-KAV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`;
+              const text = `📊 Relatório KAVIAR Comércio\n🏢 KAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66\nCódigo: ${code}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n💰 Total vendido: R$ ${((financeSummary?.total_sold||0)/100).toFixed(2)}\n🏦 Comissão KAVIAR: R$ ${((financeSummary?.kaviar_commission||0)/100).toFixed(2)}\n⏳ Pendente: R$ ${((financeSummary?.pending_balance||0)/100).toFixed(2)}\n✅ Disponível: R$ ${((financeSummary?.available_balance||0)/100).toFixed(2)}\n💸 Sacado: R$ ${((financeSummary?.total_withdrawn||0)/100).toFixed(2)}\n\nRelatório operacional KAVIAR/USB Tecnok.`;
+              navigator.clipboard.writeText(text); setSnack('Resumo copiado!');
+            }}>📋 Copiar</Button>
+            <Button size="small" sx={{ textTransform: 'none', color: '#25D366' }} onClick={() => {
+              const code = `REL-KAV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`;
+              const text = `📊 Relatório KAVIAR Comércio\n🏢 KAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66\nCódigo: ${code}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n💰 Total vendido: R$ ${((financeSummary?.total_sold||0)/100).toFixed(2)}\n🏦 Comissão KAVIAR: R$ ${((financeSummary?.kaviar_commission||0)/100).toFixed(2)}\n✅ Disponível: R$ ${((financeSummary?.available_balance||0)/100).toFixed(2)}\n💸 Sacado: R$ ${((financeSummary?.total_withdrawn||0)/100).toFixed(2)}`;
+              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            }}>📱 WhatsApp</Button>
           </Box>
+
           <Table size="small">
             <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 10, color: '#6B7280', textTransform: 'uppercase' } }}>
               <TableCell>Comércio</TableCell><TableCell>Vendido</TableCell><TableCell>Comissão</TableCell><TableCell>Pendente</TableCell><TableCell>Disponível</TableCell><TableCell>Sacado</TableCell><TableCell>Saques</TableCell>
@@ -153,8 +177,18 @@ export default function CommerceAccountsPage() {
               ))}
             </TableBody>
           </Table>
+
+          {/* Print-only footer */}
+          <Box className="print-footer" sx={{ display: 'none', '@media print': { display: 'block', mt: 4, pt: 2, borderTop: '1px solid #E5E7EB' } }}>
+            <Typography sx={{ fontSize: 10, color: '#6B7280' }}>KAVIAR é um produto da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.</Typography>
+            <Typography sx={{ fontSize: 9, color: '#9CA3AF', mt: 0.5 }}>Este relatório possui finalidade operacional e gerencial. Não substitui nota fiscal, recibo fiscal ou documento contábil oficial.</Typography>
+            <Typography sx={{ fontSize: 9, color: '#9CA3AF' }}>Documento gerado eletronicamente. Validação interna KAVIAR/USB Tecnok.</Typography>
+          </Box>
         </Box>
       )}
+
+      {/* Print CSS */}
+      <style>{`@media print { .no-print, nav, header, [class*="MuiDrawer"], [class*="MuiTabs"] { display: none !important; } .print-header, .print-footer { display: block !important; } }`}</style>
 
       {/* Wallet Drawer */}
       <Drawer anchor="right" open={walletOpen} onClose={() => setWalletOpen(false)} PaperProps={{ sx: { width: { xs: '100%', md: 520 }, p: 3 } }}>
