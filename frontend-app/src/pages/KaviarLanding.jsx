@@ -134,9 +134,10 @@ export default function KaviarLanding() {
               Dirija perto de casa ou ganhe indicando novos motoristas para a sua comunidade.
             </Typography>
 
-            <Box sx={{ mt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+            <Box sx={{ mt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, flexWrap: 'wrap' }}>
               <Button variant="contained" href="#downloads" sx={sx.goldBtn}>Quero ser motorista KAVIAR</Button>
               <Button variant="outlined" href="#consultor" sx={sx.outlineBtn}>Quero ser consultor</Button>
+              <Button component={Link} to="/commerce" variant="contained" sx={{ bgcolor: '#059669', color: '#fff', fontWeight: 700, fontSize: 15, textTransform: 'none', borderRadius: 2.5, px: 3, py: 1.2, '&:hover': { bgcolor: '#047857' } }}>🏪 Painel do Comércio</Button>
             </Box>
 
             {/* Value props */}
