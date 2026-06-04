@@ -251,6 +251,17 @@ router.patch('/team/:id', async (req: Request, res: Response) => {
 
 // ─── Team Commissions ───────────────────────────────────────────────────────
 
+// GET /api/admin/manager/finance/team-commissions (all commissions for manager)
+router.get('/team-commissions', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const where: any = {};
+    if (admin.role !== 'SUPER_ADMIN') where.manager_admin_id = admin.id;
+    const commissions = await prisma.manager_team_commissions.findMany({ where, include: { member: { select: { id: true, name: true, role_type: true } } }, orderBy: { created_at: 'desc' } });
+    res.json({ success: true, data: commissions });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao listar comissões' }); }
+});
+
 // GET /api/admin/manager/finance/team/:memberId/commissions
 router.get('/team/:memberId/commissions', async (req: Request, res: Response) => {
   try {

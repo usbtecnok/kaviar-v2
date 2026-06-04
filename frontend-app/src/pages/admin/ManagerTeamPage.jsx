@@ -24,14 +24,18 @@ export default function ManagerTeamPage() {
   const [commLoading, setCommLoading] = useState(false);
   const [commForm, setCommForm] = useState({ description: '', amount: '', reference_month: '', notes: '' });
   const [commFormOpen, setCommFormOpen] = useState(false);
+  const [allComm, setAllComm] = useState([]);
+  const [commMonth, setCommMonth] = useState('');
 
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
 
   const fetchMembers = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team`, { headers }); const d = await res.json(); if (d.success) setMembers(d.data); } catch {} setLoading(false); };
+  const fetchAllComm = async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team-commissions`, { headers }); const d = await res.json(); if (d.success) setAllComm(d.data); } catch {} };
   useEffect(() => {
     fetchMembers();
+    fetchAllComm();
     fetch(`${API_BASE_URL}/api/admin/my-operator-profile`, { headers }).then(r => r.json()).then(d => { if (d.success && d.data?.territory?.name) setTerritoryName(d.data.territory.name); }).catch(() => {});
   }, []);
 
@@ -94,16 +98,29 @@ export default function ManagerTeamPage() {
     if (amount_cents <= 0) return setSnack('Valor deve ser maior que zero');
     const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team/${commMember.id}/commissions`, { method: 'POST', headers, body: JSON.stringify({ description: commForm.description, amount_cents, reference_month: commForm.reference_month || null, notes: commForm.notes || null }) });
     const d = await res.json();
-    if (d.success) { setCommFormOpen(false); setCommForm({ description: '', amount: '', reference_month: '', notes: '' }); openCommissions(commMember); setSnack('Comissão registrada!'); } else setSnack(d.error || 'Erro');
+    if (d.success) { setCommFormOpen(false); setCommForm({ description: '', amount: '', reference_month: '', notes: '' }); openCommissions(commMember); fetchAllComm(); setSnack('Comissão registrada!'); } else setSnack(d.error || 'Erro');
   };
 
   const updateCommStatus = async (id, status) => {
     const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team/commissions/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ status }) });
     const d = await res.json();
-    if (d.success) { openCommissions(commMember); setSnack(`Status: ${COMMISSION_STATUS[status]?.label}`); } else setSnack(d.error || 'Erro');
+    if (d.success) { openCommissions(commMember); fetchAllComm(); setSnack(`Status: ${COMMISSION_STATUS[status]?.label}`); } else setSnack(d.error || 'Erro');
   };
 
   const isManager = admin.role === 'TERRITORIAL_MANAGER';
+
+  const filteredComm = commMonth ? allComm.filter(c => c.reference_month === commMonth) : allComm;
+  const sumBy = (arr, status) => arr.filter(c => c.status === status).reduce((s, c) => s + c.amount_cents, 0);
+  const commSummary = { pending: sumBy(filteredComm, 'pending'), agreed: sumBy(filteredComm, 'agreed'), paid: sumBy(filteredComm, 'paid_by_manager'), canceled: sumBy(filteredComm, 'canceled'), total: filteredComm.reduce((s, c) => s + c.amount_cents, 0) };
+  const fmt = (cents) => `R$ ${(cents / 100).toFixed(2)}`;
+
+  const copyReport = () => {
+    const lines = [`Relatório interno do Gestor Territorial.`, `Os valores abaixo representam registros informativos de acordos internos entre gestor e membros da equipe. O KAVIAR não realiza pagamento automático, não retém valores e não se responsabiliza por esses acordos.`, '', `Período: ${commMonth || 'Todos'}`, `Gestor: ${admin.name || '—'}`, `Território: ${territoryName || '—'}`, '', `Pendente: ${fmt(commSummary.pending)}`, `Combinado: ${fmt(commSummary.agreed)}`, `Pago pelo Gestor: ${fmt(commSummary.paid)}`, `Cancelado: ${fmt(commSummary.canceled)}`, `Total geral: ${fmt(commSummary.total)}`, ''];
+    const byMember = {};
+    filteredComm.forEach(c => { const n = c.member?.name || 'Sem nome'; byMember[n] = (byMember[n] || 0) + c.amount_cents; });
+    Object.entries(byMember).forEach(([name, total]) => lines.push(`  ${name}: ${fmt(total)}`));
+    navigator.clipboard.writeText(lines.join('\n')).then(() => setSnack('Relatório copiado!')).catch(() => setSnack('Erro ao copiar'));
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#FAFAF8', pt: 2, pb: 6 }}>
@@ -114,6 +131,27 @@ export default function ManagerTeamPage() {
         </Box>
 
         <Alert severity="info" sx={{ mb: 2, fontSize: 11 }}>Este cadastro é um controle interno do Gestor Territorial. O KAVIAR não realiza pagamentos automáticos aos membros da equipe do gestor e não cria vínculo financeiro direto com esses membros nesta fase.</Alert>
+
+        {allComm.length > 0 && (
+          <Card sx={{ mb: 2, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}><CardContent sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase' }}>Resumo Comissões Internas</Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField size="small" type="month" label="Filtrar mês" InputLabelProps={{ shrink: true }} value={commMonth} onChange={e => setCommMonth(e.target.value)} sx={{ width: 160 }} />
+                {commMonth && <Button size="small" onClick={() => setCommMonth('')} sx={{ textTransform: 'none', fontSize: 10 }}>Limpar</Button>}
+                <Button size="small" startIcon={<ContentCopy />} onClick={copyReport} sx={{ textTransform: 'none', fontSize: 10 }}>Copiar relatório</Button>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              {[{ label: 'Pendente', value: commSummary.pending, color: '#F59E0B' }, { label: 'Combinado', value: commSummary.agreed, color: '#3B82F6' }, { label: 'Pago pelo Gestor', value: commSummary.paid, color: '#10B981' }, { label: 'Cancelado', value: commSummary.canceled, color: '#EF4444' }, { label: 'Total Geral', value: commSummary.total, color: GOLD }].map(s => (
+                <Box key={s.label} sx={{ textAlign: 'center', minWidth: 90 }}>
+                  <Typography sx={{ fontSize: 16, fontWeight: 800, color: s.color }}>{fmt(s.value)}</Typography>
+                  <Typography sx={{ fontSize: 9, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</Typography>
+                </Box>
+              ))}
+            </Box>
+          </CardContent></Card>
+        )}
 
         {loading ? <CircularProgress sx={{ color: GOLD }} /> : members.length > 0 ? (
           <Card sx={{ bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}><CardContent sx={{ p: 2 }}>
@@ -204,6 +242,17 @@ export default function ManagerTeamPage() {
           <Alert severity="warning" sx={{ mb: 2, fontSize: 10 }} icon={false}>
             ⚠️ Os valores registrados aqui são informativos e representam acordos internos entre o Gestor Territorial e os membros de sua equipe. O KAVIAR não realiza pagamento automático, não retém valores e não se responsabiliza por esses acordos. Este registro não substitui contrato, recibo, nota fiscal ou orientação contábil.
           </Alert>
+
+          {commissions.length > 0 && (
+            <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
+              {[{ label: 'Pendente', s: 'pending', color: '#F59E0B' }, { label: 'Combinado', s: 'agreed', color: '#3B82F6' }, { label: 'Pago', s: 'paid_by_manager', color: '#10B981' }, { label: 'Cancelado', s: 'canceled', color: '#EF4444' }].map(x => (
+                <Box key={x.s} sx={{ textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: x.color }}>{fmt(commissions.filter(c => c.status === x.s).reduce((s, c) => s + c.amount_cents, 0))}</Typography>
+                  <Typography sx={{ fontSize: 9, color: '#6B7280' }}>{x.label}</Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
 
           {isManager && (
             commMember?.contract_status !== 'signed'
