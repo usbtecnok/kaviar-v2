@@ -121,4 +121,55 @@ router.delete('/products/:id', authenticateCommerce, async (req: Request, res: R
   }
 });
 
+// ─── Orders ─────────────────────────────────────────────────────────────────
+
+// GET /api/commerce/orders
+router.get('/orders', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const orders = await prisma.commerce_orders.findMany({
+      where: { commerce_account_id: (req as any).commerceAccount.id },
+      include: { items: true },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+    });
+    res.json({ success: true, data: orders });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao listar pedidos' }); }
+});
+
+// PATCH /api/commerce/orders/:id/status
+router.patch('/orders/:id/status', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const { status, cancel_reason } = req.body;
+    const valid = ['ACCEPTED', 'PREPARING', 'READY', 'CANCELED', 'COMPLETED'];
+    if (!valid.includes(status)) return res.status(400).json({ success: false, error: `Status inválido. Válidos: ${valid.join(', ')}` });
+
+    const order = await prisma.commerce_orders.findFirst({
+      where: { id: req.params.id, commerce_account_id: (req as any).commerceAccount.id },
+    });
+    if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
+
+    const data: any = { status };
+    if (status === 'ACCEPTED') {
+      data.accepted_at = new Date();
+      // Deduct stock on accept
+      const items = await prisma.commerce_order_items.findMany({ where: { order_id: order.id } });
+      for (const item of items) {
+        const product = await prisma.commerce_products.findUnique({ where: { id: item.product_id } });
+        if (product && product.stock_quantity !== null) {
+          await prisma.commerce_products.update({ where: { id: item.product_id }, data: { stock_quantity: Math.max(0, product.stock_quantity - item.quantity) } });
+        }
+      }
+    }
+    if (status === 'PREPARING') data.prepared_at = new Date();
+    if (status === 'READY') data.ready_at = new Date();
+    if (status === 'CANCELED') { data.canceled_at = new Date(); data.cancel_reason = cancel_reason || null; }
+    if (status === 'COMPLETED') data.completed_at = new Date();
+
+    const updated = await prisma.commerce_orders.update({ where: { id: order.id }, data });
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao atualizar pedido' });
+  }
+});
+
 export default router;

@@ -1,74 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Switch, CircularProgress, Card, CardContent, IconButton } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { Box, Typography, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Switch, CircularProgress, Card, CardContent, IconButton, Tabs, Tab } from '@mui/material';
+import { Add, Edit, Delete, ContentCopy } from '@mui/icons-material';
 import { API_BASE_URL } from '../config/api';
 
 const GOLD = '#B8942E';
+const ORDER_STATUS = { PENDING: { label: 'Novo', color: '#3B82F6' }, ACCEPTED: { label: 'Aceito', color: '#8B5CF6' }, PREPARING: { label: 'Preparando', color: '#F59E0B' }, READY: { label: 'Pronto', color: '#10B981' }, CANCELED: { label: 'Cancelado', color: '#EF4444' }, COMPLETED: { label: 'Concluído', color: '#6B7280' } };
 
 function LoginForm({ onLogin }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    const res = await fetch(`${API_BASE_URL}/api/commerce/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-    const data = await res.json();
-    if (data.success) { localStorage.setItem('kaviar_commerce_token', data.token); localStorage.setItem('kaviar_commerce_data', JSON.stringify(data)); onLogin(data); }
-    else setError(data.error || 'Erro');
-  };
-
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#FAFAF8' }}>
-      <Card sx={{ maxWidth: 400, width: '100%', mx: 2 }}><CardContent sx={{ p: 4 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800, color: GOLD, mb: 3, textAlign: 'center' }}>🏪 Portal do Comércio</Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <TextField label="Email" type="email" size="small" value={email} onChange={e => setEmail(e.target.value)} required />
-          <TextField label="Senha" type="password" size="small" value={password} onChange={e => setPassword(e.target.value)} required />
-          <Button type="submit" variant="contained" sx={{ bgcolor: GOLD }}>Entrar</Button>
-        </form>
-      </CardContent></Card>
-    </Box>
-  );
+  const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState('');
+  const handleSubmit = async (e) => { e.preventDefault(); setError(''); const res = await fetch(`${API_BASE_URL}/api/commerce/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }); const data = await res.json(); if (data.success) { localStorage.setItem('kaviar_commerce_token', data.token); localStorage.setItem('kaviar_commerce_data', JSON.stringify(data)); onLogin(data); } else setError(data.error || 'Erro'); };
+  return (<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#FAFAF8' }}><Card sx={{ maxWidth: 400, width: '100%', mx: 2 }}><CardContent sx={{ p: 4 }}><Typography variant="h5" sx={{ fontWeight: 800, color: GOLD, mb: 3, textAlign: 'center' }}>🏪 Portal do Comércio</Typography>{error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}<form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}><TextField label="Email" type="email" size="small" value={email} onChange={e => setEmail(e.target.value)} required /><TextField label="Senha" type="password" size="small" value={password} onChange={e => setPassword(e.target.value)} required /><Button type="submit" variant="contained" sx={{ bgcolor: GOLD }}>Entrar</Button></form></CardContent></Card></Box>);
 }
 
 function ChangePasswordForm({ onDone, token }) {
-  const [pw, setPw] = useState('');
-  const [pw2, setPw2] = useState('');
-  const [error, setError] = useState('');
-
-  const handle = async () => {
-    if (pw.length < 6) return setError('Mínimo 6 caracteres');
-    if (pw !== pw2) return setError('Senhas não conferem');
-    const res = await fetch(`${API_BASE_URL}/api/commerce/auth/change-password`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ new_password: pw }) });
-    const data = await res.json();
-    if (data.success) onDone();
-    else setError(data.error || 'Erro');
-  };
-
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#FAFAF8' }}>
-      <Card sx={{ maxWidth: 400, width: '100%', mx: 2 }}><CardContent sx={{ p: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: GOLD, mb: 1 }}>🔒 Trocar Senha</Typography>
-        <Alert severity="info" sx={{ mb: 2 }}>Você precisa definir uma nova senha para continuar.</Alert>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField label="Nova Senha" type="password" size="small" value={pw} onChange={e => setPw(e.target.value)} />
-          <TextField label="Confirmar Senha" type="password" size="small" value={pw2} onChange={e => setPw2(e.target.value)} />
-          <Button variant="contained" onClick={handle} sx={{ bgcolor: GOLD }}>Salvar</Button>
-        </Box>
-      </CardContent></Card>
-    </Box>
-  );
+  const [pw, setPw] = useState(''); const [pw2, setPw2] = useState(''); const [error, setError] = useState('');
+  const handle = async () => { if (pw.length < 6) return setError('Mínimo 6 caracteres'); if (pw !== pw2) return setError('Senhas não conferem'); const res = await fetch(`${API_BASE_URL}/api/commerce/auth/change-password`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ new_password: pw }) }); const data = await res.json(); if (data.success) onDone(); else setError(data.error || 'Erro'); };
+  return (<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', bgcolor: '#FAFAF8' }}><Card sx={{ maxWidth: 400, width: '100%', mx: 2 }}><CardContent sx={{ p: 4 }}><Typography variant="h6" sx={{ fontWeight: 700, color: GOLD, mb: 1 }}>🔒 Trocar Senha</Typography><Alert severity="info" sx={{ mb: 2 }}>Defina uma nova senha para continuar.</Alert>{error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}><TextField label="Nova Senha" type="password" size="small" value={pw} onChange={e => setPw(e.target.value)} /><TextField label="Confirmar" type="password" size="small" value={pw2} onChange={e => setPw2(e.target.value)} /><Button variant="contained" onClick={handle} sx={{ bgcolor: GOLD }}>Salvar</Button></Box></CardContent></Card></Box>);
 }
 
 export default function CommercePortal() {
   const [authed, setAuthed] = useState(false);
   const [mustChange, setMustChange] = useState(false);
   const [account, setAccount] = useState(null);
+  const [tab, setTab] = useState(0);
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState('');
   const [editOpen, setEditOpen] = useState(false);
@@ -78,100 +34,90 @@ export default function CommercePortal() {
   const token = localStorage.getItem('kaviar_commerce_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  useEffect(() => {
-    const stored = localStorage.getItem('kaviar_commerce_data');
-    if (token && stored) {
-      const d = JSON.parse(stored);
-      if (d.user?.must_change_password) { setAuthed(true); setMustChange(true); }
-      else { setAuthed(true); setMustChange(false); }
-      setAccount(d.account);
-    } else { setLoading(false); }
-  }, []);
+  useEffect(() => { const stored = localStorage.getItem('kaviar_commerce_data'); if (token && stored) { const d = JSON.parse(stored); setAuthed(true); setMustChange(d.user?.must_change_password); setAccount(d.account); } else setLoading(false); }, []);
+  useEffect(() => { if (authed && !mustChange) { fetchProducts(); fetchOrders(); } }, [authed, mustChange]);
 
-  useEffect(() => { if (authed && !mustChange) fetchProducts(); }, [authed, mustChange]);
-
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/commerce/products`, { headers });
-      const data = await res.json();
-      if (data.success) setProducts(data.data);
-    } catch {}
-    setLoading(false);
-  };
+  const fetchProducts = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/commerce/products`, { headers }); const data = await res.json(); if (data.success) setProducts(data.data); } catch {} setLoading(false); };
+  const fetchOrders = async () => { try { const res = await fetch(`${API_BASE_URL}/api/commerce/orders`, { headers }); const data = await res.json(); if (data.success) setOrders(data.data); } catch {} };
 
   const handleLogin = (data) => { setAuthed(true); setAccount(data.account); setMustChange(data.user?.must_change_password); };
   const handlePasswordChanged = () => { setMustChange(false); const d = JSON.parse(localStorage.getItem('kaviar_commerce_data') || '{}'); d.user.must_change_password = false; localStorage.setItem('kaviar_commerce_data', JSON.stringify(d)); };
 
   const openNew = () => { setEditId(null); setForm({ name: '', description: '', category: '', price_cents: '', stock_quantity: '', is_restricted: false }); setEditOpen(true); };
   const openEdit = (p) => { setEditId(p.id); setForm({ name: p.name, description: p.description || '', category: p.category || '', price_cents: String(p.price_cents), stock_quantity: p.stock_quantity != null ? String(p.stock_quantity) : '', is_restricted: p.is_restricted }); setEditOpen(true); };
+  const handleSave = async () => { if (!form.name || !form.price_cents) return setSnack('Nome e preço obrigatórios'); const body = { ...form, price_cents: parseInt(form.price_cents), stock_quantity: form.stock_quantity ? parseInt(form.stock_quantity) : null }; const url = editId ? `${API_BASE_URL}/api/commerce/products/${editId}` : `${API_BASE_URL}/api/commerce/products`; const res = await fetch(url, { method: editId ? 'PATCH' : 'POST', headers, body: JSON.stringify(body) }); const data = await res.json(); if (data.success) { setEditOpen(false); fetchProducts(); setSnack(editId ? 'Atualizado!' : 'Criado!'); } else setSnack(data.error || 'Erro'); };
+  const toggleAvailability = async (id) => { const res = await fetch(`${API_BASE_URL}/api/commerce/products/${id}/availability`, { method: 'PATCH', headers }); const data = await res.json(); if (data.success) fetchProducts(); else setSnack(data.error || 'Erro'); };
+  const deleteProduct = async (id) => { if (!window.confirm('Remover?')) return; await fetch(`${API_BASE_URL}/api/commerce/products/${id}`, { method: 'DELETE', headers }); fetchProducts(); };
 
-  const handleSave = async () => {
-    if (!form.name || !form.price_cents) return setSnack('Nome e preço obrigatórios');
-    const body = { ...form, price_cents: parseInt(form.price_cents), stock_quantity: form.stock_quantity ? parseInt(form.stock_quantity) : null };
-    const url = editId ? `${API_BASE_URL}/api/commerce/products/${editId}` : `${API_BASE_URL}/api/commerce/products`;
-    const res = await fetch(url, { method: editId ? 'PATCH' : 'POST', headers, body: JSON.stringify(body) });
+  const updateOrderStatus = async (id, status) => {
+    const res = await fetch(`${API_BASE_URL}/api/commerce/orders/${id}/status`, { method: 'PATCH', headers, body: JSON.stringify({ status }) });
     const data = await res.json();
-    if (data.success) { setEditOpen(false); fetchProducts(); setSnack(editId ? 'Produto atualizado!' : 'Produto criado!'); }
+    if (data.success) { fetchOrders(); setSnack(`Pedido ${ORDER_STATUS[status]?.label || status}!`); }
     else setSnack(data.error || 'Erro');
   };
 
-  const toggleAvailability = async (id) => {
-    const res = await fetch(`${API_BASE_URL}/api/commerce/products/${id}/availability`, { method: 'PATCH', headers });
-    const data = await res.json();
-    if (data.success) fetchProducts();
-    else setSnack(data.error || 'Erro');
-  };
-
-  const deleteProduct = async (id) => {
-    if (!window.confirm('Remover produto?')) return;
-    await fetch(`${API_BASE_URL}/api/commerce/products/${id}`, { method: 'DELETE', headers });
-    fetchProducts();
-  };
-
-  const logout = () => { localStorage.removeItem('kaviar_commerce_token'); localStorage.removeItem('kaviar_commerce_data'); setAuthed(false); setAccount(null); };
-
+  const logout = () => { localStorage.removeItem('kaviar_commerce_token'); localStorage.removeItem('kaviar_commerce_data'); setAuthed(false); };
   if (!authed) return <LoginForm onLogin={handleLogin} />;
   if (mustChange) return <ChangePasswordForm onDone={handlePasswordChanged} token={token} />;
+
+  const storeUrl = account?.slug ? `${window.location.origin}/comercio/${account.slug}` : null;
+  const pendingOrders = orders.filter(o => o.status === 'PENDING').length;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#FAFAF8', p: 3 }}>
       <Box sx={{ maxWidth: 900, mx: 'auto' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800, color: GOLD }}>🏪 {account?.name || 'Meu Comércio'}</Typography>
-            <Typography sx={{ fontSize: 12, color: '#6B7280' }}>{products.length} produtos cadastrados</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button size="small" variant="contained" startIcon={<Add />} onClick={openNew} sx={{ bgcolor: GOLD, textTransform: 'none' }}>Produto</Button>
-            <Button size="small" onClick={logout} sx={{ color: '#6B7280', textTransform: 'none' }}>Sair</Button>
-          </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: GOLD }}>🏪 {account?.name || 'Meu Comércio'}</Typography>
+          <Button size="small" onClick={logout} sx={{ color: '#6B7280', textTransform: 'none' }}>Sair</Button>
         </Box>
+        {storeUrl && <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 2 }}><Typography sx={{ fontSize: 12, color: '#6B7280' }}>Link público:</Typography><Typography sx={{ fontSize: 12, color: GOLD, fontWeight: 600 }}>{storeUrl}</Typography><IconButton size="small" onClick={() => { navigator.clipboard.writeText(storeUrl); setSnack('Link copiado!'); }}><ContentCopy sx={{ fontSize: 14 }} /></IconButton></Box>}
 
-        {loading ? <CircularProgress sx={{ color: GOLD }} /> : (
-          <Table size="small">
-            <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
-              <TableCell>Produto</TableCell><TableCell>Preço</TableCell><TableCell>Estoque</TableCell><TableCell>Status</TableCell><TableCell>Ações</TableCell>
-            </TableRow></TableHead>
-            <TableBody>
-              {products.map(p => (
-                <TableRow key={p.id} hover>
-                  <TableCell><Typography sx={{ fontWeight: 600, fontSize: 13 }}>{p.name}</Typography>{p.category && <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{p.category}</Typography>}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>R$ {(p.price_cents / 100).toFixed(2)}</TableCell>
-                  <TableCell>{p.stock_quantity != null ? (p.stock_quantity <= (p.min_stock_alert || 0) ? <Chip label={p.stock_quantity} size="small" color="error" /> : p.stock_quantity) : '—'}</TableCell>
-                  <TableCell>
-                    {p.is_restricted ? <Chip label="Restrito" size="small" color="error" /> : p.is_available ? <Chip label="Disponível" size="small" color="success" /> : <Chip label="Indisponível" size="small" />}
-                  </TableCell>
-                  <TableCell>
-                    {!p.is_restricted && <Switch size="small" checked={p.is_available} onChange={() => toggleAvailability(p.id)} />}
-                    <IconButton size="small" onClick={() => openEdit(p)}><Edit sx={{ fontSize: 16 }} /></IconButton>
-                    <IconButton size="small" onClick={() => deleteProduct(p.id)} sx={{ color: '#EF4444' }}><Delete sx={{ fontSize: 16 }} /></IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {products.length === 0 && <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum produto. Clique em "+ Produto" para começar.</TableCell></TableRow>}
-            </TableBody>
-          </Table>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
+          <Tab label={`Produtos (${products.length})`} />
+          <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>Pedidos {pendingOrders > 0 && <Chip label={pendingOrders} size="small" color="error" sx={{ height: 18, fontSize: 10 }} />}</Box>} />
+        </Tabs>
+
+        {/* Products Tab */}
+        {tab === 0 && (<>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}><Button size="small" variant="contained" startIcon={<Add />} onClick={openNew} sx={{ bgcolor: GOLD, textTransform: 'none' }}>Produto</Button></Box>
+          {loading ? <CircularProgress sx={{ color: GOLD }} /> : (
+            <Table size="small"><TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}><TableCell>Produto</TableCell><TableCell>Preço</TableCell><TableCell>Estoque</TableCell><TableCell>Status</TableCell><TableCell>Ações</TableCell></TableRow></TableHead><TableBody>
+              {products.map(p => (<TableRow key={p.id} hover><TableCell><Typography sx={{ fontWeight: 600, fontSize: 13 }}>{p.name}</Typography></TableCell><TableCell sx={{ fontWeight: 600 }}>R$ {(p.price_cents / 100).toFixed(2)}</TableCell><TableCell>{p.stock_quantity != null ? p.stock_quantity : '—'}</TableCell><TableCell>{p.is_restricted ? <Chip label="Restrito" size="small" color="error" /> : p.is_available ? <Chip label="Disponível" size="small" color="success" /> : <Chip label="Indisponível" size="small" />}</TableCell><TableCell>{!p.is_restricted && <Switch size="small" checked={p.is_available} onChange={() => toggleAvailability(p.id)} />}<IconButton size="small" onClick={() => openEdit(p)}><Edit sx={{ fontSize: 16 }} /></IconButton><IconButton size="small" onClick={() => deleteProduct(p.id)} sx={{ color: '#EF4444' }}><Delete sx={{ fontSize: 16 }} /></IconButton></TableCell></TableRow>))}
+              {products.length === 0 && <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum produto</TableCell></TableRow>}
+            </TableBody></Table>
+          )}
+        </>)}
+
+        {/* Orders Tab */}
+        {tab === 1 && (
+          <Box>
+            {orders.length === 0 ? <Typography sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum pedido ainda</Typography> : orders.map(o => (
+              <Card key={o.id} sx={{ mb: 2, border: o.status === 'PENDING' ? '2px solid #3B82F6' : '1px solid #E5E7EB' }}>
+                <CardContent sx={{ py: 2 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Box>
+                      <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{o.customer_name}</Typography>
+                      <Typography sx={{ fontSize: 12, color: '#6B7280' }}>{o.customer_phone} • {new Date(o.created_at).toLocaleString('pt-BR')}</Typography>
+                    </Box>
+                    <Chip label={ORDER_STATUS[o.status]?.label || o.status} size="small" sx={{ bgcolor: `${ORDER_STATUS[o.status]?.color || '#6B7280'}20`, color: ORDER_STATUS[o.status]?.color, fontWeight: 600 }} />
+                  </Box>
+                  <Box sx={{ bgcolor: '#F9FAFB', p: 1, borderRadius: 1, mb: 1 }}>
+                    {o.items?.map(i => <Typography key={i.id} sx={{ fontSize: 12 }}>{i.quantity}× {i.product_name} — R$ {(i.total_cents / 100).toFixed(2)}{i.notes ? ` (${i.notes})` : ''}</Typography>)}
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: 13 }}>Total: R$ {(o.total_cents / 100).toFixed(2)}</Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      {o.status === 'PENDING' && <><Button size="small" variant="contained" onClick={() => updateOrderStatus(o.id, 'ACCEPTED')} sx={{ bgcolor: '#8B5CF6', textTransform: 'none', fontSize: 11 }}>Aceitar</Button><Button size="small" onClick={() => updateOrderStatus(o.id, 'CANCELED')} sx={{ color: '#EF4444', textTransform: 'none', fontSize: 11 }}>Recusar</Button></>}
+                      {o.status === 'ACCEPTED' && <Button size="small" variant="contained" onClick={() => updateOrderStatus(o.id, 'PREPARING')} sx={{ bgcolor: '#F59E0B', textTransform: 'none', fontSize: 11 }}>Preparando</Button>}
+                      {o.status === 'PREPARING' && <Button size="small" variant="contained" onClick={() => updateOrderStatus(o.id, 'READY')} sx={{ bgcolor: '#10B981', textTransform: 'none', fontSize: 11 }}>Pronto!</Button>}
+                      {o.status === 'READY' && <Button size="small" variant="contained" onClick={() => updateOrderStatus(o.id, 'COMPLETED')} sx={{ bgcolor: '#6B7280', textTransform: 'none', fontSize: 11 }}>Concluir</Button>}
+                    </Box>
+                  </Box>
+                  {o.notes && <Typography sx={{ fontSize: 11, color: '#6B7280', mt: 0.5, fontStyle: 'italic' }}>Obs: {o.notes}</Typography>}
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
         )}
       </Box>
 
@@ -181,12 +127,9 @@ export default function CommercePortal() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
           <TextField label="Nome *" size="small" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           <TextField label="Descrição" size="small" multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <TextField label="Categoria" size="small" fullWidth value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} placeholder="lanche, bebida, refeição..." />
-            <TextField label="Preço (centavos) *" size="small" fullWidth type="number" value={form.price_cents} onChange={e => setForm(f => ({ ...f, price_cents: e.target.value }))} helperText="Ex: 1500 = R$15,00" />
-          </Box>
-          <TextField label="Estoque" size="small" type="number" value={form.stock_quantity} onChange={e => setForm(f => ({ ...f, stock_quantity: e.target.value }))} helperText="Deixe vazio para sem controle" />
-          {form.is_restricted && <Alert severity="error">Produto marcado como restrito — não ficará disponível para venda.</Alert>}
+          <Box sx={{ display: 'flex', gap: 1 }}><TextField label="Categoria" size="small" fullWidth value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} /><TextField label="Preço (centavos) *" size="small" fullWidth type="number" value={form.price_cents} onChange={e => setForm(f => ({ ...f, price_cents: e.target.value }))} helperText="1500 = R$15" /></Box>
+          <TextField label="Estoque" size="small" type="number" value={form.stock_quantity} onChange={e => setForm(f => ({ ...f, stock_quantity: e.target.value }))} />
+          {form.is_restricted && <Alert severity="error">Produto restrito — não ficará disponível.</Alert>}
         </DialogContent>
         <DialogActions><Button onClick={() => setEditOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleSave} sx={{ bgcolor: GOLD }}>Salvar</Button></DialogActions>
       </Dialog>

@@ -30,6 +30,7 @@ import ConsultorOnboarding from "./pages/ConsultorOnboarding";
 import PartnerPublicView from "./pages/PartnerPublicView";
 import PartnerPortal from "./pages/PartnerPortal";
 import CommercePortal from "./pages/CommercePortal";
+import CommerceStorefront from "./pages/CommerceStorefront";
 import DriverRegister from "./pages/DriverRegister";
 import ReceiptValidation from "./pages/ReceiptValidation";
 import PrivateRideRequest from "./pages/PrivateRideRequest";
@@ -444,6 +445,7 @@ export default function App() {
           <Route path="/parceiro/portal" element={<PartnerPortal />} />
           <Route path="/commerce" element={<CommercePortal />} />
           <Route path="/commerce/*" element={<CommercePortal />} />
+          <Route path="/comercio/:slug" element={<CommerceStorefront />} />
           <Route path="/driver/register" element={<DriverRegister />} />
           <Route path="/comprovante/:code" element={<ReceiptValidation />} />
           <Route path="/particular" element={<PrivateRideRequest />} />

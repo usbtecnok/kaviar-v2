@@ -131,10 +131,18 @@ router.post('/accounts/:id/activate', authenticateAdmin, requireSuperAdmin, asyn
     const tempPassword = crypto.randomBytes(4).toString('hex'); // 8 chars hex
     const password_hash = await bcrypt.hash(tempPassword, 10);
 
+    // Generate slug if not set
+    let slug = account.slug;
+    if (!slug) {
+      slug = account.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const existing = await prisma.commerce_accounts.findFirst({ where: { slug } });
+      if (existing) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+    }
+
     const [updatedAccount, user] = await prisma.$transaction([
       prisma.commerce_accounts.update({
         where: { id: account.id },
-        data: { status: 'active', is_active: true, approved_by: admin.id, approved_at: new Date() },
+        data: { status: 'active', is_active: true, slug, approved_by: admin.id, approved_at: new Date() },
       }),
       prisma.commerce_users.create({
         data: { commerce_account_id: account.id, name: account.name, email: account.email, password_hash, role: 'owner', must_change_password: true },
@@ -163,6 +171,35 @@ router.post('/accounts/:id/reset-password', authenticateAdmin, requireSuperAdmin
     res.json({ success: true, data: { email: user.email, temp_password: tempPassword } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao resetar senha' });
+  }
+});
+
+// GET /api/admin/commerce/orders — list all orders
+router.get('/orders', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const where: any = {};
+
+    if (admin.role !== 'SUPER_ADMIN') {
+      const tIds = (scope?.territoryIds || []).filter((id: string) => id && UUID_RE.test(id));
+      if (tIds.length === 0) return res.json({ success: true, data: [] });
+      where.account = { territory_id: { in: tIds } };
+    }
+
+    if (req.query.status) where.status = req.query.status;
+    if (req.query.commerce_id) where.commerce_account_id = req.query.commerce_id;
+
+    const orders = await prisma.commerce_orders.findMany({
+      where,
+      include: { items: true, account: { select: { name: true, slug: true } } },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+    });
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    console.error('[admin-commerce] orders error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao listar pedidos' });
   }
 });
 

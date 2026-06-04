@@ -2020,6 +2020,7 @@ model crm_interactions {
 model commerce_accounts {
   id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   crm_lead_id         String?   @db.Uuid
+  slug                String?   @unique @db.VarChar(100)
   name                String    @db.VarChar(255)
   trade_name          String?   @db.VarChar(255)
   category            String    @default("outro") @db.VarChar(50)
@@ -2043,6 +2044,7 @@ model commerce_accounts {
 
   users               commerce_users[]
   products            commerce_products[]
+  orders              commerce_orders[]
 
   @@index([status], map: "idx_commerce_accounts_status")
   @@index([territory_id], map: "idx_commerce_accounts_territory")
@@ -2087,4 +2089,52 @@ model commerce_products {
 
   @@index([commerce_account_id], map: "idx_commerce_products_account")
   @@index([commerce_account_id, is_available], map: "idx_commerce_products_available")
+}
+
+model commerce_orders {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  commerce_account_id     String    @db.Uuid
+  customer_name           String    @db.VarChar(255)
+  customer_phone          String    @db.VarChar(30)
+  customer_address        String?
+  delivery_type           String    @default("pickup") @db.VarChar(20)
+  status                  String    @default("PENDING") @db.VarChar(30)
+  subtotal_cents          Int
+  delivery_fee_cents      Int       @default(0)
+  kaviar_commission_cents Int
+  commerce_net_cents      Int
+  total_cents             Int
+  payment_method          String?   @db.VarChar(20)
+  payment_status          String    @default("pending") @db.VarChar(20)
+  notes                   String?
+  accepted_at             DateTime?
+  prepared_at             DateTime?
+  ready_at                DateTime?
+  canceled_at             DateTime?
+  cancel_reason           String?
+  completed_at            DateTime?
+  created_at              DateTime  @default(now())
+  updated_at              DateTime  @updatedAt
+
+  account                 commerce_accounts @relation(fields: [commerce_account_id], references: [id])
+  items                   commerce_order_items[]
+
+  @@index([commerce_account_id, status], map: "idx_commerce_orders_account_status")
+  @@index([status], map: "idx_commerce_orders_status")
+  @@index([created_at(sort: Desc)], map: "idx_commerce_orders_created")
+}
+
+model commerce_order_items {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id        String   @db.Uuid
+  product_id      String   @db.Uuid
+  product_name    String   @db.VarChar(255)
+  quantity        Int
+  unit_price_cents Int
+  total_cents     Int
+  notes           String?  @db.VarChar(255)
+
+  order           commerce_orders @relation(fields: [order_id], references: [id], onDelete: Cascade)
+
+  @@index([order_id], map: "idx_commerce_order_items_order")
 }
