@@ -251,6 +251,28 @@ router.patch('/team/:id', async (req: Request, res: Response) => {
 
 // ─── Team Commissions ───────────────────────────────────────────────────────
 
+// GET /api/admin/manager/finance/team-lead-stats
+router.get('/team-lead-stats', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const memberWhere: any = {};
+    if (admin.role !== 'SUPER_ADMIN') memberWhere.manager_admin_id = admin.id;
+    const members = await prisma.manager_team_members.findMany({ where: memberWhere, select: { id: true, name: true } });
+    const memberIds = members.map(m => m.id);
+    if (memberIds.length === 0) return res.json({ success: true, data: [] });
+    const grouped = await prisma.crm_leads.groupBy({ by: ['captured_by_member_id', 'status'], where: { captured_by_member_id: { in: memberIds }, deleted_at: null }, _count: true });
+    const statsMap: Record<string, { total: number; by_status: Record<string, number> }> = {};
+    grouped.forEach(g => {
+      const mid = g.captured_by_member_id!;
+      if (!statsMap[mid]) statsMap[mid] = { total: 0, by_status: {} };
+      statsMap[mid].total += g._count;
+      statsMap[mid].by_status[g.status] = (statsMap[mid].by_status[g.status] || 0) + g._count;
+    });
+    const data = members.map(m => ({ member_id: m.id, member_name: m.name, total_leads: statsMap[m.id]?.total || 0, by_status: statsMap[m.id]?.by_status || {} }));
+    res.json({ success: true, data });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao buscar stats de leads' }); }
+});
+
 // GET /api/admin/manager/finance/team-commissions (all commissions for manager)
 router.get('/team-commissions', async (req: Request, res: Response) => {
   try {

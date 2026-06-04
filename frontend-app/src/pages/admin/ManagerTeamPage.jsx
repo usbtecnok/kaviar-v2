@@ -26,6 +26,10 @@ export default function ManagerTeamPage() {
   const [commFormOpen, setCommFormOpen] = useState(false);
   const [allComm, setAllComm] = useState([]);
   const [commMonth, setCommMonth] = useState('');
+  const [leadStats, setLeadStats] = useState([]);
+  const [leadsMember, setLeadsMember] = useState(null);
+  const [leadsData, setLeadsData] = useState([]);
+  const [leadsLoading, setLeadsLoading] = useState(false);
 
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -33,9 +37,11 @@ export default function ManagerTeamPage() {
 
   const fetchMembers = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team`, { headers }); const d = await res.json(); if (d.success) setMembers(d.data); } catch {} setLoading(false); };
   const fetchAllComm = async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team-commissions`, { headers }); const d = await res.json(); if (d.success) setAllComm(d.data); } catch {} };
+  const fetchLeadStats = async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team-lead-stats`, { headers }); const d = await res.json(); if (d.success) setLeadStats(d.data); } catch {} };
   useEffect(() => {
     fetchMembers();
     fetchAllComm();
+    fetchLeadStats();
     fetch(`${API_BASE_URL}/api/admin/my-operator-profile`, { headers }).then(r => r.json()).then(d => { if (d.success && d.data?.territory?.name) setTerritoryName(d.data.territory.name); }).catch(() => {});
   }, []);
 
@@ -108,6 +114,17 @@ export default function ManagerTeamPage() {
   };
 
   const isManager = admin.role === 'TERRITORIAL_MANAGER';
+
+  const openLeadsMember = async (m) => {
+    setLeadsMember(m);
+    setLeadsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/crm/leads?captured_by_member_id=${m.id}&limit=50`, { headers });
+      const d = await res.json();
+      if (d.success) setLeadsData(d.data);
+    } catch {}
+    setLeadsLoading(false);
+  };
 
   const filteredComm = commMonth ? allComm.filter(c => c.reference_month === commMonth) : allComm;
   const sumBy = (arr, status) => arr.filter(c => c.status === status).reduce((s, c) => s + c.amount_cents, 0);
@@ -201,7 +218,7 @@ export default function ManagerTeamPage() {
         {loading ? <CircularProgress sx={{ color: GOLD }} /> : members.length > 0 ? (
           <Card sx={{ bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}><CardContent sx={{ p: 2 }}>
             <Table size="small"><TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
-              <TableCell>Nome</TableCell><TableCell>Função</TableCell><TableCell>Telefone</TableCell><TableCell>Status</TableCell><TableCell>Termo</TableCell><TableCell>Ações</TableCell>
+              <TableCell>Nome</TableCell><TableCell>Função</TableCell><TableCell>Telefone</TableCell><TableCell>Status</TableCell><TableCell>Termo</TableCell><TableCell>Leads</TableCell><TableCell>Ações</TableCell>
             </TableRow></TableHead><TableBody>
               {members.map(m => (
                 <TableRow key={m.id} hover>
@@ -210,6 +227,7 @@ export default function ManagerTeamPage() {
                   <TableCell sx={{ fontSize: 12 }}>{m.phone || '—'}</TableCell>
                   <TableCell><Chip label={STATUS_MAP[m.status]?.label || m.status} size="small" sx={{ bgcolor: `${STATUS_MAP[m.status]?.color}15`, color: STATUS_MAP[m.status]?.color, fontSize: 10 }} /></TableCell>
                   <TableCell><Chip label={CONTRACT_MAP[m.contract_status]?.label || 'Pendente'} size="small" sx={{ bgcolor: `${CONTRACT_MAP[m.contract_status]?.color || '#F59E0B'}15`, color: CONTRACT_MAP[m.contract_status]?.color || '#F59E0B', fontSize: 10 }} /></TableCell>
+                  <TableCell><Chip label={`${leadStats.find(s => s.member_id === m.id)?.total_leads || 0} leads`} size="small" onClick={() => openLeadsMember(m)} sx={{ cursor: 'pointer', fontSize: 10, bgcolor: (leadStats.find(s => s.member_id === m.id)?.total_leads || 0) > 0 ? '#EEF2FF' : undefined, color: (leadStats.find(s => s.member_id === m.id)?.total_leads || 0) > 0 ? '#4F46E5' : '#6B7280' }} /></TableCell>
                   <TableCell>
                     <Button size="small" startIcon={<Description />} onClick={() => setTermoMember(m)} sx={{ textTransform: 'none', fontSize: 10, color: GOLD }}>Ver Termo</Button>
                     <Button size="small" startIcon={<AccountBalance />} onClick={() => openCommissions(m)} sx={{ textTransform: 'none', fontSize: 10, color: '#6366F1' }}>Comissões</Button>
@@ -274,6 +292,32 @@ export default function ManagerTeamPage() {
           <TextField label="Observações" size="small" multiline rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         </DialogContent>
         <DialogActions><Button onClick={() => setDialogOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleSave} sx={{ bgcolor: GOLD }}>Salvar</Button></DialogActions>
+      </Dialog>
+
+      {/* Leads por Membro Modal */}
+      <Dialog open={!!leadsMember} onClose={() => setLeadsMember(null)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Leads captados — {leadsMember?.name}</DialogTitle>
+        <DialogContent>
+          {leadsLoading ? <CircularProgress size={20} /> : leadsData.length > 0 ? (
+            <Table size="small">
+              <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 10, color: '#6B7280', textTransform: 'uppercase' } }}>
+                <TableCell>Nome</TableCell><TableCell>Tipo</TableCell><TableCell>Status</TableCell><TableCell>Origem</TableCell><TableCell>Criado</TableCell>
+              </TableRow></TableHead>
+              <TableBody>
+                {leadsData.map(l => (
+                  <TableRow key={l.id} hover>
+                    <TableCell sx={{ fontSize: 12 }}>{l.name}{l.business_name && <Typography sx={{ fontSize: 10, color: '#6B7280' }}>{l.business_name}</Typography>}</TableCell>
+                    <TableCell sx={{ fontSize: 11 }}>{l.lead_type}</TableCell>
+                    <TableCell sx={{ fontSize: 11 }}>{l.status}</TableCell>
+                    <TableCell sx={{ fontSize: 11 }}>{l.source}</TableCell>
+                    <TableCell sx={{ fontSize: 11, color: '#6B7280' }}>{l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Nenhum lead captado por este membro.</Typography>}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setLeadsMember(null)} sx={{ textTransform: 'none' }}>Fechar</Button></DialogActions>
       </Dialog>
 
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')} message={snack} />
