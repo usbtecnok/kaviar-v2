@@ -66,6 +66,8 @@ const SOURCES = [
   { value: 'OTHER', label: 'Outro' },
 ];
 
+const ROLES_SHORT = { captador_motorista: 'Mot.', captador_passageiro: 'Pass.', captador_comercio: 'Com.', captador_associacao: 'Assoc.', parceiro_local: 'Parc.', suporte_local: 'Sup.', outro: 'Outro' };
+
 const EVENT_TYPES = [
   { value: 'NOTE', label: 'Observação' },
   { value: 'CALL', label: 'Ligação' },
@@ -93,7 +95,7 @@ export default function CrmPage() {
   const [snack, setSnack] = useState('');
 
   // Filters
-  const [filters, setFilters] = useState({ status: '', lead_type: '', source: '', search: '', priority: '', date_from: '', date_to: '' });
+  const [filters, setFilters] = useState({ status: '', lead_type: '', source: '', search: '', priority: '', date_from: '', date_to: '', captured_by_member_id: '' });
   const [showFilters, setShowFilters] = useState(false);
   const [periodFilter, setPeriodFilter] = useState('');
 
@@ -105,7 +107,7 @@ export default function CrmPage() {
 
   // Create dialog
   const [createOpen, setCreateOpen] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', priority: 'NORMAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '' });
+  const [createForm, setCreateForm] = useState({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', priority: 'NORMAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '', captured_by_member_id: '' });
 
   // Interaction dialog
   const [interactionOpen, setInteractionOpen] = useState(false);
@@ -120,6 +122,7 @@ export default function CrmPage() {
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const [teamMembers, setTeamMembers] = useState([]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -142,7 +145,7 @@ export default function CrmPage() {
     setLoading(false);
   }, [page, filters]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { fetchStats(); fetch(`${API_BASE_URL}/api/admin/manager/finance/team`, { headers }).then(r => r.json()).then(d => { if (d.success) setTeamMembers(d.data); }).catch(() => {}); }, [fetchStats]);
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
   // Period filter helper
@@ -173,7 +176,7 @@ export default function CrmPage() {
   };
 
   const openCreateWith = (preset) => {
-    setCreateForm({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', priority: 'NORMAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '', ...preset });
+    setCreateForm({ name: '', business_name: '', phone: '', email: '', lead_type: 'OTHER', source: 'MANUAL', priority: 'NORMAL', business_category: '', business_address: '', contact_person: '', notes: '', next_action: '', captured_by_member_id: '', ...preset });
     setCreateOpen(true);
   };
 
@@ -284,8 +287,8 @@ export default function CrmPage() {
           <ToggleButton value="week" sx={{ textTransform: 'none', fontSize: 12 }}>7 dias</ToggleButton>
         </ToggleButtonGroup>
         <IconButton size="small" onClick={() => setShowFilters(!showFilters)} sx={{ color: showFilters ? GOLD : '#6B7280' }}><FilterList /></IconButton>
-        {(filters.status || filters.lead_type || filters.source || filters.priority || filters.date_from) && (
-          <Button size="small" onClick={() => { setFilters({ status: '', lead_type: '', source: '', search: '', priority: '', date_from: '', date_to: '' }); setPeriodFilter(''); setPage(1); }} sx={{ color: '#EF4444', textTransform: 'none', fontSize: 12 }}>Limpar</Button>
+        {(filters.status || filters.lead_type || filters.source || filters.priority || filters.date_from || filters.captured_by_member_id) && (
+          <Button size="small" onClick={() => { setFilters({ status: '', lead_type: '', source: '', search: '', priority: '', date_from: '', date_to: '', captured_by_member_id: '' }); setPeriodFilter(''); setPage(1); }} sx={{ color: '#EF4444', textTransform: 'none', fontSize: 12 }}>Limpar</Button>
         )}
       </Box>
       {showFilters && (
@@ -318,6 +321,14 @@ export default function CrmPage() {
               {Object.entries(PRIORITY_MAP).map(([k, v]) => <MenuItem key={k} value={k}>{v.icon} {v.label}</MenuItem>)}
             </Select>
           </FormControl>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel>Captador</InputLabel>
+            <Select value={filters.captured_by_member_id} label="Captador" onChange={e => { setFilters(f => ({ ...f, captured_by_member_id: e.target.value })); setPage(1); }}>
+              <MenuItem value="">Todos</MenuItem>
+              <MenuItem value="none">Não informado</MenuItem>
+              {teamMembers.map(m => <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>)}
+            </Select>
+          </FormControl>
         </Box>
       )}
 
@@ -332,6 +343,7 @@ export default function CrmPage() {
                   <TableCell>Tipo</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Prior.</TableCell>
+                  <TableCell>Captado por</TableCell>
                   <TableCell>Próxima Ação</TableCell>
                   <TableCell>Último Contato</TableCell>
                   <TableCell>Criado</TableCell>
@@ -355,13 +367,14 @@ export default function CrmPage() {
                       <TableCell><Chip label={LEAD_TYPES.find(t => t.value === lead.lead_type)?.label || lead.lead_type} size="small" sx={{ fontSize: 10 }} /></TableCell>
                       <TableCell>{statusChip(lead.status)}</TableCell>
                       <TableCell>{priorityChip(lead.priority)}</TableCell>
+                      <TableCell sx={{ fontSize: 11, color: lead.captured_by_member ? '#374151' : '#9CA3AF' }}>{lead.captured_by_member?.name || 'Não informado'}</TableCell>
                       <TableCell sx={{ fontSize: 12, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: overdue ? '#EF4444' : '#374151' }}>{lead.next_action || <span style={{ color: '#F59E0B', fontStyle: 'italic' }}>definir...</span>}</TableCell>
                       <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.last_contact_at)}</TableCell>
                       <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.created_at)}</TableCell>
                     </TableRow>
                   );
                 })}
-                {leads.length === 0 && <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum lead encontrado</TableCell></TableRow>}
+                {leads.length === 0 && <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum lead encontrado</TableCell></TableRow>}
               </TableBody>
             </Table>
           </Box>
@@ -390,6 +403,20 @@ export default function CrmPage() {
               {selectedLead.business_name && <Typography sx={{ fontSize: 13 }}><Business sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />{selectedLead.business_name} {selectedLead.business_category && `(${selectedLead.business_category})`}</Typography>}
               {selectedLead.business_address && <Typography sx={{ fontSize: 12, color: '#6B7280', ml: 2.5 }}>{selectedLead.business_address}</Typography>}
               {selectedLead.contact_person && <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Contato: {selectedLead.contact_person}</Typography>}
+              <Box sx={{ mt: 1 }}>
+                <FormControl size="small" sx={{ minWidth: 200 }}>
+                  <InputLabel>Captado por</InputLabel>
+                  <Select value={selectedLead.captured_by_member_id || ''} label="Captado por" onChange={async (e) => {
+                    const val = e.target.value || null;
+                    const res = await fetch(`${API_BASE_URL}/api/admin/crm/leads/${selectedLead.id}`, { method: 'PATCH', headers, body: JSON.stringify({ captured_by_member_id: val }) });
+                    const d = await res.json();
+                    if (d.success) { setSelectedLead(sl => ({ ...sl, captured_by_member_id: val, captured_by_member: val ? teamMembers.find(m => m.id === val) : null })); fetchLeads(); setSnack('Captador atualizado'); } else setSnack(d.error || 'Erro');
+                  }}>
+                    <MenuItem value="">Não informado</MenuItem>
+                    {teamMembers.map(m => <MenuItem key={m.id} value={m.id}>{m.name} ({ROLES_SHORT[m.role_type] || m.role_type})</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Box>
               {selectedLead.next_action && (
                 <Typography sx={{ fontSize: 13, mt: 1, p: 1, borderRadius: 1, bgcolor: isOverdue(selectedLead.next_action_at) ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${isOverdue(selectedLead.next_action_at) ? '#FECACA' : '#BBF7D0'}` }}>
                   <AccessTime sx={{ fontSize: 14, mr: 0.5, verticalAlign: 'middle' }} />
@@ -476,6 +503,13 @@ export default function CrmPage() {
               <InputLabel>Origem</InputLabel>
               <Select value={createForm.source} label="Origem" onChange={e => setCreateForm(f => ({ ...f, source: e.target.value }))}>
                 {SOURCES.map(s => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Captado por</InputLabel>
+              <Select value={createForm.captured_by_member_id} label="Captado por" onChange={e => setCreateForm(f => ({ ...f, captured_by_member_id: e.target.value }))}>
+                <MenuItem value="">Não informado</MenuItem>
+                {teamMembers.map(m => <MenuItem key={m.id} value={m.id}>{m.name} ({ROLES_SHORT[m.role_type] || m.role_type})</MenuItem>)}
               </Select>
             </FormControl>
           </Box>

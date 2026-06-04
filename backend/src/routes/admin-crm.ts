@@ -64,6 +64,10 @@ function buildLeadWhere(admin: any, scope: any, query: any) {
     where.created_at = { ...(where.created_at || {}), lte: new Date(query.date_to as string) };
   }
 
+  if (query.captured_by_member_id) {
+    where.captured_by_member_id = query.captured_by_member_id === 'none' ? null : (UUID_RE.test(query.captured_by_member_id as string) ? query.captured_by_member_id : undefined);
+  }
+
   return where;
 }
 
