@@ -44,7 +44,7 @@ router.get('/accounts/:id', authenticateAdmin, CRM_ROLES, async (req: Request, r
   try {
     const account = await prisma.commerce_accounts.findFirst({
       where: { id: req.params.id, deleted_at: null },
-      include: { products: { where: { deleted_at: null }, orderBy: { sort_order: 'asc' } }, users: { select: { id: true, name: true, email: true, role: true, is_active: true, must_change_password: true } } },
+      include: { products: { where: { deleted_at: null }, orderBy: { sort_order: 'asc' } }, users: { select: { id: true, name: true, email: true, role: true, is_active: true, must_change_password: true } }, wallet: true },
     });
     if (!account) return res.status(404).json({ success: false, error: 'Não encontrado' });
     res.json({ success: true, data: account });
