@@ -2212,7 +2212,7 @@ model commerce_withdrawal_requests {
 model manager_team_members {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   manager_admin_id  String
-  territory_id      String?   @db.Uuid
+  territory_id      String?
   name              String    @db.VarChar(255)
   phone             String?   @db.VarChar(30)
   role_type         String    @default("outro") @db.VarChar(30)
