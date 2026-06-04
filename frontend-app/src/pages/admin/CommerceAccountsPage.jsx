@@ -188,7 +188,7 @@ export default function CommerceAccountsPage() {
       )}
 
       {/* Print CSS */}
-      <style>{`@media print { .no-print, nav, header, [class*="MuiDrawer"], [class*="MuiTabs"] { display: none !important; } .print-header, .print-footer { display: block !important; } }`}</style>
+      <style>{`@media print { .no-print, nav, header, [class*="MuiDrawer-root"], [class*="MuiTabs"], [class*="MuiBackdrop"] { display: none !important; } .print-header, .print-footer { display: block !important; } #individual-report { display: block !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; background: #fff !important; color: #000 !important; padding: 40px !important; z-index: 99999 !important; } }`}</style>
 
       {/* Wallet Drawer */}
       <Drawer anchor="right" open={walletOpen} onClose={() => setWalletOpen(false)} PaperProps={{ sx: { width: { xs: '100%', md: 520 }, p: 3 } }}>
@@ -235,6 +235,55 @@ export default function CommerceAccountsPage() {
               <Typography sx={{ fontSize: 12, color: '#374151' }}>Tipo: {walletAccount.payout_pix_key_type} • Chave: {walletAccount.payout_pix_key}</Typography>
               {walletAccount.payout_receiver_name && <Typography sx={{ fontSize: 12, color: '#374151' }}>Nome: {walletAccount.payout_receiver_name}</Typography>}
             </>}
+
+            {/* Individual report actions */}
+            <Divider sx={{ my: 2 }} />
+            <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>Relatório do Comércio</Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => {
+                const el = document.getElementById('individual-report');
+                if (el) { el.style.display = 'block'; window.print(); setTimeout(() => { el.style.display = 'none'; }, 500); }
+              }}>🖨️ Imprimir</Button>
+              <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => {
+                const w = walletData?.wallet;
+                const code = `REL-KAV-${walletAccount.name.slice(0,3).toUpperCase()}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`;
+                const text = `📊 Relatório Individual — KAVIAR Comércio\n🏢 KAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66\nCódigo: ${code}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n🏪 ${walletAccount.name}\nCategoria: ${walletAccount.category || '—'}\n\n✅ Disponível: R$ ${((w?.available_balance_cents||0)/100).toFixed(2)}\n⏳ Pendente: R$ ${((w?.pending_balance_cents||0)/100).toFixed(2)}\n💰 Total recebido: R$ ${((w?.total_received_cents||0)/100).toFixed(2)}\n💸 Total sacado: R$ ${((w?.total_withdrawn_cents||0)/100).toFixed(2)}\nSaques em aberto: ${withdrawals.filter(x=>['REQUESTED','APPROVED'].includes(x.status)).length}\n\nRelatório operacional. Não substitui nota fiscal.\nKAVIAR — USB Tecnok — CNPJ 07.710.691/0001-66`;
+                navigator.clipboard.writeText(text); setSnack('Relatório copiado!');
+              }}>📋 Copiar</Button>
+              <Button size="small" sx={{ textTransform: 'none', color: '#25D366' }} onClick={() => {
+                const w = walletData?.wallet;
+                const code = `REL-KAV-${walletAccount.name.slice(0,3).toUpperCase()}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}`;
+                const text = `📊 KAVIAR — Relatório\n🏪 ${walletAccount.name}\nCódigo: ${code}\n\n✅ Disponível: R$ ${((w?.available_balance_cents||0)/100).toFixed(2)}\n⏳ Pendente: R$ ${((w?.pending_balance_cents||0)/100).toFixed(2)}\n💰 Recebido: R$ ${((w?.total_received_cents||0)/100).toFixed(2)}\n💸 Sacado: R$ ${((w?.total_withdrawn_cents||0)/100).toFixed(2)}\n\nKAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+              }}>📱 WhatsApp</Button>
+            </Box>
+          </Box>
+        )}
+
+        {/* Hidden print area for individual report */}
+        {walletAccount && (
+          <Box id="individual-report" sx={{ display: 'none', '@media print': { display: 'block !important', position: 'fixed', top: 0, left: 0, width: '100%', bgcolor: '#fff', color: '#000', p: 4, zIndex: 9999 } }}>
+            <Box sx={{ borderBottom: '2px solid #B8942E', pb: 2, mb: 3 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: 22, color: '#B8942E' }}>KAVIAR</Typography>
+              <Typography sx={{ fontSize: 11 }}>Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda</Typography>
+              <Typography sx={{ fontSize: 11 }}>CNPJ: 07.710.691/0001-66</Typography>
+            </Box>
+            <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 0.5 }}>Relatório Individual — {walletAccount.name}</Typography>
+            <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Categoria: {walletAccount.category || '—'}</Typography>
+            <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Código: REL-KAV-{walletAccount.name.slice(0,3).toUpperCase()}-{new Date().toISOString().slice(0,10).replace(/-/g,'')}-{String(new Date().getHours()).padStart(2,'0')}{String(new Date().getMinutes()).padStart(2,'0')}</Typography>
+            <Typography sx={{ fontSize: 11, color: '#6B7280', mb: 2 }}>Emitido em: {new Date().toLocaleString('pt-BR')}</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 2 }}>
+              <Typography sx={{ fontSize: 13 }}>Saldo disponível: <strong>R$ {((walletData?.wallet?.available_balance_cents||0)/100).toFixed(2)}</strong></Typography>
+              <Typography sx={{ fontSize: 13 }}>Saldo pendente: <strong>R$ {((walletData?.wallet?.pending_balance_cents||0)/100).toFixed(2)}</strong></Typography>
+              <Typography sx={{ fontSize: 13 }}>Total recebido: <strong>R$ {((walletData?.wallet?.total_received_cents||0)/100).toFixed(2)}</strong></Typography>
+              <Typography sx={{ fontSize: 13 }}>Total sacado: <strong>R$ {((walletData?.wallet?.total_withdrawn_cents||0)/100).toFixed(2)}</strong></Typography>
+            </Box>
+            <Typography sx={{ fontSize: 12, mb: 2 }}>Saques em aberto: {withdrawals.filter(x=>['REQUESTED','APPROVED'].includes(x.status)).length}</Typography>
+            <Box sx={{ borderTop: '1px solid #E5E7EB', pt: 2, mt: 3 }}>
+              <Typography sx={{ fontSize: 9, color: '#6B7280' }}>KAVIAR é um produto da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.</Typography>
+              <Typography sx={{ fontSize: 9, color: '#9CA3AF' }}>Este relatório possui finalidade operacional e gerencial. Não substitui nota fiscal, recibo fiscal ou documento contábil oficial.</Typography>
+              <Typography sx={{ fontSize: 9, color: '#9CA3AF' }}>Documento gerado eletronicamente. Validação interna KAVIAR/USB Tecnok.</Typography>
+            </Box>
           </Box>
         )}
       </Drawer>
