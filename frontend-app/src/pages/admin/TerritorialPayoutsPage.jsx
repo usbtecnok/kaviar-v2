@@ -210,14 +210,14 @@ export default function TerritorialPayoutsPage() {
       {feedback.open && <Alert severity={feedback.severity} onClose={() => setFeedback({ ...feedback, open: false })} sx={{ mb: 2 }}>{feedback.message}</Alert>}
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, '& .MuiTab-root': { fontWeight: 600, color: '#9CA3AF' }, '& .Mui-selected': { color: '#C8A84E !important' }, '& .MuiTabs-indicator': { bgcolor: '#B8942E' } }}>
-        <Tab label={`Operadores (${operators.length})`} />
+        <Tab label={`Gestores/Operadores (${operators.length})`} />
         <Tab label={`Repasses (${payouts.length})`} />
       </Tabs>
 
       {tab === 0 && (
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            <Button variant="contained" onClick={() => setOpOpen(true)} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>+ Cadastrar Operador</Button>
+            <Button variant="contained" onClick={() => setOpOpen(true)} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>+ Cadastrar Gestor/Operador</Button>
           </Box>
           <TableContainer component={Paper} sx={{ border: '1px solid #E8E5DE' }}>
             <Table size="small">
@@ -241,7 +241,7 @@ export default function TerritorialPayoutsPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!operators.length && <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', color: '#6B7280', py: 4 }}>Nenhum operador cadastrado</TableCell></TableRow>}
+                {!operators.length && <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', color: '#6B7280', py: 4 }}>Nenhum gestor/operador cadastrado</TableCell></TableRow>}
               </TableBody>
             </Table>
           </TableContainer>
@@ -255,7 +255,7 @@ export default function TerritorialPayoutsPage() {
           </Box>
           <TableContainer component={Paper} sx={{ border: '1px solid #E8E5DE' }}>
             <Table size="small">
-              <TableHead><TableRow sx={{ bgcolor: '#FAFAF8' }}><TableCell sx={{ fontWeight: 700 }}>Território</TableCell><TableCell>Mês</TableCell><TableCell>Operador</TableCell><TableCell>Calculado</TableCell><TableCell>Aprovado</TableCell><TableCell>Status</TableCell><TableCell>Fiscal</TableCell><TableCell>Ações</TableCell></TableRow></TableHead>
+              <TableHead><TableRow sx={{ bgcolor: '#FAFAF8' }}><TableCell sx={{ fontWeight: 700 }}>Território</TableCell><TableCell>Mês</TableCell><TableCell>Gestor/Operador</TableCell><TableCell>Calculado</TableCell><TableCell>Aprovado</TableCell><TableCell>Status</TableCell><TableCell>Fiscal</TableCell><TableCell>Ações</TableCell></TableRow></TableHead>
               <TableBody>
                 {payouts.map(p => (
                   <TableRow key={p.id}>
@@ -282,7 +282,7 @@ export default function TerritorialPayoutsPage() {
 
       {/* Modal Criar Operador */}
       <Dialog open={opOpen} onClose={() => setOpOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB', maxHeight: '90vh' } }}>
-        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Cadastrar Operador Territorial</DialogTitle>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Cadastrar Gestor/Operador Territorial</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1, pb: 4, overflowY: 'auto' }}>
           {opError && <Alert severity="error">{opError}</Alert>}
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Tipo</Typography>
@@ -312,7 +312,7 @@ export default function TerritorialPayoutsPage() {
             </TextField></Box>
           </Box>
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Usuário de acesso autorizado (gestor operacional)</Typography>
-            <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mb: 1, fontSize: '0.7rem' }}>Este usuário acessa o painel em modo leitura. O operador financeiro/contratual é quem recebe do KAVIAR.</Typography>
+            <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mb: 1, fontSize: '0.7rem' }}>Este usuário acessa o painel em modo leitura. O gestor/operador territorial é o perfil responsável por recebimentos, contrato e repasses do KAVIAR.</Typography>
             {opForm.territory_id && !loadingAdmins && territoryAdmins.length === 0 && !createAccess && (
               <Alert severity="warning" sx={{ mb: 1 }}>Nenhum acesso vinculado a este território. Crie um abaixo.</Alert>
             )}
@@ -369,7 +369,7 @@ export default function TerritorialPayoutsPage() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
           {payTarget && <Box sx={{ p: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, border: '1px solid rgba(184,148,46,0.2)' }}>
             <Typography variant="body2" sx={{ color: '#C8A84E' }}>Valor aprovado: R$ {Number(payTarget.approved_amount || payTarget.calculated_amount).toFixed(2)}</Typography>
-            <Typography variant="body2" sx={{ color: '#9CA3AF' }}>Operador: {payTarget.operator?.display_name}</Typography>
+            <Typography variant="body2" sx={{ color: '#9CA3AF' }}>Gestor/Operador: {payTarget.operator?.display_name}</Typography>
             <Typography variant="body2" sx={{ color: '#9CA3AF', fontFamily: 'monospace' }}>Pix: {payTarget.operator?.pix_key || 'Não informado'}</Typography>
             {payTarget.fiscal_document_required && <Alert severity="warning" sx={{ mt: 1 }}>⚠️ Este repasse exige documento fiscal (NFS-e recomendada para PJ)</Alert>}
           </Box>}
@@ -396,7 +396,7 @@ export default function TerritorialPayoutsPage() {
 
       {/* Modal Verificação com Checklist */}
       <Dialog open={verifyOpen} onClose={() => setVerifyOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
-        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Verificação do Operador Territorial</DialogTitle>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Verificação do Gestor/Operador Territorial</DialogTitle>
         <DialogContent sx={{ mt: 1 }}>
           {verifyTarget && <Box sx={{ p: 2, mb: 2, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, border: '1px solid rgba(184,148,46,0.2)' }}>
             <Typography variant="body2" sx={{ color: '#C8A84E' }}>{verifyTarget.display_name}</Typography>
@@ -428,7 +428,7 @@ export default function TerritorialPayoutsPage() {
 
       {/* Modal Detalhes do Operador */}
       <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
-        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Detalhes do Operador</DialogTitle>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Detalhes do Gestor/Operador Territorial</DialogTitle>
         <DialogContent>
           {detailLoading ? <CircularProgress size={24} sx={{ color: '#B8942E' }} /> : detailTarget && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
