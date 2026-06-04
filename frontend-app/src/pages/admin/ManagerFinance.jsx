@@ -126,23 +126,24 @@ export default function ManagerFinance() {
         )}
 
         {/* Payouts */}
-        {payouts && payouts.length > 0 && (
-          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
-            <CardContent sx={{ p: 2 }}>
-              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Histórico de Repasses</Typography>
-              {payouts.map(p => (
-                <Box key={p.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #F3F4F6' }}>
-                  <Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.reference_month}</Typography><Typography sx={{ fontSize: 11, color: '#6B7280' }}>{fmt(p.approved_amount || p.calculated_amount)}{p.paid_at && ` • ${p.payment_method || 'PIX'} em ${new Date(p.paid_at).toLocaleDateString('pt-BR')}`}{p.received_at && ` • Recebido em ${new Date(p.received_at).toLocaleDateString('pt-BR')}`}</Typography></Box>
-                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-                    {p.status === 'calculated' && <Button size="small" variant="contained" sx={{ bgcolor: '#8B5CF6', textTransform: 'none', fontSize: 10, height: 24 }} onClick={async () => { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/payouts/${p.id}/request`, { method: 'POST', headers }); const d = await res.json(); if (d.success) { load(); setSnack('Repasse solicitado!'); } else setSnack(d.error || 'Erro'); }}>Solicitar</Button>}
-                    {p.status === 'paid' && <Button size="small" variant="contained" sx={{ bgcolor: '#059669', textTransform: 'none', fontSize: 10, height: 24 }} onClick={async () => { if (!window.confirm('Confirmar que recebeu este repasse?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/payouts/${p.id}/confirm-received`, { method: 'POST', headers }); const d = await res.json(); if (d.success) { load(); setSnack('Recebimento confirmado!'); } else setSnack(d.error || 'Erro'); }}>Confirmar Recebimento</Button>}
-                    <Chip label={STATUS_MAP[p.status] || p.status} size="small" sx={{ bgcolor: `${STATUS_COLOR[p.status] || '#6B7280'}15`, color: STATUS_COLOR[p.status] || '#6B7280', fontSize: 10, height: 22, fontWeight: 600 }} />
-                  </Box>
+        {/* Meus Repasses KAVIAR */}
+        <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+          <CardContent sx={{ p: 2 }}>
+            <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Meus Repasses KAVIAR</Typography>
+            {payouts && payouts.length > 0 ? payouts.map(p => (
+              <Box key={p.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #F3F4F6' }}>
+                <Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.reference_month}</Typography><Typography sx={{ fontSize: 11, color: '#6B7280' }}>{fmt(p.approved_amount || p.calculated_amount)}{p.paid_at && ` • ${p.payment_method || 'PIX'} em ${new Date(p.paid_at).toLocaleDateString('pt-BR')}`}</Typography></Box>
+                <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                  {p.status === 'calculated' && <Button size="small" variant="contained" sx={{ bgcolor: '#8B5CF6', textTransform: 'none', fontSize: 10, height: 24 }} onClick={async () => { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/payouts/${p.id}/request`, { method: 'POST', headers }); const d = await res.json(); if (d.success) { load(); setSnack('Repasse solicitado!'); } else setSnack(d.error || 'Erro'); }}>Solicitar</Button>}
+                  {p.status === 'paid' && <Button size="small" variant="contained" sx={{ bgcolor: '#059669', textTransform: 'none', fontSize: 10, height: 24 }} onClick={async () => { if (!window.confirm('Confirmar que recebeu este repasse?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/payouts/${p.id}/confirm-received`, { method: 'POST', headers }); const d = await res.json(); if (d.success) { load(); setSnack('Recebimento confirmado!'); } else setSnack(d.error || 'Erro'); }}>Confirmar Recebimento</Button>}
+                  <Chip label={STATUS_MAP[p.status] || p.status} size="small" sx={{ bgcolor: `${STATUS_COLOR[p.status] || '#6B7280'}15`, color: STATUS_COLOR[p.status] || '#6B7280', fontSize: 10, height: 22, fontWeight: 600 }} />
                 </Box>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+              </Box>
+            )) : (
+              <Typography sx={{ fontSize: 12, color: '#6B7280', textAlign: 'center', py: 2 }}>Você ainda não possui repasses disponíveis neste território. Quando a central KAVIAR apurar ou liberar valores, eles aparecerão aqui.</Typography>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Rules */}
         {rules && (
