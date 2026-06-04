@@ -2234,6 +2234,8 @@ model manager_team_members {
   contract_signed_at DateTime?
   contract_version  String?   @db.VarChar(30)
   contract_notes    String?
+  public_referral_code String? @unique @db.VarChar(30)
+  referral_code_active Boolean @default(true)
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 

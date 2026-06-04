@@ -249,6 +249,26 @@ router.patch('/team/:id', async (req: Request, res: Response) => {
   } catch { res.status(500).json({ success: false, error: 'Erro ao atualizar membro' }); }
 });
 
+// POST /api/admin/manager/finance/team/:id/generate-code
+router.post('/team/:id/generate-code', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const where: any = { id: req.params.id };
+    if (admin.role !== 'SUPER_ADMIN') where.manager_admin_id = admin.id;
+    const member = await prisma.manager_team_members.findFirst({ where });
+    if (!member) return res.status(404).json({ success: false, error: 'Membro não encontrado' });
+    if (member.public_referral_code) return res.json({ success: true, data: { public_referral_code: member.public_referral_code }, message: 'Código já existe' });
+    const prefix = member.name.split(' ')[0].toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) || 'MMBR';
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const code = `KV-${prefix}-${rand}`;
+    const updated = await prisma.manager_team_members.update({ where: { id: member.id }, data: { public_referral_code: code } });
+    res.json({ success: true, data: { public_referral_code: updated.public_referral_code } });
+  } catch (err: any) {
+    if (err?.code === 'P2002') return res.status(409).json({ success: false, error: 'Colisão de código. Tente novamente.' });
+    res.status(500).json({ success: false, error: 'Erro ao gerar código' });
+  }
+});
+
 // ─── Team Commissions ───────────────────────────────────────────────────────
 
 // GET /api/admin/manager/finance/team-lead-stats
