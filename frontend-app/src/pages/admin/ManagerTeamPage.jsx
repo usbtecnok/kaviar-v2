@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, Container, Typography, Card, CardContent, Button, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress } from '@mui/material';
-import { Add, Description, Print, ContentCopy } from '@mui/icons-material';
+import { Box, Container, Typography, Card, CardContent, Button, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Tooltip } from '@mui/material';
+import { Add, Description, Print, ContentCopy, AccountBalance } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
 const ROLES = [{ value: 'captador_motorista', label: 'Captador Motorista' }, { value: 'captador_passageiro', label: 'Captador Passageiro' }, { value: 'captador_comercio', label: 'Captador Comércio' }, { value: 'captador_associacao', label: 'Captador Associação' }, { value: 'parceiro_local', label: 'Parceiro Local' }, { value: 'suporte_local', label: 'Suporte Local' }, { value: 'outro', label: 'Outro' }];
 const STATUS_MAP = { active: { label: 'Ativo', color: '#10B981' }, pending: { label: 'Pendente', color: '#F59E0B' }, inactive: { label: 'Inativo', color: '#6B7280' } };
 const CONTRACT_MAP = { pending: { label: 'Pendente', color: '#F59E0B' }, delivered: { label: 'Entregue', color: '#3B82F6' }, signed: { label: 'Assinado', color: '#10B981' }, waived: { label: 'Dispensado', color: '#6B7280' } };
+const COMMISSION_STATUS = { pending: { label: 'Pendente', color: '#F59E0B' }, agreed: { label: 'Combinado', color: '#3B82F6' }, paid_by_manager: { label: 'Pago pelo Gestor', color: '#10B981' }, canceled: { label: 'Cancelado', color: '#EF4444' } };
 
 export default function ManagerTeamPage() {
   const [members, setMembers] = useState([]);
@@ -18,6 +19,11 @@ export default function ManagerTeamPage() {
   const [termoMember, setTermoMember] = useState(null);
   const [territoryName, setTerritoryName] = useState('');
   const termoRef = useRef(null);
+  const [commMember, setCommMember] = useState(null);
+  const [commissions, setCommissions] = useState([]);
+  const [commLoading, setCommLoading] = useState(false);
+  const [commForm, setCommForm] = useState({ description: '', amount: '', reference_month: '', notes: '' });
+  const [commFormOpen, setCommFormOpen] = useState(false);
 
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -71,6 +77,34 @@ export default function ManagerTeamPage() {
     navigator.clipboard.writeText(text).then(() => setSnack('Texto copiado!')).catch(() => setSnack('Erro ao copiar'));
   };
 
+  const openCommissions = async (m) => {
+    setCommMember(m);
+    setCommLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team/${m.id}/commissions`, { headers });
+      const d = await res.json();
+      if (d.success) setCommissions(d.data);
+    } catch {}
+    setCommLoading(false);
+  };
+
+  const handleCommCreate = async () => {
+    if (!commForm.description.trim() || !commForm.amount) return setSnack('Descrição e valor obrigatórios');
+    const amount_cents = Math.round(parseFloat(commForm.amount) * 100);
+    if (amount_cents <= 0) return setSnack('Valor deve ser maior que zero');
+    const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team/${commMember.id}/commissions`, { method: 'POST', headers, body: JSON.stringify({ description: commForm.description, amount_cents, reference_month: commForm.reference_month || null, notes: commForm.notes || null }) });
+    const d = await res.json();
+    if (d.success) { setCommFormOpen(false); setCommForm({ description: '', amount: '', reference_month: '', notes: '' }); openCommissions(commMember); setSnack('Comissão registrada!'); } else setSnack(d.error || 'Erro');
+  };
+
+  const updateCommStatus = async (id, status) => {
+    const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team/commissions/${id}`, { method: 'PATCH', headers, body: JSON.stringify({ status }) });
+    const d = await res.json();
+    if (d.success) { openCommissions(commMember); setSnack(`Status: ${COMMISSION_STATUS[status]?.label}`); } else setSnack(d.error || 'Erro');
+  };
+
+  const isManager = admin.role === 'TERRITORIAL_MANAGER';
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#FAFAF8', pt: 2, pb: 6 }}>
       <Container maxWidth="lg">
@@ -95,6 +129,7 @@ export default function ManagerTeamPage() {
                   <TableCell><Chip label={CONTRACT_MAP[m.contract_status]?.label || 'Pendente'} size="small" sx={{ bgcolor: `${CONTRACT_MAP[m.contract_status]?.color || '#F59E0B'}15`, color: CONTRACT_MAP[m.contract_status]?.color || '#F59E0B', fontSize: 10 }} /></TableCell>
                   <TableCell>
                     <Button size="small" startIcon={<Description />} onClick={() => setTermoMember(m)} sx={{ textTransform: 'none', fontSize: 10, color: GOLD }}>Ver Termo</Button>
+                    <Button size="small" startIcon={<AccountBalance />} onClick={() => openCommissions(m)} sx={{ textTransform: 'none', fontSize: 10, color: '#6366F1' }}>Comissões</Button>
                     <Button size="small" onClick={() => openEdit(m)} sx={{ textTransform: 'none', fontSize: 11 }}>Editar</Button>
                     {m.contract_status === 'pending' && <Button size="small" onClick={() => updateContract(m.id, 'delivered')} sx={{ textTransform: 'none', fontSize: 10, color: '#3B82F6' }}>Entregue</Button>}
                     {(m.contract_status === 'pending' || m.contract_status === 'delivered') && <Button size="small" onClick={() => updateContract(m.id, 'signed')} sx={{ textTransform: 'none', fontSize: 10, color: '#10B981' }}>Assinado</Button>}
@@ -159,6 +194,65 @@ export default function ManagerTeamPage() {
       </Dialog>
 
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')} message={snack} />
+
+      {/* Commissions Modal */}
+      <Dialog open={!!commMember} onClose={() => { setCommMember(null); setCommFormOpen(false); }} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AccountBalance sx={{ color: '#6366F1' }} /> Comissões — {commMember?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2, fontSize: 10 }} icon={false}>
+            ⚠️ Os valores registrados aqui são informativos e representam acordos internos entre o Gestor Territorial e os membros de sua equipe. O KAVIAR não realiza pagamento automático, não retém valores e não se responsabiliza por esses acordos. Este registro não substitui contrato, recibo, nota fiscal ou orientação contábil.
+          </Alert>
+
+          {isManager && (
+            commMember?.contract_status !== 'signed'
+              ? <Tooltip title="Membro deve ter termo assinado"><span><Button variant="contained" size="small" disabled startIcon={<Add />} sx={{ mb: 2, textTransform: 'none' }}>Registrar comissão</Button></span></Tooltip>
+              : <Button variant="contained" size="small" startIcon={<Add />} onClick={() => setCommFormOpen(true)} sx={{ mb: 2, bgcolor: '#6366F1', textTransform: 'none' }}>Registrar comissão</Button>
+          )}
+
+          {commFormOpen && (
+            <Card sx={{ mb: 2, p: 2, border: '1px solid #E8E5DE' }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <TextField label="Descrição *" size="small" value={commForm.description} onChange={e => setCommForm(f => ({ ...f, description: e.target.value }))} />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField label="Valor (R$) *" size="small" type="number" inputProps={{ step: '0.01', min: '0.01' }} value={commForm.amount} onChange={e => setCommForm(f => ({ ...f, amount: e.target.value }))} sx={{ width: 150 }} />
+                  <TextField label="Mês ref. (ex: 2026-06)" size="small" value={commForm.reference_month} onChange={e => setCommForm(f => ({ ...f, reference_month: e.target.value }))} sx={{ width: 180 }} />
+                </Box>
+                <TextField label="Observações" size="small" multiline rows={1} value={commForm.notes} onChange={e => setCommForm(f => ({ ...f, notes: e.target.value }))} />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" size="small" onClick={handleCommCreate} sx={{ bgcolor: '#6366F1', textTransform: 'none' }}>Salvar</Button>
+                  <Button size="small" onClick={() => setCommFormOpen(false)} sx={{ textTransform: 'none' }}>Cancelar</Button>
+                </Box>
+              </Box>
+            </Card>
+          )}
+
+          {commLoading ? <CircularProgress size={20} /> : commissions.length > 0 ? (
+            <Table size="small">
+              <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 10, color: '#6B7280', textTransform: 'uppercase' } }}>
+                <TableCell>Descrição</TableCell><TableCell>Valor</TableCell><TableCell>Ref.</TableCell><TableCell>Status</TableCell>{isManager && <TableCell>Ações</TableCell>}
+              </TableRow></TableHead>
+              <TableBody>
+                {commissions.map(c => (
+                  <TableRow key={c.id} hover>
+                    <TableCell sx={{ fontSize: 12 }}>{c.description}{c.notes && <Typography sx={{ fontSize: 10, color: '#9CA3AF' }}>{c.notes}</Typography>}</TableCell>
+                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>R$ {(c.amount_cents / 100).toFixed(2)}</TableCell>
+                    <TableCell sx={{ fontSize: 11 }}>{c.reference_month || '—'}</TableCell>
+                    <TableCell><Chip label={COMMISSION_STATUS[c.status]?.label || c.status} size="small" sx={{ bgcolor: `${COMMISSION_STATUS[c.status]?.color || '#6B7280'}15`, color: COMMISSION_STATUS[c.status]?.color || '#6B7280', fontSize: 10 }} /></TableCell>
+                    {isManager && <TableCell>
+                      {c.status === 'pending' && <Button size="small" onClick={() => updateCommStatus(c.id, 'agreed')} sx={{ textTransform: 'none', fontSize: 9, color: '#3B82F6' }}>Marcar como combinado</Button>}
+                      {(c.status === 'pending' || c.status === 'agreed') && <Button size="small" onClick={() => updateCommStatus(c.id, 'paid_by_manager')} sx={{ textTransform: 'none', fontSize: 9, color: '#10B981' }}>Registrar como pago pelo gestor</Button>}
+                      {c.status !== 'canceled' && c.status !== 'paid_by_manager' && <Button size="small" onClick={() => updateCommStatus(c.id, 'canceled')} sx={{ textTransform: 'none', fontSize: 9, color: '#EF4444' }}>Cancelar registro</Button>}
+                    </TableCell>}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Nenhuma comissão registrada.</Typography>}
+        </DialogContent>
+        <DialogActions><Button onClick={() => { setCommMember(null); setCommFormOpen(false); }} sx={{ textTransform: 'none' }}>Fechar</Button></DialogActions>
+      </Dialog>
     </Box>
   );
 }

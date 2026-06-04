@@ -2232,6 +2232,27 @@ model manager_team_members {
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
+  commissions manager_team_commissions[]
+
   @@index([manager_admin_id], map: "idx_manager_team_members_admin")
+}
+
+model manager_team_commissions {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  manager_admin_id String
+  member_id        String   @db.Uuid
+  territory_id     String?
+  description      String
+  amount_cents     Int
+  reference_month  String?
+  status           String   @default("pending") @db.VarChar(20)
+  notes            String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  member manager_team_members @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@index([manager_admin_id], map: "idx_manager_team_commissions_admin")
+  @@index([member_id], map: "idx_manager_team_commissions_member")
 }
 

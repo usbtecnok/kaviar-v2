@@ -249,4 +249,52 @@ router.patch('/team/:id', async (req: Request, res: Response) => {
   } catch { res.status(500).json({ success: false, error: 'Erro ao atualizar membro' }); }
 });
 
+// ─── Team Commissions ───────────────────────────────────────────────────────
+
+// GET /api/admin/manager/finance/team/:memberId/commissions
+router.get('/team/:memberId/commissions', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const memberWhere: any = { id: req.params.memberId };
+    if (admin.role !== 'SUPER_ADMIN') memberWhere.manager_admin_id = admin.id;
+    const member = await prisma.manager_team_members.findFirst({ where: memberWhere });
+    if (!member) return res.status(404).json({ success: false, error: 'Membro não encontrado' });
+    const commissions = await prisma.manager_team_commissions.findMany({ where: { member_id: member.id }, orderBy: { created_at: 'desc' } });
+    res.json({ success: true, data: commissions });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao listar comissões' }); }
+});
+
+// POST /api/admin/manager/finance/team/:memberId/commissions
+router.post('/team/:memberId/commissions', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    if (admin.role === 'SUPER_ADMIN') return res.status(403).json({ success: false, error: 'SUPER_ADMIN não registra comissões internas' });
+    const member = await prisma.manager_team_members.findFirst({ where: { id: req.params.memberId, manager_admin_id: admin.id } });
+    if (!member) return res.status(404).json({ success: false, error: 'Membro não encontrado' });
+    if (member.contract_status !== 'signed') return res.status(400).json({ success: false, error: 'Membro deve ter termo assinado para registrar comissão' });
+    const { description, amount_cents, reference_month, notes } = req.body;
+    if (!description || !amount_cents || amount_cents <= 0) return res.status(400).json({ success: false, error: 'Descrição e valor são obrigatórios' });
+    const scope = (req as any).territoryScope;
+    const territory_id = scope?.territoryIds?.[0] || null;
+    const commission = await prisma.manager_team_commissions.create({ data: { manager_admin_id: admin.id, member_id: member.id, territory_id, description, amount_cents: Math.round(amount_cents), reference_month: reference_month || null, notes: notes || null } });
+    res.status(201).json({ success: true, data: commission });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao registrar comissão' }); }
+});
+
+// PATCH /api/admin/manager/finance/team/commissions/:id
+router.patch('/team/commissions/:id', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    if (admin.role === 'SUPER_ADMIN') return res.status(403).json({ success: false, error: 'SUPER_ADMIN não altera comissões internas nesta fase' });
+    const existing = await prisma.manager_team_commissions.findFirst({ where: { id: req.params.id, manager_admin_id: admin.id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Comissão não encontrada' });
+    const { status, notes } = req.body;
+    const data: any = {};
+    if (status && ['pending', 'agreed', 'paid_by_manager', 'canceled'].includes(status)) data.status = status;
+    if (notes !== undefined) data.notes = notes || null;
+    const updated = await prisma.manager_team_commissions.update({ where: { id: existing.id }, data });
+    res.json({ success: true, data: updated });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao atualizar comissão' }); }
+});
+
 export default router;
