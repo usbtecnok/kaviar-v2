@@ -78,31 +78,6 @@ export default function CommerceAccountsPage() {
 
       {/* Comércios Tab */}
       {(mainTab === 0 || !isSuperAdmin) && (<>
-        <Table size="small">
-          <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
-            <TableCell>Nome</TableCell><TableCell>Categoria</TableCell><TableCell>Email</TableCell><TableCell>Status</TableCell><TableCell>Ações</TableCell>
-          </TableRow></TableHead>
-          <TableBody>
-            {accounts.map(a => (
-              <TableRow key={a.id} hover>
-                <TableCell><Typography sx={{ fontWeight: 600, fontSize: 13 }}>{a.name}</Typography>{a.trade_name && <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{a.trade_name}</Typography>}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{a.category}</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>{a.email || '—'}</TableCell>
-                <TableCell><Chip label={STATUS_MAP[a.status]?.label || a.status} color={STATUS_MAP[a.status]?.color || 'default'} size="small" /></TableCell>
-                <TableCell>
-                  {isSuperAdmin && a.status === 'pending' && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
-                  {isSuperAdmin && a.status === 'active' && <>
-                    <Tooltip title="Carteira / Saques"><IconButton size="small" onClick={() => openWallet(a)} sx={{ color: GOLD }}><AccountBalanceWallet sx={{ fontSize: 18 }} /></IconButton></Tooltip>
-                    <Tooltip title="Resetar senha"><IconButton size="small" onClick={() => handleResetPassword(a.id)} sx={{ color: '#6B7280' }}><LockReset sx={{ fontSize: 18 }} /></IconButton></Tooltip>
-                  </>}
-                </TableCell>
-              </TableRow>
-            ))}
-            {accounts.length === 0 && <TableRow><TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum comércio</TableCell></TableRow>}
-          </TableBody>
-        </Table>
-      )}
-
       {loading ? <CircularProgress sx={{ color: GOLD }} /> : (
         <Table size="small">
           <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#6B7280', textTransform: 'uppercase' } }}>
