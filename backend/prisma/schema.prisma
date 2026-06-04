@@ -2117,6 +2117,14 @@ model commerce_orders {
   pix_copy_paste          String?
   pix_expires_at          DateTime?
   paid_at                 DateTime?
+  order_code              String?   @unique @db.VarChar(10)
+  delivery_code           String?   @db.VarChar(6)
+  delivery_status         String    @default("none") @db.VarChar(20)
+  delivery_requested_at   DateTime?
+  driver_id               String?
+  driver_name             String?   @db.VarChar(100)
+  dispatched_at           DateTime?
+  delivered_at            DateTime?
   notes                   String?
   accepted_at             DateTime?
   prepared_at             DateTime?

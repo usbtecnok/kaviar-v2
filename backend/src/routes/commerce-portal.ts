@@ -185,6 +185,25 @@ router.patch('/orders/:id/status', authenticateCommerce, async (req: Request, re
   }
 });
 
+// POST /api/commerce/orders/:id/request-delivery
+router.post('/orders/:id/request-delivery', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const order = await prisma.commerce_orders.findFirst({
+      where: { id: req.params.id, commerce_account_id: (req as any).commerceAccount.id },
+    });
+    if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
+    if (order.delivery_type !== 'delivery') return res.status(400).json({ success: false, error: 'Pedido é retirada, não entrega' });
+    if (order.payment_status !== 'paid') return res.status(400).json({ success: false, error: 'Pagamento pendente' });
+    if (order.status !== 'READY') return res.status(400).json({ success: false, error: 'Pedido precisa estar READY' });
+    if (!order.customer_address) return res.status(400).json({ success: false, error: 'Endereço não informado' });
+    if (order.delivery_status !== 'none') return res.status(400).json({ success: false, error: 'Entrega já solicitada' });
+
+    const delivery_code = String(Math.floor(1000 + Math.random() * 9000));
+    await prisma.commerce_orders.update({ where: { id: order.id }, data: { delivery_status: 'requested', delivery_requested_at: new Date(), delivery_code } });
+    res.json({ success: true, data: { delivery_status: 'requested', delivery_code } });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
 // ─── Wallet ─────────────────────────────────────────────────────────────────
 
 // GET /api/commerce/wallet

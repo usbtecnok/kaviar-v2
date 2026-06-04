@@ -61,26 +61,40 @@ router.post('/:slug/orders', async (req: Request, res: Response) => {
       orderItems.push({ product_id: product.id, product_name: product.name, quantity: qty, unit_price_cents: product.price_cents, total_cents: product.price_cents * qty, notes: item.notes || null });
     }
 
+    const isDelivery = delivery_type === 'delivery';
+    if (isDelivery && !customer_address) return res.status(400).json({ success: false, error: 'Endereço obrigatório para entrega' });
+
     const subtotal_cents = orderItems.reduce((sum, i) => sum + i.total_cents, 0);
+    const delivery_fee_cents = isDelivery ? 300 : 0;
     const commissionRate = Number(account.commission_percent) / 100;
     const kaviar_commission_cents = Math.round(subtotal_cents * commissionRate);
     const commerce_net_cents = subtotal_cents - kaviar_commission_cents;
-    const total_cents = subtotal_cents;
+    const total_cents = subtotal_cents + delivery_fee_cents;
+
+    // Generate unique order_code
+    let order_code = '';
+    for (let i = 0; i < 5; i++) {
+      order_code = 'KAV-' + String(Math.floor(1000 + Math.random() * 9000));
+      const exists = await prisma.commerce_orders.findFirst({ where: { order_code } });
+      if (!exists) break;
+    }
 
     const order = await prisma.commerce_orders.create({
       data: {
         commerce_account_id: account.id,
         customer_name, customer_phone,
         customer_address: customer_address || null,
-        delivery_type: delivery_type === 'delivery' ? 'delivery' : 'pickup',
+        delivery_type: isDelivery ? 'delivery' : 'pickup',
+        delivery_fee_cents,
         subtotal_cents, kaviar_commission_cents, commerce_net_cents, total_cents,
+        order_code,
         notes: notes || null,
         items: { create: orderItems },
       },
       include: { items: true },
     });
 
-    res.status(201).json({ success: true, data: { id: order.id, status: order.status, total_cents: order.total_cents } });
+    res.status(201).json({ success: true, data: { id: order.id, order_code: order.order_code, status: order.status, total_cents: order.total_cents, delivery_fee_cents: order.delivery_fee_cents } });
   } catch (error) {
     console.error('[commerce-public] order error:', error);
     res.status(500).json({ success: false, error: 'Erro ao criar pedido' });
@@ -115,12 +129,33 @@ router.post('/orders/:id/pay', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/public/commerce/orders/:id/status — check payment status
-router.get('/orders/:id/status', async (req: Request, res: Response) => {
+// GET /api/public/commerce/orders/:code/status
+router.get('/orders/:code/status', async (req: Request, res: Response) => {
   try {
-    const order = await prisma.commerce_orders.findFirst({ where: { id: req.params.id }, select: { payment_status: true, status: true } });
+    const order = await prisma.commerce_orders.findFirst({ where: { OR: [{ id: req.params.code }, { order_code: req.params.code }] }, select: { payment_status: true, status: true, delivery_status: true } });
     if (!order) return res.status(404).json({ success: false, error: 'Não encontrado' });
     res.json({ success: true, data: order });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// GET /api/public/commerce/orders/:code/track
+router.get('/orders/:code/track', async (req: Request, res: Response) => {
+  try {
+    const order = await prisma.commerce_orders.findFirst({
+      where: { OR: [{ order_code: req.params.code }, { id: req.params.code }] },
+      include: { account: { select: { name: true, trade_name: true } }, items: true },
+    });
+    if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
+    const showCode = order.delivery_type === 'delivery' && order.delivery_code && ['READY', 'DISPATCHED'].includes(order.status);
+    res.json({ success: true, data: {
+      order_code: order.order_code, status: order.status, payment_status: order.payment_status,
+      delivery_type: order.delivery_type, delivery_status: order.delivery_status,
+      delivery_fee_cents: order.delivery_fee_cents, subtotal_cents: order.subtotal_cents, total_cents: order.total_cents,
+      customer_name: order.customer_name, commerce_name: order.account.trade_name || order.account.name,
+      items: order.items.map(i => ({ name: i.product_name, quantity: i.quantity, total_cents: i.total_cents })),
+      delivery_code: showCode ? order.delivery_code : null,
+      driver_name: order.driver_name || null, created_at: order.created_at,
+    } });
   } catch { res.status(500).json({ success: false, error: 'Erro' }); }
 });
 

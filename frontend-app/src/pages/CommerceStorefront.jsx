@@ -14,7 +14,7 @@ export default function CommerceStorefront() {
   const [error, setError] = useState('');
   const [cart, setCart] = useState({});
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [form, setForm] = useState({ customer_name: '', customer_phone: '', notes: '' });
+  const [form, setForm] = useState({ customer_name: '', customer_phone: '', customer_address: '', delivery_type: 'pickup', notes: '' });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
   const [snack, setSnack] = useState('');
@@ -43,7 +43,7 @@ export default function CommerceStorefront() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/public/commerce/${slug}/orders`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, delivery_type: 'pickup', items }),
+        body: JSON.stringify({ customer_name: form.customer_name, customer_phone: form.customer_phone, customer_address: form.customer_address || null, delivery_type: form.delivery_type, notes: form.notes, items }),
       });
       const data = await res.json();
       if (data.success) { setSuccess(data.data); setCheckoutOpen(false); setCart({}); }
@@ -62,7 +62,9 @@ export default function CommerceStorefront() {
           <Typography sx={{ fontSize: 48, mb: 2 }}>✅</Typography>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Pedido enviado!</Typography>
           <Typography sx={{ color: '#6B7280', mb: 2 }}>Seu pedido foi recebido por {store?.name}.</Typography>
-          <Chip label={`Total: R$ ${(success.total_cents / 100).toFixed(2)}`} sx={{ fontWeight: 700, fontSize: 16, px: 2, py: 2.5, mb: 2 }} />
+          {success.order_code && <Chip label={success.order_code} sx={{ fontWeight: 800, fontSize: 18, px: 2, py: 2.5, mb: 1 }} />}
+          <Chip label={`Total: R$ ${(success.total_cents / 100).toFixed(2)}`} sx={{ fontWeight: 700, fontSize: 14, px: 2, py: 2, mb: 1 }} />
+          {success.order_code && <Typography sx={{ fontSize: 12, color: '#6B7280', mb: 1 }}>Acompanhe em: <a href={`/pedido/${success.order_code}`} style={{ color: GOLD }}>/pedido/{success.order_code}</a></Typography>}
           <Button fullWidth variant="contained" sx={{ bgcolor: '#059669', textTransform: 'none', fontWeight: 700, mb: 1 }}
             onClick={async () => {
               const res = await fetch(`${API_BASE_URL}/api/public/commerce/orders/${success.id}/pay`, { method: 'POST' });
@@ -70,7 +72,7 @@ export default function CommerceStorefront() {
               if (data.success) setSuccess(s => ({ ...s, pix: data.data }));
               else setSnack(data.data?.already_paid ? 'Já pago!' : 'Erro ao gerar Pix');
             }}>Pagar com Pix</Button>
-          <Button fullWidth sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => { setSuccess(null); setForm({ customer_name: '', customer_phone: '', notes: '' }); }}>Fazer novo pedido</Button>
+          <Button fullWidth sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => { setSuccess(null); setForm({ customer_name: '', customer_phone: '', customer_address: '', delivery_type: 'pickup', notes: '' }); }}>Fazer novo pedido</Button>
         </> : <>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>💳 Pague via Pix</Typography>
           <Typography sx={{ color: '#6B7280', mb: 2, fontSize: 13 }}>Escaneie o QR Code ou copie o código Pix abaixo.</Typography>
@@ -144,12 +146,22 @@ export default function CommerceStorefront() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
           <Box sx={{ bgcolor: '#F9FAFB', p: 2, borderRadius: 1 }}>
             {Object.entries(cart).map(([id, qty]) => { const p = products.find(x => x.id === id); return p ? <Typography key={id} sx={{ fontSize: 13 }}>{qty}× {p.name} — R$ {(p.price_cents * qty / 100).toFixed(2)}</Typography> : null; })}
-            <Typography sx={{ fontWeight: 700, mt: 1, borderTop: '1px solid #E5E7EB', pt: 1 }}>Total: R$ {(cartTotal / 100).toFixed(2)}</Typography>
+            <Box sx={{ borderTop: '1px solid #E5E7EB', mt: 1, pt: 1 }}>
+              <Typography sx={{ fontSize: 13 }}>Produtos: R$ {(cartTotal / 100).toFixed(2)}</Typography>
+              {form.delivery_type === 'delivery' && <Typography sx={{ fontSize: 13, color: '#059669' }}>Entrega: R$ 3,00</Typography>}
+              <Typography sx={{ fontWeight: 700, fontSize: 15 }}>Total: R$ {((cartTotal + (form.delivery_type === 'delivery' ? 300 : 0)) / 100).toFixed(2)}</Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button fullWidth variant={form.delivery_type === 'pickup' ? 'contained' : 'outlined'} size="small" onClick={() => setForm(f => ({ ...f, delivery_type: 'pickup' }))} sx={{ textTransform: 'none', ...(form.delivery_type === 'pickup' && { bgcolor: GOLD }) }}>🏪 Retirar no local</Button>
+            <Button fullWidth variant={form.delivery_type === 'delivery' ? 'contained' : 'outlined'} size="small" onClick={() => setForm(f => ({ ...f, delivery_type: 'delivery' }))} sx={{ textTransform: 'none', ...(form.delivery_type === 'delivery' && { bgcolor: '#059669' }) }}>🚗 Receber em casa</Button>
           </Box>
           <TextField label="Seu nome *" size="small" value={form.customer_name} onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))} />
           <TextField label="Seu telefone *" size="small" value={form.customer_phone} onChange={e => setForm(f => ({ ...f, customer_phone: e.target.value }))} />
+          {form.delivery_type === 'delivery' && <TextField label="Endereço de entrega *" size="small" value={form.customer_address} onChange={e => setForm(f => ({ ...f, customer_address: e.target.value }))} placeholder="Rua, número, bairro, complemento" />}
           <TextField label="Observações" size="small" multiline rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Ex: sem cebola, troco para R$50..." />
-          <Alert severity="info" sx={{ fontSize: 12 }}>Retirada no local. Pagamento ao retirar.</Alert>
+          {form.delivery_type === 'pickup' && <Alert severity="info" sx={{ fontSize: 12 }}>Retirada no local. Pagamento via Pix.</Alert>}
+          {form.delivery_type === 'delivery' && <Alert severity="info" sx={{ fontSize: 12 }}>Entrega KAVIAR • Taxa: R$ 3,00 • Pagamento via Pix</Alert>}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCheckoutOpen(false)}>Cancelar</Button>

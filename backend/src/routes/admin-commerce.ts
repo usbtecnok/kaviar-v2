@@ -237,6 +237,42 @@ router.patch('/orders/:id/confirm-payment', authenticateAdmin, requireSuperAdmin
   }
 });
 
+// POST /api/admin/commerce/orders/:id/assign-driver
+router.post('/orders/:id/assign-driver', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { driver_id, driver_name } = req.body;
+    if (!driver_name) return res.status(400).json({ success: false, error: 'Nome do motorista obrigatório' });
+    const order = await prisma.commerce_orders.findFirst({ where: { id: req.params.id } });
+    if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
+    if (order.delivery_status !== 'requested') return res.status(400).json({ success: false, error: 'Entrega não solicitada' });
+
+    await prisma.commerce_orders.update({ where: { id: order.id }, data: { driver_id: driver_id || null, driver_name, delivery_status: 'assigned', status: 'DISPATCHED', dispatched_at: new Date() } });
+    res.json({ success: true });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// POST /api/admin/commerce/orders/:id/confirm-delivery
+router.post('/orders/:id/confirm-delivery', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { delivery_code } = req.body;
+    const order = await prisma.commerce_orders.findFirst({ where: { id: req.params.id } });
+    if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
+    if (order.delivery_status !== 'assigned') return res.status(400).json({ success: false, error: 'Entrega não atribuída' });
+    if (!delivery_code || delivery_code !== order.delivery_code) return res.status(400).json({ success: false, error: 'Código de entrega incorreto' });
+
+    await prisma.commerce_orders.update({ where: { id: order.id }, data: { delivery_status: 'delivered', delivered_at: new Date(), status: 'COMPLETED', completed_at: new Date() } });
+
+    // Move pending → available if paid
+    if (order.payment_status === 'paid') {
+      const wallet = await prisma.commerce_wallets.findUnique({ where: { commerce_account_id: order.commerce_account_id } });
+      if (wallet && wallet.pending_balance_cents >= order.commerce_net_cents) {
+        await prisma.commerce_wallets.update({ where: { commerce_account_id: order.commerce_account_id }, data: { pending_balance_cents: { decrement: order.commerce_net_cents }, available_balance_cents: { increment: order.commerce_net_cents } } });
+      }
+    }
+    res.json({ success: true });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
 // GET /api/admin/commerce/withdrawals
 router.get('/withdrawals', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
