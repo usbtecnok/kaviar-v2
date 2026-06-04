@@ -279,8 +279,14 @@ router.get('/team-lead-stats', async (req: Request, res: Response) => {
     if (admin.role !== 'SUPER_ADMIN') memberWhere.manager_admin_id = admin.id;
     const members = await prisma.manager_team_members.findMany({ where: memberWhere, select: { id: true, name: true } });
     const memberIds = members.map(m => m.id);
-    if (memberIds.length === 0) return res.json({ success: true, data: [] });
-    const grouped = await prisma.crm_leads.groupBy({ by: ['captured_by_member_id', 'status'], where: { captured_by_member_id: { in: memberIds }, deleted_at: null }, _count: true });
+    if (memberIds.length === 0) return res.json({ success: true, data: [], leads_today: 0, leads_month: 0, by_type: {} });
+    const baseWhere = { captured_by_member_id: { in: memberIds }, deleted_at: null };
+    const [grouped, groupedType, todayCount, monthCount] = await Promise.all([
+      prisma.crm_leads.groupBy({ by: ['captured_by_member_id', 'status'], where: baseWhere, _count: true }),
+      prisma.crm_leads.groupBy({ by: ['lead_type'], where: baseWhere, _count: true }),
+      prisma.crm_leads.count({ where: { ...baseWhere, created_at: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } } }),
+      prisma.crm_leads.count({ where: { ...baseWhere, created_at: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } } }),
+    ]);
     const statsMap: Record<string, { total: number; by_status: Record<string, number> }> = {};
     grouped.forEach(g => {
       const mid = g.captured_by_member_id!;
@@ -288,8 +294,10 @@ router.get('/team-lead-stats', async (req: Request, res: Response) => {
       statsMap[mid].total += g._count;
       statsMap[mid].by_status[g.status] = (statsMap[mid].by_status[g.status] || 0) + g._count;
     });
+    const by_type: Record<string, number> = {};
+    groupedType.forEach(g => { by_type[g.lead_type] = g._count; });
     const data = members.map(m => ({ member_id: m.id, member_name: m.name, total_leads: statsMap[m.id]?.total || 0, by_status: statsMap[m.id]?.by_status || {} }));
-    res.json({ success: true, data });
+    res.json({ success: true, data, leads_today: todayCount, leads_month: monthCount, by_type });
   } catch { res.status(500).json({ success: false, error: 'Erro ao buscar stats de leads' }); }
 });
 

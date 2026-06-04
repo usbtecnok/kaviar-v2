@@ -19,6 +19,8 @@ export default function ManagerHome() {
   const [territory, setTerritoryData] = useState(null);
   const [referral, setReferral] = useState(null);
   const [drafts, setDrafts] = useState(null);
+  const [teamStats, setTeamStats] = useState(null);
+  const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [partnerDialog, setPartnerDialog] = useState(false);
@@ -35,11 +37,13 @@ export default function ManagerHome() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [metricsRes, territoryRes, referralRes, draftsRes] = await Promise.all([
+      const [metricsRes, territoryRes, referralRes, draftsRes, teamStatsRes, teamRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/admin/dashboard/metrics`, { headers }),
         fetch(`${API_BASE_URL}/api/admin/dashboard/territory`, { headers }),
         fetch(`${API_BASE_URL}/api/admin/operator/referrals`, { headers }),
         fetch(`${API_BASE_URL}/api/admin/manager/drafts`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/manager/finance/team-lead-stats`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/manager/finance/team`, { headers }),
       ]);
 
       if (metricsRes.status === 403) {
@@ -51,11 +55,15 @@ export default function ManagerHome() {
       const territoryData = await territoryRes.json();
       const referralData = await referralRes.json();
       const draftsData = await draftsRes.json();
+      const teamStatsData = await teamStatsRes.json();
+      const teamData = await teamRes.json();
 
       if (metricsData.success !== false) setMetrics(metricsData.metrics || metricsData);
       if (territoryData.success) setTerritoryData(territoryData.data);
       if (referralData.success) setReferral(referralData.data);
       if (draftsData.success) setDrafts(draftsData.data);
+      if (teamStatsData.success) setTeamStats(teamStatsData);
+      if (teamData.success) setTeamMembers(teamData.data);
     } catch { setError('Erro ao carregar dados do território'); }
     finally { setLoading(false); }
   };
@@ -160,6 +168,58 @@ export default function ManagerHome() {
                   </Grid>
                 ))}
               </Grid>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Equipe & Captação */}
+        {teamMembers.length > 0 && (
+          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Equipe & Captação</Typography>
+              <Grid container spacing={1} sx={{ mb: 1.5 }}>
+                {[
+                  { label: 'Leads Hoje', value: teamStats?.leads_today ?? 0, color: GOLD },
+                  { label: 'Leads Mês', value: teamStats?.leads_month ?? 0, color: '#3B82F6' },
+                  { label: 'Total Leads', value: teamStats?.data?.reduce((s, m) => s + m.total_leads, 0) ?? 0, color: '#6366F1' },
+                  { label: 'Ativos', value: teamMembers.filter(m => m.status === 'active').length, color: '#10B981' },
+                  { label: 'Inativos', value: teamMembers.filter(m => m.status !== 'active').length, color: '#6B7280' },
+                  { label: 'Termos ✓', value: teamMembers.filter(m => m.contract_status === 'signed').length, color: '#10B981' },
+                  { label: 'Termos ⏳', value: teamMembers.filter(m => m.contract_status !== 'signed').length, color: '#F59E0B' },
+                ].map(k => (
+                  <Grid item xs={4} sm key={k.label}>
+                    <Box sx={{ textAlign: 'center', py: 0.5 }}>
+                      <Typography sx={{ fontSize: 18, fontWeight: 800, color: k.color }}>{k.value}</Typography>
+                      <Typography sx={{ fontSize: 9, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{k.label}</Typography>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+              {teamStats?.by_type && Object.keys(teamStats.by_type).length > 0 && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography sx={{ fontSize: 9, color: '#9CA3AF', textTransform: 'uppercase', mb: 0.5 }}>Por Tipo</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {Object.entries(teamStats.by_type).map(([type, count]) => (
+                      <Chip key={type} label={`${type}: ${count}`} size="small" sx={{ fontSize: 10 }} />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+              {teamStats?.data?.length > 0 && (
+                <Box>
+                  <Typography sx={{ fontSize: 9, color: '#9CA3AF', textTransform: 'uppercase', mb: 0.5 }}>Ranking Captadores</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {teamStats.data.filter(m => m.total_leads > 0).sort((a, b) => b.total_leads - a.total_leads).map((m, i) => (
+                      <Chip key={m.member_id} label={`${i + 1}. ${m.member_name}: ${m.total_leads}`} size="small" sx={{ fontSize: 10, bgcolor: i === 0 ? `${GOLD}20` : undefined, color: i === 0 ? GOLD : undefined }} />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+              {teamMembers.some(m => m.contract_status !== 'signed' && m.status === 'active') && (
+                <Alert severity="warning" sx={{ mt: 1.5, py: 0, fontSize: 11 }}>
+                  ⚠️ {teamMembers.filter(m => m.contract_status !== 'signed' && m.status === 'active').length} membro(s) ativo(s) sem termo assinado
+                </Alert>
+              )}
             </CardContent>
           </Card>
         )}
