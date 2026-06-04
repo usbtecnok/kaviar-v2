@@ -325,4 +325,24 @@ router.patch('/payouts/:id/cancel', async (req: Request, res: Response) => {
   }
 });
 
+// POST /payouts/:id/receipt — upload receipt file
+import { uploadToS3 } from '../config/s3-upload';
+router.post('/payouts/:id/receipt', uploadToS3.single('file'), async (req: Request, res: Response) => {
+  try {
+    const payout = await prisma.territory_payouts.findUnique({ where: { id: req.params.id } });
+    if (!payout) return res.status(404).json({ success: false, error: 'Repasse não encontrado' });
+
+    const file = req.file as any;
+    if (!file) return res.status(400).json({ success: false, error: 'Arquivo obrigatório' });
+
+    const receipt_url = file.location || file.key || file.path;
+    await prisma.territory_payouts.update({ where: { id: req.params.id }, data: { receipt_url } });
+
+    res.json({ success: true, data: { receipt_url } });
+  } catch (error) {
+    console.error('[admin-payouts] receipt upload error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao anexar comprovante' });
+  }
+});
+
 export default router;

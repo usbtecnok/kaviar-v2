@@ -31,7 +31,7 @@ export default function TerritorialPayoutsPage() {
   // Pay modal
   const [payOpen, setPayOpen] = useState(false);
   const [payTarget, setPayTarget] = useState(null);
-  const [payForm, setPayForm] = useState({ payment_method: 'pix', payment_ref: '', receipt_url: '', fiscal_document_url: '', fiscal_document_ref: '', fiscal_notes: '' });
+  const [payForm, setPayForm] = useState({ payment_method: 'pix', payment_ref: '', receipt_url: '', fiscal_document_url: '', fiscal_document_ref: '', fiscal_notes: '', _file: null });
   const [paySaving, setPaySaving] = useState(false);
 
   // Admins for operator creation (loaded per territory)
@@ -188,7 +188,13 @@ export default function TerritorialPayoutsPage() {
 
   const handlePay = async () => {
     setPaySaving(true);
-    await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/payouts/${payTarget.id}/pay`, { method: 'PATCH', headers, body: JSON.stringify(payForm) });
+    const { _file, ...formData } = payForm;
+    await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/payouts/${payTarget.id}/pay`, { method: 'PATCH', headers, body: JSON.stringify(formData) });
+    // Upload receipt file if selected
+    if (_file) {
+      const fd = new FormData(); fd.append('file', _file);
+      await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/payouts/${payTarget.id}/receipt`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+    }
     setPayOpen(false); setPaySaving(false); fetchAll();
   };
 
@@ -381,6 +387,11 @@ export default function TerritorialPayoutsPage() {
             <TextField value={payForm.payment_ref} onChange={e => setPayForm({ ...payForm, payment_ref: e.target.value })} fullWidth size="small" placeholder="ID da transação Pix / comprovante" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>URL comprovante (opcional)</Typography>
             <TextField value={payForm.receipt_url} onChange={e => setPayForm({ ...payForm, receipt_url: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>📎 Anexar comprovante (PDF/imagem, até 5MB)</Typography>
+            <input type="file" accept=".pdf,.png,.jpg,.jpeg" id="receipt-file" style={{ display: 'none' }} onChange={e => setPayForm({ ...payForm, _file: e.target.files?.[0] || null })} />
+            <Button size="small" variant="outlined" onClick={() => document.getElementById('receipt-file')?.click()} sx={{ color: '#C8A84E', borderColor: 'rgba(184,148,46,0.3)', textTransform: 'none' }}>{payForm._file ? `📎 ${payForm._file.name}` : 'Selecionar arquivo'}</Button>
+            {payForm._file && <Button size="small" onClick={() => setPayForm({ ...payForm, _file: null })} sx={{ color: '#EF4444', ml: 1, textTransform: 'none' }}>Remover</Button>}
+          </Box>
           {payTarget?.fiscal_document_required && <>
             <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Documento fiscal (URL/ref)</Typography>
               <TextField value={payForm.fiscal_document_url} onChange={e => setPayForm({ ...payForm, fiscal_document_url: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
