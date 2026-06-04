@@ -3,7 +3,7 @@ import { Box, Typography, Tabs, Tab, Table, TableBody, TableCell, TableContainer
 import { API_BASE_URL } from '../../config/api';
 
 const RECIPIENT_LABELS = { individual: 'Pessoa Física', company: 'Pessoa Jurídica', association: 'Associação' };
-const STATUS_COLORS = { calculated: '#D97706', approved: '#2563EB', paid: '#059669', canceled: '#DC2626', pending: '#6B7280', verified: '#059669', rejected: '#DC2626' };
+const STATUS_COLORS = { calculated: '#D97706', requested: '#8B5CF6', approved: '#2563EB', paid: '#059669', received: '#047857', canceled: '#DC2626', pending: '#6B7280', verified: '#059669', rejected: '#DC2626' };
 
 export default function TerritorialPayoutsPage() {
   const [tab, setTab] = useState(0);
@@ -267,7 +267,7 @@ export default function TerritorialPayoutsPage() {
                     <TableCell><Chip label={p.status} size="small" sx={{ color: STATUS_COLORS[p.status], bgcolor: `${STATUS_COLORS[p.status]}15`, fontWeight: 600 }} /></TableCell>
                     <TableCell>{p.fiscal_document_required ? <Chip label="Exige doc" size="small" color="warning" /> : '—'}</TableCell>
                     <TableCell sx={{ display: 'flex', gap: 0.5 }}>
-                      {p.status === 'calculated' && <Button size="small" onClick={() => handleApprove(p.id)} sx={{ color: '#2563EB' }}>Aprovar</Button>}
+                      {(p.status === 'calculated' || p.status === 'requested') && <Button size="small" onClick={() => handleApprove(p.id)} sx={{ color: '#2563EB' }}>Aprovar</Button>}
                       {p.status === 'approved' && <Button size="small" onClick={() => { setPayTarget(p); setPayOpen(true); }} sx={{ color: '#059669' }}>Pagar</Button>}
                       {(p.status === 'calculated' || p.status === 'approved') && <Button size="small" color="error" onClick={() => handleCancel(p.id)}>Cancelar</Button>}
                     </TableCell>

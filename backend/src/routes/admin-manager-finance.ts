@@ -107,6 +107,7 @@ router.get('/payouts', async (req: Request, res: Response) => {
         status: true,
         paid_at: true,
         payment_method: true,
+        notes: true,
         created_at: true,
       },
       orderBy: { created_at: 'desc' },
@@ -117,6 +118,45 @@ router.get('/payouts', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[MANAGER_FINANCE_PAYOUTS]', error.message);
     res.status(500).json({ success: false, error: 'Erro ao buscar repasses' });
+  }
+});
+
+// POST /api/admin/manager/finance/payouts/:id/request — Gestor solicita repasse
+router.post('/payouts/:id/request', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const territoryIds = scope?.territoryIds || [];
+
+    const payout = await prisma.territory_payouts.findFirst({ where: { id: req.params.id, territory_id: { in: territoryIds } } });
+    if (!payout) return res.status(404).json({ success: false, error: 'Repasse não encontrado' });
+    if (payout.status !== 'calculated') return res.status(400).json({ success: false, error: 'Repasse não está disponível para solicitação' });
+
+    const meta = { requested_at: new Date().toISOString(), requested_by: admin.id };
+    await prisma.territory_payouts.update({ where: { id: payout.id }, data: { status: 'requested', notes: JSON.stringify(meta) } });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: 'Erro ao solicitar repasse' });
+  }
+});
+
+// POST /api/admin/manager/finance/payouts/:id/confirm-received — Gestor confirma recebimento
+router.post('/payouts/:id/confirm-received', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const territoryIds = scope?.territoryIds || [];
+
+    const payout = await prisma.territory_payouts.findFirst({ where: { id: req.params.id, territory_id: { in: territoryIds } } });
+    if (!payout) return res.status(404).json({ success: false, error: 'Repasse não encontrado' });
+    if (payout.status !== 'paid') return res.status(400).json({ success: false, error: 'Repasse precisa estar pago para confirmar recebimento' });
+
+    const existing = payout.notes ? JSON.parse(payout.notes) : {};
+    const meta = { ...existing, received_at: new Date().toISOString(), received_by: admin.id };
+    await prisma.territory_payouts.update({ where: { id: payout.id }, data: { status: 'received', notes: JSON.stringify(meta) } });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: 'Erro ao confirmar recebimento' });
   }
 });
 

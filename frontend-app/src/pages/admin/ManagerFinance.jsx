@@ -5,8 +5,8 @@ import { API_BASE_URL } from '../../config/api';
 import { downloadCsv } from '../../utils/exportCsv';
 
 const GOLD = '#B8942E';
-const STATUS_MAP = { calculated: 'Em apuração', approved: 'Aprovado', paid: 'Pago', canceled: 'Cancelado' };
-const STATUS_COLOR = { calculated: '#F59E0B', approved: '#3B82F6', paid: '#10B981', canceled: '#EF4444' };
+const STATUS_MAP = { calculated: 'Em apuração', requested: 'Solicitado', approved: 'Aprovado', paid: 'Pago', received: 'Recebido', canceled: 'Cancelado' };
+const STATUS_COLOR = { calculated: '#F59E0B', requested: '#8B5CF6', approved: '#3B82F6', paid: '#10B981', received: '#059669', canceled: '#EF4444' };
 
 export default function ManagerFinance() {
   const [summary, setSummary] = useState(null);
@@ -132,8 +132,12 @@ export default function ManagerFinance() {
               <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Histórico de Repasses</Typography>
               {payouts.map(p => (
                 <Box key={p.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #F3F4F6' }}>
-                  <Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.reference_month}</Typography><Typography sx={{ fontSize: 11, color: '#6B7280' }}>{fmt(p.approved_amount || p.calculated_amount)}{p.paid_at && ` • ${p.payment_method || 'PIX'} em ${new Date(p.paid_at).toLocaleDateString('pt-BR')}`}</Typography></Box>
-                  <Chip label={STATUS_MAP[p.status] || p.status} size="small" sx={{ bgcolor: `${STATUS_COLOR[p.status] || '#6B7280'}15`, color: STATUS_COLOR[p.status] || '#6B7280', fontSize: 10, height: 22, fontWeight: 600 }} />
+                  <Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.reference_month}</Typography><Typography sx={{ fontSize: 11, color: '#6B7280' }}>{fmt(p.approved_amount || p.calculated_amount)}{p.paid_at && ` • ${p.payment_method || 'PIX'} em ${new Date(p.paid_at).toLocaleDateString('pt-BR')}`}{p.received_at && ` • Recebido em ${new Date(p.received_at).toLocaleDateString('pt-BR')}`}</Typography></Box>
+                  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                    {p.status === 'calculated' && <Button size="small" variant="contained" sx={{ bgcolor: '#8B5CF6', textTransform: 'none', fontSize: 10, height: 24 }} onClick={async () => { const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/payouts/${p.id}/request`, { method: 'POST', headers }); const d = await res.json(); if (d.success) { load(); setSnack('Repasse solicitado!'); } else setSnack(d.error || 'Erro'); }}>Solicitar</Button>}
+                    {p.status === 'paid' && <Button size="small" variant="contained" sx={{ bgcolor: '#059669', textTransform: 'none', fontSize: 10, height: 24 }} onClick={async () => { if (!window.confirm('Confirmar que recebeu este repasse?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/payouts/${p.id}/confirm-received`, { method: 'POST', headers }); const d = await res.json(); if (d.success) { load(); setSnack('Recebimento confirmado!'); } else setSnack(d.error || 'Erro'); }}>Confirmar Recebimento</Button>}
+                    <Chip label={STATUS_MAP[p.status] || p.status} size="small" sx={{ bgcolor: `${STATUS_COLOR[p.status] || '#6B7280'}15`, color: STATUS_COLOR[p.status] || '#6B7280', fontSize: 10, height: 22, fontWeight: 600 }} />
+                  </Box>
                 </Box>
               ))}
             </CardContent>
