@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Box, Container, Typography, Card, CardContent, Button, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Tooltip } from '@mui/material';
-import { Add, Description, Print, ContentCopy, AccountBalance } from '@mui/icons-material';
+import { Add, Description, Print, ContentCopy, AccountBalance, Link as LinkIcon, Share } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
@@ -30,6 +30,7 @@ export default function ManagerTeamPage() {
   const [leadsMember, setLeadsMember] = useState(null);
   const [leadsData, setLeadsData] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
+  const [linksMember, setLinksMember] = useState(null);
 
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -125,6 +126,20 @@ export default function ManagerTeamPage() {
     } catch {}
     setLeadsLoading(false);
   };
+
+  const openLinks = async (m) => {
+    if (!m.public_referral_code) {
+      const res = await fetch(`${API_BASE_URL}/api/admin/manager/finance/team/${m.id}/generate-code`, { method: 'POST', headers });
+      const d = await res.json();
+      if (d.success) { m.public_referral_code = d.data.public_referral_code; fetchMembers(); }
+      else { setSnack(d.error || 'Erro ao gerar código'); return; }
+    }
+    setLinksMember(m);
+  };
+
+  const captarUrl = (code) => `https://app.kaviar.com.br/captar/${code}`;
+  const copyLink = (url) => navigator.clipboard.writeText(url).then(() => setSnack('Link copiado!')).catch(() => setSnack('Erro ao copiar'));
+  const shareWA = (url, tipo) => window.open(`https://wa.me/?text=${encodeURIComponent(`Cadastre-se na rede KAVIAR (${tipo}):\n${url}`)}`, '_blank');
 
   const filteredComm = commMonth ? allComm.filter(c => c.reference_month === commMonth) : allComm;
   const sumBy = (arr, status) => arr.filter(c => c.status === status).reduce((s, c) => s + c.amount_cents, 0);
@@ -229,6 +244,7 @@ export default function ManagerTeamPage() {
                   <TableCell><Chip label={CONTRACT_MAP[m.contract_status]?.label || 'Pendente'} size="small" sx={{ bgcolor: `${CONTRACT_MAP[m.contract_status]?.color || '#F59E0B'}15`, color: CONTRACT_MAP[m.contract_status]?.color || '#F59E0B', fontSize: 10 }} /></TableCell>
                   <TableCell><Chip label={`${leadStats.find(s => s.member_id === m.id)?.total_leads || 0} leads`} size="small" onClick={() => openLeadsMember(m)} sx={{ cursor: 'pointer', fontSize: 10, bgcolor: (leadStats.find(s => s.member_id === m.id)?.total_leads || 0) > 0 ? '#EEF2FF' : undefined, color: (leadStats.find(s => s.member_id === m.id)?.total_leads || 0) > 0 ? '#4F46E5' : '#6B7280' }} /></TableCell>
                   <TableCell>
+                    <Button size="small" startIcon={<LinkIcon />} onClick={() => openLinks(m)} sx={{ textTransform: 'none', fontSize: 10, color: '#8B5CF6' }}>Links</Button>
                     <Button size="small" startIcon={<Description />} onClick={() => setTermoMember(m)} sx={{ textTransform: 'none', fontSize: 10, color: GOLD }}>Ver Termo</Button>
                     <Button size="small" startIcon={<AccountBalance />} onClick={() => openCommissions(m)} sx={{ textTransform: 'none', fontSize: 10, color: '#6366F1' }}>Comissões</Button>
                     <Button size="small" onClick={() => openEdit(m)} sx={{ textTransform: 'none', fontSize: 11 }}>Editar</Button>
@@ -292,6 +308,35 @@ export default function ManagerTeamPage() {
           <TextField label="Observações" size="small" multiline rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         </DialogContent>
         <DialogActions><Button onClick={() => setDialogOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleSave} sx={{ bgcolor: GOLD }}>Salvar</Button></DialogActions>
+      </Dialog>
+
+      {/* Links Modal */}
+      <Dialog open={!!linksMember} onClose={() => setLinksMember(null)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <LinkIcon sx={{ color: '#8B5CF6' }} /> Links de Captação — {linksMember?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: 11, color: '#6B7280', mb: 2 }}>Código: <strong>{linksMember?.public_referral_code}</strong></Typography>
+          {linksMember?.public_referral_code && [
+            { tipo: 'Motorista', value: 'DRIVER' },
+            { tipo: 'Passageiro', value: 'PASSENGER' },
+            { tipo: 'Comércio Local', value: 'LOCAL_BUSINESS' },
+            { tipo: 'Associação', value: 'ASSOCIATION' },
+            { tipo: 'Parceiro', value: 'PARTNER' },
+          ].map(t => {
+            const url = captarUrl(linksMember.public_referral_code);
+            return (
+              <Box key={t.value} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #F3F4F6' }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{t.tipo}</Typography>
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <Button size="small" startIcon={<ContentCopy />} onClick={() => copyLink(url)} sx={{ textTransform: 'none', fontSize: 10 }}>Copiar</Button>
+                  <Button size="small" startIcon={<Share />} onClick={() => shareWA(url, t.tipo)} sx={{ textTransform: 'none', fontSize: 10, color: '#25D366' }}>WhatsApp</Button>
+                </Box>
+              </Box>
+            );
+          })}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setLinksMember(null)} sx={{ textTransform: 'none' }}>Fechar</Button></DialogActions>
       </Dialog>
 
       {/* Leads por Membro Modal */}

@@ -31,6 +31,7 @@ import PartnerPublicView from "./pages/PartnerPublicView";
 import PartnerPortal from "./pages/PartnerPortal";
 import CommercePortal from "./pages/CommercePortal";
 import CommerceStorefront from "./pages/CommerceStorefront";
+import CaptarPage from "./pages/CaptarPage";
 import OrderTrackingPage from "./pages/OrderTrackingPage";
 import DriverRegister from "./pages/DriverRegister";
 import ReceiptValidation from "./pages/ReceiptValidation";
@@ -442,6 +443,7 @@ export default function App() {
           />
           
           <Route path="/consultor/:code" element={<ConsultorOnboarding />} />
+          <Route path="/captar/:code" element={<CaptarPage />} />
           <Route path="/parceiro/:code" element={<PartnerPublicView />} />
           <Route path="/parceiro/portal" element={<PartnerPortal />} />
           <Route path="/commerce" element={<CommercePortal />} />
