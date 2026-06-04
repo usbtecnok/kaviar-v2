@@ -189,4 +189,50 @@ router.get('/rules', async (req: Request, res: Response) => {
   }
 });
 
+// ─── Team Members ───────────────────────────────────────────────────────────
+
+// GET /api/admin/manager/finance/team
+router.get('/team', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const where: any = {};
+    if (admin.role !== 'SUPER_ADMIN') where.manager_admin_id = admin.id;
+    const members = await prisma.manager_team_members.findMany({ where, orderBy: { created_at: 'desc' } });
+    res.json({ success: true, data: members });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao listar equipe' }); }
+});
+
+// POST /api/admin/manager/finance/team
+router.post('/team', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const { name, phone, role_type, notes } = req.body;
+    if (!name) return res.status(400).json({ success: false, error: 'Nome obrigatório' });
+    const territory_id = scope?.territoryIds?.[0] || null;
+    const member = await prisma.manager_team_members.create({ data: { manager_admin_id: admin.id, territory_id, name, phone: phone || null, role_type: role_type || 'outro', notes: notes || null } });
+    res.status(201).json({ success: true, data: member });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao cadastrar membro' }); }
+});
+
+// PATCH /api/admin/manager/finance/team/:id
+router.patch('/team/:id', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const where: any = { id: req.params.id };
+    if (admin.role !== 'SUPER_ADMIN') where.manager_admin_id = admin.id;
+    const existing = await prisma.manager_team_members.findFirst({ where });
+    if (!existing) return res.status(404).json({ success: false, error: 'Membro não encontrado' });
+    const { name, phone, role_type, status, notes } = req.body;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (phone !== undefined) data.phone = phone || null;
+    if (role_type !== undefined) data.role_type = role_type;
+    if (status !== undefined && ['active', 'pending', 'inactive'].includes(status)) data.status = status;
+    if (notes !== undefined) data.notes = notes || null;
+    const updated = await prisma.manager_team_members.update({ where: { id: existing.id }, data });
+    res.json({ success: true, data: updated });
+  } catch { res.status(500).json({ success: false, error: 'Erro ao atualizar membro' }); }
+});
+
 export default router;

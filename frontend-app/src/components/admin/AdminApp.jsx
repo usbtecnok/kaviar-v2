@@ -65,6 +65,7 @@ import CrmPage from "../../pages/admin/CrmPage";
 import CommerceAccountsPage from "../../pages/admin/CommerceAccountsPage";
 import MyContractPage from "../../pages/admin/MyContractPage";
 import ManagerFinance from "../../pages/admin/ManagerFinance";
+import ManagerTeamPage from "../../pages/admin/ManagerTeamPage";
 import ManagerReputation from "../../pages/admin/ManagerReputation";
 import ManagerReferrals from "../../pages/admin/ManagerReferrals";
 import ManagerEmergencyAlerts from "../../pages/admin/ManagerEmergencyAlerts";
@@ -939,6 +940,7 @@ export default function AdminApp() {
           <Route path="/legal-compliance" element={<ProtectedAdminRoute requireSuperAdmin><LegalCompliancePage /></ProtectedAdminRoute>} />
           <Route path="/meu-contrato" element={<ProtectedAdminRoute allowedRoles={['ANGEL_VIEWER', 'TERRITORIAL_OPERATOR', 'TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><MyContractPage /></ProtectedAdminRoute>} />
           <Route path="/manager-finance" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerFinance /></ProtectedAdminRoute>} />
+          <Route path="/manager-team" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerTeamPage /></ProtectedAdminRoute>} />
           <Route path="/manager-reputation" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerReputation /></ProtectedAdminRoute>} />
           <Route path="/manager-referrals" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerReferrals /></ProtectedAdminRoute>} />
           <Route path="/comercial-gestor" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ComercialGestorPage /></ProtectedAdminRoute>} />

@@ -2206,3 +2206,20 @@ model commerce_withdrawal_requests {
   @@index([commerce_account_id, status], map: "idx_commerce_withdrawals_account")
   @@index([status], map: "idx_commerce_withdrawals_status")
 }
+
+// ─── Equipe do Gestor Territorial ───────────────────────────────────────────
+
+model manager_team_members {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  manager_admin_id  String
+  territory_id      String?  @db.Uuid
+  name              String   @db.VarChar(255)
+  phone             String?  @db.VarChar(30)
+  role_type         String   @default("outro") @db.VarChar(30)
+  status            String   @default("active") @db.VarChar(20)
+  notes             String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@index([manager_admin_id], map: "idx_manager_team_members_admin")
+}
