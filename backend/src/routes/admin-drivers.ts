@@ -98,10 +98,21 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, requireTerritorySco
 
     const where: any = status ? { status } : {};
 
-    // Escopo territorial: filtra por neighborhood_id se admin tem restrição
+    // Escopo territorial: filtra por neighborhood_id ou territory (via neighborhoods.territory_id)
     const scope = (req as any).territoryScope;
     if (scope) {
-      where.neighborhood_id = { in: scope.neighborhoodIds };
+      const hasNeighborhoods = scope.neighborhoodIds && scope.neighborhoodIds.length > 0;
+      const hasTerritories = scope.territoryIds && scope.territoryIds.length > 0;
+
+      if (hasNeighborhoods) {
+        where.neighborhood_id = { in: scope.neighborhoodIds };
+      } else if (hasTerritories) {
+        // Território novo sem bairros cadastrados: filtrar via relação neighborhood→territory
+        where.neighborhoods = { territory_id: { in: scope.territoryIds } };
+      } else {
+        // Scope vazio: não retornar nada (deny-by-default)
+        where.id = '__DENY__';
+      }
     }
 
     const [drivers, total] = await Promise.all([

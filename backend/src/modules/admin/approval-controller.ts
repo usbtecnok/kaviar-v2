@@ -254,11 +254,33 @@ export class ApprovalController {
   // GET /api/admin/drivers/metrics/by-neighborhood
   getDriversByNeighborhood = async (req: Request, res: Response) => {
     try {
+      // Construir filtro de território
+      const scopeNeighborhoodFilter = (req as any).scopeNeighborhoodFilter as string[] | null;
+      const scopeTerritoryFilter = (req as any).scopeTerritoryFilter as string[] | null;
+
+      let neighborhoodBaseFilter: any = { not: null };
+
+      if (scopeNeighborhoodFilter && scopeNeighborhoodFilter.length > 0) {
+        neighborhoodBaseFilter = { in: scopeNeighborhoodFilter };
+      } else if (scopeTerritoryFilter && scopeTerritoryFilter.length > 0) {
+        // Território sem bairros: buscar neighborhoods vinculados ao território
+        const territoryNeighborhoods = await prisma.neighborhoods.findMany({
+          where: { territory_id: { in: scopeTerritoryFilter } },
+          select: { id: true },
+        });
+        const ids = territoryNeighborhoods.map(n => n.id);
+        if (ids.length === 0) {
+          // Território sem nenhum bairro: retornar vazio
+          return res.json({ success: true, data: [] });
+        }
+        neighborhoodBaseFilter = { in: ids };
+      }
+
       const drivers = await prisma.drivers.groupBy({
         by: ['neighborhood_id', 'status'],
         _count: true,
         where: {
-          neighborhood_id: { not: null }
+          neighborhood_id: neighborhoodBaseFilter
         }
       });
 
@@ -267,7 +289,7 @@ export class ApprovalController {
         by: ['neighborhood_id'],
         _count: true,
         where: {
-          neighborhood_id: { not: null },
+          neighborhood_id: neighborhoodBaseFilter,
           premium_tourism_status: 'active'
         }
       });
@@ -280,7 +302,7 @@ export class ApprovalController {
         by: ['neighborhood_id'],
         _count: true,
         where: {
-          neighborhood_id: { not: null },
+          neighborhood_id: neighborhoodBaseFilter,
           status: 'approved',
           approved_at: { lte: sixMonthsAgo },
           premium_tourism_status: { not: 'active' }

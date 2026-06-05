@@ -13,21 +13,45 @@ router.use(authenticateAdmin);
 
 // Driver approval routes
 router.get('/drivers', allowReadAccess, applyTerritoryScope, async (req, res) => {
-  // TERRITORIAL_OPERATOR: filtrar motoristas pendentes do seu território
+  // TERRITORIAL_OPERATOR/MANAGER: filtrar motoristas pendentes do seu território
   const admin = (req as any).admin;
   const scope = (req as any).territoryScope;
   if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
-    if (!scope || scope.neighborhoodIds.length === 0) {
+    const hasNeighborhoods = scope?.neighborhoodIds && scope.neighborhoodIds.length > 0;
+    const hasTerritories = scope?.territoryIds && scope.territoryIds.length > 0;
+
+    if (!scope || (!hasNeighborhoods && !hasTerritories)) {
       return res.status(403).json({ success: false, error: 'Acesso negado' });
     }
     // Inject neighborhood filter into query for the controller
     if (!req.query.neighborhood_ids) {
-      (req as any).scopeNeighborhoodFilter = scope.neighborhoodIds;
+      (req as any).scopeNeighborhoodFilter = hasNeighborhoods ? scope.neighborhoodIds : null;
+      (req as any).scopeTerritoryFilter = hasTerritories ? scope.territoryIds : null;
     }
   }
   return approvalController.getDrivers(req, res);
 });
-router.get('/drivers/metrics/by-neighborhood', allowReadAccess, approvalController.getDriversByNeighborhood);
+router.get('/drivers/metrics/by-neighborhood', allowReadAccess, applyTerritoryScope, async (req, res) => {
+  const admin = (req as any).admin;
+  const scope = (req as any).territoryScope;
+
+  // TERRITORIAL_OPERATOR/MANAGER: injetar filtro de neighborhoods no controller
+  if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
+    if (!scope) {
+      return res.status(403).json({ success: false, error: 'Acesso negado' });
+    }
+    const hasNeighborhoods = scope.neighborhoodIds && scope.neighborhoodIds.length > 0;
+    const hasTerritories = scope.territoryIds && scope.territoryIds.length > 0;
+
+    if (!hasNeighborhoods && !hasTerritories) {
+      return res.status(403).json({ success: false, error: 'Sem território vinculado. Acesso negado.' });
+    }
+    // Pass scope to controller via request
+    (req as any).scopeNeighborhoodFilter = hasNeighborhoods ? scope.neighborhoodIds : null;
+    (req as any).scopeTerritoryFilter = hasTerritories ? scope.territoryIds : null;
+  }
+  return approvalController.getDriversByNeighborhood(req, res);
+});
 router.put('/drivers/:id/approve', requireSuperAdmin, auditWrite('approve_driver', 'driver'), approvalController.approveDriver);
 router.put('/drivers/:id/reject', requireSuperAdmin, auditWrite('reject_driver', 'driver'), approvalController.rejectDriver);
 router.delete('/drivers/:id', requireSuperAdmin, auditWrite('delete_driver', 'driver'), async (req, res) => {
