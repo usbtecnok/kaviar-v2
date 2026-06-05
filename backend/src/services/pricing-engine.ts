@@ -16,6 +16,7 @@
 
 import { pool } from '../db';
 import { resolveTerritory, TerritoryResolution } from './territory-resolver.service';
+import { getFloorForRoute } from './territory-floor.service';
 
 // --- Types ---
 
@@ -248,6 +249,18 @@ export async function quote(rideId: string, originLat: number, originLng: number
     quoted_price = round2(quoted_price + profile.surcharge_external);
   }
 
+  // Apply territory price floor (piso territorial)
+  // Regra: preço_final = MAX(preço_calculado, piso_territorial)
+  let floor_applied = false;
+  let floor_id: string | null = null;
+  const floor = await getFloorForRoute(resolvedOriginId, resolvedDestId);
+  if (floor && floor.total_floor > quoted_price) {
+    console.log(`[PRICING_FLOOR] Applied: ride=${rideId} calculated=${quoted_price} floor=${floor.total_floor} route="${floor.origin_label}→${floor.dest_label}"`);
+    quoted_price = floor.total_floor;
+    floor_applied = true;
+    floor_id = floor.id;
+  }
+
   const fee_percent = feeForTerritory(profile, route_territory);
   const fee_amount = round2(quoted_price * fee_percent / 100);
   const driver_earnings = round2(quoted_price - fee_amount);
@@ -294,7 +307,7 @@ export async function quote(rideId: string, originLat: number, originLng: number
     throw err;
   }
 
-  console.log(`[PRICING_QUOTE] ride=${rideId} profile=${profile.slug} dist=${distance_km}km price=${quoted_price} territory=${route_territory} fee=${fee_percent}%`);
+  console.log(`[PRICING_QUOTE] ride=${rideId} profile=${profile.slug} dist=${distance_km}km price=${quoted_price} territory=${route_territory} fee=${fee_percent}%${floor_applied ? ` FLOOR_APPLIED(${floor_id})` : ''}`);
 
   return { quoted_price, route_territory, fee_percent, fee_amount, driver_earnings, distance_km, pricing_profile_slug: profile.slug };
 }
