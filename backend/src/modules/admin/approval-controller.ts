@@ -183,10 +183,17 @@ export class ApprovalController {
         where.status = status;
       }
 
-      // Territory scope filter (injected by route handler for TERRITORIAL_OPERATOR)
-      const scopeFilter = (req as any).scopeNeighborhoodFilter;
-      if (scopeFilter) {
-        where.neighborhood_id = { in: scopeFilter };
+      // Territory scope filter (injected by route handler for TERRITORIAL_OPERATOR/MANAGER)
+      const scopeNeighborhoodFilter = (req as any).scopeNeighborhoodFilter as string[] | null;
+      const scopeTerritoryFilter = (req as any).scopeTerritoryFilter as string[] | null;
+
+      if (scopeNeighborhoodFilter && scopeNeighborhoodFilter.length > 0) {
+        // Filtrar por neighborhoods do escopo — exclui drivers com neighborhood_id null
+        where.neighborhood_id = { in: scopeNeighborhoodFilter };
+      } else if (scopeTerritoryFilter && scopeTerritoryFilter.length > 0) {
+        // Território sem bairros: filtrar via relação neighborhoods.territory_id
+        // Exclui drivers sem neighborhood (neighborhood_id null)
+        where.neighborhoods = { territory_id: { in: scopeTerritoryFilter } };
       }
 
       const drivers = await prisma.drivers.findMany({
@@ -210,7 +217,10 @@ export class ApprovalController {
           created_at: true,
           updated_at: true,
           approved_at: true,
-          rejected_at: true
+          rejected_at: true,
+          neighborhoods: {
+            select: { name: true }
+          }
         },
         orderBy: { created_at: 'desc' }
       });
@@ -231,6 +241,7 @@ export class ApprovalController {
         familyBonusAccepted: d.family_bonus_accepted ?? null,
         familyBonusProfile: d.family_bonus_profile ?? null,
         neighborhoodId: d.neighborhood_id,
+        neighborhoods: d.neighborhoods || null,
         communityId: d.community_id,
         createdAt: d.created_at?.toISOString(),
         updatedAt: d.updated_at?.toISOString(),
