@@ -39,10 +39,16 @@ ALTER TABLE territory_price_floors
 ALTER TABLE territory_price_floors
   ADD COLUMN IF NOT EXISTS version INT NOT NULL DEFAULT 1;
 
--- Constraint: status deve ser um dos valores válidos
-ALTER TABLE territory_price_floors
-  ADD CONSTRAINT chk_tpf_status
-  CHECK (status IN ('active', 'draft', 'pending_approval', 'rejected', 'archived'));
+-- Constraint: status deve ser um dos valores válidos (idempotente)
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'chk_tpf_status'
+  ) THEN
+    ALTER TABLE territory_price_floors
+      ADD CONSTRAINT chk_tpf_status
+      CHECK (status IN ('active', 'draft', 'pending_approval', 'rejected', 'archived'));
+  END IF;
+END $$;
 
 -- Índice para lookup de propostas pendentes (SUPER_ADMIN approval queue)
 CREATE INDEX IF NOT EXISTS idx_tpf_pending_approval
