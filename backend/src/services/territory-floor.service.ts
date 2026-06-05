@@ -60,6 +60,7 @@ export async function getFloorForRoute(
          WHERE origin_neighborhood_id = $1
            AND dest_neighborhood_id = $2
            AND is_active = true
+           AND status = 'active'
          ORDER BY floor_price DESC
          LIMIT 1`,
         [originNeighborhoodId, destNeighborhoodId]
@@ -80,6 +81,7 @@ export async function getFloorForRoute(
          WHERE origin_neighborhood_id = $1
            AND dest_neighborhood_id IS NULL
            AND is_active = true
+           AND status = 'active'
          ORDER BY floor_price DESC
          LIMIT 1`,
         [originNeighborhoodId]
@@ -121,6 +123,7 @@ export async function getFloorByLabel(
        WHERE origin_neighborhood_id = $1
          AND LOWER(dest_label) = LOWER($2)
          AND is_active = true
+         AND status = 'active'
        ORDER BY floor_price DESC
        LIMIT 1`,
       [originNeighborhoodId, destLabel]
@@ -148,6 +151,7 @@ export async function listFloorsForTerritory(territoryId: string): Promise<Floor
        FROM territory_price_floors
        WHERE territory_id = $1
          AND is_active = true
+         AND status = 'active'
        ORDER BY origin_label, floor_price ASC`,
       [territoryId]
     );
