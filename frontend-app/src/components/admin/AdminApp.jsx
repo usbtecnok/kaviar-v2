@@ -8,6 +8,8 @@ import AdminErrorBoundary from "./AdminErrorBoundary";
 import DomainHeader from "../common/DomainHeader";
 import FeatureFlags from "../../pages/admin/FeatureFlags";
 import PricingProfiles from "../../pages/admin/PricingProfiles";
+import TerritoryPriceFloors from "../../pages/admin/TerritoryPriceFloors";
+import ManagerPriceFloors from "../../pages/admin/ManagerPriceFloors";
 import RideSimulator from "../../pages/admin/RideSimulator";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
 import OperationsMonitor from "../../pages/admin/OperationsMonitor";
@@ -462,6 +464,7 @@ function AdminHome() {
               { Icon: Analytics, title: 'Pacote Investidores', desc: 'Material para investidores e anjos', to: '/admin/investidores' },
                 { Icon: Science, title: 'KAVIAR Lab', desc: 'Inteligência territorial · Score de Maturidade', to: '/admin/lab' },
                 { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais', to: '/admin/pricing' },
+                { Icon: Paid, title: 'Tabela Territorial', desc: 'Pisos mínimos por rota e território', to: '/admin/territory-floors' },
                 { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem/destino, preço e ganho', to: '/admin/ride-simulator' },
                 { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e proteção', to: '/admin/emergency-events' },
                 { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
@@ -746,6 +749,24 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <PricingProfiles />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/territory-floors" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <TerritoryPriceFloors />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/manager-territory-floors" element={
+            <ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <ManagerPriceFloors />
               </Container>
             </ProtectedAdminRoute>
           } />
