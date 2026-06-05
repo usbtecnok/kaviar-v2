@@ -1,14 +1,18 @@
 /**
- * Admin Territory Price Floors — CRUD para pisos territoriais
+ * Admin Territory Price Floors — CRUD + Governança (Fase 2A)
  *
- * Endpoints:
- *   GET    /api/admin/territory-floors?territory_id=xxx  — lista pisos de um território
- *   GET    /api/admin/territory-floors/:id               — busca um piso por ID
- *   POST   /api/admin/territory-floors                   — cria novo piso
- *   PUT    /api/admin/territory-floors/:id               — atualiza piso existente
- *   DELETE /api/admin/territory-floors/:id               — desativa piso (soft delete)
+ * Endpoints SUPER_ADMIN:
+ *   GET    /api/admin/territory-floors?territory_id=xxx          — lista pisos (todos status)
+ *   GET    /api/admin/territory-floors/pending                   — lista propostas pendentes
+ *   GET    /api/admin/territory-floors/:id                       — busca um piso por ID
+ *   POST   /api/admin/territory-floors                           — cria novo piso (active direto)
+ *   PUT    /api/admin/territory-floors/:id                       — atualiza piso existente
+ *   PUT    /api/admin/territory-floors/:id/approve               — aprova proposta
+ *   PUT    /api/admin/territory-floors/:id/reject                — rejeita proposta
+ *   PUT    /api/admin/territory-floors/:id/archive               — arquiva piso
+ *   DELETE /api/admin/territory-floors/:id                       — desativa piso (soft delete)
  *
- * Acesso: SUPER_ADMIN apenas (Fase 1A)
+ * Acesso: SUPER_ADMIN apenas
  */
 
 import { Router, Request, Response } from 'express';
@@ -21,6 +25,12 @@ const router = Router();
 router.use(authenticateAdmin);
 router.use(requireSuperAdmin);
 
+// --- Constants ---
+
+const MAX_FLOOR_PRICE = 200;
+const MAX_SURCHARGE = 30;
+const VALID_STATUSES = ['active', 'draft', 'pending_approval', 'rejected', 'archived'] as const;
+
 // --- Schemas ---
 
 const createFloorSchema = z.object({
@@ -30,26 +40,31 @@ const createFloorSchema = z.object({
   origin_neighborhood_id: z.string().nullable().optional(),
   dest_label: z.string().min(1, 'dest_label é obrigatório'),
   dest_neighborhood_id: z.string().nullable().optional(),
-  floor_price: z.number().min(0.01, 'floor_price deve ser positivo'),
-  surcharge: z.number().min(0).default(0),
-  notes: z.string().nullable().optional(),
+  floor_price: z.number().min(0.01, 'floor_price deve ser positivo').max(MAX_FLOOR_PRICE, `floor_price não pode exceder R$ ${MAX_FLOOR_PRICE}`),
+  surcharge: z.number().min(0).max(MAX_SURCHARGE, `surcharge não pode exceder R$ ${MAX_SURCHARGE}`).default(0),
+  notes: z.string().min(1, 'Motivo/observação é obrigatório'),
+  status: z.enum(VALID_STATUSES).default('active'),
 });
 
 const updateFloorSchema = z.object({
-  floor_price: z.number().min(0.01).optional(),
-  surcharge: z.number().min(0).optional(),
+  floor_price: z.number().min(0.01).max(MAX_FLOOR_PRICE, `floor_price não pode exceder R$ ${MAX_FLOOR_PRICE}`).optional(),
+  surcharge: z.number().min(0).max(MAX_SURCHARGE, `surcharge não pode exceder R$ ${MAX_SURCHARGE}`).optional(),
   dest_label: z.string().min(1).optional(),
   dest_neighborhood_id: z.string().nullable().optional(),
-  notes: z.string().nullable().optional(),
+  notes: z.string().min(1, 'Motivo da alteração é obrigatório'),
   is_active: z.boolean().optional(),
+});
+
+const reviewSchema = z.object({
+  reason: z.string().min(3, 'Motivo é obrigatório (mín. 3 caracteres)'),
 });
 
 // --- Routes ---
 
-// GET /api/admin/territory-floors?territory_id=xxx
+// GET /api/admin/territory-floors?territory_id=xxx&status=active
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { territory_id } = req.query;
+    const { territory_id, status } = req.query;
 
     if (!territory_id) {
       return res.status(400).json({
@@ -58,17 +73,24 @@ router.get('/', async (req: Request, res: Response) => {
       });
     }
 
-    const result = await pool.query(
-      `SELECT id, territory_id, pricing_profile_id,
+    let query = `SELECT id, territory_id, pricing_profile_id,
               origin_label, origin_neighborhood_id,
               dest_label, dest_neighborhood_id,
               floor_price, surcharge, notes,
-              is_active, created_by, created_at, updated_at
+              status, is_active, submitted_by, reviewed_by, reviewed_at, review_reason,
+              version, created_by, created_at, updated_at
        FROM territory_price_floors
-       WHERE territory_id = $1
-       ORDER BY origin_label, floor_price ASC`,
-      [territory_id]
-    );
+       WHERE territory_id = $1`;
+    const params: any[] = [territory_id];
+
+    if (status && VALID_STATUSES.includes(status as any)) {
+      query += ` AND status = $2`;
+      params.push(status);
+    }
+
+    query += ` ORDER BY status ASC, origin_label ASC, floor_price ASC`;
+
+    const result = await pool.query(query, params);
 
     res.json({
       success: true,
@@ -78,6 +100,38 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[ADMIN_TERRITORY_FLOORS] List error:', error);
     res.status(500).json({ success: false, error: 'Erro ao listar pisos territoriais' });
+  }
+});
+
+// GET /api/admin/territory-floors/pending — propostas pendentes de aprovação (todos os territórios)
+router.get('/pending', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT tpf.id, tpf.territory_id, tpf.pricing_profile_id,
+              tpf.origin_label, tpf.origin_neighborhood_id,
+              tpf.dest_label, tpf.dest_neighborhood_id,
+              tpf.floor_price, tpf.surcharge, tpf.notes,
+              tpf.status, tpf.is_active, tpf.submitted_by, tpf.reviewed_by,
+              tpf.reviewed_at, tpf.review_reason,
+              tpf.version, tpf.created_by, tpf.created_at, tpf.updated_at,
+              ot.name as territory_name
+       FROM territory_price_floors tpf
+       LEFT JOIN operational_territories ot ON ot.id::text = tpf.territory_id::text
+       WHERE tpf.status = 'pending_approval'
+       ORDER BY tpf.created_at ASC`
+    );
+
+    res.json({
+      success: true,
+      data: result.rows.map(row => ({
+        ...normalizeRow(row),
+        territory_name: row.territory_name || null,
+      })),
+      total: result.rows.length,
+    });
+  } catch (error) {
+    console.error('[ADMIN_TERRITORY_FLOORS] Pending list error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao listar propostas pendentes' });
   }
 });
 
@@ -91,7 +145,8 @@ router.get('/:id', async (req: Request, res: Response) => {
               origin_label, origin_neighborhood_id,
               dest_label, dest_neighborhood_id,
               floor_price, surcharge, notes,
-              is_active, created_by, created_at, updated_at
+              status, is_active, submitted_by, reviewed_by, reviewed_at, review_reason,
+              version, created_by, created_at, updated_at
        FROM territory_price_floors
        WHERE id = $1`,
       [id]
@@ -108,7 +163,7 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/territory-floors
+// POST /api/admin/territory-floors — SUPER_ADMIN cria diretamente (default status = 'active')
 router.post('/', async (req: Request, res: Response) => {
   try {
     const ctx = auditCtx(req);
@@ -129,9 +184,9 @@ router.post('/', async (req: Request, res: Response) => {
         origin_label, origin_neighborhood_id,
         dest_label, dest_neighborhood_id,
         floor_price, surcharge, notes,
-        created_by, created_at, updated_at
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now(),now())
-      RETURNING id`,
+        status, submitted_by, created_by, created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now(),now())
+      RETURNING id, status`,
       [
         data.territory_id,
         data.pricing_profile_id || null,
@@ -141,7 +196,9 @@ router.post('/', async (req: Request, res: Response) => {
         data.dest_neighborhood_id || null,
         data.floor_price,
         data.surcharge,
-        data.notes || null,
+        data.notes,
+        data.status,
+        ctx.adminId,
         ctx.adminId,
       ]
     );
@@ -159,11 +216,11 @@ router.post('/', async (req: Request, res: Response) => {
       userAgent: ctx.ua,
     });
 
-    console.log(`[ADMIN_TERRITORY_FLOORS] Created: id=${newId} territory=${data.territory_id} "${data.origin_label}→${data.dest_label}" floor=${data.floor_price}`);
+    console.log(`[ADMIN_TERRITORY_FLOORS] Created: id=${newId} territory=${data.territory_id} "${data.origin_label}→${data.dest_label}" floor=${data.floor_price} status=${data.status}`);
 
     res.status(201).json({
       success: true,
-      data: { id: newId },
+      data: { id: newId, status: result.rows[0].status },
       message: 'Piso territorial criado com sucesso',
     });
   } catch (error) {
@@ -172,7 +229,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/admin/territory-floors/:id
+// PUT /api/admin/territory-floors/:id — edita piso existente
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -187,7 +244,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 
     const data = parsed.data;
-    const updates = Object.entries(data).filter(([_, v]) => v !== undefined);
+    const { notes: reason, ...fields } = data;
+    const updates = Object.entries(fields).filter(([_, v]) => v !== undefined);
 
     if (updates.length === 0) {
       return res.status(400).json({ success: false, error: 'Nenhum campo para atualizar' });
@@ -203,13 +261,17 @@ router.put('/:id', async (req: Request, res: Response) => {
       values.push(value);
       paramIndex++;
     }
+
+    // Increment version
+    setClauses.push(`version = version + 1`);
+
     values.push(id);
 
     const result = await pool.query(
       `UPDATE territory_price_floors
        SET ${setClauses.join(', ')}
        WHERE id = $${paramIndex}
-       RETURNING id, floor_price, surcharge, dest_label, is_active`,
+       RETURNING id, floor_price, surcharge, dest_label, is_active, status, version`,
       values
     );
 
@@ -223,12 +285,12 @@ router.put('/:id', async (req: Request, res: Response) => {
       action: 'update_territory_floor',
       entityType: 'territory_price_floor',
       entityId: id,
-      newValue: data,
+      newValue: { ...fields, reason },
       ipAddress: ctx.ip,
       userAgent: ctx.ua,
     });
 
-    console.log(`[ADMIN_TERRITORY_FLOORS] Updated: id=${id} fields=${updates.map(([k]) => k).join(',')}`);
+    console.log(`[ADMIN_TERRITORY_FLOORS] Updated: id=${id} fields=${updates.map(([k]) => k).join(',')} reason="${reason}"`);
 
     res.json({
       success: true,
@@ -241,7 +303,161 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE /api/admin/territory-floors/:id (soft delete)
+// PUT /api/admin/territory-floors/:id/approve — aprova proposta pendente
+router.put('/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const ctx = auditCtx(req);
+    const parsed = reviewSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+    }
+
+    const { reason } = parsed.data;
+
+    const result = await pool.query(
+      `UPDATE territory_price_floors
+       SET status = 'active', reviewed_by = $2, reviewed_at = now(),
+           review_reason = $3, is_active = true, updated_at = now()
+       WHERE id = $1 AND status = 'pending_approval'
+       RETURNING id, territory_id, origin_label, dest_label, floor_price, submitted_by`,
+      [id, ctx.adminId, reason]
+    );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ success: false, error: 'Proposta não encontrada ou não está pendente' });
+    }
+
+    const row = result.rows[0];
+
+    await audit({
+      adminId: ctx.adminId,
+      adminEmail: ctx.adminEmail,
+      action: 'approve_territory_floor',
+      entityType: 'territory_price_floor',
+      entityId: id,
+      newValue: { status: 'active', reason, submitted_by: row.submitted_by },
+      ipAddress: ctx.ip,
+      userAgent: ctx.ua,
+    });
+
+    console.log(`[ADMIN_TERRITORY_FLOORS] Approved: id=${id} "${row.origin_label}→${row.dest_label}" floor=${row.floor_price} reason="${reason}"`);
+
+    res.json({
+      success: true,
+      message: 'Proposta aprovada — piso territorial ativado',
+      data: { id, status: 'active' },
+    });
+  } catch (error) {
+    console.error('[ADMIN_TERRITORY_FLOORS] Approve error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao aprovar proposta' });
+  }
+});
+
+// PUT /api/admin/territory-floors/:id/reject — rejeita proposta pendente
+router.put('/:id/reject', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const ctx = auditCtx(req);
+    const parsed = reviewSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+    }
+
+    const { reason } = parsed.data;
+
+    const result = await pool.query(
+      `UPDATE territory_price_floors
+       SET status = 'rejected', reviewed_by = $2, reviewed_at = now(),
+           review_reason = $3, is_active = false, updated_at = now()
+       WHERE id = $1 AND status = 'pending_approval'
+       RETURNING id, territory_id, origin_label, dest_label, floor_price, submitted_by`,
+      [id, ctx.adminId, reason]
+    );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ success: false, error: 'Proposta não encontrada ou não está pendente' });
+    }
+
+    const row = result.rows[0];
+
+    await audit({
+      adminId: ctx.adminId,
+      adminEmail: ctx.adminEmail,
+      action: 'reject_territory_floor',
+      entityType: 'territory_price_floor',
+      entityId: id,
+      newValue: { status: 'rejected', reason, submitted_by: row.submitted_by },
+      ipAddress: ctx.ip,
+      userAgent: ctx.ua,
+    });
+
+    console.log(`[ADMIN_TERRITORY_FLOORS] Rejected: id=${id} "${row.origin_label}→${row.dest_label}" reason="${reason}"`);
+
+    res.json({
+      success: true,
+      message: 'Proposta rejeitada',
+      data: { id, status: 'rejected' },
+    });
+  } catch (error) {
+    console.error('[ADMIN_TERRITORY_FLOORS] Reject error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao rejeitar proposta' });
+  }
+});
+
+// PUT /api/admin/territory-floors/:id/archive — arquiva piso ativo
+router.put('/:id/archive', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const ctx = auditCtx(req);
+    const parsed = reviewSchema.safeParse(req.body);
+
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+    }
+
+    const { reason } = parsed.data;
+
+    const result = await pool.query(
+      `UPDATE territory_price_floors
+       SET status = 'archived', is_active = false, reviewed_by = $2,
+           reviewed_at = now(), review_reason = $3, updated_at = now()
+       WHERE id = $1 AND status = 'active'
+       RETURNING id, dest_label`,
+      [id, ctx.adminId, reason]
+    );
+
+    if (!result.rows[0]) {
+      return res.status(404).json({ success: false, error: 'Piso não encontrado ou não está ativo' });
+    }
+
+    await audit({
+      adminId: ctx.adminId,
+      adminEmail: ctx.adminEmail,
+      action: 'archive_territory_floor',
+      entityType: 'territory_price_floor',
+      entityId: id,
+      newValue: { status: 'archived', reason },
+      ipAddress: ctx.ip,
+      userAgent: ctx.ua,
+    });
+
+    console.log(`[ADMIN_TERRITORY_FLOORS] Archived: id=${id} dest="${result.rows[0].dest_label}" reason="${reason}"`);
+
+    res.json({
+      success: true,
+      message: 'Piso territorial arquivado',
+      data: { id, status: 'archived' },
+    });
+  } catch (error) {
+    console.error('[ADMIN_TERRITORY_FLOORS] Archive error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao arquivar piso territorial' });
+  }
+});
+
+// DELETE /api/admin/territory-floors/:id (soft delete — backward compat)
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -249,7 +465,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `UPDATE territory_price_floors
-       SET is_active = false, updated_at = now()
+       SET is_active = false, status = 'archived', updated_at = now()
        WHERE id = $1 AND is_active = true
        RETURNING id, dest_label`,
       [id]
@@ -296,7 +512,13 @@ function normalizeRow(row: any) {
     surcharge: Number(row.surcharge),
     total_floor: Math.round((Number(row.floor_price) + Number(row.surcharge)) * 100) / 100,
     notes: row.notes,
+    status: row.status || 'active',
     is_active: row.is_active,
+    submitted_by: row.submitted_by || null,
+    reviewed_by: row.reviewed_by || null,
+    reviewed_at: row.reviewed_at || null,
+    review_reason: row.review_reason || null,
+    version: row.version || 1,
     created_by: row.created_by,
     created_at: row.created_at,
     updated_at: row.updated_at,
