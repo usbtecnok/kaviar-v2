@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Container, Typography, Card, CardContent, Grid, Chip, Alert, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab,
-  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField
+  Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Switch, FormControlLabel
 } from '@mui/material';
 import { CheckCircle, Cancel, Paid, Add, Warning } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
@@ -27,6 +27,13 @@ export default function RetornoFamiliarAdmin() {
   const [createForm, setCreateForm] = useState({ year: new Date().getFullYear(), percent_rate: '5', max_per_driver_cents: '10000', fund_budget_cents: '50000', request_start: '', request_end: '', is_active: false });
   const [createPassword, setCreatePassword] = useState('');
   const [createReason, setCreateReason] = useState('');
+
+  // Edit policy state
+  const [editPolicyOpen, setEditPolicyOpen] = useState(false);
+  const [editPolicy, setEditPolicy] = useState(null);
+  const [editPolicyForm, setEditPolicyForm] = useState({});
+  const [editPolicyPassword, setEditPolicyPassword] = useState('');
+  const [editPolicyReason, setEditPolicyReason] = useState('');
 
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -76,6 +83,47 @@ export default function RetornoFamiliarAdmin() {
   };
 
   const fmt = (cents) => `R$ ${(Number(cents) / 100).toFixed(2).replace('.', ',')}`;
+
+  const openEditPolicy = (p) => {
+    setEditPolicy(p);
+    setEditPolicyForm({
+      percent_rate: String(Number(p.percent_rate)),
+      max_per_driver_cents: p.max_per_driver_cents ? String(Number(p.max_per_driver_cents) / 100) : '',
+      fund_budget_cents: p.fund_budget_cents ? String(Number(p.fund_budget_cents) / 100) : '',
+      request_start: p.request_start || '',
+      request_end: p.request_end || '',
+      payment_deadline: p.payment_deadline || '',
+      is_active: p.is_active,
+      notes: p.notes || '',
+    });
+    setEditPolicyOpen(true);
+  };
+
+  const handleEditPolicy = async () => {
+    if (!editPolicyPassword || !editPolicyReason) { setError('Senha e motivo obrigatórios'); return; }
+    const rate = Number(editPolicyForm.percent_rate);
+    if (rate <= 0 || rate > 30) { setError('Percentual deve ser entre 0.01% e 30%'); return; }
+
+    const body = {
+      percent_rate: rate,
+      max_per_driver_cents: editPolicyForm.max_per_driver_cents ? Math.round(Number(editPolicyForm.max_per_driver_cents) * 100) : null,
+      fund_budget_cents: editPolicyForm.fund_budget_cents ? Math.round(Number(editPolicyForm.fund_budget_cents) * 100) : null,
+      request_start: editPolicyForm.request_start || undefined,
+      request_end: editPolicyForm.request_end || undefined,
+      payment_deadline: editPolicyForm.payment_deadline || null,
+      is_active: editPolicyForm.is_active,
+      notes: editPolicyForm.notes || null,
+      password: editPolicyPassword,
+      reason: editPolicyReason,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/retorno-familiar/policies/${editPolicy.id}`, { method: 'PUT', headers, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (data.success) { setSuccess('Política atualizada'); setEditPolicyOpen(false); setEditPolicyPassword(''); setEditPolicyReason(''); fetchAll(); }
+      else setError(data.error);
+    } catch { setError('Erro de conexão'); }
+  };
 
   if (loading) return <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress sx={{ color: GOLD }} /></Box>;
 
@@ -215,6 +263,7 @@ export default function RetornoFamiliarAdmin() {
                           <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="right">Fundo</TableCell>
                           <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Período</TableCell>
                           <TableCell sx={{ fontWeight: 700, fontSize: 11 }}>Status</TableCell>
+                          <TableCell sx={{ fontWeight: 700, fontSize: 11 }} align="center">Ações</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -226,6 +275,9 @@ export default function RetornoFamiliarAdmin() {
                             <TableCell sx={{ fontSize: 12 }} align="right">{p.fund_budget_cents ? fmt(p.fund_budget_cents) : '—'}</TableCell>
                             <TableCell sx={{ fontSize: 11, color: '#6B7280' }}>{p.request_start} a {p.request_end}</TableCell>
                             <TableCell><Chip label={p.is_active ? 'Ativa' : 'Inativa'} size="small" sx={{ bgcolor: p.is_active ? '#ECFDF5' : '#F3F4F6', color: p.is_active ? '#059669' : '#6B7280', fontWeight: 600, fontSize: 10 }} /></TableCell>
+                            <TableCell align="center">
+                              <Button size="small" onClick={() => openEditPolicy(p)} sx={{ fontSize: 10, color: GOLD, fontWeight: 600 }}>Editar</Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -283,6 +335,48 @@ export default function RetornoFamiliarAdmin() {
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => setCreateOpen(false)} sx={{ color: '#6B7280' }}>Cancelar</Button>
             <Button onClick={handleCreatePolicy} variant="contained" disabled={!createPassword || !createReason} sx={{ bgcolor: GOLD, fontWeight: 600, '&:hover': { bgcolor: '#9A7B24' } }}>Criar Política</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Edit Policy Dialog */}
+        <Dialog open={editPolicyOpen} onClose={() => { setEditPolicyOpen(false); setEditPolicyPassword(''); setEditPolicyReason(''); }} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>Editar Política {editPolicy?.year}</DialogTitle>
+          <DialogContent>
+            <Alert severity="warning" sx={{ mb: 2, fontSize: 11, borderRadius: 2 }}>
+              Alterações na política afetam cálculos e novas solicitações. Solicitações já criadas preservam o snapshot original.
+            </Alert>
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item xs={4}>
+                <TextField fullWidth label="Taxa (%)" type="number" value={editPolicyForm.percent_rate || ''} onChange={e => setEditPolicyForm(f => ({ ...f, percent_rate: e.target.value }))} size="small" inputProps={{ min: 0.01, max: 30, step: 0.5 }} helperText="Mín 0.01%, Máx 30%" />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField fullWidth label="Teto/motorista (R$)" type="number" value={editPolicyForm.max_per_driver_cents || ''} onChange={e => setEditPolicyForm(f => ({ ...f, max_per_driver_cents: e.target.value }))} size="small" helperText="Em reais" />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField fullWidth label="Fundo total (R$)" type="number" value={editPolicyForm.fund_budget_cents || ''} onChange={e => setEditPolicyForm(f => ({ ...f, fund_budget_cents: e.target.value }))} size="small" helperText="Em reais" />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField fullWidth label="Início solicitações" type="date" value={editPolicyForm.request_start || ''} onChange={e => setEditPolicyForm(f => ({ ...f, request_start: e.target.value }))} size="small" InputLabelProps={{ shrink: true }} />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField fullWidth label="Fim solicitações" type="date" value={editPolicyForm.request_end || ''} onChange={e => setEditPolicyForm(f => ({ ...f, request_end: e.target.value }))} size="small" InputLabelProps={{ shrink: true }} />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField fullWidth label="Prazo pagamento" type="date" value={editPolicyForm.payment_deadline || ''} onChange={e => setEditPolicyForm(f => ({ ...f, payment_deadline: e.target.value }))} size="small" InputLabelProps={{ shrink: true }} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Observações" value={editPolicyForm.notes || ''} onChange={e => setEditPolicyForm(f => ({ ...f, notes: e.target.value }))} size="small" multiline rows={2} />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel control={<Switch checked={editPolicyForm.is_active || false} onChange={e => setEditPolicyForm(f => ({ ...f, is_active: e.target.checked }))} />} label={editPolicyForm.is_active ? 'Política ATIVA' : 'Política INATIVA'} />
+              </Grid>
+            </Grid>
+            <TextField fullWidth label="Motivo da alteração (obrigatório)" value={editPolicyReason} onChange={e => setEditPolicyReason(e.target.value)} size="small" sx={{ mt: 2, mb: 2 }} />
+            <TextField fullWidth label="Sua senha (confirmação)" type="password" value={editPolicyPassword} onChange={e => setEditPolicyPassword(e.target.value)} size="small" />
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => { setEditPolicyOpen(false); setEditPolicyPassword(''); setEditPolicyReason(''); }} sx={{ color: '#6B7280' }}>Cancelar</Button>
+            <Button onClick={handleEditPolicy} variant="contained" disabled={!editPolicyPassword || !editPolicyReason} sx={{ bgcolor: GOLD, fontWeight: 600, '&:hover': { bgcolor: '#9A7B24' } }}>Salvar Alterações</Button>
           </DialogActions>
         </Dialog>
       </Container>

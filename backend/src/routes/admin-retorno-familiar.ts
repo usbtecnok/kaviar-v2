@@ -28,7 +28,7 @@ async function verifyAdminPassword(adminId: string, password: string): Promise<b
 
 const createPolicySchema = z.object({
   year: z.number().int().min(2024).max(2040),
-  percent_rate: z.number().min(0.01).max(50),
+  percent_rate: z.number().min(0.01).max(30, 'Percentual máximo: 30%'),
   max_per_driver_cents: z.number().int().min(100).nullable().optional(),
   fund_budget_cents: z.number().int().min(1000).nullable().optional(),
   request_start: z.string().min(1),
@@ -41,7 +41,7 @@ const createPolicySchema = z.object({
 });
 
 const updatePolicySchema = z.object({
-  percent_rate: z.number().min(0.01).max(50).optional(),
+  percent_rate: z.number().min(0.01).max(30, 'Percentual máximo: 30%').optional(),
   max_per_driver_cents: z.number().int().min(100).nullable().optional(),
   fund_budget_cents: z.number().int().min(1000).nullable().optional(),
   request_start: z.string().optional(),
