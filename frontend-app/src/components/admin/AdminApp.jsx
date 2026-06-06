@@ -11,6 +11,7 @@ import PricingProfiles from "../../pages/admin/PricingProfiles";
 import TerritoryPriceFloors from "../../pages/admin/TerritoryPriceFloors";
 import ManagerPriceFloors from "../../pages/admin/ManagerPriceFloors";
 import CreditPackagesAdmin from "../../pages/admin/CreditPackagesAdmin";
+import RetornoFamiliarAdmin from "../../pages/admin/RetornoFamiliarAdmin";
 import RideSimulator from "../../pages/admin/RideSimulator";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
 import OperationsMonitor from "../../pages/admin/OperationsMonitor";
@@ -467,6 +468,7 @@ function AdminHome() {
                 { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais', to: '/admin/pricing' },
                 { Icon: Paid, title: 'Tabela Territorial', desc: 'Pisos mínimos por rota e território', to: '/admin/territory-floors' },
                 { Icon: Paid, title: 'Pacotes de Créditos', desc: 'Gerenciar pacotes de compra do motorista', to: '/admin/credit-packages' },
+                { Icon: Paid, title: 'Retorno Familiar', desc: 'Programa de reconhecimento anual', to: '/admin/retorno-familiar' },
                 { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem/destino, preço e ganho', to: '/admin/ride-simulator' },
                 { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e proteção', to: '/admin/emergency-events' },
                 { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
@@ -769,6 +771,15 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <CreditPackagesAdmin />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/retorno-familiar" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <RetornoFamiliarAdmin />
               </Container>
             </ProtectedAdminRoute>
           } />
