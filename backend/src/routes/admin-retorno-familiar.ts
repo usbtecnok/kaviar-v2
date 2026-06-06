@@ -332,10 +332,29 @@ router.put('/requests/:id/mark-paid', async (req: Request, res: Response) => {
     if (!(await verifyAdminPassword(ctx.adminId, password)))
       return res.status(401).json({ success: false, error: 'Senha incorreta' });
 
-    const req_row = await pool.query('SELECT status FROM retorno_familiar_requests WHERE id = $1', [id]);
+    const req_row = await pool.query(
+      `SELECT r.status, r.driver_id, d.pix_key, d.pix_key_type
+       FROM retorno_familiar_requests r
+       JOIN drivers d ON d.id = r.driver_id
+       WHERE r.id = $1`, [id]
+    );
     if (!req_row.rows[0]) return res.status(404).json({ success: false, error: 'Não encontrada' });
     if (req_row.rows[0].status !== 'approved')
       return res.status(400).json({ success: false, error: 'Só é possível marcar como pago solicitações aprovadas' });
+
+    // Validação Pix para pagamento via pix_manual
+    if (paid_method === 'pix_manual') {
+      const { pix_key, pix_key_type } = req_row.rows[0];
+      if (!pix_key) {
+        return res.status(400).json({ success: false, error: 'O motorista não possui chave Pix cadastrada. Atualize os dados antes de registrar pagamento via Pix.' });
+      }
+      if (!pix_key_type) {
+        return res.status(400).json({ success: false, error: 'O motorista possui chave Pix, mas o tipo da chave não está informado. Atualize os dados antes de registrar pagamento via Pix.' });
+      }
+      if (!paid_reference) {
+        return res.status(400).json({ success: false, error: 'Referência/comprovante é obrigatória para pagamento via Pix manual.' });
+      }
+    }
 
     await pool.query(
       `UPDATE retorno_familiar_requests SET status = 'paid', paid_at = NOW(), paid_method = $2, paid_reference = $3, paid_by = $4, updated_at = NOW() WHERE id = $1`,

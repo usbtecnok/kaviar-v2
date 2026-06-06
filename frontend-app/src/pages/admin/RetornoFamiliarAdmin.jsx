@@ -169,7 +169,16 @@ export default function RetornoFamiliarAdmin() {
                           </Box>
                           {r.approved_amount_cents && <Typography sx={{ fontSize: 12, color: '#10B981', mt: 0.5 }}>Aprovado: {fmt(r.approved_amount_cents)}</Typography>}
                           {r.review_reason && <Typography sx={{ fontSize: 11, color: '#6B7280', mt: 0.5 }}>Motivo: {r.review_reason}</Typography>}
-                          <Typography sx={{ fontSize: 10, color: '#9CA3AF', mt: 1 }}>PIX: {r.pix_key ? `${r.pix_key_type} — ${r.pix_key.slice(0, 6)}...` : 'Sem PIX'}</Typography>
+                          <Typography sx={{ fontSize: 10, color: r.pix_key && r.pix_key_type ? '#9CA3AF' : '#DC2626', mt: 1 }}>
+                            {r.pix_key
+                              ? r.pix_key_type
+                                ? `PIX: ${r.pix_key_type} — ${r.pix_key.slice(0, 6)}***`
+                                : `PIX: Tipo não informado — ${r.pix_key.slice(0, 6)}***`
+                              : 'PIX não cadastrado'}
+                          </Typography>
+                          {r.pix_key && !r.pix_key_type && (
+                            <Alert severity="warning" sx={{ mt: 0.5, py: 0, fontSize: 10 }}>Tipo da chave Pix ausente. Atualize antes de pagar via Pix.</Alert>
+                          )}
 
                           {['requested', 'in_review'].includes(r.status) && (
                             <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
