@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { API_BASE_URL } from '../../config/api';
-import { Container, TextField, Button, Typography, Stack } from "@mui/material";
+import { Container, TextField, Button, Typography, Stack, Alert, CircularProgress } from "@mui/material";
 import { useLocation, useNavigate } from "react-router-dom";
-
 
 export default function DriverLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const hasPasswordSpaces = password.startsWith(' ') || password.endsWith(' ');
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -20,41 +22,54 @@ export default function DriverLogin() {
       return;
     }
 
-    const res = await fetch(`${API_BASE_URL}/api/auth/driver/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    setSubmitting(true);
 
-    const data = await res.json().catch(() => ({}));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/driver/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
 
-    if (!res.ok) {
-      const errorMsg = data?.error || data?.message || "";
-      
-      if (res.status === 403 && errorMsg.includes("suspensa")) {
-        setMsg("Conta suspensa ou rejeitada. Entre em contato com o suporte.");
-      } else if (errorMsg.includes("Credenciais inválidas")) {
-        setMsg("Email ou senha incorretos.");
-      } else {
-        setMsg(errorMsg || "Erro no login. Verifique seus dados.");
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const errorMsg = data?.error || data?.message || "";
+
+        if (res.status === 429) {
+          const retryAfter = res.headers.get('retry-after');
+          const minutes = retryAfter ? Math.ceil(Number(retryAfter) / 60) : 15;
+          setMsg(`Muitas tentativas. Aguarde aproximadamente ${minutes} minuto(s) antes de tentar novamente.`);
+        } else if (res.status === 403 && errorMsg.includes("suspensa")) {
+          setMsg("Conta suspensa ou rejeitada. Entre em contato com o suporte.");
+        } else if (errorMsg.includes("Credenciais inválidas")) {
+          setMsg("Email ou senha incorretos.");
+        } else {
+          setMsg(errorMsg || "Erro no login. Verifique seus dados.");
+        }
+        setSubmitting(false);
+        return;
       }
-      return;
-    }
 
-    const token = data?.token || data?.accessToken;
-    if (!token) {
-      setMsg("Login OK, mas não veio token na resposta.");
-      return;
-    }
+      const token = data?.token || data?.accessToken;
+      if (!token) {
+        setMsg("Login OK, mas não veio token na resposta.");
+        setSubmitting(false);
+        return;
+      }
 
-    localStorage.setItem("kaviar_driver_token", token);
-    
-    if (data?.user) {
-      localStorage.setItem("kaviar_driver_data", JSON.stringify(data.user));
-    }
+      localStorage.setItem("kaviar_driver_token", token);
 
-    const from = location.state?.from?.pathname;
-    navigate(from || "/motorista/status", { replace: true });
+      if (data?.user) {
+        localStorage.setItem("kaviar_driver_data", JSON.stringify(data.user));
+      }
+
+      const from = location.state?.from?.pathname;
+      navigate(from || "/motorista/status", { replace: true });
+    } catch (err) {
+      setMsg("Erro de conexão. Verifique sua internet e tente novamente.");
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -65,13 +80,47 @@ export default function DriverLogin() {
 
       <form onSubmit={onSubmit}>
         <Stack spacing={2}>
-          <TextField label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <TextField label="Senha" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <Button type="submit" variant="contained">Entrar</Button>
-          <Button variant="outlined" onClick={() => navigate("/cadastro?type=driver")}>
+          <TextField
+            label="Email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={submitting}
+          />
+          <TextField
+            label="Senha"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={submitting}
+          />
+
+          {hasPasswordSpaces && password.length > 0 && (
+            <Alert severity="warning" sx={{ fontSize: 12, py: 0.5 }}>
+              A senha contém espaço no início ou no fim. Verifique se foi digitada corretamente.
+            </Alert>
+          )}
+
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={submitting}
+            sx={{ py: 1.5 }}
+          >
+            {submitting ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Entrar'}
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => navigate("/cadastro?type=driver")}
+            disabled={submitting}
+          >
             Primeiro acesso? Cadastre-se
           </Button>
-          {msg && <Typography color="error">{msg}</Typography>}
+
+          {msg && <Alert severity="error" sx={{ fontSize: 13 }}>{msg}</Alert>}
         </Stack>
       </form>
     </Container>
