@@ -555,10 +555,10 @@ export default function CompleteOnboarding() {
                 />
 
                 <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
-                  Bônus Familiar KAVIAR
+                  Programa de Reconhecimento KAVIAR
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 2 }}>
-                  Selecione seu perfil para receber crédito mensal de abatimento em taxas:
+                  Selecione seu perfil para participar de programas futuros de reconhecimento (sujeitos a regras, disponibilidade e aprovação):
                 </Typography>
                 <FormControl component="fieldset" sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -569,7 +569,7 @@ export default function CompleteOnboarding() {
                           onChange={() => setFormData(prev => ({ ...prev, familyProfile: 'individual' }))}
                         />
                       }
-                      label="Perfil Individual (R$ 50/mês)"
+                      label="Perfil Individual"
                     />
                     <FormControlLabel
                       control={
@@ -578,7 +578,7 @@ export default function CompleteOnboarding() {
                           onChange={() => setFormData(prev => ({ ...prev, familyProfile: 'familiar' }))}
                         />
                       }
-                      label="Perfil Familiar (R$ 100/mês)"
+                      label="Perfil Familiar"
                     />
                   </Box>
                 </FormControl>
@@ -592,7 +592,7 @@ export default function CompleteOnboarding() {
                   }
                   label={
                     <Typography variant="caption">
-                      Declaro, sob minha responsabilidade, que o perfil familiar selecionado corresponde à minha situação atual, ciente de que a KAVIAR poderá revisar ou cancelar o benefício em caso de inconsistência.
+                      Desejo participar de programas futuros de reconhecimento KAVIAR, ciente de que dependem de regras vigentes, disponibilidade e aprovação administrativa.
                     </Typography>
                   }
                 />

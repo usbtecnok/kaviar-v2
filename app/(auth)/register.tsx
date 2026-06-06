@@ -488,9 +488,9 @@ export default function Register() {
             </View>
 
             <View style={styles.bonusSection}>
-              <Text style={styles.bonusTitle}>Bônus Familiar</Text>
+              <Text style={styles.bonusTitle}>Programa KAVIAR</Text>
               <Text style={styles.bonusDescription}>
-                Compartilhe ganhos com sua família (50% para você, 50% para indicado)
+                Desejo receber informações sobre programas futuros de reconhecimento KAVIAR, sujeitos a regras, disponibilidade e aprovação.
               </Text>
               
               <TouchableOpacity
@@ -501,7 +501,7 @@ export default function Register() {
                   {familyBonusAccepted && <Ionicons name="checkmark" size={18} color="#FFF" />}
                 </View>
                 <Text style={styles.checkboxLabel}>
-                  Quero participar do programa de bônus familiar
+                  Quero participar de programas futuros de reconhecimento
                 </Text>
               </TouchableOpacity>
             </View>
