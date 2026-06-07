@@ -8,6 +8,43 @@ import {
 
 const API = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
 
+const filterSx = {
+  '& .MuiInputLabel-root': { color: '#CBD5E1' },
+  '& .MuiInputLabel-root.Mui-focused': { color: '#D4AF37' },
+  '& .MuiOutlinedInput-root': {
+    color: '#F9FAFB',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    '& fieldset': { borderColor: 'rgba(255,255,255,0.28)' },
+    '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.50)' },
+    '&.Mui-focused fieldset': { borderColor: '#D4AF37' },
+  },
+  '& .MuiSelect-icon': { color: '#CBD5E1' },
+};
+
+const searchSx = {
+  ...filterSx,
+  '& input::placeholder': { color: '#9CA3AF', opacity: 1 },
+};
+
+const tabsSx = {
+  mb: 2,
+  '& .MuiTab-root': { color: '#9CA3AF', fontWeight: 600 },
+  '& .MuiTab-root.Mui-selected': { color: '#D4AF37' },
+  '& .MuiTabs-indicator': { backgroundColor: '#D4AF37' },
+};
+
+const menuProps = {
+  PaperProps: {
+    sx: {
+      bgcolor: '#1F2937',
+      '& .MuiMenuItem-root': { color: '#F9FAFB' },
+      '& .MuiMenuItem-root:hover': { bgcolor: 'rgba(212,175,55,0.12)' },
+      '& .MuiMenuItem-root.Mui-selected': { bgcolor: 'rgba(212,175,55,0.2)', color: '#D4AF37' },
+      '& .MuiMenuItem-root.Mui-selected:hover': { bgcolor: 'rgba(212,175,55,0.28)' },
+    },
+  },
+};
+
 function getToken() {
   return localStorage.getItem('kaviar_admin_token');
 }
@@ -74,22 +111,22 @@ function ParticipantsTab() {
   return (
     <Box>
       <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
+        <FormControl size="small" sx={{ minWidth: 140, ...filterSx }}>
           <InputLabel>Tipo</InputLabel>
-          <Select value={actorType} label="Tipo" onChange={(e) => { setActorType(e.target.value); setPage(1); }}>
+          <Select value={actorType} label="Tipo" onChange={(e) => { setActorType(e.target.value); setPage(1); }} MenuProps={menuProps}>
             <MenuItem value="passenger">Passageira</MenuItem>
             <MenuItem value="driver">Motorista</MenuItem>
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
+        <FormControl size="small" sx={{ minWidth: 120, ...filterSx }}>
           <InputLabel>Status</InputLabel>
-          <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+          <Select value={status} label="Status" onChange={(e) => { setStatus(e.target.value); setPage(1); }} MenuProps={menuProps}>
             <MenuItem value="">Todos</MenuItem>
             <MenuItem value="active">Ativo</MenuItem>
             <MenuItem value="inactive">Inativo</MenuItem>
           </Select>
         </FormControl>
-        <TextField size="small" placeholder="Buscar nome ou email" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ minWidth: 200 }} />
+        <TextField size="small" placeholder="Buscar nome ou email" value={search} onChange={(e) => setSearch(e.target.value)} sx={{ minWidth: 200, ...searchSx }} />
         <Button variant="outlined" size="small" onClick={() => { setPage(1); load(); }}>Filtrar</Button>
       </Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -162,17 +199,17 @@ function EventsTab() {
   return (
     <Box>
       <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
+        <FormControl size="small" sx={{ minWidth: 140, ...filterSx }}>
           <InputLabel>Tipo</InputLabel>
-          <Select value={actorType} label="Tipo" onChange={(e) => { setActorType(e.target.value); setPage(1); }}>
+          <Select value={actorType} label="Tipo" onChange={(e) => { setActorType(e.target.value); setPage(1); }} MenuProps={menuProps}>
             <MenuItem value="">Todos</MenuItem>
             <MenuItem value="passenger">Passageira</MenuItem>
             <MenuItem value="driver">Motorista</MenuItem>
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ minWidth: 140 }}>
+        <FormControl size="small" sx={{ minWidth: 140, ...filterSx }}>
           <InputLabel>Ação</InputLabel>
-          <Select value={action} label="Ação" onChange={(e) => { setAction(e.target.value); setPage(1); }}>
+          <Select value={action} label="Ação" onChange={(e) => { setAction(e.target.value); setPage(1); }} MenuProps={menuProps}>
             <MenuItem value="">Todas</MenuItem>
             <MenuItem value="opt_in">Opt-in</MenuItem>
             <MenuItem value="opt_out">Opt-out</MenuItem>
@@ -240,7 +277,7 @@ export default function WomenPreferenceAudit() {
         🚺 Preferência por Motorista Mulher — Auditoria
       </Typography>
       {summary && <SummaryCards summary={summary} />}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={tabsSx}>
         <Tab label="Participantes" />
         <Tab label="Eventos" />
       </Tabs>
