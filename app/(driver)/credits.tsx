@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { driverApi } from '../../src/api/driver.api';
+import RetornoFamiliarCard from '../../src/components/RetornoFamiliarCard';
 import { COLORS } from '../../src/config/colors';
 
 type Package = { id: string; credits: number; price: number; priceCents: number };
@@ -164,6 +165,9 @@ export default function DriverCredits() {
             </Text>
           </View>
         )}
+
+        {/* Retorno Familiar KAVIAR */}
+        <RetornoFamiliarCard />
 
         {/* Packages */}
         <Text style={s.sectionTitle}>Comprar créditos</Text>

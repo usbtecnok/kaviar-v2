@@ -89,6 +89,17 @@ export const driverApi = {
     return data;
   },
 
+  // Retorno Familiar KAVIAR
+  getRetornoFamiliar: async () => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/retorno-familiar');
+    return data.data;
+  },
+
+  requestRetornoFamiliar: async () => {
+    const { data } = await apiClient.post('/api/v2/drivers/me/retorno-familiar/request');
+    return data;
+  },
+
   triggerEmergency: async (rideId: string): Promise<{ event_id: string }> => {
     const { data } = await apiClient.post(`/api/v2/rides/${rideId}/emergency`);
     return data;
