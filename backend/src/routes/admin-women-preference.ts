@@ -70,7 +70,9 @@ router.get('/participants', async (req: Request, res: Response) => {
     const dataQ = `
       SELECT id, name, email, phone,
         women_matching_opt_in, women_matching_opted_in_at,
-        women_matching_opted_out_at, women_matching_consent_version
+        women_matching_opted_out_at, women_matching_consent_version,
+        women_preference_eligible, women_preference_eligible_at,
+        women_preference_eligibility_source, women_preference_eligibility_revoked_at
         ${extraCol}
       FROM ${table} ${where}
       ORDER BY women_matching_opted_in_at DESC NULLS LAST
@@ -85,6 +87,7 @@ router.get('/participants', async (req: Request, res: Response) => {
       email: maskEmail(r.email),
       phone: maskPhone(r.phone),
       actor_type,
+      participating: r.women_preference_eligible && r.women_matching_opt_in,
     }));
 
     res.json({ data, total: countResult.rows[0].total, limit: lim, offset: off });

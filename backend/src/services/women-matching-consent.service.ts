@@ -222,10 +222,100 @@ export async function setDefaultPreference(
  */
 export async function getStatus(actorType: ActorType, actorId: string) {
   const table = getTable(actorType);
-  const fields = actorType === 'passenger'
-    ? 'women_matching_opt_in, prefer_woman_driver_default, women_matching_opted_in_at, women_matching_opted_out_at, women_matching_consent_version'
-    : 'women_matching_opt_in, women_matching_opted_in_at, women_matching_opted_out_at, women_matching_consent_version';
+  const baseFields = 'women_matching_opt_in, women_matching_opted_in_at, women_matching_opted_out_at, women_matching_consent_version, women_preference_eligible, women_preference_eligible_at, women_preference_eligibility_source, women_preference_eligibility_revoked_at';
+  const extraFields = actorType === 'passenger' ? ', prefer_woman_driver_default' : '';
 
-  const result = await pool.query(`SELECT ${fields} FROM ${table} WHERE id = $1`, [actorId]);
-  return result.rows[0] || null;
+  const result = await pool.query(`SELECT ${baseFields}${extraFields} FROM ${table} WHERE id = $1`, [actorId]);
+  const row = result.rows[0];
+  if (!row) return null;
+
+  return {
+    ...row,
+    participating: row.women_preference_eligible && row.women_matching_opt_in,
+  };
+}
+
+/**
+ * Declara elegibilidade (self_attestation). Idempotente.
+ */
+export async function declareEligibility(actorType: ActorType, actorId: string, consentVersion: string) {
+  const table = getTable(actorType);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const current = await client.query(
+      `SELECT women_preference_eligible FROM ${table} WHERE id = $1 FOR UPDATE`,
+      [actorId]
+    );
+    if (!current.rows[0]) { await client.query('ROLLBACK'); return { changed: false, error: 'not_found' }; }
+    if (current.rows[0].women_preference_eligible) { await client.query('ROLLBACK'); return { changed: false, eligible: true }; }
+
+    await client.query(
+      `UPDATE ${table} SET women_preference_eligible = true, women_preference_eligible_at = NOW(), women_preference_eligibility_source = 'self_attestation', women_preference_eligibility_revoked_at = NULL WHERE id = $1`,
+      [actorId]
+    );
+
+    await client.query(
+      `INSERT INTO women_matching_consent_events (actor_type, actor_id, action, consent_version, source) VALUES ($1, $2, 'eligibility_declared', $3, 'api')`,
+      [actorType, actorId, consentVersion]
+    );
+
+    await client.query('COMMIT');
+    return { changed: true, eligible: true, source: 'self_attestation' };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Revoga elegibilidade. Cascata: opt_in=false, prefer_default=false. Idempotente.
+ */
+export async function revokeEligibility(actorType: ActorType, actorId: string) {
+  const table = getTable(actorType);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const current = await client.query(
+      `SELECT women_preference_eligible FROM ${table} WHERE id = $1 FOR UPDATE`,
+      [actorId]
+    );
+    if (!current.rows[0]) { await client.query('ROLLBACK'); return { changed: false, error: 'not_found' }; }
+    if (!current.rows[0].women_preference_eligible) { await client.query('ROLLBACK'); return { changed: false, eligible: false }; }
+
+    const cascadeFields = actorType === 'passenger'
+      ? ', women_matching_opt_in = false, prefer_woman_driver_default = false'
+      : ', women_matching_opt_in = false';
+
+    await client.query(
+      `UPDATE ${table} SET women_preference_eligible = false, women_preference_eligibility_revoked_at = NOW()${cascadeFields} WHERE id = $1`,
+      [actorId]
+    );
+
+    await client.query(
+      `INSERT INTO women_matching_consent_events (actor_type, actor_id, action, source) VALUES ($1, $2, 'eligibility_revoked', 'api')`,
+      [actorType, actorId]
+    );
+
+    await client.query('COMMIT');
+    return { changed: true, eligible: false };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Guard: verifica elegibilidade antes de permitir opt-in.
+ */
+export async function checkEligibility(actorType: ActorType, actorId: string): Promise<boolean> {
+  const table = getTable(actorType);
+  const result = await pool.query(`SELECT women_preference_eligible FROM ${table} WHERE id = $1`, [actorId]);
+  return result.rows[0]?.women_preference_eligible === true;
 }

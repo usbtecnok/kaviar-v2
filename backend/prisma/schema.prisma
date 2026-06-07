@@ -252,6 +252,12 @@ model drivers {
   women_matching_opted_out_at        DateTime? @db.Timestamptz
   women_matching_consent_version     String?
 
+  // Women preference eligibility
+  women_preference_eligible              Boolean   @default(false)
+  women_preference_eligible_at           DateTime? @db.Timestamptz
+  women_preference_eligibility_source    String?
+  women_preference_eligibility_revoked_at DateTime? @db.Timestamptz
+
   @@index([territory_type])
   @@index([neighborhood_id, territory_type])
   @@index([status])
@@ -410,6 +416,12 @@ model passengers {
   women_matching_opted_in_at         DateTime? @db.Timestamptz
   women_matching_opted_out_at        DateTime? @db.Timestamptz
   women_matching_consent_version     String?
+
+  // Women preference eligibility
+  women_preference_eligible              Boolean   @default(false)
+  women_preference_eligible_at           DateTime? @db.Timestamptz
+  women_preference_eligibility_source    String?
+  women_preference_eligibility_revoked_at DateTime? @db.Timestamptz
 }
 
 model passenger_favorite_locations {
