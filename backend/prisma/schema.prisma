@@ -246,6 +246,12 @@ model drivers {
   territorial_partner           territorial_partners? @relation(fields: [territorial_partner_id], references: [id])
   local_support_profile       local_support_drivers? @relation("LocalSupportDriver")
 
+  // Women matching preference
+  women_matching_opt_in              Boolean   @default(false)
+  women_matching_opted_in_at         DateTime? @db.Timestamptz
+  women_matching_opted_out_at        DateTime? @db.Timestamptz
+  women_matching_consent_version     String?
+
   @@index([territory_type])
   @@index([neighborhood_id, territory_type])
   @@index([status])
@@ -397,6 +403,13 @@ model passengers {
   rides_v2                    rides_v2[]                    @relation("PassengerRidesV2")
   tour_bookings               tour_bookings[]
   user_consents               user_consents[]
+
+  // Women matching preference
+  women_matching_opt_in              Boolean   @default(false)
+  prefer_woman_driver_default        Boolean   @default(false)
+  women_matching_opted_in_at         DateTime? @db.Timestamptz
+  women_matching_opted_out_at        DateTime? @db.Timestamptz
+  women_matching_consent_version     String?
 }
 
 model passenger_favorite_locations {
@@ -870,6 +883,8 @@ model rides_v2 {
   wait_estimated_min     Int?
   wait_started_at        DateTime?
   wait_ended_at          DateTime?
+  // Women matching preference
+  prefer_woman_driver    Boolean      @default(false)
   // Share
   share_token            String?      @unique
   share_expires_at       DateTime?
@@ -2264,3 +2279,20 @@ model manager_team_commissions {
   @@index([member_id], map: "idx_manager_team_commissions_member")
 }
 
+
+
+
+// ─── Women Matching Consent Events ───────────────────────────────────────────
+model women_matching_consent_events {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_type      String
+  actor_id        String
+  action          String
+  consent_version String?
+  source          String   @default("api")
+  metadata        Json?    @db.JsonB
+  created_at      DateTime @default(now()) @db.Timestamptz
+
+  @@index([actor_type, actor_id, created_at(sort: Desc)])
+  @@map("women_matching_consent_events")
+}
