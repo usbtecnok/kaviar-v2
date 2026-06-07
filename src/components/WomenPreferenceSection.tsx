@@ -98,6 +98,9 @@ export default function WomenPreferenceSection({ role }: Props) {
 
   const { eligible, opt_in, participating } = status;
 
+  // Para motorista: ocultar seção se não elegível e não participante
+  if (role === 'driver' && !eligible && !opt_in) return null;
+
   return (
     <View style={s.container}>
       <View style={s.header}>
