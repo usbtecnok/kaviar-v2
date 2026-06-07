@@ -12,6 +12,7 @@ import TerritoryPriceFloors from "../../pages/admin/TerritoryPriceFloors";
 import ManagerPriceFloors from "../../pages/admin/ManagerPriceFloors";
 import CreditPackagesAdmin from "../../pages/admin/CreditPackagesAdmin";
 import RetornoFamiliarAdmin from "../../pages/admin/RetornoFamiliarAdmin";
+import WomenPreferenceAudit from "../../pages/admin/WomenPreferenceAudit";
 import RideSimulator from "../../pages/admin/RideSimulator";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
 import OperationsMonitor from "../../pages/admin/OperationsMonitor";
@@ -780,6 +781,15 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <RetornoFamiliarAdmin />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/women-preference" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <WomenPreferenceAudit />
               </Container>
             </ProtectedAdminRoute>
           } />
