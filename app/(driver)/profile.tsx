@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,6 +34,7 @@ export default function DriverProfile() {
         <View style={{ width: 24 }} />
       </View>
 
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
       <View style={s.avatarWrap}>
         <View style={s.avatar}>
           <Text style={s.avatarText}>
@@ -52,6 +53,7 @@ export default function DriverProfile() {
       </View>
 
       <WomenPreferenceSection role="driver" />
+      </ScrollView>
     </SafeAreaView>
   );
 }
