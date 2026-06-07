@@ -33,7 +33,12 @@ router.get('/', async (req: Request, res: Response) => {
     res.json({
       success: true,
       data: {
+        eligible: status.women_preference_eligible,
+        eligibility_source: status.women_preference_eligibility_source,
+        eligible_at: status.women_preference_eligible_at,
+        eligibility_revoked_at: status.women_preference_eligibility_revoked_at,
         opt_in: status.women_matching_opt_in,
+        participating: status.participating,
         prefer_woman_driver_default: status.prefer_woman_driver_default,
         opted_in_at: status.women_matching_opted_in_at,
         opted_out_at: status.women_matching_opted_out_at,
@@ -47,12 +52,44 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/v2/passengers/me/women-preference/declare
+router.post('/declare', async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const parsed = optInSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+
+    const result = await womenConsent.declareEligibility('passenger', passengerId, parsed.data.consent_version);
+    if (result.error === 'not_found') return res.status(404).json({ success: false, error: 'Passageira não encontrada' });
+    res.json({ success: true, data: result });
+  } catch (e) {
+    console.error('[PASSENGER_WOMEN_DECLARE]', e);
+    res.status(500).json({ success: false, error: 'Erro ao declarar elegibilidade' });
+  }
+});
+
+// POST /api/v2/passengers/me/women-preference/revoke-declaration
+router.post('/revoke-declaration', async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const result = await womenConsent.revokeEligibility('passenger', passengerId);
+    if (result.error === 'not_found') return res.status(404).json({ success: false, error: 'Passageira não encontrada' });
+    res.json({ success: true, data: result });
+  } catch (e) {
+    console.error('[PASSENGER_WOMEN_REVOKE]', e);
+    res.status(500).json({ success: false, error: 'Erro ao revogar elegibilidade' });
+  }
+});
+
 // POST /api/v2/passengers/me/women-preference/opt-in
 router.post('/opt-in', async (req: Request, res: Response) => {
   try {
     const passengerId = (req as any).passengerId;
     const parsed = optInSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ success: false, error: parsed.error.errors[0].message });
+
+    const eligible = await womenConsent.checkEligibility('passenger', passengerId);
+    if (!eligible) return res.status(403).json({ success: false, error: 'Elegibilidade necessária antes do opt-in' });
 
     const result = await womenConsent.optIn('passenger', passengerId, parsed.data.consent_version);
     res.json({ success: true, data: result });
