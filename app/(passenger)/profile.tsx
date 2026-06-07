@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { authStore } from '../../src/auth/auth.store';
 import { PhoneVerifyBadge } from '../../src/components/PhoneVerifyBadge';
+import WomenPreferenceSection from '../../src/components/WomenPreferenceSection';
 import { COLORS } from '../../src/config/colors';
 import { User } from '../../src/types/user';
 
@@ -48,6 +49,8 @@ export default function Profile() {
         {field('E-mail', user?.email)}
         {field('Tipo', user?.user_type === 'PASSENGER' ? 'Passageiro' : 'Motorista')}
       </View>
+
+      <WomenPreferenceSection role="passenger" />
     </SafeAreaView>
   );
 }
