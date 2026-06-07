@@ -58,7 +58,7 @@ const CARDS = [
     title: 'Trabalhe como motorista',
     desc: 'Dirija na sua região com mais proximidade e autonomia.',
     btn: 'Baixar app Motorista',
-    href: 'https://downloads.kaviar.com.br/kaviar-motorista-v1.11.22-push-tap-navigate.apk',
+    href: 'https://downloads.kaviar.com.br/kaviar-motorista-v1.11.23-retorno-familiar.apk',
     variant: 'subtle',
   },
   {
