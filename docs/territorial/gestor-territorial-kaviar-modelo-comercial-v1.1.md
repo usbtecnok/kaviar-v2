@@ -1,0 +1,268 @@
+# Gestor Territorial KAVIAR — Modelo Comercial v1.1
+
+**Documento conceitual/comercial — USB Tecnok Manutenção e Instalação de Computadores Ltda**
+**CNPJ: 07.710.691/0001-66**
+**Produto: KAVIAR — Plataforma de mobilidade urbana comunitária**
+
+> ⚠️ Este documento é base conceitual/comercial. Não constitui contrato jurídico final. Deve ser revisado por advogado antes de formalização com qualquer parceiro. Valores, percentuais e condições aqui descritos são referenciais e podem ser alterados pela USB Tecnok antes da formalização contratual.
+
+---
+
+## A) Definição
+
+O **Gestor Territorial KAVIAR** é um parceiro comercial autônomo que presta apoio operacional de captação, divulgação local e acompanhamento territorial para a plataforma KAVIAR em uma área geográfica definida.
+
+A relação entre o Gestor Territorial e a USB Tecnok/KAVIAR é de **parceria comercial e prestação de apoio operacional**, sem constituir franquia, licença territorial definitiva, representação comercial exclusiva ou vínculo empregatício.
+
+**Esta relação não se enquadra no regime de franquia empresarial nos termos da Lei 13.966/2019.**
+
+**Não há transferência de know-how, manual operacional obrigatório, padronização de layout físico, cessão de território ou licença definitiva de uso da marca.**
+
+---
+
+## B) Diferença entre Captador e Gestor
+
+| Aspecto | Operador Territorial Captador | Gestor Territorial KAVIAR |
+|---------|-------------------------------|---------------------------|
+| Perfil | Pessoa física (CPF) | Preferencialmente PJ (CNPJ/MEI/ME/LTDA) |
+| Contrato | Termo digital v1.0-captador | Contrato formal de parceria comercial |
+| Taxa de entrada | Nenhuma | Taxa de análise cadastral e ativação |
+| Atuação | Indicar motoristas, acompanhar métricas | Apoiar operação local, captar parceiros, acompanhar território |
+| Coordenação | Não | Pode indicar e apoiar contatos locais, sem subordinação |
+| Financeiro | Bônus por indicação (regra do sistema) | Participação sobre resultados conforme contrato individual |
+| Acesso ao painel | Reduzido | Ampliado (conforme contrato) |
+| Exclusividade | Não | Não automática |
+
+---
+
+## C) Responsabilidades do Gestor Territorial
+
+O Gestor Territorial KAVIAR compromete-se a:
+
+1. **Captar motoristas** para a plataforma no território de atuação;
+2. **Captar passageiros** e divulgar o KAVIAR localmente;
+3. **Identificar e indicar parceiros comerciais** (associações, condomínios, comércios);
+4. **Apoiar motoristas com orientações básicas sobre o uso da plataforma**;
+5. **Indicar e apoiar captadores que atuem no mesmo território, sem relação de subordinação**;
+6. **Acompanhar a operação local** via painel disponibilizado;
+7. **Manter comunicação ativa** com a central KAVIAR;
+8. **Respeitar as regras da plataforma** e as diretrizes da USB Tecnok;
+9. **Emitir documentação fiscal** quando aplicável (NFS-e, RPA ou equivalente);
+10. **Manter sigilo** sobre informações e dados acessados no painel.
+
+**O Gestor Territorial não contrata, comanda ou coordena pessoas em nome da USB Tecnok/KAVIAR. Ele pode indicar, orientar e apoiar contatos locais, sempre de forma autônoma.**
+
+---
+
+## D) Limites do Gestor Territorial
+
+O Gestor Territorial **NÃO** tem poder para:
+
+- Aprovar ou rejeitar motoristas de forma definitiva;
+- Alterar preços, taxas, comissões ou regras financeiras da plataforma;
+- Cobrar valores em nome do KAVIAR sem autorização formal por escrito;
+- Realizar pagamentos ou movimentar recursos financeiros da plataforma;
+- Alterar configurações técnicas (dispatch, push, geofence, feature flags);
+- Criar outros gestores territoriais;
+- Acessar dados de territórios que não sejam o(s) seu(s);
+- Tomar decisões que vinculem juridicamente a USB Tecnok perante terceiros;
+- Conceder exclusividade, descontos ou condições especiais sem aprovação da central;
+- Contratar, comandar ou coordenar pessoas em nome da USB Tecnok/KAVIAR.
+
+---
+
+## E) Atividades permitidas
+
+| Atividade | Status |
+|-----------|--------|
+| Indicar motoristas via link de referência | ✅ |
+| Divulgar KAVIAR no território | ✅ |
+| Indicar parceiros comerciais para análise da central | ✅ |
+| Indicar comércios locais para análise | ✅ |
+| Identificar e registrar associações como rascunho | ✅ |
+| Apoiar motoristas com orientações básicas de uso | ✅ |
+| Acompanhar métricas do território no painel | ✅ |
+| Acompanhar indicações KAVIAR Pet | ✅ |
+| Acompanhar solicitações KAVIAR Particular | ✅ |
+| Ver relatório de atividade do território (somente leitura) | ✅ |
+| Indicar e apoiar captadores locais, sem subordinação | ✅ |
+| Usar a marca KAVIAR conforme diretrizes aprovadas | ✅ |
+
+---
+
+## F) Atividades proibidas
+
+| Atividade | Status |
+|-----------|--------|
+| Alterar preços, taxas ou créditos | ❌ |
+| Aprovar motorista de forma definitiva | ❌ |
+| Cobrar motoristas, passageiros ou parceiros em nome do KAVIAR | ❌ |
+| Prometer aprovação, exclusividade ou benefícios não autorizados | ❌ |
+| Alterar comissão ou participação própria | ❌ |
+| Acessar dados de outro território | ❌ |
+| Se apresentar como funcionário, sócio ou representante legal da USB Tecnok | ❌ |
+| Contratar ou comandar pessoas em nome da USB Tecnok/KAVIAR | ❌ |
+| Criar material de marketing sem aprovação | ❌ |
+| Compartilhar dados pessoais de motoristas/passageiros com terceiros | ❌ |
+| Prometer retorno financeiro a terceiros | ❌ |
+
+---
+
+## G) Modelo financeiro referencial
+
+### Fluxo de receita
+
+```
+Motorista completa corrida
+→ Passageiro paga (ou crédito é consumido)
+→ KAVIAR/USB Tecnok recebe/controla receita principal
+→ Sistema calcula taxa da plataforma
+→ Sistema aplica participação territorial conforme contrato
+→ Acumula por período definido
+→ Central calcula participação → aprova → registra pagamento
+→ Gestor recebe via PIX/transferência bancária
+```
+
+### Regras
+
+- O KAVIAR é o recebedor/controlador principal de toda receita;
+- O Gestor NÃO recebe diretamente de motoristas, passageiros ou parceiros;
+- A participação é calculada pelo sistema, aprovada pela central e paga conforme periodicidade contratual;
+- **Percentuais de participação serão definidos em contrato individual, conforme território, fase de operação e condições comerciais**;
+- Mínimo para liberação de repasse: conforme contrato;
+- O Gestor deve emitir NFS-e ou documento fiscal equivalente para receber;
+- Este modelo é referencial e pode ser ajustado conforme evolução da operação.
+
+---
+
+## H) Taxa de análise cadastral e ativação
+
+| Item | Descrição |
+|------|-----------|
+| **O que é** | Taxa de análise cadastral e ativação de acesso ao painel de gestor |
+| **Valor** | Informado no momento da contratação (valor vigente pode variar) |
+| **O que NÃO é** | Não é taxa de franquia, não é mensalidade, não é investimento com retorno garantido, não é aquisição de território |
+| **Reembolsável?** | Não, exceto se a USB Tecnok recusar o cadastro sem motivo |
+| **Pagamento** | PIX ou boleto antes da ativação |
+| **Inclui** | Análise cadastral, ativação do painel, orientações básicas |
+
+### Atenção
+
+- A taxa deve ser documentada como "serviço de análise cadastral e ativação de acesso";
+- Será emitido recibo ou nota fiscal de serviço;
+- O pagamento da taxa não confere direitos sobre território, marca, exclusividade ou participação;
+- O acesso depende de aprovação pela USB Tecnok após análise cadastral.
+
+---
+
+## I) Regras de território
+
+1. O território é definido pelo KAVIAR com base em cidade, região administrativa, bairros ou comunidades;
+2. O território define a **área de atuação** do Gestor, não propriedade, cessão ou licença;
+3. O KAVIAR pode atuar diretamente no território a qualquer momento;
+4. O KAVIAR pode designar outros parceiros ou captadores no mesmo território se julgar necessário;
+5. Dados de atividade do território são visíveis ao Gestor conforme painel disponibilizado;
+6. O tamanho e abrangência do território podem ser ajustados conforme necessidade operacional;
+7. O território não é cedido, vendido, transferido ou licenciado ao Gestor.
+
+---
+
+## J) Não exclusividade
+
+Não há exclusividade automática sobre o território.
+
+Eventuais condições especiais dependerão de contrato individual, prazo definido e avaliação da USB Tecnok/KAVIAR. Mesmo com condições especiais, o KAVIAR mantém direito de operar diretamente e de rever condições por descumprimento ou necessidade operacional.
+
+---
+
+## K) Suspensão e cancelamento
+
+A USB Tecnok/KAVIAR pode suspender ou cancelar o acesso do Gestor Territorial em caso de:
+
+- Fraude ou tentativa de fraude;
+- Cobrança indevida em nome do KAVIAR;
+- Descumprimento das regras deste documento ou do contrato;
+- Inatividade prolongada sem justificativa;
+- Conduta incompatível com valores do KAVIAR;
+- Risco à operação, marca ou segurança da plataforma;
+- Solicitação expressa do Gestor (rescisão voluntária).
+
+A suspensão pode ser imediata quando houver urgência. O cancelamento definitivo será comunicado com antecedência conforme definido em contrato.
+
+---
+
+## L) Uso da marca KAVIAR
+
+O Gestor Territorial pode:
+- Mencionar que é "parceiro territorial KAVIAR" em comunicações locais;
+- Usar materiais fornecidos/aprovados pelo KAVIAR;
+- Identificar-se como parceiro em conversas de captação.
+
+O Gestor Territorial **NÃO** pode:
+- Criar materiais de marketing sem aprovação prévia;
+- Alterar logotipo, cores ou identidade visual;
+- Usar a marca em contextos não autorizados;
+- Registrar domínios, perfis ou marcas contendo "KAVIAR";
+- Se apresentar como representante oficial, funcionário ou sócio.
+
+---
+
+## M) Confidencialidade e LGPD
+
+O Gestor Territorial deve:
+- Manter sigilo sobre dados pessoais de motoristas, passageiros e parceiros;
+- Não compartilhar informações acessadas no painel com terceiros;
+- Respeitar a Lei Geral de Proteção de Dados (13.709/2018);
+- Usar os dados apenas para finalidades operacionais autorizadas;
+- Comunicar imediatamente qualquer incidente de segurança ou vazamento.
+
+Violação de confidencialidade constitui motivo para cancelamento imediato e pode gerar responsabilização civil e criminal conforme legislação vigente.
+
+---
+
+## N) Cláusulas de proteção
+
+1. **Não franquia** — Esta relação não se enquadra no regime de franquia empresarial nos termos da Lei 13.966/2019. Não há transferência de know-how, manual operacional obrigatório, padronização de layout físico ou cessão de território.
+
+2. **Não vínculo** — Não há vínculo empregatício, salário, jornada obrigatória ou subordinação entre o Gestor e a USB Tecnok. O Gestor é autônomo e responsável por suas obrigações fiscais e trabalhistas.
+
+3. **Não representação** — O Gestor não é representante legal, comercial ou judicial da USB Tecnok/KAVIAR perante terceiros.
+
+4. **Não investimento** — A taxa de análise cadastral não constitui investimento, aplicação financeira, aquisição de ativos ou garantia de retorno.
+
+---
+
+## O) Necessidade de contrato jurídico posterior
+
+Este documento é base conceitual/comercial.
+
+Para formalização da relação com qualquer Gestor Territorial, será necessário:
+
+1. **Contrato de Parceria Comercial** — redigido ou revisado por advogado;
+2. **Termo de Confidencialidade e LGPD** — específico;
+3. **Documentação do Gestor** — CNPJ, contrato social, documentos pessoais do responsável;
+4. **Comprovante de taxa** — recibo ou nota fiscal de serviço;
+5. **Aceite digital no painel** — registro de data, IP e versão do termo.
+
+---
+
+## P) Próximos passos
+
+| Fase | Descrição | Dependência |
+|------|-----------|-------------|
+| G1 | Este documento conceitual | ✅ Feito |
+| G2 | Revisão jurídica por advogado | Enviar v1.1 |
+| G3 | Contrato formal de parceria | Advogado |
+| G4 | Implementação técnica no sistema | Contrato pronto |
+| G5 | Piloto com 1 parceiro real | G3 + G4 |
+
+---
+
+## Q) Foro
+
+Fica eleito o foro da Comarca da Capital do Estado do Rio de Janeiro/RJ, correspondente à sede da USB Tecnok Manutenção e Instalação de Computadores Ltda, CNPJ 07.710.691/0001-66, salvo disposição específica em contrato definitivo.
+
+---
+
+*Versão: v1.1-conceitual | Data: Junho/2026 | Status: Documento base revisado para envio à revisão jurídica*
+*Revisão anterior: v1-conceitual*
