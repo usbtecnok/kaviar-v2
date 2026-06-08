@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share, Animated, AppState, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useIsFocused } from '@react-navigation/core';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -47,6 +48,7 @@ type Screen = 'idle' | 'search' | 'tracking';
 export default function PassengerMap() {
   const router = useRouter();
   const params = useLocalSearchParams<{ destLat?: string; destLng?: string }>();
+  const isFocused = useIsFocused();
   // ── DEV PREVIEW: set to 'accepted' | 'arrived' | 'in_progress' | null to test tracking UI ──
   const DEV_PREVIEW: RideStatus | null = null; // ← change to test, set null before build
   const [screen, setScreen] = useState<Screen>(DEV_PREVIEW ? 'tracking' : 'idle');
@@ -1072,7 +1074,7 @@ export default function PassengerMap() {
 
       {/* ADJUSTMENT MODAL */}
       <AdjustmentModal
-        visible={showAdjustment}
+        visible={isFocused && showAdjustment}
         quotedPrice={Number(ride?.quoted_price || 0)}
         driverAdjustment={Number(ride?.driver_adjustment || 0)}
         adjustedPrice={Number(ride?.adjusted_price || 0)}
@@ -1099,7 +1101,7 @@ export default function PassengerMap() {
 
       {/* COMPLETED MODAL */}
       <RideCompletedModal
-        visible={showCompleted}
+        visible={isFocused && showCompleted}
         ride={completedRide}
         onRate={() => {
           setShowCompleted(false);
@@ -1109,7 +1111,7 @@ export default function PassengerMap() {
       />
 
       {/* EMERGENCY MODAL */}
-      <Modal visible={showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
+      <Modal visible={isFocused && showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <Ionicons name="shield-checkmark" size={36} color={COLORS.danger} style={{ alignSelf: 'center', marginBottom: 10 }} />
@@ -1177,7 +1179,7 @@ export default function PassengerMap() {
       </Modal>
 
       {/* NO DRIVER MODAL */}
-      <Modal visible={showNoDriver} transparent animationType="fade" onRequestClose={() => { setShowNoDriver(false); resetToIdle(); }}>
+      <Modal visible={isFocused && showNoDriver} transparent animationType="fade" onRequestClose={() => { setShowNoDriver(false); resetToIdle(); }}>
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <Text style={s.modalIcon}>{ride?.scheduled_for ? '🕐' : '🚗'}</Text>
@@ -1216,7 +1218,7 @@ export default function PassengerMap() {
       </Modal>
 
       {/* TIME PICKER MODAL */}
-      <Modal visible={showTimePicker} transparent animationType="fade" onRequestClose={() => setShowTimePicker(false)}>
+      <Modal visible={isFocused && showTimePicker} transparent animationType="fade" onRequestClose={() => setShowTimePicker(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>Escolher horário</Text>
