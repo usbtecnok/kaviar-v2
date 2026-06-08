@@ -6,11 +6,14 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authStore } from '../../src/auth/auth.store';
+import { apiClient } from '../../src/api/client';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
 import { HomeOpportunityCarousel } from '../../src/components/passenger/HomeOpportunityCarousel';
+import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPreferenceInvite';
 
 const { width: W } = Dimensions.get('window');
 const ACTION_W = (W - 56) / 4; // 4 cards side-by-side with gaps
@@ -27,6 +30,7 @@ export default function PassengerHome() {
   const [userName, setUserName] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const [showWomenInvite, setShowWomenInvite] = useState(false);
 
   useEffect(() => {
     const user = authStore.getUser();
@@ -34,7 +38,22 @@ export default function PassengerHome() {
       const first = user.name.split(' ')[0];
       setUserName(first.charAt(0).toUpperCase() + first.slice(1).toLowerCase());
     }
+    checkWomenInvite();
   }, []);
+
+  const checkWomenInvite = async () => {
+    try {
+      const dismissed = await AsyncStorage.getItem('women_pref_invite_dismissed');
+      if (dismissed) return;
+      const { data } = await apiClient.get('/api/v2/passengers/me/women-preference');
+      if (data.success && !data.data?.participating) setShowWomenInvite(true);
+    } catch { /* silent */ }
+  };
+
+  const dismissWomenInvite = async () => {
+    setShowWomenInvite(false);
+    await AsyncStorage.setItem('women_pref_invite_dismissed', 'true').catch(() => {});
+  };
 
   const handleLogout = async () => {
     try {
@@ -156,6 +175,14 @@ export default function PassengerHome() {
         {/* ── PAINEL BRANCO ── */}
         <View style={s.whitePanel}>
           <Text style={s.panelTitle}>O que você deseja fazer?</Text>
+
+          {/* Women preference invite */}
+          {showWomenInvite && (
+            <WomenPreferenceInvite
+              onActivate={() => { setShowWomenInvite(false); router.push('/(passenger)/profile'); }}
+              onDismiss={dismissWomenInvite}
+            />
+          )}
 
           {/* Card principal — Chamar corrida */}
           <TouchableOpacity style={s.callCard} onPress={() => router.push('/(passenger)/map')} activeOpacity={0.8}>
