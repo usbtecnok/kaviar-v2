@@ -10,6 +10,7 @@ interface DriverCandidate {
   same_community: boolean;
   same_neighborhood: boolean;
   same_geofence?: boolean;
+  women_eligible?: boolean;
   lat?: number;
   lng?: number;
 }
@@ -309,6 +310,7 @@ export class DispatcherService {
         same_community: !!sameCommunity,
         same_neighborhood: !!sameNeighborhood,
         same_geofence: sameGeofence,
+        women_eligible: !!(ds.driver.women_preference_eligible && ds.driver.women_matching_opt_in),
         lat: Number(location.lat),
         lng: Number(location.lng),
       });
@@ -327,6 +329,22 @@ export class DispatcherService {
     });
 
     console.log(`[DISPATCH_TIERS] ride_id=${ride.id} community=${candidates.filter(c => c.same_community).length} neighborhood=${candidates.filter(c => !c.same_community && c.same_neighborhood).length} outside=${candidates.filter(c => !c.same_community && !c.same_neighborhood).length}`);
+
+    // Women preference: priorizar motoristas mulheres elegíveis DENTRO de cada tier
+    const womenPriorityEnabled = process.env.WOMEN_DRIVER_PREFERENCE_ENABLED === 'true';
+    if (womenPriorityEnabled && ride.prefer_woman_driver && candidates.length > 1) {
+      const eligibleCount = candidates.filter(c => c.women_eligible).length;
+      if (eligibleCount > 0) {
+        candidates.sort((a, b) => {
+          const tierA = a.same_community ? 0 : a.same_neighborhood ? 1 : 2;
+          const tierB = b.same_community ? 0 : b.same_neighborhood ? 1 : 2;
+          if (tierA !== tierB) return tierA - tierB;
+          if (a.women_eligible !== b.women_eligible) return a.women_eligible ? -1 : 1;
+          return a.score - b.score;
+        });
+      }
+      console.log(`[DISPATCH_WOMEN_PRIORITY] ride_id=${ride.id} women_eligible=${eligibleCount} total=${candidates.length} top=${candidates[0]?.driver_id} top_eligible=${candidates[0]?.women_eligible}`);
+    }
 
     // Hybrid scoring: favorites refine ranking WITHIN each territorial tier
     const favWeight = parseFloat(process.env.FAVORITES_WEIGHT || '0');
@@ -352,6 +370,7 @@ export class DispatcherService {
             const tierA = a.same_community ? 0 : a.same_neighborhood ? 1 : 2;
             const tierB = b.same_community ? 0 : b.same_neighborhood ? 1 : 2;
             if (tierA !== tierB) return tierA - tierB;
+            if (womenPriorityEnabled && ride.prefer_woman_driver && a.women_eligible !== b.women_eligible) return a.women_eligible ? -1 : 1;
             return a.score - b.score;
           });
           console.log(`[HYBRID_RANK] ride_id=${ride.id} weight=${favWeight} territory_first=true top=${candidates.slice(0, 3).map(c => `${c.driver_id}(c=${c.same_community},n=${c.same_neighborhood})`).join(',')}`);
