@@ -139,7 +139,7 @@ export default function WomenPreferenceSection({ role }: Props) {
             <Text style={s.btnText}>Ativar participação</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.linkBtn} onPress={revoke} disabled={acting}>
-            <Text style={s.linkText}>Revogar declaração</Text>
+            <Text style={s.linkText}>Remover declaração de elegibilidade</Text>
           </TouchableOpacity>
         </View>
       )}

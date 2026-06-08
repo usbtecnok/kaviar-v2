@@ -1210,7 +1210,7 @@ export default function PassengerMap() {
                 <Text style={s.ctaLinkText}>Saber mais</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.ctaLink} onPress={() => { setShowNoDriver(false); resetToIdle(); }}>
-                <Text style={s.ctaLinkText}>Fechar</Text>
+                <Text style={s.noDriverCloseText}>Fechar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1463,6 +1463,7 @@ const s = StyleSheet.create({
   ctaRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   ctaLink: { paddingVertical: 8, paddingHorizontal: 12 },
   ctaLinkText: { color: COLORS.textMuted, fontSize: 13, fontWeight: '500' },
+  noDriverCloseText: { color: COLORS.textSecondary, fontSize: 14, fontWeight: '600' },
   emergencyBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: COLORS.danger },
   emergencyBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.danger },
   emergencySecondary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border },
