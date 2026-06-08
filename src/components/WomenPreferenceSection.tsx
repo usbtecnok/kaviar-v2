@@ -33,7 +33,7 @@ const TEXTS = {
     explain: 'Esta preferência é destinada a passageiras que se autodeclaram elegíveis e desejam priorizar motoristas mulheres participantes, quando o programa for ativado.',
     declare: 'Ao continuar, declaro voluntariamente que sou elegível para usar a preferência por motorista mulher. Esta declaração é pessoal, baseada na minha autodeclaração, e pode ser revogada a qualquer momento. Declarações indevidas poderão ser auditadas e tratadas administrativamente.',
     revokeWarn: 'Ao revogar sua declaração, sua participação será encerrada e a preferência padrão será desativada.',
-    noGuarantee: 'A preferência não garante atendimento por motorista mulher. Depende da disponibilidade na região e horário.',
+    noGuarantee: 'Vamos priorizar uma motorista mulher quando houver disponível. Se não houver ou se ela não aceitar, outro motorista disponível poderá atender você. A preferência é prioridade, não garantia.',
   },
   driver: {
     title: 'Programa Motorista Mulher',

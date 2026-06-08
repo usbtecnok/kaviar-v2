@@ -35,6 +35,7 @@ interface Props {
   loading: boolean;
   onSubmit: () => void;
   onStepChange?: (step: number) => void;
+  preferWomanDriver?: boolean;
 }
 
 const STEPS = ['Destino', 'Confirmar'] as const;
@@ -233,6 +234,13 @@ export function RideWizard(props: Props & { step: number }) {
             onOptionChange={props.onScheduleChange}
             customTime={props.customTime}
           />
+
+          {props.preferWomanDriver && (
+            <View style={s.womenNote}>
+              <Text style={s.womenNoteTitle}>🛡️ Preferência por motorista mulher ativa</Text>
+              <Text style={s.womenNoteText}>Vamos priorizar uma motorista mulher quando disponível. Se não houver, outro motorista poderá atender você.</Text>
+            </View>
+          )}
         </ScrollView>
       )}
 
@@ -345,4 +353,9 @@ const s = StyleSheet.create({
   navNextText: { fontSize: 15, fontWeight: '700', color: COLORS.textDark },
   navSubmit: { flex: 1, backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginLeft: 12 },
   navSubmitText: { fontSize: 17, fontWeight: '800', color: COLORS.textDark },
+
+  // Women preference note
+  womenNote: { backgroundColor: COLORS.surfaceLight, borderRadius: 10, padding: 12, marginTop: 12, borderWidth: 1, borderColor: '#B8942E40' },
+  womenNoteTitle: { fontSize: 12, fontWeight: '700', color: '#B8942E', marginBottom: 4 },
+  womenNoteText: { fontSize: 11, color: COLORS.textSecondary, lineHeight: 16 },
 });

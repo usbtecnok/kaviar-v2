@@ -119,6 +119,9 @@ export default function PassengerMap() {
   // Emergency
   const [showEmergency, setShowEmergency] = useState(false);
 
+  // Women preference (for RideWizard note)
+  const [preferWomanDriver, setPreferWomanDriver] = useState(false);
+
   // Driver photo
   const [photoError, setPhotoError] = useState(false);
   const stablePhotoUrl = useRef<string | null>(null);
@@ -219,6 +222,7 @@ export default function PassengerMap() {
     });
     recoverActiveRide();
     loadCommunityStatus();
+    loadWomenPreference();
 
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') recoverActiveRide();
@@ -232,6 +236,15 @@ export default function PassengerMap() {
       const { data } = await apiClient.get('/api/passengers/me/community-status');
       if (data.success && data.data) setCommunityStatus(data.data);
     } catch { /* silent */ }
+  };
+
+  const loadWomenPreference = async () => {
+    try {
+      const { data } = await apiClient.get('/api/v2/passengers/me/women-preference');
+      if (data.success && data.data?.participating && data.data?.prefer_woman_driver_default) {
+        setPreferWomanDriver(true);
+      }
+    } catch { /* silent — não exibe nota se falhar */ }
   };
 
   const recoverActiveRide = async () => {
@@ -824,6 +837,7 @@ export default function PassengerMap() {
             loading={loading}
             onSubmit={handleRequest}
             onStepChange={setWizardStep}
+            preferWomanDriver={preferWomanDriver}
           />
         </>
       )}
