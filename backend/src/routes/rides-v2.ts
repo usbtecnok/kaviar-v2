@@ -148,6 +148,17 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
       }
     }
 
+    // Resolver preferência por motorista mulher a partir do perfil
+    const passengerProfile = await prisma.passengers.findUnique({
+      where: { id: passengerId },
+      select: { prefer_woman_driver_default: true, women_matching_opt_in: true, women_preference_eligible: true }
+    });
+    const preferWomanDriver = Boolean(
+      passengerProfile?.prefer_woman_driver_default &&
+      passengerProfile?.women_matching_opt_in &&
+      passengerProfile?.women_preference_eligible
+    );
+
     // Criar corrida
     const passengerAppVersion = req.headers['x-app-version'] as string || null;
     const ride = await prisma.rides_v2.create({
@@ -172,6 +183,7 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
         status: scheduledDate ? 'scheduled' : 'requested',
         wait_requested: config.wait.enabled ? Boolean(wait_requested) : false,
         wait_estimated_min: config.wait.enabled && wait_requested && wait_estimated_min ? Number(wait_estimated_min) : null,
+        prefer_woman_driver: preferWomanDriver,
       }
     });
 
