@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
@@ -640,6 +641,36 @@ router.delete('/:id', async (req: Request, res: Response) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao deletar território' });
+  }
+});
+
+// POST /api/admin/territories/regional-admins/:id/reset-password
+const RESET_TARGET_ROLES = ['TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'];
+router.post('/regional-admins/:id/reset-password', async (req: Request, res: Response) => {
+  try {
+    const target = await prisma.admins.findUnique({ where: { id: req.params.id }, select: { id: true, name: true, email: true, role: true, is_active: true } });
+    if (!target) return res.status(404).json({ success: false, error: 'Conta não encontrada.' });
+    if (!RESET_TARGET_ROLES.includes(target.role)) return res.status(400).json({ success: false, error: 'Conta não elegível para redefinição por esta rota.' });
+
+    // Generate secure temp password (16 chars, upper+lower+digit+special)
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ', lower = 'abcdefghjkmnpqrstuvwxyz', digits = '23456789', special = '!@#$%&*';
+    const all = upper + lower + digits + special;
+    const buf = crypto.randomBytes(16);
+    const chars: string[] = [upper[buf[0] % upper.length], lower[buf[1] % lower.length], digits[buf[2] % digits.length], special[buf[3] % special.length]];
+    for (let i = 4; i < 16; i++) chars.push(all[buf[i] % all.length]);
+    const shuffleBuf = crypto.randomBytes(16);
+    for (let i = chars.length - 1; i > 0; i--) { const j = shuffleBuf[i] % (i + 1); [chars[i], chars[j]] = [chars[j], chars[i]]; }
+    const tempPassword = chars.join('');
+
+    const hash = await bcrypt.hash(tempPassword, 10);
+    await prisma.admins.update({ where: { id: target.id }, data: { password: hash, must_change_password: true } });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'admin_password_reset', entityType: 'admin', entityId: target.id, newValue: { target_email: target.email, target_role: target.role, must_change_password: true }, ipAddress: ctx.ip, userAgent: ctx.ua });
+
+    res.json({ success: true, data: { email: target.email, name: target.name, temp_password: tempPassword } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao redefinir senha.' });
   }
 });
 
