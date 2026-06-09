@@ -4,7 +4,12 @@ import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularPr
 import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star, Pets, Shield, Storefront } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
-const GOLD = '#B8942E';
+const GOLD = '#C99A16';
+const GOLD_LIVE = '#E0B324';
+const GOLD_LIGHT = '#FFF7DF';
+const KAVIAR_BLACK = '#090A0F';
+const PREMIUM_WHITE = '#FFFDF8';
+const TEXT_GRAY = '#667085';
 const PARTNER_TYPES = [
   { value: 'association', label: 'Associação' },
   { value: 'condominium', label: 'Condomínio' },
@@ -77,22 +82,22 @@ export default function ManagerHome() {
   if (loading) return (
     <Container maxWidth="lg" sx={{ mt: 6, textAlign: 'center' }}>
       <CircularProgress sx={{ color: GOLD }} />
-      <Typography sx={{ mt: 2, color: '#6B7280' }}>Carregando território...</Typography>
+      <Typography sx={{ mt: 2, color: TEXT_GRAY }}>Carregando território...</Typography>
     </Container>
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#FAFAF8', pt: 2, pb: 6 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: PREMIUM_WHITE, pt: 2, pb: 6 }}>
       <Container maxWidth="lg">
         {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, p: 2, bgcolor: '#fff', borderRadius: 2, border: '1px solid #E8E5DE', borderTop: `3px solid ${GOLD}` }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, p: 2, bgcolor: '#fff', borderRadius: 3, border: '1px solid rgba(201,154,22,0.25)', borderTop: `2px solid ${GOLD}`, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               <span style={{ color: GOLD }}>KAVIAR</span> Gestor Territorial
             </Typography>
-            <Typography sx={{ color: '#6B7280', fontSize: 12 }}>{admin?.name || 'Gestor'} — acesso operacional do território</Typography>
+            <Typography sx={{ color: TEXT_GRAY, fontSize: 12 }}>{admin?.name || 'Gestor'} — acesso operacional do território</Typography>
           </Box>
-          <Button onClick={handleLogout} variant="outlined" size="small" sx={{ borderColor: '#E8E5DE', color: '#6B7280', '&:hover': { borderColor: GOLD, color: GOLD } }}>
+          <Button onClick={handleLogout} variant="outlined" size="small" sx={{ borderColor: 'rgba(201,154,22,0.25)', color: TEXT_GRAY, '&:hover': { borderColor: GOLD, color: GOLD } }}>
             Sair
           </Button>
         </Box>
@@ -110,10 +115,10 @@ export default function ManagerHome() {
               { label: 'Corridas', value: metrics.rides?.total ?? 0 },
             ].map(k => (
               <Grid item xs={6} sm={3} key={k.label}>
-                <Card sx={{ bgcolor: '#fff', borderTop: `3px solid ${GOLD}`, border: '1px solid #E8E5DE', borderRadius: 2 }}>
+                <Card sx={{ bgcolor: '#fff', borderTop: `2px solid ${GOLD}`, border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                   <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                    <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#1A1A1A' }}>{k.value}</Typography>
-                    <Typography sx={{ fontSize: 11, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{k.label}</Typography>
+                    <Typography sx={{ fontSize: 28, fontWeight: 800, color: KAVIAR_BLACK }}>{k.value}</Typography>
+                    <Typography sx={{ fontSize: 11, color: TEXT_GRAY, fontWeight: 600, textTransform: 'uppercase' }}>{k.label}</Typography>
                   </CardContent>
                 </Card>
               </Grid>
@@ -123,9 +128,9 @@ export default function ManagerHome() {
 
         {/* Territory metrics */}
         {territory && territory.total > 0 && (
-          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <CardContent sx={{ p: 2 }}>
-              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>Corridas por Território</Typography>
+              <Typography sx={{ fontSize: 10, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>Corridas por Território</Typography>
               <Grid container spacing={1}>
                 {[
                   { label: 'Local', value: territory.local },
@@ -135,9 +140,9 @@ export default function ManagerHome() {
                   { label: 'Total', value: territory.total },
                 ].map(t => (
                   <Grid item xs key={t.label}>
-                    <Box sx={{ textAlign: 'center', py: 1, bgcolor: '#FAFAF8', borderRadius: 1 }}>
-                      <Typography sx={{ fontSize: 20, fontWeight: 800, color: '#1A1A1A' }}>{t.value}</Typography>
-                      <Typography sx={{ fontSize: 9, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{t.label}</Typography>
+                    <Box sx={{ textAlign: 'center', py: 1, bgcolor: GOLD_LIGHT, borderRadius: 1 }}>
+                      <Typography sx={{ fontSize: 20, fontWeight: 800, color: KAVIAR_BLACK }}>{t.value}</Typography>
+                      <Typography sx={{ fontSize: 9, color: TEXT_GRAY, fontWeight: 600, textTransform: 'uppercase' }}>{t.label}</Typography>
                     </Box>
                   </Grid>
                 ))}
@@ -148,10 +153,10 @@ export default function ManagerHome() {
 
         {/* Referral quick stats */}
         {referral?.has_code && (
-          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Captação</Typography>
+                <Typography sx={{ fontSize: 10, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Captação</Typography>
                 <Typography sx={{ fontSize: 11, color: GOLD, fontFamily: 'monospace' }}>{referral.referral_code}</Typography>
               </Box>
               <Grid container spacing={1}>
@@ -162,8 +167,8 @@ export default function ManagerHome() {
                 ].map(s => (
                   <Grid item xs={4} key={s.label}>
                     <Box sx={{ textAlign: 'center', py: 0.5 }}>
-                      <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#1A1A1A' }}>{s.value}</Typography>
-                      <Typography sx={{ fontSize: 9, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</Typography>
+                      <Typography sx={{ fontSize: 18, fontWeight: 800, color: KAVIAR_BLACK }}>{s.value}</Typography>
+                      <Typography sx={{ fontSize: 9, color: TEXT_GRAY, fontWeight: 600, textTransform: 'uppercase' }}>{s.label}</Typography>
                     </Box>
                   </Grid>
                 ))}
@@ -174,9 +179,9 @@ export default function ManagerHome() {
 
         {/* Equipe & Captação */}
         {teamMembers.length > 0 && (
-          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <CardContent sx={{ p: 2 }}>
-              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Equipe & Captação</Typography>
+              <Typography sx={{ fontSize: 10, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Equipe & Captação</Typography>
               <Grid container spacing={1} sx={{ mb: 1.5 }}>
                 {[
                   { label: 'Leads Hoje', value: teamStats?.leads_today ?? 0, color: GOLD },
@@ -190,14 +195,14 @@ export default function ManagerHome() {
                   <Grid item xs={4} sm key={k.label}>
                     <Box sx={{ textAlign: 'center', py: 0.5 }}>
                       <Typography sx={{ fontSize: 18, fontWeight: 800, color: k.color }}>{k.value}</Typography>
-                      <Typography sx={{ fontSize: 9, color: '#6B7280', fontWeight: 600, textTransform: 'uppercase' }}>{k.label}</Typography>
+                      <Typography sx={{ fontSize: 9, color: TEXT_GRAY, fontWeight: 600, textTransform: 'uppercase' }}>{k.label}</Typography>
                     </Box>
                   </Grid>
                 ))}
               </Grid>
               {teamStats?.by_type && Object.keys(teamStats.by_type).length > 0 && (
                 <Box sx={{ mb: 1.5 }}>
-                  <Typography sx={{ fontSize: 9, color: '#9CA3AF', textTransform: 'uppercase', mb: 0.5 }}>Por Tipo</Typography>
+                  <Typography sx={{ fontSize: 9, color: TEXT_GRAY, textTransform: 'uppercase', mb: 0.5 }}>Por Tipo</Typography>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     {Object.entries(teamStats.by_type).map(([type, count]) => (
                       <Chip key={type} label={`${type}: ${count}`} size="small" sx={{ fontSize: 10 }} />
@@ -207,7 +212,7 @@ export default function ManagerHome() {
               )}
               {teamStats?.data?.length > 0 && (
                 <Box>
-                  <Typography sx={{ fontSize: 9, color: '#9CA3AF', textTransform: 'uppercase', mb: 0.5 }}>Ranking Captadores</Typography>
+                  <Typography sx={{ fontSize: 9, color: TEXT_GRAY, textTransform: 'uppercase', mb: 0.5 }}>Ranking Captadores</Typography>
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     {teamStats.data.filter(m => m.total_leads > 0).sort((a, b) => b.total_leads - a.total_leads).map((m, i) => (
                       <Chip key={m.member_id} label={`${i + 1}. ${m.member_name}: ${m.total_leads}`} size="small" sx={{ fontSize: 10, bgcolor: i === 0 ? `${GOLD}20` : undefined, color: i === 0 ? GOLD : undefined }} />
@@ -225,7 +230,7 @@ export default function ManagerHome() {
         )}
 
         {/* Modules */}
-        <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5, fontWeight: 600 }}>Módulos</Typography>
+        <Typography sx={{ fontSize: 12, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5, fontWeight: 600 }}>Módulos</Typography>
         <Grid container spacing={1.5} sx={{ mb: 3 }}>
           {[
             { Icon: DirectionsCar, title: 'Motoristas', desc: 'Motoristas do território', to: '/admin/drivers' },
@@ -246,14 +251,14 @@ export default function ManagerHome() {
             { Icon: GroupAdd, title: 'Minha Equipe', desc: 'Cadastro interno de captadores e operadores', to: '/admin/manager-team' },
           ].map(c => (
             <Grid item xs={12} sm={6} md={4} key={c.title}>
-              <Card component={Link} to={c.to} sx={{ bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2, textDecoration: 'none', display: 'block', '&:hover': { borderColor: GOLD, transform: 'translateY(-1px)', boxShadow: `0 2px 8px rgba(184,148,46,0.1)` }, transition: 'all 0.2s' }}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2 }}>
-                  <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(184,148,46,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Card component={Link} to={c.to} sx={{ bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, textDecoration: 'none', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: GOLD_LIVE, transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(201,154,22,0.12)' }, '&:focus-visible': { outline: '3px solid rgba(224,179,36,0.45)', outlineOffset: '2px', borderColor: GOLD_LIVE }, transition: 'all 0.2s' }}>
+                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.75, px: 2.5 }}>
+                  <Box sx={{ width: 38, height: 38, borderRadius: '50%', bgcolor: GOLD_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <c.Icon sx={{ fontSize: 18, color: GOLD }} />
                   </Box>
                   <Box>
-                    <Typography sx={{ color: '#1A1A1A', fontWeight: 600, fontSize: 13 }}>{c.title}</Typography>
-                    <Typography sx={{ color: '#6B7280', fontSize: 11 }}>{c.desc}</Typography>
+                    <Typography sx={{ color: KAVIAR_BLACK, fontWeight: 600, fontSize: 13 }}>{c.title}</Typography>
+                    <Typography sx={{ color: TEXT_GRAY, fontSize: 11 }}>{c.desc}</Typography>
                   </Box>
                 </CardContent>
               </Card>
@@ -262,30 +267,30 @@ export default function ManagerHome() {
         </Grid>
 
         {/* Cadastro Pendente */}
-        <Typography sx={{ fontSize: 12, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5, fontWeight: 600 }}>Cadastrar para Análise</Typography>
+        <Typography sx={{ fontSize: 12, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5, fontWeight: 600 }}>Cadastrar para Análise</Typography>
         <Grid container spacing={1.5} sx={{ mb: 3 }}>
           <Grid item xs={12} sm={6}>
-            <Card onClick={() => setPartnerDialog(true)} sx={{ bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2, cursor: 'pointer', '&:hover': { borderColor: GOLD, transform: 'translateY(-1px)', boxShadow: `0 2px 8px rgba(184,148,46,0.1)` }, transition: 'all 0.2s' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2 }}>
-                <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(184,148,46,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Card role="button" tabIndex={0} onClick={() => setPartnerDialog(true)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPartnerDialog(true); } }} sx={{ bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: GOLD_LIVE, transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(201,154,22,0.12)' }, '&:focus-visible': { outline: '3px solid rgba(224,179,36,0.45)', outlineOffset: '2px', borderColor: GOLD_LIVE }, transition: 'all 0.2s' }}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.75, px: 2.5 }}>
+                <Box sx={{ width: 38, height: 38, borderRadius: '50%', bgcolor: GOLD_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <AddBusiness sx={{ fontSize: 18, color: GOLD }} />
                 </Box>
                 <Box>
-                  <Typography sx={{ color: '#1A1A1A', fontWeight: 600, fontSize: 13 }}>Indicar Parceiro</Typography>
-                  <Typography sx={{ color: '#6B7280', fontSize: 11 }}>Cadastrar parceiro territorial para análise</Typography>
+                  <Typography sx={{ color: KAVIAR_BLACK, fontWeight: 600, fontSize: 13 }}>Indicar Parceiro</Typography>
+                  <Typography sx={{ color: TEXT_GRAY, fontSize: 11 }}>Cadastrar parceiro territorial para análise</Typography>
                 </Box>
               </CardContent>
             </Card>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <Card onClick={() => setOperatorDialog(true)} sx={{ bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2, cursor: 'pointer', '&:hover': { borderColor: GOLD, transform: 'translateY(-1px)', boxShadow: `0 2px 8px rgba(184,148,46,0.1)` }, transition: 'all 0.2s' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2 }}>
-                <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(184,148,46,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Card role="button" tabIndex={0} onClick={() => setOperatorDialog(true)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOperatorDialog(true); } }} sx={{ bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', '&:hover': { borderColor: GOLD_LIVE, transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(201,154,22,0.12)' }, '&:focus-visible': { outline: '3px solid rgba(224,179,36,0.45)', outlineOffset: '2px', borderColor: GOLD_LIVE }, transition: 'all 0.2s' }}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.75, px: 2.5 }}>
+                <Box sx={{ width: 38, height: 38, borderRadius: '50%', bgcolor: GOLD_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <GroupAdd sx={{ fontSize: 18, color: GOLD }} />
                 </Box>
                 <Box>
-                  <Typography sx={{ color: '#1A1A1A', fontWeight: 600, fontSize: 13 }}>Indicar Associação</Typography>
-                  <Typography sx={{ color: '#6B7280', fontSize: 11 }}>Cadastrar associação/entidade para análise</Typography>
+                  <Typography sx={{ color: KAVIAR_BLACK, fontWeight: 600, fontSize: 13 }}>Indicar Associação</Typography>
+                  <Typography sx={{ color: TEXT_GRAY, fontSize: 11 }}>Cadastrar associação/entidade para análise</Typography>
                 </Box>
               </CardContent>
             </Card>
@@ -294,23 +299,23 @@ export default function ManagerHome() {
 
         {/* Drafts list */}
         {drafts && (drafts.partners?.length > 0 || drafts.operators?.length > 0) && (
-          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid #E8E5DE', borderRadius: 2 }}>
+          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <CardContent sx={{ p: 2 }}>
-              <Typography sx={{ fontSize: 10, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Meus Cadastros Pendentes</Typography>
+              <Typography sx={{ fontSize: 10, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1.5 }}>Meus Cadastros Pendentes</Typography>
               {drafts.partners?.map(p => (
                 <Box key={p.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #F3F4F6' }}>
                   <Box>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>{p.name}</Typography>
-                    <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{p.responsible_name} • {p.partner_type}</Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: KAVIAR_BLACK }}>{p.name}</Typography>
+                    <Typography sx={{ fontSize: 11, color: TEXT_GRAY }}>{p.responsible_name} • {p.partner_type}</Typography>
                   </Box>
-                  <Chip label="Parceiro" size="small" sx={{ bgcolor: 'rgba(184,148,46,0.1)', color: GOLD, fontSize: 10, height: 22 }} />
+                  <Chip label="Parceiro" size="small" sx={{ bgcolor: `${GOLD}18`, color: GOLD, fontSize: 10, height: 22 }} />
                 </Box>
               ))}
               {drafts.operators?.map(o => (
                 <Box key={o.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 0.75, borderBottom: '1px solid #F3F4F6' }}>
                   <Box>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>{o.organization_name}</Typography>
-                    <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{o.responsible_name} • {o.responsible_role}</Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: KAVIAR_BLACK }}>{o.organization_name}</Typography>
+                    <Typography sx={{ fontSize: 11, color: TEXT_GRAY }}>{o.responsible_name} • {o.responsible_role}</Typography>
                   </Box>
                   <Chip label="Associação" size="small" sx={{ bgcolor: 'rgba(46,148,184,0.1)', color: '#2E94B8', fontSize: 10, height: 22 }} />
                 </Box>
@@ -320,8 +325,8 @@ export default function ManagerHome() {
         )}
 
         {/* Footer */}
-        <Box sx={{ textAlign: 'center', pt: 2, borderTop: '1px solid #E8E5DE' }}>
-          <Typography sx={{ color: '#9CA3AF', fontSize: 10 }}>
+        <Box sx={{ textAlign: 'center', pt: 2, borderTop: '1px solid rgba(201,154,22,0.2)' }}>
+          <Typography sx={{ color: TEXT_GRAY, fontSize: 10 }}>
             KAVIAR é produto da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66
           </Typography>
           <Typography sx={{ color: '#D1D5DB', fontSize: 9, mt: 0.5 }}>
