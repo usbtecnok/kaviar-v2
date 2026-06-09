@@ -29,6 +29,18 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, async (req, res) =>
       (req as any).scopeTerritoryFilter = hasTerritories ? scope.territoryIds : null;
     }
   }
+
+  // Intercept response to sanitize for territorial roles
+  const isTerritorial = admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER';
+  if (isTerritorial) {
+    const originalJson = res.json.bind(res);
+    res.json = (body: any) => {
+      if (body?.data && Array.isArray(body.data)) {
+        body.data = body.data.map(({ documentCpf, documentRg, documentCnh, familyBonusAccepted, familyBonusProfile, ...safe }: any) => safe);
+      }
+      return originalJson(body);
+    };
+  }
   return approvalController.getDrivers(req, res);
 });
 router.get('/drivers/metrics/by-neighborhood', allowReadAccess, applyTerritoryScope, async (req, res) => {
