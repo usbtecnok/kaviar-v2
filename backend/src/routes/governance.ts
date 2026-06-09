@@ -230,7 +230,8 @@ router.get('/neighborhoods', async (req, res) => {
         city: true,
         zone: true,
         is_active: true,
-        territory_id: true
+        territory_id: true,
+        area_type: true
       },
       orderBy: { name: 'asc' }
     });

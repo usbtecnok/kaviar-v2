@@ -79,12 +79,24 @@ export default function NeighborhoodsByCity() {
       }
     });
     
-    // Buscar contagem de geofences do backend
+    // Contar geofences por cidade (verificação individual apenas para cidades pequenas)
     try {
-      const response = await api.get('/api/admin/dashboard/overview');
-      // Por enquanto, assumir que Rio tem geometria e SP não
-      if (stats['Rio de Janeiro']) stats['Rio de Janeiro'].withGeofence = 162;
-      if (stats['São Paulo']) stats['São Paulo'].withGeofence = 0;
+      for (const city of Object.keys(stats)) {
+        const cityNbs = neighborhoods.filter(n => n.city === city);
+        if (cityNbs.length <= 10) {
+          let withGf = 0;
+          for (const nb of cityNbs) {
+            try {
+              const gfRes = await api.get(`/api/public/neighborhoods/${nb.id}/geofence`);
+              if (gfRes.data.success && gfRes.data.data) withGf++;
+            } catch {}
+          }
+          stats[city].withGeofence = withGf;
+        } else {
+          // For large cities, leave as unknown (will show count when available)
+          stats[city].withGeofence = -1; // -1 = not checked
+        }
+      }
     } catch (err) {
       console.error('Erro ao buscar geofences:', err);
     }
@@ -168,6 +180,11 @@ export default function NeighborhoodsByCity() {
                     {stats.withGeofence === 0 && stats.total > 0 && (
                       <Typography variant="caption" color="warning.main">
                         ⚠️ Sem mapas cadastrados
+                      </Typography>
+                    )}
+                    {stats.withGeofence === -1 && (
+                      <Typography variant="caption" color="text.secondary">
+                        Consultar bairros para ver mapas
                       </Typography>
                     )}
                   </Box>

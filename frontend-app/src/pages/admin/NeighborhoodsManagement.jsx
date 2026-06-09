@@ -36,7 +36,7 @@ export default function NeighborhoodsManagement() {
 
   const fetchNeighborhoods = async () => {
     try {
-      const response = await api.get('/api/neighborhoods');
+      const response = await api.get('/api/governance/neighborhoods');
       
       console.log('Neighborhoods API response:', response.data);
       
