@@ -47,6 +47,24 @@ function generateSecureTempPassword(): string {
   return chars.join('');
 }
 
+// GET /api/admin/commerce/my-territories — territories for the authenticated admin
+router.get('/my-territories', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const scope = (req as any).territoryScope;
+    if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+    const territories = await prisma.operational_territories.findMany({
+      where: { id: { in: scope.territoryIds }, is_active: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ success: true, data: territories });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao carregar territórios' });
+  }
+});
+
 // GET /api/admin/commerce/accounts
 router.get('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {

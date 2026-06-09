@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
-import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star, Pets, Shield } from '@mui/icons-material';
+import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star, Pets, Shield, Storefront } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
@@ -240,6 +240,7 @@ export default function ManagerHome() {
             { Icon: Description, title: 'Meu Contrato', desc: 'Perfil e termos', to: '/admin/meu-contrato' },
             { Icon: Description, title: 'Plano Gestor', desc: 'Proposta, termo e FAQ do Gestor Fundador', to: '/admin/comercial-gestor' },
             { Icon: AddBusiness, title: 'CRM KAVIAR', desc: 'Leads, prospecção e comércios locais', to: '/admin/crm' },
+            { Icon: Storefront, title: 'Comércios do Território', desc: 'Cadastre, organize e acompanhe os negócios locais', to: '/admin/commerce' },
             { Icon: Shield, title: 'Alertas do Território', desc: 'Acompanhe alertas de emergência do seu território', to: '/admin/manager-emergency-alerts' },
             { Icon: GroupAdd, title: 'Minha Equipe', desc: 'Cadastro interno de captadores e operadores', to: '/admin/manager-team' },
           ].map(c => (

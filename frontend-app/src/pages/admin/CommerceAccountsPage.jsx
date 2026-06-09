@@ -36,19 +36,20 @@ export default function CommerceAccountsPage() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+  const isManager = admin?.role === 'TERRITORIAL_MANAGER';
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchAccounts = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { headers }); const data = await res.json(); if (data.success) setAccounts(data.data); } catch {} setLoading(false); };
-  const fetchTerritories = async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/territories`, { headers }); const data = await res.json(); if (data.success) setTerritories(data.data.filter(t => t.is_active)); } catch {} };
+  const fetchTerritories = async () => { try { const url = isManager ? `${API_BASE_URL}/api/admin/commerce/my-territories` : `${API_BASE_URL}/api/admin/territories`; const res = await fetch(url, { headers }); const data = await res.json(); if (data.success) setTerritories(data.data.filter(t => t.is_active !== false)); } catch {} };
   const fetchNeighborhoods = async () => { try { const res = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`, { headers }); const data = await res.json(); if (data.success) setNeighborhoods(data.data.filter(n => n.is_active)); } catch {} };
   const fetchFinance = async () => { try { const [sRes, aRes] = await Promise.all([fetch(`${API_BASE_URL}/api/admin/commerce/finance/summary`, { headers }), fetch(`${API_BASE_URL}/api/admin/commerce/finance/by-account`, { headers })]); const [s, a] = await Promise.all([sRes.json(), aRes.json()]); if (s.success) setFinanceSummary(s.data); if (a.success) setFinanceAccounts(a.data); } catch {} };
-  useEffect(() => { fetchAccounts(); fetchTerritories(); fetchNeighborhoods(); if (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') fetchFinance(); }, []);
+  useEffect(() => { fetchAccounts(); fetchTerritories(); fetchNeighborhoods(); if (isSuperAdmin) fetchFinance(); }, []);
 
   const handleCreate = async () => { if (!form.name.trim()) return setSnack('Nome obrigatório'); const payload = { ...form, territory_id: form.territory_id || null, neighborhood_id: form.neighborhood_id || null }; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(payload) }); const data = await res.json(); if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '', territory_id: '', neighborhood_id: '' }); } else setSnack(data.error || 'Erro'); };
-  const handleEditTerritory = async () => { if (!editAccount) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${editAccount.id}`, { method: 'PATCH', headers, body: JSON.stringify({ territory_id: editTerritory || null, neighborhood_id: editNeighborhood || null }) }); const data = await res.json(); if (data.success) { setEditOpen(false); fetchAccounts(); setSnack('Território atualizado!'); } else setSnack(data.error || 'Erro'); };
+  const handleEditTerritory = async () => { if (!editAccount) return; let payload = { territory_id: editTerritory || null, neighborhood_id: editNeighborhood || null }; if (isManager) { const reason = prompt('Motivo da alteração territorial (mín. 10 caracteres):'); if (!reason || reason.trim().length < 10) return setSnack('Motivo obrigatório (mínimo 10 caracteres)'); const password = prompt('Sua senha administrativa:'); if (!password) return; payload = { ...payload, password, reason: reason.trim() }; } const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${editAccount.id}`, { method: 'PATCH', headers, body: JSON.stringify(payload) }); const data = await res.json(); if (data.success) { setEditOpen(false); fetchAccounts(); setSnack('Território atualizado!'); } else setSnack(data.error || 'Erro'); };
   const openEdit = (account) => { setEditAccount(account); setEditTerritory(account.territory_id || ''); setEditNeighborhood(account.neighborhood_id || ''); setEditOpen(true); };
-  const handleActivate = async (id) => { if (!window.confirm('Ativar este comércio?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers }); const data = await res.json(); if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); } else setSnack(data.error || 'Erro'); };
+  const handleActivate = async (id) => { const reason = prompt('Motivo da ativação (mín. 10 caracteres):'); if (!reason || reason.trim().length < 10) return setSnack('Motivo obrigatório (mínimo 10 caracteres)'); const password = prompt('Sua senha administrativa:'); if (!password) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers, body: JSON.stringify({ password, reason: reason.trim() }) }); const data = await res.json(); if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); } else setSnack(data.error || 'Erro'); };
   const handleResetPassword = async (id) => { if (!window.confirm('Gerar nova senha?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/reset-password`, { method: 'POST', headers }); const data = await res.json(); if (data.success) setPasswordResult({ email: data.data.email, temp_password: data.data.temp_password, action: 'reset' }); else setSnack(data.error || 'Erro'); };
   const copyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => setSnack('Copiado!')); };
 
@@ -80,16 +81,16 @@ export default function CommerceAccountsPage() {
     <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1200, mx: 'auto', color: '#E5E7EB', '& .MuiTableCell-root': { color: '#D1D5DB', borderColor: 'rgba(255,255,255,0.08)' }, '& .MuiTableCell-head': { color: '#94A3B8' }, '& .MuiTab-root': { color: '#9CA3AF' }, '& .Mui-selected': { color: '#FFD700 !important' } }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ color: GOLD, fontWeight: 800 }}>🏪 Comércios Locais</Typography>
-        {isSuperAdmin && <Button variant="contained" size="small" startIcon={<Add />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: GOLD, textTransform: 'none' }}>Novo Comércio</Button>}
+        {(isSuperAdmin || isManager) && <Button variant="contained" size="small" startIcon={<Add />} onClick={() => setCreateOpen(true)} sx={{ bgcolor: GOLD, textTransform: 'none' }}>Novo Comércio</Button>}
       </Box>
 
-      {(isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') && <Tabs value={mainTab} onChange={(_, v) => setMainTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
+      {isSuperAdmin && <Tabs value={mainTab} onChange={(_, v) => setMainTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600 } }}>
         <Tab label="Comércios" />
-        <Tab label={isSuperAdmin ? 'Financeiro' : 'Financeiro do Território'} />
+        <Tab label="Financeiro" />
       </Tabs>}
 
       {/* Comércios Tab */}
-      {(mainTab === 0 || !isSuperAdmin) && (<>
+      {(mainTab === 0 || isManager) && (<>
       {loading ? <CircularProgress sx={{ color: GOLD }} /> : (
         <Table size="small">
           <TableHead><TableRow sx={{ '& th': { fontWeight: 700, fontSize: 11, color: '#94A3B8', textTransform: 'uppercase' } }}>
@@ -110,6 +111,9 @@ export default function CommerceAccountsPage() {
                     <Tooltip title="Resetar senha"><IconButton size="small" onClick={() => handleResetPassword(a.id)} sx={{ color: '#6B7280' }}><LockReset sx={{ fontSize: 18 }} /></IconButton></Tooltip>
                   </>}
                   {isSuperAdmin && a.status !== 'pending' && a.status !== 'active' && <Tooltip title="Editar território"><IconButton size="small" onClick={() => openEdit(a)} sx={{ color: '#6B7280' }}><Place sx={{ fontSize: 18 }} /></IconButton></Tooltip>}
+                  {isManager && (a.status === 'pending' || a.status === 'approved') && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
+                  {isManager && a.status === 'active' && <Tooltip title="Editar território"><IconButton size="small" onClick={() => openEdit(a)} sx={{ color: '#6B7280' }}><Place sx={{ fontSize: 18 }} /></IconButton></Tooltip>}
+                  {isManager && a.status === 'blocked' && <Typography sx={{ fontSize: 11, color: '#EF4444' }}>Bloqueado</Typography>}
                 </TableCell>
               </TableRow>
             ))}
@@ -119,8 +123,8 @@ export default function CommerceAccountsPage() {
       )}
       </>)}
 
-      {/* Finance Tab */}
-      {mainTab === 1 && (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') && (
+      {/* Finance Tab — SA only */}
+      {mainTab === 1 && isSuperAdmin && (
         <Box>
           {/* Print-only institutional header */}
           <Box className="print-header" sx={{ display: 'none', '@media print': { display: 'block', mb: 3, borderBottom: '2px solid #B8942E', pb: 2 } }}>
