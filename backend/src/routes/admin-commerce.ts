@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { authenticateAdmin, requireSuperAdmin, requireRole } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { audit, auditCtx } from '../utils/audit';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -90,14 +91,35 @@ router.get('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, a
 });
 
 // POST /api/admin/commerce/accounts — create (from CRM lead or manual)
-router.post('/accounts', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+router.post('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const isSuperAdmin = admin.role === 'SUPER_ADMIN';
+
+    // TERRITORIAL_MANAGER: allowlist + scope enforcement
+    const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status', 'is_active', 'crm_lead_id'];
+    if (!isSuperAdmin) {
+      const sent = Object.keys(req.body);
+      const forbidden = sent.filter(k => BLOCKED_FIELDS.includes(k));
+      if (forbidden.length > 0) return res.status(400).json({ success: false, error: `Campos não permitidos: ${forbidden.join(', ')}` });
+    }
+
     const { crm_lead_id, name, trade_name, category, document_cnpj, document_cpf, phone, email, address, neighborhood_id, territory_id, commission_percent, notes } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
 
-    // Validar coerência território/bairro
+    // Territory validation
     const finalTerritoryId = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
     const finalNeighborhoodId = neighborhood_id || null;
+
+    if (!isSuperAdmin) {
+      // TERRITORIAL_MANAGER: territory_id obrigatório e deve estar no scope
+      if (!finalTerritoryId) return res.status(400).json({ success: false, error: 'Território é obrigatório.' });
+      const tIds = scope?.territoryIds || [];
+      if (!tIds.includes(finalTerritoryId)) return res.status(403).json({ success: false, error: 'Território fora do seu escopo.' });
+    }
+
+    // Validar coerência território/bairro
     if (!finalTerritoryId && finalNeighborhoodId) {
       return res.status(400).json({ success: false, error: 'Não é possível definir bairro sem território.' });
     }
@@ -107,25 +129,31 @@ router.post('/accounts', authenticateAdmin, requireSuperAdmin, async (req: Reque
       if (nbh.territory_id !== finalTerritoryId) return res.status(400).json({ success: false, error: 'O bairro selecionado não pertence ao território informado.' });
     }
 
-    // Check duplicate crm_lead_id
-    if (crm_lead_id) {
+    // Check duplicate crm_lead_id (SUPER_ADMIN only)
+    if (isSuperAdmin && crm_lead_id) {
       const existing = await prisma.commerce_accounts.findFirst({ where: { crm_lead_id, deleted_at: null } });
       if (existing) return res.status(409).json({ success: false, error: 'Este lead já possui conta de comércio vinculada.', commerce_id: existing.id });
     }
 
     const account = await prisma.commerce_accounts.create({
       data: {
-        crm_lead_id: crm_lead_id || null,
+        crm_lead_id: isSuperAdmin ? (crm_lead_id || null) : null,
         name, trade_name: trade_name || null,
         category: category || 'outro',
-        document_cnpj: document_cnpj || null, document_cpf: document_cpf || null,
+        document_cnpj: isSuperAdmin ? (document_cnpj || null) : null,
+        document_cpf: isSuperAdmin ? (document_cpf || null) : null,
         phone: phone || null, email: email || null,
         address: address || null, neighborhood_id: finalNeighborhoodId,
         territory_id: finalTerritoryId,
-        commission_percent: commission_percent ?? 10.00,
-        notes: notes || null,
+        commission_percent: isSuperAdmin ? (commission_percent ?? 10.00) : 10.00,
+        notes: isSuperAdmin ? (notes || null) : null,
       },
     });
+
+    // Audit
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_created', entityType: 'commerce_account', entityId: account.id, newValue: { name, territory_id: finalTerritoryId, neighborhood_id: finalNeighborhoodId, category, created_by_role: admin.role }, ipAddress: ctx.ip, userAgent: ctx.ua });
+
     res.status(201).json({ success: true, data: account });
   } catch (error) {
     console.error('[admin-commerce] create error:', error);
@@ -134,48 +162,78 @@ router.post('/accounts', authenticateAdmin, requireSuperAdmin, async (req: Reque
 });
 
 // PATCH /api/admin/commerce/accounts/:id
-router.patch('/accounts/:id', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+router.patch('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const isSuperAdmin = admin.role === 'SUPER_ADMIN';
+
+    // Scope check: verify account is in admin's territory
+    const existing = await prisma.commerce_accounts.findFirst({ where: { id: req.params.id, deleted_at: null } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    if (!isSuperAdmin) {
+      const tIds = scope?.territoryIds || [];
+      const nIds = scope?.neighborhoodIds || [];
+      let inScope = existing.territory_id && tIds.includes(existing.territory_id);
+      if (!inScope && !existing.territory_id && existing.neighborhood_id && nIds.includes(existing.neighborhood_id)) inScope = true;
+      if (!inScope) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+      // Blocklist enforcement
+      const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status', 'is_active', 'crm_lead_id', 'territory_id', 'neighborhood_id'];
+      const sent = Object.keys(req.body);
+      const forbidden = sent.filter(k => BLOCKED_FIELDS.includes(k));
+      if (forbidden.length > 0) return res.status(400).json({ success: false, error: `Campos não permitidos: ${forbidden.join(', ')}` });
+    }
+
+    // Build update data
     const { name, trade_name, category, document_cnpj, document_cpf, phone, email, address, neighborhood_id, territory_id, commission_percent, notes, status } = req.body;
     const data: any = {};
     if (name !== undefined) data.name = name;
     if (trade_name !== undefined) data.trade_name = trade_name || null;
     if (category !== undefined) data.category = category;
-    if (document_cnpj !== undefined) data.document_cnpj = document_cnpj || null;
-    if (document_cpf !== undefined) data.document_cpf = document_cpf || null;
     if (phone !== undefined) data.phone = phone || null;
     if (email !== undefined) data.email = email || null;
     if (address !== undefined) data.address = address || null;
-    if (neighborhood_id !== undefined) data.neighborhood_id = neighborhood_id || null;
-    if (territory_id !== undefined) data.territory_id = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
 
-    // Validar coerência território/bairro
-    if (territory_id !== undefined || neighborhood_id !== undefined) {
-      const current = await prisma.commerce_accounts.findUnique({ where: { id: req.params.id }, select: { territory_id: true, neighborhood_id: true } });
-      const finalT = territory_id !== undefined ? (data.territory_id) : current?.territory_id;
-      // Se território mudou e bairro não foi enviado, limpar bairro
-      if (territory_id !== undefined && neighborhood_id === undefined && current?.neighborhood_id) {
-        data.neighborhood_id = null;
+    // SUPER_ADMIN only fields
+    if (isSuperAdmin) {
+      if (document_cnpj !== undefined) data.document_cnpj = document_cnpj || null;
+      if (document_cpf !== undefined) data.document_cpf = document_cpf || null;
+      if (neighborhood_id !== undefined) data.neighborhood_id = neighborhood_id || null;
+      if (territory_id !== undefined) data.territory_id = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
+
+      // Validar coerência território/bairro
+      if (territory_id !== undefined || neighborhood_id !== undefined) {
+        const finalT = territory_id !== undefined ? (data.territory_id) : existing.territory_id;
+        if (territory_id !== undefined && neighborhood_id === undefined && existing.neighborhood_id) {
+          data.neighborhood_id = null;
+        }
+        const finalN = neighborhood_id !== undefined ? (data.neighborhood_id) : (data.neighborhood_id !== undefined ? data.neighborhood_id : existing.neighborhood_id);
+        if (!finalT && finalN) return res.status(400).json({ success: false, error: 'Não é possível definir bairro sem território.' });
+        if (finalT && finalN) {
+          const nbh = await prisma.neighborhoods.findUnique({ where: { id: finalN }, select: { territory_id: true } });
+          if (!nbh) return res.status(400).json({ success: false, error: 'Bairro não encontrado.' });
+          if (nbh.territory_id !== finalT) return res.status(400).json({ success: false, error: 'O bairro selecionado não pertence ao território informado.' });
+        }
       }
-      const finalN = neighborhood_id !== undefined ? (data.neighborhood_id) : (data.neighborhood_id !== undefined ? data.neighborhood_id : current?.neighborhood_id);
-      if (!finalT && finalN) {
-        return res.status(400).json({ success: false, error: 'Não é possível definir bairro sem território.' });
-      }
-      if (finalT && finalN) {
-        const nbh = await prisma.neighborhoods.findUnique({ where: { id: finalN }, select: { territory_id: true } });
-        if (!nbh) return res.status(400).json({ success: false, error: 'Bairro não encontrado.' });
-        if (nbh.territory_id !== finalT) return res.status(400).json({ success: false, error: 'O bairro selecionado não pertence ao território informado.' });
+      if (commission_percent !== undefined) data.commission_percent = commission_percent;
+      if (notes !== undefined) data.notes = notes || null;
+      if (status !== undefined && ['pending', 'approved', 'active', 'paused', 'blocked'].includes(status)) {
+        data.status = status;
+        if (status === 'active') { data.is_active = true; }
+        if (status === 'paused' || status === 'blocked') { data.is_active = false; }
       }
     }
-    if (commission_percent !== undefined) data.commission_percent = commission_percent;
-    if (notes !== undefined) data.notes = notes || null;
-    if (status !== undefined && ['pending', 'approved', 'active', 'paused', 'blocked'].includes(status)) {
-      data.status = status;
-      if (status === 'active') { data.is_active = true; }
-      if (status === 'paused' || status === 'blocked') { data.is_active = false; }
-    }
+
+    if (Object.keys(data).length === 0) return res.status(400).json({ success: false, error: 'Nenhum campo para atualizar.' });
 
     const account = await prisma.commerce_accounts.update({ where: { id: req.params.id }, data });
+
+    // Audit
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_updated', entityType: 'commerce_account', entityId: account.id, oldValue: { name: existing.name, category: existing.category, territory_id: existing.territory_id }, newValue: data, ipAddress: ctx.ip, userAgent: ctx.ua });
+
     res.json({ success: true, data: account });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao atualizar' });
