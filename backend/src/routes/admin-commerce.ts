@@ -59,6 +59,18 @@ router.post('/accounts', authenticateAdmin, requireSuperAdmin, async (req: Reque
     const { crm_lead_id, name, trade_name, category, document_cnpj, document_cpf, phone, email, address, neighborhood_id, territory_id, commission_percent, notes } = req.body;
     if (!name) return res.status(400).json({ success: false, error: 'Nome é obrigatório' });
 
+    // Validar coerência território/bairro
+    const finalTerritoryId = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
+    const finalNeighborhoodId = neighborhood_id || null;
+    if (!finalTerritoryId && finalNeighborhoodId) {
+      return res.status(400).json({ success: false, error: 'Não é possível definir bairro sem território.' });
+    }
+    if (finalTerritoryId && finalNeighborhoodId) {
+      const nbh = await prisma.neighborhoods.findUnique({ where: { id: finalNeighborhoodId }, select: { territory_id: true } });
+      if (!nbh) return res.status(400).json({ success: false, error: 'Bairro não encontrado.' });
+      if (nbh.territory_id !== finalTerritoryId) return res.status(400).json({ success: false, error: 'O bairro selecionado não pertence ao território informado.' });
+    }
+
     // Check duplicate crm_lead_id
     if (crm_lead_id) {
       const existing = await prisma.commerce_accounts.findFirst({ where: { crm_lead_id, deleted_at: null } });
@@ -72,8 +84,8 @@ router.post('/accounts', authenticateAdmin, requireSuperAdmin, async (req: Reque
         category: category || 'outro',
         document_cnpj: document_cnpj || null, document_cpf: document_cpf || null,
         phone: phone || null, email: email || null,
-        address: address || null, neighborhood_id: neighborhood_id || null,
-        territory_id: territory_id && UUID_RE.test(territory_id) ? territory_id : null,
+        address: address || null, neighborhood_id: finalNeighborhoodId,
+        territory_id: finalTerritoryId,
         commission_percent: commission_percent ?? 10.00,
         notes: notes || null,
       },
@@ -100,6 +112,25 @@ router.patch('/accounts/:id', authenticateAdmin, requireSuperAdmin, async (req: 
     if (address !== undefined) data.address = address || null;
     if (neighborhood_id !== undefined) data.neighborhood_id = neighborhood_id || null;
     if (territory_id !== undefined) data.territory_id = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
+
+    // Validar coerência território/bairro
+    if (territory_id !== undefined || neighborhood_id !== undefined) {
+      const current = await prisma.commerce_accounts.findUnique({ where: { id: req.params.id }, select: { territory_id: true, neighborhood_id: true } });
+      const finalT = territory_id !== undefined ? (data.territory_id) : current?.territory_id;
+      const finalN = neighborhood_id !== undefined ? (data.neighborhood_id) : current?.neighborhood_id;
+      if (!finalT && finalN) {
+        return res.status(400).json({ success: false, error: 'Não é possível definir bairro sem território.' });
+      }
+      if (finalT && finalN) {
+        const nbh = await prisma.neighborhoods.findUnique({ where: { id: finalN }, select: { territory_id: true } });
+        if (!nbh) return res.status(400).json({ success: false, error: 'Bairro não encontrado.' });
+        if (nbh.territory_id !== finalT) return res.status(400).json({ success: false, error: 'O bairro selecionado não pertence ao território informado.' });
+      }
+      // Se território mudou e bairro não foi enviado, limpar bairro
+      if (territory_id !== undefined && neighborhood_id === undefined && current?.neighborhood_id) {
+        data.neighborhood_id = null;
+      }
+    }
     if (commission_percent !== undefined) data.commission_percent = commission_percent;
     if (notes !== undefined) data.notes = notes || null;
     if (status !== undefined && ['pending', 'approved', 'active', 'paused', 'blocked'].includes(status)) {

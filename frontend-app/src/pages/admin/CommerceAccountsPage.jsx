@@ -12,14 +12,16 @@ export default function CommerceAccountsPage() {
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '', territory_id: '' });
+  const [form, setForm] = useState({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '', territory_id: '', neighborhood_id: '' });
   const [passwordResult, setPasswordResult] = useState(null);
-  // Territories
+  // Territories & Neighborhoods
   const [territories, setTerritories] = useState([]);
+  const [neighborhoods, setNeighborhoods] = useState([]);
   // Edit drawer
   const [editOpen, setEditOpen] = useState(false);
   const [editAccount, setEditAccount] = useState(null);
   const [editTerritory, setEditTerritory] = useState('');
+  const [editNeighborhood, setEditNeighborhood] = useState('');
   // Wallet drawer
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletAccount, setWalletAccount] = useState(null);
@@ -39,12 +41,13 @@ export default function CommerceAccountsPage() {
 
   const fetchAccounts = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { headers }); const data = await res.json(); if (data.success) setAccounts(data.data); } catch {} setLoading(false); };
   const fetchTerritories = async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/territories`, { headers }); const data = await res.json(); if (data.success) setTerritories(data.data.filter(t => t.is_active)); } catch {} };
+  const fetchNeighborhoods = async () => { try { const res = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`, { headers }); const data = await res.json(); if (data.success) setNeighborhoods(data.data.filter(n => n.is_active)); } catch {} };
   const fetchFinance = async () => { try { const [sRes, aRes] = await Promise.all([fetch(`${API_BASE_URL}/api/admin/commerce/finance/summary`, { headers }), fetch(`${API_BASE_URL}/api/admin/commerce/finance/by-account`, { headers })]); const [s, a] = await Promise.all([sRes.json(), aRes.json()]); if (s.success) setFinanceSummary(s.data); if (a.success) setFinanceAccounts(a.data); } catch {} };
-  useEffect(() => { fetchAccounts(); fetchTerritories(); if (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') fetchFinance(); }, []);
+  useEffect(() => { fetchAccounts(); fetchTerritories(); fetchNeighborhoods(); if (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') fetchFinance(); }, []);
 
-  const handleCreate = async () => { if (!form.name.trim()) return setSnack('Nome obrigatório'); const payload = { ...form, territory_id: form.territory_id || null }; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(payload) }); const data = await res.json(); if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '', territory_id: '' }); } else setSnack(data.error || 'Erro'); };
-  const handleEditTerritory = async () => { if (!editAccount) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${editAccount.id}`, { method: 'PATCH', headers, body: JSON.stringify({ territory_id: editTerritory || null }) }); const data = await res.json(); if (data.success) { setEditOpen(false); fetchAccounts(); setSnack('Território atualizado!'); } else setSnack(data.error || 'Erro'); };
-  const openEdit = (account) => { setEditAccount(account); setEditTerritory(account.territory_id || ''); setEditOpen(true); };
+  const handleCreate = async () => { if (!form.name.trim()) return setSnack('Nome obrigatório'); const payload = { ...form, territory_id: form.territory_id || null, neighborhood_id: form.neighborhood_id || null }; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(payload) }); const data = await res.json(); if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '', territory_id: '', neighborhood_id: '' }); } else setSnack(data.error || 'Erro'); };
+  const handleEditTerritory = async () => { if (!editAccount) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${editAccount.id}`, { method: 'PATCH', headers, body: JSON.stringify({ territory_id: editTerritory || null, neighborhood_id: editNeighborhood || null }) }); const data = await res.json(); if (data.success) { setEditOpen(false); fetchAccounts(); setSnack('Território atualizado!'); } else setSnack(data.error || 'Erro'); };
+  const openEdit = (account) => { setEditAccount(account); setEditTerritory(account.territory_id || ''); setEditNeighborhood(account.neighborhood_id || ''); setEditOpen(true); };
   const handleActivate = async (id) => { if (!window.confirm('Ativar este comércio?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers }); const data = await res.json(); if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); } else setSnack(data.error || 'Erro'); };
   const handleResetPassword = async (id) => { if (!window.confirm('Gerar nova senha?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/reset-password`, { method: 'POST', headers }); const data = await res.json(); if (data.success) setPasswordResult({ email: data.data.email, temp_password: data.data.temp_password, action: 'reset' }); else setSnack(data.error || 'Erro'); };
   const copyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => setSnack('Copiado!')); };
@@ -319,7 +322,8 @@ export default function CommerceAccountsPage() {
           <Box sx={{ display: 'flex', gap: 1 }}><TextField label="Telefone" size="small" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /><TextField label="Email" size="small" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Box>
           <TextField label="Endereço" size="small" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
           <TextField label="CRM Lead ID (opcional)" size="small" value={form.crm_lead_id} onChange={e => setForm(f => ({ ...f, crm_lead_id: e.target.value }))} placeholder="UUID do lead no CRM" />
-          <FormControl size="small"><InputLabel>Território</InputLabel><Select value={form.territory_id} label="Território" onChange={e => setForm(f => ({ ...f, territory_id: e.target.value }))}><MenuItem value="">Sem território</MenuItem>{territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}</Select></FormControl>
+          <FormControl size="small"><InputLabel>Território</InputLabel><Select value={form.territory_id} label="Território" onChange={e => setForm(f => ({ ...f, territory_id: e.target.value, neighborhood_id: '' }))}><MenuItem value="">Sem território</MenuItem>{territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}</Select></FormControl>
+          <FormControl size="small" disabled={!form.territory_id}><InputLabel>Bairro</InputLabel><Select value={form.neighborhood_id} label="Bairro" onChange={e => setForm(f => ({ ...f, neighborhood_id: e.target.value }))}><MenuItem value="">Sem bairro</MenuItem>{neighborhoods.filter(n => n.territory_id === form.territory_id).map(n => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}</Select></FormControl>
         </DialogContent>
         <DialogActions><Button onClick={() => setCreateOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleCreate} sx={{ bgcolor: GOLD }}>Criar</Button></DialogActions>
       </Dialog>
@@ -331,15 +335,22 @@ export default function CommerceAccountsPage() {
         <DialogActions><Button onClick={() => setPasswordResult(null)} variant="contained" sx={{ bgcolor: GOLD }}>Fechar</Button></DialogActions>
       </Dialog>
 
-      {/* Edit Territory */}
+      {/* Edit Territory & Neighborhood */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Território — {editAccount?.trade_name || editAccount?.name}</DialogTitle>
-        <DialogContent sx={{ pt: '16px !important' }}>
+        <DialogTitle sx={{ fontWeight: 700 }}>Território e Bairro — {editAccount?.trade_name || editAccount?.name}</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
           <FormControl size="small" fullWidth>
             <InputLabel>Território</InputLabel>
-            <Select value={editTerritory} label="Território" onChange={e => setEditTerritory(e.target.value)}>
+            <Select value={editTerritory} label="Território" onChange={e => { setEditTerritory(e.target.value); setEditNeighborhood(''); }}>
               <MenuItem value="">Sem território</MenuItem>
               {territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" fullWidth disabled={!editTerritory}>
+            <InputLabel>Bairro</InputLabel>
+            <Select value={editNeighborhood} label="Bairro" onChange={e => setEditNeighborhood(e.target.value)}>
+              <MenuItem value="">Sem bairro</MenuItem>
+              {neighborhoods.filter(n => n.territory_id === editTerritory).map(n => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}
             </Select>
           </FormControl>
         </DialogContent>
