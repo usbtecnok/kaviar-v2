@@ -87,6 +87,16 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR', 'TER
       neighborhoodIds: string[];
     } | null;
 
+    // Early return: territorial roles with empty scope must get empty response, never global
+    const admin = (req as any).admin;
+    if (admin.role !== 'SUPER_ADMIN' && (!scope || scope.neighborhoodIds.length === 0)) {
+      return res.json({
+        success: true,
+        meta: { period_days: days, since: since.toISOString(), total_neighborhoods: 0, methodology: 'v1-experimental', methodology_note: 'Score de Maturidade Territorial — pesos experimentais.' },
+        data: [],
+      });
+    }
+
     // Filtro territorial aplicado se admin regional — SUPER_ADMIN recebe null (sem filtro)
     const nhFilter =
       scope && scope.neighborhoodIds.length > 0
@@ -188,10 +198,10 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR', 'TER
         AVG(rt.rating) AS avg_rating,
         COUNT(rt.id) AS rating_count
       FROM (
-        SELECT origin_neighborhood_id AS neighborhood_id, id AS ride_id
-        FROM rides_v2
-        WHERE requested_at >= ${since}
-          AND origin_neighborhood_id IS NOT NULL
+        SELECT r.origin_neighborhood_id AS neighborhood_id, r.id AS ride_id
+        FROM rides_v2 r
+        WHERE r.requested_at >= ${since}
+          AND r.origin_neighborhood_id IS NOT NULL
         ${rideFilter}
       ) sub
       JOIN ratings rt ON rt.ride_id = sub.ride_id
@@ -210,13 +220,13 @@ router.get('/territorial-maturity', requireRole(['SUPER_ADMIN', 'OPERATOR', 'TER
         COUNT(DISTINCT passenger_id) AS total_pax,
         COUNT(DISTINCT passenger_id) FILTER (WHERE ride_count > 1) AS repeat_pax
       FROM (
-        SELECT origin_neighborhood_id, passenger_id, COUNT(*) AS ride_count
-        FROM rides_v2
-        WHERE requested_at >= ${since}
-          AND origin_neighborhood_id IS NOT NULL
-          AND status NOT IN ('no_driver')
+        SELECT r.origin_neighborhood_id, r.passenger_id, COUNT(*) AS ride_count
+        FROM rides_v2 r
+        WHERE r.requested_at >= ${since}
+          AND r.origin_neighborhood_id IS NOT NULL
+          AND r.status NOT IN ('no_driver')
         ${rideFilter}
-        GROUP BY origin_neighborhood_id, passenger_id
+        GROUP BY r.origin_neighborhood_id, r.passenger_id
       ) sub
       GROUP BY neighborhood_id
     `;
