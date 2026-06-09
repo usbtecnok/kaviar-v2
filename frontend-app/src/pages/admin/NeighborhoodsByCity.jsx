@@ -22,24 +22,23 @@ export default function NeighborhoodsByCity() {
   const [cityStats, setCityStats] = useState({});
 
   useEffect(() => {
-    fetchNeighborhoods();
+    loadData();
   }, []);
 
-  useEffect(() => {
-    if (neighborhoods.length > 0) {
-      getCityStats().then(setCityStats);
-    }
-  }, [neighborhoods]);
-
-  const fetchNeighborhoods = async () => {
+  const loadData = async () => {
     try {
       const response = await api.get('/api/governance/neighborhoods');
-      
-      if (response.data.success) {
-        setNeighborhoods(response.data.data || []);
-      } else {
+
+      if (!response.data.success) {
         setError(response.data.error || 'Erro ao carregar bairros');
+        return;
       }
+
+      const data = response.data.data || [];
+      setNeighborhoods(data);
+
+      const stats = await getCityStats(data);
+      setCityStats(stats);
     } catch (err) {
       console.error('❌ Fetch error:', err);
       if (err.response?.status === 401) {
@@ -52,56 +51,49 @@ export default function NeighborhoodsByCity() {
     }
   };
 
-  const getCityStats = async () => {
+  const getCityStats = async (data) => {
     const stats = {};
-    
-    neighborhoods.forEach(n => {
-      if (!n.city) {
-        console.warn('Bairro sem cidade:', n);
-        return;
-      }
-      
+
+    data.forEach(n => {
+      if (!n.city) return;
+
       if (!stats[n.city]) {
         stats[n.city] = {
           total: 0,
-          withGeofence: 0,
+          withGeofence: null, // null = não verificado ainda
           matchLocal: 0,
           matchBairro: 0
         };
       }
-      
+
       stats[n.city].total++;
-      
+
       if (n.area_type === 'FAVELA' || n.area_type === 'COMUNIDADE') {
         stats[n.city].matchLocal++;
       } else if (n.area_type === 'BAIRRO_OFICIAL') {
         stats[n.city].matchBairro++;
       }
     });
-    
-    // Contar geofences por cidade (verificação individual apenas para cidades pequenas)
-    try {
-      for (const city of Object.keys(stats)) {
-        const cityNbs = neighborhoods.filter(n => n.city === city);
-        if (cityNbs.length <= 10) {
-          let withGf = 0;
-          for (const nb of cityNbs) {
-            try {
-              const gfRes = await api.get(`/api/public/neighborhoods/${nb.id}/geofence`);
-              if (gfRes.data.success && gfRes.data.data) withGf++;
-            } catch {}
+
+    // Verificar geofences individualmente apenas para cidades pequenas
+    for (const city of Object.keys(stats)) {
+      const cityNbs = data.filter(n => n.city === city);
+      if (cityNbs.length <= 10) {
+        let withGf = 0;
+        let checked = true;
+        for (const nb of cityNbs) {
+          try {
+            const gfRes = await api.get(`/api/public/neighborhoods/${nb.id}/geofence`);
+            if (gfRes.data.success && gfRes.data.data) withGf++;
+          } catch (err) {
+            console.warn(`⚠️ Erro ao verificar geofence de ${nb.name} (${nb.id}):`, err.message);
+            checked = false;
           }
-          stats[city].withGeofence = withGf;
-        } else {
-          // For large cities, leave as unknown (will show count when available)
-          stats[city].withGeofence = -1; // -1 = not checked
         }
+        stats[city].withGeofence = checked ? withGf : (withGf > 0 ? withGf : null);
       }
-    } catch (err) {
-      console.error('Erro ao buscar geofences:', err);
     }
-    
-    console.log('📊 City Stats:', stats);
+
     return stats;
   };
 
@@ -109,7 +101,7 @@ export default function NeighborhoodsByCity() {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Carregando...</Typography>
+        <Typography sx={{ mt: 2 }}>Carregando cidades...</Typography>
       </Box>
     );
   }
@@ -129,7 +121,7 @@ export default function NeighborhoodsByCity() {
       <Typography variant="h4" sx={{ mb: 1, fontWeight: 'bold' }}>
         🗺️ Gestão Territorial por Cidade
       </Typography>
-      
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
         Total: {neighborhoods.length} bairros em {cities.length} cidades
       </Typography>
@@ -137,11 +129,11 @@ export default function NeighborhoodsByCity() {
       <Grid container spacing={3}>
         {cities.map(city => {
           const stats = cityStats[city];
-          
+
           return (
             <Grid item xs={12} sm={6} md={4} key={city}>
-              <Card 
-                sx={{ 
+              <Card
+                sx={{
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
@@ -177,28 +169,28 @@ export default function NeighborhoodsByCity() {
                         {stats.withGeofence} com mapa
                       </Typography>
                     )}
-                    {stats.withGeofence === 0 && stats.total > 0 && (
+                    {stats.withGeofence === 0 && (
                       <Typography variant="caption" color="warning.main">
                         ⚠️ Sem mapas cadastrados
                       </Typography>
                     )}
-                    {stats.withGeofence === -1 && (
+                    {stats.withGeofence === null && (
                       <Typography variant="caption" color="text.secondary">
-                        Consultar bairros para ver mapas
+                        Não foi possível verificar os mapas
                       </Typography>
                     )}
                   </Box>
 
                   <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
                     {stats.matchLocal > 0 && (
-                      <Chip 
+                      <Chip
                         label={`${stats.matchLocal} Match Local 7%`}
                         size="small"
                         color="success"
                       />
                     )}
                     {stats.matchBairro > 0 && (
-                      <Chip 
+                      <Chip
                         label={`${stats.matchBairro} Match Bairro 12%`}
                         size="small"
                         color="primary"
