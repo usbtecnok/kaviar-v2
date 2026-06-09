@@ -196,8 +196,8 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
     const scope = (req as any).territoryScope;
     const isTerritorial = admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER';
 
-    // Block email/phone lookup for territorial roles — only UUID allowed
-    if (isTerritorial && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    // Block email/phone lookup for territorial roles — only ID allowed
+    if (isTerritorial && (id.includes('@') || /^\+?\d{8,}$/.test(id))) {
       return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
     }
 
