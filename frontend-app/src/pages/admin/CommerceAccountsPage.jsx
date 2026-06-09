@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Chip, Button, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Drawer, Divider, Card, CardContent, Grid, Tabs, Tab } from '@mui/material';
-import { Add, CheckCircle, LockReset, ContentCopy, AccountBalanceWallet, Close, Download } from '@mui/icons-material';
+import { Add, CheckCircle, LockReset, ContentCopy, AccountBalanceWallet, Close, Download, Place } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
@@ -12,8 +12,14 @@ export default function CommerceAccountsPage() {
   const [loading, setLoading] = useState(true);
   const [snack, setSnack] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '' });
+  const [form, setForm] = useState({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '', territory_id: '' });
   const [passwordResult, setPasswordResult] = useState(null);
+  // Territories
+  const [territories, setTerritories] = useState([]);
+  // Edit drawer
+  const [editOpen, setEditOpen] = useState(false);
+  const [editAccount, setEditAccount] = useState(null);
+  const [editTerritory, setEditTerritory] = useState('');
   // Wallet drawer
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletAccount, setWalletAccount] = useState(null);
@@ -32,10 +38,13 @@ export default function CommerceAccountsPage() {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchAccounts = async () => { setLoading(true); try { const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { headers }); const data = await res.json(); if (data.success) setAccounts(data.data); } catch {} setLoading(false); };
+  const fetchTerritories = async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/territories`, { headers }); const data = await res.json(); if (data.success) setTerritories(data.data.filter(t => t.is_active)); } catch {} };
   const fetchFinance = async () => { try { const [sRes, aRes] = await Promise.all([fetch(`${API_BASE_URL}/api/admin/commerce/finance/summary`, { headers }), fetch(`${API_BASE_URL}/api/admin/commerce/finance/by-account`, { headers })]); const [s, a] = await Promise.all([sRes.json(), aRes.json()]); if (s.success) setFinanceSummary(s.data); if (a.success) setFinanceAccounts(a.data); } catch {} };
-  useEffect(() => { fetchAccounts(); if (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') fetchFinance(); }, []);
+  useEffect(() => { fetchAccounts(); fetchTerritories(); if (isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') fetchFinance(); }, []);
 
-  const handleCreate = async () => { if (!form.name.trim()) return setSnack('Nome obrigatório'); const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(form) }); const data = await res.json(); if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '' }); } else setSnack(data.error || 'Erro'); };
+  const handleCreate = async () => { if (!form.name.trim()) return setSnack('Nome obrigatório'); const payload = { ...form, territory_id: form.territory_id || null }; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify(payload) }); const data = await res.json(); if (data.success) { setCreateOpen(false); fetchAccounts(); setSnack('Comércio criado!'); setForm({ name: '', trade_name: '', category: 'outro', phone: '', email: '', address: '', crm_lead_id: '', territory_id: '' }); } else setSnack(data.error || 'Erro'); };
+  const handleEditTerritory = async () => { if (!editAccount) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${editAccount.id}`, { method: 'PATCH', headers, body: JSON.stringify({ territory_id: editTerritory || null }) }); const data = await res.json(); if (data.success) { setEditOpen(false); fetchAccounts(); setSnack('Território atualizado!'); } else setSnack(data.error || 'Erro'); };
+  const openEdit = (account) => { setEditAccount(account); setEditTerritory(account.territory_id || ''); setEditOpen(true); };
   const handleActivate = async (id) => { if (!window.confirm('Ativar este comércio?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers }); const data = await res.json(); if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); } else setSnack(data.error || 'Erro'); };
   const handleResetPassword = async (id) => { if (!window.confirm('Gerar nova senha?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/reset-password`, { method: 'POST', headers }); const data = await res.json(); if (data.success) setPasswordResult({ email: data.data.email, temp_password: data.data.temp_password, action: 'reset' }); else setSnack(data.error || 'Erro'); };
   const copyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => setSnack('Copiado!')); };
@@ -93,9 +102,11 @@ export default function CommerceAccountsPage() {
                 <TableCell>
                   {isSuperAdmin && a.status === 'pending' && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
                   {isSuperAdmin && a.status === 'active' && <>
+                    <Tooltip title="Editar território"><IconButton size="small" onClick={() => openEdit(a)} sx={{ color: '#6B7280' }}><Place sx={{ fontSize: 18 }} /></IconButton></Tooltip>
                     <Tooltip title="Carteira / Saques"><IconButton size="small" onClick={() => openWallet(a)} sx={{ color: GOLD }}><AccountBalanceWallet sx={{ fontSize: 18 }} /></IconButton></Tooltip>
                     <Tooltip title="Resetar senha"><IconButton size="small" onClick={() => handleResetPassword(a.id)} sx={{ color: '#6B7280' }}><LockReset sx={{ fontSize: 18 }} /></IconButton></Tooltip>
                   </>}
+                  {isSuperAdmin && a.status !== 'pending' && a.status !== 'active' && <Tooltip title="Editar território"><IconButton size="small" onClick={() => openEdit(a)} sx={{ color: '#6B7280' }}><Place sx={{ fontSize: 18 }} /></IconButton></Tooltip>}
                 </TableCell>
               </TableRow>
             ))}
@@ -308,6 +319,7 @@ export default function CommerceAccountsPage() {
           <Box sx={{ display: 'flex', gap: 1 }}><TextField label="Telefone" size="small" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /><TextField label="Email" size="small" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Box>
           <TextField label="Endereço" size="small" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
           <TextField label="CRM Lead ID (opcional)" size="small" value={form.crm_lead_id} onChange={e => setForm(f => ({ ...f, crm_lead_id: e.target.value }))} placeholder="UUID do lead no CRM" />
+          <FormControl size="small"><InputLabel>Território</InputLabel><Select value={form.territory_id} label="Território" onChange={e => setForm(f => ({ ...f, territory_id: e.target.value }))}><MenuItem value="">Sem território</MenuItem>{territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}</Select></FormControl>
         </DialogContent>
         <DialogActions><Button onClick={() => setCreateOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleCreate} sx={{ bgcolor: GOLD }}>Criar</Button></DialogActions>
       </Dialog>
@@ -317,6 +329,21 @@ export default function CommerceAccountsPage() {
         <DialogTitle sx={{ fontWeight: 700, color: '#10B981' }}>{passwordResult?.action === 'reset' ? '🔒 Senha Resetada' : '✅ Comércio Ativado'}</DialogTitle>
         <DialogContent>{passwordResult && <><Alert severity="warning" sx={{ mb: 2, fontWeight: 600 }}>⚠️ Esta senha aparece APENAS UMA VEZ.</Alert><Box sx={{ bgcolor: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 2, p: 2 }}><Typography sx={{ fontSize: 12, color: '#6B7280', mb: 0.5 }}>Login:</Typography><Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}><Typography sx={{ fontWeight: 600 }}>{passwordResult.email}</Typography><IconButton size="small" onClick={() => copyToClipboard(passwordResult.email)}><ContentCopy sx={{ fontSize: 14 }} /></IconButton></Box><Typography sx={{ fontSize: 12, color: '#6B7280', mb: 0.5 }}>Senha:</Typography><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Typography sx={{ fontWeight: 800, fontSize: 20, fontFamily: 'monospace' }}>{passwordResult.temp_password}</Typography><IconButton size="small" onClick={() => copyToClipboard(passwordResult.temp_password)}><ContentCopy sx={{ fontSize: 14 }} /></IconButton></Box></Box><Button fullWidth variant="outlined" size="small" sx={{ mt: 2, textTransform: 'none' }} onClick={() => copyToClipboard(`Login: ${passwordResult.email}\nSenha: ${passwordResult.temp_password}`)}>📋 Copiar tudo</Button></>}</DialogContent>
         <DialogActions><Button onClick={() => setPasswordResult(null)} variant="contained" sx={{ bgcolor: GOLD }}>Fechar</Button></DialogActions>
+      </Dialog>
+
+      {/* Edit Territory */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700 }}>Território — {editAccount?.trade_name || editAccount?.name}</DialogTitle>
+        <DialogContent sx={{ pt: '16px !important' }}>
+          <FormControl size="small" fullWidth>
+            <InputLabel>Território</InputLabel>
+            <Select value={editTerritory} label="Território" onChange={e => setEditTerritory(e.target.value)}>
+              <MenuItem value="">Sem território</MenuItem>
+              {territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions><Button onClick={() => setEditOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleEditTerritory} sx={{ bgcolor: GOLD }}>Salvar</Button></DialogActions>
       </Dialog>
 
       <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')} message={snack} />
