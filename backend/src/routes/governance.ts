@@ -231,14 +231,20 @@ router.get('/neighborhoods', async (req, res) => {
         zone: true,
         is_active: true,
         territory_id: true,
-        area_type: true
+        area_type: true,
+        neighborhood_geofences: { select: { id: true } }
       },
       orderBy: { name: 'asc' }
     });
 
+    const data = neighborhoods.map(({ neighborhood_geofences, ...rest }) => ({
+      ...rest,
+      has_geofence: neighborhood_geofences !== null
+    }));
+
     res.json({ 
       success: true, 
-      data: neighborhoods 
+      data
     });
   } catch (error: any) {
     console.error(`[governance] neighborhoods error requestId=${requestId}`, {

@@ -37,7 +37,21 @@ export default function NeighborhoodsByCity() {
       const data = response.data.data || [];
       setNeighborhoods(data);
 
-      const stats = await getCityStats(data);
+      // Calcular stats direto da resposta — zero chamadas individuais
+      const stats = {};
+      data.forEach(n => {
+        if (!n.city) return;
+        if (!stats[n.city]) {
+          stats[n.city] = { total: 0, withGeofence: 0, matchLocal: 0, matchBairro: 0 };
+        }
+        stats[n.city].total++;
+        if (n.has_geofence) stats[n.city].withGeofence++;
+        if (n.area_type === 'FAVELA' || n.area_type === 'COMUNIDADE') {
+          stats[n.city].matchLocal++;
+        } else if (n.area_type === 'BAIRRO_OFICIAL') {
+          stats[n.city].matchBairro++;
+        }
+      });
       setCityStats(stats);
     } catch (err) {
       console.error('❌ Fetch error:', err);
@@ -49,52 +63,6 @@ export default function NeighborhoodsByCity() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getCityStats = async (data) => {
-    const stats = {};
-
-    data.forEach(n => {
-      if (!n.city) return;
-
-      if (!stats[n.city]) {
-        stats[n.city] = {
-          total: 0,
-          withGeofence: null, // null = não verificado ainda
-          matchLocal: 0,
-          matchBairro: 0
-        };
-      }
-
-      stats[n.city].total++;
-
-      if (n.area_type === 'FAVELA' || n.area_type === 'COMUNIDADE') {
-        stats[n.city].matchLocal++;
-      } else if (n.area_type === 'BAIRRO_OFICIAL') {
-        stats[n.city].matchBairro++;
-      }
-    });
-
-    // Verificar geofences individualmente apenas para cidades pequenas
-    for (const city of Object.keys(stats)) {
-      const cityNbs = data.filter(n => n.city === city);
-      if (cityNbs.length <= 10) {
-        let withGf = 0;
-        let checked = true;
-        for (const nb of cityNbs) {
-          try {
-            const gfRes = await api.get(`/api/public/neighborhoods/${nb.id}/geofence`);
-            if (gfRes.data.success && gfRes.data.data) withGf++;
-          } catch (err) {
-            console.warn(`⚠️ Erro ao verificar geofence de ${nb.name} (${nb.id}):`, err.message);
-            checked = false;
-          }
-        }
-        stats[city].withGeofence = checked ? withGf : (withGf > 0 ? withGf : null);
-      }
-    }
-
-    return stats;
   };
 
   if (loading) {
@@ -172,11 +140,6 @@ export default function NeighborhoodsByCity() {
                     {stats.withGeofence === 0 && (
                       <Typography variant="caption" color="warning.main">
                         ⚠️ Sem mapas cadastrados
-                      </Typography>
-                    )}
-                    {stats.withGeofence === null && (
-                      <Typography variant="caption" color="text.secondary">
-                        Não foi possível verificar os mapas
                       </Typography>
                     )}
                   </Box>

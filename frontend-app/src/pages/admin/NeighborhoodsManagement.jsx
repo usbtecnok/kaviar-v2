@@ -59,17 +59,25 @@ export default function NeighborhoodsManagement() {
     setGeofence(null);
     
     try {
-      const response = await api.get(`/api/public/neighborhoods/${neighborhood.id}/geofence`);
+      const response = await api.get(`/api/governance/neighborhoods/${neighborhood.id}/geofence`);
       
       if (response.data.success && response.data.data && response.data.data.coordinates) {
         setGeofence(response.data.data.coordinates);
       } else {
-        // Marcar como "sem geometria" para mostrar mensagem
         setGeofence('NO_GEOMETRY');
       }
     } catch (err) {
       console.error('Erro ao carregar geofence:', err);
-      setGeofence('NO_GEOMETRY');
+      const status = err.response?.status;
+      if (status === 401) {
+        setGeofence('AUTH_ERROR');
+      } else if (status === 403) {
+        setGeofence('FORBIDDEN');
+      } else if (status === 429) {
+        setGeofence('RATE_LIMITED');
+      } else {
+        setGeofence('NETWORK_ERROR');
+      }
     }
   };
 
@@ -224,6 +232,42 @@ export default function NeighborhoodsManagement() {
                       {selectedCity === 'São Paulo' 
                         ? 'Os bairros de São Paulo estão aguardando importação de dados oficiais.'
                         : 'Entre em contato com o administrador para cadastrar a geometria.'}
+                    </Typography>
+                  </Box>
+                ) : geofence === 'AUTH_ERROR' ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                    <Typography variant="h6" color="error.main" gutterBottom>
+                      🔒 Sessão expirada
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Faça login novamente para visualizar a geometria.
+                    </Typography>
+                  </Box>
+                ) : geofence === 'FORBIDDEN' ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                    <Typography variant="h6" color="error.main" gutterBottom>
+                      🚫 Sem permissão
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Seu perfil não possui acesso à geometria dos bairros.
+                    </Typography>
+                  </Box>
+                ) : geofence === 'RATE_LIMITED' ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                    <Typography variant="h6" color="warning.main" gutterBottom>
+                      ⏳ Limite temporário atingido
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Tente novamente em alguns segundos.
+                    </Typography>
+                  </Box>
+                ) : geofence === 'NETWORK_ERROR' ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                    <Typography variant="h6" color="error.main" gutterBottom>
+                      ❌ Não foi possível carregar a geometria
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Erro de conexão com o servidor. Tente novamente.
                     </Typography>
                   </Box>
                 ) : geofence ? (
