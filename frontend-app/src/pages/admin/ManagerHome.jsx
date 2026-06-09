@@ -241,6 +241,7 @@ export default function ManagerHome() {
             { Icon: Description, title: 'Plano Gestor', desc: 'Proposta, termo e FAQ do Gestor Fundador', to: '/admin/comercial-gestor' },
             { Icon: AddBusiness, title: 'CRM KAVIAR', desc: 'Leads, prospecção e comércios locais', to: '/admin/crm' },
             { Icon: Storefront, title: 'Comércios do Território', desc: 'Cadastre, organize e acompanhe os negócios locais', to: '/admin/commerce' },
+            { Icon: Shield, title: 'KAVIAR para Mulheres', desc: 'Indicadores e acompanhamento territorial', to: '/admin/manager-women' },
             { Icon: Shield, title: 'Alertas do Território', desc: 'Acompanhe alertas de emergência do seu território', to: '/admin/manager-emergency-alerts' },
             { Icon: GroupAdd, title: 'Minha Equipe', desc: 'Cadastro interno de captadores e operadores', to: '/admin/manager-team' },
           ].map(c => (

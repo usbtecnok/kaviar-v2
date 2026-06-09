@@ -315,6 +315,8 @@ app.use('/api/admin/manager', adminManagerDraftsRoutes);
 app.use('/api/admin/manager/finance', adminManagerFinanceRoutes);
 app.use('/api/admin/manager/drivers/reputation', adminManagerReputationRoutes);
 app.use('/api/admin/manager/territory-floors', adminManagerTerritoryFloorsRoutes);
+import adminManagerWomenCoverageRoutes from './routes/admin-manager-women-coverage';
+app.use('/api/admin/manager/women-coverage', adminManagerWomenCoverageRoutes);
 app.use('/api', complianceRoutes);
 app.use('/api/ratings', ratingsRoutes);
 import adminRatingsRoutes from './routes/admin-ratings';

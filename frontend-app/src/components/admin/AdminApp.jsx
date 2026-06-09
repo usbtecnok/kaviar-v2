@@ -74,6 +74,7 @@ import ManagerTeamPage from "../../pages/admin/ManagerTeamPage";
 import ManagerReputation from "../../pages/admin/ManagerReputation";
 import ManagerReferrals from "../../pages/admin/ManagerReferrals";
 import ManagerEmergencyAlerts from "../../pages/admin/ManagerEmergencyAlerts";
+import ManagerWomenCoverage from "../../pages/admin/ManagerWomenCoverage";
 import InvestorsPage from "../../pages/admin/InvestorsPage";
 import PetCentral from "../../pages/admin/PetCentral";
 import PetOperators from "../../pages/admin/PetOperators";
@@ -1002,6 +1003,7 @@ export default function AdminApp() {
           <Route path="/commerce" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><CommerceAccountsPage /></ProtectedAdminRoute>} />
           <Route path="/manager-emergency-alerts" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerEmergencyAlerts /></ProtectedAdminRoute>} />
           <Route path="/investidores" element={<ProtectedAdminRoute requireSuperAdmin><InvestorsPage /></ProtectedAdminRoute>} />
+          <Route path="/manager-women" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerWomenCoverage /></ProtectedAdminRoute>} />
 
           {/* KAVIAR Pet */}
           <Route path="/pet" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN']}><PetCentral /></ProtectedAdminRoute>} />
