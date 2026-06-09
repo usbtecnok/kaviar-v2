@@ -46,18 +46,37 @@ router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res
 });
 
 // Get single operator
-router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/:id', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const op = await prisma.local_operators.findUnique({ where: { id: req.params.id } });
     if (!op) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    // Territory scope check for non-SUPER_ADMIN
+    const admin = (req as any).admin;
+    if (admin.role !== 'SUPER_ADMIN') {
+      const scope = (req as any).territoryScope;
+      if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
+        return res.status(404).json({ success: false, error: 'Não encontrado' });
+      }
+      // Resolve city_names from admin's territories and match against operator's city
+      const territories = await prisma.operational_territories.findMany({
+        where: { id: { in: scope.territoryIds } },
+        select: { city_name: true },
+      });
+      const cityNames = territories.map(t => t.city_name?.toLowerCase()).filter(Boolean);
+      if (!op.city || !cityNames.includes(op.city.toLowerCase())) {
+        return res.status(404).json({ success: false, error: 'Não encontrado' });
+      }
+    }
+
     res.json({ success: true, data: op });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao buscar operador' });
   }
 });
 
-// Create operator
-router.post('/', authenticateAdmin, async (req: Request, res: Response) => {
+// Create operator — SUPER_ADMIN only (territorial creation will be enabled in a future phase)
+router.post('/', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { organization_name, responsible_name, responsible_role, phone, email, address, website, community, neighborhood, city, source, status, verified, notes } = req.body;
     if (!organization_name || !responsible_name || !responsible_role) {

@@ -192,40 +192,44 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
   
   try {
     const { id } = req.params;
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const isTerritorial = admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER';
+
+    // Block email/phone lookup for territorial roles — only UUID allowed
+    if (isTerritorial && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
+    }
+
+    // Territorial roles: validate scope exists before any DB query
+    if (isTerritorial && (!scope || !scope.neighborhoodIds || scope.neighborhoodIds.length === 0)) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
+    }
 
     // HOTFIX: Use raw query to avoid Prisma selecting missing column territory_type
-    const driverRaw = await prisma.$queryRaw<any[]>`
-      SELECT 
-        d.*,
-        n.id as neighborhood_id_obj, n.name as neighborhood_name,
-        c.id as community_id_obj, c.name as community_name
-      FROM drivers d
-      LEFT JOIN neighborhoods n ON d.neighborhood_id = n.id
-      LEFT JOIN communities c ON d.community_id = c.id
-      WHERE d.id = ${id} OR d.email = ${id} OR d.phone = ${id}
-      LIMIT 1
-    `;
+    // SUPER_ADMIN can lookup by id/email/phone; territorial roles only by UUID
+    const whereClause = isTerritorial
+      ? prisma.$queryRaw<any[]>`
+          SELECT d.*, n.id as neighborhood_id_obj, n.name as neighborhood_name, c.id as community_id_obj, c.name as community_name
+          FROM drivers d LEFT JOIN neighborhoods n ON d.neighborhood_id = n.id LEFT JOIN communities c ON d.community_id = c.id
+          WHERE d.id = ${id} LIMIT 1`
+      : prisma.$queryRaw<any[]>`
+          SELECT d.*, n.id as neighborhood_id_obj, n.name as neighborhood_name, c.id as community_id_obj, c.name as community_name
+          FROM drivers d LEFT JOIN neighborhoods n ON d.neighborhood_id = n.id LEFT JOIN communities c ON d.community_id = c.id
+          WHERE d.id = ${id} OR d.email = ${id} OR d.phone = ${id} LIMIT 1`;
+
+    const driverRaw = await whereClause;
 
     if (!driverRaw || driverRaw.length === 0) {
-      console.error(`[Admin] Driver not found with param: ${id}`);
-      return res.status(404).json({
-        success: false,
-        error: 'Motorista não encontrado',
-        requestId
-      });
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
     }
 
     const driver = driverRaw[0];
 
-    // Scope check: TERRITORIAL_OPERATOR só vê motorista do seu território
-    const admin = (req as any).admin;
-    const scope = (req as any).territoryScope;
-    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
-      if (!scope || !scope.neighborhoodIds || scope.neighborhoodIds.length === 0) {
-        return res.status(403).json({ success: false, error: 'Acesso negado' });
-      }
+    // Scope check: territorial roles must have driver in their territory — return 404 (not 403)
+    if (isTerritorial) {
       if (!driver.neighborhood_id || !scope.neighborhoodIds.includes(driver.neighborhood_id)) {
-        return res.status(403).json({ success: false, error: 'Motorista fora do seu território' });
+        return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
       }
     }
 
@@ -249,20 +253,24 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
     delete result.community_id_obj;
     delete result.community_name;
 
-    // Masking para TERRITORIAL_OPERATOR: ocultar dados sensíveis
-    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
+    // P0: NEVER return password_hash regardless of role
+    delete result.password_hash;
+
+    // Masking para TERRITORIAL_OPERATOR/MANAGER: ocultar dados sensíveis
+    if (isTerritorial) {
       if (result.document_cpf) result.document_cpf = '***' + result.document_cpf.slice(-4);
       if (result.document_rg) result.document_rg = '***' + result.document_rg.slice(-3);
       if (result.document_cnh) result.document_cnh = '***' + result.document_cnh.slice(-4);
       if (result.pix_key) result.pix_key = result.pix_key.substring(0, 3) + '***';
-      result.password_hash = undefined;
       result.certidao_nada_consta_url = undefined;
     }
 
     // Log qual campo casou
     let matchedBy = 'id';
-    if (driver.email === id) matchedBy = 'email';
-    else if (driver.phone === id) matchedBy = 'phone';
+    if (!isTerritorial) {
+      if (driver.email === id) matchedBy = 'email';
+      else if (driver.phone === id) matchedBy = 'phone';
+    }
     console.log(`[Admin] Driver found by ${matchedBy}: ${driver.id}`);
 
     res.json({
@@ -270,7 +278,6 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
       data: result
     });
   } catch (error: any) {
-    // Log estruturado com stack + requestId
     console.error(JSON.stringify({
       ts: new Date().toISOString(),
       level: 'error',

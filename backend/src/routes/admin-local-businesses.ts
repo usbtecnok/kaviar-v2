@@ -43,7 +43,7 @@ router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res
 });
 
 // GET /api/admin/local-businesses/:id — carrega um comércio
-router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
+router.get('/:id', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const business = await prisma.local_businesses.findUnique({
       where: { id: req.params.id },
@@ -51,6 +51,26 @@ router.get('/:id', authenticateAdmin, async (req: Request, res: Response) => {
     if (!business) {
       return res.status(404).json({ success: false, error: 'Comércio não encontrado' });
     }
+
+    // Territory scope check for non-SUPER_ADMIN
+    const admin = (req as any).admin;
+    if (admin.role !== 'SUPER_ADMIN') {
+      const scope = (req as any).territoryScope;
+      if (!scope || (!scope.territoryIds?.length && !scope.neighborhoodIds?.length)) {
+        return res.status(404).json({ success: false, error: 'Comércio não encontrado' });
+      }
+      // Resolve neighborhood names → slugs for the admin's territory
+      const neighborhoods = await prisma.neighborhoods.findMany({
+        where: { id: { in: scope.neighborhoodIds || [] }, is_active: true },
+        select: { name: true },
+      });
+      const slugify = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const allowedSlugs = neighborhoods.map(n => slugify(n.name));
+      if (!business.region_slug || !allowedSlugs.includes(business.region_slug.toLowerCase())) {
+        return res.status(404).json({ success: false, error: 'Comércio não encontrado' });
+      }
+    }
+
     res.json({ success: true, data: business });
   } catch (error) {
     console.error('[admin-local-businesses] get error:', error);

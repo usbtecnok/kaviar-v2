@@ -40,13 +40,35 @@ router.get('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async
 });
 
 // GET /api/admin/commerce/accounts/:id
-router.get('/accounts/:id', authenticateAdmin, CRM_ROLES, async (req: Request, res: Response) => {
+router.get('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+
     const account = await prisma.commerce_accounts.findFirst({
       where: { id: req.params.id, deleted_at: null },
       include: { products: { where: { deleted_at: null }, orderBy: { sort_order: 'asc' } }, users: { select: { id: true, name: true, email: true, role: true, is_active: true, must_change_password: true } }, wallet: true },
     });
     if (!account) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    // Territory scope check: non-SUPER_ADMIN must have account in their territory
+    if (admin.role !== 'SUPER_ADMIN') {
+      const tIds = scope?.territoryIds || [];
+      const nIds = scope?.neighborhoodIds || [];
+      if (tIds.length === 0 && nIds.length === 0) {
+        return res.status(404).json({ success: false, error: 'Não encontrado' });
+      }
+      // Primary: check territory_id directly
+      let inScope = account.territory_id && tIds.includes(account.territory_id);
+      // Fallback: if territory_id is null but neighborhood_id is set, check via neighborhood
+      if (!inScope && !account.territory_id && account.neighborhood_id && nIds.includes(account.neighborhood_id)) {
+        inScope = true;
+      }
+      if (!inScope) {
+        return res.status(404).json({ success: false, error: 'Não encontrado' });
+      }
+    }
+
     res.json({ success: true, data: account });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao carregar comércio' });
