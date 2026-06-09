@@ -32,7 +32,14 @@ router.get('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async
     }
 
     const accounts = await prisma.commerce_accounts.findMany({ where, orderBy: { created_at: 'desc' }, take: 100 });
-    res.json({ success: true, data: accounts });
+
+    // Sanitize for non-SUPER_ADMIN: remove financial/sensitive fields
+    const data = admin.role === 'SUPER_ADMIN' ? accounts : accounts.map((a: any) => {
+      const { commission_percent, document_cnpj, document_cpf, payout_pix_key, payout_pix_key_type, payout_receiver_name, notes, approved_by, ...safe } = a;
+      return safe;
+    });
+
+    res.json({ success: true, data });
   } catch (error) {
     console.error('[admin-commerce] list error:', error);
     res.status(500).json({ success: false, error: 'Erro ao listar comércios' });
@@ -45,28 +52,35 @@ router.get('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, a
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
 
+    const isSuperAdmin = admin.role === 'SUPER_ADMIN';
+
     const account = await prisma.commerce_accounts.findFirst({
       where: { id: req.params.id, deleted_at: null },
-      include: { products: { where: { deleted_at: null }, orderBy: { sort_order: 'asc' } }, users: { select: { id: true, name: true, email: true, role: true, is_active: true, must_change_password: true } }, wallet: true },
+      include: {
+        products: { where: { deleted_at: null }, orderBy: { sort_order: 'asc' }, ...(!isSuperAdmin && { select: { id: true, name: true, is_available: true, is_restricted: true } }) },
+        ...(isSuperAdmin && { users: { select: { id: true, name: true, email: true, role: true, is_active: true, must_change_password: true } }, wallet: true }),
+      },
     });
     if (!account) return res.status(404).json({ success: false, error: 'Não encontrado' });
 
     // Territory scope check: non-SUPER_ADMIN must have account in their territory
-    if (admin.role !== 'SUPER_ADMIN') {
+    if (!isSuperAdmin) {
       const tIds = scope?.territoryIds || [];
       const nIds = scope?.neighborhoodIds || [];
       if (tIds.length === 0 && nIds.length === 0) {
         return res.status(404).json({ success: false, error: 'Não encontrado' });
       }
-      // Primary: check territory_id directly
       let inScope = account.territory_id && tIds.includes(account.territory_id);
-      // Fallback: if territory_id is null but neighborhood_id is set, check via neighborhood
       if (!inScope && !account.territory_id && account.neighborhood_id && nIds.includes(account.neighborhood_id)) {
         inScope = true;
       }
       if (!inScope) {
         return res.status(404).json({ success: false, error: 'Não encontrado' });
       }
+
+      // Sanitize response for territorial roles
+      const { commission_percent, document_cnpj, document_cpf, payout_pix_key, payout_pix_key_type, payout_receiver_name, notes, approved_by, crm_lead_id, wallet, users, ...safe } = account as any;
+      return res.json({ success: true, data: safe });
     }
 
     res.json({ success: true, data: account });

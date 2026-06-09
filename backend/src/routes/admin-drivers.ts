@@ -148,24 +148,32 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, requireTerritorySco
     ]);
 
     // Normalize para camelCase (frontend compatibility)
-    const normalized = drivers.map(d => ({
-      id: d.id,
-      name: d.name,
-      email: d.email,
-      phone: d.phone,
-      status: d.status,
-      createdAt: d.created_at?.toISOString(),
-      certidaoNadaConstaUrl: d.certidao_nada_consta_url,
-      pixKey: d.pix_key,
-      pixKeyType: d.pix_key_type,
-      neighborhoodId: d.neighborhood_id,
-      vehicleColor: d.vehicle_color,
-      vehicleModel: d.vehicle_model,
-      vehiclePlate: d.vehicle_plate,
-      familyBonusAccepted: d.family_bonus_accepted,
-      familyBonusProfile: d.family_bonus_profile,
-      neighborhoods: d.neighborhoods
-    }));
+    const admin = (req as any).admin;
+    const isTerritorial = admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER';
+
+    const normalized = drivers.map(d => {
+      const base: any = {
+        id: d.id,
+        name: d.name,
+        email: d.email,
+        phone: d.phone,
+        status: d.status,
+        createdAt: d.created_at?.toISOString(),
+        neighborhoodId: d.neighborhood_id,
+        vehicleColor: d.vehicle_color,
+        vehicleModel: d.vehicle_model,
+        vehiclePlate: d.vehicle_plate,
+        neighborhoods: d.neighborhoods
+      };
+      if (!isTerritorial) {
+        base.certidaoNadaConstaUrl = d.certidao_nada_consta_url;
+        base.pixKey = d.pix_key;
+        base.pixKeyType = d.pix_key_type;
+        base.familyBonusAccepted = d.family_bonus_accepted;
+        base.familyBonusProfile = d.family_bonus_profile;
+      }
+      return base;
+    });
 
     res.json({
       success: true,
@@ -206,19 +214,35 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
       return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
     }
 
-    // HOTFIX: Use raw query to avoid Prisma selecting missing column territory_type
-    // SUPER_ADMIN can lookup by id/email/phone; territorial roles only by UUID
-    const whereClause = isTerritorial
-      ? prisma.$queryRaw<any[]>`
-          SELECT d.*, n.id as neighborhood_id_obj, n.name as neighborhood_name, c.id as community_id_obj, c.name as community_name
-          FROM drivers d LEFT JOIN neighborhoods n ON d.neighborhood_id = n.id LEFT JOIN communities c ON d.community_id = c.id
-          WHERE d.id = ${id} LIMIT 1`
-      : prisma.$queryRaw<any[]>`
-          SELECT d.*, n.id as neighborhood_id_obj, n.name as neighborhood_name, c.id as community_id_obj, c.name as community_name
-          FROM drivers d LEFT JOIN neighborhoods n ON d.neighborhood_id = n.id LEFT JOIN communities c ON d.community_id = c.id
-          WHERE d.id = ${id} OR d.email = ${id} OR d.phone = ${id} LIMIT 1`;
+    // Allowlist: territorial roles get limited columns; SUPER_ADMIN gets all except password_hash
+    const TERRITORIAL_COLS = `d.id, d.name, d.email, d.phone, d.status, d.neighborhood_id, d.community_id,
+      d.vehicle_plate, d.vehicle_model, d.vehicle_color, d.photo_url, d.created_at, d.approved_at,
+      d.available, d.available_updated_at, d.is_premium, d.premium_tourism_status,
+      d.suspension_reason, d.suspended_at, d.rejected_reason, d.rejected_at,
+      d.territory_type, d.active_since`;
 
-    const driverRaw = await whereClause;
+    const SA_COLS = `d.id, d.name, d.email, d.phone, d.status, d.neighborhood_id, d.community_id,
+      d.vehicle_plate, d.vehicle_model, d.vehicle_color, d.photo_url, d.created_at, d.approved_at,
+      d.available, d.available_updated_at, d.is_premium, d.premium_tourism_status,
+      d.suspension_reason, d.suspended_at, d.suspended_by, d.rejected_reason, d.rejected_at, d.rejected_by,
+      d.document_cpf, d.document_rg, d.document_cnh, d.pix_key, d.pix_key_type,
+      d.certidao_nada_consta_url, d.territory_type, d.active_since,
+      d.family_bonus_accepted, d.family_bonus_profile, d.last_active_at,
+      d.banned_at, d.banned_reason, d.banned_by, d.deleted_at, d.deleted_by,
+      d.women_preference_eligible, d.women_matching_opt_in,
+      d.virtual_fence_center_lat, d.virtual_fence_center_lng,
+      d.secondary_base_lat, d.secondary_base_lng, d.secondary_base_label, d.secondary_base_enabled,
+      d.territorial_partner_id, d.territorial_partner_linked_at`;
+
+    const cols = isTerritorial ? TERRITORIAL_COLS : SA_COLS;
+    const whereSQL = isTerritorial ? `d.id = $1` : `d.id = $1 OR d.email = $1 OR d.phone = $1`;
+    const sql = `SELECT ${cols}, n.id as neighborhood_id_obj, n.name as neighborhood_name, c.id as community_id_obj, c.name as community_name
+      FROM drivers d LEFT JOIN neighborhoods n ON d.neighborhood_id = n.id LEFT JOIN communities c ON d.community_id = c.id
+      WHERE ${whereSQL} LIMIT 1`;
+
+    const { pool } = require('../db');
+    const queryResult = await pool.query(sql, [id]);
+    const driverRaw = queryResult.rows;
 
     if (!driverRaw || driverRaw.length === 0) {
       return res.status(404).json({ success: false, error: 'Motorista não encontrado', requestId });
@@ -253,17 +277,7 @@ router.get('/drivers/:id', allowReadAccess, applyTerritoryScope, async (req: Req
     delete result.community_id_obj;
     delete result.community_name;
 
-    // P0: NEVER return password_hash regardless of role
-    delete result.password_hash;
-
-    // Masking para TERRITORIAL_OPERATOR/MANAGER: ocultar dados sensíveis
-    if (isTerritorial) {
-      if (result.document_cpf) result.document_cpf = '***' + result.document_cpf.slice(-4);
-      if (result.document_rg) result.document_rg = '***' + result.document_rg.slice(-3);
-      if (result.document_cnh) result.document_cnh = '***' + result.document_cnh.slice(-4);
-      if (result.pix_key) result.pix_key = result.pix_key.substring(0, 3) + '***';
-      result.certidao_nada_consta_url = undefined;
-    }
+    // P0: password_hash never selected — no delete needed
 
     // Log qual campo casou
     let matchedBy = 'id';
@@ -897,7 +911,28 @@ router.get('/drivers/:id/audit', allowReadAccess, applyTerritoryScope, async (re
        ORDER BY created_at DESC LIMIT 50`,
       [req.params.id]
     );
-    res.json({ success: true, data: result.rows });
+
+    // Sanitize old_value/new_value
+    // GLOBAL: passwords, tokens, secrets — redacted for ALL roles including SUPER_ADMIN
+    const ALWAYS_REDACT = ['password', 'password_hash', 'token', 'access_token', 'refresh_token', 'expo_push_token', 'fcm_push_token', 'push_token', 'credentials', 'secret', 'api_key'];
+    // TERRITORIAL only: PII and sensitive personal data
+    const TERRITORIAL_REDACT = ['pix_key', 'pix_key_type', 'cpf', 'document_cpf', 'rg', 'document_rg', 'cnh', 'document_cnh', 'device_id', 'last_lat', 'last_lng'];
+    const isTerritorial = admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER';
+    const redactKeys = isTerritorial ? [...ALWAYS_REDACT, ...TERRITORIAL_REDACT] : ALWAYS_REDACT;
+
+    const sanitized = result.rows.map((row: any) => {
+      const sanitizeValue = (val: any) => {
+        if (!val || typeof val !== 'string') return val;
+        try {
+          const obj = JSON.parse(val);
+          for (const key of redactKeys) { if (key in obj) obj[key] = '[REDACTED]'; }
+          return JSON.stringify(obj);
+        } catch { return redactKeys.some(k => val.toLowerCase().includes(k)) ? '[REDACTED]' : val; }
+      };
+      return { ...row, old_value: sanitizeValue(row.old_value), new_value: sanitizeValue(row.new_value) };
+    });
+
+    res.json({ success: true, data: sanitized });
   } catch (error: any) {
     console.error('[ADMIN_DRIVER_AUDIT_ERROR]', error);
     res.json({ success: true, data: [] });
