@@ -16,23 +16,10 @@ router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res
     if (status) where.status = status;
     if (city) where.city = { contains: city as string, mode: 'insensitive' };
 
-    // Filtro territorial: TERRITORIAL_OPERATOR vê apenas operadores da cidade do território
+    // P0: gestores não acessam listagem global até territory_id ser implementado
     const admin = (req as any).admin;
-    const scope = (req as any).territoryScope;
     if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
-      if (!scope || scope.territoryIds.length === 0) {
-        return res.json({ success: true, data: [] });
-      }
-      const territories = await prisma.operational_territories.findMany({
-        where: { id: { in: scope.territoryIds } },
-        select: { city_name: true },
-      });
-      const cityNames = territories.map(t => t.city_name).filter(Boolean) as string[];
-      if (cityNames.length > 0) {
-        where.city = { in: cityNames, mode: 'insensitive' };
-      } else {
-        return res.json({ success: true, data: [] });
-      }
+      return res.json({ success: true, data: [], restricted: true, message: 'Os registros territoriais de associações e operadores ainda estão em classificação. Use o cadastro para análise no painel do gestor.' });
     }
 
     const operators = await prisma.local_operators.findMany({
@@ -48,26 +35,15 @@ router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res
 // Get single operator
 router.get('/:id', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
+    const admin = (req as any).admin;
+
+    // P0: gestores não acessam registros individuais
+    if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
+      return res.status(404).json({ success: false, error: 'Registro não encontrado' });
+    }
+
     const op = await prisma.local_operators.findUnique({ where: { id: req.params.id } });
     if (!op) return res.status(404).json({ success: false, error: 'Não encontrado' });
-
-    // Territory scope check for non-SUPER_ADMIN
-    const admin = (req as any).admin;
-    if (admin.role !== 'SUPER_ADMIN') {
-      const scope = (req as any).territoryScope;
-      if (!scope || !scope.territoryIds || scope.territoryIds.length === 0) {
-        return res.status(404).json({ success: false, error: 'Não encontrado' });
-      }
-      // Resolve city_names from admin's territories and match against operator's city
-      const territories = await prisma.operational_territories.findMany({
-        where: { id: { in: scope.territoryIds } },
-        select: { city_name: true },
-      });
-      const cityNames = territories.map(t => t.city_name?.toLowerCase()).filter(Boolean);
-      if (!op.city || !cityNames.includes(op.city.toLowerCase())) {
-        return res.status(404).json({ success: false, error: 'Não encontrado' });
-      }
-    }
 
     res.json({ success: true, data: op });
   } catch (error) {

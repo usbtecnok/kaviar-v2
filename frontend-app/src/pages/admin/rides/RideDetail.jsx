@@ -424,7 +424,8 @@ export default function RideDetail() {
 
         {/* Ações e Timeline */}
         <Grid item xs={12} md={4}>
-          {/* Ações Administrativas */}
+          {/* Ações Administrativas — somente SUPER_ADMIN */}
+          {JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}').role === 'SUPER_ADMIN' && (
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -466,6 +467,7 @@ export default function RideDetail() {
               </Box>
             </CardContent>
           </Card>
+          )}
 
           {/* Timeline Simplificada */}
           <Card>

@@ -40,6 +40,7 @@ export default function LocalOperators() {
   const [operators, setOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [restricted, setRestricted] = useState(false);
   const [prospOpen, setProspOpen] = useState(false);
   const [copied, setCopied] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -59,7 +60,8 @@ export default function LocalOperators() {
       if (filterCity) params.set('city', filterCity);
       const res = await fetch(`${API_BASE_URL}/api/admin/local-operators?${params}`, { headers });
       const data = await res.json();
-      if (data.success) setOperators(data.data);
+      if (data.restricted) { setRestricted(true); setOperators([]); }
+      else if (data.success) setOperators(data.data);
       else setError('Erro ao carregar');
     } catch { setError('Erro de conexão'); }
     finally { setLoading(false); }
@@ -107,6 +109,12 @@ export default function LocalOperators() {
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress sx={{ color: '#C8A84E' }} /></Box>;
   if (error) return <Alert severity="error">{error}</Alert>;
+  if (restricted) return (
+    <Container maxWidth="sm" sx={{ py: 6, textAlign: 'center' }}>
+      <Typography variant="h6" sx={{ color: '#C8A84E', fontWeight: 700, mb: 2 }}>Registros territoriais em preparação</Typography>
+      <Typography sx={{ color: '#6B7280', fontSize: 14 }}>As associações e os operadores locais ainda estão sendo vinculados aos territórios. Use "Indicar Associação" ou "Indicar Parceiro" no painel do gestor para enviar novos contatos à análise da Central KAVIAR.</Typography>
+    </Container>
+  );
 
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
