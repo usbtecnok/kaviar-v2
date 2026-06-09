@@ -11,6 +11,42 @@ const prisma = new PrismaClient();
 const CRM_ROLES = requireRole(['SUPER_ADMIN', 'TERRITORIAL_MANAGER']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Rate limit for sensitive actions (password verification) — per admin_id, 5/min
+const sensitiveAttempts = new Map<string, { count: number; reset: number }>();
+function checkSensitiveRateLimit(adminId: string): boolean {
+  const now = Date.now();
+  const entry = sensitiveAttempts.get(adminId);
+  if (!entry || now > entry.reset) { sensitiveAttempts.set(adminId, { count: 1, reset: now + 60000 }); return true; }
+  if (entry.count >= 5) return false;
+  entry.count++;
+  return true;
+}
+
+// Secure temporary password generation: 16 chars with upper, lower, digit, special
+function generateSecureTempPassword(): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const special = '!@#$%&*';
+  const all = upper + lower + digits + special;
+  const buf = crypto.randomBytes(16);
+  // Guarantee at least one of each group
+  const chars: string[] = [
+    upper[buf[0] % upper.length],
+    lower[buf[1] % lower.length],
+    digits[buf[2] % digits.length],
+    special[buf[3] % special.length],
+  ];
+  for (let i = 4; i < 16; i++) chars.push(all[buf[i] % all.length]);
+  // Shuffle using Fisher-Yates with crypto randomness
+  const shuffleBuf = crypto.randomBytes(16);
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = shuffleBuf[i] % (i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
+
 // GET /api/admin/commerce/accounts
 router.get('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
@@ -179,9 +215,16 @@ router.patch('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope,
       if (!inScope && !existing.territory_id && existing.neighborhood_id && nIds.includes(existing.neighborhood_id)) inScope = true;
       if (!inScope) return res.status(404).json({ success: false, error: 'Não encontrado' });
 
-      // Blocklist enforcement
-      const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status', 'is_active', 'crm_lead_id', 'territory_id', 'neighborhood_id'];
-      const sent = Object.keys(req.body);
+      // Check if territory/neighborhood change is requested (requires password)
+      const hasTerritoryChange = req.body.territory_id !== undefined || req.body.neighborhood_id !== undefined;
+      if (hasTerritoryChange) {
+        if (!validateSensitiveAction(admin, req.body, res)) return;
+        if (!(await verifyAdminPassword(admin.id, req.body.password))) return res.status(403).json({ success: false, error: 'Credenciais inválidas.' });
+      }
+
+      // Blocklist enforcement (excluding territory/neighborhood which are handled with password above)
+      const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status', 'is_active', 'crm_lead_id'];
+      const sent = Object.keys(req.body).filter(k => !['territory_id', 'neighborhood_id', 'password', 'reason'].includes(k));
       const forbidden = sent.filter(k => BLOCKED_FIELDS.includes(k));
       if (forbidden.length > 0) return res.status(400).json({ success: false, error: `Campos não permitidos: ${forbidden.join(', ')}` });
     }
@@ -196,20 +239,48 @@ router.patch('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope,
     if (email !== undefined) data.email = email || null;
     if (address !== undefined) data.address = address || null;
 
+    // Territory/neighborhood change (TM with password already verified, or SA)
+    if (!isSuperAdmin && (territory_id !== undefined || neighborhood_id !== undefined)) {
+      const tIds = scope?.territoryIds || [];
+      const newTid = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
+      if (territory_id !== undefined) {
+        if (!newTid || !tIds.includes(newTid)) return res.status(403).json({ success: false, error: 'Território fora do seu escopo.' });
+        data.territory_id = newTid;
+        if (neighborhood_id === undefined && existing.neighborhood_id) data.neighborhood_id = null;
+      }
+      if (neighborhood_id !== undefined) {
+        const finalT = data.territory_id || existing.territory_id;
+        if (!finalT) return res.status(400).json({ success: false, error: 'Não é possível definir bairro sem território.' });
+        if (neighborhood_id) {
+          const nbh = await prisma.neighborhoods.findUnique({ where: { id: neighborhood_id }, select: { territory_id: true } });
+          if (!nbh) return res.status(400).json({ success: false, error: 'Bairro não encontrado.' });
+          if (nbh.territory_id !== finalT) return res.status(400).json({ success: false, error: 'O bairro selecionado não pertence ao território informado.' });
+        }
+        data.neighborhood_id = neighborhood_id || null;
+      }
+      // Audit territory change only if something actually changed
+      const territoryChanged = data.territory_id && data.territory_id !== existing.territory_id;
+      const neighborhoodChanged = data.neighborhood_id !== undefined && data.neighborhood_id !== existing.neighborhood_id;
+      if (territoryChanged || neighborhoodChanged) {
+        const ctx = auditCtx(req);
+        audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_territory_changed', entityType: 'commerce_account', entityId: req.params.id, oldValue: { territory_id: existing.territory_id, neighborhood_id: existing.neighborhood_id }, newValue: { territory_id: data.territory_id || existing.territory_id, neighborhood_id: data.neighborhood_id !== undefined ? data.neighborhood_id : existing.neighborhood_id }, reason: req.body.reason?.trim(), ipAddress: ctx.ip, userAgent: ctx.ua });
+      }
+    }
+
     // SUPER_ADMIN only fields
     if (isSuperAdmin) {
       if (document_cnpj !== undefined) data.document_cnpj = document_cnpj || null;
       if (document_cpf !== undefined) data.document_cpf = document_cpf || null;
-      if (neighborhood_id !== undefined) data.neighborhood_id = neighborhood_id || null;
-      if (territory_id !== undefined) data.territory_id = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
+      if (neighborhood_id !== undefined && !data.neighborhood_id) data.neighborhood_id = neighborhood_id || null;
+      if (territory_id !== undefined && !data.territory_id) data.territory_id = territory_id && UUID_RE.test(territory_id) ? territory_id : null;
 
       // Validar coerência território/bairro
       if (territory_id !== undefined || neighborhood_id !== undefined) {
-        const finalT = territory_id !== undefined ? (data.territory_id) : existing.territory_id;
+        const finalT = territory_id !== undefined ? (data.territory_id ?? null) : existing.territory_id;
         if (territory_id !== undefined && neighborhood_id === undefined && existing.neighborhood_id) {
           data.neighborhood_id = null;
         }
-        const finalN = neighborhood_id !== undefined ? (data.neighborhood_id) : (data.neighborhood_id !== undefined ? data.neighborhood_id : existing.neighborhood_id);
+        const finalN = neighborhood_id !== undefined ? (data.neighborhood_id ?? null) : (data.neighborhood_id !== undefined ? data.neighborhood_id : existing.neighborhood_id);
         if (!finalT && finalN) return res.status(400).json({ success: false, error: 'Não é possível definir bairro sem território.' });
         if (finalT && finalN) {
           const nbh = await prisma.neighborhoods.findUnique({ where: { id: finalN }, select: { territory_id: true } });
@@ -240,45 +311,143 @@ router.patch('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope,
   }
 });
 
+// --- Shared: verify admin password with rate limit ---
+async function verifyAdminPassword(adminId: string, password: string): Promise<boolean> {
+  const result = await prisma.$queryRaw<any[]>`SELECT password FROM admins WHERE id = ${adminId}`;
+  if (!result[0]) return false;
+  return bcrypt.compare(password, result[0].password);
+}
+
+function validateSensitiveAction(admin: any, body: any, res: any): boolean {
+  if (!checkSensitiveRateLimit(admin.id)) { res.status(429).json({ success: false, error: 'Muitas tentativas. Aguarde 1 minuto.' }); return false; }
+  if (!body.password) { res.status(400).json({ success: false, error: 'Senha obrigatória para esta ação.' }); return false; }
+  const reason = (body.reason || '').trim();
+  if (reason.length < 10) { res.status(400).json({ success: false, error: 'Motivo obrigatório (mínimo 10 caracteres).' }); return false; }
+  if (reason.length > 500) { res.status(400).json({ success: false, error: 'Motivo muito longo (máximo 500 caracteres).' }); return false; }
+  return true;
+}
+
 // POST /api/admin/commerce/accounts/:id/activate — activate + create user with temp password
-router.post('/accounts/:id/activate', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+router.post('/accounts/:id/activate', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
     const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const isSuperAdmin = admin.role === 'SUPER_ADMIN';
+
+    if (!validateSensitiveAction(admin, req.body, res)) return;
+    if (!(await verifyAdminPassword(admin.id, req.body.password))) return res.status(403).json({ success: false, error: 'Credenciais inválidas.' });
+
     const account = await prisma.commerce_accounts.findFirst({ where: { id: req.params.id, deleted_at: null } });
     if (!account) return res.status(404).json({ success: false, error: 'Não encontrado' });
-    if (!account.email) return res.status(400).json({ success: false, error: 'Comércio precisa ter email para ativar' });
 
-    // Check if user already exists
-    const existing = await prisma.commerce_users.findFirst({ where: { commerce_account_id: account.id } });
-    if (existing) return res.status(400).json({ success: false, error: 'Comércio já possui usuário. Use reset de senha.' });
+    if (!isSuperAdmin) {
+      const tIds = scope?.territoryIds || [];
+      if (!account.territory_id || !tIds.includes(account.territory_id)) return res.status(404).json({ success: false, error: 'Não encontrado' });
+    }
 
-    // Generate temp password
-    const tempPassword = crypto.randomBytes(4).toString('hex'); // 8 chars hex
-    const password_hash = await bcrypt.hash(tempPassword, 10);
+    if (!account.email) return res.status(400).json({ success: false, error: 'Comércio precisa ter email para ativar.' });
+    if (!['pending', 'approved'].includes(account.status)) return res.status(409).json({ success: false, error: `Não é possível ativar comércio com status "${account.status}".` });
 
-    // Generate slug if not set
+    const existingUser = await prisma.commerce_users.findFirst({ where: { commerce_account_id: account.id } });
+    if (existingUser) return res.status(409).json({ success: false, error: 'Comércio já foi ativado anteriormente. Use reativação se estiver pausado.' });
+
+    const tempPassword = generateSecureTempPassword();
+    const hashedPw = await bcrypt.hash(tempPassword, 10);
+
     let slug = account.slug;
     if (!slug) {
       slug = account.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const existing = await prisma.commerce_accounts.findFirst({ where: { slug } });
-      if (existing) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
+      const dup = await prisma.commerce_accounts.findFirst({ where: { slug } });
+      if (dup) slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
     }
 
-    const [updatedAccount, user] = await prisma.$transaction([
-      prisma.commerce_accounts.update({
-        where: { id: account.id },
+    // Atomic transaction with optimistic concurrency: updateMany with status condition
+    const [updateResult, user] = await prisma.$transaction(async (tx) => {
+      const updated = await tx.commerce_accounts.updateMany({
+        where: { id: account.id, status: { in: ['pending', 'approved'] }, deleted_at: null },
         data: { status: 'active', is_active: true, slug, approved_by: admin.id, approved_at: new Date() },
-      }),
-      prisma.commerce_users.create({
-        data: { commerce_account_id: account.id, name: account.name, email: account.email, password_hash, role: 'owner', must_change_password: true },
-      }),
-    ]);
+      });
+      if (updated.count === 0) throw new Error('CONCURRENT_ACTIVATION');
+      const newUser = await tx.commerce_users.create({ data: { commerce_account_id: account.id, name: account.name, email: account.email!, password_hash: hashedPw, role: 'owner', must_change_password: true } });
+      return [updated, newUser];
+    });
 
-    // Return temp password ONLY here, ONCE
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_activated', entityType: 'commerce_account', entityId: account.id, oldValue: { status: account.status }, newValue: { status: 'active', temporary_password_issued: true }, reason: req.body.reason.trim(), ipAddress: ctx.ip, userAgent: ctx.ua });
+
+    const updatedAccount = await prisma.commerce_accounts.findUnique({ where: { id: account.id } });
     res.json({ success: true, data: { account: updatedAccount, user: { id: user.id, email: user.email }, temp_password: tempPassword } });
-  } catch (error) {
-    console.error('[admin-commerce] activate error:', error);
+  } catch (error: any) {
+    if (error.message === 'CONCURRENT_ACTIVATION') return res.status(409).json({ success: false, error: 'Ativação já foi processada por outra requisição.' });
+    if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'Comércio já foi ativado anteriormente.' });
+    console.error('[admin-commerce] activate error:', error.message);
     res.status(500).json({ success: false, error: 'Erro ao ativar' });
+  }
+});
+
+// POST /api/admin/commerce/accounts/:id/deactivate — pause commerce
+router.post('/accounts/:id/deactivate', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const isSuperAdmin = admin.role === 'SUPER_ADMIN';
+
+    if (!validateSensitiveAction(admin, req.body, res)) return;
+    if (!(await verifyAdminPassword(admin.id, req.body.password))) return res.status(403).json({ success: false, error: 'Credenciais inválidas.' });
+
+    const account = await prisma.commerce_accounts.findFirst({ where: { id: req.params.id, deleted_at: null } });
+    if (!account) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    if (!isSuperAdmin) {
+      const tIds = scope?.territoryIds || [];
+      if (!account.territory_id || !tIds.includes(account.territory_id)) return res.status(404).json({ success: false, error: 'Não encontrado' });
+    }
+
+    if (account.status !== 'active') return res.status(409).json({ success: false, error: `Comércio não está ativo (status atual: "${account.status}").` });
+
+    const updated = await prisma.commerce_accounts.update({ where: { id: account.id }, data: { status: 'paused', is_active: false } });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_deactivated', entityType: 'commerce_account', entityId: account.id, oldValue: { status: 'active' }, newValue: { status: 'paused' }, reason: req.body.reason.trim(), ipAddress: ctx.ip, userAgent: ctx.ua });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao inativar' });
+  }
+});
+
+// POST /api/admin/commerce/accounts/:id/reactivate — resume from paused
+router.post('/accounts/:id/reactivate', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const isSuperAdmin = admin.role === 'SUPER_ADMIN';
+
+    if (!validateSensitiveAction(admin, req.body, res)) return;
+    if (!(await verifyAdminPassword(admin.id, req.body.password))) return res.status(403).json({ success: false, error: 'Credenciais inválidas.' });
+
+    const account = await prisma.commerce_accounts.findFirst({ where: { id: req.params.id, deleted_at: null } });
+    if (!account) return res.status(404).json({ success: false, error: 'Não encontrado' });
+
+    if (!isSuperAdmin) {
+      const tIds = scope?.territoryIds || [];
+      if (!account.territory_id || !tIds.includes(account.territory_id)) return res.status(404).json({ success: false, error: 'Não encontrado' });
+      if (account.status === 'blocked') return res.status(409).json({ success: false, error: 'Comércio bloqueado. Apenas a central pode reativar.' });
+    }
+
+    if (account.status !== 'paused') return res.status(409).json({ success: false, error: `Apenas comércios pausados podem ser reativados (status atual: "${account.status}").` });
+
+    const existingUser = await prisma.commerce_users.findFirst({ where: { commerce_account_id: account.id } });
+    if (!existingUser) return res.status(409).json({ success: false, error: 'Comércio nunca foi ativado. Use primeira ativação.' });
+
+    const updated = await prisma.commerce_accounts.update({ where: { id: account.id }, data: { status: 'active', is_active: true } });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_reactivated', entityType: 'commerce_account', entityId: account.id, oldValue: { status: 'paused' }, newValue: { status: 'active' }, reason: req.body.reason.trim(), ipAddress: ctx.ip, userAgent: ctx.ua });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao reativar' });
   }
 });
 
@@ -288,7 +457,7 @@ router.post('/accounts/:id/reset-password', authenticateAdmin, requireSuperAdmin
     const user = await prisma.commerce_users.findFirst({ where: { commerce_account_id: req.params.id, role: 'owner' } });
     if (!user) return res.status(404).json({ success: false, error: 'Usuário do comércio não encontrado' });
 
-    const tempPassword = crypto.randomBytes(4).toString('hex');
+    const tempPassword = generateSecureTempPassword();
     const password_hash = await bcrypt.hash(tempPassword, 10);
 
     await prisma.commerce_users.update({ where: { id: user.id }, data: { password_hash, must_change_password: true } });

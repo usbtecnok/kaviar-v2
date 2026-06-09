@@ -2,14 +2,27 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { authenticateCommerce } from '../middlewares/commerce-auth';
 
 const router = Router();
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
 
+// Rate limit: 5 failed attempts per 15 minutes per IP
+const commerceLoginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { success: false, error: 'Muitas tentativas. Tente novamente mais tarde.' },
+  handler: (_req, res) => { res.status(429).json({ success: false, error: 'Muitas tentativas. Tente novamente mais tarde.' }); },
+  skip: (req) => process.env.NODE_ENV === 'test',
+});
+
 // POST /api/commerce/auth/login
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', commerceLoginRateLimit, async (req: Request, res: Response) => {
   try {
     if (!JWT_SECRET) return res.status(500).json({ success: false, error: 'Config error' });
     const { email, password } = req.body;
