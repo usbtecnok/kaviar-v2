@@ -237,4 +237,60 @@ router.put('/me/push-token', authenticatePassenger, async (req: Request, res: Re
   }
 });
 
+// GET /api/passengers/me/local-commerce — comércios ativos do território do passageiro
+router.get('/me/local-commerce', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passenger = (req as any).passenger;
+
+    if (!passenger.neighborhood_id) {
+      return res.json({ success: true, scope: { type: 'none', id: null }, data: [] });
+    }
+
+    const neighborhood = await prisma.neighborhoods.findUnique({
+      where: { id: passenger.neighborhood_id },
+      select: { territory_id: true }
+    });
+
+    let scopeType: string;
+    let scopeId: string;
+    let where: any;
+
+    if (neighborhood?.territory_id) {
+      scopeType = 'territory';
+      scopeId = neighborhood.territory_id;
+      where = { territory_id: neighborhood.territory_id };
+    } else {
+      scopeType = 'neighborhood';
+      scopeId = passenger.neighborhood_id;
+      where = { neighborhood_id: passenger.neighborhood_id };
+    }
+
+    const accounts = await prisma.commerce_accounts.findMany({
+      where: { ...where, is_active: true, deleted_at: null },
+      select: {
+        id: true, slug: true, name: true, trade_name: true,
+        logo_url: true, category: true, address: true, phone: true,
+        _count: { select: { products: { where: { is_available: true, deleted_at: null, is_restricted: false } } } }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    const data = accounts.map(a => ({
+      id: a.id,
+      slug: a.slug,
+      name: a.trade_name || a.name,
+      logo_url: a.logo_url,
+      category: a.category,
+      address: a.address,
+      phone: a.phone,
+      has_products: a._count.products > 0,
+    }));
+
+    return res.json({ success: true, scope: { type: scopeType, id: scopeId }, data });
+  } catch (error: any) {
+    console.error('[local-commerce]', error.message);
+    return res.status(500).json({ success: false, error: 'Erro ao buscar comércios locais' });
+  }
+});
+
 export default router;

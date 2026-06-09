@@ -196,6 +196,18 @@ export default function PassengerHome() {
             <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
           </TouchableOpacity>
 
+          {/* KAVIAR Local */}
+          <TouchableOpacity style={s.localCard} onPress={() => router.push('/(passenger)/local')} activeOpacity={0.8}>
+            <View style={s.localCardIcon}>
+              <Ionicons name="storefront" size={20} color="#D6A928" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.localCardTitle}>KAVIAR Local</Text>
+              <Text style={s.localCardSub}>Comércios e ofertas da sua região</Text>
+            </View>
+            <Text style={s.localCardCta}>Explorar</Text>
+          </TouchableOpacity>
+
           {/* Ações rápidas — 4 compactos lado a lado */}
           <View style={s.actionsRow}>
             {QUICK_ACTIONS.map(a => (
@@ -351,6 +363,13 @@ const s = StyleSheet.create({
   },
   callCardTitle: { fontSize: 16, fontWeight: '800', color: '#F5F5F5', marginBottom: 2 },
   callCardSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
+
+  // KAVIAR Local card
+  localCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFDF5', borderRadius: 14, padding: 14, marginBottom: 18, borderWidth: 1, borderColor: 'rgba(214,169,40,0.3)' },
+  localCardIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(214,169,40,0.12)', justifyContent: 'center', alignItems: 'center' },
+  localCardTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A2E', marginBottom: 1 },
+  localCardSub: { fontSize: 11, color: '#666' },
+  localCardCta: { fontSize: 12, fontWeight: '700', color: '#D6A928' },
 
   // ── Action cards — 4 compactos
   actionsRow: {
