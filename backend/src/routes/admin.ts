@@ -328,13 +328,13 @@ router.delete('/drivers/:driverId/secondary-base', requireOperatorOrSuperAdmin, 
 
 // Feature Flags Management
 // GET /api/admin/feature-flags/:key
-router.get('/feature-flags/:key', allowReadAccess, featureFlagsController.getFeatureFlag);
+router.get('/feature-flags/:key', requireOperatorOrSuperAdmin, featureFlagsController.getFeatureFlag);
 
 // PUT /api/admin/feature-flags/:key
 router.put('/feature-flags/:key', requireOperatorOrSuperAdmin, auditWrite('update_feature_flag', 'feature_flag', req => req.params.key), featureFlagsController.updateFeatureFlag);
 
 // GET /api/admin/feature-flags/:key/allowlist
-router.get('/feature-flags/:key/allowlist', allowReadAccess, featureFlagsController.getAllowlist);
+router.get('/feature-flags/:key/allowlist', requireOperatorOrSuperAdmin, featureFlagsController.getAllowlist);
 
 // POST /api/admin/feature-flags/:key/allowlist
 router.post('/feature-flags/:key/allowlist', requireOperatorOrSuperAdmin, auditWrite('add_to_allowlist', 'feature_flag', req => req.params.key), featureFlagsController.addToAllowlist);

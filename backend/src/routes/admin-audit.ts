@@ -1,13 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { authenticateAdmin, allowReadAccess } from '../middlewares/auth';
+import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { pool } from '../db';
 
 const router = Router();
 router.use(authenticateAdmin);
 
 // GET /api/admin/audit-logs
-router.get('/audit-logs', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/audit-logs', requireRole(['SUPER_ADMIN']), async (req: Request, res: Response) => {
   try {
     const { admin_id, admin_email, entity_type, action, start_date, end_date, limit = '50' } = req.query;
 
@@ -44,7 +44,7 @@ router.get('/audit-logs', allowReadAccess, async (req: Request, res: Response) =
 });
 
 // GET /api/admin/login-history
-router.get('/login-history', allowReadAccess, async (req: Request, res: Response) => {
+router.get('/login-history', requireRole(['SUPER_ADMIN']), async (req: Request, res: Response) => {
   try {
     const { email, success, start_date, end_date, limit = '50' } = req.query;
 

@@ -11,7 +11,7 @@ const CREDITS = parseInt(process.env.COMPENSATION_CREDITS || '1', 10);
 const COMPENSATION_CUSTOMER_ID = process.env.ASAAS_COMPENSATION_CUSTOMER_ID || '';
 
 // GET /api/admin/compensations — listar
-router.get('/', async (_req: Request, res: Response) => {
+router.get('/', requireRole(['SUPER_ADMIN', 'FINANCE']), async (_req: Request, res: Response) => {
   try {
     const items = await prisma.ride_compensations.findMany({
       orderBy: { created_at: 'desc' },

@@ -715,7 +715,7 @@ export default function AdminApp() {
           } />
           
           <Route path="/geofences" element={
-            <ProtectedAdminRoute>
+            <ProtectedAdminRoute requireSuperAdmin>
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <GeofenceManagement />
@@ -742,7 +742,7 @@ export default function AdminApp() {
           } />
           
           <Route path="/feature-flags" element={
-            <ProtectedAdminRoute>
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <FeatureFlags />
@@ -751,7 +751,7 @@ export default function AdminApp() {
           } />
 
           <Route path="/pricing" element={
-            <ProtectedAdminRoute>
+            <ProtectedAdminRoute requireSuperAdmin>
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <PricingProfiles />
@@ -936,7 +936,7 @@ export default function AdminApp() {
           
           {/* Avaliações e Reputação */}
           <Route path="/ratings" element={<ProtectedAdminRoute><RatingsPage /></ProtectedAdminRoute>} />
-          <Route path="/compensations" element={<ProtectedAdminRoute><CompensationsPage /></ProtectedAdminRoute>} />
+          <Route path="/compensations" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'FINANCE']}><CompensationsPage /></ProtectedAdminRoute>} />
           <Route path="/local-support" element={<ProtectedAdminRoute><Container maxWidth="lg" sx={{ mt: 2 }}><AdminHeader /><LocalSupportDrivers /></Container></ProtectedAdminRoute>} />
 
           {/* Rotas Vitrine Local */}
