@@ -131,8 +131,14 @@ export default function MyContractPage() {
                   {!profile.contract_url && profile.contract_status === 'signed' && (
                     <Chip label="Aceite online concluído — contrato formal pendente" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(217,119,6,0.1)', color: '#D97706', fontSize: 11, fontWeight: 600 }} />
                   )}
+                  {!profile.contract_url && profile.contract_status === 'available' && (
+                    <Chip label="Modelo disponível — aguardando assinatura" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontSize: 11, fontWeight: 600 }} />
+                  )}
                   {!profile.contract_url && profile.contract_status === 'pending' && (
                     <Chip label="Contrato em preparação" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(107,114,128,0.1)', color: '#6B7280', fontSize: 11, fontWeight: 600 }} />
+                  )}
+                  {profile.contract_status === 'rejected' && (
+                    <Chip label="Rejeitado — novo envio necessário" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(239,68,68,0.1)', color: '#DC2626', fontSize: 11, fontWeight: 600 }} />
                   )}
                 </Grid>
               </Grid>
@@ -144,23 +150,28 @@ export default function MyContractPage() {
             <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2 }}>
               <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Documento do contrato</Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Contrato formalizado</Typography>
                   <Typography sx={{ fontSize: 11, color: '#6B7280' }}>PDF disponível para visualização</Typography>
                 </Box>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  sx={{ borderColor: GOLD, color: GOLD, fontWeight: 600, '&:hover': { bgcolor: 'rgba(184,148,46,0.06)', borderColor: GOLD } }}
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/contract-url`, { headers: { Authorization: `Bearer ${token}` } });
-                      const data = await res.json();
-                      if (data.success && data.data?.url) window.open(data.data.url, '_blank');
-                      else alert('Contrato não disponível no momento.');
-                    } catch { alert('Erro ao abrir contrato.'); }
-                  }}
-                >
+                <Button variant="outlined" size="small" sx={{ borderColor: GOLD, color: GOLD, fontWeight: 600, '&:hover': { bgcolor: 'rgba(184,148,46,0.06)', borderColor: GOLD } }}
+                  onClick={async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/contract-url`, { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (data.success && data.data?.url) window.open(data.data.url, '_blank'); else alert('Contrato não disponível.'); } catch { alert('Erro ao abrir contrato.'); } }}>
                   Abrir contrato
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Modelo de contrato disponível */}
+          {profile.contract_template_url && !profile.contract_url && (
+            <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2, borderLeft: '4px solid #3B82F6' }}>
+              <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Modelo de contrato disponível</Typography>
+                  <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Baixe, analise e assine. O envio do PDF assinado será habilitado em breve.</Typography>
+                </Box>
+                <Button variant="contained" size="small" sx={{ bgcolor: '#3B82F6', '&:hover': { bgcolor: '#2563EB' } }}
+                  onClick={async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/contract-template-url`, { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (data.success && data.data?.url) window.open(data.data.url, '_blank'); else alert('Modelo não disponível.'); } catch { alert('Erro ao abrir modelo.'); } }}>
+                  Baixar modelo
                 </Button>
               </CardContent>
             </Card>

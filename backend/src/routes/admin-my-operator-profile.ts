@@ -42,6 +42,25 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/my-operator-profile/contract-template-url
+router.get('/contract-template-url', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const profile = await prisma.operator_profiles.findUnique({
+      where: { admin_id: admin.id },
+      select: { contract_template_url: true },
+    });
+    if (!profile) return res.status(404).json({ success: false, error: 'Perfil não encontrado' });
+    if (!profile.contract_template_url) return res.status(404).json({ success: false, error: 'Modelo de contrato não disponível' });
+
+    const { getPresignedUrl } = await import('../config/s3-upload');
+    const url = await getPresignedUrl(profile.contract_template_url);
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao gerar URL do modelo' });
+  }
+});
+
 // GET /api/admin/my-operator-profile/contract-url
 router.get('/contract-url', async (req: Request, res: Response) => {
   try {
