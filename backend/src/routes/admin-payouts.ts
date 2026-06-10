@@ -345,4 +345,74 @@ router.post('/payouts/:id/receipt', uploadToS3.single('file'), async (req: Reque
   }
 });
 
+// ─── Contract Upload & View ──────────────────────────────────────────────────
+
+import multer from 'multer';
+import multerS3 from 'multer-s3';
+import { S3Client } from '@aws-sdk/client-s3';
+import { getPresignedUrl } from '../config/s3-upload';
+
+const contractS3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
+const contractBucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
+
+const uploadContract = multer({
+  storage: multerS3({
+    s3: contractS3,
+    bucket: contractBucket,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    key: (_req: Request, _file: Express.Multer.File, cb: (error: any, key?: string) => void) => {
+      const id = (_req as any).params.id;
+      cb(null, `manager-contracts/${id}/${Date.now()}.pdf`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Apenas PDF permitido'));
+  },
+});
+
+// POST /operators/:id/contract — Upload de contrato (SUPER_ADMIN)
+router.post('/operators/:id/contract', uploadContract.single('file'), async (req: Request, res: Response) => {
+  try {
+    const operator = await prisma.operator_profiles.findUnique({ where: { id: req.params.id } });
+    if (!operator) return res.status(404).json({ success: false, error: 'Operador não encontrado' });
+
+    const file = req.file as any;
+    if (!file) return res.status(400).json({ success: false, error: 'Arquivo PDF obrigatório' });
+
+    const contract_url = file.key; // S3 key interna
+    const previousKey = operator.contract_url || null;
+
+    await prisma.operator_profiles.update({
+      where: { id: req.params.id },
+      data: { contract_url, updated_at: new Date() },
+    });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'upload_contract', entityType: 'operator_profile', entityId: req.params.id, oldValue: previousKey ? { contract_url: previousKey } : undefined, newValue: { contract_url }, ipAddress: ctx.ip });
+
+    res.json({ success: true, data: { uploaded: true } });
+  } catch (error: any) {
+    if (error.message === 'Apenas PDF permitido') return res.status(400).json({ success: false, error: error.message });
+    console.error('[admin-payouts] contract upload error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao anexar contrato' });
+  }
+});
+
+// GET /operators/:id/contract-url — Presigned URL para visualização (SUPER_ADMIN)
+router.get('/operators/:id/contract-url', async (req: Request, res: Response) => {
+  try {
+    const operator = await prisma.operator_profiles.findUnique({ where: { id: req.params.id }, select: { contract_url: true } });
+    if (!operator) return res.status(404).json({ success: false, error: 'Operador não encontrado' });
+    if (!operator.contract_url) return res.status(404).json({ success: false, error: 'Contrato não disponível' });
+
+    const url = await getPresignedUrl(operator.contract_url);
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    console.error('[admin-payouts] contract-url error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao gerar URL do contrato' });
+  }
+});
+
 export default router;
