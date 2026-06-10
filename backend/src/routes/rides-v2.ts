@@ -6,6 +6,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { realTimeService } from '../services/realtime.service';
 import { calculateCreditCost } from '../services/credit-cost.service';
 import { applyCreditDelta } from '../services/credit.service';
+import { shadowCalculate } from '../services/wallet-shadow.service';
 import { whatsappEvents } from '../modules/whatsapp';
 import * as pricingEngine from '../services/pricing-engine';
 import { authenticatePassenger, authenticateDriver, requireAuth } from '../middlewares/auth';
@@ -803,6 +804,7 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
     }
 
     // Wait charge: somar ao final_price após settle (apenas se espera foi encerrada)
+    let _shadowWaitCents = 0;
     if (settlement && ride.wait_requested && ride.wait_started_at && ride.wait_ended_at) {
       try {
         const waitMinutes = Math.floor(
@@ -810,6 +812,7 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
         );
         const waitCharge = Math.round(waitMinutes * config.wait.ratePerMin * 100) / 100;
         if (waitCharge > 0) {
+          _shadowWaitCents = Math.round(waitCharge * 100);
           const newFinalPrice = Math.round((settlement.final_price + waitCharge) * 100) / 100;
           const newDriverEarnings = Math.round((settlement.driver_earnings + waitCharge) * 100) / 100;
           await prisma.$transaction([
@@ -890,6 +893,17 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
       } catch (creditErr) {
         console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
       }
+    }
+
+    // Shadow mode: calculate new 18% fee model in parallel (non-blocking, isolated)
+    if (settlement) {
+      shadowCalculate({
+        rideId: ride_id,
+        driverId,
+        finalPriceCents: Math.round(settlement.final_price * 100),
+        waitChargeCents: _shadowWaitCents, // Informational: already included in final_price
+        legacyCreditCost: settlement.credit_cost,
+      }).catch(err => console.error(`[SHADOW_CATCH] ride=${ride_id}`, err));
     }
 
     // WhatsApp: notificar passageiro e motorista que corrida concluiu
