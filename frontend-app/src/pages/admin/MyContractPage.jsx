@@ -164,6 +164,14 @@ export default function MyContractPage() {
             </Card>
           )}
 
+          {/* Alerta de contrato disponível */}
+          {profile.contract_template_url && !profile.contract_url && profile.contract_status === 'available' && (
+            <Alert severity="info" icon={false} sx={{ mb: 2, border: '2px solid #3B82F6', borderRadius: 2, bgcolor: '#EFF6FF', '& .MuiAlert-message': { width: '100%' } }}>
+              <Typography sx={{ fontWeight: 700, color: '#1E40AF', fontSize: 13, mb: 0.5 }}>📋 Seu contrato está disponível para conferência e assinatura</Typography>
+              <Typography sx={{ color: '#1E40AF', fontSize: 12 }}>Baixe o modelo, assine e envie o PDF assinado pelo próprio painel.</Typography>
+            </Alert>
+          )}
+
           {/* Modelo de contrato disponível + envio */}
           {profile.contract_template_url && !profile.contract_url && (
             <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2, borderLeft: '4px solid #3B82F6' }}>
