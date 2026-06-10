@@ -61,6 +61,79 @@ router.get('/contract-template-url', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/my-operator-profile/submit-contract — Gestora envia PDF assinado
+router.post('/submit-contract', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const profile = await prisma.operator_profiles.findUnique({ where: { admin_id: admin.id } });
+    if (!profile) return res.status(404).json({ success: false, error: 'Perfil não encontrado' });
+
+    if (!['available', 'rejected'].includes(profile.contract_status)) {
+      return res.status(409).json({ success: false, error: `Envio não permitido no estado '${profile.contract_status}'. Permitido: available, rejected.` });
+    }
+
+    const { uploadToS3, getPresignedUrl } = await import('../config/s3-upload');
+    const multer = (await import('multer')).default;
+    const multerS3 = (await import('multer-s3')).default;
+    const { S3Client } = await import('@aws-sdk/client-s3');
+
+    const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
+    const bucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
+
+    const upload = multer({
+      storage: multerS3({ s3, bucket, contentType: multerS3.AUTO_CONTENT_TYPE, key: (_r: any, _f: any, cb: any) => cb(null, `contract-submissions/${profile.id}/${Date.now()}.pdf`) }),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_r: any, file: any, cb: any) => { file.mimetype === 'application/pdf' ? cb(null, true) : cb(new Error('Apenas PDF permitido')); },
+    }).single('file');
+
+    upload(req, res, async (err: any) => {
+      if (err) return res.status(400).json({ success: false, error: err.message || 'Erro no upload' });
+      const file = req.file as any;
+      if (!file) return res.status(400).json({ success: false, error: 'Arquivo PDF obrigatório' });
+
+      // Supersede previous rejected submissions
+      await prisma.contract_submissions.updateMany({
+        where: { operator_profile_id: profile.id, status: 'rejected' },
+        data: { status: 'superseded', updated_at: new Date() },
+      });
+
+      // Create submission
+      await prisma.contract_submissions.create({
+        data: { operator_profile_id: profile.id, submitted_by_admin_id: admin.id, s3_key: file.key, status: 'submitted' },
+      });
+
+      // Update operator_profiles.contract_status
+      await prisma.operator_profiles.update({
+        where: { admin_id: admin.id },
+        data: { contract_status: 'submitted', updated_at: new Date() },
+      });
+
+      res.json({ success: true, data: { submitted: true } });
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao enviar contrato' });
+  }
+});
+
+// GET /api/admin/my-operator-profile/submissions — Histórico de envios
+router.get('/submissions', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const profile = await prisma.operator_profiles.findUnique({ where: { admin_id: admin.id }, select: { id: true } });
+    if (!profile) return res.status(404).json({ success: false, error: 'Perfil não encontrado' });
+
+    const submissions = await prisma.contract_submissions.findMany({
+      where: { operator_profile_id: profile.id },
+      select: { id: true, status: true, rejection_reason: true, created_at: true, reviewed_at: true },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+    });
+    res.json({ success: true, data: submissions });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar histórico' });
+  }
+});
+
 // GET /api/admin/my-operator-profile/contract-url
 router.get('/contract-url', async (req: Request, res: Response) => {
   try {
