@@ -31,6 +31,9 @@ model admins {
   fee_configs_approved        platform_fee_configs[]         @relation("fee_config_approver")
   manager_assignments         territory_manager_assignments[] @relation("tma_admin")
   manager_assignments_created territory_manager_assignments[] @relation("tma_creator")
+  op_contract_reviews         operator_profiles[]             @relation("op_contract_reviewer")
+  contract_submissions_sent   contract_submissions[]          @relation("cs_submitter")
+  contract_submissions_reviewed contract_submissions[]        @relation("cs_reviewer")
 }
 
 model communities {
@@ -1826,13 +1829,41 @@ model operator_profiles {
   is_active                       Boolean   @default(false)
   created_at                      DateTime  @default(now())
   updated_at                      DateTime  @updatedAt
+  contract_template_url           String?
+  contract_reviewed_by            String?
+  contract_reviewed_at            DateTime? @db.Timestamptz
+  contract_rejection_reason       String?
 
   admin     admins                  @relation(fields: [admin_id], references: [id], onDelete: Cascade)
   territory operational_territories @relation(fields: [territory_id], references: [id], onDelete: Cascade)
   payouts   territory_payouts[]
+  contract_reviewer admins?         @relation("op_contract_reviewer", fields: [contract_reviewed_by], references: [id], onDelete: Restrict)
+  submissions contract_submissions[]
 
   @@index([territory_id])
   @@index([is_active])
+}
+
+model contract_submissions {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  operator_profile_id   String
+  submitted_by_admin_id String
+  s3_key                String
+  status                String   @default("submitted")
+  reviewed_by           String?
+  reviewed_at           DateTime? @db.Timestamptz
+  rejection_reason      String?
+  notes                 String?
+  created_at            DateTime @default(now()) @db.Timestamptz
+  updated_at            DateTime @default(now()) @db.Timestamptz
+
+  operator  operator_profiles @relation(fields: [operator_profile_id], references: [id], onDelete: Restrict)
+  submitter admins            @relation("cs_submitter", fields: [submitted_by_admin_id], references: [id], onDelete: Restrict)
+  reviewer  admins?           @relation("cs_reviewer", fields: [reviewed_by], references: [id], onDelete: Restrict)
+
+  @@index([operator_profile_id])
+  @@index([status])
+  @@index([created_at(sort: Desc)])
 }
 
 model territory_payouts {

@@ -483,9 +483,45 @@ export default function TerritorialPayoutsPage() {
 
       {/* Modal Registrar Contrato */}
       <Dialog open={contractOpen} onClose={() => setContractOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
-        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Registrar Contrato</DialogTitle>
+        <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Gestão de Contrato</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Enviar PDF do contrato</Typography>
+          {/* Seção 1: Disponibilizar modelo */}
+          <Box sx={{ p: 1.5, border: '1px solid rgba(59,130,246,0.3)', borderRadius: 1 }}>
+            <Typography variant="caption" sx={{ color: '#3B82F6', fontWeight: 700, display: 'block', mb: 1 }}>Disponibilizar modelo de contrato</Typography>
+            <input type="file" accept="application/pdf" id="template-upload-input" style={{ display: 'none' }} onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.type !== 'application/pdf') { setFeedback({ open: true, severity: 'error', message: 'Apenas PDF é permitido.' }); return; }
+              if (file.size > 10 * 1024 * 1024) { setFeedback({ open: true, severity: 'error', message: 'Arquivo excede 10 MB.' }); return; }
+              setContractSaving(true);
+              try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-template`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+                const d = await res.json();
+                if (d.success) { setFeedback({ open: true, severity: 'success', message: 'Modelo disponibilizado com sucesso.' }); fetchAll(); }
+                else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro no upload do modelo.' });
+              } catch { setFeedback({ open: true, severity: 'error', message: 'Erro de conexão.' }); }
+              setContractSaving(false);
+              e.target.value = '';
+            }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button variant="outlined" size="small" disabled={contractSaving} onClick={() => document.getElementById('template-upload-input')?.click()} sx={{ borderColor: '#3B82F6', color: '#3B82F6' }}>
+                {contractSaving ? 'Enviando...' : 'Enviar modelo PDF'}
+              </Button>
+              {contractTarget?.contract_template_url && <Chip label="Modelo disponível" size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6' }} />}
+            </Box>
+            {contractTarget?.contract_template_url && (
+              <Button size="small" sx={{ color: '#3B82F6', textTransform: 'none', mt: 0.5 }} onClick={async () => {
+                try { const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-template-url`, { headers }); const d = await res.json(); if (d.success && d.data?.url) window.open(d.data.url, '_blank'); else alert('Modelo não disponível.'); } catch { alert('Erro ao abrir modelo.'); }
+              }}>📄 Abrir modelo atual</Button>
+            )}
+            <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mt: 0.5, fontSize: 10 }}>O modelo será disponibilizado para a gestora baixar e assinar.</Typography>
+          </Box>
+
+          {/* Seção 2: Contrato recebido por canal externo */}
+          <Box sx={{ p: 1.5, border: '1px solid rgba(184,148,46,0.3)', borderRadius: 1 }}>
+            <Typography variant="caption" sx={{ color: '#C8A84E', fontWeight: 700, display: 'block', mb: 1 }}>Registrar contrato recebido por canal externo</Typography>
             <input type="file" accept="application/pdf" id="contract-upload-input" style={{ display: 'none' }} onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
@@ -497,27 +533,25 @@ export default function TerritorialPayoutsPage() {
                 formData.append('file', file);
                 const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
                 const d = await res.json();
-                if (d.success) { setFeedback({ open: true, severity: 'success', message: 'PDF enviado com sucesso.' }); fetchAll(); }
+                if (d.success) { setFeedback({ open: true, severity: 'success', message: 'Contrato anexado com sucesso.' }); fetchAll(); }
                 else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro no upload.' });
-              } catch { setFeedback({ open: true, severity: 'error', message: 'Erro de conexão no upload.' }); }
+              } catch { setFeedback({ open: true, severity: 'error', message: 'Erro de conexão.' }); }
               setContractSaving(false);
               e.target.value = '';
             }} />
-            <Button variant="outlined" size="small" disabled={contractSaving} onClick={() => document.getElementById('contract-upload-input')?.click()} sx={{ borderColor: '#C8A84E', color: '#C8A84E' }}>
-              {contractSaving ? 'Enviando...' : 'Selecionar PDF'}
-            </Button>
-            {contractTarget?.contract_url && <Chip label="PDF anexado" size="small" sx={{ ml: 1, bgcolor: 'rgba(16,185,129,0.1)', color: '#059669' }} />}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Button variant="outlined" size="small" disabled={contractSaving} onClick={() => document.getElementById('contract-upload-input')?.click()} sx={{ borderColor: '#C8A84E', color: '#C8A84E' }}>
+                {contractSaving ? 'Enviando...' : 'Anexar PDF externo'}
+              </Button>
+              {contractTarget?.contract_url && <Chip label="Contrato anexado" size="small" sx={{ bgcolor: 'rgba(16,185,129,0.1)', color: '#059669' }} />}
+            </Box>
+            {contractTarget?.contract_url && (
+              <Button size="small" sx={{ color: '#C8A84E', textTransform: 'none', mt: 0.5 }} onClick={async () => {
+                try { const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-url`, { headers }); const d = await res.json(); if (d.success && d.data?.url) window.open(d.data.url, '_blank'); else alert('Contrato não disponível.'); } catch { alert('Erro ao abrir contrato.'); }
+              }}>📄 Abrir contrato atual</Button>
+            )}
+            <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mt: 0.5, fontSize: 10 }}>Para contratos recebidos via WhatsApp, e-mail ou outro canal.</Typography>
           </Box>
-          {contractTarget?.contract_url && (
-            <Button size="small" sx={{ color: '#3B82F6', textTransform: 'none', justifyContent: 'flex-start' }} onClick={async () => {
-              try {
-                const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-url`, { headers });
-                const d = await res.json();
-                if (d.success && d.data?.url) window.open(d.data.url, '_blank');
-                else alert('Contrato não disponível.');
-              } catch { alert('Erro ao abrir contrato.'); }
-            }}>📄 Abrir contrato atual</Button>
-          )}
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Status do contrato</Typography>
             <TextField select value={contractForm.contract_status} onChange={e => setContractForm({ ...contractForm, contract_status: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
               <MenuItem value="signed">Assinado</MenuItem><MenuItem value="pending">Pendente</MenuItem><MenuItem value="not_required">Não necessário</MenuItem>

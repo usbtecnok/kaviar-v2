@@ -415,4 +415,56 @@ router.get('/operators/:id/contract-url', async (req: Request, res: Response) =>
   }
 });
 
+// POST /operators/:id/contract-template — Upload modelo de contrato (SUPER_ADMIN)
+router.post('/operators/:id/contract-template', uploadContract.single('file'), async (req: Request, res: Response) => {
+  try {
+    const operator = await prisma.operator_profiles.findUnique({ where: { id: req.params.id } });
+    if (!operator) return res.status(404).json({ success: false, error: 'Operador não encontrado' });
+
+    const file = req.file as any;
+    if (!file) return res.status(400).json({ success: false, error: 'Arquivo PDF obrigatório' });
+
+    const templateKey = `manager-contract-templates/${req.params.id}/${Date.now()}.pdf`;
+    // Note: multerS3 already uploaded with the contract key pattern. For templates we use a different prefix.
+    // Since we reuse uploadContract middleware, the key is already set. We override by storing the correct reference.
+    const s3Key = file.key; // already uploaded by multerS3
+
+    const previousKey = operator.contract_template_url || null;
+    const allowedForTemplate = ['pending', 'rejected', 'available'];
+    if (!allowedForTemplate.includes(operator.contract_status)) {
+      return res.status(409).json({ success: false, error: `Não é possível substituir modelo no estado '${operator.contract_status}'. Permitido: pending, rejected, available.` });
+    }
+    const newStatus = operator.contract_status === 'available' ? 'available' : 'available';
+
+    await prisma.operator_profiles.update({
+      where: { id: req.params.id },
+      data: { contract_template_url: s3Key, contract_status: 'available', updated_at: new Date() },
+    });
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'upload_contract_template', entityType: 'operator_profile', entityId: req.params.id, oldValue: previousKey ? { contract_template_url: previousKey } : undefined, newValue: { contract_template_url: s3Key, contract_status: 'available' }, ipAddress: ctx.ip });
+
+    res.json({ success: true, data: { uploaded: true, contract_status: 'available' } });
+  } catch (error: any) {
+    if (error.message === 'Apenas PDF permitido') return res.status(400).json({ success: false, error: error.message });
+    console.error('[admin-payouts] contract-template upload error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao anexar modelo de contrato' });
+  }
+});
+
+// GET /operators/:id/contract-template-url — Presigned URL do modelo (SUPER_ADMIN)
+router.get('/operators/:id/contract-template-url', async (req: Request, res: Response) => {
+  try {
+    const operator = await prisma.operator_profiles.findUnique({ where: { id: req.params.id }, select: { contract_template_url: true } });
+    if (!operator) return res.status(404).json({ success: false, error: 'Operador não encontrado' });
+    if (!operator.contract_template_url) return res.status(404).json({ success: false, error: 'Modelo de contrato não disponível' });
+
+    const url = await getPresignedUrl(operator.contract_template_url);
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    console.error('[admin-payouts] contract-template-url error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao gerar URL do modelo' });
+  }
+});
+
 export default router;
