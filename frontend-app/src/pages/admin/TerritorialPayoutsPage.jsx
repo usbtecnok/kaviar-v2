@@ -485,12 +485,43 @@ export default function TerritorialPayoutsPage() {
       <Dialog open={contractOpen} onClose={() => setContractOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
         <DialogTitle sx={{ color: '#C8A84E', fontWeight: 700 }}>Registrar Contrato</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Enviar PDF do contrato</Typography>
+            <input type="file" accept="application/pdf" id="contract-upload-input" style={{ display: 'none' }} onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (file.type !== 'application/pdf') { setFeedback({ open: true, severity: 'error', message: 'Apenas PDF é permitido.' }); return; }
+              if (file.size > 10 * 1024 * 1024) { setFeedback({ open: true, severity: 'error', message: 'Arquivo excede 10 MB.' }); return; }
+              setContractSaving(true);
+              try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+                const d = await res.json();
+                if (d.success) { setFeedback({ open: true, severity: 'success', message: 'PDF enviado com sucesso.' }); fetchAll(); }
+                else setFeedback({ open: true, severity: 'error', message: d.error || 'Erro no upload.' });
+              } catch { setFeedback({ open: true, severity: 'error', message: 'Erro de conexão no upload.' }); }
+              setContractSaving(false);
+              e.target.value = '';
+            }} />
+            <Button variant="outlined" size="small" disabled={contractSaving} onClick={() => document.getElementById('contract-upload-input')?.click()} sx={{ borderColor: '#C8A84E', color: '#C8A84E' }}>
+              {contractSaving ? 'Enviando...' : 'Selecionar PDF'}
+            </Button>
+            {contractTarget?.contract_url && <Chip label="PDF anexado" size="small" sx={{ ml: 1, bgcolor: 'rgba(16,185,129,0.1)', color: '#059669' }} />}
+          </Box>
+          {contractTarget?.contract_url && (
+            <Button size="small" sx={{ color: '#3B82F6', textTransform: 'none', justifyContent: 'flex-start' }} onClick={async () => {
+              try {
+                const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-url`, { headers });
+                const d = await res.json();
+                if (d.success && d.data?.url) window.open(d.data.url, '_blank');
+                else alert('Contrato não disponível.');
+              } catch { alert('Erro ao abrir contrato.'); }
+            }}>📄 Abrir contrato atual</Button>
+          )}
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Status do contrato</Typography>
             <TextField select value={contractForm.contract_status} onChange={e => setContractForm({ ...contractForm, contract_status: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }}>
               <MenuItem value="signed">Assinado</MenuItem><MenuItem value="pending">Pendente</MenuItem><MenuItem value="not_required">Não necessário</MenuItem>
             </TextField></Box>
-          <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Link do contrato assinado</Typography>
-            <TextField value={contractForm.contract_url} onChange={e => setContractForm({ ...contractForm, contract_url: e.target.value })} fullWidth size="small" placeholder="https://..." InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Data de assinatura</Typography>
             <TextField type="date" value={contractForm.contract_signed_at} onChange={e => setContractForm({ ...contractForm, contract_signed_at: e.target.value })} fullWidth size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(184,148,46,0.3)' } } }} /></Box>
           <Box><Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block', mb: 0.5 }}>Observações (opcional)</Typography>

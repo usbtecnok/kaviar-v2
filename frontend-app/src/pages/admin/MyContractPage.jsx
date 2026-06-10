@@ -122,11 +122,49 @@ export default function MyContractPage() {
                 {admin?.email && <Grid item xs={12} sm={6}><Typography sx={{ fontSize: 12, color: '#6B7280' }}>Email</Typography><Typography sx={{ fontSize: 14, fontWeight: 600 }}>{admin.email}</Typography></Grid>}
                 <Grid item xs={12} sm={6}>
                   <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Contrato</Typography>
-                  <Chip label="Em preparação pela central" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontSize: 11, fontWeight: 600 }} />
+                  {profile.contract_url && profile.contract_status === 'signed' && (
+                    <Chip label="Contrato formalizado" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(16,185,129,0.1)', color: '#059669', fontSize: 11, fontWeight: 600 }} />
+                  )}
+                  {profile.contract_url && profile.contract_status === 'pending' && (
+                    <Chip label="Contrato disponível para análise" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontSize: 11, fontWeight: 600 }} />
+                  )}
+                  {!profile.contract_url && profile.contract_status === 'signed' && (
+                    <Chip label="Aceite online concluído — contrato formal pendente" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(217,119,6,0.1)', color: '#D97706', fontSize: 11, fontWeight: 600 }} />
+                  )}
+                  {!profile.contract_url && profile.contract_status === 'pending' && (
+                    <Chip label="Contrato em preparação" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(107,114,128,0.1)', color: '#6B7280', fontSize: 11, fontWeight: 600 }} />
+                  )}
                 </Grid>
               </Grid>
             </CardContent>
           </Card>
+
+          {/* Abrir contrato */}
+          {profile.contract_url && (
+            <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2 }}>
+              <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Documento do contrato</Typography>
+                  <Typography sx={{ fontSize: 11, color: '#6B7280' }}>PDF disponível para visualização</Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  sx={{ borderColor: GOLD, color: GOLD, fontWeight: 600, '&:hover': { bgcolor: 'rgba(184,148,46,0.06)', borderColor: GOLD } }}
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/contract-url`, { headers: { Authorization: `Bearer ${token}` } });
+                      const data = await res.json();
+                      if (data.success && data.data?.url) window.open(data.data.url, '_blank');
+                      else alert('Contrato não disponível no momento.');
+                    } catch { alert('Erro ao abrir contrato.'); }
+                  }}
+                >
+                  Abrir contrato
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Responsabilidades */}
           <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2 }}>
