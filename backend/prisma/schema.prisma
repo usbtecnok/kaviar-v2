@@ -27,6 +27,10 @@ model admins {
   community_leaders           community_leaders[]
   territory_access            admin_territory_access[]
   operator_profile            operator_profiles?
+  fee_configs_created         platform_fee_configs[]         @relation("fee_config_creator")
+  fee_configs_approved        platform_fee_configs[]         @relation("fee_config_approver")
+  manager_assignments         territory_manager_assignments[] @relation("tma_admin")
+  manager_assignments_created territory_manager_assignments[] @relation("tma_creator")
 }
 
 model communities {
@@ -265,6 +269,7 @@ model drivers {
   @@index([active_since])
   @@index([premium_tourism_status])
   @@index([territorial_partner_id])
+  shadow_results               wallet_shadow_results[]
 }
 
 model elderly_contracts {
@@ -918,6 +923,7 @@ model rides_v2 {
   offers                 ride_offers[]
   settlement             ride_settlements?
   emergency_events       ride_emergency_events[]
+  shadow_result          wallet_shadow_results[]
 
   @@map("rides_v2")
   @@index([status])
@@ -1735,6 +1741,8 @@ model operational_territories {
   finance_rules        territory_finance_rules[]
   operator_profiles    operator_profiles[]
   payouts              territory_payouts[]
+  manager_assignments  territory_manager_assignments[]
+  shadow_results       wallet_shadow_results[]
 
   @@unique([name, level, parent_id])
   @@index([level])
@@ -2307,4 +2315,87 @@ model women_matching_consent_events {
 
   @@index([actor_type, actor_id, created_at(sort: Desc)])
   @@map("women_matching_consent_events")
+}
+
+// ─── Financial Shadow Mode (Phase 1) ────────────────────────────────────────
+
+model platform_fee_configs {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  platform_fee_percent Decimal   @db.Decimal(5, 2)
+  effective_from       DateTime  @db.Timestamptz
+  effective_to         DateTime? @db.Timestamptz
+  approval_status      String    @default("pending")
+  change_reason        String
+  created_by           String
+  approved_by          String?
+  approved_at          DateTime? @db.Timestamptz
+  rejected_reason      String?
+  created_at           DateTime  @default(now()) @db.Timestamptz
+
+  creator              admins    @relation("fee_config_creator", fields: [created_by], references: [id], onDelete: Restrict)
+  approver             admins?   @relation("fee_config_approver", fields: [approved_by], references: [id], onDelete: Restrict)
+  shadow_results       wallet_shadow_results[]
+}
+
+model territory_manager_assignments {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  territory_id        String
+  admin_id            String
+  operator_profile_id String?
+  status              String    @default("active")
+  started_at          DateTime  @db.Timestamptz
+  ended_at            DateTime? @db.Timestamptz
+  end_reason          String?
+  created_by          String
+  created_at          DateTime  @default(now()) @db.Timestamptz
+  updated_at          DateTime  @updatedAt @db.Timestamptz
+
+  territory           operational_territories @relation(fields: [territory_id], references: [id], onDelete: Restrict)
+  admin               admins                 @relation("tma_admin", fields: [admin_id], references: [id], onDelete: Restrict)
+  creator             admins                 @relation("tma_creator", fields: [created_by], references: [id], onDelete: Restrict)
+  shadow_results      wallet_shadow_results[]
+
+  @@index([territory_id])
+  @@index([admin_id])
+}
+
+model wallet_shadow_results {
+  id                          BigInt    @id @default(autoincrement())
+  ride_id                     String
+  driver_id                   String
+  calculation_version         Int       @default(1)
+  calculation_status          String    @default("success")
+  final_price_cents           Int?
+  wait_charge_cents           Int?
+  fee_config_id               String?   @db.Uuid
+  fee_percent                 Decimal?  @db.Decimal(5, 2)
+  fee_amount_cents            Int?
+  matrix_share_percent        Decimal?  @db.Decimal(5, 2)
+  matrix_share_cents          Int?
+  manager_share_percent       Decimal?  @db.Decimal(5, 2)
+  manager_share_cents         Int?
+  driver_earnings_cents       Int?
+  territory_id                String?
+  assignment_id               String?   @db.Uuid
+  assignment_status           String?
+  allocation_reason           String?
+  legacy_credit_cost          Int?
+  legacy_nominal_value_cents  Int?
+  divergence_cents            Int?
+  reference_month             DateTime? @db.Date
+  error_code                  String?
+  error_message               String?
+  created_at                  DateTime  @default(now()) @db.Timestamptz
+  updated_at                  DateTime  @default(now()) @db.Timestamptz
+
+  ride                        rides_v2                       @relation(fields: [ride_id], references: [id], onDelete: Restrict)
+  driver                      drivers                        @relation(fields: [driver_id], references: [id], onDelete: Restrict)
+  fee_config                  platform_fee_configs?          @relation(fields: [fee_config_id], references: [id], onDelete: Restrict)
+  territory                   operational_territories?       @relation(fields: [territory_id], references: [id], onDelete: Restrict)
+  assignment                  territory_manager_assignments? @relation(fields: [assignment_id], references: [id], onDelete: Restrict)
+
+  @@unique([ride_id, calculation_version])
+  @@index([reference_month])
+  @@index([driver_id])
+  @@index([calculation_status])
 }
