@@ -134,6 +134,9 @@ export default function MyContractPage() {
                   {!profile.contract_url && profile.contract_status === 'available' && (
                     <Chip label="Modelo disponível — aguardando assinatura" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(59,130,246,0.1)', color: '#3B82F6', fontSize: 11, fontWeight: 600 }} />
                   )}
+                  {!profile.contract_url && profile.contract_status === 'submitted' && (
+                    <Chip label="Contrato enviado — em análise" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(217,119,6,0.1)', color: '#D97706', fontSize: 11, fontWeight: 600 }} />
+                  )}
                   {!profile.contract_url && profile.contract_status === 'pending' && (
                     <Chip label="Contrato em preparação" size="small" sx={{ mt: 0.5, bgcolor: 'rgba(107,114,128,0.1)', color: '#6B7280', fontSize: 11, fontWeight: 600 }} />
                   )}
@@ -161,18 +164,60 @@ export default function MyContractPage() {
             </Card>
           )}
 
-          {/* Modelo de contrato disponível */}
+          {/* Modelo de contrato disponível + envio */}
           {profile.contract_template_url && !profile.contract_url && (
             <Card sx={{ mb: 2, border: '1px solid #E8E5DE', borderRadius: 2, borderLeft: '4px solid #3B82F6' }}>
-              <CardContent sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box>
-                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Modelo de contrato disponível</Typography>
-                  <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Baixe, analise e assine. O envio do PDF assinado será habilitado em breve.</Typography>
+              <CardContent sx={{ p: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Box>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>Modelo de contrato disponível</Typography>
+                    <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Baixe, assine e envie o PDF assinado abaixo.</Typography>
+                  </Box>
+                  <Button variant="outlined" size="small" sx={{ borderColor: '#3B82F6', color: '#3B82F6' }}
+                    onClick={async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/contract-template-url`, { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (data.success && data.data?.url) window.open(data.data.url, '_blank'); else alert('Modelo não disponível.'); } catch { alert('Erro ao abrir modelo.'); } }}>
+                    Baixar modelo
+                  </Button>
                 </Box>
-                <Button variant="contained" size="small" sx={{ bgcolor: '#3B82F6', '&:hover': { bgcolor: '#2563EB' } }}
-                  onClick={async () => { try { const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/contract-template-url`, { headers: { Authorization: `Bearer ${token}` } }); const data = await res.json(); if (data.success && data.data?.url) window.open(data.data.url, '_blank'); else alert('Modelo não disponível.'); } catch { alert('Erro ao abrir modelo.'); } }}>
-                  Baixar modelo
-                </Button>
+
+                {/* Upload do PDF assinado */}
+                {['available', 'rejected'].includes(profile.contract_status) && (
+                  <Box sx={{ mt: 1.5, p: 1.5, bgcolor: '#F9FAFB', borderRadius: 1, border: '1px dashed #D1D5DB' }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#374151', mb: 1 }}>Enviar contrato assinado</Typography>
+                    {profile.contract_status === 'rejected' && profile.contract_rejection_reason && (
+                      <Alert severity="error" sx={{ mb: 1, py: 0.5, '& .MuiAlert-message': { fontSize: 11 } }}>
+                        Motivo da rejeição: {profile.contract_rejection_reason}
+                      </Alert>
+                    )}
+                    <input type="file" accept="application/pdf" id="submit-contract-input" style={{ display: 'none' }} onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.type !== 'application/pdf') { alert('Apenas PDF é permitido.'); return; }
+                      if (file.size > 10 * 1024 * 1024) { alert('Arquivo excede 10 MB.'); return; }
+                      try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile/submit-contract`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData });
+                        const data = await res.json();
+                        if (data.success) { alert('Contrato enviado com sucesso! Aguarde a análise.'); fetchProfile(); }
+                        else alert(data.error || 'Erro ao enviar contrato.');
+                      } catch { alert('Erro de conexão ao enviar contrato.'); }
+                      e.target.value = '';
+                    }} />
+                    <Button variant="contained" size="small" sx={{ bgcolor: GOLD, '&:hover': { bgcolor: '#9A7B24' } }}
+                      onClick={() => document.getElementById('submit-contract-input')?.click()}>
+                      Selecionar e enviar PDF assinado
+                    </Button>
+                    <Typography sx={{ fontSize: 10, color: '#9CA3AF', mt: 0.5 }}>Apenas PDF, máximo 10 MB.</Typography>
+                  </Box>
+                )}
+
+                {/* Estado: enviado, aguardando */}
+                {profile.contract_status === 'submitted' && (
+                  <Box sx={{ mt: 1.5, p: 1.5, bgcolor: '#FFFBEB', borderRadius: 1, border: '1px solid #FDE68A' }}>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#92400E' }}>Contrato enviado — aguardando análise da central</Typography>
+                    <Typography sx={{ fontSize: 11, color: '#B45309', mt: 0.5 }}>Você será notificado quando o contrato for aprovado ou se houver necessidade de correção.</Typography>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           )}
