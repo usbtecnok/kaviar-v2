@@ -467,4 +467,90 @@ router.get('/operators/:id/contract-template-url', async (req: Request, res: Res
   }
 });
 
+// GET /contracts-queue — Fila de contratos pendentes (SUPER_ADMIN)
+router.get('/contracts-queue', async (req: Request, res: Response) => {
+  try {
+    const submissions = await prisma.contract_submissions.findMany({
+      where: { status: { in: ['submitted', 'in_review'] } },
+      include: {
+        operator: { select: { id: true, display_name: true, territory: { select: { name: true } } } },
+      },
+      orderBy: { created_at: 'asc' },
+    });
+    res.json({ success: true, data: submissions.map(s => ({
+      id: s.id,
+      operator_name: s.operator.display_name,
+      territory: s.operator.territory?.name || '—',
+      status: s.status,
+      submitted_at: s.created_at,
+    })) });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar fila de contratos' });
+  }
+});
+
+// GET /submissions/:id/url — Presigned URL do PDF enviado (SUPER_ADMIN)
+router.get('/submissions/:id/url', async (req: Request, res: Response) => {
+  try {
+    const submission = await prisma.contract_submissions.findUnique({ where: { id: req.params.id }, select: { s3_key: true } });
+    if (!submission) return res.status(404).json({ success: false, error: 'Submissão não encontrada' });
+
+    const url = await getPresignedUrl(submission.s3_key);
+    res.json({ success: true, data: { url } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao gerar URL' });
+  }
+});
+
+// PATCH /submissions/:id/review — Aprovar ou rejeitar (SUPER_ADMIN)
+router.patch('/submissions/:id/review', async (req: Request, res: Response) => {
+  try {
+    const { action, rejection_reason } = req.body;
+    if (!['approve', 'reject'].includes(action)) return res.status(400).json({ success: false, error: 'action deve ser approve ou reject' });
+    if (action === 'reject' && (!rejection_reason || rejection_reason.trim().length < 3)) {
+      return res.status(400).json({ success: false, error: 'Motivo da rejeição obrigatório (mínimo 3 caracteres)' });
+    }
+
+    const submission = await prisma.contract_submissions.findUnique({
+      where: { id: req.params.id },
+      include: { operator: { select: { id: true, admin_id: true } } },
+    });
+    if (!submission) return res.status(404).json({ success: false, error: 'Submissão não encontrada' });
+    if (!['submitted', 'in_review'].includes(submission.status)) {
+      return res.status(409).json({ success: false, error: `Submissão no estado '${submission.status}' não pode ser revisada` });
+    }
+
+    const adminId = (req as any).admin.id;
+    const now = new Date();
+
+    if (action === 'approve') {
+      await prisma.contract_submissions.update({
+        where: { id: req.params.id },
+        data: { status: 'approved', reviewed_by: adminId, reviewed_at: now, updated_at: now },
+      });
+      await prisma.operator_profiles.update({
+        where: { id: submission.operator_profile_id },
+        data: { contract_status: 'signed', contract_url: submission.s3_key, contract_reviewed_by: adminId, contract_reviewed_at: now, contract_signed_at: now, updated_at: now },
+      });
+    } else {
+      await prisma.contract_submissions.update({
+        where: { id: req.params.id },
+        data: { status: 'rejected', reviewed_by: adminId, reviewed_at: now, rejection_reason, updated_at: now },
+      });
+      await prisma.operator_profiles.update({
+        where: { id: submission.operator_profile_id },
+        data: { contract_status: 'rejected', contract_reviewed_by: adminId, contract_reviewed_at: now, contract_rejection_reason: rejection_reason, updated_at: now },
+      });
+    }
+
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: action === 'approve' ? 'approve_contract' : 'reject_contract', entityType: 'contract_submission', entityId: req.params.id, newValue: { action, rejection_reason: rejection_reason || null }, ipAddress: ctx.ip });
+
+    res.json({ success: true, data: { action, submission_id: req.params.id } });
+  } catch (error) {
+    console.error('[admin-payouts] review error:', error);
+    res.status(500).json({ success: false, error: 'Erro ao revisar contrato' });
+  }
+});
+
 export default router;
