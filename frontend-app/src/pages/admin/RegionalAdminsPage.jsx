@@ -78,25 +78,53 @@ export default function RegionalAdminsPage() {
       <TableContainer component={Paper} sx={{ border: '1px solid #E8E5DE' }}>
         <Table>
           <TableHead><TableRow sx={{ bgcolor: '#FAFAF8' }}>
-            <TableCell sx={{ fontWeight: 700 }}>Nome</TableCell><TableCell>Email</TableCell><TableCell>Role</TableCell><TableCell>Territórios</TableCell><TableCell>Status</TableCell><TableCell>Ativo</TableCell><TableCell>Ações</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Nome</TableCell><TableCell>Role</TableCell><TableCell>Territórios</TableCell><TableCell>Conta</TableCell><TableCell>Perfil</TableCell><TableCell>Contrato</TableCell><TableCell>Docs</TableCell><TableCell>Ações</TableCell>
           </TableRow></TableHead>
           <TableBody>
-            {admins.map((a) => (
+            {admins.map((a) => {
+              const op = a.operator_profile;
+              const contractLabel = !op ? '—'
+                : op.has_contract && op.contract_status === 'signed' ? 'Formalizado'
+                : op.has_contract && op.contract_status === 'pending' ? 'Para análise'
+                : !op.has_contract && op.contract_status === 'signed' && op.has_online_acceptance ? 'Aceite online'
+                : op.contract_status === 'not_required' ? 'Não requerido'
+                : 'Pendente';
+              const contractColor = contractLabel === 'Formalizado' ? 'success'
+                : contractLabel === 'Para análise' ? 'info'
+                : contractLabel === 'Aceite online' ? 'warning'
+                : 'default';
+              return (
               <TableRow key={a.id}>
-                <TableCell sx={{ fontWeight: 600 }}>{a.name}</TableCell>
-                <TableCell>{a.email}</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{a.name}<br/><Typography variant="caption" sx={{ color: '#9CA3AF' }}>{a.email}</Typography></TableCell>
                 <TableCell><Chip label={a.role} size="small" /></TableCell>
                 <TableCell>
                   {a.territory_access?.map((ta) => (
                     <Chip key={ta.territory.id} label={`${ta.territory.name} (${ta.territory.level})`} size="small" onDelete={() => handleUnlink(a.id, ta.territory.id, ta.territory.name)} sx={{ mr: 0.5, mb: 0.5 }} />
                   ))}
                 </TableCell>
-                <TableCell><Chip label={a.is_active ? 'Ativo' : 'Inativo'} size="small" color={a.is_active ? 'success' : 'default'} /></TableCell>
-                <TableCell><Switch checked={a.is_active} onChange={() => handleToggle(a.id, a.is_active)} size="small" /></TableCell>
+                <TableCell>
+                  <Tooltip title="Ativa ou desativa somente o acesso desta conta ao painel. Não altera perfil operacional, contrato ou documentos.">
+                    <Switch checked={a.is_active} onChange={() => handleToggle(a.id, a.is_active)} size="small" />
+                  </Tooltip>
+                  <Chip label={a.is_active ? 'Ativa' : 'Inativa'} size="small" sx={{ ml: 0.5, fontSize: 10 }} color={a.is_active ? 'success' : 'default'} />
+                </TableCell>
+                <TableCell>
+                  {!op ? <Chip label="Não criado" size="small" sx={{ fontSize: 10, bgcolor: '#F3F4F6' }} />
+                    : op.is_active ? <Chip label="Operacional" size="small" color="success" sx={{ fontSize: 10 }} />
+                    : <Chip label="Inativo" size="small" sx={{ fontSize: 10, bgcolor: '#FEF3C7', color: '#92400E' }} />}
+                </TableCell>
+                <TableCell><Chip label={contractLabel} size="small" color={contractColor} sx={{ fontSize: 10 }} /></TableCell>
+                <TableCell>
+                  {!op ? '—'
+                    : op.document_status === 'verified' ? <Chip label="Verificados" size="small" color="success" sx={{ fontSize: 10 }} />
+                    : op.document_status === 'rejected' ? <Chip label="Rejeitados" size="small" color="error" sx={{ fontSize: 10 }} />
+                    : <Chip label="Pendentes" size="small" sx={{ fontSize: 10, bgcolor: '#FEF3C7', color: '#92400E' }} />}
+                </TableCell>
                 <TableCell>{['TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'].includes(a.role) && <Tooltip title="Redefinir senha"><IconButton size="small" onClick={() => { setResetTarget(a); setError(''); }} sx={{ color: '#6B7280' }}><LockReset sx={{ fontSize: 18 }} /></IconButton></Tooltip>}</TableCell>
               </TableRow>
-            ))}
-            {!admins.length && <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', color: '#6B7280', py: 4 }}>Nenhum operador territorial cadastrado</TableCell></TableRow>}
+              );
+            })}
+            {!admins.length && <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', color: '#6B7280', py: 4 }}>Nenhum operador territorial cadastrado</TableCell></TableRow>}
           </TableBody>
         </Table>
       </TableContainer>
