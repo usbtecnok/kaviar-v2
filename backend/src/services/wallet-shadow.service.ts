@@ -22,9 +22,10 @@ async function isShadowEnabled(): Promise<boolean> {
   if (cachedEnabled && Date.now() - cachedEnabled.fetchedAt < CACHE_TTL_MS) return cachedEnabled.value;
   let enabled = false;
   try {
-    const r = await pool.query(`SELECT value FROM feature_flags WHERE key = 'WALLET_SHADOW_MODE' LIMIT 1`);
-    enabled = r.rows[0]?.value === 'true';
-  } catch {
+    const r = await pool.query(`SELECT enabled FROM feature_flags WHERE key = 'WALLET_SHADOW_MODE' LIMIT 1`);
+    enabled = r.rows[0]?.enabled === true;
+  } catch (err) {
+    console.warn('[SHADOW_FLAG] DB query failed, using env fallback:', (err as Error).message?.slice(0, 80));
     enabled = process.env.WALLET_SHADOW_MODE === 'true';
   }
   cachedEnabled = { value: enabled, fetchedAt: Date.now() };

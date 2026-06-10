@@ -25,7 +25,7 @@ function setupMocks(opts: {
   } = opts;
 
   mockQuery.mockImplementation(async (sql: string) => {
-    if (sql.includes('feature_flags')) return { rows: [{ value: 'true' }] };
+    if (sql.includes('feature_flags')) return { rows: [{ enabled: true }] };
     if (sql.includes('platform_fee_configs'))
       return { rows: feeConfig ? [{ id: feeConfig.id, platform_fee_percent: feeConfig.pct }] : [] };
     if (sql.includes('rides_v2 r'))
@@ -99,7 +99,7 @@ describe('shadowCalculate', () => {
   it('does not execute when shadow disabled', async () => {
     process.env.WALLET_SHADOW_MODE = 'false';
     _resetCache();
-    mockQuery.mockResolvedValue({ rows: [{ value: 'false' }] });
+    mockQuery.mockResolvedValue({ rows: [{ enabled: false }] });
     await shadowCalculate({ rideId: 'r6', driverId: 'd1', finalPriceCents: 2000, waitChargeCents: 0, legacyCreditCost: 1 });
     const insert = mockQuery.mock.calls.find((c: any) => c[0].includes('wallet_shadow_results'));
     expect(insert).toBeUndefined();
@@ -124,7 +124,7 @@ describe('shadowCalculate', () => {
   it('handles DB error gracefully — persists error row', async () => {
     let callCount = 0;
     mockQuery.mockImplementation(async (sql: string) => {
-      if (sql.includes('feature_flags')) return { rows: [{ value: 'true' }] };
+      if (sql.includes('feature_flags')) return { rows: [{ enabled: true }] };
       if (sql.includes('platform_fee_configs')) {
         callCount++;
         if (callCount === 1) throw new Error('DB timeout');
@@ -136,5 +136,46 @@ describe('shadowCalculate', () => {
     await shadowCalculate({ rideId: 'r9', driverId: 'd1', finalPriceCents: 2000, waitChargeCents: 0, legacyCreditCost: 1 });
     const errInsert = mockQuery.mock.calls.find((c: any) => c[0].includes('INSERT INTO wallet_shadow') && c[1]?.[6] === 'CALCULATION_EXCEPTION');
     expect(errInsert).toBeDefined();
+  });
+
+  it('flag not in DB → uses env var fallback', async () => {
+    process.env.WALLET_SHADOW_MODE = 'true';
+    _resetCache();
+    mockQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('feature_flags')) throw new Error('column does not exist');
+      if (sql.includes('platform_fee_configs')) return { rows: [{ id: 'cfg-1', platform_fee_percent: 18 }] };
+      if (sql.includes('rides_v2 r')) return { rows: [{ territory_id: null, assignment_id: null, assignment_status: null, matrix_share_percent: null, regional_share_percent: null }] };
+      if (sql.includes('INSERT INTO wallet_shadow')) return { rows: [] };
+      return { rows: [] };
+    });
+    await shadowCalculate({ rideId: 'r10', driverId: 'd1', finalPriceCents: 2000, waitChargeCents: 0, legacyCreditCost: 1 });
+    const insert = mockQuery.mock.calls.find((c: any) => c[0].includes('INSERT INTO wallet_shadow'));
+    expect(insert).toBeDefined();
+  });
+
+  it('flag row missing → disabled', async () => {
+    process.env.WALLET_SHADOW_MODE = 'false';
+    _resetCache();
+    mockQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('feature_flags')) return { rows: [] };
+      return { rows: [] };
+    });
+    await shadowCalculate({ rideId: 'r11', driverId: 'd1', finalPriceCents: 2000, waitChargeCents: 0, legacyCreditCost: 1 });
+    const insert = mockQuery.mock.calls.find((c: any) => c[0].includes('wallet_shadow_results'));
+    expect(insert).toBeUndefined();
+  });
+
+  it('flag enabled=true in DB → shadow runs', async () => {
+    _resetCache();
+    mockQuery.mockImplementation(async (sql: string) => {
+      if (sql.includes('feature_flags')) return { rows: [{ enabled: true }] };
+      if (sql.includes('platform_fee_configs')) return { rows: [{ id: 'cfg-1', platform_fee_percent: 18 }] };
+      if (sql.includes('rides_v2 r')) return { rows: [{ territory_id: 'terr-1', assignment_id: 'a1', assignment_status: 'active', matrix_share_percent: 60, regional_share_percent: 40 }] };
+      if (sql.includes('INSERT INTO wallet_shadow')) return { rows: [] };
+      return { rows: [] };
+    });
+    await shadowCalculate({ rideId: 'r12', driverId: 'd1', finalPriceCents: 2000, waitChargeCents: 0, legacyCreditCost: 1 });
+    const insert = mockQuery.mock.calls.find((c: any) => c[0].includes('INSERT INTO wallet_shadow'));
+    expect(insert).toBeDefined();
   });
 });
