@@ -427,7 +427,7 @@ function AdminHome() {
       {/* Atalhos de Gerenciamento */}
       <Box sx={{ mb: 4 }}>
         {(() => {
-          const SECTION_COLORS = { 'Operação': '#D97706', 'Comercial': '#059669', 'Gestão': '#2563EB', 'Configuração': '#7C3AED' };
+          const SECTION_COLORS = { 'Operação': '#D97706', 'Pessoas e Território': '#2563EB', 'Comercial': '#059669', 'Financeiro': '#7C3AED', 'Governança e Estratégia': '#DC2626' };
           const sections = [
             { section: 'Operação', items: [
               { Icon: DirectionsCar, title: 'Corridas', desc: 'Gestão operacional de corridas', to: '/admin/rides' },
@@ -435,46 +435,54 @@ function AdminHome() {
               { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp' },
               { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
               { Icon: Paid, title: 'Compensações', desc: 'Apoio ao motorista em cancelamentos', to: '/admin/compensations' },
+              { Icon: Star, title: 'Avaliações', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
+              ...(isSuperAdmin ? [
+                { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem/destino, preço e ganho', to: '/admin/ride-simulator' },
+                { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e proteção', to: '/admin/emergency-events' },
+              ] : []),
+            ]},
+            { section: 'Pessoas e Território', items: [
+              { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
+              { Icon: People, title: 'Passageiros', desc: 'Gerenciar passageiros', to: '/admin/passengers' },
+              { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },
+              { Icon: Apartment, title: 'Comunidades', desc: 'Gestão de comunidades e ativação', to: '/admin/communities' },
+              { Icon: Map, title: 'Bairros', desc: 'Gestão de bairros administrativos', to: '/admin/neighborhoods' },
+              ...(isSuperAdmin ? [
+                { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
+                { Icon: Public, title: 'Territórios', desc: 'Gestão de territórios operacionais', to: '/admin/territories' },
+                { Icon: PersonAdd, title: 'Operadores Territoriais', desc: 'Gestão de operadores territoriais', to: '/admin/regional-admins' },
+              ] : []),
+              { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
             ]},
             { section: 'Comercial', items: [
               { Icon: Handshake, title: 'Interessados Consultor', desc: 'Leads, performance e equipe', to: '/admin/consultant-leads' },
-              { Icon: Apartment, title: 'Associações / Operadores', desc: 'Associações e lideranças locais', to: '/admin/local-operators' },
               { Icon: Handshake, title: 'Parceiros Territoriais', desc: 'Comissão por corridas de motoristas vinculados', to: '/admin/territorial-partners' },
               { Icon: Handshake, title: 'KAVIAR Particular', desc: 'Solicitações de motorista reservado', to: '/admin/private-rides' },
               { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
               { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
               { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages' },
               { Icon: Pets, title: 'KAVIAR Pet', desc: 'Central pet, homologações e operadores', to: '/admin/pet' },
-              { Icon: Description, title: 'Plano Gestor', desc: 'Documentos comerciais do gestor fundador', to: '/admin/comercial-gestor' },
               { Icon: Analytics, title: 'CRM KAVIAR', desc: 'Leads, prospecção e comércios locais', to: '/admin/crm' },
               { Icon: Storefront, title: 'Comércios', desc: 'Comércios locais ativos e catálogo', to: '/admin/commerce' },
             ]},
-            { section: 'Gestão', items: [
-              { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
-              { Icon: People, title: 'Passageiros', desc: 'Gerenciar passageiros', to: '/admin/passengers' },
-              { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },
-              { Icon: Star, title: 'Avaliações', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
-              { Icon: Apartment, title: 'Comunidades', desc: 'Gestão de comunidades e ativação', to: '/admin/communities' },
-            ]},
-            { section: 'Configuração', items: [
-              { Icon: Map, title: 'Bairros', desc: 'Gestão de bairros administrativos', to: '/admin/neighborhoods' },
-              { Icon: GridOn, title: 'Geofences', desc: 'Revisão e validação de geofences', to: '/admin/geofences' },
-              { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
+            { section: 'Financeiro', items: [
               ...(isSuperAdmin ? [
-                { Icon: Public, title: 'Territórios', desc: 'Gestão de territórios operacionais', to: '/admin/territories' },
-                { Icon: PersonAdd, title: 'Operadores Territoriais', desc: 'Gestão de operadores territoriais', to: '/admin/regional-admins' },
-                { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
-                { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
-              { Icon: Analytics, title: 'Pacote Investidores', desc: 'Material para investidores e anjos', to: '/admin/investidores' },
-                { Icon: Science, title: 'KAVIAR Lab', desc: 'Inteligência territorial · Score de Maturidade', to: '/admin/lab' },
                 { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais', to: '/admin/pricing' },
                 { Icon: Paid, title: 'Tabela Territorial', desc: 'Pisos mínimos por rota e território', to: '/admin/territory-floors' },
                 { Icon: Paid, title: 'Pacotes de Créditos', desc: 'Gerenciar pacotes de compra do motorista', to: '/admin/credit-packages' },
+                { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
                 { Icon: Paid, title: 'Retorno Familiar', desc: 'Programa de reconhecimento anual', to: '/admin/retorno-familiar' },
+              ] : []),
+            ]},
+            { section: 'Governança e Estratégia', items: [
+              ...(isSuperAdmin ? [
+                { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
+                { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
+                { Icon: Science, title: 'KAVIAR Lab', desc: 'Inteligência territorial · Score de Maturidade', to: '/admin/lab' },
                 { Icon: Person, title: 'Preferência por Motorista Mulher', desc: 'Participantes, consentimentos e auditoria', to: '/admin/women-preference' },
-                { Icon: Explore, title: 'Simulador de Corrida', desc: 'Teste origem/destino, preço e ganho', to: '/admin/ride-simulator' },
-                { Icon: Shield, title: 'Incidentes de Emergência', desc: 'Cofre de evidência e proteção', to: '/admin/emergency-events' },
                 { Icon: CardGiftcard, title: 'Convites Investidor/Anjo', desc: 'Enviar convites read-only', to: '/admin/investor-invites' },
+                { Icon: Analytics, title: 'Pacote Investidores', desc: 'Material para investidores e anjos', to: '/admin/investidores' },
+                { Icon: Description, title: 'Plano Gestor', desc: 'Documentos comerciais do gestor fundador', to: '/admin/comercial-gestor' },
               ] : []),
             ]},
           ];
@@ -483,7 +491,7 @@ function AdminHome() {
             <>
               <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
                 <TextField size="small" placeholder="Buscar módulo..." value={searchModules} onChange={e => setSearchModules(e.target.value)} sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: 2 } }} />
-                {['Todos', 'Operação', 'Comercial', 'Gestão', 'Configuração'].map(f => {
+                {['Todos', 'Operação', 'Pessoas e Território', 'Comercial', 'Financeiro', 'Governança e Estratégia'].map(f => {
                   const chipColor = SECTION_COLORS[f] || '#B8942E';
                   return <Chip key={f} label={f} size="small" onClick={() => setFilterSection(f)} sx={{ fontWeight: 600, bgcolor: filterSection === f ? chipColor : '#fff', color: filterSection === f ? '#fff' : chipColor, border: `1px solid ${chipColor}${filterSection === f ? '' : '40'}`, cursor: 'pointer', '&:hover': { bgcolor: filterSection === f ? chipColor : `${chipColor}10` } }} />;
                 })}
