@@ -5,6 +5,101 @@ import { API_BASE_URL } from '../../config/api';
 const RECIPIENT_LABELS = { individual: 'Pessoa Física', company: 'Pessoa Jurídica', association: 'Associação' };
 const STATUS_COLORS = { calculated: '#D97706', requested: '#8B5CF6', approved: '#2563EB', paid: '#059669', received: '#047857', canceled: '#DC2626', pending: '#6B7280', verified: '#059669', rejected: '#DC2626' };
 
+function ContractsQueue({ token, headers }) {
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rejectId, setRejectId] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [processing, setProcessing] = useState(false);
+
+  const fetchQueue = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/contracts-queue`, { headers });
+      const data = await res.json();
+      if (data.success) setQueue(data.data || []);
+    } catch {} finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchQueue(); }, []);
+
+  const handleOpenPdf = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/submissions/${id}/url`, { headers });
+      const data = await res.json();
+      if (data.success && data.data?.url) window.open(data.data.url, '_blank');
+      else alert('PDF não disponível.');
+    } catch { alert('Erro ao abrir PDF.'); }
+  };
+
+  const handleApprove = async (id) => {
+    if (!confirm('Confirma a aprovação deste contrato?')) return;
+    setProcessing(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/submissions/${id}/review`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve' }) });
+      const data = await res.json();
+      if (data.success) { alert('Contrato aprovado.'); fetchQueue(); }
+      else alert(data.error || 'Erro ao aprovar.');
+    } catch { alert('Erro de conexão.'); } finally { setProcessing(false); }
+  };
+
+  const handleReject = async () => {
+    if (rejectReason.trim().length < 3) { alert('Motivo obrigatório (mínimo 3 caracteres).'); return; }
+    setProcessing(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/submissions/${rejectId}/review`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', rejection_reason: rejectReason }) });
+      const data = await res.json();
+      if (data.success) { alert('Contrato rejeitado.'); setRejectId(null); setRejectReason(''); fetchQueue(); }
+      else alert(data.error || 'Erro ao rejeitar.');
+    } catch { alert('Erro de conexão.'); } finally { setProcessing(false); }
+  };
+
+  if (loading) return <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress sx={{ color: '#B8942E' }} /></Box>;
+
+  return (
+    <Box>
+      {queue.length === 0 ? (
+        <Alert severity="info" sx={{ bgcolor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.2)' }}>Nenhum contrato pendente de revisão.</Alert>
+      ) : (
+        <TableContainer component={Paper} sx={{ border: '1px solid #E8E5DE' }}>
+          <Table size="small">
+            <TableHead><TableRow sx={{ bgcolor: '#FAFAF8' }}>
+              <TableCell sx={{ fontWeight: 700 }}>Operador</TableCell><TableCell>Território</TableCell><TableCell>Status</TableCell><TableCell>Enviado em</TableCell><TableCell>Ações</TableCell>
+            </TableRow></TableHead>
+            <TableBody>
+              {queue.map(s => (
+                <TableRow key={s.id}>
+                  <TableCell sx={{ fontWeight: 600 }}>{s.operator_name}</TableCell>
+                  <TableCell>{s.territory}</TableCell>
+                  <TableCell><Chip label={s.status} size="small" color={s.status === 'submitted' ? 'warning' : 'info'} /></TableCell>
+                  <TableCell>{new Date(s.submitted_at).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell sx={{ display: 'flex', gap: 0.5 }}>
+                    <Button size="small" onClick={() => handleOpenPdf(s.id)} sx={{ color: '#3B82F6' }}>Abrir PDF</Button>
+                    <Button size="small" onClick={() => handleApprove(s.id)} disabled={processing} sx={{ color: '#059669' }}>Aprovar</Button>
+                    <Button size="small" onClick={() => { setRejectId(s.id); setRejectReason(''); }} sx={{ color: '#DC2626' }}>Rejeitar</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {/* Dialog de rejeição */}
+      <Dialog open={!!rejectId} onClose={() => setRejectId(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
+        <DialogTitle sx={{ color: '#DC2626', fontWeight: 700 }}>Rejeitar contrato</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 2 }}>Informe o motivo da rejeição. O operador poderá enviar novamente após correção.</Typography>
+          <TextField fullWidth multiline rows={3} value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Motivo da rejeição (obrigatório)..." InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB', '& fieldset': { borderColor: 'rgba(220,38,38,0.3)' } } }} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setRejectId(null)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
+          <Button onClick={handleReject} disabled={processing || rejectReason.trim().length < 3} variant="contained" sx={{ bgcolor: '#DC2626', '&:hover': { bgcolor: '#B91C1C' } }}>{processing ? 'Rejeitando...' : 'Confirmar rejeição'}</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
 export default function TerritorialPayoutsPage() {
   const [tab, setTab] = useState(0);
   const [operators, setOperators] = useState([]);
@@ -218,6 +313,7 @@ export default function TerritorialPayoutsPage() {
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 3, '& .MuiTab-root': { fontWeight: 600, color: '#9CA3AF' }, '& .Mui-selected': { color: '#C8A84E !important' }, '& .MuiTabs-indicator': { bgcolor: '#B8942E' } }}>
         <Tab label={`Gestores/Operadores (${operators.length})`} />
         <Tab label={`Repasses (${payouts.length})`} />
+        <Tab label="Contratos pendentes" />
       </Tabs>
 
       {tab === 0 && (
@@ -283,6 +379,13 @@ export default function TerritorialPayoutsPage() {
               </TableBody>
             </Table>
           </TableContainer>
+        </Box>
+      )}
+
+      {/* Aba Contratos pendentes */}
+      {tab === 2 && (
+        <Box>
+          <ContractsQueue token={token} headers={headers} />
         </Box>
       )}
 
