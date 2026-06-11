@@ -16,7 +16,7 @@ import { useFocusEffect } from 'expo-router';
 import { driverApi } from '../api/driver.api';
 
 const GOLD = '#B8942E';
-const DISCLAIMER = 'O Retorno Familiar KAVIAR é um programa voluntário de reconhecimento, sujeito a regras vigentes, disponibilidade financeira e aprovação administrativa. Não constitui salário, comissão, 13º, obrigação automática ou direito adquirido.';
+const DISCLAIMER = 'O Retorno Familiar KAVIAR é um programa em planejamento. As regras de bônus serão divulgadas conforme política vigente da KAVIAR. Não constitui salário, comissão, obrigação automática ou direito adquirido.';
 
 interface RetornoFamiliarData {
   available: boolean;
@@ -163,7 +163,7 @@ export default function RetornoFamiliarCard() {
       {summary && policy && (
         <View style={s.summaryBox}>
           <View style={s.summaryRow}>
-            <Text style={s.summaryLabel}>Créditos pagos no ano</Text>
+            <Text style={s.summaryLabel}>Uso da plataforma no ano</Text>
             <Text style={s.summaryValue}>{fmt(summary.total_paid_cents)}</Text>
           </View>
           <View style={s.summaryRow}>
