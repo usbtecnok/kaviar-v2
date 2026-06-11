@@ -469,7 +469,7 @@ function AdminHome() {
               ...(isSuperAdmin ? [
                 { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais', to: '/admin/pricing' },
                 { Icon: Paid, title: 'Tabela Territorial', desc: 'Pisos mínimos por rota e território', to: '/admin/territory-floors' },
-                { Icon: Paid, title: 'Pacotes de Créditos', desc: 'Gerenciar pacotes de compra do motorista', to: '/admin/credit-packages' },
+                { Icon: Paid, title: 'Pacotes de Saldo', desc: 'Gerenciar pacotes de recarga do motorista', to: '/admin/credit-packages' },
                 { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
                 { Icon: Paid, title: 'Retorno Familiar', desc: 'Programa de reconhecimento anual', to: '/admin/retorno-familiar' },
               ] : []),
