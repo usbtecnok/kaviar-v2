@@ -582,4 +582,45 @@ router.patch('/submissions/:id/review', async (req: Request, res: Response) => {
   }
 });
 
+// GET /operators/:id/contract-data — Diagnóstico de dados para geração de contrato (SUPER_ADMIN)
+router.get('/operators/:id/contract-data', async (req: Request, res: Response) => {
+  try {
+    const operator = await prisma.operator_profiles.findUnique({
+      where: { id: req.params.id },
+      include: { admin: { select: { name: true, email: true, phone: true } }, territory: { select: { name: true, city_name: true, uf: true } } },
+    });
+    if (!operator) return res.status(404).json({ success: false, error: 'Operador não encontrado' });
+
+    const nome = operator.display_name || operator.admin.name;
+    const email = operator.admin.email;
+    const telefone = operator.phone || operator.admin.phone || null;
+    const cpf = operator.document_cpf || null;
+    const endereco = operator.address || null;
+    const territorio = operator.territory?.name || null;
+    const cidadeUf = operator.territory?.city_name && operator.territory?.uf ? `${operator.territory.city_name}/${operator.territory.uf}` : null;
+    const pixKey = operator.pix_key || null;
+
+    const missingFields: string[] = [];
+    if (!cpf) missingFields.push('cpf');
+    if (!endereco) missingFields.push('endereco');
+    if (!telefone) missingFields.push('telefone');
+    if (!territorio) missingFields.push('territorio');
+    if (!cidadeUf) missingFields.push('cidadeUf');
+
+    const canGenerateContract = missingFields.length === 0;
+
+    res.json({
+      success: true,
+      data: {
+        canGenerateContract,
+        missingFields,
+        availableFields: { nome, email, telefone, cpf, endereco, territorio, cidadeUf, pixKey },
+        warnings: { pixMissing: !pixKey, pixNote: !pixKey ? 'Pix não é obrigatório para geração do contrato, mas é necessário para ativação e repasses.' : null },
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao buscar dados para contrato' });
+  }
+});
+
 export default router;

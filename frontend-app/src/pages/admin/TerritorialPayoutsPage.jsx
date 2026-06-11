@@ -5,6 +5,63 @@ import { API_BASE_URL } from '../../config/api';
 const RECIPIENT_LABELS = { individual: 'Pessoa Física', company: 'Pessoa Jurídica', association: 'Associação' };
 const STATUS_COLORS = { calculated: '#D97706', requested: '#8B5CF6', approved: '#2563EB', paid: '#059669', received: '#047857', canceled: '#DC2626', pending: '#6B7280', verified: '#059669', rejected: '#DC2626' };
 
+function ContractDataDiagnostic({ operatorId, token, headers }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!operatorId) return;
+    setLoading(true);
+    fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${operatorId}/contract-data`, { headers })
+      .then(r => r.json())
+      .then(d => { if (d.success) setData(d.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [operatorId]);
+
+  if (!operatorId || loading) return null;
+  if (!data) return null;
+
+  const { canGenerateContract, missingFields, availableFields, warnings } = data;
+  const fields = [
+    { key: 'nome', label: 'Nome' },
+    { key: 'email', label: 'E-mail' },
+    { key: 'telefone', label: 'Telefone' },
+    { key: 'cpf', label: 'CPF' },
+    { key: 'endereco', label: 'Endereço' },
+    { key: 'territorio', label: 'Território' },
+    { key: 'cidadeUf', label: 'Cidade/UF' },
+  ];
+
+  return (
+    <Box sx={{ mt: 2, p: 1.5, border: '1px solid #333', borderRadius: 1, bgcolor: '#12131a' }}>
+      <Typography variant="caption" sx={{ color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700, display: 'block', mb: 1 }}>Dados para contrato</Typography>
+      {fields.map(f => (
+        <Box key={f.key} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.3 }}>
+          <Typography sx={{ fontSize: 11, width: 14 }}>{availableFields[f.key] ? '✅' : '❌'}</Typography>
+          <Typography sx={{ fontSize: 11, color: availableFields[f.key] ? '#E5E7EB' : '#EF4444', minWidth: 70 }}>{f.label}:</Typography>
+          <Typography sx={{ fontSize: 11, color: '#9CA3AF' }}>{availableFields[f.key] || 'não cadastrado'}</Typography>
+        </Box>
+      ))}
+      {warnings?.pixMissing && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.3 }}>
+          <Typography sx={{ fontSize: 11, width: 14 }}>⚠️</Typography>
+          <Typography sx={{ fontSize: 11, color: '#F59E0B' }}>Pix: não cadastrado (necessário para repasses)</Typography>
+        </Box>
+      )}
+      <Box sx={{ mt: 1 }}>
+        {canGenerateContract ? (
+          <Chip label="Dados suficientes para gerar contrato" size="small" sx={{ bgcolor: 'rgba(16,185,129,0.1)', color: '#10B981', fontSize: 10 }} />
+        ) : (
+          <Alert severity="warning" sx={{ py: 0, '& .MuiAlert-message': { fontSize: 10 } }}>
+            Não é possível gerar contrato. Campos faltantes: {missingFields.join(', ')}
+          </Alert>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 function ContractsQueue({ token, headers }) {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -577,6 +634,9 @@ export default function TerritorialPayoutsPage() {
               {detailTarget.notes && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Notas</Typography><Typography variant="body2">{detailTarget.notes}</Typography></Box>}
             </Box>
           )}
+
+          {/* Dados para contrato */}
+          <ContractDataDiagnostic operatorId={detailTarget?.id} token={token} headers={headers} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => { setContractTarget(detailTarget); setContractForm({ contract_url: detailTarget?.contract_url || '', contract_signed_at: detailTarget?.contract_signed_at ? detailTarget.contract_signed_at.slice(0, 10) : '', contract_status: detailTarget?.contract_status || 'pending', notes: '' }); setContractOpen(true); }} sx={{ color: '#C8A84E' }}>Registrar Contrato</Button>
