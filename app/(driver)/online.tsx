@@ -67,7 +67,7 @@ export default function DriverOnline() {
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
     { key: 'summary', label: 'Resumo', icon: 'stats-chart-outline', onPress: () => router.push('/(driver)/summary') },
     { key: 'history', label: 'Histórico de corridas', icon: 'time-outline', onPress: () => router.push('/(driver)/history') },
-    { key: 'credits', label: 'Créditos', icon: 'wallet-outline', onPress: () => router.push('/(driver)/credits') },
+    { key: 'credits', label: 'Saldo', icon: 'wallet-outline', onPress: () => router.push('/(driver)/credits') },
     { key: 'documents', label: 'Documentos', icon: 'document-text-outline', onPress: () => router.push('/(driver)/documents') },
     { key: 'refer', label: 'Indique um motorista', icon: 'people-outline', onPress: () => router.push('/(driver)/refer-driver') },
     { key: 'help', label: 'Ajuda', icon: 'help-circle-outline', onPress: () => router.push('/(driver)/help') },
@@ -412,7 +412,7 @@ export default function DriverOnline() {
             <TouchableOpacity style={[styles.creditBadge, creditBalance < 5 && styles.creditBadgeLow]} onPress={() => router.push('/(driver)/credits')}>
               <Ionicons name="wallet-outline" size={14} color={creditBalance < 5 ? '#fff' : COLORS.primary} />
               <Text style={[styles.creditText, creditBalance < 5 && { color: '#fff' }]}>
-                {creditBalance} crédito{creditBalance !== 1 ? 's' : ''}
+                R$ {creditBalance != null ? Number(creditBalance).toFixed(2) : '—'}
               </Text>
             </TouchableOpacity>
           )}
@@ -435,7 +435,7 @@ export default function DriverOnline() {
       {noCredits && (
         <TouchableOpacity style={[styles.banner, { backgroundColor: '#fde8e8' }]} onPress={() => router.push('/(driver)/credits')}>
           <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
-          <Text style={[styles.bannerText, { color: COLORS.danger }]}>Sem créditos. Você não receberá corridas. <Text style={{ fontWeight: '700' }}>Comprar</Text></Text>
+          <Text style={[styles.bannerText, { color: COLORS.danger }]}>Sem saldo. Você não receberá corridas. <Text style={{ fontWeight: '700' }}>Recarregar</Text></Text>
         </TouchableOpacity>
       )}
       {lowCredits && (
@@ -479,7 +479,7 @@ export default function DriverOnline() {
             <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/credits')}>
               <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
               <Text style={styles.quickStatValue}>{creditBalance ?? '—'}</Text>
-              <Text style={styles.quickStatLabel}>Créditos</Text>
+              <Text style={styles.quickStatLabel}>Saldo</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/help')}>
               <Ionicons name="help-circle-outline" size={20} color={COLORS.textSecondary} />

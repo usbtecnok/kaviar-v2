@@ -56,7 +56,7 @@ export const driverApi = {
   sendRideLocation: (rideId: string, lat: number, lng: number) =>
     apiClient.post(`/api/v2/rides/${rideId}/location`, { lat, lng }),
 
-  // v2: Créditos
+  // v2: Saldo
   getCredits: async (): Promise<{ balance: number }> => {
     const { data } = await apiClient.get('/api/v2/drivers/me/credits');
     return data.data;

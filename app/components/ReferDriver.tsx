@@ -107,7 +107,7 @@ export default function ReferDriver() {
           <Text style={s.successTitle}>Indicação enviada!</Text>
           <Text style={s.successText}>A equipe KAVIAR entrará em contato com a pessoa indicada.</Text>
           {isConsultant ? (
-            <Text style={s.successHint}>Quando o motorista for aprovado, adquirir créditos e concluir a primeira corrida, a recompensa será processada conforme as regras do programa de consultores.</Text>
+            <Text style={s.successHint}>Quando o motorista for aprovado e iniciar operação regular na plataforma, a recompensa será processada conforme as regras do programa de consultores.</Text>
           ) : (
             <Text style={s.successHint}>Obrigado por ajudar o KAVIAR a crescer na sua região!</Text>
           )}

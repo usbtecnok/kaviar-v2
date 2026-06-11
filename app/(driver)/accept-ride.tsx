@@ -174,7 +174,7 @@ export default function AcceptRide() {
               </Text>
             ) : null}
             <Text style={[s.badgeSub, { color: '#e65100', fontWeight: '700', marginTop: 4 }]}>
-              Consome 2 créditos
+              Taxa 18% sobre o valor
             </Text>
             {(ride?.trip_details as any)?.post_wait_destination && (
               <View style={{ backgroundColor: '#1a1a0a', borderRadius: 6, borderWidth: 1, borderColor: '#C8A84E', paddingVertical: 6, paddingHorizontal: 10, marginTop: 6, alignSelf: 'flex-start' }}>
@@ -211,8 +211,8 @@ export default function AcceptRide() {
               <Text style={{ color: COLORS.textPrimary, fontSize: 12, fontWeight: '700' }}>R$ {quotedPrice.toFixed(2)}</Text>
             </View>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-              <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>Crédito estimado</Text>
-              <Text style={{ color: COLORS.textPrimary, fontSize: 12 }}>{creditEstimated} crédito{creditEstimated > 1 ? 's' : ''} · R$ {creditValue.toFixed(2)}</Text>
+              <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>Taxa estimada</Text>
+              <Text style={{ color: COLORS.textPrimary, fontSize: 12 }}>18% · R$ {creditValue.toFixed(2)}</Text>
             </View>
             {passengersExtra > 0 && (
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>

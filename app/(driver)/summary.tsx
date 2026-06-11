@@ -99,9 +99,9 @@ export default function DriverSummary() {
 
           {/* Credits */}
           <View style={s.card}>
-            <Text style={s.cardTitle}>Créditos</Text>
-            <Row label="Consumidos no período" value={String(data.credits.consumed)} />
-            <Row label="Saldo atual" value={String(data.credits.balance)} color={COLORS.primary} bold />
+            <Text style={s.cardTitle}>Saldo</Text>
+            <Row label="Taxa no período" value={`R$ ${Number(data.credits.consumed).toFixed(2)}`} />
+            <Row label="Saldo atual" value={`R$ ${Number(data.credits.balance).toFixed(2)}`} color={COLORS.primary} bold />
           </View>
 
           {/* Territory */}
