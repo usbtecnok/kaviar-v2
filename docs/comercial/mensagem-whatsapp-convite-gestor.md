@@ -14,7 +14,7 @@ Funciona assim:
 • Ciclo: 90 dias
 • Território: 1 bairro/comunidade
 • Você capta motoristas e parceiros pelo painel
-• Base potencial de apuração: até 80% do resultado líquido apurado, conforme contrato e validação da central
+• Base potencial de apuração: 40% da taxa operacional da plataforma (18% do valor da corrida), conforme contrato e validação da central
 
 Não é franquia, não é compra de sistema. É uma autorização operacional de parceria.
 
@@ -37,7 +37,7 @@ Resumo rápido:
 ✅ 90 dias de ciclo inicial
 ✅ Você atua como apoio territorial no seu bairro pelo painel
 ✅ Indica motoristas, parceiros, Pet
-✅ Até 80% do resultado líquido apurado pode compor sua base potencial de repasse, conforme contrato e validação da central
+✅ 40% da taxa operacional da plataforma pode compor sua base potencial de repasse, conforme contrato e validação da central
 ✅ KAVIAR cuida da tecnologia, pagamentos e aprovações
 
 Quer que eu te mande a proposta completa?
@@ -76,7 +76,7 @@ Os pontos principais:
 • R$ 497 pra começar
 • Atua como apoio territorial no seu bairro
 • Capta motoristas e parceiros
-• Até 80% do resultado líquido apurado pode compor a base potencial de repasse
+• 40% da taxa operacional da plataforma pode compor a base potencial de repasse
 • Sem vínculo empregatício, sem franquia
 
 Me avisa se quiser seguir!

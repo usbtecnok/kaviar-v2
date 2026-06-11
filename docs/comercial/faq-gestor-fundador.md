@@ -26,11 +26,36 @@ Taxa de ativação única de **R$ 497,00**. Essa taxa cobre o setup do territór
 
 ---
 
-## Como funciona a retenção de 20%?
+## Como funciona a taxa da plataforma?
 
-A KAVIAR/USB Tecnok retém 20% do resultado líquido operacional apurado no seu território. Isso cobre toda a infraestrutura: plataforma, servidores, APIs de mapa e pagamento, WhatsApp, compliance e suporte central. Você não paga mensalidade de software.
+A Plataforma KAVIAR retém uma taxa operacional de 18% sobre o valor da corrida realizada no território.
 
-Até 80% do resultado líquido operacional apurado pode formar a base potencial de repasse ao gestor, após deduções aplicáveis, comissões de parceiros locais, custos operacionais documentados, apuração, contrato vigente e validação da central.
+Essa taxa cobre a infraestrutura tecnológica, servidores, APIs, WhatsApp, suporte central, compliance, manutenção da plataforma e operação administrativa da USB TECNOK/KAVIAR.
+
+O motorista não paga mais uma cobrança fixa de 1 ou 2 créditos por corrida. O modelo passa a considerar uma taxa proporcional ao valor da corrida.
+
+---
+
+## Como funciona o repasse ao gestor territorial?
+
+Do valor da taxa operacional da plataforma, o gestor territorial participa da base de repasse conforme regra vigente.
+
+A composição atual é:
+
+- 60% da taxa operacional fica com a matriz KAVIAR/USB TECNOK
+- 40% da taxa operacional forma a base de apuração do gestor territorial
+
+**Exemplo:**
+
+Corrida de R$ 50,00
+Taxa operacional KAVIAR de 18%: R$ 9,00
+
+Distribuição da taxa:
+
+- Matriz KAVIAR/USB TECNOK: R$ 5,40
+- Base do gestor territorial: R$ 3,60
+
+Os valores finais dependem de apuração mensal, contrato vigente, deduções aplicáveis, comissões de parceiros, custos documentados, validação da central e regras financeiras em vigor.
 
 ---
 
@@ -68,7 +93,7 @@ O KAVIAR Pet está em fase piloto assistida. Tutores solicitam corrida com anima
 
 ## Como funciona a indicação de motorista?
 
-Você recebe um link pessoal de captação. Quando um motorista se cadastra pelo seu link, a indicação é registrada. Se o motorista for aprovado, estiver ativo e realizar a primeira compra de crédito registrada, pode haver bônus de indicação conforme política vigente, contrato aplicável e aprovação da central. O bônus não é automático e depende de apuração.
+Você recebe um link pessoal de captação. Quando um motorista se cadastra pelo seu link, a indicação é registrada. Se o motorista for aprovado, estiver ativo e iniciar operação regular na plataforma, poderá haver bônus de indicação conforme política vigente, contrato aplicável e aprovação da central. O bônus não é automático e depende de apuração.
 
 ---
 
