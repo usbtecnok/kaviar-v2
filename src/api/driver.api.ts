@@ -77,6 +77,32 @@ export const driverApi = {
     return data.data || [];
   },
 
+  // Wallet V2
+  getWallet: async (): Promise<{ balance_cents: number; reserved_cents: number; available_cents: number; balance_display: string }> => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/wallet');
+    return data.data;
+  },
+
+  getWalletPackages: async (): Promise<{ id: string; label: string; amount_cents: number }[]> => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/wallet/packages');
+    return data.data || [];
+  },
+
+  getWalletLedger: async (limit = 20, offset = 0): Promise<{ entries: any[]; total: number; limit: number; offset: number }> => {
+    const { data } = await apiClient.get(`/api/v2/drivers/me/wallet/ledger?limit=${limit}&offset=${offset}`);
+    return data.data;
+  },
+
+  getWalletRecharge: async (id: string): Promise<{ id: string; amount_cents: number; status: string; created_at: string; confirmed_at: string | null }> => {
+    const { data } = await apiClient.get(`/api/v2/drivers/me/wallet/recharges/${id}`);
+    return data.data;
+  },
+
+  createWalletRecharge: async (packageId: string): Promise<{ rechargeId: string; amount_cents: number; pix: { qrCode: string; copyPaste: string; expiresAt: string } }> => {
+    const { data } = await apiClient.post('/api/v2/drivers/me/wallet/recharge', { package_id: packageId });
+    return data.data;
+  },
+
   // v2: Resumo financeiro
   getFinancialSummary: async (period: 'today' | '7d' | '30d' = '30d') => {
     const { data } = await apiClient.get(`/api/v2/drivers/me/financial-summary?period=${period}`);
