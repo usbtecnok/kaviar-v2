@@ -17,6 +17,7 @@ import smtrRio from '../../../../docs/regulatorio/rio-de-janeiro-smtr-credenciam
 import contratoGestor from '../../../../docs/contrato-gestor-territorial-v1.md?raw';
 import contratoComercio from '../../../../docs/contrato-comercio-parceiro-local-v1.md?raw';
 import contratoHotel from '../../../../docs/contrato-hotel-pousada-parceira-kaviar-v1.md?raw';
+import contratoPet from '../../../../docs/contrato-parceiro-kaviar-pet-v1.md?raw';
 
 const DOCUMENTS = [
   { name: 'Termos de Uso — Passageiro', version: 'v1.0', date: 'Maio/2026', status: 'Minuta interna', note: 'Cobre responsabilidades, limitações, operação territorial e privacidade.', content: termosPassageiro },
@@ -34,6 +35,7 @@ const DOCUMENTS = [
   { name: 'Contrato — Gestor Territorial', version: 'v1.0', date: 'Jun/2026', status: 'Aprovado', note: 'Contrato jurídico operacional entre USB TECNOK e Gestor Territorial da Plataforma KAVIAR.', content: contratoGestor },
   { name: 'Contrato — Comércio Parceiro Local', version: 'v1.0', date: 'Jun/2026', status: 'Minuta interna', note: 'Contrato de parceria comercial entre USB TECNOK/KAVIAR e comércio parceiro local.', content: contratoComercio },
   { name: 'Contrato — Hotel/Pousada Parceira KAVIAR', version: 'v1.0', date: 'Jun/2026', status: 'Minuta interna', note: 'Contrato de parceria operacional e comercial para atendimento de hóspedes, transfers, passeios e combos turísticos pela Plataforma KAVIAR.', content: contratoHotel },
+  { name: 'Contrato — Parceiro KAVIAR Pet', version: 'v1.0', date: 'Jun/2026', status: 'Minuta interna', note: 'Contrato de parceria para serviços, atendimento, transporte e benefícios relacionados ao ecossistema KAVIAR Pet.', content: contratoPet },
 ];
 
 export default function LegalCompliancePage() {
