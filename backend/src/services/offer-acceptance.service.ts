@@ -3,6 +3,14 @@ import { prisma } from '../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { realTimeService } from './realtime.service';
 import * as pricingEngine from './pricing-engine';
+import { isWalletV2Enabled } from '../routes/driver-wallet-v2';
+import { WalletSettlementService } from './wallet-v2/wallet-settlement.service';
+import { WalletService } from './wallet-v2/wallet.service';
+import { FeeSplitService } from './wallet-v2/fee-split.service';
+import { TerritoryLedgerService } from './wallet-v2/territory-ledger.service';
+import { PendingDebitService } from './wallet-v2/pending-debit.service';
+import { pool } from '../db';
+import { estimateFeeCentsFromPrice } from './wallet-v2/fee-helper';
 
 const ADJUSTMENT_MIN_PASSENGER_VERSION = '1.4.0';
 
@@ -96,6 +104,29 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
   });
 
   const { ride, adjustmentStatus, rideStatus } = result;
+
+  // Wallet V2: reserve estimated fee on accept
+  if (rideStatus === 'accepted' && await isWalletV2Enabled()) {
+    try {
+      const price = Number(ride.quoted_price || ride.locked_price || 0);
+      const estimatedFee = estimateFeeCentsFromPrice(price);
+      if (estimatedFee > 0) {
+        const walletSvc = new WalletService(pool);
+        const feeSplitSvc = new FeeSplitService(pool);
+        const ledgerSvc = new TerritoryLedgerService(pool);
+        const pendingSvc = new PendingDebitService(pool);
+        const settlement = new WalletSettlementService(walletSvc, feeSplitSvc, ledgerSvc, pendingSvc);
+        await settlement.handleReserve(ride.id, driverId, BigInt(estimatedFee));
+      }
+    } catch (reserveErr: any) {
+      if (reserveErr.message === 'INSUFFICIENT_BALANCE') {
+        console.warn(`[WALLET_V2_RESERVE_FAIL] ride=${ride.id} driver=${driverId} reason=insufficient_balance`);
+        // Note: gate should have prevented this, but log for safety
+      } else {
+        console.error(`[WALLET_V2_RESERVE_ERROR] ride=${ride.id}`, reserveErr.message);
+      }
+    }
+  }
 
   // SSE: notify passenger
   if (rideStatus === 'pending_adjustment') {
