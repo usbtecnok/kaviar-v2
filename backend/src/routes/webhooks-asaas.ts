@@ -114,6 +114,28 @@ router.post('/asaas', async (req: Request, res: Response) => {
       return res.status(200).json({ received: true });
     }
 
+    // ── Wallet V2 recharge flow ──
+    const walletRecharge = await pool.query(
+      "SELECT * FROM wallet_recharges WHERE external_id = $1 AND payment_provider = 'asaas'",
+      [paymentId]
+    );
+    if (walletRecharge.rows[0]) {
+      const wr = walletRecharge.rows[0];
+      if (wr.status === 'confirmed') {
+        console.log(`[ASAAS_WEBHOOK_V2] Already confirmed: ${paymentId}`);
+        if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'duplicate', processed_at = NOW() WHERE id = $1", [eventId]);
+        return res.status(200).json({ received: true });
+      }
+      await pool.query("UPDATE wallet_recharges SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW() WHERE id = $1", [wr.id]);
+      const { WalletService } = require('../services/wallet-v2/wallet.service');
+      const walletSvc = new WalletService(pool);
+      await walletSvc.ensureWallet(wr.driver_id);
+      await walletSvc.creditRecharge(wr.driver_id, BigInt(wr.amount_cents), wr.id);
+      console.log(`[ASAAS_WEBHOOK_V2] Recharge confirmed id=${wr.id} driver=${wr.driver_id} amount=${wr.amount_cents}`);
+      if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'processed', processed_at = NOW() WHERE id = $1", [eventId]);
+      return res.status(200).json({ received: true });
+    }
+
     // ── Credit purchase flow ──
     // Find purchase
     const purchase = await pool.query(
