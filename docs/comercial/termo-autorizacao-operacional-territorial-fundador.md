@@ -4,7 +4,7 @@
 
 ## 1. PARTES
 
-**AUTORIZANTE:** USB Tecnok Manutenção e Instalação de Computadores Ltda, inscrita no CNPJ 07.710.691/0001-66, proprietária do produto e plataforma KAVIAR ("KAVIAR" ou "Central").
+**AUTORIZANTE:** USB TECNOK Manutenção e Instalação de Computadores Ltda, inscrita no CNPJ 07.710.691/0001-66, proprietária do produto e plataforma KAVIAR ("KAVIAR" ou "Central").
 
 **AUTORIZADO:** Pessoa física ou jurídica identificada no aceite digital deste termo ("Gestor" ou "Parceiro Operacional Territorial").
 
@@ -63,13 +63,17 @@ O território ("Bairro") é uma área de atuação preferencial definida pela KA
 ## 7. RESULTADO OPERACIONAL E REPASSE
 
 ### 7.1 Apuração
-O resultado líquido operacional do território será apurado mensalmente pela central KAVIAR, com base nas corridas concluídas, taxas cobradas e deduções aplicáveis.
+O resultado operacional do território será apurado mensalmente pela central KAVIAR, com base nas corridas concluídas e na taxa operacional da plataforma.
 
-### 7.2 Retenção KAVIAR
-20% (vinte por cento) do resultado líquido operacional apurado, referente a manutenção da plataforma, infraestrutura tecnológica, APIs de terceiros, compliance, suporte operacional e custos centrais.
+### 7.2 Taxa operacional KAVIAR
+A Plataforma KAVIAR retém uma taxa operacional de 18% (dezoito por cento) sobre o valor das corridas realizadas no território. Essa taxa cobre infraestrutura tecnológica, APIs de terceiros, compliance, suporte operacional e custos centrais.
+
+Da taxa operacional apurada:
+- 60% (sessenta por cento) ficam com a matriz KAVIAR/USB TECNOK;
+- 40% (quarenta por cento) formam a base de apuração do gestor territorial.
 
 ### 7.3 Base de repasse ao Gestor
-Até 80% (oitenta por cento) do resultado líquido operacional apurado poderá compor a base potencial de repasse ao Gestor, após dedução de comissões de parceiros locais vinculados, custos operacionais locais documentados, pendências, ajustes, contestações e validação da central KAVIAR/USB Tecnok.
+Até 40% (quarenta por cento) da taxa operacional apurada poderá compor a base potencial de repasse ao Gestor, após dedução de comissões de parceiros locais vinculados, custos operacionais locais documentados, pendências, ajustes, contestações e validação da central KAVIAR/USB TECNOK.
 
 ### 7.4 Condições do repasse
 O repasse ao Gestor:
@@ -103,7 +107,7 @@ Os valores exibidos no painel do Gestor são informativos e estimados até forma
 
 O Gestor NÃO pode:
 
-- Se apresentar como sócio, dono, funcionário, franqueado ou procurador da USB Tecnok/KAVIAR;
+- Se apresentar como sócio, dono, funcionário, franqueado ou procurador da USB TECNOK/KAVIAR;
 - Cobrar valores em nome do KAVIAR sem autorização formal por escrito;
 - Prometer aprovação de motoristas, passageiros, parceiros ou comércios;
 - Prometer valores específicos de repasse a terceiros ou a si mesmo;
@@ -111,20 +115,20 @@ O Gestor NÃO pode:
 - Acessar ou solicitar dados fora do território vinculado;
 - Sublicenciar, revender ou transferir esta autorização a terceiros;
 - Usar a marca KAVIAR em materiais não aprovados pela central;
-- Tomar decisões que vinculem a USB Tecnok/KAVIAR perante terceiros;
+- Tomar decisões que vinculem a USB TECNOK/KAVIAR perante terceiros;
 - Garantir exclusividade do território a parceiros ou associações.
 
 ---
 
 ## 10. INDICAÇÕES E BÔNUS
 
-O Gestor pode indicar motoristas usando seu link pessoal de captação. Indicações que resultem em motoristas aprovados, ativos e com primeira compra de crédito registrada podem gerar bônus conforme política vigente do sistema, contrato aplicável e aprovação da central. O valor e as condições do bônus seguem exclusivamente as regras da plataforma, podendo ser alterados a qualquer momento. Bônus não é automático e depende de apuração e aprovação.
+O Gestor pode indicar motoristas usando seu link pessoal de captação. Indicações que resultem em motoristas aprovados, ativos e em operação regular na plataforma podem gerar bônus conforme política vigente do sistema, contrato aplicável e aprovação da central. O valor e as condições do bônus seguem exclusivamente as regras da plataforma, podendo ser alterados a qualquer momento. Bônus não é automático e depende de apuração e aprovação.
 
 ---
 
 ## 11. KAVIAR PET
 
-O Gestor pode atuar como ponto de apoio para o KAVIAR Pet no território, apoiando pedidos assistidos de corrida com animais, sempre conforme orientação da central KAVIAR/USB Tecnok. A homologação de motoristas Pet e a aprovação técnica são exclusivas da central. A operação Pet é assistida e não automática.
+O Gestor pode atuar como ponto de apoio para o KAVIAR Pet no território, apoiando pedidos assistidos de corrida com animais, sempre conforme orientação da central KAVIAR/USB TECNOK. A homologação de motoristas Pet e a aprovação técnica são exclusivas da central. A operação Pet é assistida e não automática.
 
 O Gestor não pode prometer disponibilidade, preço especial, aprovação de motorista Pet ou confirmação automática de corrida Pet.
 
@@ -138,7 +142,7 @@ O Gestor deve manter sigilo absoluto sobre dados e informações acessadas no pa
 
 ## 13. SUSPENSÃO E CANCELAMENTO
 
-A KAVIAR/USB Tecnok pode suspender ou cancelar esta autorização em caso de:
+A KAVIAR/USB TECNOK pode suspender ou cancelar esta autorização em caso de:
 
 - Fraude ou tentativa de fraude;
 - Inatividade prolongada sem justificativa;
@@ -153,13 +157,13 @@ A suspensão ou cancelamento pode ocorrer sem aviso prévio em casos de urgênci
 
 ## 14. PROPRIEDADE INTELECTUAL
 
-A marca KAVIAR, o código-fonte, o banco de dados, a infraestrutura tecnológica e todos os ativos digitais permanecem de propriedade exclusiva da USB Tecnok. Esta autorização não transfere propriedade, não concede licença exclusiva, não permite sublicenciamento e não cede qualquer direito de propriedade intelectual, marca, tecnologia, código-fonte, banco de dados ou infraestrutura.
+A marca KAVIAR, o código-fonte, o banco de dados, a infraestrutura tecnológica e todos os ativos digitais permanecem de propriedade exclusiva da USB TECNOK. Esta autorização não transfere propriedade, não concede licença exclusiva, não permite sublicenciamento e não cede qualquer direito de propriedade intelectual, marca, tecnologia, código-fonte, banco de dados ou infraestrutura.
 
 ---
 
 ## 15. ALTERAÇÕES
 
-Este termo pode ser atualizado pela KAVIAR/USB Tecnok. Mudanças relevantes podem exigir novo aceite. A versão vigente estará disponível no painel do Gestor.
+Este termo pode ser atualizado pela KAVIAR/USB TECNOK. Mudanças relevantes podem exigir novo aceite. A versão vigente estará disponível no painel do Gestor.
 
 ---
 
@@ -174,11 +178,11 @@ Este termo pode ser atualizado pela KAVIAR/USB Tecnok. Mudanças relevantes pode
 
 ## 17. FORO
 
-Fica eleito o foro da Comarca da Capital do Estado do Rio de Janeiro/RJ, correspondente à sede da USB Tecnok Manutenção e Instalação de Computadores Ltda, CNPJ 07.710.691/0001-66, salvo disposição específica em contrato definitivo.
+Fica eleito o foro da Comarca da Capital do Estado do Rio de Janeiro/RJ, correspondente à sede da USB TECNOK Manutenção e Instalação de Computadores Ltda, CNPJ 07.710.691/0001-66, salvo disposição específica em contrato definitivo.
 
 ---
 
-*USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66*
+*USB TECNOK Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66*
 
 *Aceite digital registrado em: [data/hora do aceite]*
 *Versão: v1.0-FUNDADOR*
