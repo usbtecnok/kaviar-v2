@@ -273,6 +273,13 @@ model drivers {
   @@index([premium_tourism_status])
   @@index([territorial_partner_id])
   shadow_results               wallet_shadow_results[]
+
+  // Wallet V2
+  wallet_v2                    driver_wallets?
+  wallet_v2_ledger             wallet_ledger[]
+  wallet_v2_recharges          wallet_recharges[]
+  wallet_v2_pending_debits     pending_debits[]
+  referral_reward              driver_referral_rewards?
 }
 
 model elderly_contracts {
@@ -2429,4 +2436,162 @@ model wallet_shadow_results {
   @@index([reference_month])
   @@index([driver_id])
   @@index([calculation_status])
+}
+
+// ─── Wallet V2 ───────────────────────────────────────────────────────────────
+
+model driver_wallets {
+  driver_id      String   @id
+  balance_cents  BigInt   @default(0)
+  reserved_cents BigInt   @default(0)
+  updated_at     DateTime @default(now()) @updatedAt
+  driver         drivers  @relation(fields: [driver_id], references: [id])
+}
+
+model wallet_ledger {
+  id                   BigInt   @id @default(autoincrement())
+  driver_id            String
+  entry_type           String
+  balance_delta_cents  BigInt   @default(0)
+  reserved_delta_cents BigInt   @default(0)
+  balance_after_cents  BigInt
+  reserved_after_cents BigInt
+  reference_type       String?
+  reference_id         String?
+  actor_type           String?
+  actor_id             String?
+  reason               String
+  metadata             Json?
+  idempotency_key      String   @unique
+  created_at           DateTime @default(now())
+  driver               drivers  @relation(fields: [driver_id], references: [id])
+
+  @@index([driver_id, created_at(sort: Desc)])
+  @@index([reference_type, reference_id])
+}
+
+model wallet_recharges {
+  id               String    @id @default(uuid()) @db.Uuid
+  driver_id        String
+  package_id       String?
+  amount_cents     BigInt
+  status           String    @default("pending")
+  payment_provider String    @default("asaas")
+  external_id      String?
+  pix_qr_code      String?
+  pix_copy_paste   String?
+  pix_expires_at   DateTime?
+  confirmed_at     DateTime?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @default(now()) @updatedAt
+  driver           drivers   @relation(fields: [driver_id], references: [id])
+
+  @@unique([payment_provider, external_id])
+  @@index([driver_id, created_at(sort: Desc)])
+}
+
+model recharge_packages {
+  id           String   @id
+  label        String
+  amount_cents BigInt
+  sort_order   Int      @default(0)
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+}
+
+model pending_debits {
+  id                    BigInt    @id @default(autoincrement())
+  ride_id               String    @unique
+  driver_id             String
+  final_price_cents     BigInt
+  fee_percent_snapshot  Decimal   @default(18.00) @db.Decimal(5, 2)
+  fee_amount_cents      BigInt
+  fee_collected_cents   BigInt    @default(0)
+  fee_pending_cents     BigInt
+  reserved_amount_cents BigInt    @default(0)
+  reason                String    @default("platform_fee")
+  attempts              Int       @default(0)
+  last_error            String?
+  status                String    @default("pending")
+  idempotency_key       String?   @unique
+  created_at            DateTime  @default(now())
+  resolved_at           DateTime?
+  driver                drivers   @relation(fields: [driver_id], references: [id])
+}
+
+model ride_fee_splits {
+  id                    BigInt   @id @default(autoincrement())
+  ride_id               String   @unique
+  driver_id             String
+  final_price_cents     BigInt
+  fee_percent           Decimal  @default(18.00) @db.Decimal(5, 2)
+  fee_amount_cents      BigInt
+  fee_collected_cents   BigInt   @default(0)
+  fee_pending_cents     BigInt   @default(0)
+  matrix_share_percent  Decimal  @default(60.00) @db.Decimal(5, 2)
+  matrix_share_cents    BigInt
+  manager_share_percent Decimal  @default(40.00) @db.Decimal(5, 2)
+  manager_share_cents   BigInt
+  territory_id          String?
+  manager_id            String?
+  reference_month       String
+  collection_status     String   @default("collected")
+  idempotency_key       String?  @unique
+  created_at            DateTime @default(now())
+
+  @@index([territory_id, reference_month])
+}
+
+model driver_referral_rewards {
+  id                  BigInt    @id @default(autoincrement())
+  driver_id           String    @unique
+  referrer_id         String
+  referrer_type       String
+  first_valid_ride_id String
+  total_reward_cents  BigInt    @default(2000)
+  matrix_cost_cents   BigInt    @default(1000)
+  manager_cost_cents  BigInt    @default(1000)
+  territory_id        String?
+  manager_id          String?
+  status              String    @default("eligible")
+  approved_at         DateTime?
+  idempotency_key     String?   @unique
+  created_at          DateTime  @default(now())
+  driver              drivers   @relation(fields: [driver_id], references: [id])
+  payouts             referral_reward_payouts[]
+}
+
+model referral_reward_payouts {
+  id                 BigInt    @id @default(autoincrement())
+  reward_id          BigInt
+  referrer_type      String
+  referrer_id        String
+  amount_cents       BigInt    @default(2000)
+  matrix_cost_cents  BigInt    @default(1000)
+  manager_cost_cents BigInt    @default(1000)
+  territory_id       String?
+  manager_id         String?
+  status             String    @default("pending")
+  payment_method     String?
+  paid_at            DateTime?
+  idempotency_key    String?   @unique
+  created_at         DateTime  @default(now())
+  reward             driver_referral_rewards @relation(fields: [reward_id], references: [id])
+}
+
+model territory_ledger {
+  id              BigInt   @id @default(autoincrement())
+  territory_id    String
+  manager_id      String?
+  reference_month String
+  entry_type      String
+  amount_cents    BigInt
+  description     String?
+  reference_type  String?
+  reference_id    String?
+  idempotency_key String?  @unique
+  created_at      DateTime @default(now())
+
+  @@index([territory_id, reference_month])
+  @@index([entry_type, reference_month])
 }
