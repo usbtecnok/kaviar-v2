@@ -47,7 +47,7 @@ Você recebe uma **autorização operacional temporária** para atuar como parce
 ## O que a KAVIAR/USB TECNOK faz
 
 - Mantém toda a tecnologia (plataforma, app, servidores, APIs)
-- Processa pagamentos e créditos
+- Processa pagamentos, recargas de saldo e movimentações financeiras da plataforma
 - Avalia e aprova motoristas, parceiros e associações conforme critérios internos
 - Calcula e efetua repasses conforme contrato
 - Homologa motoristas Pet
