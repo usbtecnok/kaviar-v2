@@ -194,7 +194,7 @@ export default function DriverCredits() {
           <Text style={s.infoText}>A cada corrida concluída, a taxa de uso da plataforma é descontada do seu saldo.</Text>
           <Text style={s.infoText}>Taxa atual: 18% sobre o valor da corrida.</Text>
           <Text style={s.infoText}>Você recebe 82% do valor da corrida.</Text>
-          <Text style={s.infoText}>Não há cobrança fixa de 1 ou 2 créditos por corrida.</Text>
+          <Text style={s.infoText}>A taxa é descontada do saldo somente quando a corrida é concluída.</Text>
         </View>
 
         {/* History */}
