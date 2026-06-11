@@ -73,7 +73,7 @@ export default function DriverCredits() {
       });
     } catch (e: any) {
       if (e.response?.status === 403) {
-        Alert.alert('Indisponível', 'Recarga Wallet V2 ainda não disponível. Em breve você poderá recarregar seu Saldo KAVIAR por Pix.');
+        Alert.alert('Saldo KAVIAR em preparação', 'A recarga por Pix estará disponível em breve.');
       } else {
         Alert.alert('Erro', e.response?.data?.error || 'Não foi possível criar a cobrança.');
       }
@@ -165,7 +165,7 @@ export default function DriverCredits() {
           <View style={[s.alert, balance.available_cents === 0 && { backgroundColor: '#fde8e8' }]}>
             <Ionicons name={balance.available_cents === 0 ? 'alert-circle-outline' : 'warning-outline'} size={18} color={balance.available_cents === 0 ? COLORS.danger : COLORS.warning} />
             <Text style={[s.alertText, { color: balance.available_cents === 0 ? COLORS.danger : COLORS.warning }]}>
-              {balance.available_cents === 0 ? 'Sem saldo. Você não receberá corridas.' : 'Saldo baixo. Adicione saldo em breve.'}
+              {balance.available_cents === 0 ? 'Sem saldo disponível. Adicione saldo para receber corridas.' : 'Saldo baixo. Adicione saldo em breve.'}
             </Text>
           </View>
         )}

@@ -435,7 +435,7 @@ export default function DriverOnline() {
       {noCredits && (
         <TouchableOpacity style={[styles.banner, { backgroundColor: '#fde8e8' }]} onPress={() => router.push('/(driver)/credits')}>
           <Ionicons name="alert-circle-outline" size={16} color={COLORS.danger} />
-          <Text style={[styles.bannerText, { color: COLORS.danger }]}>Sem saldo. Você não receberá corridas. <Text style={{ fontWeight: '700' }}>Recarregar</Text></Text>
+          <Text style={[styles.bannerText, { color: COLORS.danger }]}>Sem saldo disponível. <Text style={{ fontWeight: '700' }}>Adicionar saldo</Text></Text>
         </TouchableOpacity>
       )}
       {lowCredits && (
