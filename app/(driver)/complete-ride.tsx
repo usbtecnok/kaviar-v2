@@ -399,16 +399,16 @@ export default function CompleteRide() {
         {credit && (
           <View style={st.completionCard}>
             <View style={st.completionRow}>
-              <Text style={st.completionLabel}>Créditos consumidos</Text>
-              <Text style={st.completionValue}>{credit.cost}</Text>
+              <Text style={st.completionLabel}>Taxa da plataforma</Text>
+              <Text style={st.completionValue}>R$ {Number(credit.cost).toFixed(2)}</Text>
             </View>
             <View style={st.completionRow}>
-              <Text style={st.completionLabel}>Tipo</Text>
-              <Text style={st.completionValue}>{credit.matchType === 'LOCAL' ? 'Local' : 'Externa'}</Text>
+              <Text style={st.completionLabel}>Modelo</Text>
+              <Text style={st.completionValue}>{credit.matchType === 'FLAT_FEE' ? '18% taxa' : credit.matchType === 'LOCAL' ? 'Local' : 'Externa'}</Text>
             </View>
             <View style={[st.completionRow, { borderBottomWidth: 0 }]}>
               <Text style={st.completionLabel}>Saldo restante</Text>
-              <Text style={[st.completionValue, { color: COLORS.primary }]}>{credit.balance} crédito{credit.balance !== 1 ? 's' : ''}</Text>
+              <Text style={[st.completionValue, { color: COLORS.primary }]}>R$ {Number(credit.balance).toFixed(2)}</Text>
             </View>
           </View>
         )}

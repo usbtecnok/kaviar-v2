@@ -11,7 +11,7 @@ const SLIDES = [
   { icon: '💼', title: 'Seja um Consultor', sub: 'Ajude o KAVIAR a crescer na sua região e ganhe por isso.', cta: 'Saiba mais', action: 'consultor' },
   { icon: '🚘', title: 'KAVIAR Particular', sub: 'Reserve um motorista para consultas, compras, escola, aeroporto, ida e volta ou espera no local.', cta: 'Solicitar', action: 'particular' },
   { icon: '🚗', title: 'Trabalhe como motorista', sub: 'Dirija na sua comunidade com segurança e autonomia.', cta: 'Quero dirigir', action: 'refer' },
-  { icon: '🤝', title: 'Indique e ganhe', sub: 'Indique motoristas e passageiros e receba créditos KAVIAR.', cta: 'Indicar agora', action: 'refer' },
+  { icon: '🤝', title: 'Indique e ganhe', sub: 'Indique motoristas e passageiros e receba benefícios KAVIAR.', cta: 'Indicar agora', action: 'refer' },
   { icon: '📍', title: 'Sua região KAVIAR', sub: 'Veja novidades, parceiros, serviços e comércios locais da sua região.', cta: 'Ver região', action: 'regiao' },
   { icon: '🐾', title: 'KAVIAR Pet', sub: 'Transporte pet com motoristas certificados e operação assistida.', cta: 'Conhecer', action: 'pet' },
 ] as const;
