@@ -106,7 +106,7 @@ export default function KaviarLanding() {
             </Box>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 4 }}>
-            {[['#consultor', 'Consultor'], ['#comunidade', 'Comunidade'], ['#particular', 'Particular'], ['#pet', 'Pet'], ['#downloads', 'Downloads']].map(([href, label]) => (
+            {[['#consultor', 'Consultor'], ['#gestor', 'Gestor'], ['#comunidade', 'Comunidade'], ['#particular', 'Particular'], ['#pet', 'Pet'], ['#downloads', 'Downloads']].map(([href, label]) => (
               <Typography key={href} component="a" href={href} sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, textDecoration: 'none', '&:hover': { color: '#fff' }, transition: 'color 0.2s' }}>{label}</Typography>
             ))}
             <Button component={Link} to="/login" variant="outlined" size="small" sx={{ borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.85)', borderRadius: 2.5, textTransform: 'none', fontSize: 13, px: 2.5 }}>Já tenho conta</Button>
@@ -136,6 +136,7 @@ export default function KaviarLanding() {
 
             <Box sx={{ mt: 4, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, flexWrap: 'wrap' }}>
               <Button variant="contained" href="#downloads" sx={sx.goldBtn}>Quero ser motorista KAVIAR</Button>
+              <Button variant="outlined" href="#gestor" sx={sx.outlineBtn}>Quero ser Gestor</Button>
               <Button variant="outlined" href="#consultor" sx={sx.outlineBtn}>Quero ser consultor</Button>
               <Button component={Link} to="/commerce" variant="contained" sx={{ bgcolor: '#059669', color: '#fff', fontWeight: 700, fontSize: 15, textTransform: 'none', borderRadius: 2.5, px: 3, py: 1.2, '&:hover': { bgcolor: '#047857' } }}>🏪 Painel do Comércio</Button>
             </Box>
@@ -255,6 +256,51 @@ export default function KaviarLanding() {
                 <Typography sx={{ mt: 1.5, fontSize: 13, lineHeight: 1.7, color: 'rgba(255,255,255,0.55)' }}>{d}</Typography>
               </Box>
             ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* ─── Gestor KAVIAR ─── */}
+      <Box id="gestor" sx={{ ...sx.section, py: { xs: 4, md: 7 } }}>
+        <Box sx={{ borderRadius: 6, border: `1px solid ${gold}30`, background: 'linear-gradient(135deg, #12100a 0%, #0a0a0a 100%)', p: { xs: 4, md: 6 }, boxShadow: `0 30px 120px rgba(212,175,55,0.06)` }}>
+          <Box sx={{ textAlign: 'center', mb: 5 }}>
+            <Typography sx={{ fontSize: 11, letterSpacing: '0.35em', color: gold, textTransform: 'uppercase', mb: 1.5 }}>Expansão territorial</Typography>
+            <Typography variant="h3" sx={{ fontWeight: 600, letterSpacing: '-0.02em', fontSize: { xs: '1.8rem', md: '2.6rem' }, mb: 2 }}>
+              Seja um Gestor KAVIAR na sua região
+            </Typography>
+            <Typography sx={{ fontSize: { xs: 15, md: 17 }, lineHeight: 1.8, color: 'rgba(255,255,255,0.62)', maxWidth: 700, mx: 'auto' }}>
+              O KAVIAR está formando uma rede de gestores locais para expandir a mobilidade com confiança, organização e oportunidade.
+            </Typography>
+          </Box>
+
+          <Typography sx={{ fontSize: { xs: 14, md: 15 }, lineHeight: 1.8, color: 'rgba(255,255,255,0.55)', maxWidth: 750, mx: 'auto', textAlign: 'center', mb: 5 }}>
+            Como Gestor KAVIAR, você ajuda a conectar passageiros, motoristas, hotéis, pousadas, comércios e parceiros locais da sua cidade ou comunidade. O gestor é o representante local da marca e participa da expansão territorial da plataforma.
+          </Typography>
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 2, mb: 5 }}>
+            {[
+              ['🏘️', 'Bairros e comunidades'],
+              ['🏙️', 'Cidades pequenas'],
+              ['🏖️', 'Regiões turísticas'],
+              ['🏨', 'Hotéis e pousadas'],
+              ['🏪', 'Comércio local'],
+              ['🤝', 'Parceiros de mobilidade'],
+              ['📋', 'Organização territorial'],
+            ].map(([icon, label]) => (
+              <Box key={label} sx={{ borderRadius: 3, border: '1px solid rgba(255,255,255,0.1)', bgcolor: 'rgba(255,255,255,0.03)', p: 2.5, textAlign: 'center' }}>
+                <Typography sx={{ fontSize: 24, mb: 1 }}>{icon}</Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)' }}>{label}</Typography>
+              </Box>
+            ))}
+          </Box>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography sx={{ fontSize: { xs: 15, md: 17 }, fontWeight: 500, color: goldLight, mb: 3 }}>
+              Sua região pode ser o próximo território KAVIAR.
+            </Typography>
+            <Button variant="contained" href="https://wa.me/5521968648777?text=Quero%20ser%20Gestor%20KAVIAR%20na%20minha%20regi%C3%A3o" target="_blank" rel="noopener" sx={sx.goldBtn}>
+              Quero ser Gestor KAVIAR
+            </Button>
           </Box>
         </Box>
       </Box>
