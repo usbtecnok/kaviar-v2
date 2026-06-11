@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Image, Alert, Clipboard, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,34 +7,33 @@ import { driverApi } from '../../src/api/driver.api';
 import RetornoFamiliarCard from '../../src/components/RetornoFamiliarCard';
 import { COLORS } from '../../src/config/colors';
 
-type Package = { id: string; credits: number; price: number; priceCents: number };
-type Purchase = { id: string; status: string; credits_amount: number; amount_cents: number; created_at: string; paid_at: string | null };
+type Package = { id: string; label: string; amount_cents: number };
+type LedgerEntry = { id: string; entry_type: string; balance_delta_cents: number; balance_after_cents: number; reason: string; created_at: string };
 
 export default function DriverCredits() {
   const router = useRouter();
-  const [balance, setBalance] = useState<number | null>(null);
+  const [balance, setBalance] = useState<{ balance_cents: number; reserved_cents: number; available_cents: number; balance_display: string } | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [buying, setBuying] = useState(false);
 
   // Pix payment state
-  const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string; credits: number; amount: number } | null>(null);
-  const balanceBeforePix = useRef<number | null>(null);
+  const [pixData, setPixData] = useState<{ rechargeId: string; qrCode: string; copyPaste: string; amount: number; expiresAt: string } | null>(null);
 
-  // Auto-poll balance while Pix screen is open
+  // Auto-poll wallet while Pix screen is open
   useEffect(() => {
-    if (!pixData) { balanceBeforePix.current = null; return; }
-    balanceBeforePix.current = balance;
+    if (!pixData) return;
+    const initialBalance = balance?.balance_cents ?? 0;
     let attempts = 0;
     const id = setInterval(async () => {
       if (++attempts > 120) { clearInterval(id); return; }
       try {
-        const { balance: now } = await driverApi.getCredits();
-        if (balanceBeforePix.current != null && now > balanceBeforePix.current) {
+        const w = await driverApi.getWallet();
+        if (w.balance_cents > initialBalance) {
           clearInterval(id);
-          setBalance(now);
+          setBalance(w);
           setPixData(null);
           load();
           Alert.alert('✅ Pagamento confirmado!', 'Saldo adicionado à sua conta.');
@@ -46,16 +45,16 @@ export default function DriverCredits() {
 
   const load = useCallback(async () => {
     try {
-      const [cred, pkgs, hist] = await Promise.allSettled([
-        driverApi.getCredits(),
-        driverApi.getCreditPackages(),
-        driverApi.getCreditPurchases(),
+      const [wal, pkgs, led] = await Promise.allSettled([
+        driverApi.getWallet(),
+        driverApi.getWalletPackages(),
+        driverApi.getWalletLedger(10, 0),
       ]);
-      if (cred.status === 'fulfilled') setBalance(cred.value.balance);
+      if (wal.status === 'fulfilled') setBalance(wal.value);
       if (pkgs.status === 'fulfilled') setPackages(pkgs.value);
-      if (hist.status === 'fulfilled') setPurchases(hist.value);
+      if (led.status === 'fulfilled') setLedger(led.value.entries || []);
     } catch (e) {
-      console.warn('[Credits] load failed:', e);
+      console.warn('[Wallet] load failed:', e);
     } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -64,15 +63,20 @@ export default function DriverCredits() {
   const handleBuy = async (pkg: Package) => {
     setBuying(true);
     try {
-      const result = await driverApi.purchaseCredits(pkg.id);
+      const result = await driverApi.createWalletRecharge(pkg.id);
       setPixData({
+        rechargeId: result.rechargeId,
         qrCode: result.pix?.qrCode || '',
         copyPaste: result.pix?.copyPaste || '',
-        credits: result.credits,
-        amount: result.amountCents / 100,
+        amount: result.amount_cents / 100,
+        expiresAt: result.pix?.expiresAt || '',
       });
     } catch (e: any) {
-      Alert.alert('Erro', e.response?.data?.error || 'Não foi possível criar a cobrança.');
+      if (e.response?.status === 403) {
+        Alert.alert('Indisponível', 'Recarga Wallet V2 ainda não disponível. Em breve você poderá recarregar seu Saldo KAVIAR por Pix.');
+      } else {
+        Alert.alert('Erro', e.response?.data?.error || 'Não foi possível criar a cobrança.');
+      }
     } finally { setBuying(false); }
   };
 
@@ -153,15 +157,15 @@ export default function DriverCredits() {
         {/* Balance */}
         <View style={s.balanceCard}>
           <Ionicons name="wallet-outline" size={28} color={COLORS.primary} />
-          <Text style={s.balanceValue}>R$ {balance != null ? balance.toFixed(2) : '—'}</Text>
+          <Text style={s.balanceValue}>{balance?.balance_display ?? 'R$ 0,00'}</Text>
           <Text style={s.balanceLabel}>saldo disponível</Text>
         </View>
 
-        {balance !== null && balance < 10 && (
-          <View style={[s.alert, balance === 0 && { backgroundColor: '#fde8e8' }]}>
-            <Ionicons name={balance === 0 ? 'alert-circle-outline' : 'warning-outline'} size={18} color={balance === 0 ? COLORS.danger : COLORS.warning} />
-            <Text style={[s.alertText, { color: balance === 0 ? COLORS.danger : COLORS.warning }]}>
-              {balance === 0 ? 'Sem saldo. Você não receberá corridas.' : 'Saldo baixo. Adicione saldo em breve.'}
+        {balance !== null && balance.available_cents < 1000 && (
+          <View style={[s.alert, balance.available_cents === 0 && { backgroundColor: '#fde8e8' }]}>
+            <Ionicons name={balance.available_cents === 0 ? 'alert-circle-outline' : 'warning-outline'} size={18} color={balance.available_cents === 0 ? COLORS.danger : COLORS.warning} />
+            <Text style={[s.alertText, { color: balance.available_cents === 0 ? COLORS.danger : COLORS.warning }]}>
+              {balance.available_cents === 0 ? 'Sem saldo. Você não receberá corridas.' : 'Saldo baixo. Adicione saldo em breve.'}
             </Text>
           </View>
         )}
@@ -174,7 +178,7 @@ export default function DriverCredits() {
         {packages.map(pkg => (
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => handleBuy(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
-              <Text style={s.packageCredits}>Saldo R$ {pkg.price.toFixed(2)}</Text>
+              <Text style={s.packageCredits}>{pkg.label}</Text>
               <Text style={s.packagePrice}>Via Pix</Text>
             </View>
             <View style={s.buyBtn}>
@@ -194,14 +198,14 @@ export default function DriverCredits() {
         </View>
 
         {/* History */}
-        {purchases.length > 0 && (
+        {ledger.length > 0 && (
           <>
-            <Text style={s.sectionTitle}>Últimas compras</Text>
-            {purchases.slice(0, 5).map(p => (
-              <View key={p.id} style={s.historyRow}>
-                <Ionicons name={p.status === 'confirmed' ? 'checkmark-circle' : 'time-outline'} size={16} color={p.status === 'confirmed' ? COLORS.success : COLORS.warning} />
-                <Text style={s.historyText}>Saldo R$ {(p.amount_cents / 100).toFixed(2)}</Text>
-                <Text style={s.historyStatus}>{p.status === 'confirmed' ? 'Pago' : 'Pendente'}</Text>
+            <Text style={s.sectionTitle}>Últimos lançamentos</Text>
+            {ledger.slice(0, 5).map((e: any) => (
+              <View key={e.id} style={s.historyRow}>
+                <Ionicons name={e.balance_delta_cents > 0 ? 'add-circle' : 'remove-circle'} size={16} color={e.balance_delta_cents > 0 ? COLORS.success : COLORS.warning} />
+                <Text style={s.historyText}>R$ {(Math.abs(e.balance_delta_cents) / 100).toFixed(2)}</Text>
+                <Text style={s.historyStatus}>{e.entry_type === 'recharge' ? 'Recarga' : e.entry_type === 'fee_debit' ? 'Taxa' : e.entry_type}</Text>
               </View>
             ))}
           </>
