@@ -127,14 +127,14 @@ export default function CreditPackagesAdmin() {
     <Box sx={{ bgcolor: '#FAFAF8', minHeight: '100vh', py: 3 }}>
       <Container maxWidth="lg">
         <Typography variant="h5" sx={{ color: '#1A1A1A', fontWeight: 800, mb: 0.5 }}>
-          Pacotes de Créditos
+          Pacotes de Saldo KAVIAR
         </Typography>
         <Typography sx={{ color: '#6B7280', fontSize: 13, mb: 3 }}>
-          Gerencie pacotes disponíveis para compra pelos motoristas.
+          Gerencie valores de saldo disponíveis para recarga via Pix pelos motoristas.
         </Typography>
 
         <Alert severity="info" sx={{ mb: 3, borderRadius: 2, fontSize: 12 }}>
-          Alterar pacotes afeta apenas novas compras. Compras já geradas, saldos e ledger não são alterados.
+          Alterar pacotes afeta apenas novas recargas. Recargas já geradas, saldos e ledger não são alterados.
         </Alert>
 
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
@@ -142,7 +142,7 @@ export default function CreditPackagesAdmin() {
 
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button startIcon={<Add />} variant="contained" size="small" onClick={() => setCreateOpen(true)} sx={{ bgcolor: GOLD, fontWeight: 600, '&:hover': { bgcolor: '#9A7B24' } }}>
-            Novo Pacote
+            Novo Pacote de Saldo
           </Button>
         </Box>
 
@@ -153,11 +153,10 @@ export default function CreditPackagesAdmin() {
                 <TableHead sx={{ bgcolor: '#F9FAFB' }}>
                   <TableRow>
                     <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }}>ID</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="right">Créditos</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="right">Preço</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="right">R$/crédito</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="right">Saldo</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="right">Valor da recarga</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="center">Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="right">Compras</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="right">Recargas</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }}>Criado em</TableCell>
                     <TableCell sx={{ fontWeight: 700, fontSize: 11, color: '#374151' }} align="center">Ações</TableCell>
                   </TableRow>
@@ -166,9 +165,8 @@ export default function CreditPackagesAdmin() {
                   {packages.map(pkg => (
                     <TableRow key={pkg.id} hover sx={{ opacity: pkg.active ? 1 : 0.5, '&:hover': { bgcolor: '#FFFDF7' } }}>
                       <TableCell sx={{ fontSize: 12, fontFamily: 'monospace', color: '#1F2937' }}>{pkg.id}</TableCell>
-                      <TableCell sx={{ fontSize: 13, fontWeight: 700, color: '#1F2937' }} align="right">{pkg.credits}</TableCell>
+                      <TableCell sx={{ fontSize: 13, fontWeight: 700, color: '#1F2937' }} align="right">{fmt(pkg.price)}</TableCell>
                       <TableCell sx={{ fontSize: 13, color: GOLD, fontWeight: 700 }} align="right">{fmt(pkg.price)}</TableCell>
-                      <TableCell sx={{ fontSize: 12, color: '#6B7280' }} align="right">{fmt(pkg.pricePerCredit)}</TableCell>
                       <TableCell align="center">
                         <Chip label={pkg.active ? 'Ativo' : 'Inativo'} size="small" sx={{ bgcolor: pkg.active ? '#ECFDF5' : '#FEF2F2', color: pkg.active ? '#059669' : '#DC2626', fontWeight: 600, fontSize: 10 }} />
                       </TableCell>
@@ -199,20 +197,20 @@ export default function CreditPackagesAdmin() {
 
         {/* Create Dialog */}
         <Dialog open={createOpen} onClose={() => { setCreateOpen(false); resetCreate(); }} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ fontWeight: 700, color: '#1F2937' }}>Novo Pacote de Créditos</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 700, color: '#1F2937' }}>Novo Pacote de Saldo</DialogTitle>
           <DialogContent>
-            <TextField fullWidth label="ID (ex: pkg-10-promo)" value={createForm.id} onChange={e => setCreateForm(f => ({ ...f, id: e.target.value }))} size="small" sx={{ mb: 2, mt: 1 }} helperText="Letras minúsculas, números e hífens" />
+            <TextField fullWidth label="ID (ex: saldo-25)" value={createForm.id} onChange={e => setCreateForm(f => ({ ...f, id: e.target.value }))} size="small" sx={{ mb: 2, mt: 1 }} helperText="Letras minúsculas, números e hífens" />
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={6}>
-                <TextField fullWidth label="Créditos" type="number" value={createForm.credits} onChange={e => setCreateForm(f => ({ ...f, credits: e.target.value }))} size="small" inputProps={{ min: 1, max: 500 }} />
+                <TextField fullWidth label="Unidades (referência)" type="number" value={createForm.credits} onChange={e => setCreateForm(f => ({ ...f, credits: e.target.value }))} size="small" inputProps={{ min: 1, max: 500 }} />
               </Grid>
               <Grid item xs={6}>
-                <TextField fullWidth label="Preço (R$)" type="number" value={createForm.price} onChange={e => setCreateForm(f => ({ ...f, price: e.target.value }))} size="small" inputProps={{ min: 0.01, max: 500, step: 0.50 }} />
+                <TextField fullWidth label="Valor do saldo (R$)" type="number" value={createForm.price} onChange={e => setCreateForm(f => ({ ...f, price: e.target.value }))} size="small" inputProps={{ min: 0.01, max: 500, step: 0.50 }} />
               </Grid>
             </Grid>
             {createForm.credits && createForm.price && (
               <Alert severity="info" sx={{ mb: 2, fontSize: 11 }}>
-                Valor por crédito: {fmt(Number(createForm.price) / Number(createForm.credits))}
+                Valor da recarga: {fmt(Number(createForm.price))}
               </Alert>
             )}
             <FormControlLabel control={<Switch checked={createForm.active} onChange={e => setCreateForm(f => ({ ...f, active: e.target.checked }))} />} label="Ativo imediatamente" sx={{ mb: 2 }} />
@@ -221,7 +219,7 @@ export default function CreditPackagesAdmin() {
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => { setCreateOpen(false); resetCreate(); }} sx={{ color: '#6B7280' }}>Cancelar</Button>
-            <Button onClick={handleCreate} variant="contained" disabled={!createPassword || !createReason} sx={{ bgcolor: GOLD, fontWeight: 600, '&:hover': { bgcolor: '#9A7B24' } }}>Criar Pacote</Button>
+            <Button onClick={handleCreate} variant="contained" disabled={!createPassword || !createReason} sx={{ bgcolor: GOLD, fontWeight: 600, '&:hover': { bgcolor: '#9A7B24' } }}>Criar Pacote de Saldo</Button>
           </DialogActions>
         </Dialog>
 
@@ -231,15 +229,15 @@ export default function CreditPackagesAdmin() {
           <DialogContent>
             {editPkg?.confirmedCount > 0 && (
               <Alert severity="warning" sx={{ mb: 2, fontSize: 11 }}>
-                Este pacote tem {editPkg.confirmedCount} compra(s) confirmada(s). Alterar valores afeta apenas novas compras.
+                Este pacote tem {editPkg.confirmedCount} recarga(s) confirmada(s). Alterar valores afeta apenas novas recargas.
               </Alert>
             )}
             <Grid container spacing={2} sx={{ mb: 2, mt: 0.5 }}>
               <Grid item xs={6}>
-                <TextField fullWidth label="Créditos" type="number" value={editForm.credits} onChange={e => setEditForm(f => ({ ...f, credits: e.target.value }))} size="small" inputProps={{ min: 1, max: 500 }} />
+                <TextField fullWidth label="Unidades (referência)" type="number" value={editForm.credits} onChange={e => setEditForm(f => ({ ...f, credits: e.target.value }))} size="small" inputProps={{ min: 1, max: 500 }} />
               </Grid>
               <Grid item xs={6}>
-                <TextField fullWidth label="Preço (R$)" type="number" value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} size="small" inputProps={{ min: 0.01, max: 500, step: 0.50 }} />
+                <TextField fullWidth label="Valor do saldo (R$)" type="number" value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} size="small" inputProps={{ min: 0.01, max: 500, step: 0.50 }} />
               </Grid>
             </Grid>
             <TextField fullWidth label="Motivo da alteração (obrigatório)" value={editReason} onChange={e => setEditReason(e.target.value)} size="small" sx={{ mb: 2 }} />
@@ -258,12 +256,12 @@ export default function CreditPackagesAdmin() {
           </DialogTitle>
           <DialogContent>
             <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderRadius: 2, mb: 2 }}>
-              <Typography sx={{ fontSize: 13 }}><strong>{togglePkg?.credits} créditos</strong> — {togglePkg ? fmt(togglePkg.price) : ''}</Typography>
+              <Typography sx={{ fontSize: 13 }}><strong>Saldo {togglePkg ? fmt(togglePkg.price) : ''}</strong></Typography>
               <Typography sx={{ fontSize: 12, color: '#6B7280' }}>Status atual: {togglePkg?.active ? 'Ativo' : 'Inativo'}</Typography>
             </Box>
             {togglePkg?.active && (
               <Alert severity="warning" sx={{ mb: 2, fontSize: 11 }}>
-                Desativar remove o pacote das opções de compra. Compras já realizadas não são afetadas.
+                Desativar remove o pacote das opções de recarga. Recargas já realizadas não são afetadas.
               </Alert>
             )}
             <TextField fullWidth label="Motivo (obrigatório)" value={toggleReason} onChange={e => setToggleReason(e.target.value)} size="small" sx={{ mb: 2 }} />
