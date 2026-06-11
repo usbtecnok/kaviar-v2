@@ -87,7 +87,7 @@ Não. A central KAVIAR apura o resultado mensalmente, revisa, aprova e efetua o 
 
 ## Como funciona o KAVIAR Pet?
 
-O KAVIAR Pet está em fase piloto assistida. Tutores solicitam corrida com animal pelo formulário público. Você, como gestor, apoia pedidos Pet assistidos no bairro, conforme orientação da central, enquanto a homologação de motoristas Pet e a confirmação operacional permanecem sob responsabilidade da KAVIAR/USB Tecnok.
+O KAVIAR Pet está em fase piloto assistida. Tutores solicitam corrida com animal pelo formulário público. Você, como gestor, apoia pedidos Pet assistidos no bairro, conforme orientação da central, enquanto a homologação de motoristas Pet e a confirmação operacional permanecem sob responsabilidade da KAVIAR/USB TECNOK.
 
 ---
 
@@ -117,7 +117,7 @@ Você tem prioridade operacional na área vinculada durante o prazo do contrato.
 
 ## Quem é a KAVIAR?
 
-KAVIAR é produto e plataforma da **USB Tecnok Manutenção e Instalação de Computadores Ltda** — CNPJ 07.710.691/0001-66. Sediada no Rio de Janeiro.
+KAVIAR é produto e plataforma da **USB TECNOK Manutenção e Instalação de Computadores Ltda** — CNPJ 07.710.691/0001-66. Sediada no Rio de Janeiro.
 
 ---
 
