@@ -37,7 +37,7 @@ export default function DriverCredits() {
           setBalance(now);
           setPixData(null);
           load();
-          Alert.alert('✅ Pagamento confirmado!', 'Créditos adicionados ao seu saldo.');
+          Alert.alert('✅ Pagamento confirmado!', 'Saldo adicionado à sua conta.');
         }
       } catch {}
     }, 5000);
@@ -106,7 +106,7 @@ export default function DriverCredits() {
         <View style={s.pixCard}>
           <Ionicons name="checkmark-circle-outline" size={32} color={COLORS.primary} />
           <Text style={s.pixTitle}>Cobrança criada</Text>
-          <Text style={s.pixSub}>{pixData.credits} créditos • R$ {pixData.amount.toFixed(2)}</Text>
+          <Text style={s.pixSub}>Saldo R$ {pixData.amount.toFixed(2)}</Text>
 
           {pixData.qrCode ? (
             <Image source={{ uri: `data:image/png;base64,${pixData.qrCode}` }} style={s.qrImage} resizeMode="contain" />
@@ -127,7 +127,7 @@ export default function DriverCredits() {
           <View style={s.pixInfoBox}>
             <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={s.pixInfoMain}>Os créditos entram automaticamente após a confirmação do pagamento.</Text>
+              <Text style={s.pixInfoMain}>O saldo entra automaticamente após a confirmação do pagamento.</Text>
               <Text style={s.pixInfoSub}>Após o Pix ser confirmado, seu saldo será atualizado no app.</Text>
             </View>
           </View>
@@ -135,7 +135,7 @@ export default function DriverCredits() {
           <TouchableOpacity style={s.doneBtn} onPress={handlePixDone}>
             <Text style={s.doneBtnText}>Já paguei</Text>
           </TouchableOpacity>
-          <Text style={s.pixNote}>Seus créditos serão adicionados automaticamente após a confirmação do pagamento.</Text>
+          <Text style={s.pixNote}>Seu saldo será atualizado automaticamente após a confirmação do pagamento.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -146,22 +146,22 @@ export default function DriverCredits() {
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} /></TouchableOpacity>
-        <Text style={s.title}>Créditos</Text>
+        <Text style={s.title}>Saldo KAVIAR</Text>
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={s.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={COLORS.primary} />}>
         {/* Balance */}
         <View style={s.balanceCard}>
           <Ionicons name="wallet-outline" size={28} color={COLORS.primary} />
-          <Text style={s.balanceValue}>{balance ?? '—'}</Text>
-          <Text style={s.balanceLabel}>crédito{balance !== 1 ? 's' : ''} disponíve{balance !== 1 ? 'is' : 'l'}</Text>
+          <Text style={s.balanceValue}>R$ {balance != null ? balance.toFixed(2) : '—'}</Text>
+          <Text style={s.balanceLabel}>saldo disponível</Text>
         </View>
 
-        {balance !== null && balance < 5 && (
+        {balance !== null && balance < 10 && (
           <View style={[s.alert, balance === 0 && { backgroundColor: '#fde8e8' }]}>
             <Ionicons name={balance === 0 ? 'alert-circle-outline' : 'warning-outline'} size={18} color={balance === 0 ? COLORS.danger : COLORS.warning} />
             <Text style={[s.alertText, { color: balance === 0 ? COLORS.danger : COLORS.warning }]}>
-              {balance === 0 ? 'Sem créditos. Você não receberá corridas.' : 'Créditos acabando. Recarregue em breve.'}
+              {balance === 0 ? 'Sem saldo. Você não receberá corridas.' : 'Saldo baixo. Adicione saldo em breve.'}
             </Text>
           </View>
         )}
@@ -170,12 +170,12 @@ export default function DriverCredits() {
         <RetornoFamiliarCard />
 
         {/* Packages */}
-        <Text style={s.sectionTitle}>Comprar créditos</Text>
+        <Text style={s.sectionTitle}>Adicionar saldo</Text>
         {packages.map(pkg => (
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => handleBuy(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
-              <Text style={s.packageCredits}>{pkg.credits} créditos</Text>
-              <Text style={s.packagePrice}>R$ {pkg.price.toFixed(2)}</Text>
+              <Text style={s.packageCredits}>Saldo R$ {pkg.price.toFixed(2)}</Text>
+              <Text style={s.packagePrice}>Via Pix</Text>
             </View>
             <View style={s.buyBtn}>
               {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Pix</Text>}
@@ -186,8 +186,11 @@ export default function DriverCredits() {
         {/* How it works */}
         <View style={s.infoCard}>
           <Text style={s.infoTitle}>Como funciona</Text>
-          <Text style={s.infoText}>Corrida local: 1 crédito • Corrida externa: 2 créditos</Text>
-          <Text style={s.infoText}>Pague via Pix e seus créditos são adicionados automaticamente.</Text>
+          <Text style={s.infoText}>Você adiciona saldo via Pix.</Text>
+          <Text style={s.infoText}>A cada corrida concluída, a taxa de uso da plataforma é descontada do seu saldo.</Text>
+          <Text style={s.infoText}>Taxa atual: 18% sobre o valor da corrida.</Text>
+          <Text style={s.infoText}>Você recebe 82% do valor da corrida.</Text>
+          <Text style={s.infoText}>Não há cobrança fixa de 1 ou 2 créditos por corrida.</Text>
         </View>
 
         {/* History */}
@@ -197,7 +200,7 @@ export default function DriverCredits() {
             {purchases.slice(0, 5).map(p => (
               <View key={p.id} style={s.historyRow}>
                 <Ionicons name={p.status === 'confirmed' ? 'checkmark-circle' : 'time-outline'} size={16} color={p.status === 'confirmed' ? COLORS.success : COLORS.warning} />
-                <Text style={s.historyText}>{p.credits_amount} créditos • R$ {(p.amount_cents / 100).toFixed(2)}</Text>
+                <Text style={s.historyText}>Saldo R$ {(p.amount_cents / 100).toFixed(2)}</Text>
                 <Text style={s.historyStatus}>{p.status === 'confirmed' ? 'Pago' : 'Pendente'}</Text>
               </View>
             ))}

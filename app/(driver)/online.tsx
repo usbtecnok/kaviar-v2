@@ -441,7 +441,7 @@ export default function DriverOnline() {
       {lowCredits && (
         <TouchableOpacity style={styles.banner} onPress={() => router.push('/(driver)/credits')}>
           <Ionicons name="warning-outline" size={16} color={COLORS.warning} />
-          <Text style={styles.bannerText}>Créditos acabando. <Text style={{ fontWeight: '700' }}>Comprar créditos</Text></Text>
+          <Text style={styles.bannerText}>Saldo baixo. <Text style={{ fontWeight: '700' }}>Adicionar saldo</Text></Text>
         </TouchableOpacity>
       )}
       {backgroundDenied && isOnline && (
@@ -572,7 +572,7 @@ export default function DriverOnline() {
         {/* Actions */}
         {!isOnline ? (
           noCredits ? (
-            <Button title="Comprar créditos para começar" onPress={() => router.push('/(driver)/credits')} />
+            <Button title="Adicionar saldo para começar" onPress={() => router.push('/(driver)/credits')} />
           ) : (
             <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
           )
