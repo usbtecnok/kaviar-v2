@@ -8,8 +8,11 @@ const STATUS_COLORS = { calculated: '#D97706', requested: '#8B5CF6', approved: '
 function ContractDataDiagnostic({ operatorId, token, headers }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [form, setForm] = useState({ document_cpf: '', document_rg: '', address: '', phone: '', pix_key: '', pix_key_type: 'cpf' });
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const fetchData = () => {
     if (!operatorId) return;
     setLoading(true);
     fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${operatorId}/contract-data`, { headers })
@@ -17,7 +20,30 @@ function ContractDataDiagnostic({ operatorId, token, headers }) {
       .then(d => { if (d.success) setData(d.data); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [operatorId]);
+  };
+
+  useEffect(() => { fetchData(); }, [operatorId]);
+
+  const handleSave = async () => {
+    const cpf = form.document_cpf.trim();
+    if (cpf && !/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/.test(cpf)) { alert('CPF inválido. Use 000.000.000-00 ou 11 dígitos.'); return; }
+    const phone = form.phone.trim();
+    if (phone && !/^(\+55)?\d{10,11}$/.test(phone.replace(/[\s()-]/g, ''))) { alert('Telefone inválido. Use +5521999990000 ou formato brasileiro.'); return; }
+    if (form.address.trim() && form.address.trim().length < 10) { alert('Endereço deve ter no mínimo 10 caracteres.'); return; }
+    setSaving(true);
+    try {
+      const body = {};
+      if (cpf) body.document_cpf = cpf;
+      if (form.document_rg.trim()) body.document_rg = form.document_rg.trim();
+      if (form.address.trim().length >= 10) body.address = form.address.trim();
+      if (phone) body.phone = phone;
+      if (form.pix_key.trim()) { body.pix_key = form.pix_key.trim(); body.pix_key_type = form.pix_key_type; }
+      const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${operatorId}`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await res.json();
+      if (d.success) { setEditOpen(false); fetchData(); } else alert(d.error || 'Erro ao salvar.');
+    } catch { alert('Erro de conexão.'); }
+    setSaving(false);
+  };
 
   if (!operatorId || loading) return null;
   if (!data) return null;
@@ -49,15 +75,41 @@ function ContractDataDiagnostic({ operatorId, token, headers }) {
           <Typography sx={{ fontSize: 11, color: '#F59E0B' }}>Pix: não cadastrado (necessário para repasses)</Typography>
         </Box>
       )}
-      <Box sx={{ mt: 1 }}>
+      <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
         {canGenerateContract ? (
           <Chip label="Dados suficientes para gerar contrato" size="small" sx={{ bgcolor: 'rgba(16,185,129,0.1)', color: '#10B981', fontSize: 10 }} />
         ) : (
-          <Alert severity="warning" sx={{ py: 0, '& .MuiAlert-message': { fontSize: 10 } }}>
-            Não é possível gerar contrato. Campos faltantes: {missingFields.join(', ')}
-          </Alert>
+          <>
+            <Alert severity="warning" sx={{ py: 0, flex: 1, '& .MuiAlert-message': { fontSize: 10 } }}>
+              Campos faltantes: {missingFields.join(', ')}
+            </Alert>
+            <Button size="small" variant="outlined" onClick={() => { setForm({ document_cpf: availableFields.cpf || '', document_rg: '', address: availableFields.endereco || '', phone: availableFields.telefone || '', pix_key: availableFields.pixKey || '', pix_key_type: 'cpf' }); setEditOpen(true); }} sx={{ borderColor: '#3B82F6', color: '#3B82F6', fontSize: 10, whiteSpace: 'nowrap' }}>
+              Completar dados
+            </Button>
+          </>
         )}
       </Box>
+
+      {/* Dialog completar dados */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
+        <DialogTitle sx={{ color: '#3B82F6', fontWeight: 700 }}>Completar dados contratuais</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+          <TextField label="CPF" value={form.document_cpf} onChange={e => setForm({ ...form, document_cpf: e.target.value })} size="small" placeholder="000.000.000-00" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB' } }} InputLabelProps={{ sx: { color: '#9CA3AF' } }} />
+          <TextField label="RG/CIN (opcional)" value={form.document_rg} onChange={e => setForm({ ...form, document_rg: e.target.value })} size="small" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB' } }} InputLabelProps={{ sx: { color: '#9CA3AF' } }} />
+          <TextField label="Endereço completo" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} size="small" placeholder="Rua, nº, bairro, cidade/UF, CEP" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB' } }} InputLabelProps={{ sx: { color: '#9CA3AF' } }} helperText="Mínimo 10 caracteres" />
+          <TextField label="Telefone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} size="small" placeholder="+5521999990000" InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB' } }} InputLabelProps={{ sx: { color: '#9CA3AF' } }} />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <TextField label="Chave Pix" value={form.pix_key} onChange={e => setForm({ ...form, pix_key: e.target.value })} size="small" sx={{ flex: 1 }} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB' } }} InputLabelProps={{ sx: { color: '#9CA3AF' } }} />
+            <TextField label="Tipo" select value={form.pix_key_type} onChange={e => setForm({ ...form, pix_key_type: e.target.value })} size="small" sx={{ width: 120 }} InputProps={{ sx: { bgcolor: 'rgba(255,255,255,0.05)', color: '#E5E7EB' } }} InputLabelProps={{ sx: { color: '#9CA3AF' } }}>
+              <MenuItem value="cpf">CPF</MenuItem><MenuItem value="email">E-mail</MenuItem><MenuItem value="phone">Telefone</MenuItem><MenuItem value="random">Aleatória</MenuItem>
+            </TextField>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setEditOpen(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} variant="contained" sx={{ bgcolor: '#3B82F6', '&:hover': { bgcolor: '#2563EB' } }}>{saving ? 'Salvando...' : 'Salvar'}</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
