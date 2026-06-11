@@ -26,8 +26,8 @@ Você recebe uma **autorização operacional temporária** para atuar como parce
 | Taxa de ativação | R$ 497,00 (única) |
 | Ciclo inicial | 90 dias |
 | Território | 1 bairro ou comunidade |
-| Base potencial de apuração ao gestor | até 80% do resultado líquido operacional apurado, conforme contrato, desempenho e validação da central |
-| Retenção KAVIAR | 20% (infraestrutura, tecnologia, suporte) |
+| Base potencial de apuração ao gestor | 40% da taxa operacional da plataforma (18% do valor da corrida), conforme contrato, desempenho e validação da central |
+| Taxa operacional KAVIAR | 18% do valor da corrida (infraestrutura, tecnologia, suporte) |
 
 > Os percentuais apresentados não representam repasse automático nem garantia de ganho. Todo valor depende de apuração real, validação da central KAVIAR/USB Tecnok, conformidade operacional e contrato vigente.
 
