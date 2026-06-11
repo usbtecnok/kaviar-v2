@@ -26,9 +26,10 @@ export class WalletSettlementService {
 
     const balance = await this.wallet.getBalance(driverId);
     const availableForFee = balance.balance_cents - balance.reserved_cents + reservedCents;
-    const canCollect = availableForFee >= split.fee_amount_cents;
+    const canCollectFull = availableForFee >= split.fee_amount_cents;
 
-    if (canCollect) {
+    if (canCollectFull) {
+      // Full collection: debit fee and release reserve atomically
       await this.wallet.debitFee(driverId, split.fee_amount_cents, reservedCents, rideId);
       await this.feeSplit.recordSplit({ rideId, driverId, finalPriceCents, territoryId, managerId, collected: true });
       if (territoryId) {
@@ -37,8 +38,19 @@ export class WalletSettlementService {
       }
       return { collected: true };
     } else {
-      await this.wallet.releaseReserve(driverId, reservedCents, rideId);
-      await this.pendingDebit.create({ rideId, driverId, finalPriceCents, feeAmountCents: split.fee_amount_cents, reservedCents });
+      // Partial or no collection: debit what's available, pending the rest
+      const collectableAmount = availableForFee > BigInt(0) ? availableForFee : BigInt(0);
+      const pendingAmount = split.fee_amount_cents - collectableAmount;
+
+      if (collectableAmount > BigInt(0)) {
+        // Debit partial amount (consumes reserve + available balance)
+        await this.wallet.debitFee(driverId, collectableAmount, reservedCents, rideId);
+      } else {
+        // Nothing to debit — just release reserve
+        await this.wallet.releaseReserve(driverId, reservedCents, rideId);
+      }
+
+      await this.pendingDebit.create({ rideId, driverId, finalPriceCents, feeAmountCents: split.fee_amount_cents, reservedCents: collectableAmount, feeCollectedCents: collectableAmount });
       await this.feeSplit.recordSplit({ rideId, driverId, finalPriceCents, territoryId, managerId, collected: false });
       return { collected: false };
     }

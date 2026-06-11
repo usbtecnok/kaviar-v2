@@ -42,13 +42,13 @@ describe('WalletSettlementService', () => {
   it('settleRide pending when balance insufficient', async () => {
     mockFeeSplit.calculateSplit.mockReturnValue({ fee_amount_cents: BigInt(540), matrix_share_cents: BigInt(324), manager_share_cents: BigInt(216) });
     mockWallet.getBalance.mockResolvedValue({ balance_cents: BigInt(200), reserved_cents: BigInt(200), available_cents: BigInt(0) });
-    mockWallet.releaseReserve.mockResolvedValue({});
+    mockWallet.debitFee.mockResolvedValue({});
     mockPending.create.mockResolvedValue({});
     mockFeeSplit.recordSplit.mockResolvedValue({});
 
     const r = await svc.settleRide({ rideId: 'r2', driverId: 'd1', finalPriceCents: BigInt(3000), reservedCents: BigInt(200), territoryId: 't1' });
     expect(r.collected).toBe(false);
-    expect(mockWallet.releaseReserve).toHaveBeenCalled();
+    expect(mockWallet.debitFee).toHaveBeenCalledWith('d1', BigInt(200), BigInt(200), 'r2'); // partial debit
     expect(mockPending.create).toHaveBeenCalled();
     expect(mockFeeSplit.recordSplit).toHaveBeenCalledWith(expect.objectContaining({ collected: false }));
     expect(mockLedger.recordFeeShare).not.toHaveBeenCalled();

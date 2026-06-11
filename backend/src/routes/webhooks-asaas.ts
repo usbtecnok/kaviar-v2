@@ -128,9 +128,20 @@ router.post('/asaas', async (req: Request, res: Response) => {
       }
       await pool.query("UPDATE wallet_recharges SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW() WHERE id = $1", [wr.id]);
       const { WalletService } = require('../services/wallet-v2/wallet.service');
+      const { FeeSplitService } = require('../services/wallet-v2/fee-split.service');
+      const { TerritoryLedgerService } = require('../services/wallet-v2/territory-ledger.service');
+      const { PendingDebitService } = require('../services/wallet-v2/pending-debit.service');
       const walletSvc = new WalletService(pool);
+      const feeSplitSvc = new FeeSplitService(pool);
+      const ledgerSvc = new TerritoryLedgerService(pool);
+      const pendingSvc = new PendingDebitService(pool);
       await walletSvc.ensureWallet(wr.driver_id);
       await walletSvc.creditRecharge(wr.driver_id, BigInt(wr.amount_cents), wr.id);
+      // Resolve pending debits after credit
+      try {
+        const resolved = await pendingSvc.resolveOnRecharge(wr.driver_id, walletSvc, feeSplitSvc, ledgerSvc);
+        if (resolved > 0) console.log(`[ASAAS_WEBHOOK_V2] Resolved ${resolved} pending debit(s) for driver=${wr.driver_id}`);
+      } catch (pendErr: any) { console.error(`[ASAAS_WEBHOOK_V2] resolveOnRecharge error:`, pendErr.message); }
       console.log(`[ASAAS_WEBHOOK_V2] Recharge confirmed id=${wr.id} driver=${wr.driver_id} amount=${wr.amount_cents}`);
       if (eventId) await pool.query("UPDATE asaas_webhook_events SET status = 'processed', processed_at = NOW() WHERE id = $1", [eventId]);
       return res.status(200).json({ received: true });

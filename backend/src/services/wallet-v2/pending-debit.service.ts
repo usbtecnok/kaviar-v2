@@ -3,15 +3,18 @@ import { Pool } from 'pg';
 export class PendingDebitService {
   constructor(private pool: Pool) {}
 
-  async create(params: { rideId: string; driverId: string; finalPriceCents: bigint; feeAmountCents: bigint; reservedCents: bigint }): Promise<{ id: bigint; already_processed: boolean }> {
+  async create(params: { rideId: string; driverId: string; finalPriceCents: bigint; feeAmountCents: bigint; reservedCents: bigint; feeCollectedCents?: bigint }): Promise<{ id: bigint; already_processed: boolean }> {
     const key = `pending_debit:${params.rideId}`;
     const existing = await this.pool.query('SELECT id FROM pending_debits WHERE idempotency_key = $1', [key]);
     if (existing.rows[0]) return { id: BigInt(existing.rows[0].id), already_processed: true };
 
+    const collected = params.feeCollectedCents ?? BigInt(0);
+    const pending = params.feeAmountCents - collected;
+
     const r = await this.pool.query(
       `INSERT INTO pending_debits (ride_id, driver_id, final_price_cents, fee_percent_snapshot, fee_amount_cents, fee_collected_cents, fee_pending_cents, reserved_amount_cents, reason, status, idempotency_key)
-       VALUES ($1,$2,$3,18.00,$4,0,$5,$6,'platform_fee','pending',$7) RETURNING id`,
-      [params.rideId, params.driverId, params.finalPriceCents.toString(), params.feeAmountCents.toString(), params.feeAmountCents.toString(), params.reservedCents.toString(), key]
+       VALUES ($1,$2,$3,18.00,$4,$5,$6,$7,'platform_fee','pending',$8) RETURNING id`,
+      [params.rideId, params.driverId, params.finalPriceCents.toString(), params.feeAmountCents.toString(), collected.toString(), pending.toString(), params.reservedCents.toString(), key]
     );
     return { id: BigInt(r.rows[0].id), already_processed: false };
   }

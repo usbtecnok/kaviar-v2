@@ -13,6 +13,14 @@ import { authenticatePassenger, authenticateDriver, requireAuth } from '../middl
 import { getPresignedUrl } from '../config/s3-upload';
 import { createPixPayment } from '../services/asaas.service';
 import { config } from '../config';
+import { isWalletV2Enabled } from './driver-wallet-v2';
+import { WalletService } from '../services/wallet-v2/wallet.service';
+import { FeeSplitService } from '../services/wallet-v2/fee-split.service';
+import { TerritoryLedgerService } from '../services/wallet-v2/territory-ledger.service';
+import { PendingDebitService } from '../services/wallet-v2/pending-debit.service';
+import { WalletSettlementService } from '../services/wallet-v2/wallet-settlement.service';
+import { pool } from '../db';
+import { estimateFeeCentsFromPrice, calculateFeeCents } from '../services/wallet-v2/fee-helper';
 
 const toPhotoUrl = async (key: string | null | undefined): Promise<string | null> => {
   if (!key) return null;
@@ -519,6 +527,18 @@ router.post('/:ride_id/cancel', authenticatePassenger, async (req: Request, res:
       } catch (e: any) { console.error('[WA_LOOKUP_FAIL] cancel', e.message); }
     }
 
+    // Wallet V2: release reserve if driver was assigned
+    if (ride.driver_id && ['accepted', 'arrived'].includes(ride.status) && await isWalletV2Enabled()) {
+      try {
+        const estFee = estimateFeeCentsFromPrice(Number(ride.quoted_price || ride.locked_price || 0));
+        if (estFee > 0) {
+          const walletSvc = new WalletService(pool);
+          await walletSvc.releaseReserve(ride.driver_id, BigInt(estFee), ride_id);
+          console.log(`[WALLET_V2_RELEASE] ride=${ride_id} driver=${ride.driver_id} amount=${estFee}`);
+        }
+      } catch (relErr: any) { console.error(`[WALLET_V2_RELEASE_FAIL] ride=${ride_id}`, relErr.message); }
+    }
+
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_CANCEL_ERROR]', error);
@@ -579,6 +599,18 @@ router.post('/:ride_id/driver-cancel', authenticateDriver, async (req: Request, 
 
       console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=canceled_by_driver driver_id=${driverId} reason=${reason || 'none'} redispatch_exhausted=true`);
       realTimeService.emitToRide(ride_id, { type: 'ride.status.changed', status: 'canceled_by_driver', timestamp: new Date().toISOString() });
+    }
+
+    // Wallet V2: release reserve
+    if (await isWalletV2Enabled()) {
+      try {
+        const estFee = estimateFeeCentsFromPrice(Number(ride.quoted_price || ride.locked_price || 0));
+        if (estFee > 0) {
+          const walletSvc = new WalletService(pool);
+          await walletSvc.releaseReserve(driverId, BigInt(estFee), ride_id);
+          console.log(`[WALLET_V2_RELEASE] ride=${ride_id} driver=${driverId} amount=${estFee}`);
+        }
+      } catch (relErr: any) { console.error(`[WALLET_V2_RELEASE_FAIL] ride=${ride_id}`, relErr.message); }
     }
 
     res.json({ success: true });
@@ -878,38 +910,67 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
       }
     }
 
-    // Credit/Fee consumption ANTES do WhatsApp (precisamos do saldo atualizado para a mensagem)
+    // Credit/Fee consumption ANTES do WhatsApp
     let creditResult: { cost: number; matchType: string; balance: number } | null = null;
     if (settlement) {
-      const isFlatFee = settlement.credit_match_type === 'FLAT_FEE';
-      if (isFlatFee) {
-        // Modelo 18%: debita fee_amount em reais do saldo do motorista
+      const walletV2Active = await isWalletV2Enabled();
+
+      if (walletV2Active) {
+        // Wallet V2: debitar taxa real via settlement service
         try {
-          const feeDebit = -settlement.fee_amount;
-          const delta = await applyCreditDelta(
-            driverId, feeDebit,
-            `platform_fee:${ride_id}`,
-            'system',
-            `fee_${ride_id}`
-          );
-          creditResult = { cost: settlement.fee_amount, matchType: 'FLAT_FEE', balance: delta.balance };
-          console.log(`[FEE_DEBITED] ride_id=${ride_id} driver_id=${driverId} fee=${settlement.fee_amount} balance=${delta.balance}`);
-        } catch (feeErr) {
-          console.error(`[FEE_DEBIT_FAILED] ride_id=${ride_id} driver_id=${driverId}`, feeErr);
+          const finalPriceCents = Math.round(settlement.final_price * 100);
+          const reservedCents = estimateFeeCentsFromPrice(Number(ride.quoted_price || ride.locked_price || 0));
+
+          // Resolve territory for split
+          const originNeighborhood = ride.origin_neighborhood_id;
+          let territoryId: string | null = null;
+          let managerId: string | null = null;
+          if (originNeighborhood) {
+            const nRes = await pool.query('SELECT territory_id FROM neighborhoods WHERE id=$1', [originNeighborhood]);
+            territoryId = nRes.rows[0]?.territory_id || null;
+            if (territoryId) {
+              const mRes = await pool.query("SELECT admin_id FROM territory_manager_assignments WHERE territory_id=$1 AND status='active' LIMIT 1", [territoryId]);
+              managerId = mRes.rows[0]?.admin_id || null;
+            }
+          }
+
+          const walletSvc = new WalletService(pool);
+          const feeSplitSvc = new FeeSplitService(pool);
+          const ledgerSvc = new TerritoryLedgerService(pool);
+          const pendingSvc = new PendingDebitService(pool);
+          const settlementSvc = new WalletSettlementService(walletSvc, feeSplitSvc, ledgerSvc, pendingSvc);
+
+          const result = await settlementSvc.settleRide({
+            rideId: ride_id, driverId, finalPriceCents: BigInt(finalPriceCents),
+            reservedCents: BigInt(reservedCents), territoryId: territoryId || undefined, managerId: managerId || undefined
+          });
+
+          const feeCents = calculateFeeCents(finalPriceCents);
+          creditResult = { cost: feeCents / 100, matchType: 'WALLET_V2', balance: 0 };
+          console.log(`[WALLET_V2_SETTLE] ride=${ride_id} driver=${driverId} fee=${feeCents} collected=${result.collected}`);
+        } catch (walletErr: any) {
+          console.error(`[WALLET_V2_SETTLE_FAIL] ride=${ride_id} driver=${driverId}`, walletErr.message);
         }
-      } else if (process.env.CREDIT_CONSUME_ENABLED === 'true') {
-        // Modelo legado: debita créditos fixos
-        try {
-          const delta = await applyCreditDelta(
-            driverId, -settlement.credit_cost,
-            `ride:${settlement.credit_match_type}:${ride_id}`,
-            'system',
-            `ride_${ride_id}`
-          );
-          creditResult = { cost: settlement.credit_cost, matchType: settlement.credit_match_type, balance: delta.balance };
-          console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${settlement.credit_cost} type=${settlement.credit_match_type} balance=${delta.balance} alreadyProcessed=${delta.alreadyProcessed}`);
-        } catch (creditErr) {
-          console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
+      } else {
+        // Modelo antigo (FEE_MODEL_FLAT_18 ou créditos fixos)
+        const isFlatFee = settlement.credit_match_type === 'FLAT_FEE';
+        if (isFlatFee) {
+          try {
+            const feeDebit = -settlement.fee_amount;
+            const delta = await applyCreditDelta(driverId, feeDebit, `platform_fee:${ride_id}`, 'system', `fee_${ride_id}`);
+            creditResult = { cost: settlement.fee_amount, matchType: 'FLAT_FEE', balance: delta.balance };
+            console.log(`[FEE_DEBITED] ride_id=${ride_id} driver_id=${driverId} fee=${settlement.fee_amount} balance=${delta.balance}`);
+          } catch (feeErr) {
+            console.error(`[FEE_DEBIT_FAILED] ride_id=${ride_id} driver_id=${driverId}`, feeErr);
+          }
+        } else if (process.env.CREDIT_CONSUME_ENABLED === 'true') {
+          try {
+            const delta = await applyCreditDelta(driverId, -settlement.credit_cost, `ride:${settlement.credit_match_type}:${ride_id}`, 'system', `ride_${ride_id}`);
+            creditResult = { cost: settlement.credit_cost, matchType: settlement.credit_match_type, balance: delta.balance };
+            console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${settlement.credit_cost} type=${settlement.credit_match_type} balance=${delta.balance}`);
+          } catch (creditErr) {
+            console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
+          }
         }
       }
     }
