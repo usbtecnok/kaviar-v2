@@ -211,7 +211,7 @@ A USB TECNOK compromete-se a:
 
 12.4. Em caso de incidente de segurança envolvendo dados de hóspedes, a parte que identificar o incidente deverá comunicar a outra imediatamente.
 
-12.5. O HOTEL PARCEIRO é responsável por obter consentimento do hóspede para compartilhamento dos dados mínimos com a USB TEKNOK para fins de transporte.
+12.5. O HOTEL PARCEIRO é responsável por obter consentimento do hóspede para compartilhamento dos dados mínimos com a USB TECNOK para fins de transporte.
 
 ---
 
@@ -289,7 +289,7 @@ Fica eleito o Foro da Comarca da Capital do Estado do Rio de Janeiro/RJ para dir
 
 ## ASSINATURAS
 
-**Pela USB TEKNOK:**
+**Pela USB TECNOK:**
 
 USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME
 CNPJ: 07.710.691/0001-66
