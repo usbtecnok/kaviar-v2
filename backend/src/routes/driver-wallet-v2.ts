@@ -2,9 +2,26 @@ import { Router, Request, Response } from 'express';
 import { authenticateDriver } from '../middlewares/auth';
 import { pool } from '../db';
 import { WalletService } from '../services/wallet-v2/wallet.service';
+import crypto from 'crypto';
+import { ensureAsaasCustomer, createPixPayment } from '../services/asaas.service';
 
 const router = Router();
 const walletService = new WalletService(pool);
+
+let cachedWalletV2Flag: { value: boolean; at: number } | null = null;
+export async function isWalletV2Enabled(): Promise<boolean> {
+  if (cachedWalletV2Flag && Date.now() - cachedWalletV2Flag.at < 60000) return cachedWalletV2Flag.value;
+  let enabled = false;
+  try {
+    const r = await pool.query("SELECT enabled FROM feature_flags WHERE key = 'WALLET_V2_ENABLED' LIMIT 1");
+    enabled = r.rows[0]?.enabled === true;
+  } catch {
+    enabled = process.env.WALLET_V2_ENABLED === 'true';
+  }
+  cachedWalletV2Flag = { value: enabled, at: Date.now() };
+  return enabled;
+}
+export function _resetWalletV2Cache() { cachedWalletV2Flag = null; }
 
 router.use(authenticateDriver);
 
@@ -92,6 +109,71 @@ router.get('/recharges/:id', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[wallet-v2] GET /recharges/:id error:', (err as Error).message);
     res.status(500).json({ success: false, error: 'Erro ao consultar recarga' });
+  }
+});
+
+// POST /api/v2/drivers/me/wallet/recharge
+router.post('/recharge', async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driverId;
+
+    if (!(await isWalletV2Enabled())) {
+      return res.status(403).json({ success: false, error: 'Recarga V2 não disponível' });
+    }
+
+    const { package_id } = req.body;
+    if (!package_id) return res.status(400).json({ success: false, error: 'package_id obrigatório' });
+
+    const pkg = await pool.query('SELECT id, amount_cents, label FROM recharge_packages WHERE id = $1 AND is_active = true', [package_id]);
+    if (!pkg.rows[0]) return res.status(400).json({ success: false, error: 'Pacote inválido ou inativo' });
+
+    // Anti-spam: retornar existente se pending recente do mesmo pacote
+    const recent = await pool.query(
+      "SELECT id, amount_cents, pix_qr_code, pix_copy_paste, pix_expires_at FROM wallet_recharges WHERE driver_id=$1 AND package_id=$2 AND status='pending' AND external_id IS NOT NULL AND created_at > NOW() - INTERVAL '10 minutes' LIMIT 1",
+      [driverId, package_id]
+    );
+    if (recent.rows[0]) {
+      const r = recent.rows[0];
+      return res.json({ success: true, data: { rechargeId: r.id, amount_cents: Number(r.amount_cents), pix: { qrCode: r.pix_qr_code, copyPaste: r.pix_copy_paste, expiresAt: r.pix_expires_at } } });
+    }
+
+    // Anti-spam: max 3 pending válidas
+    const countRes = await pool.query(
+      "SELECT COUNT(*) as c FROM wallet_recharges WHERE driver_id=$1 AND status='pending' AND external_id IS NOT NULL AND pix_expires_at > NOW()",
+      [driverId]
+    );
+    if (Number(countRes.rows[0].c) >= 3) {
+      return res.status(429).json({ success: false, error: 'Aguarde recargas pendentes expirarem' });
+    }
+
+    const rechargeId = crypto.randomUUID();
+    const amountCents = Number(pkg.rows[0].amount_cents);
+
+    // Insert pending (antes de chamar Asaas)
+    await pool.query(
+      "INSERT INTO wallet_recharges (id, driver_id, package_id, amount_cents, status, payment_provider, external_id, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending','asaas',NULL,NOW(),NOW())",
+      [rechargeId, driverId, package_id, amountCents]
+    );
+
+    // Chamar Asaas
+    try {
+      const customerId = await ensureAsaasCustomer(driverId);
+      const pix = await createPixPayment(customerId, amountCents, `wallet_v2:${rechargeId}`, `KAVIAR: Recarga saldo ${pkg.rows[0].label}`);
+
+      await pool.query(
+        "UPDATE wallet_recharges SET external_id=$2, pix_qr_code=$3, pix_copy_paste=$4, pix_expires_at=$5, updated_at=NOW() WHERE id=$1",
+        [rechargeId, pix.paymentId, pix.qrCode, pix.copyPaste, pix.expirationDate]
+      );
+
+      res.json({ success: true, data: { rechargeId, amount_cents: amountCents, pix: { qrCode: pix.qrCode, copyPaste: pix.copyPaste, expiresAt: pix.expirationDate } } });
+    } catch (asaasErr) {
+      await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
+      console.error(`[WALLET_RECHARGE_ASAAS_FAIL] driver=${driverId} recharge=${rechargeId}`, (asaasErr as Error).message?.slice(0, 100));
+      res.status(502).json({ success: false, error: 'Erro ao criar cobrança Pix. Tente novamente.' });
+    }
+  } catch (err) {
+    console.error('[wallet-v2] POST /recharge error:', (err as Error).message);
+    res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
 
