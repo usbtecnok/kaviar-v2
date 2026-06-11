@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { rankDriversByFavorites } from './favorites-matching.service';
 import { getCreditBalance } from './credit.service';
+import { isFlatFeeEnabled } from './pricing-engine';
 
 interface DriverCandidate {
   driver_id: string;
@@ -254,11 +255,15 @@ export class DispatcherService {
       }
       withinDistanceCount++;
 
-      // Credit gate: driver must have >= 2 credits (enough for any ride type)
+      // Credit gate: driver must have sufficient balance
       if (process.env.CREDIT_GATE_ENABLED === 'true') {
         try {
           const balance = await getCreditBalance(ds.driver_id);
-          if (balance < 2) {
+          const flatFee = await isFlatFeeEnabled();
+          const minRequired = flatFee
+            ? Number(ride.quoted_price || 0) * 0.18  // 18% do preço da corrida
+            : 2; // legado: 2 créditos
+          if (balance < minRequired) {
             droppedReasons.no_credits++;
             continue;
           }

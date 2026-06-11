@@ -18,6 +18,38 @@ import { pool } from '../db';
 import { resolveTerritory, TerritoryResolution } from './territory-resolver.service';
 import { getFloorForRoute } from './territory-floor.service';
 
+// --- Fee model flat 18% feature flag ---
+
+let cachedFlatFeeFlag: { value: boolean; fetchedAt: number } | null = null;
+let cachedFlatFeePercent: { id: string; percent: number; fetchedAt: number } | null = null;
+const FLAG_CACHE_TTL = 60_000;
+
+export async function isFlatFeeEnabled(): Promise<boolean> {
+  if (cachedFlatFeeFlag && Date.now() - cachedFlatFeeFlag.fetchedAt < FLAG_CACHE_TTL) return cachedFlatFeeFlag.value;
+  let enabled = false;
+  try {
+    const r = await pool.query(`SELECT enabled FROM feature_flags WHERE key = 'FEE_MODEL_FLAT_18' LIMIT 1`);
+    enabled = r.rows[0]?.enabled === true;
+  } catch {
+    enabled = process.env.FEE_MODEL_FLAT_18 === 'true';
+  }
+  cachedFlatFeeFlag = { value: enabled, fetchedAt: Date.now() };
+  return enabled;
+}
+
+async function getFlatFeeConfig(): Promise<{ id: string; percent: number } | null> {
+  if (cachedFlatFeePercent && Date.now() - cachedFlatFeePercent.fetchedAt < FLAG_CACHE_TTL) return cachedFlatFeePercent;
+  const r = await pool.query(
+    `SELECT id, platform_fee_percent FROM platform_fee_configs
+     WHERE approval_status = 'approved' AND effective_from <= NOW()
+       AND (effective_to IS NULL OR effective_to > NOW())
+     ORDER BY effective_from DESC LIMIT 1`
+  );
+  if (!r.rows[0]) return null;
+  cachedFlatFeePercent = { id: r.rows[0].id, percent: Number(r.rows[0].platform_fee_percent), fetchedAt: Date.now() };
+  return cachedFlatFeePercent;
+}
+
 // --- Types ---
 
 export interface PricingProfile {
@@ -411,24 +443,43 @@ export async function settle(rideId: string): Promise<SettlementResult | null> {
   // settlement_territory = driver_territory se refinado, senão route_territory
   const settlement_territory: TerritoryType = s.driver_territory || s.route_territory;
   const final_price = Number(s.locked_price); // V1: final = locked
-  const fee_percent = Number(s.fee_percent);
-  const fee_amount = Number(s.fee_amount);
-  const driver_earnings = Number(s.driver_earnings);
-  const { cost: credit_cost, matchType: credit_match_type } = creditForTerritory(p, settlement_territory);
+
+  // Fee model: flat 18% or legacy territorial fee
+  const flatFeeActive = await isFlatFeeEnabled();
+  let fee_percent: number, fee_amount: number, driver_earnings: number;
+  let credit_cost: number, credit_match_type: string;
+
+  if (flatFeeActive) {
+    const feeConfig = await getFlatFeeConfig();
+    fee_percent = feeConfig ? feeConfig.percent : 18;
+    fee_amount = round2(final_price * fee_percent / 100);
+    driver_earnings = round2(final_price - fee_amount);
+    credit_cost = 0;
+    credit_match_type = 'FLAT_FEE';
+  } else {
+    fee_percent = Number(s.fee_percent);
+    fee_amount = Number(s.fee_amount);
+    driver_earnings = Number(s.driver_earnings);
+    const cr = creditForTerritory(p, settlement_territory);
+    credit_cost = cr.cost;
+    credit_match_type = cr.matchType;
+  }
 
   await pool.query('BEGIN');
   try {
     await pool.query(
       `UPDATE ride_settlements SET
         final_price = $2, settlement_territory = $3,
-        credit_cost = $4, credit_match_type = $5, settled_at = $6
+        credit_cost = $4, credit_match_type = $5, settled_at = $6,
+        fee_percent = $7, fee_amount = $8, driver_earnings = $9
        WHERE ride_id = $1 AND settled_at IS NULL`,
-      [rideId, final_price, settlement_territory, credit_cost, credit_match_type, new Date()]
+      [rideId, final_price, settlement_territory, credit_cost, credit_match_type, new Date(),
+       fee_percent, fee_amount, driver_earnings]
     );
 
     await pool.query(
-      `UPDATE rides_v2 SET final_price = $2 WHERE id = $1`,
-      [rideId, final_price]
+      `UPDATE rides_v2 SET final_price = $2, platform_fee = $3, driver_earnings = $4 WHERE id = $1`,
+      [rideId, final_price, fee_amount, driver_earnings]
     );
 
     await pool.query('COMMIT');

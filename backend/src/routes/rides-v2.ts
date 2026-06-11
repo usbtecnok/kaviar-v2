@@ -878,20 +878,39 @@ router.post('/:ride_id/complete', authenticateDriver, async (req: Request, res: 
       }
     }
 
-    // Credit consumption ANTES do WhatsApp (precisamos do saldo atualizado para a mensagem)
+    // Credit/Fee consumption ANTES do WhatsApp (precisamos do saldo atualizado para a mensagem)
     let creditResult: { cost: number; matchType: string; balance: number } | null = null;
-    if (process.env.CREDIT_CONSUME_ENABLED === 'true' && settlement) {
-      try {
-        const delta = await applyCreditDelta(
-          driverId, -settlement.credit_cost,
-          `ride:${settlement.credit_match_type}:${ride_id}`,
-          'system',
-          `ride_${ride_id}`
-        );
-        creditResult = { cost: settlement.credit_cost, matchType: settlement.credit_match_type, balance: delta.balance };
-        console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${settlement.credit_cost} type=${settlement.credit_match_type} balance=${delta.balance} alreadyProcessed=${delta.alreadyProcessed}`);
-      } catch (creditErr) {
-        console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
+    if (settlement) {
+      const isFlatFee = settlement.credit_match_type === 'FLAT_FEE';
+      if (isFlatFee) {
+        // Modelo 18%: debita fee_amount em reais do saldo do motorista
+        try {
+          const feeDebit = -settlement.fee_amount;
+          const delta = await applyCreditDelta(
+            driverId, feeDebit,
+            `platform_fee:${ride_id}`,
+            'system',
+            `fee_${ride_id}`
+          );
+          creditResult = { cost: settlement.fee_amount, matchType: 'FLAT_FEE', balance: delta.balance };
+          console.log(`[FEE_DEBITED] ride_id=${ride_id} driver_id=${driverId} fee=${settlement.fee_amount} balance=${delta.balance}`);
+        } catch (feeErr) {
+          console.error(`[FEE_DEBIT_FAILED] ride_id=${ride_id} driver_id=${driverId}`, feeErr);
+        }
+      } else if (process.env.CREDIT_CONSUME_ENABLED === 'true') {
+        // Modelo legado: debita créditos fixos
+        try {
+          const delta = await applyCreditDelta(
+            driverId, -settlement.credit_cost,
+            `ride:${settlement.credit_match_type}:${ride_id}`,
+            'system',
+            `ride_${ride_id}`
+          );
+          creditResult = { cost: settlement.credit_cost, matchType: settlement.credit_match_type, balance: delta.balance };
+          console.log(`[CREDIT_CONSUMED] ride_id=${ride_id} driver_id=${driverId} cost=${settlement.credit_cost} type=${settlement.credit_match_type} balance=${delta.balance} alreadyProcessed=${delta.alreadyProcessed}`);
+        } catch (creditErr) {
+          console.error(`[CREDIT_CONSUME_FAILED] ride_id=${ride_id} driver_id=${driverId}`, creditErr);
+        }
       }
     }
 
