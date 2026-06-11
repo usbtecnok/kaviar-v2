@@ -11,6 +11,9 @@ function ContractDataDiagnostic({ operatorId, token, headers }) {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ document_cpf: '', document_rg: '', address: '', phone: '', pix_key: '', pix_key_type: 'cpf' });
   const [saving, setSaving] = useState(false);
+  const [genConfirm, setGenConfirm] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [genResult, setGenResult] = useState(null);
 
   const fetchData = () => {
     if (!operatorId) return;
@@ -45,6 +48,17 @@ function ContractDataDiagnostic({ operatorId, token, headers }) {
     setSaving(false);
   };
 
+  const handleGenerate = async () => {
+    setGenerating(true); setGenResult(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${operatorId}/generate-contract-template`, { method: 'POST', headers });
+      const d = await res.json();
+      if (d.success) { setGenResult(d.data); setGenConfirm(false); fetchData(); }
+      else alert(d.error || 'Erro ao gerar contrato.');
+    } catch { alert('Erro de conexão.'); }
+    setGenerating(false);
+  };
+
   if (!operatorId || loading) return null;
   if (!data) return null;
 
@@ -75,9 +89,14 @@ function ContractDataDiagnostic({ operatorId, token, headers }) {
           <Typography sx={{ fontSize: 11, color: '#F59E0B' }}>Pix: não cadastrado (necessário para repasses)</Typography>
         </Box>
       )}
-      <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
+      <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
         {canGenerateContract ? (
-          <Chip label="Dados suficientes para gerar contrato" size="small" sx={{ bgcolor: 'rgba(16,185,129,0.1)', color: '#10B981', fontSize: 10 }} />
+          <>
+            <Chip label="Dados suficientes para gerar contrato" size="small" sx={{ bgcolor: 'rgba(16,185,129,0.1)', color: '#10B981', fontSize: 10 }} />
+            <Button size="small" variant="contained" onClick={() => { setGenResult(null); setGenConfirm(true); }} sx={{ bgcolor: '#10B981', '&:hover': { bgcolor: '#059669' }, fontSize: 10, whiteSpace: 'nowrap' }}>
+              Gerar contrato automaticamente
+            </Button>
+          </>
         ) : (
           <>
             <Alert severity="warning" sx={{ py: 0, flex: 1, '& .MuiAlert-message': { fontSize: 10 } }}>
@@ -89,6 +108,30 @@ function ContractDataDiagnostic({ operatorId, token, headers }) {
           </>
         )}
       </Box>
+
+      {genResult && (
+        <Alert severity="success" sx={{ mt: 1, '& .MuiAlert-message': { fontSize: 11 } }}>
+          ✅ Contrato gerado e disponibilizado. Status: {genResult.contract_status}. WhatsApp: {genResult.whatsappSent ? 'enviado' : 'não enviado'}.
+        </Alert>
+      )}
+
+      {/* Dialog confirmação gerar contrato */}
+      <Dialog open={genConfirm} onClose={() => setGenConfirm(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>
+        <DialogTitle sx={{ color: '#10B981', fontWeight: 700 }}>Gerar contrato automaticamente</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ color: '#9CA3AF', mb: 2 }}>O sistema irá gerar o PDF do contrato personalizado com os dados abaixo e disponibilizá-lo para assinatura.</Typography>
+          <Box sx={{ p: 1.5, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1, border: '1px solid rgba(16,185,129,0.3)', mb: 2 }}>
+            <Typography variant="body2"><strong>Nome:</strong> {availableFields?.nome}</Typography>
+            <Typography variant="body2"><strong>Território:</strong> {availableFields?.territorio}</Typography>
+            <Typography variant="body2"><strong>Cidade/UF:</strong> {availableFields?.cidadeUf}</Typography>
+          </Box>
+          <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: 11 } }}>O PDF será disponibilizado para a gestora baixar e assinar. Se o WhatsApp estiver configurado, será enviada notificação automática.</Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setGenConfirm(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
+          <Button onClick={handleGenerate} disabled={generating} variant="contained" sx={{ bgcolor: '#10B981', '&:hover': { bgcolor: '#059669' } }}>{generating ? 'Gerando...' : 'Confirmar geração'}</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog completar dados */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: '#1A1A24', color: '#E5E7EB' } }}>

@@ -623,4 +623,222 @@ router.get('/operators/:id/contract-data', async (req: Request, res: Response) =
   }
 });
 
+// ─── Generate Contract Template (PDF) ────────────────────────────────────────
+
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import path from 'path';
+import fs from 'fs';
+
+router.post('/operators/:id/generate-contract-template', async (req: Request, res: Response) => {
+  try {
+    const operator = await prisma.operator_profiles.findUnique({
+      where: { id: req.params.id },
+      include: { admin: { select: { name: true, email: true, phone: true } }, territory: { select: { name: true, city_name: true, uf: true } } },
+    });
+    if (!operator) return res.status(404).json({ success: false, error: 'Operador não encontrado' });
+    if (operator.contract_status === 'signed') return res.status(409).json({ success: false, error: 'Contrato já assinado. Não é possível gerar novo modelo.' });
+
+    const nome = operator.display_name || operator.admin.name;
+    const email = operator.admin.email;
+    const telefone = operator.phone || operator.admin.phone || null;
+    const cpf = operator.document_cpf || null;
+    const rg = (operator as any).document_rg || '—';
+    const endereco = operator.address || null;
+    const territorio = operator.territory?.name || null;
+    const cidadeUf = operator.territory?.city_name && operator.territory?.uf ? `${operator.territory.city_name}/${operator.territory.uf}` : null;
+
+    const missingFields: string[] = [];
+    if (!cpf) missingFields.push('cpf');
+    if (!endereco) missingFields.push('endereco');
+    if (!telefone) missingFields.push('telefone');
+    if (!territorio) missingFields.push('territorio');
+    if (!cidadeUf) missingFields.push('cidadeUf');
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({ success: false, error: 'Dados insuficientes para gerar contrato.', missingFields });
+    }
+
+    // Generate PDF with pdfkit
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ size: 'A4', margin: 50, bufferPages: true });
+    const chunks: Buffer[] = [];
+    doc.on('data', (c: Buffer) => chunks.push(c));
+
+    const pdfDone = new Promise<Buffer>((resolve) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+    });
+
+    // Load logo
+    const logoPath = path.resolve(__dirname, '../../frontend-app/public/associacoes/usb-tecnok-logo.png');
+    let logoBuffer: Buffer | null = null;
+    try { logoBuffer = fs.readFileSync(logoPath); } catch {}
+
+    const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+    // ─── CONTRATO PRINCIPAL ───
+    if (logoBuffer) doc.image(logoBuffer, 200, 40, { width: 160 });
+    doc.moveDown(6);
+    doc.fontSize(18).font('Helvetica-Bold').text('USB TECNOK', { align: 'center' });
+    doc.fontSize(12).font('Helvetica').text('Contrato de Parceria Operacional Territorial — Plataforma KAVIAR', { align: 'center' });
+    doc.moveDown(1);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#B8942E');
+    doc.moveDown(0.5);
+
+    // Contratante
+    doc.fontSize(9).font('Helvetica-Bold').text('CONTRATANTE:');
+    doc.font('Helvetica').text('USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME');
+    doc.text('CNPJ: 07.710.691/0001-66');
+    doc.text('Estrada das Furnas, nº 3001, Casa 06, Itanhangá, Rio de Janeiro/RJ, CEP 22641-681');
+    doc.text('contato@usbtecnok.com.br | kaviar.com.br');
+    doc.moveDown(0.8);
+
+    // Contratada
+    doc.font('Helvetica-Bold').text('CONTRATADA — GESTORA TERRITORIAL:');
+    doc.font('Helvetica');
+    doc.text(`Nome: ${nome}`);
+    doc.text(`CPF: ${cpf}`);
+    doc.text(`RG: ${rg}`);
+    doc.text(`E-mail: ${email}`);
+    doc.text(`Telefone: ${telefone}`);
+    doc.text(`Endereço: ${endereco}`);
+    doc.text(`Cidade/UF: ${cidadeUf}`);
+    doc.moveDown(1);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ccc');
+    doc.moveDown(0.5);
+
+    // Cláusulas
+    const clausulas = [
+      { t: '1. OBJETO', b: `A USB TECNOK contrata a GESTORA TERRITORIAL para acompanhamento, captação e suporte local à operação da Plataforma KAVIAR no Território Operacional "${territorio}" (${cidadeUf}), em regime de parceria autônoma, sem vínculo empregatício.` },
+      { t: '2. TERRITÓRIO OPERACIONAL', b: `Território: ${territorio}\nCidade/UF: ${cidadeUf}\nA delimitação poderá ser ajustada pela USB TECNOK mediante comunicação prévia.` },
+      { t: '3. OBRIGAÇÕES DA GESTORA TERRITORIAL', b: '• Realizar captação ativa de motoristas e passageiros;\n• Fornecer suporte local presencial quando necessário;\n• Reportar problemas operacionais;\n• Manter sigilo sobre dados da plataforma;\n• Cumprir LGPD e normas de confidencialidade;\n• Não representar a USB TECNOK perante terceiros sem autorização.' },
+      { t: '4. OBRIGAÇÕES DA USB TECNOK', b: '• Disponibilizar acesso ao painel operacional;\n• Processar repasses conforme Anexo Comercial;\n• Fornecer materiais de apoio à captação;\n• Comunicar alterações com antecedência razoável.' },
+      { t: '5. REMUNERAÇÃO', b: 'A GESTORA TERRITORIAL fará jus à participação econômica conforme regras definidas no Anexo Comercial I, parte integrante deste contrato.' },
+      { t: '6. PAGAMENTO', b: 'Os repasses serão realizados via Pix, mediante aprovação manual da USB TECNOK, até o 15º dia útil do mês subsequente ao período de apuração.' },
+      { t: '7. VIGÊNCIA', b: 'Este contrato tem vigência indeterminada, iniciando-se na data de assinatura, podendo ser rescindido por qualquer das partes mediante comunicação com 30 dias de antecedência.' },
+      { t: '8. RESCISÃO', b: '• Por qualquer parte, com 30 dias de antecedência;\n• Imediatamente por justa causa (fraude, violação de sigilo, descumprimento grave);\n• Repasses pendentes serão calculados pro rata até a data de desligamento.' },
+      { t: '9. CONFIDENCIALIDADE E LGPD', b: 'A GESTORA TERRITORIAL compromete-se a manter sigilo sobre dados de passageiros, motoristas, faturamento e operação da plataforma. O descumprimento autoriza rescisão imediata e responsabilização civil.' },
+      { t: '10. DISPOSIÇÕES GERAIS', b: '• Não há vínculo empregatício entre as partes;\n• Este contrato não confere exclusividade territorial permanente;\n• Foro: comarca do Rio de Janeiro/RJ.' },
+    ];
+
+    for (const c of clausulas) {
+      if (doc.y > 700) doc.addPage();
+      doc.font('Helvetica-Bold').fontSize(9).text(c.t);
+      doc.font('Helvetica').fontSize(9).text(c.b);
+      doc.moveDown(0.6);
+    }
+
+    // Assinaturas
+    if (doc.y > 620) doc.addPage();
+    doc.moveDown(2);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ccc');
+    doc.moveDown(1);
+    doc.font('Helvetica').fontSize(9).text(`Local e data: Rio de Janeiro, ${dataHoje}`, { align: 'center' });
+    doc.moveDown(2);
+    doc.text('___________________________________________', { align: 'center' });
+    doc.text('USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME', { align: 'center' });
+    doc.moveDown(2);
+    doc.text('___________________________________________', { align: 'center' });
+    doc.text(`${nome} — Gestora Territorial`, { align: 'center' });
+
+    // ─── ANEXO COMERCIAL (nova página) ───
+    doc.addPage();
+    if (logoBuffer) doc.image(logoBuffer, 200, 40, { width: 160 });
+    doc.moveDown(6);
+    doc.fontSize(16).font('Helvetica-Bold').text('ANEXO COMERCIAL I', { align: 'center' });
+    doc.fontSize(11).text('Regra Inicial de Repasse Territorial', { align: 'center' });
+    doc.fontSize(10).font('Helvetica').text('Plataforma KAVIAR — USB TECNOK', { align: 'center' });
+    doc.moveDown(1);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#B8942E');
+    doc.moveDown(0.5);
+
+    doc.font('Helvetica-Bold').fontSize(9).text('PARTES');
+    doc.font('Helvetica');
+    doc.text('USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME, CNPJ 07.710.691/0001-66');
+    doc.text(`Gestora Territorial: ${nome} — CPF: ${cpf}`);
+    doc.text(`Território: ${territorio} — ${cidadeUf}`);
+    doc.text(`Data de início: ${dataHoje}`);
+    doc.moveDown(1);
+
+    const anexoCl = [
+      { t: '1. PARTICIPAÇÃO ECONÔMICA', b: 'A GESTORA TERRITORIAL fará jus à participação econômica de 40% (quarenta por cento) sobre a taxa líquida da plataforma efetivamente recebida pela USB TECNOK nas operações elegíveis vinculadas ao seu Território Operacional.' },
+      { t: '2. BASE DE CÁLCULO', b: '• Taxa líquida = valor cobrado do passageiro menos repasse ao motorista;\n• Apenas corridas concluídas e pagas são elegíveis;\n• Cancelamentos, estornos e fraudes são excluídos.' },
+      { t: '3. EXEMPLO', b: `Corrida R$ 25,00 → motorista recebe R$ 20,30 → taxa líquida R$ 4,70\nRepasse à gestora: 40% × R$ 4,70 = R$ 1,88\nAplicável sobre a taxa líquida padrão de R$ 470,00 por 100 corridas (referência).` },
+      { t: '4. APURAÇÃO E PAGAMENTO', b: '• Apuração mensal, fechamento no último dia do mês;\n• Relatório disponibilizado no painel até o 5º dia útil;\n• Pagamento via Pix até o 15º dia útil do mês seguinte;\n• Valor mínimo para repasse: R$ 50,00 (acumula se não atingido).' },
+      { t: '5. CONDIÇÕES', b: '• A USB TECNOK reserva-se o direito de revisar percentuais com 30 dias de antecedência;\n• Este anexo prevalece sobre comunicações verbais;\n• Alterações exigem formalização por escrito.' },
+    ];
+
+    for (const c of anexoCl) {
+      if (doc.y > 700) doc.addPage();
+      doc.font('Helvetica-Bold').fontSize(9).text(c.t);
+      doc.font('Helvetica').fontSize(9).text(c.b);
+      doc.moveDown(0.6);
+    }
+
+    // Assinaturas do anexo
+    if (doc.y > 620) doc.addPage();
+    doc.moveDown(2);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#ccc');
+    doc.moveDown(1);
+    doc.font('Helvetica').fontSize(9).text(`Rio de Janeiro, ${dataHoje}`, { align: 'center' });
+    doc.moveDown(2);
+    doc.text('___________________________________________', { align: 'center' });
+    doc.text('USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME', { align: 'center' });
+    doc.moveDown(2);
+    doc.text('___________________________________________', { align: 'center' });
+    doc.text(`${nome} — Gestora Territorial`, { align: 'center' });
+
+    // Footer on all pages
+    const pages = doc.bufferedPageRange();
+    for (let i = 0; i < pages.count; i++) {
+      doc.switchToPage(i);
+      doc.fontSize(7).font('Helvetica').fillColor('#888888')
+        .text('USB TECNOK — Plataforma KAVIAR | contato@usbtecnok.com.br | kaviar.com.br', 50, 780, { align: 'center', width: 495 });
+      doc.fillColor('#1a1a1a');
+    }
+
+    doc.end();
+    const pdfBuffer = await pdfDone;
+
+    // Upload to S3
+    const s3Key = `manager-contract-templates/${req.params.id}/${Date.now()}.pdf`;
+    await contractS3.send(new PutObjectCommand({
+      Bucket: contractBucket,
+      Key: s3Key,
+      Body: pdfBuffer,
+      ContentType: 'application/pdf',
+    }));
+
+    // Update operator
+    const previousKey = operator.contract_template_url || null;
+    await prisma.operator_profiles.update({
+      where: { id: req.params.id },
+      data: { contract_template_url: s3Key, contract_status: 'available', updated_at: new Date() },
+    });
+
+    // Audit
+    const ctx = auditCtx(req);
+    audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'generate_contract_template', entityType: 'operator_profile', entityId: req.params.id, oldValue: previousKey ? { contract_template_url: previousKey } : undefined, newValue: { contract_template_url: s3Key, contract_status: 'available', method: 'auto_generate' } as any, ipAddress: ctx.ip });
+
+    // Notify (non-blocking)
+    let whatsappSent = false;
+    try {
+      const gestoraAdmin = operator.admin;
+      if (gestoraAdmin?.phone && process.env.WA_TPL_CONTRACT_AVAILABLE) {
+        const { whatsappService } = await import('../modules/whatsapp');
+        const firstName = gestoraAdmin.name?.split(' ')[0] || gestoraAdmin.name;
+        await whatsappService.sendTemplate({ to: gestoraAdmin.phone, template: 'kaviar_contract_available_v1' as any, variables: { '1': firstName, '2': 'https://kaviar.com.br/admin/meu-contrato' } });
+        whatsappSent = true;
+      }
+    } catch (notifyErr) {
+      console.error('[CONTRACT_NOTIFY_FAIL]', (notifyErr as Error).message?.slice(0, 100));
+    }
+    console.log(`[CONTRACT_GENERATED] operator=${req.params.id} whatsapp=${whatsappSent}`);
+
+    res.json({ success: true, data: { contract_status: 'available', whatsappSent, generated: true } });
+  } catch (error: any) {
+    console.error('[admin-payouts] generate-contract-template error:', (error as Error).message?.slice(0, 200));
+    res.status(500).json({ success: false, error: 'Erro ao gerar contrato automaticamente' });
+  }
+});
+
 export default router;
