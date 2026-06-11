@@ -198,10 +198,10 @@ export default function DriverOnline() {
   const loadDashboard = async () => {
     try {
       const [credRes, histRes] = await Promise.allSettled([
-        driverApi.getCredits(),
+        driverApi.getWallet(),
         apiClient.get('/api/v2/rides/history'),
       ]);
-      if (credRes.status === 'fulfilled') setCreditBalance(credRes.value.balance);
+      if (credRes.status === 'fulfilled') setCreditBalance(credRes.value.balance_cents / 100);
       if (histRes.status === 'fulfilled') {
         const rides = histRes.value.data?.rides || histRes.value.data || [];
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -387,7 +387,7 @@ export default function DriverOnline() {
 
   // Derived states
   const noCredits = creditBalance !== null && creditBalance === 0;
-  const lowCredits = creditBalance !== null && creditBalance > 0 && creditBalance < 5;
+  const lowCredits = creditBalance !== null && creditBalance > 0 && creditBalance < 10;
   const hasOperationalIssue = !gpsEnabled || !locationPermission || noCredits;
 
   const distanceToPickup = pendingOffer && currentCoords
@@ -409,9 +409,9 @@ export default function DriverOnline() {
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           {creditBalance !== null && (
-            <TouchableOpacity style={[styles.creditBadge, creditBalance < 5 && styles.creditBadgeLow]} onPress={() => router.push('/(driver)/credits')}>
-              <Ionicons name="wallet-outline" size={14} color={creditBalance < 5 ? '#fff' : COLORS.primary} />
-              <Text style={[styles.creditText, creditBalance < 5 && { color: '#fff' }]}>
+            <TouchableOpacity style={[styles.creditBadge, creditBalance < 10 && styles.creditBadgeLow]} onPress={() => router.push('/(driver)/credits')}>
+              <Ionicons name="wallet-outline" size={14} color={creditBalance < 10 ? '#fff' : COLORS.primary} />
+              <Text style={[styles.creditText, creditBalance < 10 && { color: '#fff' }]}>
                 R$ {creditBalance != null ? Number(creditBalance).toFixed(2) : '—'}
               </Text>
             </TouchableOpacity>
@@ -478,7 +478,7 @@ export default function DriverOnline() {
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/credits')}>
               <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.quickStatValue}>{creditBalance ?? '—'}</Text>
+              <Text style={styles.quickStatValue}>{creditBalance != null ? `R$ ${creditBalance.toFixed(2)}` : '—'}</Text>
               <Text style={styles.quickStatLabel}>Saldo</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/help')}>
