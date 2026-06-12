@@ -60,6 +60,7 @@ jobs:
             echo "EXPO_PUBLIC_PLACES_KEY=$GOOGLE_MAPS_API_KEY"
             echo "APP_VARIANT=driver"
           } > .env
+          sed -i '/^\.env$/d' .easignore
 
       - name: Build APK locally
         run: eas build --profile driver-apk --platform android --local --non-interactive --output ./driver.apk
