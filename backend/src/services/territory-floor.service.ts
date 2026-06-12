@@ -75,6 +75,26 @@ export async function getFloorForRoute(
     // incorreta do piso mais caro quando dest_neighborhood_id não estava preenchido.
     // Pisos devem ter dest_neighborhood_id preenchido para match exato.
 
+    // Prioridade 3: Piso genérico por territory (qualquer corrida com origem neste território)
+    // Usado para pisos urbanos mínimos por cidade/região (ex: Tambaú R$20).
+    const generic = await pool.query(
+      `SELECT tpf.id, tpf.territory_id, tpf.origin_label, tpf.dest_label,
+              tpf.floor_price, tpf.surcharge, tpf.notes
+       FROM territory_price_floors tpf
+       JOIN neighborhoods n ON n.territory_id = tpf.territory_id
+       WHERE n.id = $1
+         AND tpf.origin_neighborhood_id IS NULL
+         AND tpf.dest_neighborhood_id IS NULL
+         AND tpf.is_active = true
+         AND tpf.status = 'active'
+       ORDER BY tpf.floor_price DESC
+       LIMIT 1`,
+      [originNeighborhoodId]
+    );
+    if (generic.rows[0]) {
+      return toFloorResult(generic.rows[0]);
+    }
+
     return null;
   } catch (error) {
     // Fail-open: se tabela não existe ou erro de query, não bloquear corrida
