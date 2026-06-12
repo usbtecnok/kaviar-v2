@@ -44,7 +44,7 @@ router.get('/', async (req: Request, res: Response) => {
     const totalPurchases = parseInt(purchases.rows[0]?.total_purchases || '0');
 
     if (totalPaidCents === 0) {
-      return res.json({ success: true, data: { available: false, message: 'Nenhuma compra de créditos confirmada neste ano.', disclaimer: DISCLAIMER } });
+      return res.json({ success: true, data: { available: false, message: 'Nenhuma recarga confirmada neste ano.', disclaimer: DISCLAIMER } });
     }
 
     // Calculate estimated return
@@ -134,7 +134,7 @@ router.post('/request', async (req: Request, res: Response) => {
     const totalPurchases = parseInt(purchases.rows[0]?.total_purchases || '0');
 
     if (totalPaidCents === 0) {
-      return res.status(400).json({ success: false, error: 'Nenhuma compra confirmada neste ano' });
+      return res.status(400).json({ success: false, error: 'Nenhuma recarga confirmada neste ano' });
     }
 
     const rate = Number(policy.percent_rate) / 100;
