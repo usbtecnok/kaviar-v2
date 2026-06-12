@@ -97,12 +97,31 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
       price = Math.round((price + profile.surcharge_external) * 100) / 100;
     }
 
+    // Territory price floor (paridade com quote)
+    const { getFloorForRoute } = require('../services/territory-floor.service');
+    const originNeighborhoodId = originRes.neighborhood?.id || null;
+    const destNeighborhoodId = destRes.neighborhood?.id || null;
+    let territory_floor_applied = false;
+    let territory_floor_value: number | null = null;
+    let minimum_fare_applied = false;
+
+    const floor = await getFloorForRoute(originNeighborhoodId, destNeighborhoodId);
+    if (floor && floor.total_floor > price) {
+      territory_floor_value = floor.total_floor;
+      territory_floor_applied = true;
+      price = floor.total_floor;
+    }
+
+    if (price === profile.minimum_fare && raw < profile.minimum_fare) {
+      minimum_fare_applied = true;
+    }
+
     // Wait estimate (informational only — real charge is by actual time)
     const wait_charge_estimate = wait_estimated_min && wait_estimated_min > 0
       ? Math.round(wait_estimated_min * config.wait.ratePerMin * 100) / 100
       : null;
 
-    res.json({ success: true, data: { price, distance_km, duration_min, route_territory, pricing_profile: profile.slug, pricing_source, wait_charge_estimate } });
+    res.json({ success: true, data: { price, distance_km, duration_min, billable_minutes, route_territory, pricing_profile: profile.slug, pricing_source, minimum_fare_applied, territory_floor_applied, territory_floor_value, wait_charge_estimate } });
   } catch (error: any) {
     console.error('[RIDE_ESTIMATE_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
