@@ -806,7 +806,7 @@ export default function TerritorialPayoutsPage() {
             {contractTarget?.contract_url && (
               <Button size="small" sx={{ color: '#C8A84E', textTransform: 'none', mt: 0.5 }} onClick={async () => {
                 try { const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-url`, { headers }); const d = await res.json(); if (d.success && d.data?.url) window.open(d.data.url, '_blank'); else alert('Contrato não disponível.'); } catch { alert('Erro ao abrir contrato.'); }
-              }}>📄 Abrir contrato atual</Button>
+              }}>📄 Abrir contrato recebido (gestora)</Button>
             )}
             <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mt: 0.5, fontSize: 10 }}>Para contratos recebidos via WhatsApp, e-mail ou outro canal.</Typography>
           </Box>
