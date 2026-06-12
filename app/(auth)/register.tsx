@@ -63,6 +63,7 @@ export default function Register() {
   // Território
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [neighborhoods, setNeighborhoods] = useState<any[]>([]);
+  const [allNeighborhoods, setAllNeighborhoods] = useState<any[]>([]);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<any>(null);
   const [detectedNeighborhood, setDetectedNeighborhood] = useState<any>(null);
   const [communities, setCommunities] = useState<any[]>([]);
@@ -177,8 +178,13 @@ export default function Register() {
           await loadCommunitiesForNeighborhood(data.detected.id);
         }
         
-        // Usar nearby se existir, senão usar data (lista completa)
-        const neighborhoodList = (data.nearby && data.nearby.length > 0) ? data.nearby : (data.data || []);
+        // Guardar lista completa para busca manual
+        if (data.data) setAllNeighborhoods(data.data);
+
+        // Usar nearby se existir; se bairro detectado e nearby vazio, não mostrar lista completa
+        const neighborhoodList = (data.nearby && data.nearby.length > 0)
+          ? data.nearby
+          : (data.detected ? [] : (data.data || []));
         setNeighborhoods(neighborhoodList);
         setNeighborhoodsLoadFailed(neighborhoodList.length === 0 && !data.detected);
       } else {
@@ -323,7 +329,7 @@ export default function Register() {
 
       // Mensagem de sucesso
       const territoryMsg = selectedNeighborhood
-        ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
+        ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Bairro Oficial KAVIAR' : 'Território Virtual (800m)'}`
         : 'Território pode ser definido depois';
 
       Alert.alert(
@@ -543,8 +549,8 @@ export default function Register() {
                   <Text style={styles.detectedName}>{detectedNeighborhood.name}</Text>
                   <Text style={styles.detectedType}>
                     {detectedNeighborhood.hasGeofence 
-                      ? '✅ Mapa Oficial - Taxa mín. 7%' 
-                      : '⚠️ Virtual 800m - Taxa mín. 12%'}
+                      ? '✅ Bairro Oficial KAVIAR' 
+                      : '⚠️ Território Virtual (800m)'}
                   </Text>
                 </View>
               </View>
@@ -564,9 +570,9 @@ export default function Register() {
               autoCapitalize="none"
             />
 
-            {neighborhoods.length > 0 ? (
+            {(neighborhoods.length > 0 || (neighborhoodSearch && allNeighborhoods.length > 0)) ? (
               <ScrollView style={styles.neighborhoodList}>
-                {neighborhoods
+                {(neighborhoods.length > 0 ? neighborhoods : allNeighborhoods)
                   .filter((n) =>
                     !neighborhoodSearch ||
                     n.name.toLowerCase().includes(neighborhoodSearch.toLowerCase())
@@ -595,7 +601,7 @@ export default function Register() {
                     </View>
                     <View style={styles.neighborhoodBadge}>
                       <Text style={styles.neighborhoodFee}>
-                        {n.hasGeofence ? '7%' : '12%'}
+                        {n.hasGeofence ? 'Oficial' : 'Virtual'}
                       </Text>
                       <Text style={styles.neighborhoodType}>
                         {n.hasGeofence ? 'Oficial' : 'Virtual'}
