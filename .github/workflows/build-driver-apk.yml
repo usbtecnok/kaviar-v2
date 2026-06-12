@@ -61,6 +61,12 @@ jobs:
             echo "APP_VARIANT=driver"
           } > .env
           sed -i '/^\.env$/d' .easignore
+          node -e "
+            const fs = require('fs');
+            const eas = JSON.parse(fs.readFileSync('eas.json','utf8'));
+            delete eas.build['driver-apk'].env['GOOGLE_MAPS_API_KEY'];
+            fs.writeFileSync('eas.json', JSON.stringify(eas, null, 2));
+          "
 
       - name: Build APK locally
         run: eas build --profile driver-apk --platform android --local --non-interactive --output ./driver.apk
