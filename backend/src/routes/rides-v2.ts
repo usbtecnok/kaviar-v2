@@ -52,19 +52,36 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
       return res.status(400).json({ error: 'Origem ou destino inválido' });
     }
 
-    let distance_km = Math.round(
-      pricingEngine.haversineKm(origin.lat, origin.lng, destination.lat, destination.lng) * 100
-    ) / 100;
+    // Google Directions (real route) with haversine fallback
+    const { getRouteDistance } = require('../services/google-directions.service');
+    let distance_km: number;
+    let duration_min = 0;
+    let pricing_source: string = 'fallback_haversine';
+
+    const route = await getRouteDistance(origin.lat, origin.lng, destination.lat, destination.lng);
+    if (route) {
+      distance_km = route.distance_km;
+      duration_min = route.duration_min;
+      pricing_source = 'google_route';
+    } else {
+      distance_km = Math.round(pricingEngine.haversineKm(origin.lat, origin.lng, destination.lat, destination.lng) * 100) / 100;
+    }
 
     // Add post-wait leg if provided
     if (post_wait_destination?.lat && post_wait_destination?.lng) {
-      distance_km = Math.round(
-        (distance_km + pricingEngine.haversineKm(destination.lat, destination.lng, post_wait_destination.lat, post_wait_destination.lng)) * 100
-      ) / 100;
+      const postRoute = await getRouteDistance(destination.lat, destination.lng, post_wait_destination.lat, post_wait_destination.lng);
+      if (postRoute) {
+        distance_km = Math.round((distance_km + postRoute.distance_km) * 100) / 100;
+        duration_min += postRoute.duration_min;
+      } else {
+        distance_km = Math.round((distance_km + pricingEngine.haversineKm(destination.lat, destination.lng, post_wait_destination.lat, post_wait_destination.lng)) * 100) / 100;
+      }
     }
 
     const profile = await pricingEngine.resolveProfile(origin.lat, origin.lng);
-    const raw = profile.base_fare + distance_km * profile.per_km;
+    const MAX_BILLABLE_MINUTES = 15;
+    const billable_minutes = Math.min(duration_min, MAX_BILLABLE_MINUTES);
+    const raw = profile.base_fare + (distance_km * profile.per_km) + (billable_minutes * profile.per_minute);
     let price = Math.round(Math.max(raw, profile.minimum_fare) * 100) / 100;
 
     // Resolve territory for surcharge
@@ -85,7 +102,7 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
       ? Math.round(wait_estimated_min * config.wait.ratePerMin * 100) / 100
       : null;
 
-    res.json({ success: true, data: { price, distance_km, route_territory, pricing_profile: profile.slug, wait_charge_estimate } });
+    res.json({ success: true, data: { price, distance_km, duration_min, route_territory, pricing_profile: profile.slug, pricing_source, wait_charge_estimate } });
   } catch (error: any) {
     console.error('[RIDE_ESTIMATE_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
