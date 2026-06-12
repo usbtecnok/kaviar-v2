@@ -121,7 +121,7 @@ function ContextPanel({ chatData, badge, token, onUpdate }) {
             <Box sx={{ display: 'flex', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
               <Chip label={`Status: ${le.status}`} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#1a2332', color: '#8a9aaa' }} />
               {le.credits !== undefined && (
-                <Chip label={`Créditos: ${le.credits}`} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#FFD70022', color: '#FFD700' }} />
+                <Chip label={`Saldo: ${le.credits}`} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#FFD70022', color: '#FFD700' }} />
               )}
             </Box>
             {le.email && <Typography sx={{ fontSize: 11, color: '#888', mt: 0.5 }}>{le.email}</Typography>}

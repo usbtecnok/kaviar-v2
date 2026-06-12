@@ -144,7 +144,7 @@ export default function FamilyBonusCard() {
 
         <Box sx={{ p: 1.5, bgcolor: '#FFFDF7', borderRadius: 1.5, mb: 2, border: '1px solid #FDE68A' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-            <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Créditos pagos no ano</Typography>
+            <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Recargas no ano</Typography>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#1F2937' }}>{fmt(summary.total_paid_cents)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>

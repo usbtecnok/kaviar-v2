@@ -411,8 +411,8 @@ export default function AdminDashboard() {
             <Grid container spacing={1.5} sx={{ mt: 0.5, mb: 2 }}>
               {[
                 { label: 'Valor bruto', value: fmt(opsData.financials?.gross_total, 'R$\u00a0'), color: '#4caf50' },
-                { label: 'Créditos consumidos', value: fmt(opsData.financials?.credits_consumed), color: gold },
-                { label: 'Receita em créditos', value: fmt(opsData.financials?.platform_revenue_credits, 'R$\u00a0'), color: '#ce93d8', sub: 'créditos × R$2' },
+                { label: 'Taxas cobradas', value: fmt(opsData.financials?.credits_consumed), color: gold },
+                { label: 'Receita taxa plataforma', value: fmt(opsData.financials?.platform_revenue_credits, 'R$\u00a0'), color: '#ce93d8', sub: 'taxa 18%' },
                 { label: 'Wait charge est.', value: fmt(opsData.financials?.wait_charge_estimated, 'R$\u00a0'), color: '#ff9800', sub: 'sem ajuste motorista' },
               ].map(c => (
                 <Grid item xs={6} sm={3} key={c.label}>

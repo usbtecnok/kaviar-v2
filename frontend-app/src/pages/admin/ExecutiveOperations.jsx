@@ -82,8 +82,8 @@ export default function ExecutiveOperations() {
         <Grid container spacing={1.5} sx={{ mb: 3 }}>
           {[
             { label: 'Valor bruto', value: fmt(data.financials?.gross_total, 'R$\u00a0'), accent: '#7CB87A', large: true },
-            { label: 'Créditos consumidos', value: data.financials?.credits_consumed, accent: gold, large: true },
-            { label: 'Receita em créditos', value: fmt(data.financials?.platform_revenue_credits, 'R$\u00a0'), accent: '#F5F1E8', large: true },
+            { label: 'Taxas cobradas', value: data.financials?.credits_consumed, accent: gold, large: true },
+            { label: 'Receita taxa plataforma', value: fmt(data.financials?.platform_revenue_credits, 'R$\u00a0'), accent: '#F5F1E8', large: true },
             { label: 'Wait charge est.', value: fmt(data.financials?.wait_charge_estimated, 'R$\u00a0'), accent: '#A7A7A7', large: true },
           ].map(c => <Grid item xs={6} sm={3} key={c.label}><OCard {...c} /></Grid>)}
         </Grid>

@@ -55,7 +55,7 @@ export default function CreditPurchases() {
 
   return (
     <Box>
-      <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>Compras de Créditos</Typography>
+      <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold' }}>Histórico de Recargas</Typography>
 
       {summary && (
         <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -95,7 +95,7 @@ export default function CreditPurchases() {
                 <TableRow>
                   <TableCell sx={{ color: '#FFD700' }}>Motorista</TableCell>
                   <TableCell sx={{ color: '#FFD700' }}>Valor</TableCell>
-                  <TableCell sx={{ color: '#FFD700' }}>Créditos</TableCell>
+                  <TableCell sx={{ color: '#FFD700' }}>Valor</TableCell>
                   <TableCell sx={{ color: '#FFD700' }}>Status</TableCell>
                   <TableCell sx={{ color: '#FFD700' }}>Saldo Atual</TableCell>
                   <TableCell sx={{ color: '#FFD700' }}>Asaas ID</TableCell>

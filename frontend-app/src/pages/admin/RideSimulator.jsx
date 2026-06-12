@@ -193,7 +193,7 @@ export default function RideSimulator() {
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Motorista bruto</Typography></Grid>
             <Grid item xs={6}><Typography variant="body2">R$ {result.driver_earnings.toFixed(2)}</Typography></Grid>
 
-            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Créditos</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Taxa</Typography></Grid>
             <Grid item xs={6}><Typography variant="body2">{result.credit_cost} × R$ 2,00 = R$ {result.credit_value.toFixed(2)}</Typography></Grid>
 
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Motorista líquido</Typography></Grid>

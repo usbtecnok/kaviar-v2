@@ -72,7 +72,7 @@ export function DriverFinancialCard({ driverId }) {
 
           {/* Credits */}
           <Grid item xs={6} sm={3}>
-            <StatBox icon={<AccountBalanceWallet fontSize="small" color="primary" />} label="Créditos" value={`${data.credits.consumed} usados · ${data.credits.balance} saldo`} small />
+            <StatBox icon={<AccountBalanceWallet fontSize="small" color="primary" />} label="Saldo" value={`${data.credits.consumed} usados · ${data.credits.balance} saldo`} small />
           </Grid>
 
           {/* Territory */}

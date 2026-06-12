@@ -98,7 +98,7 @@ export default function CompensationsPage() {
             <TableRow>
               <TableCell sx={headSx}>Corrida</TableCell>
               <TableCell sx={headSx}>Valor</TableCell>
-              <TableCell sx={headSx}>Créditos</TableCell>
+              <TableCell sx={headSx}>Taxa</TableCell>
               <TableCell sx={headSx}>Status</TableCell>
               <TableCell sx={headSx}>Criado</TableCell>
               <TableCell sx={headSx}>Pago</TableCell>

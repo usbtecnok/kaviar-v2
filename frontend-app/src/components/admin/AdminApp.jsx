@@ -431,7 +431,7 @@ function AdminHome() {
           const sections = [
             { section: 'Operação', items: [
               { Icon: DirectionsCar, title: 'Corridas', desc: 'Gestão operacional de corridas', to: '/admin/rides' },
-              { Icon: CreditCard, title: 'Compras de Créditos', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
+              { Icon: CreditCard, title: 'Histórico de Recargas', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
               { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp' },
               { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
               { Icon: Paid, title: 'Compensações', desc: 'Apoio ao motorista em cancelamentos', to: '/admin/compensations' },
@@ -593,8 +593,8 @@ function AdminCreditPurchasesWrapper() {
       <AdminHeader />
       <DomainHeader 
         domain="admin" 
-        title="Compras de Créditos"
-        breadcrumbs={["Compras de Créditos"]}
+        title="Histórico de Recargas"
+        breadcrumbs={["Histórico de Recargas"]}
         backUrl="/admin"
       />
       <CreditPurchases />
