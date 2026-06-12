@@ -669,7 +669,7 @@ router.post('/operators/:id/generate-contract-template', async (req: Request, re
     });
 
     // Load logo
-    const logoPath = path.resolve(__dirname, '../../frontend-app/public/associacoes/usb-tecnok-logo.png');
+    const logoPath = path.resolve(__dirname, '../../assets/usb-tecnok-logo.png');
     let logoBuffer: Buffer | null = null;
     try { logoBuffer = fs.readFileSync(logoPath); } catch {}
 

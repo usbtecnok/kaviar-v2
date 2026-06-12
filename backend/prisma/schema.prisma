@@ -1864,6 +1864,16 @@ model contract_submissions {
   created_at            DateTime @default(now()) @db.Timestamptz
   updated_at            DateTime @default(now()) @db.Timestamptz
 
+  // Trilha de auditoria — Fase 1
+  signer_name           String?
+  signer_email          String?
+  signer_document       String?
+  signer_ip             String?
+  signer_user_agent     String?
+  document_hash         String?
+  contract_version      String?  @default("v1.0") @db.VarChar(20)
+  submitted_at          DateTime? @db.Timestamptz
+
   operator  operator_profiles @relation(fields: [operator_profile_id], references: [id], onDelete: Restrict)
   submitter admins            @relation("cs_submitter", fields: [submitted_by_admin_id], references: [id], onDelete: Restrict)
   reviewer  admins?           @relation("cs_reviewer", fields: [reviewed_by], references: [id], onDelete: Restrict)
@@ -1871,6 +1881,7 @@ model contract_submissions {
   @@index([operator_profile_id])
   @@index([status])
   @@index([created_at(sort: Desc)])
+  @@index([document_hash])
 }
 
 model territory_payouts {
