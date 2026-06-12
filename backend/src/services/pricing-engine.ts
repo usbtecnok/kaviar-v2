@@ -17,6 +17,7 @@
 import { pool } from '../db';
 import { resolveTerritory, TerritoryResolution } from './territory-resolver.service';
 import { getFloorForRoute } from './territory-floor.service';
+import { getRouteDistance } from './google-directions.service';
 
 // --- Fee model flat 18% feature flag ---
 
@@ -254,18 +255,35 @@ export async function quote(rideId: string, originLat: number, originLng: number
   const resolvedDestId = destNeighborhoodId || destRes.neighborhood?.id || null;
 
   // Calculate
-  let distance_km = round2(haversineKm(originLat, originLng, destLat, destLng));
+  // Calculate distance: Google Directions (real route) with haversine fallback
+  let distance_km: number;
+  let duration_min = 0;
+  let pricing_source: 'google_route' | 'fallback_haversine' = 'fallback_haversine';
+
+  const route = await getRouteDistance(originLat, originLng, destLat, destLng);
+  if (route) {
+    distance_km = route.distance_km;
+    duration_min = route.duration_min;
+    pricing_source = 'google_route';
+  } else {
+    distance_km = round2(haversineKm(originLat, originLng, destLat, destLng));
+  }
 
   // post_wait_destination: add extra leg and promote territory if needed
   let postWaitNeighborhoodId: string | null = null;
   if (postWaitDest) {
-    distance_km = round2(distance_km + haversineKm(destLat, destLng, postWaitDest.lat, postWaitDest.lng));
+    const postRoute = await getRouteDistance(destLat, destLng, postWaitDest.lat, postWaitDest.lng);
+    if (postRoute) {
+      distance_km = round2(distance_km + postRoute.distance_km);
+      duration_min += postRoute.duration_min;
+    } else {
+      distance_km = round2(distance_km + haversineKm(destLat, destLng, postWaitDest.lat, postWaitDest.lng));
+    }
     const postRes = await resolveTerritory(postWaitDest.lng, postWaitDest.lat);
     postWaitNeighborhoodId = postRes.neighborhood?.id || null;
   }
 
-  const raw = profile.base_fare + (distance_km * profile.per_km);
-  // V1: per_minute não usado (sem duração estimada)
+  const raw = profile.base_fare + (distance_km * profile.per_km) + (duration_min * profile.per_minute);
   let quoted_price = round2(Math.max(raw, profile.minimum_fare));
 
   // Territory: promote to most external classification across all legs
@@ -339,7 +357,7 @@ export async function quote(rideId: string, originLat: number, originLng: number
     throw err;
   }
 
-  console.log(`[PRICING_QUOTE] ride=${rideId} profile=${profile.slug} dist=${distance_km}km price=${quoted_price} territory=${route_territory} fee=${fee_percent}%${floor_applied ? ` FLOOR_APPLIED(${floor_id})` : ''}`);
+  console.log(`[PRICING_QUOTE] ride=${rideId} profile=${profile.slug} dist=${distance_km}km dur=${duration_min.toFixed(1)}min price=${quoted_price} territory=${route_territory} fee=${fee_percent}% source=${pricing_source}${floor_applied ? ` FLOOR_APPLIED(${floor_id})` : ''}`);
 
   return { quoted_price, route_territory, fee_percent, fee_amount, driver_earnings, distance_km, pricing_profile_slug: profile.slug };
 }
