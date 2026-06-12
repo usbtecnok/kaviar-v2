@@ -355,7 +355,7 @@ export default function Register() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -372,6 +372,7 @@ export default function Register() {
             <Text style={styles.label}>Nome Completo</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={name}
               onChangeText={setName}
               placeholder="João Silva"
@@ -381,6 +382,7 @@ export default function Register() {
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={email}
               onChangeText={setEmail}
               placeholder="joao@example.com"
@@ -391,6 +393,7 @@ export default function Register() {
             <Text style={styles.label}>Telefone</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={phone}
               onChangeText={(v) => setPhone(maskPhone(v))}
               placeholder="(21) 99999-9999"
@@ -401,6 +404,7 @@ export default function Register() {
             <Text style={styles.label}>CPF</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={documentCpf}
               onChangeText={(v) => setDocumentCpf(maskCpf(v))}
               placeholder="000.000.000-00"
@@ -411,6 +415,7 @@ export default function Register() {
             <Text style={styles.label}>Senha</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={password}
               onChangeText={setPassword}
               placeholder="Mínimo 6 caracteres"
@@ -447,6 +452,7 @@ export default function Register() {
             <Text style={styles.label}>Cor do Veículo *</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={vehicleColor}
               onChangeText={setVehicleColor}
               placeholder="Ex: Branco, Preto, Prata"
@@ -456,6 +462,7 @@ export default function Register() {
             <Text style={styles.label}>Modelo do Veículo (opcional)</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={vehicleModel}
               onChangeText={setVehicleModel}
               placeholder="Ex: Gol, Uno, HB20"
@@ -465,6 +472,7 @@ export default function Register() {
             <Text style={styles.label}>Placa do Veículo (opcional)</Text>
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={vehiclePlate}
               onChangeText={setVehiclePlate}
               placeholder="Ex: ABC-1234"
@@ -479,6 +487,7 @@ export default function Register() {
               </Text>
               <TextInput
                 style={styles.input}
+              placeholderTextColor="#777"
                 value={referralCode}
                 onChangeText={setReferralCode}
                 placeholder="Ex: MARI7K2P"
@@ -548,6 +557,7 @@ export default function Register() {
             {/* Campo de busca/filtro */}
             <TextInput
               style={styles.input}
+              placeholderTextColor="#777"
               value={neighborhoodSearch}
               onChangeText={setNeighborhoodSearch}
               placeholder="Buscar bairro pelo nome..."
@@ -602,6 +612,7 @@ export default function Register() {
                 <Text style={styles.label}>Digite o nome do seu bairro:</Text>
                 <TextInput
                   style={styles.input}
+              placeholderTextColor="#777"
                   value={manualNeighborhood}
                   onChangeText={(text) => {
                     setManualNeighborhood(text);
@@ -802,6 +813,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: '#FFF',
+    color: '#111',
   },
   button: {
     backgroundColor: COLORS.accent,
