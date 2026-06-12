@@ -6,6 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -48,10 +51,12 @@ jobs:
       - name: Create google-services.json
         run: echo '${{ secrets.GOOGLE_SERVICES_JSON }}' > google-services.json
 
+      - name: Verify env vars
+        run: |
+          test -n "$GOOGLE_MAPS_API_KEY" || (echo "GOOGLE_MAPS_API_KEY is empty" && exit 1)
+          test -n "$EXPO_TOKEN" || (echo "EXPO_TOKEN is empty" && exit 1)
+
       - name: Build APK locally
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: eas build --profile driver-apk --platform android --local --non-interactive --output ./driver.apk
 
       - name: Upload APK artifact
