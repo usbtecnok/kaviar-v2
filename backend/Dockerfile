@@ -41,6 +41,7 @@ RUN rm -rf node_modules/.prisma node_modules/@prisma/client
 RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/assets ./assets
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/data ./data
 COPY --from=builder /app/migrations ./migrations
