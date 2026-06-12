@@ -71,27 +71,9 @@ export async function getFloorForRoute(
       }
     }
 
-    // Prioridade 2: Match por origin_neighborhood_id sem dest específico
-    // (útil para destinos que não têm geofence mas têm label na tabela)
-    if (destNeighborhoodId) {
-      const byOriginOnly = await pool.query(
-        `SELECT id, territory_id, origin_label, dest_label,
-                floor_price, surcharge, notes
-         FROM territory_price_floors
-         WHERE origin_neighborhood_id = $1
-           AND dest_neighborhood_id IS NULL
-           AND is_active = true
-           AND status = 'active'
-         ORDER BY floor_price DESC
-         LIMIT 1`,
-        [originNeighborhoodId]
-      );
-
-      // Se existe um floor genérico para qualquer destino a partir desta origem
-      if (byOriginOnly.rows[0]) {
-        return toFloorResult(byOriginOnly.rows[0]);
-      }
-    }
+    // Prioridade 2: Desabilitado — fallback genérico (dest IS NULL) causava aplicação
+    // incorreta do piso mais caro quando dest_neighborhood_id não estava preenchido.
+    // Pisos devem ter dest_neighborhood_id preenchido para match exato.
 
     return null;
   } catch (error) {
