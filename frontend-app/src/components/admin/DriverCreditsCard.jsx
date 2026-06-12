@@ -49,7 +49,6 @@ export function DriverCreditsCard({ driverId }) {
   const loadBalance = async () => {
     try {
       const res = await api.get(`/api/admin/drivers/${driverId}/credits/balance`);
-      // Normalize: API may return string, ensure number
       setBalance(parseFloat(res.data.balance) || 0);
     } catch (err) {
       console.error('Error loading balance:', err);
@@ -112,8 +111,7 @@ export function DriverCreditsCard({ driverId }) {
 
   const formatCredits = (value) => {
     const n = parseFloat(value) || 0;
-    const formatted = Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',');
-    return `${formatted} ${Math.abs(n) === 1 ? 'crédito' : 'créditos'}`;
+    return `R$ ${n.toFixed(2).replace('.', ',')}`;
   };
 
   return (
@@ -121,8 +119,8 @@ export function DriverCreditsCard({ driverId }) {
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Box>
-            <Typography variant="h6">Créditos do Motorista</Typography>
-            <Typography variant="caption" color="text.secondary">1 crédito = R$ 5,00</Typography>
+            <Typography variant="h6">Saldo KAVIAR do Motorista</Typography>
+            <Typography variant="caption" color="text.secondary">Wallet V2 — taxa 18% por corrida</Typography>
           </Box>
           <Box display="flex" gap={2} alignItems="center">
             <Chip 
@@ -207,16 +205,16 @@ export function DriverCreditsCard({ driverId }) {
       </CardContent>
 
       <Dialog open={modalOpen} onClose={() => { setModalOpen(false); setPassword(''); }} maxWidth="sm" fullWidth>
-        <DialogTitle>Ajuste Excepcional de Crédito</DialogTitle>
+        <DialogTitle>Ajuste Excepcional de Saldo</DialogTitle>
         <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2, mt: 1 }}>Use apenas para correções auditadas. Para compensação por deslocamento, use a tela Compensações por Deslocamento.</Alert>
+          <Alert severity="warning" sx={{ mb: 2, mt: 1 }}>Use apenas para correções auditadas. Valor em reais (R$).</Alert>
           <Box display="flex" flexDirection="column" gap={2} mt={1}>
             <TextField
-              label="Valor (positivo para adicionar, negativo para remover)"
+              label="Valor em R$ (positivo para adicionar, negativo para remover)"
               type="number"
               value={delta}
               onChange={(e) => setDelta(e.target.value)}
-              placeholder="Ex: 50.00 ou -25.00"
+              placeholder="Ex: 10.00 ou -5.00"
               fullWidth
             />
             <TextField

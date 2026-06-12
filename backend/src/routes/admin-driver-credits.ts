@@ -159,6 +159,28 @@ router.post('/:driverId/credits/adjust', allowFinanceAccess, async (req, res) =>
       idempotencyKey
     );
 
+    // Apply to Wallet V2 (blocking — must succeed)
+    const { WalletService } = require('../services/wallet-v2/wallet.service');
+    const walletSvc = new WalletService(pool);
+    await walletSvc.ensureWallet(driverId);
+    const deltaCents = Math.round(parseFloat(delta) * 100);
+    if (deltaCents > 0) {
+      await walletSvc.creditRecharge(driverId, BigInt(deltaCents), `admin-adjust:${idempotencyKey}`);
+    } else if (deltaCents < 0) {
+      const balCheck = await walletSvc.getBalance(driverId);
+      if (balCheck.available_cents < BigInt(Math.abs(deltaCents))) {
+        return res.status(400).json({ error: 'Saldo insuficiente para débito' });
+      }
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('UPDATE driver_wallets SET balance_cents = balance_cents + $2, updated_at = NOW() WHERE driver_id = $1', [driverId, deltaCents]);
+        const balAfter = await client.query('SELECT balance_cents, reserved_cents FROM driver_wallets WHERE driver_id = $1', [driverId]);
+        await client.query("INSERT INTO wallet_ledger (driver_id, entry_type, balance_delta_cents, reserved_delta_cents, balance_after_cents, reserved_after_cents, reference_type, reference_id, actor_type, actor_id, reason, idempotency_key) VALUES ($1,'correction',$2,0,$3,$4,'correction',$5,'admin',$6,$7,$8)", [driverId, deltaCents, balAfter.rows[0].balance_cents, balAfter.rows[0].reserved_cents, idempotencyKey, adminUserId, reason.trim(), `admin-adjust:${idempotencyKey}`]);
+        await client.query('COMMIT');
+      } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+    }
+
     // Audit with before/after balance
     const { audit, auditCtx } = require('../utils/audit');
     const ctx = auditCtx(req);
