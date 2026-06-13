@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { driverApi } from '../../src/api/driver.api';
-import RetornoFamiliarCard from '../../src/components/RetornoFamiliarCard';
 import { COLORS } from '../../src/config/colors';
 
 type Package = { id: string; label: string; amount_cents: number; bonus_percent: number; bonus_cents: number };
@@ -172,16 +171,13 @@ export default function DriverCredits() {
           </View>
         )}
 
-        {/* Retorno Familiar KAVIAR */}
-        <RetornoFamiliarCard />
-
         {/* Packages */}
         <Text style={s.sectionTitle}>Adicionar saldo</Text>
         {packages.map(pkg => (
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => handleBuy(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
-              <Text style={s.packageCredits}>{pkg.label}{pkg.bonus_cents > 0 ? ` + R$ ${(pkg.bonus_cents / 100).toFixed(2)} bônus 🎁` : ''}</Text>
-              <Text style={s.packagePrice}>Via Pix{pkg.bonus_cents > 0 ? ` • Total: R$ ${((pkg.amount_cents + pkg.bonus_cents) / 100).toFixed(2)}` : ''}</Text>
+              <Text style={s.packageCredits}>{pkg.label}{pkg.bonus_cents > 0 ? ` + R$ ${(pkg.bonus_cents / 100).toFixed(0)} bônus 🎁` : ''}</Text>
+              <Text style={s.packagePrice}>{pkg.bonus_cents > 0 ? `Receba R$ ${((pkg.amount_cents + pkg.bonus_cents) / 100).toFixed(0)} no total` : 'Via Pix'}</Text>
             </View>
             <View style={s.buyBtn}>
               {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Pix</Text>}
@@ -192,6 +188,7 @@ export default function DriverCredits() {
         {/* How it works */}
         <View style={s.infoCard}>
           <Text style={s.infoTitle}>Como funciona</Text>
+          {bonusCampaign && <Text style={[s.infoText, { color: COLORS.success, fontWeight: '600' }]}>🎁 Promoção de fim de ano: recargas Pix confirmadas recebem {bonusCampaign.percent}% de bônus.</Text>}
           <Text style={s.infoText}>Você adiciona saldo via Pix.</Text>
           <Text style={s.infoText}>A cada corrida concluída, a taxa de uso da plataforma é descontada do seu saldo.</Text>
           <Text style={s.infoText}>Taxa atual: 18% sobre o valor da corrida.</Text>
@@ -207,7 +204,7 @@ export default function DriverCredits() {
               <View key={e.id} style={s.historyRow}>
                 <Ionicons name={e.balance_delta_cents > 0 ? 'add-circle' : 'remove-circle'} size={16} color={e.balance_delta_cents > 0 ? COLORS.success : COLORS.warning} />
                 <Text style={s.historyText}>R$ {(Math.abs(e.balance_delta_cents) / 100).toFixed(2)}</Text>
-                <Text style={s.historyStatus}>{e.entry_type === 'recharge' ? 'Recarga' : e.entry_type === 'recharge_bonus' ? 'Bônus recarga 🎁' : e.entry_type === 'fee_debit' ? 'Taxa' : e.entry_type}</Text>
+                <Text style={s.historyStatus}>{({ recharge: 'Recarga', recharge_bonus: 'Bônus de recarga 🎁', fee_debit: 'Taxa corrida', reserve: 'Reserva', cancel_release: 'Liberação cancelamento', pending_resolve: 'Taxa pendente' })[e.entry_type] || e.entry_type}</Text>
               </View>
             ))}
           </>
