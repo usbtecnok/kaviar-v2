@@ -50,9 +50,26 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/packages', async (_req: Request, res: Response) => {
   try {
     const r = await pool.query('SELECT id, label, amount_cents, sort_order FROM recharge_packages WHERE is_active = true ORDER BY sort_order');
+
+    let bonusPercent = 0;
+    try {
+      const flag = await pool.query("SELECT enabled FROM feature_flags WHERE key = 'RECHARGE_BONUS_ENABLED' LIMIT 1");
+      const campaignEnd = process.env.RECHARGE_BONUS_CAMPAIGN_END;
+      if (flag.rows[0]?.enabled && (!campaignEnd || new Date() <= new Date(campaignEnd))) {
+        bonusPercent = parseInt(process.env.RECHARGE_BONUS_PERCENT || '0');
+      }
+    } catch {}
+
     res.json({
       success: true,
-      data: r.rows.map(p => ({ id: p.id, label: p.label, amount_cents: Number(p.amount_cents) })),
+      data: r.rows.map(p => ({
+        id: p.id,
+        label: p.label,
+        amount_cents: Number(p.amount_cents),
+        bonus_percent: bonusPercent,
+        bonus_cents: bonusPercent > 0 ? Math.floor(Number(p.amount_cents) * bonusPercent / 100) : 0,
+      })),
+      bonus_campaign: bonusPercent > 0 ? { percent: bonusPercent, message: 'Bônus promocional de fim de ano! 🎄' } : null,
     });
   } catch (err) {
     console.error('[wallet-v2] GET /packages error:', (err as Error).message);

@@ -83,9 +83,9 @@ export const driverApi = {
     return data.data;
   },
 
-  getWalletPackages: async (): Promise<{ id: string; label: string; amount_cents: number }[]> => {
+  getWalletPackages: async (): Promise<{ packages: { id: string; label: string; amount_cents: number; bonus_percent: number; bonus_cents: number }[]; bonus_campaign: { percent: number; message: string } | null }> => {
     const { data } = await apiClient.get('/api/v2/drivers/me/wallet/packages');
-    return data.data || [];
+    return { packages: data.data || [], bonus_campaign: data.bonus_campaign || null };
   },
 
   getWalletLedger: async (limit = 20, offset = 0): Promise<{ entries: any[]; total: number; limit: number; offset: number }> => {

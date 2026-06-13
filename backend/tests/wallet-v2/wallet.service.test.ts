@@ -92,4 +92,44 @@ describe('WalletService', () => {
     const r = await svc.debitFee('d1', BigInt(540), BigInt(540), 'ride-1');
     expect(r.already_processed).toBe(true);
   });
+
+  it('creditRechargeBonus credits bonus', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // idempotency check
+      .mockResolvedValueOnce({ rows: [{ balance_cents: '7000', reserved_cents: '0' }] }) // lock
+      .mockResolvedValueOnce({}) // update wallet
+      .mockResolvedValueOnce({ rows: [{ id: '5' }] }) // insert ledger
+      .mockResolvedValueOnce({}); // COMMIT
+    const r = await svc.creditRechargeBonus('d1', BigInt(200), 'rch-1');
+    expect(r.already_processed).toBe(false);
+    expect(r.balance_after_cents).toBe(BigInt(7200));
+  });
+
+  it('creditRechargeBonus is idempotent', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [{ id: '5', balance_after_cents: '7200', reserved_after_cents: '0' }] }) // found
+      .mockResolvedValueOnce({}); // COMMIT
+    const r = await svc.creditRechargeBonus('d1', BigInt(200), 'rch-1');
+    expect(r.already_processed).toBe(true);
+  });
+
+  it('creditRechargeBonus uses correct entry_type and idempotency_key', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // idempotency
+      .mockResolvedValueOnce({ rows: [{ balance_cents: '5000', reserved_cents: '0' }] }) // lock
+      .mockResolvedValueOnce({}) // update
+      .mockResolvedValueOnce({ rows: [{ id: '6' }] }) // ledger
+      .mockResolvedValueOnce({}); // COMMIT
+    await svc.creditRechargeBonus('d1', BigInt(500), 'rch-2');
+    // Verify ledger insert call has correct params
+    const ledgerCall = mockQuery.mock.calls.find((c: any) => c[0]?.includes?.('INSERT INTO wallet_ledger'));
+    expect(ledgerCall).toBeDefined();
+    const params = ledgerCall![1];
+    expect(params[1]).toBe('recharge_bonus'); // entry_type
+    expect(params[6]).toBe('recharge'); // reference_type
+    expect(params[7]).toBe('rch-2'); // reference_id
+    expect(params[8]).toBe('system'); // actor_type
+    expect(params[9]).toBe('bonus_engine'); // actor_id
+    expect(params[11]).toBe('recharge_bonus:rch-2'); // idempotency_key
+  });
 });
