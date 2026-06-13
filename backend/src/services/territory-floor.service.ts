@@ -81,7 +81,7 @@ export async function getFloorForRoute(
       `SELECT tpf.id, tpf.territory_id, tpf.origin_label, tpf.dest_label,
               tpf.floor_price, tpf.surcharge, tpf.notes
        FROM territory_price_floors tpf
-       JOIN neighborhoods n ON n.territory_id = tpf.territory_id
+       JOIN neighborhoods n ON n.territory_id = tpf.territory_id::text
        WHERE n.id = $1
          AND tpf.origin_neighborhood_id IS NULL
          AND tpf.dest_neighborhood_id IS NULL
