@@ -218,4 +218,29 @@ router.post('/accept-terms', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/admin/my-operator-profile/territory-info
+router.get('/territory-info', async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const access = await prisma.admin_territory_access.findFirst({ where: { admin_id: admin.id } });
+    if (!access) return res.json({ success: true, data: null });
+
+    const territory = await prisma.operational_territories.findUnique({
+      where: { id: access.territory_id },
+      select: { id: true, name: true, level: true },
+    });
+    if (!territory) return res.json({ success: true, data: null });
+
+    const neighborhoods = await prisma.neighborhoods.findMany({
+      where: { territory_id: territory.id, is_active: true },
+      select: { name: true },
+      orderBy: { name: 'asc' },
+    });
+
+    res.json({ success: true, data: { territory_name: territory.name, neighborhoods: neighborhoods.map(n => n.name) } });
+  } catch {
+    res.status(500).json({ success: false, error: 'Erro ao buscar território' });
+  }
+});
+
 export default router;

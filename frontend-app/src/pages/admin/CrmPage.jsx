@@ -5,7 +5,7 @@ import {
   CircularProgress, Alert, Pagination, Dialog, DialogTitle, DialogContent, DialogActions,
   Snackbar, Tooltip, ToggleButtonGroup, ToggleButton
 } from '@mui/material';
-import { Add, Download, Close, Phone, Email, Business, AccessTime, FilterList, Store, Apartment, Warning } from '@mui/icons-material';
+import { Add, Download, Close, Phone, Email, Business, AccessTime, FilterList, Store, Apartment, Warning, LocationOn } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#B8942E';
@@ -124,6 +124,7 @@ export default function CrmPage() {
   const token = localStorage.getItem('kaviar_admin_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const [teamMembers, setTeamMembers] = useState([]);
+  const [territoryInfo, setTerritoryInfo] = useState(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -146,7 +147,7 @@ export default function CrmPage() {
     setLoading(false);
   }, [page, filters]);
 
-  useEffect(() => { fetchStats(); fetch(`${API_BASE_URL}/api/admin/manager/finance/team`, { headers }).then(r => r.json()).then(d => { if (d.success) setTeamMembers(d.data); }).catch(() => {}); }, [fetchStats]);
+  useEffect(() => { fetchStats(); fetch(`${API_BASE_URL}/api/admin/manager/finance/team`, { headers }).then(r => r.json()).then(d => { if (d.success) setTeamMembers(d.data); }).catch(() => {}); if (!isSuperAdmin) { fetch(`${API_BASE_URL}/api/admin/territory-floors?territory_id=${admin?.territory_id || ''}`, { headers }).catch(() => {}); fetch(`${API_BASE_URL}/api/admin/my-operator-profile/territory-info`, { headers }).then(r => r.json()).then(d => { if (d.success) setTerritoryInfo(d.data); }).catch(() => {}); } }, [fetchStats]);
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
 
   // Period filter helper
@@ -257,6 +258,38 @@ export default function CrmPage() {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      {/* Card: Minha Área de Atuação */}
+      {!isSuperAdmin && territoryInfo && (
+        <Card sx={{ mb: 2.5, border: `1px solid ${GOLD}30`, background: 'linear-gradient(135deg, rgba(184,148,46,0.05) 0%, rgba(0,0,0,0) 100%)' }}>
+          <CardContent sx={{ py: 2, px: 2.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <LocationOn sx={{ color: GOLD, fontSize: 22 }} />
+              <Typography sx={{ color: GOLD, fontWeight: 800, fontSize: 15 }}>Minha Área de Atuação</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 1.5 }}>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Território</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#E5E7EB' }}>{territoryInfo.territory_name}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontSize: 11, color: '#6B7280' }}>Bairros</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#E5E7EB' }}>{territoryInfo.neighborhoods?.length || 0}</Typography>
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.5 }}>
+              {territoryInfo.neighborhoods?.map((n, i) => (
+                <Chip key={i} label={n} size="small" sx={{ fontSize: 10, bgcolor: 'rgba(184,148,46,0.12)', color: '#E5E7EB', border: '1px solid rgba(184,148,46,0.25)' }} />
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Chip label="Piso urbano R$20" size="small" sx={{ fontSize: 10, bgcolor: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)' }} />
+              <Chip label="Motorista fica com 82%" size="small" sx={{ fontSize: 10, bgcolor: 'rgba(99,102,241,0.12)', color: '#818CF8', border: '1px solid rgba(99,102,241,0.3)' }} />
+            </Box>
+            <Typography sx={{ fontSize: 10, color: '#4B5563', mt: 1 }}>Você vê e recebe apenas sobre corridas originadas nesta área.</Typography>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <Grid container spacing={1} sx={{ mb: 2.5 }}>
