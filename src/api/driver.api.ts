@@ -83,9 +83,9 @@ export const driverApi = {
     return data.data;
   },
 
-  getWalletPackages: async (): Promise<{ packages: { id: string; label: string; amount_cents: number; bonus_percent: number; bonus_cents: number }[]; bonus_campaign: { percent: number; message: string } | null }> => {
+  getWalletPackages: async (): Promise<{ packages: { id: string; label: string; amount_cents: number; family_return_percent: number; family_return_cents: number }[]; family_return: { percent: number; message: string } | null }> => {
     const { data } = await apiClient.get('/api/v2/drivers/me/wallet/packages');
-    return { packages: data.data || [], bonus_campaign: data.bonus_campaign || null };
+    return { packages: data.data || [], family_return: data.family_return || null };
   },
 
   getWalletLedger: async (limit = 20, offset = 0): Promise<{ entries: any[]; total: number; limit: number; offset: number }> => {
@@ -100,6 +100,11 @@ export const driverApi = {
 
   createWalletRecharge: async (packageId: string): Promise<{ rechargeId: string; amount_cents: number; pix: { qrCode: string; copyPaste: string; expiresAt: string } }> => {
     const { data } = await apiClient.post('/api/v2/drivers/me/wallet/recharge', { package_id: packageId });
+    return data.data;
+  },
+
+  getFamilyReturn: async (): Promise<{ enabled: boolean; percent?: number; accrued_cents: number; available_for_request?: boolean; message?: string }> => {
+    const { data } = await apiClient.get('/api/v2/drivers/me/family-return');
     return data.data;
   },
 

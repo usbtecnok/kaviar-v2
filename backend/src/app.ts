@@ -384,6 +384,8 @@ app.use('/api/v2/passengers/me/women-preference', passengerWomenPreferenceRoutes
 app.use('/api/v2/drivers/me/women-preference', driverWomenPreferenceRoutes);
 import driverWalletV2Routes from './routes/driver-wallet-v2';
 app.use('/api/v2/drivers/me/wallet', driverWalletV2Routes);
+import driverFamilyReturnRoutes from './routes/driver-family-return';
+app.use('/api/v2/drivers/me/family-return', driverFamilyReturnRoutes);
 import communityHealthRoutes from './routes/community-health';
 app.use('/api/admin/communities', communityHealthRoutes);
 app.use('/api/admin', adminReferralRoutes);
