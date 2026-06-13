@@ -7,13 +7,15 @@ import { driverApi } from '../../src/api/driver.api';
 import RetornoFamiliarCard from '../../src/components/RetornoFamiliarCard';
 import { COLORS } from '../../src/config/colors';
 
-type Package = { id: string; label: string; amount_cents: number };
+type Package = { id: string; label: string; amount_cents: number; bonus_percent: number; bonus_cents: number };
+type BonusCampaign = { percent: number; message: string } | null;
 type LedgerEntry = { id: string; entry_type: string; balance_delta_cents: number; balance_after_cents: number; reason: string; created_at: string };
 
 export default function DriverCredits() {
   const router = useRouter();
   const [balance, setBalance] = useState<{ balance_cents: number; reserved_cents: number; available_cents: number; balance_display: string } | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
+  const [bonusCampaign, setBonusCampaign] = useState<BonusCampaign>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,7 +53,7 @@ export default function DriverCredits() {
         driverApi.getWalletLedger(10, 0),
       ]);
       if (wal.status === 'fulfilled') setBalance(wal.value);
-      if (pkgs.status === 'fulfilled') setPackages(pkgs.value);
+      if (pkgs.status === 'fulfilled') { setPackages(pkgs.value.packages); setBonusCampaign(pkgs.value.bonus_campaign); }
       if (led.status === 'fulfilled') setLedger(led.value.entries || []);
     } catch (e) {
       console.warn('[Wallet] load failed:', e);
@@ -132,7 +134,7 @@ export default function DriverCredits() {
             <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
             <View style={{ flex: 1 }}>
               <Text style={s.pixInfoMain}>O saldo entra automaticamente após a confirmação do pagamento.</Text>
-              <Text style={s.pixInfoSub}>Após o Pix ser confirmado, seu saldo será atualizado no app.</Text>
+              <Text style={s.pixInfoSub}>{bonusCampaign ? 'Bônus promocional aplicado após confirmação do Pix.' : 'Após o Pix ser confirmado, seu saldo será atualizado no app.'}</Text>
             </View>
           </View>
 
@@ -178,8 +180,8 @@ export default function DriverCredits() {
         {packages.map(pkg => (
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => handleBuy(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
-              <Text style={s.packageCredits}>{pkg.label}</Text>
-              <Text style={s.packagePrice}>Via Pix</Text>
+              <Text style={s.packageCredits}>{pkg.label}{pkg.bonus_cents > 0 ? ` + R$ ${(pkg.bonus_cents / 100).toFixed(2)} bônus 🎁` : ''}</Text>
+              <Text style={s.packagePrice}>Via Pix{pkg.bonus_cents > 0 ? ` • Total: R$ ${((pkg.amount_cents + pkg.bonus_cents) / 100).toFixed(2)}` : ''}</Text>
             </View>
             <View style={s.buyBtn}>
               {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Pix</Text>}
@@ -205,7 +207,7 @@ export default function DriverCredits() {
               <View key={e.id} style={s.historyRow}>
                 <Ionicons name={e.balance_delta_cents > 0 ? 'add-circle' : 'remove-circle'} size={16} color={e.balance_delta_cents > 0 ? COLORS.success : COLORS.warning} />
                 <Text style={s.historyText}>R$ {(Math.abs(e.balance_delta_cents) / 100).toFixed(2)}</Text>
-                <Text style={s.historyStatus}>{e.entry_type === 'recharge' ? 'Recarga' : e.entry_type === 'fee_debit' ? 'Taxa' : e.entry_type}</Text>
+                <Text style={s.historyStatus}>{e.entry_type === 'recharge' ? 'Recarga' : e.entry_type === 'recharge_bonus' ? 'Bônus recarga 🎁' : e.entry_type === 'fee_debit' ? 'Taxa' : e.entry_type}</Text>
               </View>
             ))}
           </>

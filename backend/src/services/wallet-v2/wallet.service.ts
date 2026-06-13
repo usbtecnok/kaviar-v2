@@ -58,6 +58,29 @@ export class WalletService {
     });
   }
 
+  async creditRechargeBonus(driverId: string, bonusCents: bigint, rechargeId: string): Promise<LedgerEntry> {
+    return this.withTransaction(async (client) => {
+      const key = `recharge_bonus:${rechargeId}`;
+      const existing = await this.checkIdempotency(client, key);
+      if (existing) return existing;
+
+      const wallet = await this.lockWallet(client, driverId);
+      const newBalance = wallet.balance_cents + bonusCents;
+
+      await client.query(
+        'UPDATE driver_wallets SET balance_cents = $2, updated_at = NOW() WHERE driver_id = $1',
+        [driverId, newBalance.toString()]
+      );
+
+      return this.insertLedger(client, {
+        driverId, entryType: 'recharge_bonus', balanceDelta: bonusCents, reservedDelta: BigInt(0),
+        balanceAfter: newBalance, reservedAfter: wallet.reserved_cents,
+        referenceType: 'recharge', referenceId: rechargeId,
+        actorType: 'system', actorId: 'bonus_engine', reason: `recharge_bonus:${rechargeId}`, key,
+      });
+    });
+  }
+
   async reserve(driverId: string, amountCents: bigint, rideId: string): Promise<LedgerEntry> {
     return this.withTransaction(async (client) => {
       const key = `reserve:ride:${rideId}`;
