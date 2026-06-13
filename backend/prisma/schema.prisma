@@ -2606,3 +2606,21 @@ model territory_ledger {
   @@index([territory_id, reference_month])
   @@index([entry_type, reference_month])
 }
+
+// ─── Retorno Familiar KAVIAR (accrual, não saldo) ────────────────────────────
+
+model family_return_accruals {
+  id                   BigInt   @id @default(autoincrement())
+  driver_id            String
+  recharge_id          String   @db.Uuid
+  source_amount_cents  BigInt
+  accrued_amount_cents BigInt
+  percent              Decimal  @default(10.00) @db.Decimal(5, 2)
+  status               String   @default("accrued")
+  idempotency_key      String   @unique
+  created_at           DateTime @default(now())
+  updated_at           DateTime @default(now()) @updatedAt
+
+  @@index([driver_id, created_at(sort: Desc)])
+  @@index([status])
+}

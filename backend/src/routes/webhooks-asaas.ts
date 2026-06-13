@@ -137,22 +137,23 @@ router.post('/asaas', async (req: Request, res: Response) => {
       const pendingSvc = new PendingDebitService(pool);
       await walletSvc.ensureWallet(wr.driver_id);
       await walletSvc.creditRecharge(wr.driver_id, BigInt(wr.amount_cents), wr.id);
-      // ── Recharge Bonus ──
+      // ── Family Return Accrual (NÃO altera saldo) ──
       try {
-        const bonusPercent = parseInt(process.env.RECHARGE_BONUS_PERCENT || '0');
-        const campaignEnd = process.env.RECHARGE_BONUS_CAMPAIGN_END;
-        const bonusFlag = await pool.query("SELECT enabled FROM feature_flags WHERE key = 'RECHARGE_BONUS_ENABLED' LIMIT 1");
-        const bonusEnabled = bonusFlag.rows[0]?.enabled === true;
-        if (bonusEnabled && bonusPercent > 0 && (!campaignEnd || new Date() <= new Date(campaignEnd))) {
-          const bonusCents = BigInt(Math.floor(Number(wr.amount_cents) * bonusPercent / 100));
-          if (bonusCents > BigInt(0)) {
-            const bonusResult = await walletSvc.creditRechargeBonus(wr.driver_id, bonusCents, wr.id);
-            if (!bonusResult.already_processed) {
-              console.log(`[ASAAS_WEBHOOK_V2] Bonus credited driver=${wr.driver_id} bonus=${bonusCents} recharge=${wr.id}`);
-            }
+        const frPercent = parseInt(process.env.FAMILY_RETURN_PERCENT || '0');
+        const frFlag = await pool.query("SELECT enabled FROM feature_flags WHERE key = 'FAMILY_RETURN_ENABLED' LIMIT 1");
+        if (frFlag.rows[0]?.enabled === true && frPercent > 0) {
+          const idemKey = `family_return_accrual:${wr.id}`;
+          const exists = await pool.query('SELECT id FROM family_return_accruals WHERE idempotency_key = $1', [idemKey]);
+          if (!exists.rows[0]) {
+            const accrued = Math.floor(Number(wr.amount_cents) * frPercent / 100);
+            await pool.query(
+              `INSERT INTO family_return_accruals (driver_id, recharge_id, source_amount_cents, accrued_amount_cents, percent, status, idempotency_key) VALUES ($1, $2::uuid, $3, $4, $5, 'accrued', $6)`,
+              [wr.driver_id, wr.id, wr.amount_cents, accrued, frPercent, idemKey]
+            );
+            console.log(`[ASAAS_WEBHOOK_V2] Family return accrued driver=${wr.driver_id} accrued=${accrued} recharge=${wr.id}`);
           }
         }
-      } catch (bonusErr: any) { console.error(`[ASAAS_WEBHOOK_V2] Bonus error:`, bonusErr.message); }
+      } catch (frErr: any) { console.error(`[ASAAS_WEBHOOK_V2] Family return error:`, frErr.message); }
       // Resolve pending debits after credit
       try {
         const resolved = await pendingSvc.resolveOnRecharge(wr.driver_id, walletSvc, feeSplitSvc, ledgerSvc);

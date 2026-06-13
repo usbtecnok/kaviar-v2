@@ -6,15 +6,17 @@ import { Ionicons } from '@expo/vector-icons';
 import { driverApi } from '../../src/api/driver.api';
 import { COLORS } from '../../src/config/colors';
 
-type Package = { id: string; label: string; amount_cents: number; bonus_percent: number; bonus_cents: number };
-type BonusCampaign = { percent: number; message: string } | null;
+type Package = { id: string; label: string; amount_cents: number; family_return_percent: number; family_return_cents: number };
+type FamilyReturn = { percent: number; message: string } | null;
+type FamilyReturnData = { enabled: boolean; percent?: number; accrued_cents: number; available_for_request?: boolean; message?: string } | null;
 type LedgerEntry = { id: string; entry_type: string; balance_delta_cents: number; balance_after_cents: number; reason: string; created_at: string };
 
 export default function DriverCredits() {
   const router = useRouter();
   const [balance, setBalance] = useState<{ balance_cents: number; reserved_cents: number; available_cents: number; balance_display: string } | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
-  const [bonusCampaign, setBonusCampaign] = useState<BonusCampaign>(null);
+  const [familyReturn, setFamilyReturn] = useState<FamilyReturn>(null);
+  const [familyReturnData, setFamilyReturnData] = useState<FamilyReturnData>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,14 +48,16 @@ export default function DriverCredits() {
 
   const load = useCallback(async () => {
     try {
-      const [wal, pkgs, led] = await Promise.allSettled([
+      const [wal, pkgs, led, fr] = await Promise.allSettled([
         driverApi.getWallet(),
         driverApi.getWalletPackages(),
         driverApi.getWalletLedger(10, 0),
+        driverApi.getFamilyReturn(),
       ]);
       if (wal.status === 'fulfilled') setBalance(wal.value);
-      if (pkgs.status === 'fulfilled') { setPackages(pkgs.value.packages); setBonusCampaign(pkgs.value.bonus_campaign); }
+      if (pkgs.status === 'fulfilled') { setPackages(pkgs.value.packages); setFamilyReturn(pkgs.value.family_return); }
       if (led.status === 'fulfilled') setLedger(led.value.entries || []);
+      if (fr.status === 'fulfilled') setFamilyReturnData(fr.value);
     } catch (e) {
       console.warn('[Wallet] load failed:', e);
     } finally { setLoading(false); setRefreshing(false); }
@@ -133,7 +137,7 @@ export default function DriverCredits() {
             <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
             <View style={{ flex: 1 }}>
               <Text style={s.pixInfoMain}>O saldo entra automaticamente após a confirmação do pagamento.</Text>
-              <Text style={s.pixInfoSub}>{bonusCampaign ? 'Bônus promocional aplicado após confirmação do Pix.' : 'Após o Pix ser confirmado, seu saldo será atualizado no app.'}</Text>
+              <Text style={s.pixInfoSub}>{familyReturn ? 'Retorno Familiar acumulado após confirmação do Pix.' : 'Após o Pix ser confirmado, seu saldo será atualizado no app.'}</Text>
             </View>
           </View>
 
@@ -173,11 +177,22 @@ export default function DriverCredits() {
 
         {/* Packages */}
         <Text style={s.sectionTitle}>Adicionar saldo</Text>
+
+        {/* Retorno Familiar KAVIAR */}
+        {familyReturnData?.enabled && (
+          <View style={[s.infoCard, { marginBottom: 16, borderLeftWidth: 3, borderLeftColor: COLORS.success }]}>
+            <Text style={[s.infoTitle, { color: COLORS.success }]}>Retorno Familiar KAVIAR</Text>
+            <Text style={s.infoText}>Acumulado: R$ {((familyReturnData.accrued_cents || 0) / 100).toFixed(2).replace('.', ',')}</Text>
+            <Text style={[s.infoText, { fontSize: 11, marginTop: 4 }]}>Disponível para solicitação entre outubro e dezembro.</Text>
+            <Text style={[s.infoText, { fontSize: 10, color: COLORS.textMuted, marginTop: 2 }]}>Este valor não é saldo de corrida.</Text>
+          </View>
+        )}
+
         {packages.map(pkg => (
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => handleBuy(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
-              <Text style={s.packageCredits}>{pkg.label}{pkg.bonus_cents > 0 ? ` + R$ ${(pkg.bonus_cents / 100).toFixed(0)} bônus 🎁` : ''}</Text>
-              <Text style={s.packagePrice}>{pkg.bonus_cents > 0 ? `Receba R$ ${((pkg.amount_cents + pkg.bonus_cents) / 100).toFixed(0)} no total` : 'Via Pix'}</Text>
+              <Text style={s.packageCredits}>{pkg.label}</Text>
+              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? `Acumule R$ ${(pkg.family_return_cents / 100).toFixed(0)} no Retorno Familiar` : 'Via Pix'}</Text>
             </View>
             <View style={s.buyBtn}>
               {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Pix</Text>}
@@ -188,7 +203,7 @@ export default function DriverCredits() {
         {/* How it works */}
         <View style={s.infoCard}>
           <Text style={s.infoTitle}>Como funciona</Text>
-          {bonusCampaign && <Text style={[s.infoText, { color: COLORS.success, fontWeight: '600' }]}>🎁 Promoção de fim de ano: recargas Pix confirmadas recebem {bonusCampaign.percent}% de bônus.</Text>}
+          {familyReturn && <Text style={[s.infoText, { color: COLORS.success, fontWeight: '600' }]}>🎁 Retorno Familiar: recargas Pix acumulam {familyReturn.percent}% para resgate entre outubro e dezembro.</Text>}
           <Text style={s.infoText}>Você adiciona saldo via Pix.</Text>
           <Text style={s.infoText}>A cada corrida concluída, a taxa de uso da plataforma é descontada do seu saldo.</Text>
           <Text style={s.infoText}>Taxa atual: 18% sobre o valor da corrida.</Text>
