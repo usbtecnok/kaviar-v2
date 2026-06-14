@@ -110,6 +110,7 @@ const updateTerritorySchema = z.object({
   notes: z.string().optional().nullable(),
   regulatory_status: z.enum(['not_evaluated', 'in_review', 'credentialing_required', 'controlled_operation', 'approved', 'blocked', 'suspended'] as const).optional(),
   regulatory_notes: z.string().optional().nullable(),
+  moto_express_enabled: z.boolean().optional(),
 });
 
 // PATCH /api/admin/territories/:id
@@ -129,6 +130,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (data.notes !== undefined) updates.notes = data.notes;
     if (data.regulatory_status !== undefined) { updates.regulatory_status = data.regulatory_status; updates.regulatory_checked_at = new Date(); updates.regulatory_checked_by = (req as any).admin.id; }
     if (data.regulatory_notes !== undefined) updates.regulatory_notes = data.regulatory_notes;
+    if (data.moto_express_enabled !== undefined) updates.moto_express_enabled = data.moto_express_enabled;
 
     if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'Nenhuma alteração' });
 

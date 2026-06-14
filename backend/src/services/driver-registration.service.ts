@@ -20,6 +20,7 @@ interface DriverRegistrationInput {
   neighborhoodName?: string;
   vehicle_model?: string;
   vehicle_plate?: string;
+  vehicle_type?: 'CAR' | 'MOTORCYCLE';
   communityId?: string;
   verificationMethod?: 'GPS_AUTO' | 'MANUAL_SELECTION';
   familyBonusAccepted?: boolean;
@@ -151,6 +152,7 @@ export class DriverRegistrationService {
             vehicle_color: input.vehicle_color,
             vehicle_model: input.vehicle_model || null,
             vehicle_plate: input.vehicle_plate || null,
+            vehicle_type: input.vehicle_type || 'CAR',
             neighborhood_id: resolvedNeighborhoodId || null,
             community_id: validatedCommunityId,
             territory_type: territoryType,
