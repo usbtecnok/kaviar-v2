@@ -9,6 +9,7 @@ import { applyCreditDelta } from '../services/credit.service';
 import { shadowCalculate } from '../services/wallet-shadow.service';
 import { whatsappEvents } from '../modules/whatsapp';
 import * as pricingEngine from '../services/pricing-engine';
+import { isMotoPassengerEnabled } from '../services/moto-passenger-flag.service';
 import { authenticatePassenger, authenticateDriver, requireAuth } from '../middlewares/auth';
 import { getPresignedUrl } from '../config/s3-upload';
 import { createPixPayment } from '../services/asaas.service';
@@ -158,12 +159,19 @@ router.get('/active', authenticatePassenger, async (req: Request, res: Response)
 router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
   try {
     const passengerId = (req as any).passengerId;
-    const { origin, destination, type = 'normal', trip_details, scheduled_for, wait_requested = false, wait_estimated_min, post_wait_destination } = req.body;
+    const { origin, destination, type = 'normal', trip_details, scheduled_for, wait_requested = false, wait_estimated_min, post_wait_destination, service_category, passenger_moto_consent } = req.body;
     const idempotencyKey = req.headers['idempotency-key'] as string;
 
     // Validação
     if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
       return res.status(400).json({ error: 'Origem ou destino inválido' });
+    }
+
+    // MOTO_PASSENGER validations
+    if (service_category === 'MOTO_PASSENGER') {
+      const enabled = await isMotoPassengerEnabled();
+      if (!enabled) return res.status(403).json({ error: 'MOTO_PASSENGER_DISABLED' });
+      if (!passenger_moto_consent) return res.status(400).json({ error: 'MOTO_PASSENGER_CONSENT_REQUIRED' });
     }
 
     // Validar agendamento
@@ -217,6 +225,7 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
         dest_lng: new Decimal(destination.lng),
         destination_text: destination.text,
         ride_type: type,
+        service_category: service_category || 'CAR_NORMAL',
         idempotency_key: idempotencyKey,
         trip_details: {
           ...(trip_details || {}),
