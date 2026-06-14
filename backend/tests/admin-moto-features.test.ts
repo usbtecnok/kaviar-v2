@@ -58,6 +58,12 @@ describe('admin-territories moto_express_enabled', () => {
       }
       updates.moto_express_enabled = body.moto_express_enabled;
     }
+    if (body.moto_passenger_enabled !== undefined) {
+      if (typeof body.moto_passenger_enabled !== 'boolean') {
+        return { updates: {}, error: 'moto_passenger_enabled must be boolean' };
+      }
+      updates.moto_passenger_enabled = body.moto_passenger_enabled;
+    }
     return { updates };
   }
 
@@ -78,6 +84,27 @@ describe('admin-territories moto_express_enabled', () => {
 
   it('non-boolean moto_express_enabled is invalid', () => {
     const { error } = parseAndBuildUpdates({ moto_express_enabled: 'yes' });
+    expect(error).toBeDefined();
+  });
+
+  it('moto_passenger_enabled=true sets flag', () => {
+    const { updates } = parseAndBuildUpdates({ moto_passenger_enabled: true });
+    expect(updates.moto_passenger_enabled).toBe(true);
+  });
+
+  it('moto_passenger_enabled=false clears flag', () => {
+    const { updates } = parseAndBuildUpdates({ moto_passenger_enabled: false });
+    expect(updates.moto_passenger_enabled).toBe(false);
+  });
+
+  it('moto_passenger_enabled independent of moto_express_enabled', () => {
+    const { updates } = parseAndBuildUpdates({ moto_express_enabled: true, moto_passenger_enabled: false });
+    expect(updates.moto_express_enabled).toBe(true);
+    expect(updates.moto_passenger_enabled).toBe(false);
+  });
+
+  it('non-boolean moto_passenger_enabled is invalid', () => {
+    const { error } = parseAndBuildUpdates({ moto_passenger_enabled: 'yes' });
     expect(error).toBeDefined();
   });
 });

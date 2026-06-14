@@ -1089,6 +1089,7 @@ model pricing_profiles {
   radius_km            Decimal? @db.Decimal(8, 2)
 
   vehicle_category     String   @default("CAR")
+  service_category     String   @default("CAR_NORMAL")
   is_default           Boolean  @default(false)
   is_active            Boolean  @default(true)
   created_at           DateTime @default(now())
@@ -1743,6 +1744,7 @@ model operational_territories {
   regulatory_checked_by String?
   is_active  Boolean  @default(true)
   moto_express_enabled Boolean @default(false)
+  moto_passenger_enabled Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 

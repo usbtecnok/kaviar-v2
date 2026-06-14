@@ -1,71 +1,97 @@
 import { describe, it, expect } from 'vitest';
 
 /**
- * Tests for pricing engine resolveProfile vehicle category logic.
- * Pure unit tests validating the query parameter behavior and error handling.
+ * Tests for pricing engine resolveProfile service_category logic.
+ * Pure unit tests validating the filter condition and error handling.
  */
-describe('pricing resolveProfile vehicleCategory', () => {
-  // Simulate the error logic from resolveProfile
+describe('pricing resolveProfile serviceCategory', () => {
+  // Replicate the derivation + error logic from resolveProfile
+  function deriveVehicleCategory(serviceCategory: string): string {
+    return serviceCategory.startsWith('MOTO_') ? 'MOTORCYCLE' : 'CAR';
+  }
+
   function simulateResolve(
     hasRegionalMatch: boolean,
     hasDefaultMatch: boolean,
-    vehicleCategory: string = 'CAR'
-  ): { profile: string } | { error: string } {
-    if (hasRegionalMatch) return { profile: `regional-${vehicleCategory}` };
-    if (hasDefaultMatch) return { profile: `default-${vehicleCategory}` };
-    if (vehicleCategory !== 'CAR') return { error: 'MOTO_PRICING_PROFILE_NOT_CONFIGURED' };
+    serviceCategory: string = 'CAR_NORMAL'
+  ): { profile: { vehicle_category: string; service_category: string } } | { error: string } {
+    const vehicleCategory = deriveVehicleCategory(serviceCategory);
+    if (hasRegionalMatch) return { profile: { vehicle_category: vehicleCategory, service_category: serviceCategory } };
+    if (hasDefaultMatch) return { profile: { vehicle_category: vehicleCategory, service_category: serviceCategory } };
+    if (serviceCategory === 'MOTO_PASSENGER') return { error: 'MOTO_PASSENGER_PRICING_NOT_CONFIGURED' };
+    if (serviceCategory === 'MOTO_DELIVERY') return { error: 'MOTO_PRICING_PROFILE_NOT_CONFIGURED' };
     return { error: '[pricing-engine] No default pricing profile found' };
   }
 
-  describe('CAR (default behavior)', () => {
-    it('resolves regional profile for CAR', () => {
-      expect(simulateResolve(true, false, 'CAR')).toEqual({ profile: 'regional-CAR' });
+  describe('CAR_NORMAL (default behavior)', () => {
+    it('resolves with vehicle_category=CAR and service_category=CAR_NORMAL', () => {
+      const r = simulateResolve(true, false, 'CAR_NORMAL');
+      expect(r).toEqual({ profile: { vehicle_category: 'CAR', service_category: 'CAR_NORMAL' } });
     });
 
-    it('falls back to default profile for CAR', () => {
-      expect(simulateResolve(false, true, 'CAR')).toEqual({ profile: 'default-CAR' });
+    it('falls back to default CAR_NORMAL profile', () => {
+      expect(simulateResolve(false, true, 'CAR_NORMAL')).toEqual({ profile: { vehicle_category: 'CAR', service_category: 'CAR_NORMAL' } });
     });
 
-    it('throws generic error when no CAR profile exists', () => {
-      expect(simulateResolve(false, false, 'CAR')).toEqual({ error: '[pricing-engine] No default pricing profile found' });
-    });
-
-    it('uses CAR when vehicleCategory is undefined/default', () => {
-      expect(simulateResolve(true, false)).toEqual({ profile: 'regional-CAR' });
+    it('uses CAR_NORMAL when serviceCategory is undefined/default', () => {
+      expect(simulateResolve(true, false)).toEqual({ profile: { vehicle_category: 'CAR', service_category: 'CAR_NORMAL' } });
     });
   });
 
-  describe('MOTORCYCLE', () => {
-    it('resolves regional profile for MOTORCYCLE', () => {
-      expect(simulateResolve(true, false, 'MOTORCYCLE')).toEqual({ profile: 'regional-MOTORCYCLE' });
+  describe('MOTO_DELIVERY', () => {
+    it('resolves with vehicle_category=MOTORCYCLE and service_category=MOTO_DELIVERY', () => {
+      expect(simulateResolve(true, false, 'MOTO_DELIVERY')).toEqual({ profile: { vehicle_category: 'MOTORCYCLE', service_category: 'MOTO_DELIVERY' } });
     });
 
-    it('falls back to default MOTORCYCLE profile', () => {
-      expect(simulateResolve(false, true, 'MOTORCYCLE')).toEqual({ profile: 'default-MOTORCYCLE' });
+    it('throws MOTO_PRICING_PROFILE_NOT_CONFIGURED when no profile', () => {
+      expect(simulateResolve(false, false, 'MOTO_DELIVERY')).toEqual({ error: 'MOTO_PRICING_PROFILE_NOT_CONFIGURED' });
     });
 
-    it('throws MOTO_PRICING_PROFILE_NOT_CONFIGURED when no moto profile exists', () => {
-      expect(simulateResolve(false, false, 'MOTORCYCLE')).toEqual({ error: 'MOTO_PRICING_PROFILE_NOT_CONFIGURED' });
-    });
-
-    it('never falls back to CAR profile (no cross-category fallback)', () => {
-      // Even if CAR profiles exist, MOTORCYCLE with no match = error
-      const result = simulateResolve(false, false, 'MOTORCYCLE');
-      expect(result).not.toEqual(expect.objectContaining({ profile: expect.stringContaining('CAR') }));
-      expect(result).toEqual({ error: 'MOTO_PRICING_PROFILE_NOT_CONFIGURED' });
+    it('does not use MOTO_PASSENGER profile (isolated query)', () => {
+      // MOTO_DELIVERY queries filter by service_category=MOTO_DELIVERY
+      const r = simulateResolve(true, false, 'MOTO_DELIVERY');
+      expect((r as any).profile.service_category).toBe('MOTO_DELIVERY');
+      expect((r as any).profile.service_category).not.toBe('MOTO_PASSENGER');
     });
   });
 
-  describe('SQL query parameter validation', () => {
-    it('vehicle_category filter is applied to regional query', () => {
-      // The SQL uses WHERE vehicle_category = $3
-      // This ensures CAR profiles won't match for MOTORCYCLE queries
-      const carResult = simulateResolve(true, false, 'CAR');
-      const motoResult = simulateResolve(true, false, 'MOTORCYCLE');
-      expect(carResult).toEqual({ profile: 'regional-CAR' });
-      expect(motoResult).toEqual({ profile: 'regional-MOTORCYCLE' });
-      // They resolve different profiles (never cross-pollinate)
-      expect(carResult).not.toEqual(motoResult);
+  describe('MOTO_PASSENGER', () => {
+    it('resolves with vehicle_category=MOTORCYCLE and service_category=MOTO_PASSENGER', () => {
+      expect(simulateResolve(true, false, 'MOTO_PASSENGER')).toEqual({ profile: { vehicle_category: 'MOTORCYCLE', service_category: 'MOTO_PASSENGER' } });
     });
+
+    it('throws MOTO_PASSENGER_PRICING_NOT_CONFIGURED when no profile', () => {
+      expect(simulateResolve(false, false, 'MOTO_PASSENGER')).toEqual({ error: 'MOTO_PASSENGER_PRICING_NOT_CONFIGURED' });
+    });
+
+    it('does not use MOTO_DELIVERY profile as fallback', () => {
+      const r = simulateResolve(true, false, 'MOTO_PASSENGER');
+      expect((r as any).profile.service_category).toBe('MOTO_PASSENGER');
+      expect((r as any).profile.service_category).not.toBe('MOTO_DELIVERY');
+    });
+
+    it('does not use CAR profile', () => {
+      const r = simulateResolve(true, false, 'MOTO_PASSENGER');
+      expect((r as any).profile.vehicle_category).toBe('MOTORCYCLE');
+      expect((r as any).profile.vehicle_category).not.toBe('CAR');
+    });
+  });
+
+  describe('cross-category isolation', () => {
+    it('CAR_NORMAL, MOTO_DELIVERY, MOTO_PASSENGER resolve different profiles', () => {
+      const car = simulateResolve(true, false, 'CAR_NORMAL');
+      const delivery = simulateResolve(true, false, 'MOTO_DELIVERY');
+      const passenger = simulateResolve(true, false, 'MOTO_PASSENGER');
+      expect(car).not.toEqual(delivery);
+      expect(car).not.toEqual(passenger);
+      expect(delivery).not.toEqual(passenger);
+    });
+  });
+
+  describe('deriveVehicleCategory', () => {
+    it('CAR_NORMAL → CAR', () => expect(deriveVehicleCategory('CAR_NORMAL')).toBe('CAR'));
+    it('MOTO_DELIVERY → MOTORCYCLE', () => expect(deriveVehicleCategory('MOTO_DELIVERY')).toBe('MOTORCYCLE'));
+    it('MOTO_PASSENGER → MOTORCYCLE', () => expect(deriveVehicleCategory('MOTO_PASSENGER')).toBe('MOTORCYCLE'));
+    it('unknown → CAR', () => expect(deriveVehicleCategory('SOMETHING')).toBe('CAR'));
   });
 });

@@ -11,7 +11,7 @@ describe('dispatcher vehicle_type filter', () => {
     driverVehicleType: string | null | undefined
   ): boolean {
     const category = serviceCategory || 'CAR_NORMAL';
-    const requiredVehicleType = category === 'MOTO_DELIVERY' ? 'MOTORCYCLE' : null;
+    const requiredVehicleType = (category === 'MOTO_DELIVERY' || category === 'MOTO_PASSENGER') ? 'MOTORCYCLE' : null;
     if (requiredVehicleType && (driverVehicleType || 'CAR') !== requiredVehicleType) {
       return false;
     }
@@ -47,6 +47,24 @@ describe('dispatcher vehicle_type filter', () => {
 
     it('includes driver with null vehicle_type', () => {
       expect(shouldIncludeDriver('CAR_NORMAL', null)).toBe(true);
+    });
+  });
+
+  describe('MOTO_PASSENGER', () => {
+    it('includes MOTORCYCLE driver', () => {
+      expect(shouldIncludeDriver('MOTO_PASSENGER', 'MOTORCYCLE')).toBe(true);
+    });
+
+    it('excludes CAR driver', () => {
+      expect(shouldIncludeDriver('MOTO_PASSENGER', 'CAR')).toBe(false);
+    });
+
+    it('excludes driver with null vehicle_type (defaults to CAR)', () => {
+      expect(shouldIncludeDriver('MOTO_PASSENGER', null)).toBe(false);
+    });
+
+    it('excludes driver with undefined vehicle_type (defaults to CAR)', () => {
+      expect(shouldIncludeDriver('MOTO_PASSENGER', undefined)).toBe(false);
     });
   });
 

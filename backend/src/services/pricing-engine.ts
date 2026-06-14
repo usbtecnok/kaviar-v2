@@ -159,12 +159,16 @@ function round2(n: number): number {
 
 // --- Profile resolution ---
 
-export async function resolveProfile(lat: number, lng: number, vehicleCategory: string = 'CAR'): Promise<PricingProfile> {
+export async function resolveProfile(lat: number, lng: number, serviceCategory: string = 'CAR_NORMAL'): Promise<PricingProfile> {
+  // Derive vehicle_category from service_category
+  const vehicleCategory = serviceCategory.startsWith('MOTO_') ? 'MOTORCYCLE' : 'CAR';
+
   // Try to find a regional profile by proximity
   const regional = await pool.query(
     `SELECT * FROM pricing_profiles
      WHERE is_active = true AND is_default = false
        AND vehicle_category = $3
+       AND service_category = $4
        AND center_lat IS NOT NULL AND center_lng IS NOT NULL AND radius_km IS NOT NULL
      ORDER BY (
        6371 * acos(
@@ -174,7 +178,7 @@ export async function resolveProfile(lat: number, lng: number, vehicleCategory: 
        )
      ) ASC
      LIMIT 1`,
-    [lat, lng, vehicleCategory]
+    [lat, lng, vehicleCategory, serviceCategory]
   );
 
   if (regional.rows[0]) {
@@ -185,14 +189,17 @@ export async function resolveProfile(lat: number, lng: number, vehicleCategory: 
     }
   }
 
-  // Fallback to default for this vehicle category
+  // Fallback to default for this vehicle+service category
   const def = await pool.query(
-    `SELECT * FROM pricing_profiles WHERE is_default = true AND is_active = true AND vehicle_category = $1 LIMIT 1`,
-    [vehicleCategory]
+    `SELECT * FROM pricing_profiles WHERE is_default = true AND is_active = true AND vehicle_category = $1 AND service_category = $2 LIMIT 1`,
+    [vehicleCategory, serviceCategory]
   );
   if (!def.rows[0]) {
-    if (vehicleCategory !== 'CAR') {
-      throw new Error(`MOTO_PRICING_PROFILE_NOT_CONFIGURED`);
+    if (serviceCategory === 'MOTO_PASSENGER') {
+      throw new Error('MOTO_PASSENGER_PRICING_NOT_CONFIGURED');
+    }
+    if (serviceCategory === 'MOTO_DELIVERY') {
+      throw new Error('MOTO_PRICING_PROFILE_NOT_CONFIGURED');
     }
     throw new Error('[pricing-engine] No default pricing profile found');
   }
