@@ -228,9 +228,9 @@ export class DispatcherService {
 
     const candidates: DriverCandidate[] = [];
 
-    // Moto Express: determine required vehicle type from service_category
+    // Moto Express/Passenger: determine required vehicle type from service_category
     const serviceCategory = ride.service_category || 'CAR_NORMAL';
-    const requiredVehicleType = serviceCategory === 'MOTO_DELIVERY' ? 'MOTORCYCLE' : null;
+    const requiredVehicleType = (serviceCategory === 'MOTO_DELIVERY' || serviceCategory === 'MOTO_PASSENGER') ? 'MOTORCYCLE' : null;
 
     for (const ds of onlineDrivers) {
       // Vehicle type filter: MOTO_DELIVERY requires MOTORCYCLE only
