@@ -222,12 +222,23 @@ export class DispatcherService {
       no_location: 0,
       stale_location: 0,
       too_far: 0,
-      no_credits: 0
+      no_credits: 0,
+      wrong_vehicle: 0
     };
 
     const candidates: DriverCandidate[] = [];
 
+    // Moto Express: determine required vehicle type from service_category
+    const serviceCategory = ride.service_category || 'CAR_NORMAL';
+    const requiredVehicleType = serviceCategory === 'MOTO_DELIVERY' ? 'MOTORCYCLE' : null;
+
     for (const ds of onlineDrivers) {
+      // Vehicle type filter: MOTO_DELIVERY requires MOTORCYCLE only
+      if (requiredVehicleType && (ds.driver.vehicle_type || 'CAR') !== requiredVehicleType) {
+        droppedReasons.wrong_vehicle++;
+        continue;
+      }
+
       const location = ds.driver.driver_location;
       
       if (!location) {
