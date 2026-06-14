@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MOTO_REQUIRED_DOCUMENTS, getMissingMotoDocuments } from '../src/config/moto-documents';
+import { MOTO_REQUIRED_DOCUMENTS, MOTO_PASSENGER_EXTRA_DOCUMENTS, getMissingMotoDocuments, getMissingMotoPassengerDocuments } from '../src/config/moto-documents';
 
 describe('moto-documents config', () => {
   it('has 4 required document types', () => {
@@ -113,5 +113,44 @@ describe('moto approval validation', () => {
   it('CAR driver approval is unaffected by any docs', () => {
     expect(canApproveMotoDriver('CAR', [])).toEqual({ approved: true });
     expect(canApproveMotoDriver('CAR', ['CNH_A'])).toEqual({ approved: true });
+  });
+});
+
+describe('MOTO_PASSENGER_EXTRA_DOCUMENTS', () => {
+  it('has 2 extra document types', () => {
+    expect(MOTO_PASSENGER_EXTRA_DOCUMENTS).toHaveLength(2);
+  });
+
+  it('includes MOTO_PASSENGER_RESPONSIBILITY_TERM', () => {
+    expect(MOTO_PASSENGER_EXTRA_DOCUMENTS.find(d => d.type === 'MOTO_PASSENGER_RESPONSIBILITY_TERM')).toBeDefined();
+  });
+
+  it('includes HELMET_PASSENGER_DECLARATION', () => {
+    expect(MOTO_PASSENGER_EXTRA_DOCUMENTS.find(d => d.type === 'HELMET_PASSENGER_DECLARATION')).toBeDefined();
+  });
+});
+
+describe('getMissingMotoPassengerDocuments', () => {
+  it('returns all 6 docs when none uploaded', () => {
+    expect(getMissingMotoPassengerDocuments([])).toHaveLength(6);
+  });
+
+  it('returns missing passenger docs when base moto docs uploaded', () => {
+    const baseDocs = MOTO_REQUIRED_DOCUMENTS.map(d => d.type);
+    const missing = getMissingMotoPassengerDocuments([...baseDocs]);
+    expect(missing).toHaveLength(2);
+    expect(missing.map(d => d.type)).toContain('MOTO_PASSENGER_RESPONSIBILITY_TERM');
+    expect(missing.map(d => d.type)).toContain('HELMET_PASSENGER_DECLARATION');
+  });
+
+  it('returns empty when all 6 docs uploaded', () => {
+    const allDocs = [...MOTO_REQUIRED_DOCUMENTS.map(d => d.type), ...MOTO_PASSENGER_EXTRA_DOCUMENTS.map(d => d.type)];
+    expect(getMissingMotoPassengerDocuments(allDocs)).toHaveLength(0);
+  });
+
+  it('base moto docs helper still works independently', () => {
+    expect(getMissingMotoDocuments([])).toHaveLength(4);
+    const allBase = MOTO_REQUIRED_DOCUMENTS.map(d => d.type);
+    expect(getMissingMotoDocuments([...allBase])).toHaveLength(0);
   });
 });
