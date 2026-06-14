@@ -1769,7 +1769,7 @@ model operational_territories {
 
 model moto_passenger_compliance {
   id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  territory_id          String    @unique @db.Uuid
+  territory_id          String    @unique
   municipality_name     String?   @db.VarChar(200)
   consultation_date     DateTime? @db.Date
   consulted_by_admin_id String?

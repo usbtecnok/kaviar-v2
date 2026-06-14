@@ -1,7 +1,8 @@
 -- Moto Passenger Compliance Gate: municipal validation per territory
+-- Note: territory_id is TEXT (not UUID) matching operational_territories.id
 CREATE TABLE IF NOT EXISTS moto_passenger_compliance (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  territory_id UUID NOT NULL REFERENCES operational_territories(id),
+  territory_id TEXT NOT NULL,
   municipality_name VARCHAR(200),
   consultation_date DATE,
   consulted_by_admin_id TEXT,
