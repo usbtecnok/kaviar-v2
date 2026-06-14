@@ -36,6 +36,7 @@ import communityLeadersRoutes from './routes/community-leaders';
 import localOperatorsRoutes from './routes/admin-local-operators';
 import territorialPartnersRoutes from './routes/admin-territorial-partners';
 import adminTerritoriesRoutes from './routes/admin-territories';
+import adminMotoComplianceRoutes from './routes/admin-moto-compliance';
 import adminPayoutsRoutes from './routes/admin-payouts';
 import adminMyOperatorProfileRoutes from './routes/admin-my-operator-profile';
 import adminOperatorReferralsRoutes from './routes/admin-operator-referrals';
@@ -306,6 +307,7 @@ app.get('/api/partners/:id/logo', async (req, res) => {
 
 app.use('/api/admin/territorial-partners', territorialPartnersRoutes);
 app.use('/api/admin/territories', adminTerritoriesRoutes);
+app.use('/api/admin/territories', adminMotoComplianceRoutes);
 app.use('/api/admin/territorial-payouts', adminPayoutsRoutes);
 app.use('/api/admin/my-operator-profile', adminMyOperatorProfileRoutes);
 app.use('/api/admin/operator/referrals', adminOperatorReferralsRoutes);
