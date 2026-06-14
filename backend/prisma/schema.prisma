@@ -1759,11 +1759,31 @@ model operational_territories {
   payouts              territory_payouts[]
   manager_assignments  territory_manager_assignments[]
   shadow_results       wallet_shadow_results[]
+  moto_compliance      moto_passenger_compliance?
 
   @@unique([name, level, parent_id])
   @@index([level])
   @@index([status])
   @@index([parent_id])
+}
+
+model moto_passenger_compliance {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  territory_id          String    @unique @db.Uuid
+  municipality_name     String?   @db.VarChar(200)
+  consultation_date     DateTime? @db.Date
+  consulted_by_admin_id String?
+  prefecture_notes      String?
+  protocol_number       String?   @db.VarChar(100)
+  document_url          String?
+  status                String    @default("PENDING") @db.VarChar(20)
+  approved_by_admin_id  String?
+  approved_at           DateTime?
+  rejection_reason      String?
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @default(now()) @updatedAt
+
+  territory operational_territories @relation(fields: [territory_id], references: [id])
 }
 
 model admin_territory_access {

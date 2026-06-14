@@ -132,7 +132,15 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (data.regulatory_status !== undefined) { updates.regulatory_status = data.regulatory_status; updates.regulatory_checked_at = new Date(); updates.regulatory_checked_by = (req as any).admin.id; }
     if (data.regulatory_notes !== undefined) updates.regulatory_notes = data.regulatory_notes;
     if (data.moto_express_enabled !== undefined) updates.moto_express_enabled = data.moto_express_enabled;
-    if (data.moto_passenger_enabled !== undefined) updates.moto_passenger_enabled = data.moto_passenger_enabled;
+    if (data.moto_passenger_enabled !== undefined) {
+      if (data.moto_passenger_enabled === true) {
+        const compliance = await prisma.moto_passenger_compliance.findUnique({ where: { territory_id: req.params.id } });
+        if (compliance?.status !== 'APPROVED') {
+          return res.status(403).json({ success: false, error: 'MOTO_PASSENGER_COMPLIANCE_NOT_APPROVED' });
+        }
+      }
+      updates.moto_passenger_enabled = data.moto_passenger_enabled;
+    }
 
     if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'Nenhuma alteração' });
 
