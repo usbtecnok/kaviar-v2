@@ -1743,6 +1743,7 @@ model operational_territories {
   regulatory_checked_by String?
   is_active  Boolean  @default(true)
   moto_express_enabled Boolean @default(false)
+  moto_passenger_enabled Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
