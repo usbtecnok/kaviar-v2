@@ -152,7 +152,7 @@ router.post('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, asyn
     const isSuperAdmin = admin.role === 'SUPER_ADMIN';
 
     // TERRITORIAL_MANAGER: allowlist + scope enforcement
-    const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status', 'is_active', 'crm_lead_id'];
+    const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status', 'is_active'];
     if (!isSuperAdmin) {
       const sent = Object.keys(req.body);
       const forbidden = sent.filter(k => BLOCKED_FIELDS.includes(k));
@@ -189,9 +189,28 @@ router.post('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, asyn
       if (existing) return res.status(409).json({ success: false, error: 'Este lead já possui conta de comércio vinculada.', commerce_id: existing.id });
     }
 
+    // TERRITORIAL_MANAGER: validate crm_lead_id belongs to their territory and is commerce type
+    let validatedCrmLeadId: string | null = null;
+    if (crm_lead_id) {
+      if (isSuperAdmin) {
+        validatedCrmLeadId = crm_lead_id;
+      } else {
+        const COMMERCE_TYPES = ['LOCAL_BUSINESS', 'RESTAURANT', 'BAKERY', 'PIZZERIA', 'SNACK_BAR', 'MARKET', 'PHARMACY', 'PET_SHOP', 'BEAUTY_SALON', 'WORKSHOP'];
+        const lead = await prisma.crm_leads.findUnique({ where: { id: crm_lead_id }, select: { id: true, territory_id: true, lead_type: true, deleted_at: true } });
+        if (!lead || lead.deleted_at) return res.status(400).json({ success: false, error: 'Lead não encontrado.' });
+        if (!COMMERCE_TYPES.includes(lead.lead_type)) return res.status(400).json({ success: false, error: 'Lead não é do tipo comércio.' });
+        const tIds = scope?.territoryIds || [];
+        if (!lead.territory_id || !tIds.includes(lead.territory_id)) return res.status(403).json({ success: false, error: 'Lead não pertence ao seu território.' });
+        // Check duplicate
+        const existing = await prisma.commerce_accounts.findFirst({ where: { crm_lead_id, deleted_at: null } });
+        if (existing) return res.status(409).json({ success: false, error: 'Este lead já possui conta de comércio vinculada.', commerce_id: existing.id });
+        validatedCrmLeadId = crm_lead_id;
+      }
+    }
+
     const account = await prisma.commerce_accounts.create({
       data: {
-        crm_lead_id: isSuperAdmin ? (crm_lead_id || null) : null,
+        crm_lead_id: validatedCrmLeadId,
         name, trade_name: trade_name || null,
         category: category || 'outro',
         document_cnpj: isSuperAdmin ? (document_cnpj || null) : null,
