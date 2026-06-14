@@ -22,6 +22,8 @@ const PARTNER_TYPES = [
 export default function ManagerHome() {
   const [metrics, setMetrics] = useState(null);
   const [territory, setTerritoryData] = useState(null);
+  const [territoryName, setTerritoryName] = useState(null);
+  const [territoryLoaded, setTerritoryLoaded] = useState(false);
   const [referral, setReferral] = useState(null);
   const [drafts, setDrafts] = useState(null);
   const [teamStats, setTeamStats] = useState(null);
@@ -55,6 +57,14 @@ export default function ManagerHome() {
         setError('Sem território vinculado. Solicite acesso ao administrador.');
         return;
       }
+
+      // Fetch territory name from operator profile
+      try {
+        const profileRes = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile`, { headers });
+        const profileData = await profileRes.json();
+        if (profileData.success && profileData.data?.territory?.name) setTerritoryName(profileData.data.territory.name);
+      } catch {}
+      setTerritoryLoaded(true);
 
       const metricsData = await metricsRes.json();
       const territoryData = await territoryRes.json();
@@ -95,7 +105,7 @@ export default function ManagerHome() {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               <span style={{ color: GOLD }}>KAVIAR</span> Gestor Territorial
             </Typography>
-            <Typography sx={{ color: TEXT_GRAY, fontSize: 12 }}>{admin?.name || 'Gestor'} — acesso operacional do território</Typography>
+            <Typography sx={{ color: TEXT_GRAY, fontSize: 12 }}>{admin?.name || 'Gestor'} — {territoryName ? `Território: ${territoryName}` : territoryLoaded ? 'Território não vinculado' : 'Território: carregando...'}</Typography>
           </Box>
           <Button onClick={handleLogout} variant="outlined" size="small" sx={{ borderColor: 'rgba(201,154,22,0.25)', color: TEXT_GRAY, '&:hover': { borderColor: GOLD, color: GOLD } }}>
             Sair
