@@ -189,6 +189,7 @@ model drivers {
   vehicle_plate               String?
   vehicle_model               String?
   vehicle_color               String?
+  vehicle_type                String   @default("CAR")
   banned_at                   DateTime?
   banned_reason               String?
   banned_by                   String?
@@ -889,6 +890,7 @@ model rides_v2 {
   destination_text       String?
   dest_neighborhood_id   String?
   ride_type              String       @default("normal")
+  service_category       String       @default("CAR_NORMAL")
   is_homebound           Boolean      @default(false)
   idempotency_key        String?
   trip_details           Json?
@@ -1086,6 +1088,7 @@ model pricing_profiles {
   center_lng           Decimal? @db.Decimal(11, 8)
   radius_km            Decimal? @db.Decimal(8, 2)
 
+  vehicle_category     String   @default("CAR")
   is_default           Boolean  @default(false)
   is_active            Boolean  @default(true)
   created_at           DateTime @default(now())
@@ -1739,6 +1742,7 @@ model operational_territories {
   regulatory_checked_at DateTime?
   regulatory_checked_by String?
   is_active  Boolean  @default(true)
+  moto_express_enabled Boolean @default(false)
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
