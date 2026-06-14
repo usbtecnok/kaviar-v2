@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, CircularProgress, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert } from '@mui/material';
 import { ArrowBack, Edit, PersonAdd, Delete } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import MotoPassengerCompliance from '../../components/admin/MotoPassengerCompliance';
 
 const STATUS_COLORS = { planning: '#6B7280', preparation: '#D97706', active: '#059669', inactive: '#DC2626' };
 const STATUS_LABELS = { planning: 'Planejamento', preparation: 'Preparação', active: 'Ativo', inactive: 'Inativo' };
@@ -117,6 +118,14 @@ export default function TerritoryDetailPage() {
                 }
               }} fullWidth size="small" multiline rows={2} sx={{ mt: 1 }} InputLabelProps={{ shrink: true }} />
             </Box>
+
+            {/* Moto Passageiro Compliance */}
+            <MotoPassengerCompliance
+              territoryId={id}
+              motoPassengerEnabled={t.moto_passenger_enabled || false}
+              isSuperAdmin={JSON.parse(localStorage.getItem('kaviar_admin_user') || '{}').role === 'SUPER_ADMIN'}
+              onTerritoryUpdate={fetchTerritory}
+            />
           </CardContent>
         </Card>
       )}
