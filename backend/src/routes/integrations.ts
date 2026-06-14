@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
+import { notifyAdminNewContact } from '../services/admin-alert.service';
 
 export const integrationsRoutes = Router();
 
@@ -136,6 +137,15 @@ integrationsRoutes.post('/twilio/whatsapp', async (req, res) => {
       });
 
       console.log(`[WA_INBOUND] New conversation id=${conversation.id} phone=${phone.substring(0, 7)}*** type=${resolved.contact_type}${isUrgent ? ' URGENT' : ''}`);
+
+      // Admin alert: notify via SMS on new conversation
+      notifyAdminNewContact({
+        phone,
+        name: resolved.contact_name || ProfileName || null,
+        message: Body,
+        type: resolved.contact_type,
+        conversationId: conversation.id,
+      }).catch(err => console.error('[ADMIN_ALERT] error:', err.message));
     } else {
       // Atualizar conversa existente
       const updates: any = {
