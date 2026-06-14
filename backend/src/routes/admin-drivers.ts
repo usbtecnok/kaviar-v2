@@ -92,11 +92,18 @@ router.post('/drivers/create', requireSuperAdmin, async (req: Request, res: Resp
 router.get('/drivers', allowReadAccess, applyTerritoryScope, requireTerritoryScope, async (req: Request, res: Response) => {
   try {
     const status = req.query.status as string;
+    const vehicle_type = req.query.vehicle_type as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
+    // Validate vehicle_type if provided
+    if (vehicle_type && !['CAR', 'MOTORCYCLE'].includes(vehicle_type)) {
+      return res.status(400).json({ success: false, error: 'vehicle_type inválido. Use CAR ou MOTORCYCLE.' });
+    }
+
     const where: any = status ? { status } : {};
+    if (vehicle_type) where.vehicle_type = vehicle_type;
 
     // Escopo territorial: filtra por neighborhood_id ou territory (via neighborhoods.territory_id)
     const scope = (req as any).territoryScope;
@@ -132,6 +139,7 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, requireTerritorySco
           vehicle_color: true,
           vehicle_model: true,
           vehicle_plate: true,
+          vehicle_type: true,
           family_bonus_accepted: true,
           family_bonus_profile: true,
           neighborhoods: {
