@@ -1089,6 +1089,7 @@ model pricing_profiles {
   radius_km            Decimal? @db.Decimal(8, 2)
 
   vehicle_category     String   @default("CAR")
+  service_category     String   @default("CAR_NORMAL")
   is_default           Boolean  @default(false)
   is_active            Boolean  @default(true)
   created_at           DateTime @default(now())
