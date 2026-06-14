@@ -476,13 +476,15 @@ export default function CrmPage() {
               <Button size="small" variant="outlined" onClick={() => { setNewStatus(selectedLead.status); setStatusOpen(true); }}>Alterar Status</Button>
               <Button size="small" variant="outlined" onClick={() => setInteractionOpen(true)}>+ Observação</Button>
               {selectedLead.phone && <Tooltip title="WhatsApp"><IconButton size="small" sx={{ color: '#25D366' }} onClick={() => window.open(`https://wa.me/55${selectedLead.phone.replace(/\D/g, '')}`, '_blank')}><Phone /></IconButton></Tooltip>}
-              {isSuperAdmin && selectedLead.status === 'ACTIVE' && ['LOCAL_BUSINESS','RESTAURANT','BAKERY','PIZZERIA','SNACK_BAR','MARKET','PHARMACY','PET_SHOP','BEAUTY_SALON','WORKSHOP'].includes(selectedLead.lead_type) && (
+              {(isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') && ['ACTIVE','INTERESTED','WAITING_DOCUMENTS','WAITING_CONTRACT','WAITING_APPROVAL'].includes(selectedLead.status) && ['LOCAL_BUSINESS','RESTAURANT','BAKERY','PIZZERIA','SNACK_BAR','MARKET','PHARMACY','PET_SHOP','BEAUTY_SALON','WORKSHOP'].includes(selectedLead.lead_type) && (
                 <Button size="small" variant="contained" startIcon={<Store />} sx={{ bgcolor: '#059669', textTransform: 'none', '&:hover': { bgcolor: '#047857' } }}
                   onClick={async () => {
-                    const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify({ crm_lead_id: selectedLead.id, name: selectedLead.business_name || selectedLead.name, trade_name: selectedLead.business_name || null, category: selectedLead.business_category || selectedLead.lead_type?.toLowerCase() || 'outro', phone: selectedLead.phone, email: selectedLead.email, address: selectedLead.business_address, territory_id: selectedLead.territory_id, neighborhood_id: selectedLead.neighborhood_id }) });
-                    const data = await res.json();
-                    if (data.success) setSnack('✅ Conta de comércio criada! Acesse /admin/commerce para ativar.');
-                    else setSnack(data.error || 'Erro ao converter');
+                    try {
+                      const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { method: 'POST', headers, body: JSON.stringify({ crm_lead_id: selectedLead.id, name: selectedLead.business_name || selectedLead.name, trade_name: selectedLead.business_name || null, category: selectedLead.business_category || selectedLead.lead_type?.toLowerCase() || 'outro', phone: selectedLead.phone, email: selectedLead.email, address: selectedLead.business_address, territory_id: selectedLead.territory_id, neighborhood_id: selectedLead.neighborhood_id }) });
+                      const data = await res.json();
+                      if (data.success) setSnack('✅ Conta de comércio criada! Acesse /admin/commerce para ativar.');
+                      else setSnack(data.error || 'Erro ao converter');
+                    } catch { setSnack('Erro de conexão ao converter lead'); }
                   }}>Converter em Comércio</Button>
               )}
             </Box>
