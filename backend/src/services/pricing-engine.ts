@@ -159,11 +159,12 @@ function round2(n: number): number {
 
 // --- Profile resolution ---
 
-export async function resolveProfile(lat: number, lng: number): Promise<PricingProfile> {
+export async function resolveProfile(lat: number, lng: number, vehicleCategory: string = 'CAR'): Promise<PricingProfile> {
   // Try to find a regional profile by proximity
   const regional = await pool.query(
     `SELECT * FROM pricing_profiles
      WHERE is_active = true AND is_default = false
+       AND vehicle_category = $3
        AND center_lat IS NOT NULL AND center_lng IS NOT NULL AND radius_km IS NOT NULL
      ORDER BY (
        6371 * acos(
@@ -173,7 +174,7 @@ export async function resolveProfile(lat: number, lng: number): Promise<PricingP
        )
      ) ASC
      LIMIT 1`,
-    [lat, lng]
+    [lat, lng, vehicleCategory]
   );
 
   if (regional.rows[0]) {
@@ -184,11 +185,17 @@ export async function resolveProfile(lat: number, lng: number): Promise<PricingP
     }
   }
 
-  // Fallback to default
+  // Fallback to default for this vehicle category
   const def = await pool.query(
-    `SELECT * FROM pricing_profiles WHERE is_default = true AND is_active = true LIMIT 1`
+    `SELECT * FROM pricing_profiles WHERE is_default = true AND is_active = true AND vehicle_category = $1 LIMIT 1`,
+    [vehicleCategory]
   );
-  if (!def.rows[0]) throw new Error('[pricing-engine] No default pricing profile found');
+  if (!def.rows[0]) {
+    if (vehicleCategory !== 'CAR') {
+      throw new Error(`MOTO_PRICING_PROFILE_NOT_CONFIGURED`);
+    }
+    throw new Error('[pricing-engine] No default pricing profile found');
+  }
   return toProfile(def.rows[0]);
 }
 
