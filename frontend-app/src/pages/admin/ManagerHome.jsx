@@ -24,6 +24,8 @@ export default function ManagerHome() {
   const [territory, setTerritoryData] = useState(null);
   const [territoryName, setTerritoryName] = useState(null);
   const [territoryLoaded, setTerritoryLoaded] = useState(false);
+  const [myTerritories, setMyTerritories] = useState([]);
+  const [territoriesLoaded, setTerritoriesLoaded] = useState(false);
   const [referral, setReferral] = useState(null);
   const [drafts, setDrafts] = useState(null);
   const [teamStats, setTeamStats] = useState(null);
@@ -58,13 +60,13 @@ export default function ManagerHome() {
         return;
       }
 
-      // Fetch territory name from operator profile
+      // Fetch all territories for this manager
       try {
-        const profileRes = await fetch(`${API_BASE_URL}/api/admin/my-operator-profile`, { headers });
-        const profileData = await profileRes.json();
-        if (profileData.success && profileData.data?.territory?.name) setTerritoryName(profileData.data.territory.name);
+        const terrRes = await fetch(`${API_BASE_URL}/api/admin/commerce/my-territories`, { headers });
+        const terrData = await terrRes.json();
+        if (terrData.success && Array.isArray(terrData.data)) setMyTerritories(terrData.data);
       } catch {}
-      setTerritoryLoaded(true);
+      setTerritoriesLoaded(true);
 
       const metricsData = await metricsRes.json();
       const territoryData = await territoryRes.json();
@@ -105,12 +107,22 @@ export default function ManagerHome() {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               <span style={{ color: GOLD }}>KAVIAR</span> Gestor Territorial
             </Typography>
-            <Typography sx={{ color: TEXT_GRAY, fontSize: 12 }}>{admin?.name || 'Gestor'} — {territoryName ? `Território: ${territoryName}` : territoryLoaded ? 'Território não vinculado' : 'Território: carregando...'}</Typography>
+            <Typography sx={{ color: TEXT_GRAY, fontSize: 12 }}>{admin?.name || 'Gestor'} — {myTerritories.length === 1 ? `Território: ${myTerritories[0].name}` : myTerritories.length > 1 ? `${myTerritories.length} territórios vinculados` : territoriesLoaded ? 'Território não vinculado' : 'Território: carregando...'}</Typography>
           </Box>
           <Button onClick={handleLogout} variant="outlined" size="small" sx={{ borderColor: 'rgba(201,154,22,0.25)', color: TEXT_GRAY, '&:hover': { borderColor: GOLD, color: GOLD } }}>
             Sair
           </Button>
         </Box>
+
+        {/* Meus Territórios */}
+        {myTerritories.length > 1 && (
+          <Box sx={{ mb: 2, p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid rgba(201,154,22,0.15)' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: TEXT_GRAY, textTransform: 'uppercase', mb: 0.5 }}>Meus territórios</Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {myTerritories.map(t => <Chip key={t.id} label={t.name} size="small" sx={{ bgcolor: GOLD_LIGHT, color: KAVIAR_BLACK, fontWeight: 600, fontSize: 11 }} />)}
+            </Box>
+          </Box>
+        )}
 
         {error && <Alert severity="warning" sx={{ mb: 3 }}>{error}</Alert>}
         {submitMsg && <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSubmitMsg('')}>{submitMsg}</Alert>}
