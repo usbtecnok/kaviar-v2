@@ -22,4 +22,9 @@ export const MOTO_TEXTS = {
   verifySubtitle: 'Verifique se os dados do motociclista e da moto são os mesmos exibidos no app.',
   verifyWarning: 'Por segurança, confira a foto do motociclista, a foto da moto, a placa, o modelo e a cor antes de iniciar a viagem.',
   verifyAck: 'ENTENDI',
+  aptitudeNotStarted: 'Não iniciado',
+  aptitudePending: 'Pendente',
+  aptitudeApproved: 'Aprovado',
+  aptitudeRejected: 'Reprovado',
+  aptitudeBlocked: 'Bloqueado',
 } as const;
