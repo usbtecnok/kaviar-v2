@@ -4,6 +4,7 @@ export const MOTO_FLAGS = {
   enabled: false,
   motoPassageiroVisible: false,
   motoExpressVisible: false,
+  PROMO_CARD_ENABLED: false,
 } as const;
 
 export const MOTO_TEXTS = {
