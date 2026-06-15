@@ -106,25 +106,33 @@ export default function CommerceStorefront() {
       {/* Products */}
       <Box sx={{ maxWidth: 800, mx: 'auto', px: 2 }}>
         <Typography sx={{ fontWeight: 700, mb: 2, color: '#374151' }}>{products.length} produtos disponíveis</Typography>
-        <Grid container spacing={2}>
+        <Grid container spacing={1.5}>
           {products.map(p => {
             const qty = cart[p.id] || 0;
             return (
               <Grid item xs={12} sm={6} key={p.id}>
                 <Card sx={{ border: qty > 0 ? `2px solid ${GOLD}` : '1px solid #E5E7EB', transition: 'all .15s' }}>
-                  {p.image_url && <Box sx={{ height: 140, overflow: 'hidden', bgcolor: '#F3F4F6' }}><img src={`${API_BASE_URL}/api/public/commerce/products/${p.id}/image`} alt={p.name} loading="lazy" onError={e => { e.currentTarget.parentElement.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></Box>}
-                  <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', p: 1.5 }}>
+                    {p.image_url ? (
+                      <Box sx={{ width: 72, height: 72, minWidth: 72, borderRadius: 1.5, overflow: 'hidden', bgcolor: '#F3F4F6', mr: 1.5 }}>
+                        <img src={`${API_BASE_URL}/api/public/commerce/products/${p.id}/image`} alt={p.name} loading="lazy" onError={e => { e.currentTarget.parentElement.style.background = '#F3F4F6'; e.currentTarget.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </Box>
+                    ) : (
+                      <Box sx={{ width: 72, height: 72, minWidth: 72, borderRadius: 1.5, bgcolor: '#F3F4F6', mr: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Store sx={{ fontSize: 24, color: '#D1D5DB' }} />
+                      </Box>
+                    )}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{p.name}</Typography>
-                      {p.description && <Typography sx={{ fontSize: 12, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.description}</Typography>}
-                      <Typography sx={{ fontWeight: 700, color: GOLD, mt: 0.5 }}>R$ {(p.price_cents / 100).toFixed(2)}</Typography>
-                      {p.stock_quantity !== null && p.stock_quantity <= 5 && <Chip label={`${p.stock_quantity} restantes`} size="small" color="warning" sx={{ mt: 0.5, fontSize: 10 }} />}
+                      <Typography sx={{ fontWeight: 600, fontSize: 14, lineHeight: 1.2 }}>{p.name}</Typography>
+                      {p.description && <Typography sx={{ fontSize: 12, color: '#6B7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.3 }}>{p.description}</Typography>}
+                      <Typography sx={{ fontWeight: 700, color: GOLD, fontSize: 14, mt: 0.5 }}>R$ {(p.price_cents / 100).toFixed(2)}</Typography>
+                      {p.stock_quantity !== null && p.stock_quantity <= 5 && <Chip label={`${p.stock_quantity} restantes`} size="small" color="warning" sx={{ mt: 0.3, fontSize: 10, height: 18 }} />}
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
-                      {qty > 0 && <><IconButton size="small" onClick={() => removeFromCart(p.id)}><Remove sx={{ fontSize: 16 }} /></IconButton><Typography sx={{ fontWeight: 700, minWidth: 20, textAlign: 'center' }}>{qty}</Typography></>}
+                      {qty > 0 && <><IconButton size="small" onClick={() => removeFromCart(p.id)}><Remove sx={{ fontSize: 16 }} /></IconButton><Typography sx={{ fontWeight: 700, minWidth: 20, textAlign: 'center', fontSize: 14 }}>{qty}</Typography></>}
                       <IconButton size="small" onClick={() => addToCart(p.id)} sx={{ bgcolor: `${GOLD}15`, '&:hover': { bgcolor: `${GOLD}30` } }}><Add sx={{ fontSize: 16, color: GOLD }} /></IconButton>
                     </Box>
-                  </CardContent>
+                  </Box>
                 </Card>
               </Grid>
             );
