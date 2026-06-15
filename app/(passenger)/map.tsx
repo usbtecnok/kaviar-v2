@@ -817,9 +817,22 @@ export default function PassengerMap() {
         <>
           <SafeAreaView edges={['top']} style={s.topBar}>
             <View style={s.header}>
-              <TouchableOpacity onPress={() => setDrawerOpen(true)} style={s.menuBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <Ionicons name="menu" size={26} color={COLORS.textDark} />
-              </TouchableOpacity>
+              {destination ? (
+                <TouchableOpacity
+                  onPress={() => { setDestination(null); setEstimate(null); setWizardStep(0); }}
+                  style={s.backBtn}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityLabel="Voltar para opções"
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="arrow-back" size={20} color="#fff" />
+                  <Text style={s.backBtnText}>Voltar</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={() => setDrawerOpen(true)} style={s.menuBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                  <Ionicons name="menu" size={26} color={COLORS.textDark} />
+                </TouchableOpacity>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={s.brand}>KAVIAR</Text>
                 <Text style={s.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
@@ -1329,6 +1342,8 @@ const s = StyleSheet.create({
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.92)' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10 },
   menuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 6, marginRight: 12 },
+  backBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
   greeting: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
 
