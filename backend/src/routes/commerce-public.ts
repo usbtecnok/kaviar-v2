@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const router = Router();
 const prisma = new PrismaClient();
+const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
+const bucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
 
 const VALID_ORDER_STATUSES = ['PENDING', 'ACCEPTED', 'PREPARING', 'READY', 'CANCELED', 'COMPLETED'];
 
@@ -160,6 +164,19 @@ router.get('/orders/:code/track', async (req: Request, res: Response) => {
       delivery_code: showCode ? order.delivery_code : null,
       driver_name: order.driver_name || null, created_at: order.created_at,
     } });
+  } catch { res.status(500).json({ success: false, error: 'Erro' }); }
+});
+
+// GET /api/public/commerce/products/:id/image — serve product image (presigned redirect)
+router.get('/products/:id/image', async (req: Request, res: Response) => {
+  try {
+    const product = await prisma.commerce_products.findFirst({
+      where: { id: req.params.id, deleted_at: null },
+      select: { image_key: true },
+    });
+    if (!product?.image_key) return res.status(404).json({ success: false, error: 'Imagem não encontrada' });
+    const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: bucket, Key: product.image_key }), { expiresIn: 3600 });
+    res.redirect(url);
   } catch { res.status(500).json({ success: false, error: 'Erro' }); }
 });
 
