@@ -55,7 +55,7 @@ export function HomeOpportunityCarousel() {
         style={s.carouselMargin}
       >
         {LOCAL_OFFERS.map((offer, i) => (
-          <View key={i} style={s.offerCard}>
+          <TouchableOpacity key={i} style={s.offerCard} onPress={() => router.push('/(passenger)/local')} activeOpacity={0.8}>
             <View style={s.offerHeader}>
               <Text style={s.offerIcon}>{offer.icon}</Text>
               <View style={s.offerCategoryBadge}>
@@ -65,11 +65,11 @@ export function HomeOpportunityCarousel() {
             <Text style={s.offerName}>{offer.name}</Text>
             <Text style={s.offerDesc}>{offer.offer}</Text>
             <Text style={s.offerRegion}>📍 {offer.region}</Text>
-            <TouchableOpacity style={s.offerCta} activeOpacity={0.7}>
+            <View style={s.offerCta}>
               <Text style={s.offerCtaText}>{offer.cta}</Text>
               <Ionicons name="arrow-forward" size={13} color={COLORS.primary} />
-            </TouchableOpacity>
-          </View>
+            </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 

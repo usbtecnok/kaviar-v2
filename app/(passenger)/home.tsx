@@ -253,7 +253,7 @@ export default function PassengerHome() {
       {MOTO_FLAGS.enabled && (
         <MotoAcceptModal
           visible={showMotoAccept}
-          onAccept={() => setShowMotoAccept(false)}
+          onAccept={() => { setShowMotoAccept(false); router.push({ pathname: '/(passenger)/map', params: { vehicle: 'moto' } }); }}
           onClose={() => setShowMotoAccept(false)}
         />
       )}
