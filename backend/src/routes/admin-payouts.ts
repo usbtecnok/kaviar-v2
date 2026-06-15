@@ -693,7 +693,7 @@ router.post('/operators/:id/generate-contract-template', async (req: Request, re
     doc.moveDown(0.8);
 
     // Contratada
-    doc.font('Helvetica-Bold').text('CONTRATADA — GESTORA TERRITORIAL:');
+    doc.font('Helvetica-Bold').text('CONTRATADA — PARTE GESTORA:');
     doc.font('Helvetica');
     doc.text(`Nome: ${nome}`);
     doc.text(`CPF: ${cpf}`);
@@ -708,15 +708,15 @@ router.post('/operators/:id/generate-contract-template', async (req: Request, re
 
     // Cláusulas
     const clausulas = [
-      { t: '1. OBJETO', b: `A USB TECNOK contrata a GESTORA TERRITORIAL para acompanhamento, captação e suporte local à operação da Plataforma KAVIAR no Território Operacional "${territorio}" (${cidadeUf}), em regime de parceria autônoma, sem vínculo empregatício.` },
+      { t: '1. OBJETO', b: `A USB TECNOK contrata a PARTE GESTORA para acompanhamento, captação e suporte local à operação da Plataforma KAVIAR no Território Operacional "${territorio}" (${cidadeUf}), em regime de parceria autônoma, sem vínculo empregatício.` },
       { t: '2. TERRITÓRIO OPERACIONAL', b: `Território: ${territorio}\nCidade/UF: ${cidadeUf}\nA delimitação poderá ser ajustada pela USB TECNOK mediante comunicação prévia.` },
-      { t: '3. OBRIGAÇÕES DA GESTORA TERRITORIAL', b: '• Realizar captação ativa de motoristas e passageiros;\n• Fornecer suporte local presencial quando necessário;\n• Reportar problemas operacionais;\n• Manter sigilo sobre dados da plataforma;\n• Cumprir LGPD e normas de confidencialidade;\n• Não representar a USB TECNOK perante terceiros sem autorização.' },
+      { t: '3. OBRIGAÇÕES DA PARTE GESTORA', b: '• Realizar captação ativa de motoristas e passageiros;\n• Fornecer suporte local presencial quando necessário;\n• Reportar problemas operacionais;\n• Manter sigilo sobre dados da plataforma;\n• Cumprir LGPD e normas de confidencialidade;\n• Não representar a USB TECNOK perante terceiros sem autorização.' },
       { t: '4. OBRIGAÇÕES DA USB TECNOK', b: '• Disponibilizar acesso ao painel operacional;\n• Processar repasses conforme Anexo Comercial;\n• Fornecer materiais de apoio à captação;\n• Comunicar alterações com antecedência razoável.' },
-      { t: '5. REMUNERAÇÃO', b: 'A GESTORA TERRITORIAL fará jus à participação econômica conforme regras definidas no Anexo Comercial I, parte integrante deste contrato.' },
+      { t: '5. REMUNERAÇÃO', b: 'A PARTE GESTORA fará jus à participação econômica conforme regras definidas no Anexo Comercial I, parte integrante deste contrato.' },
       { t: '6. PAGAMENTO', b: 'Os repasses serão realizados via Pix, mediante aprovação manual da USB TECNOK, até o 15º dia útil do mês subsequente ao período de apuração.' },
       { t: '7. VIGÊNCIA', b: 'Este contrato tem vigência indeterminada, iniciando-se na data de assinatura, podendo ser rescindido por qualquer das partes mediante comunicação com 30 dias de antecedência.' },
       { t: '8. RESCISÃO', b: '• Por qualquer parte, com 30 dias de antecedência;\n• Imediatamente por justa causa (fraude, violação de sigilo, descumprimento grave);\n• Repasses pendentes serão calculados pro rata até a data de desligamento.' },
-      { t: '9. CONFIDENCIALIDADE E LGPD', b: 'A GESTORA TERRITORIAL compromete-se a manter sigilo sobre dados de passageiros, motoristas, faturamento e operação da plataforma. O descumprimento autoriza rescisão imediata e responsabilização civil.' },
+      { t: '9. CONFIDENCIALIDADE E LGPD', b: 'A PARTE GESTORA compromete-se a manter sigilo sobre dados de passageiros, motoristas, faturamento e operação da plataforma. O descumprimento autoriza rescisão imediata e responsabilização civil.' },
       { t: '10. DISPOSIÇÕES GERAIS', b: '• Não há vínculo empregatício entre as partes;\n• Este contrato não confere exclusividade territorial permanente;\n• Foro: comarca do Rio de Janeiro/RJ.' },
     ];
 
@@ -738,7 +738,7 @@ router.post('/operators/:id/generate-contract-template', async (req: Request, re
     doc.text('USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME', { align: 'center' });
     doc.moveDown(2);
     doc.text('___________________________________________', { align: 'center' });
-    doc.text(`${nome} — Gestora Territorial`, { align: 'center' });
+    doc.text(`${nome} — Gestor(a) Territorial`, { align: 'center' });
 
     // ─── ANEXO COMERCIAL (nova página) ───
     doc.addPage();
@@ -754,15 +754,15 @@ router.post('/operators/:id/generate-contract-template', async (req: Request, re
     doc.font('Helvetica-Bold').fontSize(9).text('PARTES');
     doc.font('Helvetica');
     doc.text('USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME, CNPJ 07.710.691/0001-66');
-    doc.text(`Gestora Territorial: ${nome} — CPF: ${cpf}`);
+    doc.text(`Gestor(a) Territorial: ${nome} — CPF: ${cpf}`);
     doc.text(`Território: ${territorio} — ${cidadeUf}`);
     doc.text(`Data de início: ${dataHoje}`);
     doc.moveDown(1);
 
     const anexoCl = [
-      { t: '1. PARTICIPAÇÃO ECONÔMICA', b: 'A GESTORA TERRITORIAL fará jus à participação econômica de 40% (quarenta por cento) sobre a taxa líquida da plataforma efetivamente recebida pela USB TECNOK nas operações elegíveis vinculadas ao seu Território Operacional.' },
+      { t: '1. PARTICIPAÇÃO ECONÔMICA', b: 'A PARTE GESTORA fará jus à participação econômica de 40% (quarenta por cento) sobre a taxa líquida da plataforma efetivamente recebida pela USB TECNOK nas operações elegíveis vinculadas ao seu Território Operacional.' },
       { t: '2. BASE DE CÁLCULO', b: '• Taxa líquida = valor cobrado do passageiro menos repasse ao motorista;\n• Apenas corridas concluídas e pagas são elegíveis;\n• Cancelamentos, estornos e fraudes são excluídos.' },
-      { t: '3. EXEMPLO', b: `Corrida R$ 25,00 → motorista recebe R$ 20,30 → taxa líquida R$ 4,70\nRepasse à gestora: 40% × R$ 4,70 = R$ 1,88\nAplicável sobre a taxa líquida padrão de R$ 470,00 por 100 corridas (referência).` },
+      { t: '3. EXEMPLO', b: `Corrida R$ 25,00 → motorista recebe R$ 20,30 → taxa líquida R$ 4,70\nRepasse ao(à) Gestor(a) Territorial: 40% × R$ 4,70 = R$ 1,88\nAplicável sobre a taxa líquida padrão de R$ 470,00 por 100 corridas (referência).` },
       { t: '4. APURAÇÃO E PAGAMENTO', b: '• Apuração mensal, fechamento no último dia do mês;\n• Relatório disponibilizado no painel até o 5º dia útil;\n• Pagamento via Pix até o 15º dia útil do mês seguinte;\n• Valor mínimo para repasse: R$ 50,00 (acumula se não atingido).' },
       { t: '5. CONDIÇÕES', b: '• A USB TECNOK reserva-se o direito de revisar percentuais com 30 dias de antecedência;\n• Este anexo prevalece sobre comunicações verbais;\n• Alterações exigem formalização por escrito.' },
     ];
@@ -785,7 +785,7 @@ router.post('/operators/:id/generate-contract-template', async (req: Request, re
     doc.text('USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME', { align: 'center' });
     doc.moveDown(2);
     doc.text('___________________________________________', { align: 'center' });
-    doc.text(`${nome} — Gestora Territorial`, { align: 'center' });
+    doc.text(`${nome} — Gestor(a) Territorial`, { align: 'center' });
 
     // Footer on all pages
     const pages = doc.bufferedPageRange();
