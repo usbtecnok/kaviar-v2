@@ -1,15 +1,17 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../config/colors';
 import { MOTO_FLAGS } from '../../config/moto.config';
+
+const { width: W } = Dimensions.get('window');
 
 interface Props {
   onPress?: () => void;
 }
 
-/** Card promocional "Vá de Moto KAVIAR". Só renderiza se flag ativa. */
+/** Hero card premium "Vá de Moto KAVIAR". Só renderiza se flag ativa. */
 export function MotoPromoCard({ onPress }: Props) {
   if (!MOTO_FLAGS.PROMO_CARD_ENABLED) return null;
 
@@ -17,30 +19,43 @@ export function MotoPromoCard({ onPress }: Props) {
     <TouchableOpacity
       style={styles.container}
       onPress={onPress}
-      activeOpacity={onPress ? 0.8 : 1}
+      activeOpacity={onPress ? 0.85 : 1}
       disabled={!onPress}
     >
       <LinearGradient
-        colors={['#1E1E10', '#1A1A2E']}
+        colors={['#1A1A2E', '#0F0F1A', '#1E1E10']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
+        {/* Badge */}
         <View style={styles.badge}>
           <Text style={styles.badgeText}>NOVO</Text>
         </View>
 
+        {/* Ícone grande */}
         <View style={styles.iconWrap}>
-          <Ionicons name="bicycle" size={28} color={COLORS.primary} />
+          <MaterialCommunityIcons name="motorbike" size={44} color={COLORS.primary} />
         </View>
 
+        {/* Textos */}
         <Text style={styles.title}>VÁ DE MOTO KAVIAR</Text>
-        <Text style={styles.subtitle}>Rápido, prático e econômico</Text>
+        <Text style={styles.subtitle}>Rápido, prático e seguro</Text>
+        <Text style={styles.aux}>Ideal para deslocamentos rápidos na sua região</Text>
 
+        {/* CTA */}
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>CONHECER</Text>
-          <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+          <Text style={styles.ctaText}>EXPERIMENTAR</Text>
+          <Ionicons name="arrow-forward" size={16} color={COLORS.primary} />
         </View>
+
+        {/* Borda dourada inferior */}
+        <LinearGradient
+          colors={['transparent', 'rgba(255,215,0,0.3)', 'transparent']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.bottomGlow}
+        />
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -49,35 +64,74 @@ export function MotoPromoCard({ onPress }: Props) {
 const styles = StyleSheet.create({
   container: {
     marginBottom: 18,
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,215,0,0.3)',
+    borderColor: 'rgba(255,215,0,0.25)',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  gradient: { padding: 18 },
+  gradient: {
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    minHeight: 200,
+    justifyContent: 'center',
+  },
   badge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 16,
+    right: 16,
     backgroundColor: COLORS.primary,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  badgeText: { fontSize: 9, fontWeight: '800', color: COLORS.textDark },
+  badgeText: { fontSize: 10, fontWeight: '900', color: COLORS.textDark, letterSpacing: 1 },
   iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,215,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: COLORS.textPrimary,
+    letterSpacing: 1,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  aux: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: 20,
+    lineHeight: 18,
+  },
+  cta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,215,0,0.1)',
     borderWidth: 1,
     borderColor: 'rgba(255,215,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  title: { fontSize: 16, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 4 },
-  subtitle: { fontSize: 12, color: COLORS.textSecondary, marginBottom: 14 },
-  cta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ctaText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, letterSpacing: 1 },
+  ctaText: { fontSize: 13, fontWeight: '800', color: COLORS.primary, letterSpacing: 1.5 },
+  bottomGlow: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 2 },
 });

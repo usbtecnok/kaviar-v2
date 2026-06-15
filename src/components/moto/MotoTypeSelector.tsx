@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../config/colors';
 import { MOTO_FLAGS, MOTO_TEXTS } from '../../config/moto.config';
 
@@ -11,74 +11,113 @@ interface Props {
   onSelect?: (type: VehicleType) => void;
 }
 
-/** Seletor visual Carro/Moto — isolado, sem endpoint. */
+/** Seletor premium Carro/Moto — cards grandes com destaque visual. */
 export function MotoTypeSelector({ selectedType, onSelect }: Props) {
   const selected = selectedType === 'car' || selectedType === 'moto' ? selectedType : 'car';
-  const motoEnabled = MOTO_FLAGS.enabled;
 
   return (
     <View style={styles.container}>
-      {/* Carro */}
-      <TouchableOpacity
-        style={[styles.option, selected === 'car' && styles.optionActive]}
-        onPress={() => onSelect?.('car')}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="car-sport" size={24} color={selected === 'car' ? COLORS.primary : COLORS.textMuted} />
-        <Text style={[styles.label, selected === 'car' && styles.labelActive]}>{MOTO_TEXTS.selectorCar}</Text>
-        <Text style={styles.sub}>{MOTO_TEXTS.selectorCarSub}</Text>
-      </TouchableOpacity>
+      <Text style={styles.heading}>Como você quer ir?</Text>
 
-      {/* Moto */}
-      <TouchableOpacity
-        style={[styles.option, selected === 'moto' && styles.optionActive, !motoEnabled && styles.optionDisabled]}
-        onPress={motoEnabled ? () => onSelect?.('moto') : undefined}
-        activeOpacity={motoEnabled ? 0.8 : 1}
-        disabled={!motoEnabled}
-      >
-        <View style={styles.iconRow}>
-          <Ionicons name="bicycle" size={24} color={selected === 'moto' ? COLORS.primary : COLORS.textMuted} />
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{MOTO_TEXTS.selectorBadge}</Text>
+      <View style={styles.row}>
+        {/* CARRO */}
+        <TouchableOpacity
+          style={[styles.card, selected === 'car' && styles.cardActive]}
+          onPress={() => onSelect?.('car')}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.iconWrap, selected === 'car' && styles.iconWrapActive]}>
+            <Ionicons name="car-sport" size={32} color={selected === 'car' ? COLORS.primary : COLORS.textMuted} />
           </View>
-        </View>
-        <Text style={[styles.label, selected === 'moto' && styles.labelActive, !motoEnabled && styles.labelDisabled]}>
-          {MOTO_TEXTS.selectorMoto}
-        </Text>
-        <Text style={styles.sub}>{MOTO_TEXTS.selectorMotoSub}</Text>
-        {!motoEnabled && <Text style={styles.soon}>Em breve</Text>}
-      </TouchableOpacity>
+          <Text style={[styles.label, selected === 'car' && styles.labelActive]}>
+            {MOTO_TEXTS.selectorCar}
+          </Text>
+          <Text style={styles.sub}>{MOTO_TEXTS.selectorCarSub}</Text>
+        </TouchableOpacity>
+
+        {/* MOTO */}
+        <TouchableOpacity
+          style={[styles.card, selected === 'moto' && styles.cardActive]}
+          onPress={() => onSelect?.('moto')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.badgeWrap}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{MOTO_TEXTS.selectorBadge}</Text>
+            </View>
+          </View>
+          <View style={[styles.iconWrap, selected === 'moto' && styles.iconWrapActive]}>
+            <MaterialCommunityIcons name="motorbike" size={32} color={selected === 'moto' ? COLORS.primary : COLORS.textMuted} />
+          </View>
+          <Text style={[styles.label, selected === 'moto' && styles.labelActive]}>
+            {MOTO_TEXTS.selectorMoto}
+          </Text>
+          <Text style={styles.sub}>{MOTO_TEXTS.selectorMotoSub}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexDirection: 'row', gap: 12 },
-  option: {
+  container: { marginBottom: 16 },
+  heading: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  row: { flexDirection: 'row', gap: 12 },
+  card: {
     flex: 1,
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 20,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: COLORS.border,
   },
-  optionActive: {
+  cardActive: {
     borderColor: COLORS.primary,
-    backgroundColor: 'rgba(255,215,0,0.05)',
+    backgroundColor: 'rgba(255,215,0,0.04)',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  optionDisabled: { opacity: 0.5 },
-  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  iconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.surfaceLight,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  iconWrapActive: {
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderColor: 'rgba(255,215,0,0.4)',
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.textPrimary,
+    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  labelActive: { color: COLORS.primary },
+  sub: { fontSize: 11, color: COLORS.textSecondary, textAlign: 'center' },
+  badgeWrap: { position: 'absolute', top: 10, right: 10 },
   badge: {
     backgroundColor: COLORS.primary,
-    borderRadius: 4,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
-  badgeText: { fontSize: 8, fontWeight: '800', color: COLORS.textDark },
-  label: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary, marginTop: 8 },
-  labelActive: { color: COLORS.primary },
-  labelDisabled: { color: COLORS.textMuted },
-  sub: { fontSize: 10, color: COLORS.textSecondary, marginTop: 2, textAlign: 'center' },
-  soon: { fontSize: 9, color: COLORS.textMuted, marginTop: 4, fontStyle: 'italic' },
+  badgeText: { fontSize: 9, fontWeight: '900', color: COLORS.textDark, letterSpacing: 0.5 },
 });
