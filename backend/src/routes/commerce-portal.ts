@@ -2,9 +2,27 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateCommerce } from '../middlewares/commerce-auth';
 import { isMotoExpressEnabled } from '../services/moto-express-flag.service';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import multer from 'multer';
+import crypto from 'crypto';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// S3 config for product images
+const s3 = new S3Client({ region: process.env.AWS_REGION || 'us-east-2' });
+const bucket = process.env.AWS_S3_BUCKET || 'kaviar-uploads-847895361928';
+const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+const productImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_SIZE },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIMES.includes(file.mimetype)) cb(null, true);
+    else cb(new Error('Apenas JPG, PNG ou WebP são permitidos'));
+  },
+});
 
 // GET /api/commerce/me
 router.get('/me', authenticateCommerce, async (req: Request, res: Response) => {
@@ -119,6 +137,68 @@ router.delete('/products/:id', authenticateCommerce, async (req: Request, res: R
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao remover' });
+  }
+});
+
+// POST /api/commerce/products/:id/image — upload product image
+router.post('/products/:id/image', authenticateCommerce, (req: Request, res: Response, next: any) => {
+  productImageUpload.single('image')(req, res, (err: any) => {
+    if (err) return res.status(400).json({ success: false, error: err.message || 'Erro no upload' });
+    next();
+  });
+}, async (req: Request, res: Response) => {
+  try {
+    const file = (req as any).file;
+    if (!file) return res.status(400).json({ success: false, error: 'Nenhuma imagem enviada' });
+
+    const accountId = (req as any).commerceAccount.id;
+    const product = await prisma.commerce_products.findFirst({
+      where: { id: req.params.id, commerce_account_id: accountId, deleted_at: null },
+    });
+    if (!product) return res.status(404).json({ success: false, error: 'Produto não encontrado' });
+
+    // Delete old image if exists
+    if (product.image_key) {
+      try { await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: product.image_key })); } catch {}
+    }
+
+    const ext = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
+    const key = `commerce-products/${accountId}/${product.id}/${crypto.randomUUID()}.${ext}`;
+
+    await s3.send(new PutObjectCommand({
+      Bucket: bucket, Key: key, Body: file.buffer,
+      ContentType: file.mimetype, CacheControl: 'public, max-age=31536000',
+    }));
+
+    const image_url = `https://${bucket}.s3.us-east-2.amazonaws.com/${key}`;
+    const updated = await prisma.commerce_products.update({
+      where: { id: product.id },
+      data: { image_url, image_key: key, image_mime_type: file.mimetype, image_size_bytes: file.size, image_updated_at: new Date() },
+    });
+    res.json({ success: true, data: { image_url: updated.image_url } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao enviar imagem' });
+  }
+});
+
+// DELETE /api/commerce/products/:id/image — remove product image
+router.delete('/products/:id/image', authenticateCommerce, async (req: Request, res: Response) => {
+  try {
+    const accountId = (req as any).commerceAccount.id;
+    const product = await prisma.commerce_products.findFirst({
+      where: { id: req.params.id, commerce_account_id: accountId, deleted_at: null },
+    });
+    if (!product) return res.status(404).json({ success: false, error: 'Produto não encontrado' });
+    if (product.image_key) {
+      try { await s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: product.image_key })); } catch {}
+    }
+    await prisma.commerce_products.update({
+      where: { id: product.id },
+      data: { image_url: null, image_key: null, image_mime_type: null, image_size_bytes: null, image_updated_at: null },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao remover imagem' });
   }
 });
 

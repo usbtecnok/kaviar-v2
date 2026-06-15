@@ -65,6 +65,7 @@ export default function CommerceStorefront() {
           {success.order_code && <Chip label={success.order_code} sx={{ fontWeight: 800, fontSize: 18, px: 2, py: 2.5, mb: 1 }} />}
           <Chip label={`Total: R$ ${(success.total_cents / 100).toFixed(2)}`} sx={{ fontWeight: 700, fontSize: 14, px: 2, py: 2, mb: 1 }} />
           {success.order_code && <Typography sx={{ fontSize: 12, color: '#6B7280', mb: 1 }}>Acompanhe em: <a href={`/pedido/${success.order_code}`} style={{ color: GOLD }}>/pedido/{success.order_code}</a></Typography>}
+          <Typography sx={{ fontSize: 11, color: '#9CA3AF', mb: 2, px: 1 }}>A nota fiscal/comprovante será entregue pelo comércio junto com o produto, quando aplicável.</Typography>
           <Button fullWidth variant="contained" sx={{ bgcolor: '#059669', textTransform: 'none', fontWeight: 700, mb: 1 }}
             onClick={async () => {
               const res = await fetch(`${API_BASE_URL}/api/public/commerce/orders/${success.id}/pay`, { method: 'POST' });
@@ -111,6 +112,7 @@ export default function CommerceStorefront() {
             return (
               <Grid item xs={12} sm={6} key={p.id}>
                 <Card sx={{ border: qty > 0 ? `2px solid ${GOLD}` : '1px solid #E5E7EB', transition: 'all .15s' }}>
+                  {p.image_url && <Box sx={{ height: 140, overflow: 'hidden', bgcolor: '#F3F4F6' }}><img src={p.image_url} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></Box>}
                   <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5 }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{p.name}</Typography>

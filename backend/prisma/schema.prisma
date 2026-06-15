@@ -2197,6 +2197,10 @@ model commerce_products {
   category            String?   @db.VarChar(50)
   price_cents         Int
   image_url           String?
+  image_key           String?
+  image_mime_type     String?   @db.VarChar(50)
+  image_size_bytes    Int?
+  image_updated_at    DateTime? @db.Timestamptz()
   is_available        Boolean   @default(true)
   is_restricted       Boolean   @default(false)
   stock_quantity      Int?

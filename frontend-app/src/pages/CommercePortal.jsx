@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Switch, CircularProgress, Card, CardContent, IconButton, Tabs, Tab, Grid } from '@mui/material';
-import { Add, Edit, Delete, ContentCopy } from '@mui/icons-material';
+import { Add, Edit, Delete, ContentCopy, PhotoCamera, Close } from '@mui/icons-material';
 import { API_BASE_URL } from '../config/api';
 
 const GOLD = '#B8942E';
@@ -33,6 +33,9 @@ export default function CommercePortal() {
   const [editOpen, setEditOpen] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', category: '', price_cents: '', stock_quantity: '', is_restricted: false });
   const [editId, setEditId] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
   const token = localStorage.getItem('kaviar_commerce_token');
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -47,9 +50,43 @@ export default function CommercePortal() {
   const handleLogin = (data) => { setAuthed(true); setAccount(data.account); setMustChange(data.user?.must_change_password); };
   const handlePasswordChanged = () => { setMustChange(false); const d = JSON.parse(localStorage.getItem('kaviar_commerce_data') || '{}'); d.user.must_change_password = false; localStorage.setItem('kaviar_commerce_data', JSON.stringify(d)); };
 
-  const openNew = () => { setEditId(null); setForm({ name: '', description: '', category: '', price_cents: '', stock_quantity: '', is_restricted: false }); setEditOpen(true); };
-  const openEdit = (p) => { setEditId(p.id); setForm({ name: p.name, description: p.description || '', category: p.category || '', price_cents: String(p.price_cents), stock_quantity: p.stock_quantity != null ? String(p.stock_quantity) : '', is_restricted: p.is_restricted }); setEditOpen(true); };
-  const handleSave = async () => { if (!form.name || !form.price_cents) return setSnack('Nome e preço obrigatórios'); const body = { ...form, price_cents: parseInt(form.price_cents), stock_quantity: form.stock_quantity ? parseInt(form.stock_quantity) : null }; const url = editId ? `${API_BASE_URL}/api/commerce/products/${editId}` : `${API_BASE_URL}/api/commerce/products`; const res = await fetch(url, { method: editId ? 'PATCH' : 'POST', headers, body: JSON.stringify(body) }); const data = await res.json(); if (data.success) { setEditOpen(false); fetchProducts(); setSnack(editId ? 'Atualizado!' : 'Criado!'); } else setSnack(data.error || 'Erro'); };
+  const openNew = () => { setEditId(null); setForm({ name: '', description: '', category: '', price_cents: '', stock_quantity: '', is_restricted: false }); setImageFile(null); setImagePreview(null); setEditOpen(true); };
+  const openEdit = (p) => { setEditId(p.id); setForm({ name: p.name, description: p.description || '', category: p.category || '', price_cents: String(p.price_cents), stock_quantity: p.stock_quantity != null ? String(p.stock_quantity) : '', is_restricted: p.is_restricted }); setImageFile(null); setImagePreview(p.image_url || null); setEditOpen(true); };
+  const handleSave = async () => {
+    if (!form.name || !form.price_cents) return setSnack('Nome e preço obrigatórios');
+    const body = { ...form, price_cents: parseInt(form.price_cents), stock_quantity: form.stock_quantity ? parseInt(form.stock_quantity) : null };
+    const url = editId ? `${API_BASE_URL}/api/commerce/products/${editId}` : `${API_BASE_URL}/api/commerce/products`;
+    const res = await fetch(url, { method: editId ? 'PATCH' : 'POST', headers, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (data.success) {
+      const productId = data.data.id;
+      if (imageFile) {
+        setImageUploading(true);
+        const fd = new FormData();
+        fd.append('image', imageFile);
+        await fetch(`${API_BASE_URL}/api/commerce/products/${productId}/image`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+        setImageUploading(false);
+      }
+      setEditOpen(false); fetchProducts(); setSnack(editId ? 'Atualizado!' : 'Criado!');
+    } else setSnack(data.error || 'Erro');
+  };
+  const handleRemoveImage = async () => {
+    if (!editId) return;
+    setImageUploading(true);
+    const res = await fetch(`${API_BASE_URL}/api/commerce/products/${editId}/image`, { method: 'DELETE', headers });
+    const data = await res.json();
+    if (data.success) { setImagePreview(null); setSnack('Foto removida'); fetchProducts(); }
+    else setSnack(data.error || 'Erro');
+    setImageUploading(false);
+  };
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return setSnack('Apenas JPG, PNG ou WebP');
+    if (file.size > 5 * 1024 * 1024) return setSnack('Máximo 5MB');
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
   const toggleAvailability = async (id) => { const res = await fetch(`${API_BASE_URL}/api/commerce/products/${id}/availability`, { method: 'PATCH', headers }); const data = await res.json(); if (data.success) fetchProducts(); else setSnack(data.error || 'Erro'); };
   const deleteProduct = async (id) => { if (!window.confirm('Remover?')) return; await fetch(`${API_BASE_URL}/api/commerce/products/${id}`, { method: 'DELETE', headers }); fetchProducts(); };
 
@@ -173,6 +210,24 @@ export default function CommercePortal() {
           <TextField label="Descrição" size="small" multiline rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           <Box sx={{ display: 'flex', gap: 1 }}><TextField label="Categoria" size="small" fullWidth value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} /><TextField label="Preço (centavos) *" size="small" fullWidth type="number" value={form.price_cents} onChange={e => setForm(f => ({ ...f, price_cents: e.target.value }))} helperText="1500 = R$15" /></Box>
           <TextField label="Estoque" size="small" type="number" value={form.stock_quantity} onChange={e => setForm(f => ({ ...f, stock_quantity: e.target.value }))} />
+          <Box>
+            <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1, color: '#374151' }}>Foto do produto</Typography>
+            {imagePreview && (
+              <Box sx={{ position: 'relative', mb: 1, width: 120, height: 120, borderRadius: 1, overflow: 'hidden', border: '1px solid #E5E7EB' }}>
+                <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <IconButton size="small" onClick={() => { setImageFile(null); setImagePreview(null); }} sx={{ position: 'absolute', top: 2, right: 2, bgcolor: 'rgba(0,0,0,0.5)', color: '#fff', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}><Close sx={{ fontSize: 14 }} /></IconButton>
+              </Box>
+            )}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Button size="small" variant="outlined" component="label" startIcon={<PhotoCamera sx={{ fontSize: 16 }} />} sx={{ textTransform: 'none', fontSize: 12 }} disabled={imageUploading}>
+                {imagePreview ? 'Trocar foto' : 'Escolher foto'}
+                <input type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={handleImageSelect} />
+              </Button>
+              {editId && imagePreview && !imageFile && <Button size="small" color="error" onClick={handleRemoveImage} sx={{ textTransform: 'none', fontSize: 12 }} disabled={imageUploading}>Remover foto</Button>}
+              {imageUploading && <CircularProgress size={16} sx={{ color: GOLD }} />}
+            </Box>
+            <Typography sx={{ fontSize: 11, color: '#9CA3AF', mt: 0.5 }}>JPG, PNG ou WebP • máx. 5MB</Typography>
+          </Box>
           {form.is_restricted && <Alert severity="error">Produto restrito — não ficará disponível.</Alert>}
         </DialogContent>
         <DialogActions><Button onClick={() => setEditOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleSave} sx={{ bgcolor: GOLD }}>Salvar</Button></DialogActions>
