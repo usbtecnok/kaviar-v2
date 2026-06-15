@@ -189,18 +189,19 @@ export default function PassengerHome() {
           )}
 
           {/* Card principal — Chamar corrida */}
-          <MotoPromoCard onPress={() => setShowMotoAccept(true)} />
-
           <TouchableOpacity style={s.callCard} onPress={() => router.push('/(passenger)/map')} activeOpacity={0.8}>
             <View style={s.callCardIcon}>
               <Ionicons name="car-sport" size={24} color={COLORS.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.callCardTitle}>Chamar corrida agora</Text>
-              <Text style={s.callCardSub}>Solicite uma viagem local</Text>
+              <Text style={s.callCardSub}>Carro ou moto para sua viagem local</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
           </TouchableOpacity>
+
+          {/* Banner Moto — complementar, após corrida principal */}
+          <MotoPromoCard onPress={() => setShowMotoAccept(true)} />
 
           {/* KAVIAR Local */}
           <TouchableOpacity style={s.localCard} onPress={() => router.push('/(passenger)/local')} activeOpacity={0.8}>
