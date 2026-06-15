@@ -30,7 +30,7 @@ import { RatingController } from '../modules/rating/controller';
 const router = Router();
 
 router.use(authenticateAdmin);
-router.use(requireRole(['SUPER_ADMIN','OPERATOR']));
+router.use(requireRole(['SUPER_ADMIN','OPERATOR','TERRITORIAL_MANAGER']));
 
 const ratingController = new RatingController();
 
