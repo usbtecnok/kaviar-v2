@@ -115,7 +115,7 @@ export default function CommerceAccountsPage() {
                   {isManager && (a.status === 'pending' || a.status === 'approved') && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
                   {isManager && a.status === 'active' && <Tooltip title="Editar território"><IconButton size="small" onClick={() => openEdit(a)} sx={{ color: '#6B7280' }}><Place sx={{ fontSize: 18 }} /></IconButton></Tooltip>}
                   {isManager && a.status === 'blocked' && <Typography sx={{ fontSize: 11, color: '#EF4444' }}>Bloqueado</Typography>}
-                  {(isSuperAdmin || (isManager && !a.is_active)) && <Button size="small" color="error" onClick={() => handleDelete(a.id, a.name)} sx={{ textTransform: 'none', fontSize: 11 }}>Excluir</Button>}
+                  {(isSuperAdmin || isManager) && <Button size="small" color="error" onClick={() => handleDelete(a.id, a.name)} sx={{ textTransform: 'none', fontSize: 11 }}>Excluir</Button>}
                 </TableCell>
               </TableRow>
             ))}

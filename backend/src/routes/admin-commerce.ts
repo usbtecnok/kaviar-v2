@@ -513,14 +513,11 @@ router.delete('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope
     const account = await prisma.commerce_accounts.findFirst({ where: { id: req.params.id, deleted_at: null } });
     if (!account) return res.status(404).json({ success: false, error: 'Comércio não encontrado.' });
 
-    // TERRITORIAL_MANAGER: can only delete in own territory, and only non-active accounts
+    // TERRITORIAL_MANAGER: can only delete in own territory
     if (admin.role !== 'SUPER_ADMIN') {
       const tIds = scope?.territoryIds || [];
       if (!account.territory_id || !tIds.includes(account.territory_id)) {
         return res.status(403).json({ success: false, error: 'Comércio fora do seu território.' });
-      }
-      if (account.is_active) {
-        return res.status(400).json({ success: false, error: 'Não é possível excluir comércio ativo. Pause primeiro.' });
       }
     }
 
