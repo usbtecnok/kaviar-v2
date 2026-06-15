@@ -8,6 +8,8 @@ import DocumentCard from '../components/DocumentCard';
 import { uploadDocuments, getMyDocuments, DocumentStatus } from '../services/documentApi';
 import type { DocumentUpload as DocumentUploadPayload } from '../services/documentApi';
 import { COLORS } from '../../src/config/colors';
+import { MotoAptitudeCard } from '../../src/components/moto/MotoAptitudeCard';
+import { MOTO_FLAGS } from '../../src/config/moto.config';
 
 const DOCUMENT_TYPES = [
   { type: 'cpf', label: 'CPF', required: true },
@@ -304,6 +306,17 @@ export default function DocumentUpload() {
             onPress={() => pickDocument(type)}
           />
         ))}
+
+        {(MOTO_FLAGS.motoExpressVisible || MOTO_FLAGS.motoPassageiroVisible) && (
+          <View style={{ marginTop: 20 }}>
+            {MOTO_FLAGS.motoExpressVisible && (
+              <MotoAptitudeCard serviceType="Moto Express" status="not_started" />
+            )}
+            {MOTO_FLAGS.motoPassageiroVisible && (
+              <MotoAptitudeCard serviceType="Moto Passageiro" status="not_started" />
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {hasSelected && (
