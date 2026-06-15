@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateCommerce } from '../middlewares/commerce-auth';
+import { isMotoExpressEnabled } from '../services/moto-express-flag.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -197,6 +198,10 @@ router.post('/orders/:id/request-delivery', authenticateCommerce, async (req: Re
     if (order.status !== 'READY') return res.status(400).json({ success: false, error: 'Pedido precisa estar READY' });
     if (!order.customer_address) return res.status(400).json({ success: false, error: 'Endereço não informado' });
     if (order.delivery_status !== 'none') return res.status(400).json({ success: false, error: 'Entrega já solicitada' });
+
+    // Validar se Moto Express está habilitado para o território
+    const enabled = await isMotoExpressEnabled();
+    if (!enabled) return res.status(403).json({ success: false, error: 'MOTO_EXPRESS_UNAVAILABLE' });
 
     const delivery_code = String(Math.floor(1000 + Math.random() * 9000));
     await prisma.commerce_orders.update({ where: { id: order.id }, data: { delivery_status: 'requested', delivery_requested_at: new Date(), delivery_code } });
