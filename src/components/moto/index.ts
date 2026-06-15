@@ -4,6 +4,7 @@ export { MotoAptitudeCard } from './MotoAptitudeCard';
 export { MotoDriverVerify } from './MotoDriverVerify';
 export { MotoPromoCard } from './MotoPromoCard';
 export { MotoTypeSelector } from './MotoTypeSelector';
+export { MotoUnavailableModal } from './MotoUnavailableModal';
 export { SkeletonLoader } from './SkeletonLoader';
 export { StatusBadge } from './StatusBadge';
 export { WarningBanner } from './WarningBanner';

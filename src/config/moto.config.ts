@@ -34,4 +34,8 @@ export const MOTO_TEXTS = {
   selectorMoto: 'MOTO',
   selectorMotoSub: 'Rápido e econômico',
   selectorBadge: 'NOVO',
+  unavailableTitle: 'Moto indisponível agora',
+  unavailableBody: 'Ainda não temos motociclistas disponíveis perto de você. Escolha carro ou tente novamente em alguns minutos.',
+  unavailableBtnCar: 'Escolher carro',
+  unavailableBtnRetry: 'Tentar novamente',
 } as const;
