@@ -23,6 +23,9 @@ import { RideWizard } from '../../src/components/passenger/RideWizard';
 import { RadarPulse } from '../../src/components/passenger/RadarPulse';
 import { AdjustmentModal } from '../../src/components/AdjustmentModal';
 import { KaviarHub } from '../../src/components/passenger/KaviarHub';
+import { MotoTypeSelector } from '../../src/components/moto/MotoTypeSelector';
+import { MotoAcceptModal } from '../../src/components/moto/MotoAcceptModal';
+import { MOTO_FLAGS } from '../../src/config/moto.config';
 
 import { ENV } from '../../src/config/env';
 import { apiClient } from '../../src/api/client';
@@ -146,6 +149,9 @@ export default function PassengerMap() {
 
   // Map focus mode (compact bottomSheet to show driver on map)
   const [mapFocusMode, setMapFocusMode] = useState(false);
+
+  // Moto accept modal (flag-guarded)
+  const [showMotoAccept, setShowMotoAccept] = useState(false);
 
   // Search microcopy rotation
   const SEARCH_PHRASES = [
@@ -815,6 +821,10 @@ export default function PassengerMap() {
             />
           )}
 
+          {MOTO_FLAGS.enabled && (
+            <MotoTypeSelector onSelect={(t) => { if (t === 'moto') setShowMotoAccept(true); }} />
+          )}
+
           <RideWizard
             step={wizardStep}
             origin={origin}
@@ -1246,6 +1256,15 @@ export default function PassengerMap() {
           </View>
         </View>
       </Modal>
+
+      {/* MOTO ACCEPT MODAL (flag-guarded) */}
+      {MOTO_FLAGS.enabled && (
+        <MotoAcceptModal
+          visible={showMotoAccept}
+          onAccept={() => setShowMotoAccept(false)}
+          onClose={() => setShowMotoAccept(false)}
+        />
+      )}
 
       {/* Drawer */}
       <DrawerMenu
