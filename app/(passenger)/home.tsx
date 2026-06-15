@@ -15,6 +15,8 @@ import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
 import { HomeOpportunityCarousel } from '../../src/components/passenger/HomeOpportunityCarousel';
 import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPreferenceInvite';
 import { MotoPromoCard } from '../../src/components/moto/MotoPromoCard';
+import { MotoAcceptModal } from '../../src/components/moto/MotoAcceptModal';
+import { MOTO_FLAGS } from '../../src/config/moto.config';
 
 const { width: W } = Dimensions.get('window');
 const ACTION_W = (W - 56) / 4; // 4 cards side-by-side with gaps
@@ -32,6 +34,7 @@ export default function PassengerHome() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [showWomenInvite, setShowWomenInvite] = useState(false);
+  const [showMotoAccept, setShowMotoAccept] = useState(false);
 
   useEffect(() => {
     const user = authStore.getUser();
@@ -186,7 +189,7 @@ export default function PassengerHome() {
           )}
 
           {/* Card principal — Chamar corrida */}
-          <MotoPromoCard />
+          <MotoPromoCard onPress={() => setShowMotoAccept(true)} />
 
           <TouchableOpacity style={s.callCard} onPress={() => router.push('/(passenger)/map')} activeOpacity={0.8}>
             <View style={s.callCardIcon}>
@@ -244,6 +247,15 @@ export default function PassengerHome() {
         onHome={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         onAccount={() => router.push('/(passenger)/profile')}
       />
+
+      {/* MOTO ACCEPT MODAL (flag-guarded) */}
+      {MOTO_FLAGS.enabled && (
+        <MotoAcceptModal
+          visible={showMotoAccept}
+          onAccept={() => setShowMotoAccept(false)}
+          onClose={() => setShowMotoAccept(false)}
+        />
+      )}
 
       {/* ── DRAWER ── */}
       <DrawerMenu
