@@ -176,6 +176,8 @@ router.get('/products/:id/image', async (req: Request, res: Response) => {
     });
     if (!product?.image_key) return res.status(404).json({ success: false, error: 'Imagem não encontrada' });
     const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: bucket, Key: product.image_key }), { expiresIn: 3600 });
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
     res.redirect(url);
   } catch { res.status(500).json({ success: false, error: 'Erro' }); }
 });

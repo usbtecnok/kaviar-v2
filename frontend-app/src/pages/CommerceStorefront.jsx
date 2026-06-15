@@ -112,7 +112,7 @@ export default function CommerceStorefront() {
             return (
               <Grid item xs={12} sm={6} key={p.id}>
                 <Card sx={{ border: qty > 0 ? `2px solid ${GOLD}` : '1px solid #E5E7EB', transition: 'all .15s' }}>
-                  {p.image_url && <Box sx={{ height: 140, overflow: 'hidden', bgcolor: '#F3F4F6' }}><img src={`${API_BASE_URL}/api/public/commerce/products/${p.id}/image`} alt={p.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></Box>}
+                  {p.image_url && <Box sx={{ height: 140, overflow: 'hidden', bgcolor: '#F3F4F6' }}><img src={`${API_BASE_URL}/api/public/commerce/products/${p.id}/image`} alt={p.name} loading="lazy" onError={e => { e.currentTarget.parentElement.style.display = 'none'; }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></Box>}
                   <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5 }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{p.name}</Typography>
