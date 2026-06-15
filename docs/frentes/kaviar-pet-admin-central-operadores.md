@@ -75,7 +75,7 @@ Vinculado a `admins` via `admin_id`. Usado para operadores territoriais. Contém
 |------|--------|-----------|
 | `PET_OPERATOR` | Central Pet (leitura + escrita) | Operadora do dia a dia |
 | `PET_SUPERVISOR` | Central Pet + relatórios + gestão de operadores | Supervisora |
-| `PET_ADMIN` | Tudo de Pet + configurações | Gestora da operação |
+| `PET_ADMIN` | Tudo de Pet + configurações | Gestor(a) da operação |
 | `SUPER_ADMIN` | Acesso total (já existe) | Controle geral |
 
 ### Hierarquia de permissões
