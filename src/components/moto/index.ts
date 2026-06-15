@@ -3,6 +3,7 @@ export { MotoAcceptModal } from './MotoAcceptModal';
 export { MotoAptitudeCard } from './MotoAptitudeCard';
 export { MotoDriverVerify } from './MotoDriverVerify';
 export { MotoPromoCard } from './MotoPromoCard';
+export { MotoTypeSelector } from './MotoTypeSelector';
 export { SkeletonLoader } from './SkeletonLoader';
 export { StatusBadge } from './StatusBadge';
 export { WarningBanner } from './WarningBanner';
