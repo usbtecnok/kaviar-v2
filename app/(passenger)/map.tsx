@@ -51,7 +51,7 @@ type Screen = 'idle' | 'search' | 'tracking';
 
 export default function PassengerMap() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ destLat?: string; destLng?: string }>();
+  const params = useLocalSearchParams<{ destLat?: string; destLng?: string; vehicle?: string }>();
   const isFocused = useIsFocused();
   // ── DEV PREVIEW: set to 'accepted' | 'arrived' | 'in_progress' | null to test tracking UI ──
   const DEV_PREVIEW: RideStatus | null = null; // ← change to test, set null before build
@@ -156,6 +156,14 @@ export default function PassengerMap() {
   const [motoConsented, setMotoConsented] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<'car' | 'moto'>('car');
   const [showMotoUnavailable, setShowMotoUnavailable] = useState(false);
+
+  // Se navegou da Home com vehicle=moto (já aceitou termos)
+  useEffect(() => {
+    if (params.vehicle === 'moto' && MOTO_FLAGS.enabled) {
+      setSelectedVehicle('moto');
+      setMotoConsented(true);
+    }
+  }, []);
 
   // Search microcopy rotation
   const SEARCH_PHRASES = [
