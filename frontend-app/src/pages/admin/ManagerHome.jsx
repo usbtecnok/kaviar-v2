@@ -26,6 +26,7 @@ export default function ManagerHome() {
   const [territoryLoaded, setTerritoryLoaded] = useState(false);
   const [myTerritories, setMyTerritories] = useState([]);
   const [territoriesLoaded, setTerritoriesLoaded] = useState(false);
+  const [myNeighborhoods, setMyNeighborhoods] = useState([]);
   const [referral, setReferral] = useState(null);
   const [drafts, setDrafts] = useState(null);
   const [teamStats, setTeamStats] = useState(null);
@@ -64,7 +65,20 @@ export default function ManagerHome() {
       try {
         const terrRes = await fetch(`${API_BASE_URL}/api/admin/commerce/my-territories`, { headers });
         const terrData = await terrRes.json();
-        if (terrData.success && Array.isArray(terrData.data)) setMyTerritories(terrData.data);
+        if (terrData.success && Array.isArray(terrData.data)) {
+          setMyTerritories(terrData.data);
+          // Fetch neighborhoods for these territories
+          const tIds = terrData.data.map(t => t.id);
+          if (tIds.length > 0) {
+            try {
+              const nbRes = await fetch(`${API_BASE_URL}/api/governance/neighborhoods`, { headers });
+              const nbData = await nbRes.json();
+              if (nbData.success && Array.isArray(nbData.data)) {
+                setMyNeighborhoods(nbData.data.filter(n => n.is_active && tIds.includes(n.territory_id)));
+              }
+            } catch {}
+          }
+        }
       } catch {}
       setTerritoriesLoaded(true);
 
@@ -114,13 +128,21 @@ export default function ManagerHome() {
           </Button>
         </Box>
 
-        {/* Meus Territórios */}
-        {myTerritories.length > 1 && (
+        {/* Meu Território */}
+        {myTerritories.length > 0 && (
           <Box sx={{ mb: 2, p: 1.5, bgcolor: '#fff', borderRadius: 2, border: '1px solid rgba(201,154,22,0.15)' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: TEXT_GRAY, textTransform: 'uppercase', mb: 0.5 }}>Meus territórios</Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              {myTerritories.map(t => <Chip key={t.id} label={t.name} size="small" sx={{ bgcolor: GOLD_LIGHT, color: KAVIAR_BLACK, fontWeight: 600, fontSize: 11 }} />)}
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: TEXT_GRAY, textTransform: 'uppercase', mb: 0.5 }}>Meu território</Typography>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: myNeighborhoods.length > 0 ? 1 : 0 }}>
+              {myTerritories.map(t => <Chip key={t.id} label={t.name} size="small" sx={{ bgcolor: GOLD_LIGHT, color: KAVIAR_BLACK, fontWeight: 700, fontSize: 12 }} />)}
             </Box>
+            {myNeighborhoods.length > 0 && (
+              <Box sx={{ mt: 1 }}>
+                <Typography sx={{ fontSize: 10, color: TEXT_GRAY, textTransform: 'uppercase', mb: 0.5 }}>Bairros atendidos</Typography>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  {myNeighborhoods.map(n => <Chip key={n.id} label={n.name} size="small" variant="outlined" sx={{ fontSize: 10, height: 22, borderColor: 'rgba(201,154,22,0.3)', color: TEXT_GRAY }} />)}
+                </Box>
+              </Box>
+            )}
           </Box>
         )}
 
