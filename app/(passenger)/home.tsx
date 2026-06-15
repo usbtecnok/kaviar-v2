@@ -14,6 +14,7 @@ import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
 import { HomeOpportunityCarousel } from '../../src/components/passenger/HomeOpportunityCarousel';
 import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPreferenceInvite';
+import { MotoPromoCard } from '../../src/components/moto/MotoPromoCard';
 
 const { width: W } = Dimensions.get('window');
 const ACTION_W = (W - 56) / 4; // 4 cards side-by-side with gaps
@@ -185,6 +186,8 @@ export default function PassengerHome() {
           )}
 
           {/* Card principal — Chamar corrida */}
+          <MotoPromoCard />
+
           <TouchableOpacity style={s.callCard} onPress={() => router.push('/(passenger)/map')} activeOpacity={0.8}>
             <View style={s.callCardIcon}>
               <Ionicons name="car-sport" size={24} color={COLORS.primary} />
