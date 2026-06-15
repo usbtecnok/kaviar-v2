@@ -1,10 +1,12 @@
 /** Configuração local do módulo Moto — flags e textos oficiais. */
 
+const MOTO_PREVIEW = process.env.EXPO_PUBLIC_MOTO_UI_PREVIEW === 'true';
+
 export const MOTO_FLAGS = {
-  enabled: false,
-  motoPassageiroVisible: false,
+  enabled: MOTO_PREVIEW,
+  motoPassageiroVisible: MOTO_PREVIEW,
   motoExpressVisible: false,
-  PROMO_CARD_ENABLED: false,
+  PROMO_CARD_ENABLED: MOTO_PREVIEW,
 } as const;
 
 export const MOTO_TEXTS = {
