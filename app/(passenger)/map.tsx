@@ -25,6 +25,7 @@ import { AdjustmentModal } from '../../src/components/AdjustmentModal';
 import { KaviarHub } from '../../src/components/passenger/KaviarHub';
 import { MotoTypeSelector } from '../../src/components/moto/MotoTypeSelector';
 import { MotoAcceptModal } from '../../src/components/moto/MotoAcceptModal';
+import { MotoUnavailableModal } from '../../src/components/moto/MotoUnavailableModal';
 import { MOTO_FLAGS } from '../../src/config/moto.config';
 
 import { ENV } from '../../src/config/env';
@@ -152,6 +153,9 @@ export default function PassengerMap() {
 
   // Moto accept modal (flag-guarded)
   const [showMotoAccept, setShowMotoAccept] = useState(false);
+  const [motoConsented, setMotoConsented] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<'car' | 'moto'>('car');
+  const [showMotoUnavailable, setShowMotoUnavailable] = useState(false);
 
   // Search microcopy rotation
   const SEARCH_PHRASES = [
@@ -557,20 +561,26 @@ export default function PassengerMap() {
     setLoading(true);
     try {
       const result = await passengerApi.requestRide({
-        origin: { lat: origin.lat, lng: origin.lng, text: origin.text },
-        destination: { lat: destination.lat, lng: destination.lng, text: destination.text },
+        origin: { lat: origin!.lat, lng: origin!.lng, text: origin!.text },
+        destination: { lat: destination!.lat, lng: destination!.lng, text: destination!.text },
         trip_details: { passengers: passengerCount, has_luggage: hasLuggage },
         scheduled_for: getScheduledFor(),
         wait_requested: waitEstimatedMin !== null,
         wait_estimated_min: waitEstimatedMin ?? undefined,
         post_wait_destination: waitEstimatedMin !== null && postWaitDest ? postWaitDest : undefined,
+        ...(selectedVehicle === 'moto' && motoConsented ? { service_category: 'MOTO_PASSENGER', passenger_moto_consent: true } : {}),
       });
       const rideData = await passengerApi.getRide(result.ride_id);
       setRide(rideData);
       setScreen('tracking');
       startPolling(result.ride_id);
     } catch (e: any) {
-      Alert.alert('Erro', friendlyError(e, 'Não foi possível solicitar a corrida.'));
+      const errMsg = e?.response?.data?.error || '';
+      if (selectedVehicle === 'moto' && motoConsented && (errMsg === 'MOTO_PASSENGER_DISABLED' || errMsg === 'MOTO_PASSENGER_PRICING_NOT_CONFIGURED')) {
+        setShowMotoUnavailable(true);
+      } else {
+        Alert.alert('Erro', friendlyError(e, 'Não foi possível solicitar a corrida.'));
+      }
     } finally { setLoading(false); }
   };
 
@@ -822,7 +832,14 @@ export default function PassengerMap() {
           )}
 
           {MOTO_FLAGS.enabled && (
-            <MotoTypeSelector onSelect={(t) => { if (t === 'moto') setShowMotoAccept(true); }} />
+            <MotoTypeSelector
+              selectedType={selectedVehicle}
+              onSelect={(t) => {
+                setSelectedVehicle(t);
+                if (t === 'moto') setShowMotoAccept(true);
+                else setMotoConsented(false);
+              }}
+            />
           )}
 
           <RideWizard
@@ -1257,11 +1274,20 @@ export default function PassengerMap() {
         </View>
       </Modal>
 
+      {/* MOTO UNAVAILABLE MODAL */}
+      {MOTO_FLAGS.enabled && (
+        <MotoUnavailableModal
+          visible={showMotoUnavailable}
+          onChooseCar={() => { setShowMotoUnavailable(false); setSelectedVehicle('car'); setMotoConsented(false); }}
+          onRetry={() => { setShowMotoUnavailable(false); submitRide(); }}
+        />
+      )}
+
       {/* MOTO ACCEPT MODAL (flag-guarded) */}
       {MOTO_FLAGS.enabled && (
         <MotoAcceptModal
           visible={showMotoAccept}
-          onAccept={() => setShowMotoAccept(false)}
+          onAccept={() => { setShowMotoAccept(false); setMotoConsented(true); }}
           onClose={() => setShowMotoAccept(false)}
         />
       )}

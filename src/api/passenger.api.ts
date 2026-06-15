@@ -5,6 +5,8 @@ interface RequestRideParams {
   origin: { lat: number; lng: number; text?: string };
   destination: { lat: number; lng: number; text?: string };
   type?: string;
+  service_category?: string;
+  passenger_moto_consent?: boolean;
   trip_details?: { passengers: number; has_luggage: boolean };
   scheduled_for?: string;
   wait_requested?: boolean;
