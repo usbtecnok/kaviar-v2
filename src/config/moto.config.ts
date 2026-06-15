@@ -27,4 +27,9 @@ export const MOTO_TEXTS = {
   aptitudeApproved: 'Aprovado',
   aptitudeRejected: 'Reprovado',
   aptitudeBlocked: 'Bloqueado',
+  selectorCar: 'CARRO',
+  selectorCarSub: 'Viagem confortável',
+  selectorMoto: 'MOTO',
+  selectorMotoSub: 'Rápido e econômico',
+  selectorBadge: 'NOVO',
 } as const;
