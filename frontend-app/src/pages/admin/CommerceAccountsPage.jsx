@@ -51,6 +51,7 @@ export default function CommerceAccountsPage() {
   const openEdit = (account) => { setEditAccount(account); setEditTerritory(account.territory_id || ''); setEditNeighborhood(account.neighborhood_id || ''); setEditOpen(true); };
   const handleActivate = async (id) => { const reason = prompt('Motivo da ativação (mín. 10 caracteres):'); if (!reason || reason.trim().length < 10) return setSnack('Motivo obrigatório (mínimo 10 caracteres)'); const password = prompt('Sua senha administrativa:'); if (!password) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/activate`, { method: 'POST', headers, body: JSON.stringify({ password, reason: reason.trim() }) }); const data = await res.json(); if (data.success) { setPasswordResult({ email: data.data.user?.email, temp_password: data.data.temp_password, action: 'ativação' }); fetchAccounts(); } else setSnack(data.error || 'Erro'); };
   const handleResetPassword = async (id) => { if (!window.confirm('Gerar nova senha?')) return; const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}/reset-password`, { method: 'POST', headers }); const data = await res.json(); if (data.success) setPasswordResult({ email: data.data.email, temp_password: data.data.temp_password, action: 'reset' }); else setSnack(data.error || 'Erro'); };
+  const handleDelete = async (id, name) => { if (!window.confirm(`Excluir "${name}"? Esta ação não pode ser desfeita.`)) return; try { const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}`, { method: 'DELETE', headers }); const data = await res.json(); if (data.success) { fetchAccounts(); setSnack('Comércio excluído.'); } else setSnack(data.error || 'Erro ao excluir'); } catch { setSnack('Erro de conexão'); } };
   const copyToClipboard = (text) => { navigator.clipboard.writeText(text).then(() => setSnack('Copiado!')); };
 
   const openWallet = async (account) => {
@@ -114,6 +115,7 @@ export default function CommerceAccountsPage() {
                   {isManager && (a.status === 'pending' || a.status === 'approved') && <Button size="small" startIcon={<CheckCircle />} onClick={() => handleActivate(a.id)} sx={{ textTransform: 'none', color: '#10B981' }}>Ativar</Button>}
                   {isManager && a.status === 'active' && <Tooltip title="Editar território"><IconButton size="small" onClick={() => openEdit(a)} sx={{ color: '#6B7280' }}><Place sx={{ fontSize: 18 }} /></IconButton></Tooltip>}
                   {isManager && a.status === 'blocked' && <Typography sx={{ fontSize: 11, color: '#EF4444' }}>Bloqueado</Typography>}
+                  {(isSuperAdmin || (isManager && !a.is_active)) && <Button size="small" color="error" onClick={() => handleDelete(a.id, a.name)} sx={{ textTransform: 'none', fontSize: 11 }}>Excluir</Button>}
                 </TableCell>
               </TableRow>
             ))}
