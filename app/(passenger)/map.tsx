@@ -817,26 +817,23 @@ export default function PassengerMap() {
         <>
           <SafeAreaView edges={['top']} style={s.topBar}>
             <View style={s.header}>
-              {destination ? (
-                <TouchableOpacity
-                  onPress={() => { setDestination(null); setEstimate(null); setWizardStep(0); }}
-                  style={s.backBtn}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  accessibilityLabel="Voltar para opções"
-                  accessibilityRole="button"
-                >
-                  <Ionicons name="arrow-back" size={20} color="#fff" />
-                  <Text style={s.backBtnText}>Voltar</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity onPress={() => setDrawerOpen(true)} style={s.menuBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                  <Ionicons name="menu" size={26} color={COLORS.textDark} />
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={s.backBtn}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityLabel="Voltar"
+                accessibilityRole="button"
+              >
+                <Ionicons name="arrow-back" size={20} color="#fff" />
+                <Text style={s.backBtnText}>Voltar</Text>
+              </TouchableOpacity>
               <View style={{ flex: 1 }}>
                 <Text style={s.brand}>KAVIAR</Text>
                 <Text style={s.greeting}>{userName ? `Olá, ${userName}` : 'Passageiro'}</Text>
               </View>
+              <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <Ionicons name="menu" size={24} color={COLORS.textMuted} />
+              </TouchableOpacity>
             </View>
           </SafeAreaView>
 
