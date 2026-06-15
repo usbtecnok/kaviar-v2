@@ -505,6 +505,32 @@ router.post('/accounts/:id/reset-password', authenticateAdmin, requireSuperAdmin
   }
 });
 
+// DELETE /api/admin/commerce/accounts/:id — soft delete (manager can delete non-active accounts in their territory)
+router.delete('/accounts/:id', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const account = await prisma.commerce_accounts.findFirst({ where: { id: req.params.id, deleted_at: null } });
+    if (!account) return res.status(404).json({ success: false, error: 'Comércio não encontrado.' });
+
+    // TERRITORIAL_MANAGER: can only delete in own territory, and only non-active accounts
+    if (admin.role !== 'SUPER_ADMIN') {
+      const tIds = scope?.territoryIds || [];
+      if (!account.territory_id || !tIds.includes(account.territory_id)) {
+        return res.status(403).json({ success: false, error: 'Comércio fora do seu território.' });
+      }
+      if (account.is_active) {
+        return res.status(400).json({ success: false, error: 'Não é possível excluir comércio ativo. Pause primeiro.' });
+      }
+    }
+
+    await prisma.commerce_accounts.update({ where: { id: req.params.id }, data: { deleted_at: new Date() } });
+    res.json({ success: true, message: 'Comércio excluído.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: 'Erro ao excluir comércio.' });
+  }
+});
+
 // GET /api/admin/commerce/orders — list all orders
 router.get('/orders', authenticateAdmin, CRM_ROLES, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
