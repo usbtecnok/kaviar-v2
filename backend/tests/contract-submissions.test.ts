@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 describe('contract submission flow (Phase B)', () => {
-  describe('gestora submit rules', () => {
+  describe('gestor(a) submit rules', () => {
     const canSubmit = (status: string) => ['available', 'rejected'].includes(status);
 
     it('available → can submit', () => expect(canSubmit('available')).toBe(true));
@@ -91,7 +91,7 @@ describe('contract submission flow (Phase B)', () => {
   });
 
   describe('security', () => {
-    it('gestora can only submit for own profile (uses admin_id from token)', () => {
+    it('gestor(a) can only submit for own profile (uses admin_id from token)', () => {
       const tokenAdminId = 'admin-X';
       const query = { admin_id: tokenAdminId };
       expect(query.admin_id).toBe(tokenAdminId);

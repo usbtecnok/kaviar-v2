@@ -63,7 +63,7 @@ router.get('/contract-template-url', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/my-operator-profile/submit-contract — Gestora envia PDF assinado
+// POST /api/admin/my-operator-profile/submit-contract — Gestor(a) envia PDF assinado
 import multer from 'multer';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 

@@ -96,6 +96,6 @@ GoogleService-Info.plist
 
 # Keystores e credenciais sensíveis
 credentials/
-# Dados pessoais de gestoras (LGPD)
+# Dados pessoais de gestores/gestoras (LGPD)
 scripts/utils/private/*.json
 docs/contratos/pdf/personalizados/

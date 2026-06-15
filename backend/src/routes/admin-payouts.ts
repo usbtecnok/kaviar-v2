@@ -444,28 +444,28 @@ router.post('/operators/:id/contract-template', uploadContract.single('file'), a
     const ctx = auditCtx(req);
     audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'upload_contract_template', entityType: 'operator_profile', entityId: req.params.id, oldValue: previousKey ? { contract_template_url: previousKey } : undefined, newValue: { contract_template_url: s3Key, contract_status: 'available' }, ipAddress: ctx.ip });
 
-    // Notify gestora (non-blocking, conditional)
+    // Notify gestor(a) territorial (non-blocking, conditional)
     let emailSent = false, whatsappSent = false;
     try {
-      const gestoraAdmin = await prisma.admins.findUnique({ where: { id: operator.admin_id }, select: { name: true, email: true, phone: true } });
+      const operatorAdmin = await prisma.admins.findUnique({ where: { id: operator.admin_id }, select: { name: true, email: true, phone: true } });
 
       // E-mail: only if explicitly enabled
-      if (process.env.ENABLE_CONTRACT_EMAIL_NOTIFICATION === 'true' && gestoraAdmin?.email) {
+      if (process.env.ENABLE_CONTRACT_EMAIL_NOTIFICATION === 'true' && operatorAdmin?.email) {
         const { emailService } = await import('../services/email/email.service');
         await emailService.sendMail({
-          to: gestoraAdmin.email,
+          to: operatorAdmin.email,
           subject: 'Seu contrato está disponível — Plataforma KAVIAR',
-          text: `Olá, ${gestoraAdmin.name}.\n\nSeu contrato de parceria operacional territorial com a Plataforma KAVIAR já está disponível para conferência e assinatura.\n\nAcesse o painel:\nhttps://kaviar.com.br/admin/meu-contrato\n\nBaixe o contrato, assine e envie o PDF assinado pelo próprio painel.\n\nEm caso de dúvidas: contato@usbtecnok.com.br\n\nUSB TECNOK — Plataforma KAVIAR`,
-          html: `<p>Olá, <strong>${gestoraAdmin.name}</strong>.</p><p>Seu contrato de parceria operacional territorial com a <strong>Plataforma KAVIAR</strong> já está disponível para conferência e assinatura.</p><p><a href="https://kaviar.com.br/admin/meu-contrato">Acessar painel</a></p><p>Baixe o contrato, assine e envie o PDF assinado pelo próprio painel.</p><p>Em caso de dúvidas: <a href="mailto:contato@usbtecnok.com.br">contato@usbtecnok.com.br</a></p><p><em>USB TECNOK — Plataforma KAVIAR</em></p>`,
+          text: `Olá, ${operatorAdmin.name}.\n\nSeu contrato de parceria operacional territorial com a Plataforma KAVIAR já está disponível para conferência e assinatura.\n\nAcesse o painel:\nhttps://kaviar.com.br/admin/meu-contrato\n\nBaixe o contrato, assine e envie o PDF assinado pelo próprio painel.\n\nEm caso de dúvidas: contato@usbtecnok.com.br\n\nUSB TECNOK — Plataforma KAVIAR`,
+          html: `<p>Olá, <strong>${operatorAdmin.name}</strong>.</p><p>Seu contrato de parceria operacional territorial com a <strong>Plataforma KAVIAR</strong> já está disponível para conferência e assinatura.</p><p><a href="https://kaviar.com.br/admin/meu-contrato">Acessar painel</a></p><p>Baixe o contrato, assine e envie o PDF assinado pelo próprio painel.</p><p>Em caso de dúvidas: <a href="mailto:contato@usbtecnok.com.br">contato@usbtecnok.com.br</a></p><p><em>USB TECNOK — Plataforma KAVIAR</em></p>`,
         });
         emailSent = true;
       }
 
       // WhatsApp: only if specific template is configured (not generic)
-      if (gestoraAdmin?.phone && process.env.WA_TPL_CONTRACT_AVAILABLE) {
+      if (operatorAdmin?.phone && process.env.WA_TPL_CONTRACT_AVAILABLE) {
         const { whatsappService } = await import('../modules/whatsapp');
-        const firstName = gestoraAdmin.name?.split(' ')[0] || gestoraAdmin.name;
-        await whatsappService.sendTemplate({ to: gestoraAdmin.phone, template: 'kaviar_contract_available_v1' as any, variables: { '1': firstName, '2': 'https://kaviar.com.br/admin/meu-contrato' } });
+        const firstName = operatorAdmin.name?.split(' ')[0] || operatorAdmin.name;
+        await whatsappService.sendTemplate({ to: operatorAdmin.phone, template: 'kaviar_contract_available_v1' as any, variables: { '1': firstName, '2': 'https://kaviar.com.br/admin/meu-contrato' } });
         whatsappSent = true;
       }
     } catch (notifyErr) {
@@ -822,11 +822,11 @@ router.post('/operators/:id/generate-contract-template', async (req: Request, re
     // Notify (non-blocking)
     let whatsappSent = false;
     try {
-      const gestoraAdmin = operator.admin;
-      if (gestoraAdmin?.phone && process.env.WA_TPL_CONTRACT_AVAILABLE) {
+      const operatorAdmin = operator.admin;
+      if (operatorAdmin?.phone && process.env.WA_TPL_CONTRACT_AVAILABLE) {
         const { whatsappService } = await import('../modules/whatsapp');
-        const firstName = gestoraAdmin.name?.split(' ')[0] || gestoraAdmin.name;
-        await whatsappService.sendTemplate({ to: gestoraAdmin.phone, template: 'kaviar_contract_available_v1' as any, variables: { '1': firstName, '2': 'https://kaviar.com.br/admin/meu-contrato' } });
+        const firstName = operatorAdmin.name?.split(' ')[0] || operatorAdmin.name;
+        await whatsappService.sendTemplate({ to: operatorAdmin.phone, template: 'kaviar_contract_available_v1' as any, variables: { '1': firstName, '2': 'https://kaviar.com.br/admin/meu-contrato' } });
         whatsappSent = true;
       }
     } catch (notifyErr) {

@@ -125,7 +125,7 @@ function ContractDataDiagnostic({ operatorId, token, headers }) {
             <Typography variant="body2"><strong>Território:</strong> {availableFields?.territorio}</Typography>
             <Typography variant="body2"><strong>Cidade/UF:</strong> {availableFields?.cidadeUf}</Typography>
           </Box>
-          <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: 11 } }}>O PDF será disponibilizado para a gestora baixar e assinar. Se o WhatsApp estiver configurado, será enviada notificação automática.</Alert>
+          <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: 11 } }}>O PDF será disponibilizado para o(a) gestor(a) baixar e assinar. Se o WhatsApp estiver configurado, será enviada notificação automática.</Alert>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setGenConfirm(false)} sx={{ color: '#9CA3AF' }}>Cancelar</Button>
@@ -774,7 +774,7 @@ export default function TerritorialPayoutsPage() {
                 try { const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-template-url`, { headers }); const d = await res.json(); if (d.success && d.data?.url) window.open(d.data.url, '_blank'); else alert('Modelo não disponível.'); } catch { alert('Erro ao abrir modelo.'); }
               }}>📄 Abrir modelo atual</Button>
             )}
-            <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mt: 0.5, fontSize: 10 }}>O modelo será disponibilizado para a gestora baixar e assinar.</Typography>
+            <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mt: 0.5, fontSize: 10 }}>O modelo será disponibilizado para o(a) gestor(a) baixar e assinar.</Typography>
           </Box>
 
           {/* Seção 2: Contrato recebido por canal externo */}
@@ -806,7 +806,7 @@ export default function TerritorialPayoutsPage() {
             {contractTarget?.contract_url && (
               <Button size="small" sx={{ color: '#C8A84E', textTransform: 'none', mt: 0.5 }} onClick={async () => {
                 try { const res = await fetch(`${API_BASE_URL}/api/admin/territorial-payouts/operators/${contractTarget.id}/contract-url`, { headers }); const d = await res.json(); if (d.success && d.data?.url) window.open(d.data.url, '_blank'); else alert('Contrato não disponível.'); } catch { alert('Erro ao abrir contrato.'); }
-              }}>📄 Abrir contrato recebido (gestora)</Button>
+              }}>📄 Abrir contrato recebido (gestor(a))</Button>
             )}
             <Typography variant="caption" sx={{ color: '#6B7280', display: 'block', mt: 0.5, fontSize: 10 }}>Para contratos recebidos via WhatsApp, e-mail ou outro canal.</Typography>
           </Box>
