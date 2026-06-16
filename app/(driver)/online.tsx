@@ -14,6 +14,7 @@ import { authStore } from '../../src/auth/auth.store';
 import { RideOffer } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
+import { EarningsCard, StatusPill } from '../../src/components/PremiumCards';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 import { groupLabel } from '../../src/utils/tripLabel';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../src/services/background-location';
@@ -400,23 +401,14 @@ export default function DriverOnline() {
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity onPress={() => setDrawerOpen(true)} style={styles.menuBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <Ionicons name="menu" size={26} color={COLORS.textDark} />
+            <Ionicons name="menu" size={22} color={COLORS.textDark} />
           </TouchableOpacity>
           <View>
             <Text style={styles.brand}>KAVIAR</Text>
             {userName ? <Text style={styles.userName}>{userName}</Text> : null}
           </View>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          {creditBalance !== null && (
-            <TouchableOpacity style={[styles.creditBadge, creditBalance < 10 && styles.creditBadgeLow]} onPress={() => router.push('/(driver)/credits')}>
-              <Ionicons name="wallet-outline" size={14} color={creditBalance < 10 ? '#fff' : COLORS.primary} />
-              <Text style={[styles.creditText, creditBalance < 10 && { color: '#fff' }]}>
-                R$ {creditBalance != null ? Number(creditBalance).toFixed(2) : '—'}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        <StatusPill label={isOnline ? 'Online' : 'Offline'} active={isOnline} />
       </View>
 
       {/* Operational status banners */}
@@ -471,19 +463,14 @@ export default function DriverOnline() {
         {/* Mini-resumo when offline */}
         {!isOnline && !pendingOffer && (
           <View style={styles.quickStats}>
-            <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/summary')}>
-              <Ionicons name="today-outline" size={20} color={COLORS.accent} />
-              <Text style={styles.quickStatValue}>{todayRides}</Text>
-              <Text style={styles.quickStatLabel}>Hoje</Text>
+            <TouchableOpacity onPress={() => router.push('/(driver)/summary')}>
+              <EarningsCard icon="🚗" value={String(todayRides)} label="Corridas" sub="hoje" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/credits')}>
-              <Ionicons name="wallet-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.quickStatValue}>{creditBalance != null ? `R$ ${creditBalance.toFixed(2)}` : '—'}</Text>
-              <Text style={styles.quickStatLabel}>Saldo</Text>
+            <TouchableOpacity onPress={() => router.push('/(driver)/credits')}>
+              <EarningsCard icon="💰" value={creditBalance != null ? `R$${creditBalance.toFixed(0)}` : '—'} label="Saldo" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickStatItem} onPress={() => router.push('/(driver)/help')}>
-              <Ionicons name="help-circle-outline" size={20} color={COLORS.textSecondary} />
-              <Text style={styles.quickStatLabel}>Ajuda</Text>
+            <TouchableOpacity onPress={() => router.push('/(driver)/help')}>
+              <EarningsCard icon="🛡️" value="" label="Suporte" sub="24h" />
             </TouchableOpacity>
           </View>
         )}
@@ -626,9 +613,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 24, paddingTop: 12, paddingBottom: 8,
   },
-  brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 4 },
-  menuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 },
-  userName: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
+  brand: { fontSize: 20, fontWeight: '900', color: COLORS.primary, letterSpacing: 5 },
+  menuBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 6 },
+  userName: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
   center: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
 
   // Banners
@@ -640,19 +627,20 @@ const styles = StyleSheet.create({
 
   // Status
   statusRing: {
-    width: 80, height: 80, borderRadius: 40,
+    width: 100, height: 100, borderRadius: 50,
     borderWidth: 3, borderColor: COLORS.border,
     justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginBottom: 12,
+    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 8,
   },
-  statusDot: { width: 36, height: 36, borderRadius: 18 },
+  statusDot: { width: 44, height: 44, borderRadius: 22 },
   statusText: {
-    fontSize: 28, fontWeight: '800', color: COLORS.textMuted,
-    textAlign: 'center', letterSpacing: 4, marginBottom: 32,
+    fontSize: 24, fontWeight: '900', color: COLORS.textMuted,
+    textAlign: 'center', letterSpacing: 6, marginBottom: 8,
   },
 
   // Quick stats
   quickStats: {
-    flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 32,
+    flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 32, paddingHorizontal: 8,
   },
   quickStatItem: {
     backgroundColor: COLORS.surface, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18,
