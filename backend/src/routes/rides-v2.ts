@@ -48,7 +48,7 @@ const router = Router();
 // 5.0 Estimativa de preço (sem criar corrida)
 router.post('/estimate', authenticatePassenger, async (req: Request, res: Response) => {
   try {
-    const { origin, destination, post_wait_destination, wait_estimated_min } = req.body;
+    const { origin, destination, post_wait_destination, wait_estimated_min, service_category } = req.body;
     if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
       return res.status(400).json({ error: 'Origem ou destino inválido' });
     }
@@ -115,6 +115,11 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
 
     if (price === profile.minimum_fare && raw < profile.minimum_fare) {
       minimum_fare_applied = true;
+    }
+
+    // MOTO_PASSENGER: 70% of car price, minimum R$18
+    if (service_category === 'MOTO_PASSENGER') {
+      price = Math.round(Math.max(price * 0.70, 18.00) * 100) / 100;
     }
 
     // Wait estimate (informational only — real charge is by actual time)
@@ -293,7 +298,8 @@ router.post('/', authenticatePassenger, async (req: Request, res: Response) => {
         originNeighborhoodId, destNeighborhoodId,
         config.wait.enabled && wait_requested && post_wait_destination?.lat && post_wait_destination?.lng
           ? { lat: Number(post_wait_destination.lat), lng: Number(post_wait_destination.lng) }
-          : null
+          : null,
+        service_category || 'CAR_NORMAL'
       );
     } catch (priceErr) {
       console.error(`[PRICING_QUOTE_FAILED] ride_id=${ride.id}`, priceErr);
