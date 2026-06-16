@@ -10,8 +10,8 @@ const config = {
     adaptiveIcon: './assets/adaptive-icon-driver.png',
     scheme: 'kaviar-driver',
     projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85',
-    version: '1.11.25-women-preference-scroll',
-    versionCode: 5,
+    version: '1.12.1',
+    versionCode: 6,
   },
   passenger: {
     name: 'Kaviar Passageiro',
@@ -22,8 +22,8 @@ const config = {
     adaptiveIcon: './assets/adaptive-icon-passenger.png',
     scheme: 'kaviar-passenger',
     projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
-    version: '1.13.7-kaviar-local-l1',
-    versionCode: 21,
+    version: '1.13.8',
+    versionCode: 22,
   }
 };
 
