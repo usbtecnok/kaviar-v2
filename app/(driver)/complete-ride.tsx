@@ -101,10 +101,13 @@ export default function CompleteRide() {
 
   // Cooldown: prevent instant "Cheguei" after accepting
   useEffect(() => {
-    if (rideStatus !== 'accepted' || arrivedCooldown <= 0) return;
-    const id = setInterval(() => setArrivedCooldown(prev => Math.max(0, prev - 1)), 1000);
+    if (rideStatus !== 'accepted') return;
+    const id = setInterval(() => setArrivedCooldown(prev => {
+      if (prev <= 1) { clearInterval(id); return 0; }
+      return prev - 1;
+    }), 1000);
     return () => clearInterval(id);
-  }, [rideStatus, arrivedCooldown]);
+  }, [rideStatus]);
 
   // B1b: Wait active timer
   useEffect(() => {
@@ -142,9 +145,15 @@ export default function CompleteRide() {
   };
 
   // Speed up polling during arrived (boarding status needs fast updates)
+  const pollIntervalRef = useRef(0);
+  const startPollingSafe = (intervalMs: number) => {
+    if (pollIntervalRef.current === intervalMs && pollRef.current) return;
+    pollIntervalRef.current = intervalMs;
+    startPolling(intervalMs);
+  };
   useEffect(() => {
-    if (rideStatus === 'arrived') startPolling(3000);
-    else if (rideStatus === 'accepted' || rideStatus === 'in_progress') startPolling(5000);
+    if (rideStatus === 'arrived') startPollingSafe(3000);
+    else if (rideStatus === 'accepted' || rideStatus === 'in_progress') startPollingSafe(5000);
   }, [rideStatus]);
 
   const loadRide = async () => {
