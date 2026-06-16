@@ -56,6 +56,7 @@ export default function Register() {
   const [referralCode, setReferralCode] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
+  const [modality, setModality] = useState<string>('CAR');
   
   // Bônus familiar
   const [familyBonusAccepted, setFamilyBonusAccepted] = useState(false);
@@ -321,6 +322,23 @@ export default function Register() {
       // ✅ Auto-login com token retornado
       await authStore.setAuth(registerJson.token, registerJson.user);
 
+      // Create modality entry
+      try {
+        const token = registerJson.token;
+        await fetch(`${API_URL}/api/drivers/me/modalities`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            modality,
+            vehicle_plate: vehiclePlate || null,
+            vehicle_model: vehicleModel || null,
+            vehicle_color: vehicleColor || null,
+            cnh_category: modality === 'CAR' ? 'B' : 'A',
+            has_extra_helmet: modality === 'MOTO_PASSENGER',
+          }),
+        });
+      } catch {}
+
       // Mensagem de sucesso
       const territoryMsg = selectedNeighborhood
         ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
@@ -444,6 +462,23 @@ export default function Register() {
         {/* Passo 2: Dados do Veículo */}
         {step === 2 && (
           <View style={styles.form}>
+            <Text style={styles.label}>Modalidade *</Text>
+            <View style={{ gap: 8, marginBottom: 12 }}>
+              {[
+                { value: 'CAR', label: '🚗 Motorista de Carro' },
+                { value: 'MOTO_DELIVERY', label: '📦 Moto Entrega' },
+                { value: 'MOTO_PASSENGER', label: '🏍️ Moto Transporte de Passageiro' },
+              ].map(opt => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[styles.neighborhoodItem, modality === opt.value && styles.neighborhoodItemSelected]}
+                  onPress={() => setModality(opt.value)}
+                >
+                  <Text style={[styles.neighborhoodName, { fontSize: 15 }]}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <Text style={styles.label}>Cor do Veículo *</Text>
             <TextInput
               style={styles.input}

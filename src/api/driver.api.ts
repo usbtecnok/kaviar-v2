@@ -135,4 +135,15 @@ export const driverApi = {
     const { data } = await apiClient.post(`/api/v2/rides/${rideId}/emergency`);
     return data;
   },
+
+  // Modalities
+  getModalities: async () => {
+    const { data } = await apiClient.get('/api/drivers/me/modalities');
+    return data.data || [];
+  },
+
+  addModality: async (body: { modality: string; vehicle_plate?: string; vehicle_model?: string; vehicle_color?: string; vehicle_year?: number; vehicle_brand?: string; cnh_category?: string; has_extra_helmet?: boolean }) => {
+    const { data } = await apiClient.post('/api/drivers/me/modalities', body);
+    return data;
+  },
 };
