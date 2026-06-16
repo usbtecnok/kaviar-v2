@@ -237,7 +237,8 @@ function toProfile(row: any): PricingProfile {
 export async function quote(rideId: string, originLat: number, originLng: number,
   destLat: number, destLng: number,
   originNeighborhoodId: string | null, destNeighborhoodId: string | null,
-  postWaitDest?: { lat: number; lng: number } | null
+  postWaitDest?: { lat: number; lng: number } | null,
+  serviceCategory: string = 'CAR_NORMAL'
 ): Promise<QuoteResult> {
   // Idempotência: se já existe settlement, retorna valores existentes
   const existing = await pool.query(
@@ -328,6 +329,12 @@ export async function quote(rideId: string, originLat: number, originLng: number
   }
 
   const fee_percent = feeForTerritory(profile, route_territory);
+
+  // MOTO_PASSENGER: 70% of car price, minimum R$18
+  if (serviceCategory === 'MOTO_PASSENGER') {
+    quoted_price = round2(Math.max(quoted_price * 0.70, 18.00));
+  }
+
   const fee_amount = round2(quoted_price * fee_percent / 100);
   const driver_earnings = round2(quoted_price - fee_amount);
 
