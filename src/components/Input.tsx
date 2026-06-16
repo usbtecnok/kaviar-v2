@@ -11,12 +11,16 @@ interface InputProps {
   icon?: keyof typeof Ionicons.glyphMap;
   keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: 'off' | 'email' | 'password' | 'tel' | 'name' | 'username';
+  importantForAutofill?: 'auto' | 'no' | 'yes';
+  textContentType?: 'none' | 'emailAddress' | 'password' | 'telephoneNumber' | 'name' | 'username';
   maxLength?: number;
 }
 
 export const Input: React.FC<InputProps> = ({
   placeholder, value, onChangeText, secureTextEntry, icon,
-  keyboardType = 'default', autoCapitalize = 'none', maxLength,
+  keyboardType = 'default', autoCapitalize = 'none', autoComplete,
+  importantForAutofill, textContentType, maxLength,
 }) => {
   const [focused, setFocused] = useState(false);
 
@@ -39,6 +43,9 @@ export const Input: React.FC<InputProps> = ({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
+        autoComplete={autoComplete}
+        importantForAutofill={importantForAutofill}
+        textContentType={textContentType}
         maxLength={maxLength}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}

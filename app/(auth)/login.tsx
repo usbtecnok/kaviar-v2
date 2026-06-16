@@ -69,6 +69,9 @@ export default function Login() {
             onChangeText={setPassword}
             icon="lock-closed-outline"
             secureTextEntry
+            autoComplete="off"
+            importantForAutofill="no"
+            textContentType="none"
           />
 
           <Button
