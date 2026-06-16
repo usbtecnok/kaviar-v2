@@ -34,6 +34,7 @@ const cellSx = { color: '#E8E3D5', borderColor: '#1A1A2E' };
 
 export default function VitrineLocalList() {
   const [items, setItems] = useState([]);
+  const [territories, setTerritories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -43,8 +44,12 @@ export default function VitrineLocalList() {
   const load = async () => {
     try {
       setLoading(true);
-      const data = await adminApi.getLocalBusinesses();
-      setItems(data.data || []);
+      const [bizData, terrData] = await Promise.all([
+        adminApi.getLocalBusinesses(),
+        adminApi.get('/api/admin/local-businesses/territories'),
+      ]);
+      setItems(bizData.data || []);
+      setTerritories(terrData.data || []);
       setError('');
     } catch (err) {
       console.error(err);
@@ -65,13 +70,15 @@ export default function VitrineLocalList() {
     }
   };
 
-  const regions = Array.from(new Set(items.map((i) => i.region_slug).filter(Boolean))).sort();
+  const regions = territories.length > 0
+    ? territories.map((t) => ({ id: t.id, label: `${t.name}${t.uf ? ` (${t.uf})` : ''}` }))
+    : Array.from(new Set(items.map((i) => i.region_slug).filter(Boolean))).sort().map((r) => ({ id: r, label: r }));
 
   const filtered = items.filter((i) => {
     if (statusFilter === 'active' && !i.is_active) return false;
     if (statusFilter === 'inactive' && i.is_active) return false;
     if (categoryFilter && i.category !== categoryFilter) return false;
-    if (regionFilter && i.region_slug !== regionFilter) return false;
+    if (regionFilter && i.territory_id !== regionFilter && i.region_slug !== regionFilter) return false;
     return true;
   });
 
@@ -122,7 +129,7 @@ export default function VitrineLocalList() {
         >
           <MenuItem value="">Todas</MenuItem>
           {regions.map((r) => (
-            <MenuItem key={r} value={r}>{r}</MenuItem>
+            <MenuItem key={r.id} value={r.id}>{r.label}</MenuItem>
           ))}
         </TextField>
       </Box>
