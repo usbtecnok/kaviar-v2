@@ -49,7 +49,6 @@ export default function Login() {
         <View style={styles.brandArea}>
           <Text style={styles.brand}>KAVIAR</Text>
           <View style={styles.line} />
-          <Text style={styles.tetragramDetail}>יהוה</Text>
           <Text style={styles.subtitle}>
             {isDriver ? 'Motorista' : 'Passageiro'}
           </Text>
@@ -98,6 +97,7 @@ export default function Login() {
             </Text>
           </Text>
         </TouchableOpacity>
+        <Text style={styles.tetragramDetail}>יהוה</Text>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -160,12 +160,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   tetragramDetail: {
-    marginTop: 8,
-    marginBottom: 8,
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#C9A227',
-    opacity: 0.30,
+    alignSelf: 'center',
+    marginTop: 22,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#3B82F6',
     letterSpacing: 1,
     writingDirection: 'rtl',
     textAlign: 'center',
