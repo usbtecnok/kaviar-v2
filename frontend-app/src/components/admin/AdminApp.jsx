@@ -31,6 +31,7 @@ import GeofenceManagement from "../../pages/admin/GeofenceManagement";
 import BonusMetrics from "../../pages/admin/BonusMetrics";
 import KaviarLab from "../../pages/admin/KaviarLab";
 import DriverApproval from "../../pages/admin/DriverApproval";
+import ModalityApproval from "../../pages/admin/ModalityApproval";
 import DriversList from "../../pages/admin/DriversList";
 import DriverDetail from "../../pages/admin/DriverDetail";
 import { RideList, RideDetail, RideAudit } from "../../pages/admin/rides";
@@ -349,6 +350,7 @@ function AdminHome() {
           {/* Aprovações inline */}
           {[
             { value: pending.drivers || 0, label: 'Motoristas pendentes', to: '/admin/drivers/approval', active: pending.drivers > 0 },
+            { value: 0, label: 'Modalidades pendentes', to: '/admin/modality-approval', active: true },
             { value: pending.passengers || 0, label: 'Passageiros pendentes', to: '/admin/passengers?status=pending', active: pending.passengers > 0 },
             { value: pending.guides || 0, label: 'Guias pendentes', to: '/admin/guides?status=pending', active: pending.guides > 0 },
           ].map(p => (
@@ -928,6 +930,11 @@ export default function AdminApp() {
           <Route path="/drivers/approval" element={
             <ProtectedAdminRoute>
               <DriverApproval />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/modality-approval" element={
+            <ProtectedAdminRoute>
+              <ModalityApproval />
             </ProtectedAdminRoute>
           } />
           
