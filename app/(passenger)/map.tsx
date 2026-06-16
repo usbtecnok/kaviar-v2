@@ -34,6 +34,7 @@ import { persistPassengerRide, getPersistedPassengerRide } from '../../src/servi
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 
 const POLL_INTERVAL = 3000;
+const POLL_BACKOFF_P = [3000, 5000, 8000, 10000]; // normal, 1 fail, 2 fails, 3+ fails
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   scheduled:          { label: 'Corrida agendada',       color: '#1a3a6a', icon: '🕐' },
@@ -205,7 +206,8 @@ export default function PassengerMap() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [searchingFor, setSearchingFor] = useState<'origin' | 'destination'>('destination');
 
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollFailsRef = useRef(0);
   const mapRef = useRef<MapView>(null);
   const searchRef = useRef<TextInput>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -404,9 +406,11 @@ export default function PassengerMap() {
   const lastStatusRef = useRef('');
 
   const startPolling = (rideId: string) => {
-    pollRef.current = setInterval(async () => {
+    pollFailsRef.current = 0;
+    const poll = async () => {
       try {
         const updated = await passengerApi.getRide(rideId);
+        pollFailsRef.current = 0;
         setRide(updated);
         persistPassengerRide(updated);
         // Stabilize driver photo URL (avoid flicker from changing presigned params)
@@ -465,14 +469,19 @@ export default function PassengerMap() {
           } else if (updated.status === 'no_driver') {
             setShowNoDriver(true);
           }
+          return; // don't schedule next poll
         }
       } catch (e) {
+        pollFailsRef.current = Math.min(pollFailsRef.current + 1, 10);
         console.warn('[Map] ride polling failed:', e);
       }
-    }, POLL_INTERVAL);
+      const delay = POLL_BACKOFF_P[Math.min(pollFailsRef.current, POLL_BACKOFF_P.length - 1)];
+      pollRef.current = setTimeout(poll, delay);
+    };
+    pollRef.current = setTimeout(poll, POLL_BACKOFF_P[0]);
   };
 
-  const stopPolling = () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  const stopPolling = () => { if (pollRef.current) { clearTimeout(pollRef.current); pollRef.current = null; } };
   const stopAll = () => { stopPolling(); setDriverLocation(null); };
 
   const checkReturnHome = async (rideDestination?: { lat: number; lng: number } | null) => {

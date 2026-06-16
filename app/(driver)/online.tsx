@@ -23,6 +23,7 @@ import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ENV } from '../../src/config/env';
 
 const POLL_INTERVAL = 5000;
+const POLL_BACKOFF = [5000, 8000, 12000, 15000]; // normal, 1 fail, 2 fails, 3+ fails
 const LOCATION_INTERVAL = 15000;
 
 const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -47,6 +48,8 @@ export default function DriverOnline() {
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [offerCountdown, setOfferCountdown] = useState('');
   const [soundMuted, setSoundMuted] = useState(false);
+  const [pollUnstable, setPollUnstable] = useState(false);
+  const pollFailsRef = useRef(0);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const locationRef = useRef<NodeJS.Timeout | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -116,7 +119,7 @@ export default function DriverOnline() {
       }
 
       // 3. Reinicia polling de ofertas
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollRef.current) clearTimeout(pollRef.current);
       startPolling();
 
       // 4. Reinicia location foreground se background negado
@@ -235,10 +238,14 @@ export default function DriverOnline() {
   };
 
   const startPolling = () => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    pollRef.current = setInterval(async () => {
+    if (pollRef.current) clearTimeout(pollRef.current);
+    pollFailsRef.current = 0;
+    setPollUnstable(false);
+    const poll = async () => {
       try {
         const offers = await driverApi.getOffers();
+        pollFailsRef.current = 0;
+        setPollUnstable(false);
         if (offers.length > 0 && !pendingOfferRef.current) {
           const offer = offers[0];
           if (expiredOfferIdsRef.current.has(offer.id)) return;
@@ -258,9 +265,14 @@ export default function DriverOnline() {
           }
         }
       } catch (e) {
+        pollFailsRef.current = Math.min(pollFailsRef.current + 1, 10);
+        if (pollFailsRef.current >= 3) setPollUnstable(true);
         console.warn('[Driver] offer polling failed:', e);
       }
-    }, POLL_INTERVAL);
+      const delay = POLL_BACKOFF[Math.min(pollFailsRef.current, POLL_BACKOFF.length - 1)];
+      pollRef.current = setTimeout(poll, delay);
+    };
+    pollRef.current = setTimeout(poll, POLL_BACKOFF[0]);
   };
 
   const startLocationTracking = async (): Promise<void> => {
@@ -300,10 +312,12 @@ export default function DriverOnline() {
   };
 
   const stopAll = () => {
-    if (pollRef.current) clearInterval(pollRef.current);
+    if (pollRef.current) clearTimeout(pollRef.current);
     if (locationRef.current) clearInterval(locationRef.current);
     pollRef.current = null;
     locationRef.current = null;
+    pollFailsRef.current = 0;
+    setPollUnstable(false);
     stopBackgroundLocation().catch(() => {});
   };
 
@@ -362,7 +376,7 @@ export default function DriverOnline() {
   const handleAcceptOffer = async () => {
     if (!pendingOffer) return;
     await stopSound();
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    if (pollRef.current) { clearTimeout(pollRef.current); pollRef.current = null; }
     setPendingOffer(null);
     pendingOfferRef.current = null;
     router.replace(`/(driver)/accept-ride?offerId=${pendingOffer.id}&rideId=${pendingOffer.ride.id}&expiresAt=${encodeURIComponent(pendingOffer.expires_at)}`);
@@ -450,6 +464,12 @@ export default function DriverOnline() {
         <View style={styles.banner}>
           <Ionicons name="navigate-outline" size={16} color={COLORS.warning} />
           <Text style={styles.bannerText}>Localização em segundo plano negada. Ao usar Waze ou minimizar, sua posição não será atualizada.</Text>
+        </View>
+      )}
+      {pollUnstable && isOnline && (
+        <View style={[styles.banner, { backgroundColor: '#2a2a45' }]}>
+          <Ionicons name="cloud-offline-outline" size={16} color={COLORS.textSecondary} />
+          <Text style={[styles.bannerText, { color: COLORS.textSecondary }]}>Sinal instável para receber corridas</Text>
         </View>
       )}
 
