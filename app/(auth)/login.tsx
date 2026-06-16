@@ -49,10 +49,10 @@ export default function Login() {
         <View style={styles.brandArea}>
           <Text style={styles.brand}>KAVIAR</Text>
           <View style={styles.line} />
+          <Text style={styles.tetragramDetail}>יהוה</Text>
           <Text style={styles.subtitle}>
             {isDriver ? 'Motorista' : 'Passageiro'}
           </Text>
-          <Text style={styles.tetragramDetail}>יהוה</Text>
         </View>
 
         {/* Form */}
@@ -161,10 +161,11 @@ const styles = StyleSheet.create({
   },
   tetragramDetail: {
     marginTop: 8,
-    fontSize: 18,
+    marginBottom: 8,
+    fontSize: 17,
     fontWeight: '600',
-    color: '#8A6A3A',
-    opacity: 0.18,
+    color: '#C9A227',
+    opacity: 0.30,
     letterSpacing: 1,
     writingDirection: 'rtl',
     textAlign: 'center',
