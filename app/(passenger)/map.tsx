@@ -591,7 +591,6 @@ export default function PassengerMap() {
   };
 
   const submitRide = async () => {
-    if (!isConnected) { Alert.alert('Sem internet', 'Sem internet no momento. Assim que a conexão voltar, tente novamente.'); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setLoading(true);
     try {
@@ -610,11 +609,28 @@ export default function PassengerMap() {
       setScreen('tracking');
       startPolling(result.ride_id);
     } catch (e: any) {
-      const errMsg = e?.response?.data?.error || '';
-      if (selectedVehicle === 'moto' && motoConsented && (errMsg === 'MOTO_PASSENGER_DISABLED' || errMsg === 'MOTO_PASSENGER_PRICING_NOT_CONFIGURED')) {
-        setShowMotoUnavailable(true);
+      if (!e.response) {
+        // Network failure — enqueue and show feedback
+        const { enqueue } = require('../../src/services/offline-queue');
+        const body = {
+          origin: { lat: origin!.lat, lng: origin!.lng, text: origin!.text },
+          destination: { lat: destination!.lat, lng: destination!.lng, text: destination!.text },
+          trip_details: { passengers: passengerCount, has_luggage: hasLuggage },
+          scheduled_for: getScheduledFor(),
+          wait_requested: waitEstimatedMin !== null,
+          wait_estimated_min: waitEstimatedMin ?? undefined,
+          post_wait_destination: waitEstimatedMin !== null && postWaitDest ? postWaitDest : undefined,
+          ...(selectedVehicle === 'moto' && motoConsented ? { service_category: 'MOTO_PASSENGER', passenger_moto_consent: true } : {}),
+        };
+        await enqueue({ method: 'POST' as const, url: 'https://api.kaviar.com.br/api/v2/rides', body });
+        Alert.alert('Sem internet', 'Seu pedido será enviado assim que a conexão voltar. Mantenha o app aberto.');
       } else {
-        Alert.alert('Erro', friendlyError(e, 'Não foi possível solicitar a corrida.'));
+        const errMsg = e?.response?.data?.error || '';
+        if (selectedVehicle === 'moto' && motoConsented && (errMsg === 'MOTO_PASSENGER_DISABLED' || errMsg === 'MOTO_PASSENGER_PRICING_NOT_CONFIGURED')) {
+          setShowMotoUnavailable(true);
+        } else {
+          Alert.alert('Erro', friendlyError(e, 'Não foi possível solicitar a corrida.'));
+        }
       }
     } finally { setLoading(false); }
   };
