@@ -345,7 +345,7 @@ export default function Register() {
 
       // Mensagem de sucesso
       const territoryMsg = selectedNeighborhood
-        ? `Seu território: ${selectedNeighborhood.name}\nTipo: ${selectedNeighborhood.hasGeofence ? 'Oficial (taxa mín. 7%)' : 'Virtual 800m (taxa mín. 12%)'}`
+        ? `Seu território: ${selectedNeighborhood.name}`
         : 'Território pode ser definido depois';
 
       Alert.alert(
@@ -581,9 +581,7 @@ export default function Register() {
                   <Text style={styles.detectedTitle}>Bairro Detectado</Text>
                   <Text style={styles.detectedName}>{detectedNeighborhood.name}</Text>
                   <Text style={styles.detectedType}>
-                    {detectedNeighborhood.hasGeofence 
-                      ? '✅ Mapa Oficial - Taxa mín. 7%' 
-                      : '⚠️ Virtual 800m - Taxa mín. 12%'}
+                    ✅ Território KAVIAR disponível
                   </Text>
                 </View>
               </View>
@@ -634,10 +632,10 @@ export default function Register() {
                     </View>
                     <View style={styles.neighborhoodBadge}>
                       <Text style={styles.neighborhoodFee}>
-                        {n.hasGeofence ? '7%' : '12%'}
+                        ✅
                       </Text>
                       <Text style={styles.neighborhoodType}>
-                        {n.hasGeofence ? 'Oficial' : 'Virtual'}
+                        {n.hasGeofence ? 'Ativo' : 'Disponível'}
                       </Text>
                     </View>
                   </TouchableOpacity>
