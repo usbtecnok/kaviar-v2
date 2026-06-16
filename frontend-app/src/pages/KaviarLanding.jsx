@@ -329,7 +329,7 @@ export default function KaviarLanding() {
               <li>Recebimento de corridas da sua região</li>
               <li>Operação focada em proximidade e confiança</li>
             </Box>
-            <Button variant="contained" href="https://downloads.kaviar.com.br/kaviar-motorista-v1.12.0-parceiro-premium.apk" target="_blank" rel="noopener" sx={sx.goldBtn}>
+            <Button variant="contained" href="https://downloads.kaviar.com.br/kaviar-motorista-v1.12.1-ota.apk" target="_blank" rel="noopener" sx={sx.goldBtn}>
               Baixar app do motorista
             </Button>
           </Box>
@@ -348,7 +348,7 @@ export default function KaviarLanding() {
               <li>Experiência conectada à rede local</li>
               <li>Acompanhe a expansão na sua região</li>
             </Box>
-            <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro.apk" target="_blank" rel="noopener" sx={sx.outlineBtn}>
+            <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.13.8-ota.apk" target="_blank" rel="noopener" sx={sx.outlineBtn}>
               Baixar app do passageiro
             </Button>
           </Box>
