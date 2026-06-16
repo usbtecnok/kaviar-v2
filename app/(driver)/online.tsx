@@ -646,6 +646,7 @@ export default function DriverOnline() {
         userPhone={userPhone}
         items={drawerItems}
       />
+      <Text style={styles.subtleTetragram}>יהוה</Text>
     </SafeAreaView>
   );
 }
@@ -743,4 +744,5 @@ const styles = StyleSheet.create({
   },
   creditBadgeLow: { backgroundColor: COLORS.danger },
   creditText: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+  subtleTetragram: { position: 'absolute', right: 22, bottom: 18, fontSize: 22, fontWeight: '600', color: '#8A6A3A', opacity: 0.18, letterSpacing: 1, writingDirection: 'rtl', textAlign: 'right' },
 });
