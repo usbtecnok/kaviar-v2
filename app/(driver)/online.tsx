@@ -424,6 +424,8 @@ export default function DriverOnline() {
   // Derived states
   const noCredits = creditBalance !== null && creditBalance === 0;
   const lowCredits = creditBalance !== null && creditBalance > 0 && creditBalance < 10;
+  const isReconnecting = isOnline && !isConnected;
+  const effectiveOnline = isOnline && isConnected;
   const hasOperationalIssue = !gpsEnabled || !locationPermission || noCredits;
 
   const distanceToPickup = pendingOffer && currentCoords
@@ -443,7 +445,7 @@ export default function DriverOnline() {
             {userName ? <Text style={styles.userName}>{userName}</Text> : null}
           </View>
         </View>
-        <StatusPill label={isOnline && !isConnected ? 'Reconectando...' : isOnline ? 'Online' : 'Offline'} active={isOnline && isConnected} />
+        <StatusPill label={isReconnecting ? 'Reconectando...' : isOnline ? 'Online' : 'Offline'} active={effectiveOnline} />
       </View>
 
       {/* Operational status banners */}
@@ -493,12 +495,12 @@ export default function DriverOnline() {
         <View style={styles.statusRing}>
           <Animated.View style={[
             styles.statusDot,
-            { backgroundColor: isOnline && isConnected ? COLORS.statusOnline : isOnline ? COLORS.warning : COLORS.statusOffline },
-            isOnline && isConnected && !pendingOffer && { opacity: pulseAnim },
+            { backgroundColor: effectiveOnline ? COLORS.statusOnline : isReconnecting ? COLORS.warning : COLORS.statusOffline },
+            effectiveOnline && !pendingOffer && { opacity: pulseAnim },
           ]} />
         </View>
-        <Text style={[styles.statusText, isOnline && isConnected && { color: COLORS.statusOnline }, isOnline && !isConnected && { color: COLORS.warning }]}>
-          {isOnline && !isConnected ? 'RECONECTANDO...' : isOnline ? 'ONLINE' : 'OFFLINE'}
+        <Text style={[styles.statusText, effectiveOnline && { color: COLORS.statusOnline }, isReconnecting && { color: COLORS.warning }]}>
+          {isReconnecting ? 'RECONECTANDO...' : isOnline ? 'ONLINE' : 'OFFLINE'}
         </Text>
 
         {/* Mini-resumo when offline */}
@@ -607,10 +609,10 @@ export default function DriverOnline() {
         ) : !pendingOffer ? (
           <>
             <View style={styles.waitingBox}>
-              <Ionicons name="radio-outline" size={20} color={COLORS.textMuted} />
-              <Text style={styles.waitingText}>Aguardando corridas...</Text>
+              <Ionicons name={isReconnecting ? 'cloud-offline-outline' : 'radio-outline'} size={20} color={isReconnecting ? COLORS.warning : COLORS.textMuted} />
+              <Text style={styles.waitingText}>{isReconnecting ? 'Sem internet. Reconectando para receber corridas...' : 'Aguardando corridas...'}</Text>
             </View>
-            <Button title="Ficar Offline" variant="outline" onPress={handleGoOffline} loading={loading} />
+            <Button title={isReconnecting ? 'Reconectando...' : 'Ficar Offline'} variant="outline" onPress={handleGoOffline} loading={loading} disabled={isReconnecting} />
           </>
         ) : null}
       </ScrollView>
