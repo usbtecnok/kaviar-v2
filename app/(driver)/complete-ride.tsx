@@ -114,14 +114,22 @@ export default function CompleteRide() {
     return () => clearInterval(id);
   }, [rideStatus, ride?.wait_started_at, ride?.wait_ended_at]);
 
+  const lastRideUpdateRef = useRef<string | undefined>(undefined);
+  const rideStatusRef = useRef<RideStatus>(rideStatus);
+
+  useEffect(() => { rideStatusRef.current = rideStatus; }, [rideStatus]);
+
   const startPolling = (intervalMs = 5000) => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
         const current = await driverApi.getCurrentRide();
         if (current) {
-          setRide(current);
-          setRideStatus(current.status as RideStatus);
+          if (current.updated_at !== lastRideUpdateRef.current || current.status !== rideStatusRef.current) {
+            lastRideUpdateRef.current = current.updated_at;
+            setRide(current);
+            setRideStatus(current.status as RideStatus);
+          }
         } else if (!completionRef.current) {
           setActiveRideId(null);
           setRideStatus('canceled_by_passenger' as RideStatus);
