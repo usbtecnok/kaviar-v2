@@ -146,7 +146,39 @@ export default function DriverOnline() {
       checkLocationPermission();
     });
 
-    return () => { appStateSub.remove(); stopAll(); stopSound(); driverApi.setAvailability('offline').catch(() => {}); };
+    // Push received in foreground — immediately poll for offer
+    const notifSub = Notifications.addNotificationReceivedListener(() => {
+      if (!isOnlineRef.current || pendingOfferRef.current) return;
+      // Reset backoff and poll immediately
+      pollFailsRef.current = 0;
+      setPollUnstable(false);
+      if (pollRef.current) clearTimeout(pollRef.current);
+      pollRef.current = setTimeout(async () => {
+        try {
+          const offers = await driverApi.getOffers();
+          if (offers.length > 0 && !pendingOfferRef.current) {
+            const offer = offers[0];
+            if (expiredOfferIdsRef.current.has(offer.id)) return;
+            pendingOfferRef.current = offer;
+            setPendingOffer(offer);
+            if (!soundMutedRef.current) {
+              try {
+                await stopSound();
+                const { sound } = await Audio.Sound.createAsync(
+                  require('../../assets/sounds/kaviar_ride.wav')
+                );
+                soundRef.current = sound;
+                await sound.playAsync();
+              } catch (e) { console.warn('[Driver] push sound failed:', e); }
+            }
+          }
+        } catch (e) { console.warn('[Driver] push-triggered poll failed:', e); }
+        // Resume normal polling
+        startPolling();
+      }, 300);
+    });
+
+    return () => { appStateSub.remove(); notifSub.remove(); stopAll(); stopSound(); driverApi.setAvailability('offline').catch(() => {}); };
   }, []);
 
   useFocusEffect(useCallback(() => {
