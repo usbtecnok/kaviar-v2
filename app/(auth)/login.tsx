@@ -162,11 +162,10 @@ const styles = StyleSheet.create({
   tetragramDetail: {
     alignSelf: 'center',
     marginTop: 22,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#3B82F6',
-    letterSpacing: 1,
-    writingDirection: 'rtl',
+    color: '#FFFFFF',
+    letterSpacing: 2,
     textAlign: 'center',
   },
 });
