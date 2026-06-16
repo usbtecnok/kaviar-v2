@@ -236,6 +236,15 @@ class AdminApiService {
   async toggleLocalBusiness(id, is_active) {
     return this.patch(`/api/admin/local-businesses/${id}`, { is_active });
   }
+
+  // Modality approval
+  async getModalityQueue(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return this.get(`/api/admin/modality-queue${qs ? '?' + qs : ''}`);
+  }
+  async approveModality(id, review_notes) { return this.patch(`/api/admin/modalities/${id}/approve`, { review_notes }); }
+  async rejectModality(id, rejected_reason, review_notes) { return this.patch(`/api/admin/modalities/${id}/reject`, { rejected_reason, review_notes }); }
+  async suspendModality(id, review_notes) { return this.patch(`/api/admin/modalities/${id}/suspend`, { review_notes }); }
 }
 
 export const adminApi = new AdminApiService();
