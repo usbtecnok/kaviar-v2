@@ -54,9 +54,12 @@ function ensureTaskDefined() {
 
     // Always send driver location
     try {
+      const ctrl1 = new AbortController();
+      const t1 = setTimeout(() => ctrl1.abort(), 10000);
       await fetch(`${apiUrl}/api/v2/drivers/me/location`, {
-        method: 'POST', headers, body: JSON.stringify({ lat, lng }),
+        method: 'POST', headers, body: JSON.stringify({ lat, lng }), signal: ctrl1.signal,
       });
+      clearTimeout(t1);
     } catch {
       try {
         const { enqueue } = require('./offline-queue');
@@ -68,9 +71,12 @@ function ensureTaskDefined() {
     const rideId = await AsyncStorage.getItem(RIDE_ID_KEY);
     if (rideId) {
       try {
+        const ctrl2 = new AbortController();
+        const t2 = setTimeout(() => ctrl2.abort(), 10000);
         await fetch(`${apiUrl}/api/v2/rides/${rideId}/location`, {
-          method: 'POST', headers, body: JSON.stringify({ lat, lng }),
+          method: 'POST', headers, body: JSON.stringify({ lat, lng }), signal: ctrl2.signal,
         });
+        clearTimeout(t2);
       } catch {
         try {
           const { enqueue } = require('./offline-queue');

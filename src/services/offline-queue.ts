@@ -66,11 +66,15 @@ export async function drain(authToken: string | null): Promise<number> {
 
     for (const item of memoryQueue) {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
         const resp = await fetch(item.url, {
           method: item.method,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
           body: JSON.stringify(item.body),
+          signal: controller.signal,
         });
+        clearTimeout(timeout);
         if (resp.ok || resp.status === 400 || resp.status === 404) {
           // Success or client error (no point retrying) — discard
           sent++;
@@ -79,7 +83,7 @@ export async function drain(authToken: string | null): Promise<number> {
           if (item.retries < 5) remaining.push(item);
         }
       } catch {
-        // Still offline — keep in queue, stop draining
+        // Still offline or timeout — keep in queue, stop draining
         remaining.push(item);
         // Push rest without trying
         const idx = memoryQueue.indexOf(item);

@@ -6,6 +6,8 @@ import Constants from "expo-constants";
 import { startNetInfoListener, stopNetInfoListener } from "../src/services/net-info-listener";
 import { checkAppVersion, VersionCheckResult } from "../src/services/version-check";
 import { UpdateRequiredModal } from "../src/components/UpdateRequiredModal";
+import { NetworkProvider } from "../src/hooks/useNetworkStatus";
+import { OfflineBanner } from "../src/components/OfflineBanner";
 
 const variant = Constants.expoConfig?.extra?.APP_VARIANT as string | undefined;
 
@@ -61,7 +63,8 @@ export default function RootLayout() {
   }, [router]);
 
   return (
-    <>
+    <NetworkProvider>
+      <OfflineBanner />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -74,6 +77,6 @@ export default function RootLayout() {
           apkUrl={updateInfo.apkUrl}
         />
       )}
-    </>
+    </NetworkProvider>
   );
 }
