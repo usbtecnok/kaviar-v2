@@ -65,10 +65,8 @@ export default function RootLayout() {
       {updateInfo && (
         <UpdateRequiredModal
           visible
-          mandatory={updateInfo.mandatory}
           message={updateInfo.message}
           apkUrl={updateInfo.apkUrl}
-          onDismiss={() => setUpdateInfo(null)}
         />
       )}
     </>

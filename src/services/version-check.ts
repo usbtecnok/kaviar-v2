@@ -2,18 +2,7 @@ import * as Application from 'expo-application';
 
 const VERSIONS_URL = 'https://downloads.kaviar.com.br/app-versions.json';
 
-export interface VersionInfo {
-  latestVersion: string;
-  minSupportedVersion: string;
-  versionCode: number;
-  mandatory: boolean;
-  apkUrl: string;
-  message: string;
-}
-
 export interface VersionCheckResult {
-  needsUpdate: boolean;
-  mandatory: boolean;
   message: string;
   apkUrl: string;
 }
@@ -35,22 +24,15 @@ export async function checkAppVersion(variant: 'driver' | 'passenger'): Promise<
     const res = await fetch(VERSIONS_URL, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
-    const info: VersionInfo | undefined = data[variant];
+    const info = data[variant] as { latestVersion: string; apkUrl: string; message: string } | undefined;
     if (!info) return null;
 
     const current = (Application.nativeApplicationVersion || '0.0.0').split('-')[0];
-    const isBelowLatest = compareVersions(current, info.latestVersion) < 0;
-    const isBelowMin = compareVersions(current, info.minSupportedVersion) < 0;
+    if (compareVersions(current, info.latestVersion) >= 0) return null;
 
-    if (!isBelowLatest) return null;
-
-    return {
-      needsUpdate: true,
-      mandatory: info.mandatory || isBelowMin,
-      message: info.message,
-      apkUrl: info.apkUrl,
-    };
-  } catch {
+    return { message: info.message, apkUrl: info.apkUrl };
+  } catch (e) {
+    console.warn('[VersionCheck] Failed to fetch app-versions.json', e);
     return null;
   }
 }

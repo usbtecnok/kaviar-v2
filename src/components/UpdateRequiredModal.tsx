@@ -4,20 +4,16 @@ import { COLORS } from '../config/colors';
 
 interface Props {
   visible: boolean;
-  mandatory: boolean;
   message: string;
   apkUrl: string;
-  onDismiss: () => void;
 }
 
-export function UpdateRequiredModal({ visible, mandatory, message, apkUrl, onDismiss }: Props) {
+export function UpdateRequiredModal({ visible, message, apkUrl }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Text style={styles.title}>
-            {mandatory ? 'Atualização obrigatória' : 'Nova versão disponível'}
-          </Text>
+          <Text style={styles.title}>Atualização obrigatória</Text>
           <Text style={styles.message}>{message}</Text>
           <TouchableOpacity
             style={styles.button}
@@ -27,16 +23,6 @@ export function UpdateRequiredModal({ visible, mandatory, message, apkUrl, onDis
           >
             <Text style={styles.buttonText}>Atualizar agora</Text>
           </TouchableOpacity>
-          {!mandatory && (
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={onDismiss}
-              accessibilityRole="button"
-              accessibilityLabel="Depois"
-            >
-              <Text style={styles.secondaryButtonText}>Depois</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
     </Modal>
@@ -85,13 +71,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.textDark,
-  },
-  secondaryButton: {
-    marginTop: 14,
-    paddingVertical: 10,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    color: COLORS.textMuted,
   },
 });
