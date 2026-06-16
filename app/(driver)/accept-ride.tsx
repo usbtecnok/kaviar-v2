@@ -7,7 +7,6 @@ import { driverApi } from '../../src/api/driver.api';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { groupLabel } from '../../src/utils/tripLabel';
-import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 
 const ADJUSTMENTS = [
   { value: 5,  label: '+R$ 5',  tag: 'Ajuste leve' },
@@ -18,7 +17,6 @@ const ADJUSTMENTS = [
 export default function AcceptRide() {
   const router = useRouter();
   const { offerId, rideId, expiresAt } = useLocalSearchParams<{ offerId: string; rideId: string; expiresAt?: string }>();
-  const { isConnected } = useNetworkStatus();
   const [loading, setLoading] = useState(false);
   const [offerData, setOfferData] = useState<any>(null);
   const [fetching, setFetching] = useState(true);
@@ -54,14 +52,23 @@ export default function AcceptRide() {
 
   const handleAccept = async () => {
     if (!offerId) return;
-    if (!isConnected) { Alert.alert('Sem internet', 'Sem internet no momento. Assim que a conexão voltar, tente novamente.'); return; }
     setLoading(true);
     try {
       const result = await driverApi.acceptOffer(offerId, selectedAdjustment ?? undefined);
       setAccepted(true);
       setTimeout(() => router.replace(`/(driver)/complete-ride?rideId=${result.ride_id}&status=accepted`), 1500);
     } catch (e: any) {
-      Alert.alert('Erro', friendlyError(e, 'Erro ao aceitar corrida'));
+      if (!e.response) {
+        // Network failure — enqueue with short TTL and navigate optimistically
+        const { enqueue } = require('../../src/services/offline-queue');
+        const body = selectedAdjustment ? { adjustment: selectedAdjustment } : {};
+        await enqueue({ method: 'POST' as const, url: `https://api.kaviar.com.br/api/v2/drivers/offers/${offerId}/accept`, body });
+        setAccepted(true);
+        Alert.alert('Sem internet', 'O aceite será enviado assim que a conexão voltar.');
+        setTimeout(() => router.replace(`/(driver)/complete-ride?rideId=${rideId}&status=accepted`), 1500);
+      } else {
+        Alert.alert('Erro', friendlyError(e, 'Erro ao aceitar corrida'));
+      }
     } finally { setLoading(false); }
   };
 
