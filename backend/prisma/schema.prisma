@@ -238,6 +238,7 @@ model drivers {
   updated_at                  DateTime
   driver_compliance_documents driver_compliance_documents[]
   driver_consents             driver_consents?
+  driver_modalities           driver_modalities[]
   driver_badges               driver_badges[]
   driver_territory_stats      driver_territory_stats[]
   communities                 communities?                  @relation(fields: [community_id], references: [id])
@@ -730,6 +731,33 @@ model driver_consents {
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
   drivers             drivers  @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+}
+
+model driver_modalities {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driver_id       String
+  modality        String    @db.VarChar(30)
+  status          String    @default("PENDING_REVIEW") @db.VarChar(20)
+  vehicle_plate   String?   @db.VarChar(10)
+  vehicle_model   String?   @db.VarChar(100)
+  vehicle_color   String?   @db.VarChar(30)
+  vehicle_year    Int?
+  vehicle_brand   String?   @db.VarChar(50)
+  has_extra_helmet Boolean? @default(false)
+  cnh_category    String?   @db.VarChar(5)
+  reviewed_at     DateTime? @db.Timestamptz()
+  reviewed_by     String?
+  review_notes    String?
+  rejected_reason String?
+  created_at      DateTime  @default(now()) @db.Timestamptz()
+  updated_at      DateTime  @default(now()) @db.Timestamptz()
+
+  driver          drivers   @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+
+  @@unique([driver_id, modality])
+  @@index([driver_id], map: "idx_driver_modalities_driver")
+  @@index([status], map: "idx_driver_modalities_status")
+  @@index([modality, status], map: "idx_driver_modalities_modality_status")
 }
 
 model driver_compliance_documents {
