@@ -52,6 +52,7 @@ export default function Login() {
           <Text style={styles.subtitle}>
             {isDriver ? 'Motorista' : 'Passageiro'}
           </Text>
+          <Text style={styles.tetragramDetail}>יהוה</Text>
         </View>
 
         {/* Form */}
@@ -157,5 +158,15 @@ const styles = StyleSheet.create({
   registerBold: {
     color: COLORS.primary,
     fontWeight: '700',
+  },
+  tetragramDetail: {
+    marginTop: 8,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#8A6A3A',
+    opacity: 0.18,
+    letterSpacing: 1,
+    writingDirection: 'rtl',
+    textAlign: 'center',
   },
 });
