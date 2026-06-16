@@ -19,6 +19,7 @@ export default function DriverCredits() {
   const [familyReturnData, setFamilyReturnData] = useState<FamilyReturnData>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [buying, setBuying] = useState(false);
 
@@ -58,14 +59,17 @@ export default function DriverCredits() {
       if (pkgs.status === 'fulfilled') { setPackages(pkgs.value.packages); setFamilyReturn(pkgs.value.family_return); }
       if (led.status === 'fulfilled') setLedger(led.value.entries || []);
       if (fr.status === 'fulfilled') setFamilyReturnData(fr.value);
+      setLoadError(wal.status !== 'fulfilled');
     } catch (e) {
       console.warn('[Wallet] load failed:', e);
+      setLoadError(true);
     } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const handleBuy = async (pkg: Package) => {
+    if (buying) return;
     setBuying(true);
     try {
       const result = await driverApi.createWalletRecharge(pkg.id);
@@ -100,6 +104,18 @@ export default function DriverCredits() {
   if (loading) return (
     <SafeAreaView style={s.container}>
       <View style={s.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+    </SafeAreaView>
+  );
+
+  if (loadError && !balance) return (
+    <SafeAreaView style={s.container}>
+      <View style={s.center}>
+        <Ionicons name="cloud-offline-outline" size={40} color={COLORS.textMuted} />
+        <Text style={{ color: COLORS.textSecondary, fontSize: 15, marginTop: 12, textAlign: 'center' }}>Sem conexão. Verifique sua internet e tente novamente.</Text>
+        <TouchableOpacity style={{ marginTop: 20, backgroundColor: COLORS.primary, borderRadius: 10, paddingHorizontal: 24, paddingVertical: 12 }} onPress={() => { setLoading(true); setLoadError(false); load(); }}>
+          <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>Tentar novamente</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 
@@ -144,7 +160,11 @@ export default function DriverCredits() {
           <TouchableOpacity style={s.doneBtn} onPress={handlePixDone}>
             <Text style={s.doneBtnText}>Já paguei</Text>
           </TouchableOpacity>
-          <Text style={s.pixNote}>Seu saldo será atualizado automaticamente após a confirmação do pagamento.</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 8 }}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>Aguardando confirmação do pagamento...</Text>
+          </View>
+          <Text style={s.pixNote}>Seu saldo será atualizado automaticamente após a confirmação.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -205,10 +225,13 @@ export default function DriverCredits() {
           <Text style={s.infoTitle}>Como funciona</Text>
           {familyReturn && <Text style={[s.infoText, { color: COLORS.success, fontWeight: '600' }]}>🎁 Retorno Familiar: recargas Pix acumulam {familyReturn.percent}% para resgate entre outubro e dezembro.</Text>}
           <Text style={s.infoText}>Você adiciona saldo via Pix.</Text>
-          <Text style={s.infoText}>A cada corrida concluída, a taxa de uso da plataforma é descontada do seu saldo.</Text>
-          <Text style={s.infoText}>Taxa atual: 18% sobre o valor da corrida.</Text>
-          <Text style={s.infoText}>Você recebe 82% do valor da corrida.</Text>
-          <Text style={s.infoText}>A taxa é descontada do saldo somente quando a corrida é concluída.</Text>
+          <Text style={s.infoText}>O passageiro paga o valor cheio direto para você.</Text>
+          <Text style={s.infoText}>O KAVIAR desconta a taxa de 18% do seu saldo KAVIAR.</Text>
+          <Text style={s.infoText}>A taxa é descontada somente quando a corrida é concluída.</Text>
+          <Text style={[s.infoText, { marginTop: 10, fontWeight: '600', color: COLORS.textPrimary }]}>Exemplo: corrida de R$ 30,00</Text>
+          <Text style={s.infoText}>• Passageiro paga R$ 30,00 direto para você</Text>
+          <Text style={s.infoText}>• Taxa KAVIAR 18% = R$ 5,40</Text>
+          <Text style={s.infoText}>• Seu saldo KAVIAR é descontado em R$ 5,40</Text>
         </View>
 
         {/* History */}
