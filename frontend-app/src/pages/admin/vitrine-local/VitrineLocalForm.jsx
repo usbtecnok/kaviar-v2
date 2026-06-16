@@ -38,16 +38,19 @@ export default function VitrineLocalForm() {
     name: '',
     category: 'outro',
     description: '',
-    region_slug: 'alto-da-boa-vista',
+    region_slug: '',
+    territory_id: '',
     whatsapp: '',
     address: '',
     logo_url: '',
     is_active: true,
   });
+  const [territories, setTerritories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    adminApi.get('/api/admin/local-businesses/territories').then(d => setTerritories(d.data || [])).catch(() => {});
     if (isEdit) loadItem();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -61,6 +64,7 @@ export default function VitrineLocalForm() {
         category: item.category || 'outro',
         description: item.description || '',
         region_slug: item.region_slug || '',
+        territory_id: item.territory_id || '',
         whatsapp: item.whatsapp || '',
         address: item.address || '',
         logo_url: item.logo_url || '',
@@ -76,8 +80,8 @@ export default function VitrineLocalForm() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.region_slug.trim()) {
-      setError('Preencha nome e região (slug).');
+    if (!form.name.trim() || (!form.territory_id && !form.region_slug.trim())) {
+      setError('Preencha nome e selecione um território.');
       return;
     }
     setError('');
@@ -87,7 +91,8 @@ export default function VitrineLocalForm() {
         name: form.name.trim(),
         category: form.category || 'outro',
         description: form.description.trim() || null,
-        region_slug: form.region_slug.trim(),
+        region_slug: form.region_slug.trim() || form.territory_id || '',
+        territory_id: form.territory_id || null,
         whatsapp: form.whatsapp.trim() || null,
         address: form.address.trim() || null,
         logo_url: form.logo_url.trim() || null,
@@ -163,12 +168,16 @@ export default function VitrineLocalForm() {
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
             <TextField
-              fullWidth label="Região (slug) *"
-              value={form.region_slug} onChange={handleChange('region_slug')}
-              placeholder="Ex: alto-da-boa-vista"
-              helperText="Slug da região onde o comércio aparece (ex: alto-da-boa-vista)"
+              select fullWidth label="Território *"
+              value={form.territory_id} onChange={handleChange('territory_id')}
+              helperText="Selecione o território onde o comércio opera"
               sx={fieldSx}
-            />
+            >
+              <MenuItem value="">Selecione...</MenuItem>
+              {territories.map((t) => (
+                <MenuItem key={t.id} value={t.id}>{t.name}{t.uf ? ` (${t.uf})` : ''}</MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField

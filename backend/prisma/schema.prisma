@@ -1738,20 +1738,22 @@ model private_ride_requests {
 }
 
 model local_businesses {
-  id          String   @id @default(uuid())
-  name        String
-  category    String   @default("outro")
-  description String?
-  whatsapp    String?
-  address     String?
-  logo_url    String?
-  region_slug String
-  partner_id  String?
-  is_active   Boolean  @default(true)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @default(now()) @updatedAt
+  id            String   @id @default(uuid())
+  name          String
+  category      String   @default("outro")
+  description   String?
+  whatsapp      String?
+  address       String?
+  logo_url      String?
+  region_slug   String
+  territory_id  String?  @db.Uuid
+  partner_id    String?
+  is_active     Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now()) @updatedAt
 
   @@index([region_slug, is_active])
+  @@index([territory_id, is_active])
 }
 
 // ─── Territórios Operacionais (Multioperação) ────────────────────────────────

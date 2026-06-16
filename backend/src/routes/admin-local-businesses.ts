@@ -11,24 +11,24 @@ router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res
   try {
     const where: any = {};
 
-    // Filtro territorial: TERRITORIAL_OPERATOR vê apenas comércios da cidade/região do território
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
     if (admin.role === 'TERRITORIAL_OPERATOR' || admin.role === 'TERRITORIAL_MANAGER') {
       if (!scope || scope.territoryIds.length === 0) {
         return res.json({ success: true, data: [] });
       }
-      // Buscar city_names dos territórios do operador
+      // Filter by territory_id OR legacy region_slug fallback
       const territories = await prisma.operational_territories.findMany({
         where: { id: { in: scope.territoryIds } },
-        select: { city_name: true },
+        select: { id: true, city_name: true },
       });
+      const tIds = territories.map(t => t.id);
       const cityNames = territories.map(t => t.city_name).filter(Boolean) as string[];
+      const orClauses: any[] = [{ territory_id: { in: tIds } }];
       if (cityNames.length > 0) {
-        where.OR = cityNames.map(city => ({ region_slug: { contains: city, mode: 'insensitive' as const } }));
-      } else {
-        return res.json({ success: true, data: [] });
+        orClauses.push(...cityNames.map(city => ({ territory_id: null, region_slug: { contains: city, mode: 'insensitive' as const } })));
       }
+      where.OR = orClauses;
     }
 
     const businesses = await prisma.local_businesses.findMany({
@@ -39,6 +39,26 @@ router.get('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res
   } catch (error) {
     console.error('[admin-local-businesses] list error:', error);
     res.status(500).json({ success: false, error: 'Erro ao listar comércios' });
+  }
+});
+
+// GET /api/admin/local-businesses/territories — territórios disponíveis para dropdown
+router.get('/territories', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const where: any = { is_active: true };
+    if (admin.role !== 'SUPER_ADMIN' && scope?.territoryIds?.length) {
+      where.id = { in: scope.territoryIds };
+    }
+    const territories = await prisma.operational_territories.findMany({
+      where,
+      select: { id: true, name: true, city_name: true, uf: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ success: true, data: territories });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao listar territórios' });
   }
 });
 
@@ -79,11 +99,19 @@ router.get('/:id', authenticateAdmin, applyTerritoryScope, async (req: Request, 
 });
 
 // POST /api/admin/local-businesses — cria um novo comércio
-router.post('/', authenticateAdmin, requireSuperAdmin, async (req: Request, res: Response) => {
+router.post('/', authenticateAdmin, applyTerritoryScope, async (req: Request, res: Response) => {
   try {
-    const { name, category, description, whatsapp, address, logo_url, region_slug, is_active } = req.body;
-    if (!name || !region_slug) {
-      return res.status(400).json({ success: false, error: 'name e region_slug são obrigatórios' });
+    const { name, category, description, whatsapp, address, logo_url, region_slug, territory_id, is_active } = req.body;
+    if (!name || (!region_slug && !territory_id)) {
+      return res.status(400).json({ success: false, error: 'name e territory_id (ou region_slug) são obrigatórios' });
+    }
+    // If not SUPER_ADMIN, validate territory access
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    if (admin.role !== 'SUPER_ADMIN' && territory_id) {
+      if (!scope?.territoryIds?.includes(territory_id)) {
+        return res.status(403).json({ success: false, error: 'Sem permissão para este território' });
+      }
     }
     const business = await prisma.local_businesses.create({
       data: {
@@ -93,7 +121,8 @@ router.post('/', authenticateAdmin, requireSuperAdmin, async (req: Request, res:
         whatsapp: whatsapp || null,
         address: address || null,
         logo_url: logo_url || null,
-        region_slug,
+        region_slug: region_slug || territory_id || '',
+        territory_id: territory_id || null,
         is_active: typeof is_active === 'boolean' ? is_active : true,
       },
     });
