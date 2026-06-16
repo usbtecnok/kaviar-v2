@@ -70,15 +70,7 @@ export default function DriverOnline() {
   useEffect(() => { backgroundDeniedRef.current = backgroundDenied; }, [backgroundDenied]);
   useEffect(() => { soundMutedRef.current = soundMuted; }, [soundMuted]);
 
-  // Restore polling when network returns while driver was online
-  useEffect(() => {
-    if (isConnected && isOnlineRef.current && !isOnline) {
-      setIsOnline(true);
-    }
-    if (isConnected && isOnlineRef.current && !pollRef.current) {
-      startPolling();
-    }
-  }, [isConnected]);
+  // No reconnection auto-start here — AppState resume handler already covers this
 
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(driver)/profile') },
