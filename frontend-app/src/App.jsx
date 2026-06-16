@@ -371,7 +371,7 @@ function Home() {
               <Button
                 variant="contained"
                 fullWidth
-                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.11.25-women-preference-scroll.apk"
+                href="https://downloads.kaviar.com.br/kaviar-motorista-v1.12.0-parceiro-premium.apk"
                 target="_blank"
                 rel="noopener noreferrer"
                 sx={{
