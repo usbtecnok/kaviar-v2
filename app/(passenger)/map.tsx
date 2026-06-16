@@ -30,6 +30,8 @@ import { MOTO_FLAGS } from '../../src/config/moto.config';
 
 import { ENV } from '../../src/config/env';
 import { apiClient } from '../../src/api/client';
+import { persistPassengerRide, getPersistedPassengerRide } from '../../src/services/ride-persistence';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 
 const POLL_INTERVAL = 3000;
 
@@ -53,6 +55,7 @@ export default function PassengerMap() {
   const router = useRouter();
   const params = useLocalSearchParams<{ destLat?: string; destLng?: string; vehicle?: string }>();
   const isFocused = useIsFocused();
+  const { isConnected } = useNetworkStatus();
   // ── DEV PREVIEW: set to 'accepted' | 'arrived' | 'in_progress' | null to test tracking UI ──
   const DEV_PREVIEW: RideStatus | null = null; // ← change to test, set null before build
   const [screen, setScreen] = useState<Screen>(DEV_PREVIEW ? 'tracking' : 'idle');
@@ -271,15 +274,26 @@ export default function PassengerMap() {
     try {
       const active = await passengerApi.getActiveRide();
       if (active && !['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(active.status)) {
+        await persistPassengerRide(active);
         setRide(active);
         stablePhotoUrl.current = active.driver?.photo_url || null;
         stableVehiclePhotoUrl.current = active.driver?.vehicle_photo_url || null;
         setScreen('tracking');
         stopPolling();
         startPolling(active.id);
+      } else {
+        await persistPassengerRide(null);
       }
     } catch (e) {
       console.warn('[Map] recoverActiveRide failed:', e);
+      // Offline fallback: load cached ride
+      const cached = await getPersistedPassengerRide();
+      if (cached && !['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(cached.status)) {
+        setRide(cached);
+        stablePhotoUrl.current = cached.driver?.photo_url || null;
+        stableVehiclePhotoUrl.current = cached.driver?.vehicle_photo_url || null;
+        setScreen('tracking');
+      }
     }
   };
 
@@ -394,6 +408,7 @@ export default function PassengerMap() {
       try {
         const updated = await passengerApi.getRide(rideId);
         setRide(updated);
+        persistPassengerRide(updated);
         // Stabilize driver photo URL (avoid flicker from changing presigned params)
         const newBase = updated.driver?.photo_url?.split('?')[0] || null;
         const oldBase = stablePhotoUrl.current?.split('?')[0] || null;
@@ -507,7 +522,7 @@ export default function PassengerMap() {
       console.log('[checkReturnHome] ✅ card SHOWN');
     } catch (e) { console.warn('[checkReturnHome] EXCEPTION:', e); }
   };
-  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); setSharingLocation(false); checkReturnHome(rideDestination); };
+  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); persistPassengerRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); setSharingLocation(false); checkReturnHome(rideDestination); };
   const rideEndLocation = (r: Ride | null) => {
     if (!r) return null;
     const pwd = (r as any).trip_details?.post_wait_destination;
@@ -523,6 +538,7 @@ export default function PassengerMap() {
 
   const handleAdjustmentAccept = async () => {
     if (!ride) return;
+    if (!isConnected) { Alert.alert('Sem internet', 'Sem internet no momento. Assim que a conexão voltar, tente novamente.'); return; }
     try {
       await passengerApi.respondAdjustment(ride.id, true);
     } catch (e: any) {
@@ -533,6 +549,7 @@ export default function PassengerMap() {
 
   const handleAdjustmentReject = async () => {
     if (!ride) return;
+    if (!isConnected) { Alert.alert('Sem internet', 'Sem internet no momento. Assim que a conexão voltar, tente novamente.'); return; }
     try {
       await passengerApi.respondAdjustment(ride.id, false);
     } catch (e: any) {
@@ -565,6 +582,7 @@ export default function PassengerMap() {
   };
 
   const submitRide = async () => {
+    if (!isConnected) { Alert.alert('Sem internet', 'Sem internet no momento. Assim que a conexão voltar, tente novamente.'); return; }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setLoading(true);
     try {
