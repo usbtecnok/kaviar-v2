@@ -16,7 +16,6 @@ import { setActiveRideId, setEmergencyMode } from '../../src/services/background
 import { enqueue, getQueueSize } from '../../src/services/offline-queue';
 import { ENV } from '../../src/config/env';
 import { groupLabel } from '../../src/utils/tripLabel';
-import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 
 const BOARDING_LABELS: Record<string, { icon: string; text: string }> = {
   at_door: { icon: '🚪', text: 'Na porta' },
@@ -39,7 +38,6 @@ const NEG_TAGS = ['Demorou muito', 'Não apareceu', 'Foi grosseiro', 'Mudou dest
 export default function CompleteRide() {
   const router = useRouter();
   const params = useLocalSearchParams<{ rideId: string; status?: string }>();
-  const { isConnected } = useNetworkStatus();
   const insets = useSafeAreaInsets();
   const [ride, setRide] = useState<Ride | null>(null);
   const [rideStatus, setRideStatus] = useState<RideStatus>((params.status as RideStatus) || 'accepted');
