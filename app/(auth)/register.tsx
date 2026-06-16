@@ -588,7 +588,7 @@ export default function Register() {
             )}
 
             <Text style={styles.label}>
-              {detectedNeighborhood ? 'Ou escolha outro bairro:' : 'Escolha seu bairro:'}
+              {detectedNeighborhood ? 'Ou escolha outro bairro:' : 'Buscar bairro:'}
             </Text>
 
             {/* Campo de busca/filtro */}
@@ -597,17 +597,17 @@ export default function Register() {
               placeholderTextColor="#6B7280"
               value={neighborhoodSearch}
               onChangeText={setNeighborhoodSearch}
-              placeholder="Buscar bairro pelo nome..."
+              placeholder="Digite o nome do bairro..."
               autoCapitalize="none"
             />
 
-            {neighborhoods.length > 0 ? (
+            {neighborhoodSearch.length >= 2 && neighborhoods.length > 0 ? (
               <ScrollView style={styles.neighborhoodList}>
                 {neighborhoods
                   .filter((n) =>
-                    !neighborhoodSearch ||
                     n.name.toLowerCase().includes(neighborhoodSearch.toLowerCase())
                   )
+                  .slice(0, 5)
                   .map((n) => (
                   <TouchableOpacity
                     key={n.id}
