@@ -7,6 +7,20 @@
     "driver-apk": {
       "node": "20.19.4",
       "distribution": "internal",
+      "channel": "driver-production",
+      "android": {
+        "buildType": "apk",
+        "image": "latest"
+      },
+      "env": {
+        "APP_VARIANT": "driver",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
+      }
+    },
+    "driver-preview": {
+      "node": "20.19.4",
+      "distribution": "internal",
+      "channel": "driver-preview",
       "android": {
         "buildType": "apk",
         "image": "latest"
@@ -20,6 +34,7 @@
       "node": "20.19.4",
       "distribution": "internal",
       "environment": "production",
+      "channel": "passenger-production",
       "android": {
         "buildType": "apk",
         "image": "latest"
@@ -32,6 +47,7 @@
     "driver-release": {
       "node": "20.19.4",
       "distribution": "store",
+      "channel": "driver-production",
       "android": {
         "buildType": "app-bundle",
         "image": "latest"
@@ -45,6 +61,7 @@
       "node": "20.19.4",
       "distribution": "store",
       "environment": "production",
+      "channel": "passenger-production",
       "android": {
         "buildType": "app-bundle",
         "image": "latest"

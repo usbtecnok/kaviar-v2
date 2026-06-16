@@ -93,6 +93,7 @@ export default {
       }
     },
     plugins: [
+      'expo-updates',
       ['expo-notifications', { sounds: ['./assets/sounds/kaviar_ride.wav'] }],
       ['expo-av', { microphonePermission: false }],
       [
@@ -146,6 +147,12 @@ export default {
         });
       },
     ],
+    runtimeVersion: {
+      policy: 'appVersion'
+    },
+    updates: {
+      url: `https://u.expo.dev/${variantConfig.projectId}`
+    },
     extra: {
       eas: {
         projectId: variantConfig.projectId
