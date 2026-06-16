@@ -111,6 +111,10 @@ export default function Register() {
       Alert.alert('Erro', 'Informe a cor do veículo');
       return;
     }
+    if (!vehiclePlate || vehiclePlate.replace(/\W/g, '').length < 7) {
+      Alert.alert('Erro', 'Informe a placa do veículo');
+      return;
+    }
     setStep(3);
   };
 
@@ -377,7 +381,7 @@ export default function Register() {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Cadastro de Motorista</Text>
+          <Text style={styles.title}>Cadastro de Parceiro KAVIAR</Text>
           <Text style={styles.subtitle}>Passo {step} de 3</Text>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${(step / 3) * 100}%` }]} />
@@ -497,7 +501,7 @@ export default function Register() {
               autoCapitalize="words"
             />
 
-            <Text style={styles.label}>Placa do Veículo (opcional)</Text>
+            <Text style={styles.label}>Placa do Veículo *</Text>
             <TextInput
               style={styles.input}
               value={vehiclePlate}
