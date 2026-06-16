@@ -86,18 +86,19 @@ export default function Login() {
         </View>
 
         {/* Footer */}
-        <TouchableOpacity
-          onPress={() => router.push(userType === 'PASSENGER' ? '/(auth)/register-passenger' : '/(auth)/register')}
-          style={styles.registerBtn}
-        >
-          <Text style={styles.registerText}>
-            Não tem conta?{' '}
-            <Text style={styles.registerBold}>
-              {isDriver ? 'Cadastre-se como motorista' : 'Cadastre-se'}
+        <View style={styles.footerRow}>
+          <Text style={styles.tetragramDetail}>יהוה</Text>
+          <TouchableOpacity
+            onPress={() => router.push(userType === 'PASSENGER' ? '/(auth)/register-passenger' : '/(auth)/register')}
+          >
+            <Text style={styles.registerText}>
+              Não tem conta?{' '}
+              <Text style={styles.registerBold}>
+                {isDriver ? 'Cadastre-se como motorista' : 'Cadastre-se'}
+              </Text>
             </Text>
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.tetragramDetail}>יהוה</Text>
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -151,6 +152,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
   },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+  },
   registerText: {
     color: COLORS.textMuted,
     fontSize: 14,
@@ -160,12 +167,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   tetragramDetail: {
-    alignSelf: 'center',
-    marginTop: 22,
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#3B82F6',
     letterSpacing: 2,
+    marginRight: 12,
     textAlign: 'center',
   },
 });
