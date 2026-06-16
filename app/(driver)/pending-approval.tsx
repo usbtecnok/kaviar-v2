@@ -8,6 +8,14 @@ import { driverApi } from '../../src/api/driver.api';
 import { getMyDocuments } from '../services/documentApi';
 import { COLORS } from '../../src/config/colors';
 
+const MODALITY_LABELS: Record<string, string> = { CAR: '🚗 Carro', MOTO_DELIVERY: '📦 Moto Entrega', MOTO_PASSENGER: '🏍️ Moto Passageiro' };
+const STATUS_LABELS: Record<string, { text: string; color: string }> = {
+  PENDING_REVIEW: { text: 'Aguardando', color: '#F59E0B' },
+  APPROVED: { text: 'Aprovado', color: '#10B981' },
+  REJECTED: { text: 'Reprovado', color: '#EF4444' },
+  SUSPENDED: { text: 'Suspenso', color: '#6B7280' },
+};
+
 export default function PendingApproval() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -15,6 +23,7 @@ export default function PendingApproval() {
   const [driverStatus, setDriverStatus] = useState<string>('pending');
   const [hasRejectedDoc, setHasRejectedDoc] = useState(false);
   const [userName, setUserName] = useState('');
+  const [modalities, setModalities] = useState<any[]>([]);
 
   useEffect(() => {
     checkStatus();
@@ -49,6 +58,11 @@ export default function PendingApproval() {
         if (docsResult.success && docsResult.data) {
           setHasRejectedDoc(docsResult.data.some(d => d.status === 'rejected' || d.status === 'REJECTED'));
         }
+      } catch {}
+
+      try {
+        const mods = await driverApi.getModalities();
+        setModalities(mods);
       } catch {}
     } catch (error) {
       console.error('Erro ao verificar status:', error);
@@ -129,6 +143,27 @@ export default function PendingApproval() {
             {driverStatus === 'pending' ? 'EM ANÁLISE' : driverStatus.toUpperCase()}
           </Text>
         </View>
+
+        {/* Modalities */}
+        {modalities.length > 0 && (
+          <View style={{ width: '100%', marginBottom: 16 }}>
+            <Text style={[styles.statusLabel, { marginBottom: 8 }]}>Modalidades</Text>
+            {modalities.map(m => {
+              const st = STATUS_LABELS[m.status] || { text: m.status, color: '#6B7280' };
+              return (
+                <View key={m.id} style={[styles.infoBox, { marginBottom: 8, borderColor: st.color }]}>
+                  <Text style={{ fontSize: 16 }}>{MODALITY_LABELS[m.modality] || m.modality}</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: st.color, marginLeft: 'auto' }}>{st.text}</Text>
+                </View>
+              );
+            })}
+            {modalities.some(m => m.status === 'REJECTED') && (
+              <Text style={{ fontSize: 12, color: '#EF4444', textAlign: 'center' }}>
+                {modalities.find(m => m.status === 'REJECTED')?.rejected_reason || 'Modalidade reprovada. Verifique com o suporte.'}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Refresh */}
         <TouchableOpacity
