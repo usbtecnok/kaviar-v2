@@ -1103,6 +1103,28 @@ export default function PassengerMap() {
                 </Text>
               </View>
             )}
+            {rideStatus === 'in_progress' && driverLocation && ride && (
+              <View style={s.progressCard}>
+                {(() => {
+                  const totalKm = haversineKm(Number(ride.origin_lat), Number(ride.origin_lng), Number(ride.dest_lat), Number(ride.dest_lng));
+                  const remainKm = haversineKm(driverLocation.lat, driverLocation.lng, Number(ride.dest_lat), Number(ride.dest_lng));
+                  const progress = totalKm > 0 ? Math.min(1, Math.max(0, (totalKm - remainKm) / totalKm)) : 0;
+                  const min = Math.max(1, Math.round(remainKm / 30 * 60));
+                  const label = remainKm < 0.3 ? 'Chegando ao destino!' : `~${min} min • ${remainKm.toFixed(1)} km`;
+                  return (
+                    <>
+                      <View style={s.progressRow}>
+                        <Ionicons name="navigate" size={14} color={COLORS.success} />
+                        <Text style={s.progressText}>{label}</Text>
+                      </View>
+                      <View style={s.progressBarBg}>
+                        <View style={[s.progressBarFill, { width: `${Math.round(progress * 100)}%` }]} />
+                      </View>
+                    </>
+                  );
+                })()}
+              </View>
+            )}
             {rideStatus === 'in_progress' && (
               <KaviarHub
                 rideId={ride?.id}
@@ -1503,6 +1525,11 @@ const s = StyleSheet.create({
   alertCardSub: { fontSize: 13, color: COLORS.textSecondary, marginLeft: 28 },
   alertCardInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0f1a2e', borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: '#1a2a4a' },
   alertCardInfoText: { fontSize: 14, fontWeight: '600', color: '#5B9BD5' },
+  progressCard: { backgroundColor: '#0f1a2e', borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#1a2a4a' },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  progressText: { fontSize: 14, fontWeight: '600', color: COLORS.success },
+  progressBarBg: { height: 6, backgroundColor: '#1a2a4a', borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { height: 6, backgroundColor: COLORS.success, borderRadius: 3 },
 
   // Boarding status
   boardingRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
