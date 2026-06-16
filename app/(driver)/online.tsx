@@ -36,6 +36,7 @@ const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => 
 
 export default function DriverOnline() {
   const router = useRouter();
+  const { isConnected } = useNetworkStatus();
   const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(false);
   const [userName, setUserName] = useState('');
@@ -432,7 +433,7 @@ export default function DriverOnline() {
             {userName ? <Text style={styles.userName}>{userName}</Text> : null}
           </View>
         </View>
-        <StatusPill label={isOnline ? 'Online' : 'Offline'} active={isOnline} />
+        <StatusPill label={isOnline && !isConnected ? 'Reconectando...' : isOnline ? 'Online' : 'Offline'} active={isOnline && isConnected} />
       </View>
 
       {/* Operational status banners */}
@@ -482,12 +483,12 @@ export default function DriverOnline() {
         <View style={styles.statusRing}>
           <Animated.View style={[
             styles.statusDot,
-            { backgroundColor: isOnline ? COLORS.statusOnline : COLORS.statusOffline },
-            isOnline && !pendingOffer && { opacity: pulseAnim },
+            { backgroundColor: isOnline && isConnected ? COLORS.statusOnline : isOnline ? COLORS.warning : COLORS.statusOffline },
+            isOnline && isConnected && !pendingOffer && { opacity: pulseAnim },
           ]} />
         </View>
-        <Text style={[styles.statusText, isOnline && { color: COLORS.statusOnline }]}>
-          {isOnline ? 'ONLINE' : 'OFFLINE'}
+        <Text style={[styles.statusText, isOnline && isConnected && { color: COLORS.statusOnline }, isOnline && !isConnected && { color: COLORS.warning }]}>
+          {isOnline && !isConnected ? 'RECONECTANDO...' : isOnline ? 'ONLINE' : 'OFFLINE'}
         </Text>
 
         {/* Mini-resumo when offline */}
