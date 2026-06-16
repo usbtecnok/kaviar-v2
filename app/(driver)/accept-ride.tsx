@@ -7,6 +7,7 @@ import { driverApi } from '../../src/api/driver.api';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { groupLabel } from '../../src/utils/tripLabel';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 
 const ADJUSTMENTS = [
   { value: 5,  label: '+R$ 5',  tag: 'Ajuste leve' },
@@ -17,6 +18,7 @@ const ADJUSTMENTS = [
 export default function AcceptRide() {
   const router = useRouter();
   const { offerId, rideId, expiresAt } = useLocalSearchParams<{ offerId: string; rideId: string; expiresAt?: string }>();
+  const { isConnected } = useNetworkStatus();
   const [loading, setLoading] = useState(false);
   const [offerData, setOfferData] = useState<any>(null);
   const [fetching, setFetching] = useState(true);
@@ -52,6 +54,7 @@ export default function AcceptRide() {
 
   const handleAccept = async () => {
     if (!offerId) return;
+    if (!isConnected) { Alert.alert('Sem internet', 'Sem internet no momento. Assim que a conexão voltar, tente novamente.'); return; }
     setLoading(true);
     try {
       const result = await driverApi.acceptOffer(offerId, selectedAdjustment ?? undefined);

@@ -18,6 +18,8 @@ import { EarningsCard, StatusPill } from '../../src/components/PremiumCards';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 import { groupLabel } from '../../src/utils/tripLabel';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../src/services/background-location';
+import { persistDriverRide, getPersistedDriverRide } from '../../src/services/ride-persistence';
+import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ENV } from '../../src/config/env';
 
 const POLL_INTERVAL = 5000;
@@ -217,10 +219,18 @@ export default function DriverOnline() {
     try {
       const ride = await driverApi.getCurrentRide();
       if (ride) {
+        await persistDriverRide(ride);
         router.replace(`/(driver)/complete-ride?rideId=${ride.id}&status=${ride.status}`);
+      } else {
+        await persistDriverRide(null);
       }
     } catch (e) {
       console.warn('[Driver] checkCurrentRide failed:', e);
+      // Offline fallback: check persisted ride
+      const cached = await getPersistedDriverRide();
+      if (cached && !['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(cached.status)) {
+        router.replace(`/(driver)/complete-ride?rideId=${cached.id}&status=${cached.status}`);
+      }
     }
   };
 
