@@ -25,7 +25,7 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
+import { CheckCircle, Cancel, Block, Visibility, Restore, Replay, Archive } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../utils/formatDate';
 const isSuperAdmin = () => {
@@ -113,6 +113,10 @@ export default function DriversManagement() {
       } else if (action === 'suspended') {
         endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/suspend`;
         body = { reason: reason || 'Suspenso pelo administrador' };
+      } else if (action === 'reopen') {
+        endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/reopen`;
+      } else if (action === 'archive') {
+        endpoint = `${API_BASE_URL}/api/admin/drivers/${driver.id}/archive`;
       } else {
         setError('Ação não suportada');
         return;
@@ -168,6 +172,8 @@ export default function DriversManagement() {
       case 'approved': return 'Aprovar';
       case 'rejected': return 'Rejeitar';
       case 'suspended': return 'Suspender';
+      case 'reopen': return 'Reabrir Análise';
+      case 'archive': return 'Arquivar';
       default: return action;
     }
   };
@@ -303,13 +309,22 @@ export default function DriversManagement() {
                     )}
                     {isSuperAdmin() && driver.status === 'rejected' && (
                       <>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="primary"
+                          startIcon={<Replay sx={{ fontSize: 16 }} />}
+                          onClick={() => openActionDialog(driver, 'reopen')}
+                          sx={{ textTransform: 'none', fontSize: 11 }}
+                        >
+                          Reabrir
+                        </Button>
                         <IconButton
                           size="small"
-                          color="success"
-                          onClick={() => openActionDialog(driver, 'approved')}
-                          title="Aprovar (reverter)"
+                          onClick={() => openActionDialog(driver, 'archive')}
+                          title="Arquivar"
                         >
-                          <CheckCircle />
+                          <Archive fontSize="small" />
                         </IconButton>
                       </>
                     )}
@@ -386,7 +401,7 @@ export default function DriversManagement() {
           <Button
             onClick={handleStatusChange}
             variant="contained"
-            color={actionDialog.action === 'approved' ? 'success' : 'error'}
+            color={actionDialog.action === 'approved' || actionDialog.action === 'reopen' ? 'success' : 'error'}
           >
             {getActionText(actionDialog.action)}
           </Button>
