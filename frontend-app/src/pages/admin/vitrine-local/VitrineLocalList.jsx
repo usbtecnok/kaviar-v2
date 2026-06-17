@@ -5,7 +5,7 @@ import {
   TableRow, Chip, IconButton, TextField, MenuItem, Alert, Tooltip,
 } from '@mui/material';
 import { Add, Edit, ToggleOn, ToggleOff } from '@mui/icons-material';
-import { adminApi } from '../../../services/adminApi';
+import { API_BASE_URL } from '../../../config/api';
 
 const CATEGORIES = {
   bar: 'Bar',
@@ -41,18 +41,29 @@ export default function VitrineLocalList() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [regionFilter, setRegionFilter] = useState('');
 
+  const token = localStorage.getItem('kaviar_admin_token');
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const admin = adminData ? JSON.parse(adminData) : null;
+  const isManager = admin?.role === 'TERRITORIAL_MANAGER';
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
   const load = async () => {
     try {
       setLoading(true);
-      const [bizData, terrData] = await Promise.all([
-        adminApi.getLocalBusinesses(),
-        adminApi.get('/api/admin/local-businesses/territories'),
+      const terrUrl = isManager
+        ? `${API_BASE_URL}/api/admin/commerce/my-territories`
+        : `${API_BASE_URL}/api/admin/territories`;
+      const [accRes, terrRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/commerce/accounts`, { headers }),
+        fetch(terrUrl, { headers }),
       ]);
-      setItems(bizData.data || []);
-      setTerritories(terrData.data || []);
+      const accData = await accRes.json();
+      const terrData = await terrRes.json();
+      setItems(accData.data || []);
+      const active = (terrData.data || []).filter(t => t.is_active !== false);
+      setTerritories(active);
       setError('');
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError('Erro ao carregar comércios');
     } finally {
       setLoading(false);
@@ -63,22 +74,23 @@ export default function VitrineLocalList() {
 
   const toggleActive = async (item) => {
     try {
-      await adminApi.toggleLocalBusiness(item.id, !item.is_active);
+      await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${item.id}`, {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ is_active: !item.is_active }),
+      });
       load();
     } catch {
       setError('Erro ao atualizar status');
     }
   };
 
-  const regions = territories.length > 0
-    ? territories.map((t) => ({ id: t.id, label: `${t.name}${t.uf ? ` (${t.uf})` : ''}` }))
-    : Array.from(new Set(items.map((i) => i.region_slug).filter(Boolean))).sort().map((r) => ({ id: r, label: r }));
+  const terrMap = Object.fromEntries(territories.map(t => [t.id, `${t.name}${t.uf ? ` (${t.uf})` : ''}`]));
 
   const filtered = items.filter((i) => {
     if (statusFilter === 'active' && !i.is_active) return false;
     if (statusFilter === 'inactive' && i.is_active) return false;
     if (categoryFilter && i.category !== categoryFilter) return false;
-    if (regionFilter && i.territory_id !== regionFilter && i.region_slug !== regionFilter) return false;
+    if (regionFilter && i.territory_id !== regionFilter) return false;
     return true;
   });
 
@@ -87,9 +99,12 @@ export default function VitrineLocalList() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
           <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.3 }}>
-            Vitrine Local
+            KAVIAR Local
           </Typography>
-          <Typography variant="h5" fontWeight={700} sx={{ color: '#C8A84E' }}>📍 Comércios Locais</Typography>
+          <Typography variant="h5" fontWeight={700} sx={{ color: '#C8A84E' }}>📍 Comércios — KAVIAR Local</Typography>
+          <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+            Comércios cadastrados aqui aparecem no app passageiro
+          </Typography>
         </Box>
         <Button
           variant="contained"
@@ -123,13 +138,13 @@ export default function VitrineLocalList() {
           ))}
         </TextField>
         <TextField
-          select size="small" label="Região"
+          select size="small" label="Território"
           value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)}
           sx={fieldSx}
         >
-          <MenuItem value="">Todas</MenuItem>
-          {regions.map((r) => (
-            <MenuItem key={r.id} value={r.id}>{r.label}</MenuItem>
+          <MenuItem value="">Todos</MenuItem>
+          {territories.map((t) => (
+            <MenuItem key={t.id} value={t.id}>{t.name}{t.uf ? ` (${t.uf})` : ''}</MenuItem>
           ))}
         </TextField>
       </Box>
@@ -155,8 +170,8 @@ export default function VitrineLocalList() {
             <TableRow>
               <TableCell sx={headSx}>Nome</TableCell>
               <TableCell sx={headSx}>Categoria</TableCell>
-              <TableCell sx={headSx}>Região</TableCell>
-              <TableCell sx={headSx}>WhatsApp</TableCell>
+              <TableCell sx={headSx}>Território</TableCell>
+              <TableCell sx={headSx}>Telefone</TableCell>
               <TableCell sx={headSx}>Status</TableCell>
               <TableCell align="right" sx={headSx}>Ações</TableCell>
             </TableRow>
@@ -166,11 +181,11 @@ export default function VitrineLocalList() {
               <TableRow key={item.id}>
                 <TableCell sx={cellSx}>
                   <Typography variant="body2" fontWeight={600} sx={{ color: '#E8E3D5' }}>
-                    {item.name}
+                    {item.trade_name || item.name}
                   </Typography>
-                  {item.description && (
+                  {item.address && (
                     <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'block' }}>
-                      {item.description.length > 60 ? item.description.slice(0, 60) + '…' : item.description}
+                      {item.address.length > 60 ? item.address.slice(0, 60) + '…' : item.address}
                     </Typography>
                   )}
                 </TableCell>
@@ -182,10 +197,12 @@ export default function VitrineLocalList() {
                   />
                 </TableCell>
                 <TableCell sx={cellSx}>
-                  <Typography variant="caption" sx={{ color: '#E8E3D5' }}>{item.region_slug}</Typography>
+                  <Typography variant="caption" sx={{ color: '#E8E3D5' }}>
+                    {terrMap[item.territory_id] || '—'}
+                  </Typography>
                 </TableCell>
                 <TableCell sx={cellSx}>
-                  <Typography variant="caption" sx={{ color: '#9CA3AF' }}>{item.whatsapp || '—'}</Typography>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF' }}>{item.phone || '—'}</Typography>
                 </TableCell>
                 <TableCell sx={cellSx}>
                   <Chip

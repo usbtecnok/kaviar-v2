@@ -461,11 +461,11 @@ function AdminHome() {
               { Icon: Handshake, title: 'Parceiros Territoriais', desc: 'Comissão por corridas de motoristas vinculados', to: '/admin/territorial-partners' },
               { Icon: Handshake, title: 'KAVIAR Particular', desc: 'Solicitações de motorista reservado', to: '/admin/private-rides' },
               { Icon: SupportAgent, title: 'Apoio Local', desc: 'Motoristas parceiros de apoio local', to: '/admin/local-support' },
-              { Icon: Storefront, title: 'Vitrine Local', desc: 'Anúncios de comércios e parceiros', to: '/admin/vitrine-local' },
+              { Icon: Storefront, title: 'Comércios — KAVIAR Local', desc: 'Cadastro de comércios que aparecem no app passageiro', to: '/admin/vitrine-local' },
               { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages' },
               { Icon: Pets, title: 'KAVIAR Pet', desc: 'Central pet, homologações e operadores', to: '/admin/pet' },
               { Icon: Analytics, title: 'CRM KAVIAR', desc: 'Leads, prospecção e comércios locais', to: '/admin/crm' },
-              { Icon: Storefront, title: 'Comércios', desc: 'Comércios locais ativos e catálogo', to: '/admin/commerce' },
+              ...(isSuperAdmin ? [{ Icon: Storefront, title: 'Comércios — Admin', desc: 'Financeiro, portal e ativações avançadas', to: '/admin/commerce' }] : []),
             ]},
             { section: 'Financeiro', items: [
               ...(isSuperAdmin ? [

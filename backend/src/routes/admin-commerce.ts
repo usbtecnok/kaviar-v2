@@ -152,7 +152,7 @@ router.post('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, asyn
     const isSuperAdmin = admin.role === 'SUPER_ADMIN';
 
     // TERRITORIAL_MANAGER: allowlist + scope enforcement
-    const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status', 'is_active'];
+    const BLOCKED_FIELDS = ['commission_percent', 'document_cnpj', 'document_cpf', 'payout_pix_key', 'payout_pix_key_type', 'payout_receiver_name', 'notes', 'approved_by', 'approved_at', 'status'];
     if (!isSuperAdmin) {
       const sent = Object.keys(req.body);
       const forbidden = sent.filter(k => BLOCKED_FIELDS.includes(k));
@@ -218,6 +218,7 @@ router.post('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, asyn
         phone: phone || null, email: email || null,
         address: address || null, neighborhood_id: finalNeighborhoodId,
         territory_id: finalTerritoryId,
+        is_active: isSuperAdmin ? (req.body.is_active ?? false) : true,
         commission_percent: isSuperAdmin ? (commission_percent ?? 10.00) : 10.00,
         notes: isSuperAdmin ? (notes || null) : null,
       },
