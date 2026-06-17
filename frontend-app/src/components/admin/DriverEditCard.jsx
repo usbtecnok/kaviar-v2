@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { Edit, ExpandMore, ExpandLess } from '@mui/icons-material';
 import api from '../../api/index';
+import { formatDate } from '../../utils/formatDate';
 
 const EDITABLE_FIELDS = [
   { key: 'phone', label: 'Telefone', type: 'text' },
@@ -111,7 +112,7 @@ export function DriverEditCard({ driverId, driver, onUpdated }) {
               <Box display="flex" justifyContent="space-between" alignItems="center">
                 <Chip label={log.action} size="small" variant="outlined" />
                 <Typography variant="caption" color="text.secondary">
-                  {new Date(log.created_at).toLocaleString('pt-BR')}
+                  {formatDate(log.created_at, { showTime: true })}
                 </Typography>
               </Box>
               {log.old_value && log.new_value && (

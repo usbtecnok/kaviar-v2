@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import { formatDate } from '../utils/formatDate';
 
 export function DriverEarnings() {
   const [earnings, setEarnings] = useState(null);
@@ -51,7 +52,7 @@ export function DriverEarnings() {
         <tbody>
           {earnings.rides.map(r => (
             <tr key={r.id} className="border-t">
-              <td className="p-2">{new Date(r.created_at).toLocaleDateString()}</td>
+              <td className="p-2">{formatDate(r.created_at)}</td>
               <td className="p-2">R$ {Number(r.price).toFixed(2)}</td>
               <td className="p-2">R$ {Number(r.platform_fee || 0).toFixed(2)}</td>
               <td className="p-2">R$ {Number(r.driver_amount || 0).toFixed(2)}</td>

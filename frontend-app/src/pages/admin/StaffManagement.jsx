@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Container, Typography, Box, Card, CardContent, Grid, Chip, IconButton, TextField, Button, CircularProgress, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Switch, FormControlLabel } from '@mui/material';
 import { Add, Edit, Phone, Email, LocationOn } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 export default function StaffManagement() {
   const [staff, setStaff] = useState([]);
@@ -111,7 +112,7 @@ export default function StaffManagement() {
                     label={<Typography variant="caption">{s.is_active ? 'Ativo' : 'Inativo'}</Typography>}
                   />
                   <Typography variant="caption" color="text.secondary">
-                    {new Date(s.created_at).toLocaleDateString('pt-BR')}
+                    {formatDate(s.created_at)}
                   </Typography>
                 </Box>
               </CardContent>

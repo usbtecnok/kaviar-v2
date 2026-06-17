@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Box, Container, Typography, Card, CardContent, Button, TextField, Select, MenuItem, FormControl, InputLabel, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Tooltip } from '@mui/material';
 import { Add, Description, Print, ContentCopy, AccountBalance, Link as LinkIcon, Share } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const GOLD = '#B8942E';
 const ROLES = [{ value: 'captador_motorista', label: 'Captador Motorista' }, { value: 'captador_passageiro', label: 'Captador Passageiro' }, { value: 'captador_comercio', label: 'Captador Comércio' }, { value: 'captador_associacao', label: 'Captador Associação' }, { value: 'parceiro_local', label: 'Parceiro Local' }, { value: 'suporte_local', label: 'Suporte Local' }, { value: 'outro', label: 'Outro' }];
@@ -355,7 +356,7 @@ export default function ManagerTeamPage() {
                     <TableCell sx={{ fontSize: 11 }}>{l.lead_type}</TableCell>
                     <TableCell sx={{ fontSize: 11 }}>{l.status}</TableCell>
                     <TableCell sx={{ fontSize: 11 }}>{l.source}</TableCell>
-                    <TableCell sx={{ fontSize: 11, color: '#6B7280' }}>{l.created_at ? new Date(l.created_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                    <TableCell sx={{ fontSize: 11, color: '#6B7280' }}>{formatDate(l.created_at)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

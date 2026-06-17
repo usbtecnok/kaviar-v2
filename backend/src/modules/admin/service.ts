@@ -112,7 +112,7 @@ export class AdminService {
       throw new Error('Motorista não encontrado');
     }
 
-    if (driver.status !== 'pending') {
+    if (driver.status !== 'pending' && driver.status !== 'needs_documents') {
       throw new Error('Apenas motoristas pendentes podem ser aprovados');
     }
 

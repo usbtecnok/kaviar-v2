@@ -178,7 +178,7 @@ export class ApprovalController {
     try {
       const { status } = req.query;
       
-      const where: any = {};
+      const where: any = { deleted_at: null };
       if (status) {
         where.status = status;
       }
@@ -214,6 +214,7 @@ export class ApprovalController {
           family_bonus_profile: true,
           neighborhood_id: true,
           community_id: true,
+          pending_reason: true,
           created_at: true,
           updated_at: true,
           approved_at: true,
@@ -243,7 +244,8 @@ export class ApprovalController {
         neighborhoodId: d.neighborhood_id,
         neighborhoods: d.neighborhoods || null,
         communityId: d.community_id,
-        createdAt: d.created_at?.toISOString(),
+        pendingReason: d.pending_reason ?? null,
+        createdAt: d.created_at?.toISOString() ?? null,
         updatedAt: d.updated_at?.toISOString(),
         approvedAt: d.approved_at?.toISOString() || null,
         rejectedAt: d.rejected_at?.toISOString() || null
@@ -385,7 +387,7 @@ export class ApprovalController {
     try {
       const { status } = req.query;
       
-      const where: any = {};
+      const where: any = { deleted_at: null };
       if (status) {
         where.status = status;
       }

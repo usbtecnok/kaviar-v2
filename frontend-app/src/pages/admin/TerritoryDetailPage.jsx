@@ -4,6 +4,7 @@ import { Box, Typography, Card, CardContent, Tabs, Tab, Table, TableBody, TableC
 import { ArrowBack, Edit, PersonAdd, Delete } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 import MotoPassengerCompliance from '../../components/admin/MotoPassengerCompliance';
+import { formatDate } from '../../utils/formatDate';
 
 const STATUS_COLORS = { planning: '#6B7280', preparation: '#D97706', active: '#059669', inactive: '#DC2626' };
 const STATUS_LABELS = { planning: 'Planejamento', preparation: 'Preparação', active: 'Ativo', inactive: 'Inativo' };
@@ -84,7 +85,7 @@ export default function TerritoryDetailPage() {
               <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Bairros</Typography><Typography sx={{ fontWeight: 600, color: '#B8942E' }}>{t.neighborhoods?.length || 0}</Typography></Box>
               <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Parceiros</Typography><Typography sx={{ fontWeight: 600, color: '#B8942E' }}>{t.territorial_partners?.length || 0}</Typography></Box>
               <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Admins Regionais</Typography><Typography sx={{ fontWeight: 600, color: '#B8942E' }}>{t.admin_access?.length || 0}</Typography></Box>
-              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Criado em</Typography><Typography sx={{ fontWeight: 600 }}>{new Date(t.created_at).toLocaleDateString('pt-BR')}</Typography></Box>
+              <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Criado em</Typography><Typography sx={{ fontWeight: 600 }}>{formatDate(t.created_at)}</Typography></Box>
             </Box>
             {t.notes && <Box sx={{ mt: 2, p: 2, bgcolor: '#FAFAF8', borderRadius: 1 }}><Typography variant="caption" sx={{ color: '#6B7280' }}>Observações</Typography><Typography>{t.notes}</Typography></Box>}
 
@@ -109,7 +110,7 @@ export default function TerritoryDetailPage() {
                     <MenuItem value="suspended">Suspenso</MenuItem>
                   </TextField>
                 </Box>
-                {t.regulatory_checked_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Última verificação</Typography><Typography variant="body2">{new Date(t.regulatory_checked_at).toLocaleString('pt-BR')}</Typography></Box>}
+                {t.regulatory_checked_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Última verificação</Typography><Typography variant="body2">{formatDate(t.regulatory_checked_at, { showTime: true })}</Typography></Box>}
               </Box>
               <TextField label="Notas regulatórias" value={t.regulatory_notes || ''} onChange={() => {}} onBlur={async (e) => {
                 if (e.target.value !== (t.regulatory_notes || '')) {

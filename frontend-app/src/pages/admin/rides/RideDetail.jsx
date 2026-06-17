@@ -26,6 +26,7 @@ import {
   ListItem,
   ListItemText
 } from '@mui/material';
+import { formatDate } from '../../../utils/formatDate';
 import {
   ArrowBack,
   Cancel,
@@ -212,7 +213,7 @@ export default function RideDetail() {
   };
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('pt-BR');
+    if (!dateString) return '—'; const d = new Date(dateString); return isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR');
   };
 
   const calculateFinancials = (price) => {

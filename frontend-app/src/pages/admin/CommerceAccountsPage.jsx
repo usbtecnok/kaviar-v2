@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableHead, TableRow, Chip, Button, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, Drawer, Divider, Card, CardContent, Grid, Tabs, Tab } from '@mui/material';
 import { Add, CheckCircle, LockReset, ContentCopy, AccountBalanceWallet, Close, Download, Place } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const GOLD = '#B8942E';
 const STATUS_MAP = { pending: { label: 'Pendente', color: 'warning' }, approved: { label: 'Aprovado', color: 'info' }, active: { label: 'Ativo', color: 'success' }, paused: { label: 'Pausado', color: 'default' }, blocked: { label: 'Bloqueado', color: 'error' } };
@@ -244,7 +245,7 @@ export default function CommerceAccountsPage() {
                   <Typography sx={{ fontWeight: 700, fontSize: 14 }}>R$ {(w.amount_cents / 100).toFixed(2)}</Typography>
                   <Chip label={WD_STATUS[w.status]?.label || w.status} size="small" sx={{ bgcolor: `${WD_STATUS[w.status]?.color || '#6B7280'}15`, color: WD_STATUS[w.status]?.color, fontWeight: 600 }} />
                 </Box>
-                <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{new Date(w.requested_at).toLocaleString('pt-BR')}</Typography>
+                <Typography sx={{ fontSize: 11, color: '#6B7280' }}>{formatDate(w.requested_at, { showTime: true })}</Typography>
                 {w.receiver_name && <Typography sx={{ fontSize: 11, color: '#374151' }}>Recebedor: {w.receiver_name}</Typography>}
                 {isSuperAdmin && w.pix_key && <Typography sx={{ fontSize: 11, color: '#374151' }}>Pix ({w.pix_key_type}): {w.pix_key}</Typography>}
                 <Box sx={{ display: 'flex', gap: 0.5, mt: 1 }}>

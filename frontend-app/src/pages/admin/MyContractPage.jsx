@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Box, Typography, Card, CardContent, Chip, Button, Alert, CircularProgress, Grid } from '@mui/material';
 import { CheckCircle, Block, ArrowBack } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const GOLD = '#B8942E';
 
@@ -290,7 +291,7 @@ export default function MyContractPage() {
             <Typography variant="body2"><strong>Status:</strong></Typography>
             <Chip label={termsAccepted ? 'Termos aceitos' : 'Pendente de aceite'} size="small" color={termsAccepted ? 'success' : 'warning'} />
           </Box>
-          {termsAccepted && <Typography variant="body2" sx={{ color: '#059669', mt: 1 }}>Aceito em {new Date(profile.terms_accepted_at).toLocaleString('pt-BR')} • Versão: {profile.terms_version}</Typography>}
+          {termsAccepted && <Typography variant="body2" sx={{ color: '#059669', mt: 1 }}>Aceito em {formatDate(profile.terms_accepted_at, { showTime: true })} • Versão: {profile.terms_version}</Typography>}
         </CardContent>
       </Card>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Chip, Alert, Switch, FormControlLabel, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Pendente', color: '#6B7280', bg: '#F3F4F6' },
@@ -104,12 +105,12 @@ export default function MotoPassengerCompliance({ territoryId, motoPassengerEnab
       {compliance && (
         <Box sx={{ mb: 2, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 2 }}>
           {compliance.municipality_name && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Município</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{compliance.municipality_name}</Typography></Box>}
-          {compliance.consultation_date && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Data da consulta</Typography><Typography variant="body2">{new Date(compliance.consultation_date).toLocaleDateString('pt-BR')}</Typography></Box>}
+          {compliance.consultation_date && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Data da consulta</Typography><Typography variant="body2">{formatDate(compliance.consultation_date)}</Typography></Box>}
           {compliance.protocol_number && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Protocolo</Typography><Typography variant="body2">{compliance.protocol_number}</Typography></Box>}
           {compliance.document_url && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Documento</Typography><Typography variant="body2"><a href={compliance.document_url} target="_blank" rel="noopener noreferrer">Ver documento</a></Typography></Box>}
           {compliance.prefecture_notes && <Box sx={{ gridColumn: '1 / -1' }}><Typography variant="caption" sx={{ color: '#6B7280' }}>Observações da prefeitura</Typography><Typography variant="body2">{compliance.prefecture_notes}</Typography></Box>}
           {compliance.approved_by_admin_id && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Aprovado por</Typography><Typography variant="body2">{compliance.approved_by_admin_id}</Typography></Box>}
-          {compliance.approved_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Data aprovação</Typography><Typography variant="body2">{new Date(compliance.approved_at).toLocaleString('pt-BR')}</Typography></Box>}
+          {compliance.approved_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Data aprovação</Typography><Typography variant="body2">{formatDate(compliance.approved_at, { showTime: true })}</Typography></Box>}
           {compliance.rejection_reason && <Box sx={{ gridColumn: '1 / -1' }}><Typography variant="caption" sx={{ color: '#DC2626' }}>Motivo rejeição</Typography><Typography variant="body2" sx={{ color: '#DC2626' }}>{compliance.rejection_reason}</Typography></Box>}
         </Box>
       )}

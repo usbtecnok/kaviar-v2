@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { Payment, CheckCircle, Search, Visibility, ContentCopy, AccountBalance } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const gold = '#FFD700';
 const bg = '#0A0A0F';
@@ -298,12 +299,12 @@ export default function FinancePayments() {
                   {/* Timestamps */}
                   {r.payment_approved_at && (
                     <Typography variant="caption" sx={{ color: '#666' }}>
-                      Aprovado em: {new Date(r.payment_approved_at).toLocaleString('pt-BR')}
+                      Aprovado em: {formatDate(r.payment_approved_at, { showTime: true })}
                     </Typography>
                   )}
                   {r.payment_paid_at && (
                     <Typography variant="caption" sx={{ color: '#666' }}>
-                      Pago em: {new Date(r.payment_paid_at).toLocaleString('pt-BR')}
+                      Pago em: {formatDate(r.payment_paid_at, { showTime: true })}
                     </Typography>
                   )}
                 </Box>

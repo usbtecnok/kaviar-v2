@@ -98,7 +98,9 @@ export default function DriverValidationPanel() {
   
   const formatDate = (date) => {
     if (!date) return 'Recente';
-    return new Date(date).toLocaleDateString('pt-BR', { 
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Recente';
+    return d.toLocaleDateString('pt-BR', { 
       day: '2-digit',
       month: 'short',
       year: 'numeric'

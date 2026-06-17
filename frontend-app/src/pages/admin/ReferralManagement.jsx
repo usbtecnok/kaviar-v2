@@ -112,7 +112,7 @@ export default function ReferralManagement() {
   };
 
   const copyPix = (key) => { navigator.clipboard.writeText(key); };
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR') + ' ' + new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const fmtDate = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); };
 
   // Filters
   let filtered = referrals;

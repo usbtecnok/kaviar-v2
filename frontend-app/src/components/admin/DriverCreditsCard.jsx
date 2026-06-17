@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { Add, Remove } from '@mui/icons-material';
 import api from '../../api/index';
+import { formatDate } from '../../utils/formatDate';
 
 export function DriverCreditsCard({ driverId }) {
   const adminData = localStorage.getItem('kaviar_admin_data');
@@ -169,7 +170,7 @@ export function DriverCreditsCard({ driverId }) {
                   {ledger.map((entry) => (
                     <TableRow key={entry.id}>
                       <TableCell>
-                        {new Date(entry.created_at).toLocaleString('pt-BR')}
+                        {formatDate(entry.created_at, { showTime: true })}
                       </TableCell>
                       <TableCell align="right">
                         <Typography

@@ -33,6 +33,7 @@ import {
   Search
 } from '@mui/icons-material';
 import PermissionDenied from '../../../components/admin/PermissionDenied';
+import { formatDate } from '../../../utils/formatDate';
 
 const actionIcons = {
   cancel: <Cancel color="error" />,
@@ -139,7 +140,7 @@ export default function RideAudit() {
   };
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('pt-BR');
+    if (!dateString) return '—'; const d = new Date(dateString); return isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-BR');
   };
 
   const getAdminInitials = (name) => {

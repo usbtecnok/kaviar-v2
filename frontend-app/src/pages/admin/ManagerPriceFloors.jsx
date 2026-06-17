@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { Add, Schedule, CheckCircle, Cancel } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const GOLD = '#B8942E';
 const STATUS_LABELS = { active: 'Ativo', pending_approval: 'Pendente', rejected: 'Rejeitado', archived: 'Arquivado', draft: 'Rascunho' };
@@ -218,8 +219,8 @@ export default function ManagerPriceFloors() {
                               </Alert>
                             )}
                             <Typography sx={{ fontSize: 10, color: '#9CA3AF', mt: 1 }}>
-                              Enviada em {new Date(p.created_at).toLocaleDateString('pt-BR')}
-                              {p.reviewed_at && ` · Revisada em ${new Date(p.reviewed_at).toLocaleDateString('pt-BR')}`}
+                              Enviada em {formatDate(p.created_at)}
+                              {p.reviewed_at && ` · Revisada em ${formatDate(p.reviewed_at)}`}
                             </Typography>
                           </CardContent>
                         </Card>

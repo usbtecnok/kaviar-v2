@@ -218,6 +218,8 @@ model drivers {
   rejected_at                 DateTime?
   rejected_by                 String?
   rejected_reason             String?
+  pending_reason              String?
+  pending_reason_updated_at   DateTime?
   territory_type              String?
   territory_verified_at       DateTime?
   territory_verification_method String?

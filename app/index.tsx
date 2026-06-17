@@ -28,7 +28,7 @@ export default function Index() {
         router.replace('/(passenger)/home');
       } else if (userType === 'DRIVER') {
         const user = authStore.getUser();
-        router.replace(user?.status === 'pending' ? '/(driver)/documents' : '/(driver)/online');
+        router.replace(user?.status === 'pending' || user?.status === 'needs_documents' || user?.status === 'rejected' ? '/(driver)/pending-approval' : '/(driver)/online');
       }
     } else {
       router.replace('/(auth)/login');

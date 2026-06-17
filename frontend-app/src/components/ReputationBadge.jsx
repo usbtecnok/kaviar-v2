@@ -56,6 +56,7 @@ export default function ReputationBadge({
   const formatDate = (date: string | Date | undefined) => {
     if (!date) return 'Recente';
     const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Recente';
     return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
   };
   

@@ -16,6 +16,7 @@ import {
 } from '../../../utils/premiumTourismHelpers';
 import DomainHeader from '../../../components/common/DomainHeader';
 import PremiumTourismNav from '../../../components/admin/premium-tourism/PremiumTourismNav';
+import { formatDate } from '../../../utils/formatDate';
 
 export default function TourBookings() {
   const [bookings, setBookings] = useState([]);

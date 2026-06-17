@@ -3,11 +3,13 @@ import {
   Container, Paper, Typography, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Button, Chip, Box, Alert, Dialog, DialogTitle,
   DialogContent, DialogActions, Grid, Snackbar, CircularProgress,
-  IconButton, Tooltip, Card, CardContent, CardActions, useMediaQuery, useTheme
+  IconButton, Tooltip, Card, CardContent, CardActions, useMediaQuery, useTheme,
+  Tabs, Tab, TextField
 } from '@mui/material';
-import { CheckCircle, Cancel, Visibility, Delete, DirectionsCar } from '@mui/icons-material';
+import { CheckCircle, Cancel, Visibility, Delete, DirectionsCar, Description, Archive } from '@mui/icons-material';
 import { adminApi } from '../../services/adminApi';
 import api from '../../api/index';
+import { formatDate } from '../../utils/formatDate';
 
 const normType = (t) => String(t || "").trim().toUpperCase();
 const isSuperAdmin = () => {
@@ -26,11 +28,26 @@ const getVehicleSummary = (d) => {
   return parts.length ? parts.join(' · ') : '—';
 };
 
-const statusMap = { pending: { label: 'Pendente', color: 'warning' }, approved: { label: 'Aprovado', color: 'success' }, suspended: { label: 'Suspenso', color: 'error' }, rejected: { label: 'Rejeitado', color: 'error' } };
+const statusMap = {
+  pending: { label: 'Pendente', color: 'warning' },
+  needs_documents: { label: 'Aguardando Docs', color: 'info' },
+  approved: { label: 'Aprovado', color: 'success' },
+  suspended: { label: 'Suspenso', color: 'error' },
+  rejected: { label: 'Rejeitado', color: 'error' },
+  archived: { label: 'Arquivado', color: 'default' }
+};
 const getStatus = (s) => statusMap[s] || { label: s, color: 'default' };
 
+const TABS = [
+  { value: 'pending', label: 'Pendentes' },
+  { value: 'needs_documents', label: 'Aguardando Docs' },
+  { value: 'approved', label: 'Aprovados' },
+  { value: 'rejected', label: 'Rejeitados' },
+  { value: 'archived', label: 'Arquivados' },
+];
+
 export default function DriverApproval() {
-  const [drivers, setDrivers] = useState([]);
+  const [allDrivers, setAllDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState('');
@@ -40,6 +57,9 @@ export default function DriverApproval() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, action: null, driverId: null });
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const [tab, setTab] = useState('pending');
+  const [docRequestDialog, setDocRequestDialog] = useState({ open: false, driverId: null });
+  const [docRequestReason, setDocRequestReason] = useState('');
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -49,10 +69,12 @@ export default function DriverApproval() {
   const loadDrivers = async () => {
     try {
       const response = await adminApi.getDrivers();
-      if (response.success) setDrivers(response.data);
+      if (response.success) setAllDrivers(response.data);
     } catch { setError('Erro ao carregar motoristas'); }
     finally { setLoading(false); }
   };
+
+  const drivers = allDrivers.filter(d => d.status === tab);
 
   const handleAction = async (action, driverId) => {
     try {
@@ -60,12 +82,28 @@ export default function DriverApproval() {
       if (action === 'approve') { await adminApi.approveDriver(driverId); setToast({ open: true, message: 'Motorista aprovado com sucesso', severity: 'success' }); }
       else if (action === 'reject') { await adminApi.rejectDriver(driverId); setToast({ open: true, message: 'Motorista rejeitado', severity: 'info' }); }
       else if (action === 'delete') { await adminApi.deleteDriver(driverId); setToast({ open: true, message: 'Motorista excluído', severity: 'success' }); }
+      else if (action === 'archive') { await adminApi.archiveDriver(driverId); setToast({ open: true, message: 'Motorista arquivado', severity: 'success' }); }
       loadDrivers();
     } catch (error) {
       const data = error?.response?.data;
       const msg = (Array.isArray(data?.missingRequirements) && data.missingRequirements.length ? `Pendências: ${data.missingRequirements.join(', ')}` : null) || data?.message || data?.error || 'Erro na operação';
       setToast({ open: true, message: msg, severity: 'error' });
     } finally { setActionLoading(null); setConfirmDialog({ open: false, action: null, driverId: null }); }
+  };
+
+  const handleRequestDocuments = async () => {
+    const { driverId } = docRequestDialog;
+    if (!docRequestReason.trim()) return;
+    try {
+      setActionLoading(driverId);
+      await adminApi.requestDocuments(driverId, docRequestReason.trim());
+      setToast({ open: true, message: 'Documentos solicitados ao motorista', severity: 'success' });
+      setDocRequestDialog({ open: false, driverId: null });
+      setDocRequestReason('');
+      loadDrivers();
+    } catch {
+      setToast({ open: true, message: 'Erro ao solicitar documentos', severity: 'error' });
+    } finally { setActionLoading(null); }
   };
 
   const openDetails = async (driver) => {
@@ -83,6 +121,8 @@ export default function DriverApproval() {
   const ActionButtons = ({ driver, compact }) => {
     const isLoading = actionLoading === driver.id;
     const isPending = driver.status === 'pending';
+    const isNeedsDocs = driver.status === 'needs_documents';
+    const isRejected = driver.status === 'rejected';
     const superAdmin = isSuperAdmin();
     if (compact) {
       return (
@@ -90,8 +130,13 @@ export default function DriverApproval() {
           <Tooltip title="Ver detalhes"><IconButton size="small" onClick={() => openDetails(driver)} disabled={isLoading}><Visibility fontSize="small" /></IconButton></Tooltip>
           {superAdmin && isPending && <>
             <Tooltip title="Aprovar"><IconButton size="small" color="success" onClick={() => setConfirmDialog({ open: true, action: 'approve', driverId: driver.id })} disabled={isLoading}>{isLoading ? <CircularProgress size={18} /> : <CheckCircle fontSize="small" />}</IconButton></Tooltip>
+            <Tooltip title="Solicitar Documentos"><IconButton size="small" color="info" onClick={() => setDocRequestDialog({ open: true, driverId: driver.id })} disabled={isLoading}><Description fontSize="small" /></IconButton></Tooltip>
             <Tooltip title="Rejeitar"><IconButton size="small" color="error" onClick={() => setConfirmDialog({ open: true, action: 'reject', driverId: driver.id })} disabled={isLoading}><Cancel fontSize="small" /></IconButton></Tooltip>
           </>}
+          {superAdmin && isNeedsDocs && <>
+            <Tooltip title="Aprovar"><IconButton size="small" color="success" onClick={() => setConfirmDialog({ open: true, action: 'approve', driverId: driver.id })} disabled={isLoading}><CheckCircle fontSize="small" /></IconButton></Tooltip>
+          </>}
+          {superAdmin && isRejected && <Tooltip title="Arquivar"><IconButton size="small" onClick={() => setConfirmDialog({ open: true, action: 'archive', driverId: driver.id })} disabled={isLoading}><Archive fontSize="small" /></IconButton></Tooltip>}
           {superAdmin && <Tooltip title="Excluir"><IconButton size="small" color="error" onClick={() => setConfirmDialog({ open: true, action: 'delete', driverId: driver.id })} disabled={isLoading}><Delete fontSize="small" /></IconButton></Tooltip>}
         </Box>
       );
@@ -101,8 +146,11 @@ export default function DriverApproval() {
         <Button size="small" variant="outlined" startIcon={<Visibility />} onClick={() => openDetails(driver)} disabled={isLoading}>Ver</Button>
         {superAdmin && isPending && <>
           <Button size="small" variant="contained" color="success" startIcon={isLoading ? <CircularProgress size={16} /> : <CheckCircle />} onClick={() => setConfirmDialog({ open: true, action: 'approve', driverId: driver.id })} disabled={isLoading}>Aprovar</Button>
+          <Button size="small" variant="outlined" color="info" startIcon={<Description />} onClick={() => setDocRequestDialog({ open: true, driverId: driver.id })} disabled={isLoading}>Pedir Docs</Button>
           <Button size="small" variant="outlined" color="error" startIcon={<Cancel />} onClick={() => setConfirmDialog({ open: true, action: 'reject', driverId: driver.id })} disabled={isLoading}>Rejeitar</Button>
         </>}
+        {superAdmin && isNeedsDocs && <Button size="small" variant="contained" color="success" startIcon={<CheckCircle />} onClick={() => setConfirmDialog({ open: true, action: 'approve', driverId: driver.id })} disabled={isLoading}>Aprovar</Button>}
+        {superAdmin && isRejected && <Button size="small" variant="outlined" startIcon={<Archive />} onClick={() => setConfirmDialog({ open: true, action: 'archive', driverId: driver.id })} disabled={isLoading}>Arquivar</Button>}
         {superAdmin && <IconButton size="small" color="error" onClick={() => setConfirmDialog({ open: true, action: 'delete', driverId: driver.id })} disabled={isLoading}><Delete fontSize="small" /></IconButton>}
       </Box>
     );
@@ -112,15 +160,22 @@ export default function DriverApproval() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Typography variant="h5" fontWeight={700}>Aprovação de Motoristas</Typography>
-        <Chip label={`${drivers.length} motorista${drivers.length !== 1 ? 's' : ''}`} variant="outlined" />
+        <Chip label={`${allDrivers.length} total`} variant="outlined" />
       </Box>
+
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minWidth: 0 } }} variant="scrollable" scrollButtons="auto">
+        {TABS.map(t => (
+          <Tab key={t.value} value={t.value} label={`${t.label} (${allDrivers.filter(d => d.status === t.value).length})`} />
+        ))}
+      </Tabs>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* Desktop: tabela limpa */}
-      {!isMobile ? (
+      {drivers.length === 0 ? (
+        <Alert severity="info">Nenhum motorista nesta aba.</Alert>
+      ) : !isMobile ? (
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
@@ -129,6 +184,7 @@ export default function DriverApproval() {
                 <TableCell>Status</TableCell>
                 <TableCell>Cadastro</TableCell>
                 <TableCell>Veículo</TableCell>
+                {tab === 'needs_documents' && <TableCell>Motivo</TableCell>}
                 <TableCell align="right">Ações</TableCell>
               </TableRow>
             </TableHead>
@@ -142,13 +198,14 @@ export default function DriverApproval() {
                       <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: 220, display: 'block' }}>{driver.email}</Typography>
                     </TableCell>
                     <TableCell><Chip label={st.label} color={st.color} size="small" /></TableCell>
-                    <TableCell><Typography variant="body2">{new Date(driver.createdAt).toLocaleDateString('pt-BR')}</Typography></TableCell>
+                    <TableCell><Typography variant="body2">{formatDate(driver.createdAt)}</Typography></TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <DirectionsCar fontSize="small" sx={{ color: 'text.disabled' }} />
                         <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>{getVehicleSummary(driver)}</Typography>
                       </Box>
                     </TableCell>
+                    {tab === 'needs_documents' && <TableCell><Typography variant="caption" color="text.secondary" sx={{ maxWidth: 200, display: 'block' }} noWrap>{driver.pendingReason || '—'}</Typography></TableCell>}
                     <TableCell align="right"><ActionButtons driver={driver} compact /></TableCell>
                   </TableRow>
                 );
@@ -157,7 +214,6 @@ export default function DriverApproval() {
           </Table>
         </TableContainer>
       ) : (
-        /* Mobile: cards */
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           {drivers.map((driver) => {
             const st = getStatus(driver.status);
@@ -172,9 +228,10 @@ export default function DriverApproval() {
                     <Chip label={st.label} color={st.color} size="small" sx={{ ml: 1, flexShrink: 0 }} />
                   </Box>
                   <Box display="flex" gap={2} flexWrap="wrap">
-                    <Typography variant="caption" color="text.secondary">{new Date(driver.createdAt).toLocaleDateString('pt-BR')}</Typography>
+                    <Typography variant="caption" color="text.secondary">{formatDate(driver.createdAt)}</Typography>
                     <Typography variant="caption" color="text.secondary">🚗 {getVehicleSummary(driver)}</Typography>
                   </Box>
+                  {driver.pendingReason && <Typography variant="caption" color="info.main" sx={{ display: 'block', mt: 0.5 }}>📋 {driver.pendingReason}</Typography>}
                 </CardContent>
                 <CardActions sx={{ px: 2, pb: 1.5 }}>
                   <ActionButtons driver={driver} />
@@ -184,6 +241,27 @@ export default function DriverApproval() {
           })}
         </Box>
       )}
+
+      {/* Dialog: Solicitar Documentos */}
+      <Dialog open={docRequestDialog.open} onClose={() => { setDocRequestDialog({ open: false, driverId: null }); setDocRequestReason(''); }} maxWidth="sm" fullWidth>
+        <DialogTitle>Solicitar Documentos</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Informe ao motorista o que precisa ser enviado ou corrigido. Essa mensagem será exibida no app.</Typography>
+          <TextField
+            autoFocus fullWidth multiline rows={3} size="small"
+            label="Motivo / O que está faltando"
+            value={docRequestReason}
+            onChange={e => setDocRequestReason(e.target.value)}
+            placeholder="Ex: Foto do veículo não enviada. CNH ilegível."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setDocRequestDialog({ open: false, driverId: null }); setDocRequestReason(''); }}>Cancelar</Button>
+          <Button variant="contained" color="info" onClick={handleRequestDocuments} disabled={!docRequestReason.trim() || actionLoading !== null}>
+            {actionLoading ? <CircularProgress size={20} /> : 'Enviar Solicitação'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog de Detalhes */}
       <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="md" fullWidth>
@@ -198,6 +276,14 @@ export default function DriverApproval() {
               <Grid item xs={4}><Typography variant="caption" color="text.secondary">Placa</Typography><Typography>{selectedDriver.vehicle_plate ?? selectedDriver.vehiclePlate ?? '—'}</Typography></Grid>
               <Grid item xs={4}><Typography variant="caption" color="text.secondary">Modelo</Typography><Typography>{selectedDriver.vehicle_model ?? selectedDriver.vehicleModel ?? '—'}</Typography></Grid>
               <Grid item xs={4}><Typography variant="caption" color="text.secondary">Cor</Typography><Typography>{selectedDriver.vehicle_color ?? selectedDriver.vehicleColor ?? '—'}</Typography></Grid>
+              {selectedDriver.pendingReason && (
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mt: 1 }}>
+                    <Typography variant="caption" fontWeight={600}>Motivo da solicitação de documentos:</Typography>
+                    <Typography variant="body2">{selectedDriver.pendingReason}</Typography>
+                  </Alert>
+                </Grid>
+              )}
               <Grid item xs={12}>
                 <Typography variant="caption" color="text.secondary">Bônus Familiar</Typography>
                 <Typography>{(selectedDriver.family_bonus_accepted === true) ? `Aceito — ${selectedDriver.family_bonus_profile || 'individual'}` : 'Não declarado'}</Typography>
@@ -284,13 +370,14 @@ export default function DriverApproval() {
         <DialogContent>
           <Typography>
             {confirmDialog.action === 'approve' && 'Deseja aprovar este motorista?'}
-            {confirmDialog.action === 'reject' && 'Deseja rejeitar este motorista?'}
-            {confirmDialog.action === 'delete' && 'Deseja excluir este motorista? Esta ação não pode ser desfeita.'}
+            {confirmDialog.action === 'reject' && 'Deseja rejeitar este motorista? Essa é uma rejeição definitiva.'}
+            {confirmDialog.action === 'delete' && 'Deseja excluir este motorista?'}
+            {confirmDialog.action === 'archive' && 'Deseja arquivar este motorista? Ele será removido da lista principal.'}
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDialog({ open: false, action: null, driverId: null })}>Cancelar</Button>
-          <Button onClick={() => { const { action, driverId } = confirmDialog; handleAction(action, driverId); }} color={confirmDialog.action === 'delete' ? 'error' : 'primary'} variant="contained" disabled={actionLoading !== null}>
+          <Button onClick={() => { const { action, driverId } = confirmDialog; handleAction(action, driverId); }} color={confirmDialog.action === 'delete' || confirmDialog.action === 'reject' ? 'error' : 'primary'} variant="contained" disabled={actionLoading !== null}>
             {actionLoading !== null ? <CircularProgress size={20} /> : 'Confirmar'}
           </Button>
         </DialogActions>

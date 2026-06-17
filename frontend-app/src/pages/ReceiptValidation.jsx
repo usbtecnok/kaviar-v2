@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Box, Typography, CircularProgress } from '@mui/material';
 import { API_BASE_URL } from '../config/api';
+import { formatDate } from '../utils/formatDate';
 
 const gold = '#B8942E';
 
@@ -51,7 +52,7 @@ export default function ReceiptValidation() {
             ['Referência', mesRef],
             ['Valor', `R$ ${valor}`],
             ['Forma', data.payment_method],
-            ['Data', new Date(data.paid_at).toLocaleDateString('pt-BR')],
+            ['Data', formatDate(data.paid_at)],
             ['Status', 'Pago ✓'],
             ['Código', data.receipt_code],
           ].map(([label, value]) => (

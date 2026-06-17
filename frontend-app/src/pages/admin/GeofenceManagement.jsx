@@ -36,6 +36,7 @@ import { Map, Visibility, Edit, CheckCircle, Archive, Warning } from '@mui/icons
 import * as turf from '@turf/turf';
 import GeofenceMap from '../../components/maps/GeofenceMap';
 import { isLikelyInRioCity, fmtLatLng, canVerifyGeofence, geometryQuality } from '../../utils/geofence-governance';
+import { formatDate } from '../../utils/formatDate';
 
 
 // Funções de validação geométrica
@@ -615,7 +616,7 @@ export default function GeofenceManagement() {
                 </TableCell>
                 <TableCell>
                   {community.geofenceData?.updatedAt ? 
-                    new Date(community.geofenceData.updatedAt).toLocaleDateString() : 
+                    formatDate(community.geofenceData.updatedAt) : 
                     '-'
                   }
                 </TableCell>

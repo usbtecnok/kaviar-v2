@@ -27,7 +27,7 @@ export default function ManagerEmergencyAlerts() {
       .finally(() => setLoading(false));
   }, [filter]);
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR') : '—';
+  const fmtDate = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleString('pt-BR'); };
 
   return (
     <Box>

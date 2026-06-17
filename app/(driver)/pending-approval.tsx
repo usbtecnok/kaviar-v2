@@ -21,6 +21,7 @@ export default function PendingApproval() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [driverStatus, setDriverStatus] = useState<string>('pending');
+  const [pendingReason, setPendingReason] = useState<string | null>(null);
   const [hasRejectedDoc, setHasRejectedDoc] = useState(false);
   const [userName, setUserName] = useState('');
   const [modalities, setModalities] = useState<any[]>([]);
@@ -41,16 +42,22 @@ export default function PendingApproval() {
       const data = await driverApi.getMe();
       const status = data.driver?.status || data.status;
       const name = data.driver?.name || data.name;
+      const reason = data.driver?.pending_reason || null;
 
       setDriverStatus(status);
       setUserName(name);
+      setPendingReason(reason);
 
       if (status === 'approved') {
         Alert.alert('Parabéns!', 'Sua conta foi aprovada! Agora você pode começar a trabalhar.', [
           { text: 'Começar', onPress: () => router.replace('/(driver)/online') },
         ]);
       } else if (status === 'rejected') {
-        Alert.alert('Cadastro Rejeitado', 'Infelizmente seu cadastro foi rejeitado. Entre em contato com o suporte para mais informações.', [{ text: 'OK' }]);
+        Alert.alert(
+          'Cadastro não aprovado',
+          'Seu cadastro não foi aprovado neste momento. Entre em contato com o suporte KAVIAR para mais informações.',
+          [{ text: 'OK' }]
+        );
       }
 
       try {
@@ -91,6 +98,9 @@ export default function PendingApproval() {
     );
   }
 
+  const isNeedsDocuments = driverStatus === 'needs_documents';
+  const isRejected = driverStatus === 'rejected';
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -101,27 +111,58 @@ export default function PendingApproval() {
       </View>
 
       <View style={styles.center}>
-        <View style={styles.iconRing}>
-          <Ionicons name="time-outline" size={40} color={COLORS.warning} />
+        <View style={[styles.iconRing, isNeedsDocuments && { borderColor: '#3B82F6' }, isRejected && { borderColor: COLORS.danger }]}>
+          <Ionicons
+            name={isNeedsDocuments ? 'document-text-outline' : isRejected ? 'close-circle-outline' : 'time-outline'}
+            size={40}
+            color={isNeedsDocuments ? '#3B82F6' : isRejected ? COLORS.danger : COLORS.warning}
+          />
         </View>
 
-        <Text style={styles.title}>Aguardando Aprovação</Text>
+        <Text style={styles.title}>
+          {isNeedsDocuments ? 'Documentos Pendentes' : isRejected ? 'Cadastro Não Aprovado' : 'Aguardando Aprovação'}
+        </Text>
         {userName && <Text style={styles.userName}>Olá, {userName}!</Text>}
 
-        <Text style={styles.message}>
-          Seus documentos foram enviados e estão sendo analisados pela nossa equipe.
-        </Text>
-
-        {/* Info box */}
-        <View style={styles.infoBox}>
-          <Ionicons name="information-circle-outline" size={22} color={COLORS.accent} />
-          <Text style={styles.infoText}>
-            O processo pode levar até 48 horas. Você será notificado quando sua conta for aprovada.
+        {/* Status-specific messaging */}
+        {isNeedsDocuments ? (
+          <>
+            <Text style={styles.message}>
+              Seu cadastro precisa de correção. Envie os documentos pendentes para continuar sua análise no KAVIAR.
+            </Text>
+            {pendingReason && (
+              <View style={[styles.infoBox, { borderColor: '#3B82F6' }]}>
+                <Ionicons name="alert-circle" size={22} color="#3B82F6" />
+                <Text style={[styles.infoText, { color: '#3B82F6' }]}>
+                  {pendingReason}
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity style={[styles.reviewBtn, { backgroundColor: '#3B82F6' }]} onPress={() => router.push('/(driver)/documents')}>
+              <Ionicons name="cloud-upload-outline" size={18} color="#FFF" />
+              <Text style={styles.reviewBtnText}>Enviar Documentos</Text>
+            </TouchableOpacity>
+          </>
+        ) : isRejected ? (
+          <Text style={styles.message}>
+            Seu cadastro não foi aprovado neste momento. Entre em contato com o suporte KAVIAR para mais informações.
           </Text>
-        </View>
+        ) : (
+          <>
+            <Text style={styles.message}>
+              Seus documentos foram enviados e estão sendo analisados pela nossa equipe.
+            </Text>
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle-outline" size={22} color={COLORS.accent} />
+              <Text style={styles.infoText}>
+                O processo pode levar até 48 horas. Você será notificado quando sua conta for aprovada.
+              </Text>
+            </View>
+          </>
+        )}
 
-        {/* Rejected docs */}
-        {hasRejectedDoc && (
+        {/* Rejected docs (for pending status) */}
+        {!isNeedsDocuments && !isRejected && hasRejectedDoc && (
           <>
             <View style={styles.rejectBox}>
               <Ionicons name="alert-circle" size={22} color={COLORS.danger} />
@@ -139,8 +180,8 @@ export default function PendingApproval() {
         {/* Status */}
         <View style={styles.statusBox}>
           <Text style={styles.statusLabel}>Status atual</Text>
-          <Text style={[styles.statusValue, { color: COLORS.warning }]}>
-            {driverStatus === 'pending' ? 'EM ANÁLISE' : driverStatus.toUpperCase()}
+          <Text style={[styles.statusValue, { color: isNeedsDocuments ? '#3B82F6' : isRejected ? COLORS.danger : COLORS.warning }]}>
+            {isNeedsDocuments ? 'CORREÇÃO PENDENTE' : isRejected ? 'NÃO APROVADO' : 'EM ANÁLISE'}
           </Text>
         </View>
 

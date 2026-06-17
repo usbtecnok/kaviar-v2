@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Archive, Add } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const GOLD = '#B8942E';
 const STATUS_LABELS = { active: 'Ativo', pending_approval: 'Pendente', rejected: 'Rejeitado', archived: 'Arquivado', draft: 'Rascunho' };
@@ -288,7 +289,7 @@ export default function TerritoryPriceFloors() {
                           </Box>
                           <Typography sx={{ fontSize: 11, color: '#6B7280', mb: 1 }}>Motivo: {p.notes || '—'}</Typography>
                           {p.territory_name && <Typography sx={{ fontSize: 10, color: '#9CA3AF' }}>Território: {p.territory_name}</Typography>}
-                          <Typography sx={{ fontSize: 10, color: '#9CA3AF', mb: 1.5 }}>Proposto em: {new Date(p.created_at).toLocaleString('pt-BR')}</Typography>
+                          <Typography sx={{ fontSize: 10, color: '#9CA3AF', mb: 1.5 }}>Proposto em: {formatDate(p.created_at, { showTime: true })}</Typography>
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button size="small" variant="contained" startIcon={<CheckCircle />} onClick={() => setReviewDialog({ open: true, item: p, action: 'approve' })} sx={{ bgcolor: '#10B981', fontSize: 11, fontWeight: 600, '&:hover': { bgcolor: '#059669' } }}>Aprovar</Button>
                             <Button size="small" variant="outlined" startIcon={<Cancel />} onClick={() => setReviewDialog({ open: true, item: p, action: 'reject' })} sx={{ borderColor: '#EF4444', color: '#EF4444', fontSize: 11, fontWeight: 600 }}>Rejeitar</Button>
@@ -326,7 +327,7 @@ export default function TerritoryPriceFloors() {
                           <TableCell sx={{ fontSize: 12, color: '#1F2937' }} align="right">{fmt(f.total_floor)}</TableCell>
                           <TableCell><Chip label={STATUS_LABELS[f.status] || f.status} size="small" sx={{ bgcolor: `${STATUS_COLORS[f.status] || '#6B7280'}20`, color: STATUS_COLORS[f.status] || '#6B7280', fontWeight: 600, fontSize: 10 }} /></TableCell>
                           <TableCell sx={{ fontSize: 11, color: '#6B7280' }}>{f.review_reason || f.notes || '—'}</TableCell>
-                          <TableCell sx={{ fontSize: 11, color: '#9CA3AF' }}>{f.updated_at ? new Date(f.updated_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                          <TableCell sx={{ fontSize: 11, color: '#9CA3AF' }}>{formatDate(f.updated_at)}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

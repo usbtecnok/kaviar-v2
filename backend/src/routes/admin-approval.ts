@@ -66,10 +66,60 @@ router.get('/drivers/metrics/by-neighborhood', allowReadAccess, applyTerritorySc
 });
 router.put('/drivers/:id/approve', requireSuperAdmin, auditWrite('approve_driver', 'driver'), approvalController.approveDriver);
 router.put('/drivers/:id/reject', requireSuperAdmin, auditWrite('reject_driver', 'driver'), approvalController.rejectDriver);
+
+// PUT /api/admin/drivers/:id/request-documents — solicitar documentos pendentes
+router.put('/drivers/:id/request-documents', requireSuperAdmin, auditWrite('request_documents', 'driver'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, error: 'Motivo é obrigatório' });
+    }
+    const driver = await prisma.drivers.findUnique({ where: { id } });
+    if (!driver) return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+
+    await prisma.drivers.update({
+      where: { id },
+      data: {
+        status: 'needs_documents',
+        pending_reason: reason.trim(),
+        pending_reason_updated_at: new Date(),
+        rejected_at: null,
+        rejected_by: null,
+        rejected_reason: null,
+        updated_at: new Date()
+      }
+    });
+    res.json({ success: true, message: 'Documentos solicitados ao motorista' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao solicitar documentos' });
+  }
+});
+
+// PUT /api/admin/drivers/:id/archive — arquivar cadastro
+router.put('/drivers/:id/archive', requireSuperAdmin, auditWrite('archive_driver', 'driver'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await prisma.drivers.findUnique({ where: { id } });
+    if (!driver) return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+
+    await prisma.drivers.update({
+      where: { id },
+      data: { status: 'archived', updated_at: new Date() }
+    });
+    res.json({ success: true, message: 'Motorista arquivado' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao arquivar motorista' });
+  }
+});
+
+// DELETE /api/admin/drivers/:id — soft-delete
 router.delete('/drivers/:id', requireSuperAdmin, auditWrite('delete_driver', 'driver'), async (req, res) => {
   try {
-    await prisma.drivers.delete({
-      where: { id: req.params.id }
+    const adminId = (req as any).userId;
+    await prisma.drivers.update({
+      where: { id: req.params.id },
+      data: { deleted_at: new Date(), deleted_by: adminId, updated_at: new Date() }
     });
     res.json({ success: true, message: 'Driver deleted' });
   } catch (error) {
