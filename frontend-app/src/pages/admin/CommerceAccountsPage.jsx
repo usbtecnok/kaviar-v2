@@ -336,8 +336,8 @@ export default function CommerceAccountsPage() {
           <Box sx={{ display: 'flex', gap: 1 }}><TextField label="Telefone" size="small" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /><TextField label="Email" size="small" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Box>
           <TextField label="Endereço" size="small" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
           {isSuperAdmin && <TextField label="CRM Lead ID (opcional)" size="small" value={form.crm_lead_id} onChange={e => setForm(f => ({ ...f, crm_lead_id: e.target.value }))} placeholder="UUID do lead no CRM" />}
-          <FormControl size="small"><InputLabel>Território</InputLabel><Select value={form.territory_id} label="Território" onChange={e => setForm(f => ({ ...f, territory_id: e.target.value, neighborhood_id: '' }))}><MenuItem value="">Sem território</MenuItem>{territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}</Select></FormControl>
-          <FormControl size="small" disabled={!form.territory_id}><InputLabel>Bairro</InputLabel><Select value={form.neighborhood_id} label="Bairro" onChange={e => setForm(f => ({ ...f, neighborhood_id: e.target.value }))}><MenuItem value="">Sem bairro</MenuItem>{neighborhoods.filter(n => n.territory_id === form.territory_id).map(n => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}</Select></FormControl>
+          <FormControl size="small"><InputLabel>Território</InputLabel><Select value={form.territory_id} label="Território" onChange={e => setForm(f => ({ ...f, territory_id: e.target.value, neighborhood_id: '' }))}><MenuItem value="">Sem território</MenuItem>{territories.map(t => <MenuItem key={t.id} value={t.id}>{t.name}{t.uf ? ` (${t.uf})` : ''}</MenuItem>)}</Select></FormControl>
+          <FormControl size="small" disabled={!form.territory_id}><InputLabel>Bairro (opcional)</InputLabel><Select value={form.neighborhood_id} label="Bairro (opcional)" onChange={e => setForm(f => ({ ...f, neighborhood_id: e.target.value }))}><MenuItem value=""><em>Todo o território</em></MenuItem>{neighborhoods.filter(n => n.territory_id === form.territory_id).map(n => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}</Select></FormControl>
         </DialogContent>
         <DialogActions><Button onClick={() => setCreateOpen(false)}>Cancelar</Button><Button variant="contained" onClick={handleCreate} sx={{ bgcolor: GOLD }}>Criar</Button></DialogActions>
       </Dialog>
@@ -374,9 +374,9 @@ export default function CommerceAccountsPage() {
             </Select>
           </FormControl>
           <FormControl size="small" fullWidth disabled={!editTerritory}>
-            <InputLabel>Bairro</InputLabel>
-            <Select value={editNeighborhood} label="Bairro" onChange={e => setEditNeighborhood(e.target.value)}>
-              <MenuItem value="">Sem bairro</MenuItem>
+            <InputLabel>Bairro (opcional)</InputLabel>
+            <Select value={editNeighborhood} label="Bairro (opcional)" onChange={e => setEditNeighborhood(e.target.value)}>
+              <MenuItem value=""><em>Todo o território</em></MenuItem>
               {neighborhoods.filter(n => n.territory_id === editTerritory).map(n => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}
             </Select>
           </FormControl>
