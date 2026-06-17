@@ -114,6 +114,10 @@ class AdminApiService {
     return this.put(`/api/admin/drivers/${id}/archive`);
   }
 
+  async reopenDriver(id) {
+    return this.put(`/api/admin/drivers/${id}/reopen`);
+  }
+
   async deleteDriver(id) {
     return this.delete(`/api/admin/drivers/${id}`);
   }
