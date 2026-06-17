@@ -239,7 +239,7 @@ export default function KaviarLanding() {
                 Parcerias e marca: <Box component="a" href="mailto:contato@kaviar.com.br" sx={{ color: gold, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>contato@kaviar.com.br</Box>
               </Typography>
               <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-                Institucional: <Box component="a" href="mailto:contato@usbtecnok.com.br" sx={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>contato@usbtecnok.com.br</Box>
+                Institucional: <Box component="a" href="mailto:contato@kaviar.com.br" sx={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>contato@kaviar.com.br</Box>
               </Typography>
             </Box>
           </Box>
@@ -435,7 +435,7 @@ export default function KaviarLanding() {
         </Box>
         <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 3, md: 5 }, pb: 4 }}>
           <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', lineHeight: 1.7 }}>
-            Plataforma operada por USB TECNOK — Manutenção e Instalação de Computadores LTDA — ME • CNPJ 07.710.691/0001-66 • Rio de Janeiro, RJ • Desde 2005
+            Plataforma operada por KAVIAR TECNOLOGIA E SERVIÇOS DIGITAIS LTDA • Rio de Janeiro/RJ • Atendimento digital
           </Typography>
         </Box>
       </Box>

@@ -59,7 +59,7 @@ export default function PetLanding() {
           KAVIAR <span style={{ color: '#fff' }}>PET</span> 🐾
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <img src={new URL('../assets/usb-tecnok-logo-transparent.png', import.meta.url).href} alt="USB Tecnok" style={{ height: 24 }} />
+          <img src={new URL('../assets/logo-kaviar-full.svg', import.meta.url).href} alt="KAVIAR" style={{ height: 24 }} />
         </Box>
       </Box>
 
@@ -142,10 +142,10 @@ export default function PetLanding() {
             KAVIAR PET — OPERAÇÃO CERTIFICADA DE TRANSPORTE PET
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
-            <img src={new URL('../assets/usb-tecnok-logo-transparent.png', import.meta.url).href} alt="USB Tecnok" style={{ height: 32 }} />
+            <img src={new URL('../assets/logo-kaviar-full.svg', import.meta.url).href} alt="KAVIAR" style={{ height: 32 }} />
           </Box>
           <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', mt: 1 }}>
-            USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66
+            KAVIAR — Rio de Janeiro/RJ — Atendimento digital
           </Typography>
         </Box>
       </Box>
