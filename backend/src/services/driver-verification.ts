@@ -48,7 +48,7 @@ export class DriverVerificationService {
     });
 
     // Required document types
-    const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK'];
+    const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK', 'PROFILE_PHOTO'];
     
     const missingRequirements: string[] = [];
     const checklist: EligibilityResult['checklist'] = {
@@ -149,7 +149,7 @@ export class DriverVerificationService {
     });
 
     // Create missing document records (idempotent)
-    const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK'];
+    const requiredDocs = ['CPF', 'RG', 'CNH', 'PROOF_OF_ADDRESS', 'VEHICLE_PHOTO', 'BACKGROUND_CHECK', 'PROFILE_PHOTO'];
     
     for (const docType of requiredDocs) {
       await prisma.driver_documents.upsert({

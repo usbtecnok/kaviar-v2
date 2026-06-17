@@ -113,6 +113,33 @@ router.put('/drivers/:id/archive', requireSuperAdmin, auditWrite('archive_driver
   }
 });
 
+// PUT /api/admin/drivers/:id/reopen — reabrir análise de motorista rejeitado/arquivado
+router.put('/drivers/:id/reopen', requireSuperAdmin, auditWrite('reopen_driver', 'driver'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await prisma.drivers.findUnique({ where: { id } });
+    if (!driver) return res.status(404).json({ success: false, error: 'Motorista não encontrado' });
+    if (!['rejected', 'archived'].includes(driver.status)) {
+      return res.status(400).json({ success: false, error: 'Apenas motoristas rejeitados ou arquivados podem ser reabertos' });
+    }
+
+    await prisma.drivers.update({
+      where: { id },
+      data: {
+        status: 'pending',
+        rejected_at: null,
+        rejected_by: null,
+        rejected_reason: null,
+        pending_reason: null,
+        updated_at: new Date()
+      }
+    });
+    res.json({ success: true, message: 'Análise reaberta — motorista voltou para Pendentes' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao reabrir análise' });
+  }
+});
+
 // DELETE /api/admin/drivers/:id — soft-delete
 router.delete('/drivers/:id', requireSuperAdmin, auditWrite('delete_driver', 'driver'), async (req, res) => {
   try {
