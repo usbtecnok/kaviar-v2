@@ -6,9 +6,9 @@
  * - Modo dry-run por padrão (--execute para gravar).
  * - Registros sem territory_id definido são reportados, não migrados.
  *
- * Uso:
- *   npx ts-node scripts/migrate/migrate-local-businesses-to-commerce.ts          # dry-run
- *   npx ts-node scripts/migrate/migrate-local-businesses-to-commerce.ts --execute # executa
+ * Uso (a partir do diretório backend/):
+ *   npx ts-node --compiler-options '{"module":"commonjs","moduleResolution":"node","esModuleInterop":true,"skipLibCheck":true}' src/scripts/migrate-local-businesses-to-commerce.ts
+ *   npx ts-node --compiler-options '{"module":"commonjs","moduleResolution":"node","esModuleInterop":true,"skipLibCheck":true}' src/scripts/migrate-local-businesses-to-commerce.ts --execute
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -16,32 +16,28 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const dryRun = !process.argv.includes('--execute');
 
+function slugify(text: string): string {
+  return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 async function main() {
   console.log(`\n🔄 Migração: local_businesses → commerce_accounts`);
   console.log(`   Modo: ${dryRun ? 'DRY-RUN (nenhuma alteração será feita)' : '⚡ EXECUTANDO'}\n`);
 
-  const businesses = await prisma.local_businesses.findMany({
-    orderBy: { name: 'asc' },
-  });
-
+  const businesses = await prisma.local_businesses.findMany({ orderBy: { name: 'asc' } });
   console.log(`📦 Total de registros em local_businesses: ${businesses.length}\n`);
 
-  // Buscar territórios para resolver region_slug → territory_id
   const territories = await prisma.operational_territories.findMany({
     where: { status: 'active' },
     select: { id: true, name: true, city_name: true, uf: true },
   });
 
-  const slugify = (text: string) =>
-    text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-  // Buscar commerce_accounts existentes para verificar duplicidade
   const existingAccounts = await prisma.commerce_accounts.findMany({
     where: { deleted_at: null },
     select: { id: true, name: true, territory_id: true },
   });
   const existingKey = new Set(
-    existingAccounts.map(a => `${a.name.trim().toLowerCase()}|${a.territory_id || ''}`)
+    existingAccounts.map((a: any) => `${a.name.trim().toLowerCase()}|${a.territory_id || ''}`)
   );
 
   let migrated = 0;
@@ -50,20 +46,16 @@ async function main() {
   const report: { name: string; reason: string }[] = [];
 
   for (const biz of businesses) {
-    // Resolve territory_id
     let territoryId = biz.territory_id;
 
     if (!territoryId && biz.region_slug) {
-      // Tentar resolver region_slug para um territory via city_name ou name match
       const slug = biz.region_slug.toLowerCase();
-      const match = territories.find(t => {
+      const match = territories.find((t: any) => {
         if (t.city_name && slugify(t.city_name) === slug) return true;
         if (slugify(t.name) === slug) return true;
         return false;
       });
-      if (match) {
-        territoryId = match.id;
-      }
+      if (match) territoryId = match.id;
     }
 
     if (!territoryId) {
@@ -72,7 +64,6 @@ async function main() {
       continue;
     }
 
-    // Verificar duplicidade
     const key = `${biz.name.trim().toLowerCase()}|${territoryId}`;
     if (existingKey.has(key)) {
       skippedDuplicate++;
