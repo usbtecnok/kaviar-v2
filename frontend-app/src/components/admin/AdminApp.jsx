@@ -83,7 +83,7 @@ import PetHomologations from "../../pages/admin/PetHomologations";
 import PetHomologationDetail from "../../pages/admin/PetHomologationDetail";
 import OperatorHome from "../../pages/admin/OperatorHome";
 import ManagerHome from "../../pages/admin/ManagerHome";
-import usbTecnokLogo from "../../assets/usb-tecnok-logo-transparent.png";
+import kaviarLogo from "../../assets/logo-kaviar-full.svg";
 import { useState, useEffect } from 'react';
 
 function FinanceHomeRedirect() {
@@ -127,7 +127,7 @@ function AdminHeader() {
         <Typography variant="h6" sx={{ color: '#1A1A1A', fontWeight: 700 }}>
           <span style={{ color: '#B8942E' }}>KAVIAR</span> Admin — {admin?.name || 'Usuário'}
         </Typography>
-        <Typography sx={{ color: '#9CA3AF', fontSize: 10, mt: 0.2 }}>Produto/plataforma da USB Tecnok • CNPJ 07.710.691/0001-66</Typography>
+        <Typography sx={{ color: '#9CA3AF', fontSize: 10, mt: 0.2 }}>KAVIAR — Rio de Janeiro/RJ — Atendimento digital</Typography>
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.5 }}>
           <Chip label={admin?.role || 'ADMIN'} size="small" sx={{ fontSize: 10, height: 20, bgcolor: 'rgba(184,148,46,0.08)', color: '#B8942E', fontWeight: 600 }} />
           {isAngelViewer && (
@@ -145,7 +145,7 @@ function AdminHeader() {
         </Box>
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 1 }}>
-        <img src={usbTecnokLogo} alt="USB Tecnok" style={{ height: 48, opacity: 1 }} />
+        <img src={kaviarLogo} alt="KAVIAR" style={{ height: 48, opacity: 1 }} />
         <Button 
           onClick={handleLogout} 
           variant="outlined"
