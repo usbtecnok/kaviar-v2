@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
+import { formatDate } from '../utils/formatDate';
 
 export function AdminAuditLogs() {
   const [logs, setLogs] = useState([]);
@@ -44,7 +45,7 @@ export function AdminAuditLogs() {
         <tbody>
           {logs.map(log => (
             <tr key={log.id} className="border-t">
-              <td className="p-2">{new Date(log.created_at).toLocaleString()}</td>
+              <td className="p-2">{formatDate(log.created_at, { showTime: true })}</td>
               <td className="p-2">{log.admin_id}</td>
               <td className="p-2">{log.action}</td>
               <td className="p-2">{log.ride_id}</td>

@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { Delete, Add } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const KEY = 'passenger_favorites_matching';
 
@@ -334,7 +335,7 @@ export default function FeatureFlags() {
           </Box>
 
           <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-            Atualizado em: {new Date(flag.updatedAt).toLocaleString('pt-BR')}
+            Atualizado em: {formatDate(flag.updatedAt, { showTime: true })}
           </Typography>
         </CardContent>
       </Card>
@@ -396,7 +397,7 @@ export default function FeatureFlags() {
                 >
                   <ListItemText
                     primary={entry.passengerId}
-                    secondary={`Adicionado em: ${new Date(entry.createdAt).toLocaleString('pt-BR')}`}
+                    secondary={`Adicionado em: ${formatDate(entry.createdAt, { showTime: true })}`}
                   />
                 </ListItem>
               ))}

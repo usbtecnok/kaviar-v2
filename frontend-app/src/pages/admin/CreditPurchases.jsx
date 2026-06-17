@@ -51,7 +51,7 @@ export default function CreditPurchases() {
   };
 
   const fmt = (cents) => `R$ ${(cents / 100).toFixed(2)}`;
-  const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR') : '—';
+  const fmtDate = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleString('pt-BR'); };
 
   return (
     <Box>

@@ -67,7 +67,7 @@ export default function EmergencyEvents() {
     finally { setResolving(false); }
   };
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR') : '—';
+  const fmtDate = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleString('pt-BR'); };
 
   const snap = detail?.snapshot || {};
 

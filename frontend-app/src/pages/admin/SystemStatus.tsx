@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { isDemoMode } from '../../demo/demoMode';
 import demoData from '../../demo/demoData';
+import { formatDate } from '../../utils/formatDate';
 
 interface HealthCheck {
   status: string;
@@ -229,7 +230,7 @@ const SystemStatus: React.FC = () => {
           }}>
             <span style={{ fontWeight: '500' }}>Último Deploy</span>
             <span style={{ color: '#64748B' }}>
-              {new Date(statusData.lastDeploy).toLocaleString('pt-BR')}
+              {formatDate(statusData.lastDeploy, { showTime: true })}
             </span>
           </div>
         </div>

@@ -22,6 +22,7 @@ import {
   IconButton
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Language } from '@mui/icons-material';
+import { formatDate } from '../../utils/formatDate';
 
 
 const isSuperAdmin = () => {
@@ -191,7 +192,7 @@ export default function GuidesManagement() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {new Date(guide.createdAt).toLocaleDateString('pt-BR')}
+                  {formatDate(guide.createdAt)}
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>

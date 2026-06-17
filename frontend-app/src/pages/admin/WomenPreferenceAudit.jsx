@@ -5,6 +5,7 @@ import {
   Select, MenuItem, FormControl, InputLabel, Button, CircularProgress, Alert,
   Pagination
 } from '@mui/material';
+import { formatDate } from '../../utils/formatDate';
 
 const API = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '';
 
@@ -238,7 +239,7 @@ function EventsTab() {
               <TableBody>
                 {data.map((row) => (
                   <TableRow key={row.id}>
-                    <TableCell>{new Date(row.created_at).toLocaleString('pt-BR')}</TableCell>
+                    <TableCell>{formatDate(row.created_at, { showTime: true })}</TableCell>
                     <TableCell><Chip label={row.actor_type} size="small" /></TableCell>
                     <TableCell><Chip label={actionLabels[row.action] || row.action} size="small" color={row.action === 'opt_in' ? 'success' : row.action === 'opt_out' ? 'warning' : 'default'} /></TableCell>
                     <TableCell sx={{ fontFamily: 'monospace', fontSize: 11 }}>{row.actor_id.slice(0, 8)}…</TableCell>

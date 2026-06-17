@@ -6,6 +6,7 @@ import {
 } from '@mui/material';
 import { PlayArrow, Refresh } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
+import { formatDate } from '../../utils/formatDate';
 
 const API_BASE = 'https://api.kaviar.com.br/api/admin';
 const FEATURE_KEY = 'passenger_favorites_matching';
@@ -186,7 +187,7 @@ export default function BetaMonitor() {
           {lastCheckpoint ? (
             <Box>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Último checkpoint: {new Date(lastCheckpoint.created_at).toLocaleString('pt-BR')}
+                Último checkpoint: {formatDate(lastCheckpoint.created_at, { showTime: true })}
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
                 <Chip
@@ -236,7 +237,7 @@ export default function BetaMonitor() {
                 ) : (
                   checkpoints.map((cp) => (
                     <TableRow key={cp.id} hover>
-                      <TableCell>{new Date(cp.created_at).toLocaleString('pt-BR')}</TableCell>
+                      <TableCell>{formatDate(cp.created_at, { showTime: true })}</TableCell>
                       <TableCell>{cp.checkpoint_label}</TableCell>
                       <TableCell>{cp.phase}</TableCell>
                       <TableCell>

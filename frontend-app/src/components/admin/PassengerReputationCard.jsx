@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Paper, Typography, Box, Chip, CircularProgress, Rating } from '@mui/material';
 import api from '../../api/index';
+import { formatDate } from '../../utils/formatDate';
 
 export function PassengerReputationCard({ passengerId }) {
   const [data, setData] = useState(null);
@@ -51,7 +52,7 @@ export function PassengerReputationCard({ passengerId }) {
             <Box key={i} sx={{ mb: 1, p: 1, bgcolor: 'rgba(255,255,255,0.03)', borderRadius: 1 }}>
               <Rating value={r.rating} size="small" readOnly />
               <Typography variant="body2" sx={{ color: '#ccc' }}>{r.comment}</Typography>
-              <Typography variant="caption" color="text.secondary">{new Date(r.createdAt || r.created_at).toLocaleDateString('pt-BR')}</Typography>
+              <Typography variant="caption" color="text.secondary">{formatDate(r.createdAt || r.created_at)}</Typography>
             </Box>
           ))}
         </Box>

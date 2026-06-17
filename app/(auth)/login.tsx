@@ -33,7 +33,7 @@ export default function Login() {
       if (userType === 'PASSENGER') {
         router.replace('/(passenger)/home');
       } else {
-        router.replace(user.status === 'pending' ? '/(driver)/pending-approval' : '/(driver)/online');
+        router.replace(user.status === 'pending' || user.status === 'needs_documents' || user.status === 'rejected' ? '/(driver)/pending-approval' : '/(driver)/online');
       }
     } catch (error: any) {
       Alert.alert('Erro', friendlyError(error, 'Erro ao fazer login'));

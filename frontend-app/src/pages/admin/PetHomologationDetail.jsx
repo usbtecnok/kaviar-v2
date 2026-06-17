@@ -4,6 +4,7 @@ import { Container, Typography, Box, Card, CardContent, Chip, Button, TextField,
 import { ArrowBack, Pets, Timeline, Send, WhatsApp, OndemandVideo, Quiz, CameraAlt, Edit, LinkOff, Link as LinkIcon, Warning, CheckCircle, Chat, SaveAlt, Description, Visibility } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const STATUSES = ['NOVO','EM_CONTATO','AGUARDANDO_TREINAMENTO','AGUARDANDO_QUESTIONARIO','AGUARDANDO_FOTOS','EM_ANALISE','APROVADO','REPROVADO','SUSPENSO','DESISTIU'];
 const STATUS_COLORS = { NOVO:'#FFF2CC', EM_CONTATO:'#CFE2F3', AGUARDANDO_TREINAMENTO:'#FCE5CD', AGUARDANDO_QUESTIONARIO:'#FCE5CD', AGUARDANDO_FOTOS:'#FCE5CD', EM_ANALISE:'#D9EAD3', APROVADO:'#4caf50', REPROVADO:'#f44336', SUSPENSO:'#ff9800', DESISTIU:'#9e9e9e' };
@@ -202,7 +203,7 @@ export default function PetHomologationDetail() {
                 <Typography sx={{ color:'#ccc', fontSize:13 }}>Status: <Chip label={driverInfo.driver.status} size="small" sx={{ fontSize:10, height:18, bgcolor: driverInfo.driver.status === 'approved' ? '#4caf5033' : '#ff980033', color: driverInfo.driver.status === 'approved' ? '#4caf50' : '#ff9800' }} /></Typography>
                 <Typography sx={{ color:'#ccc', fontSize:13 }}>Veículo: {driverInfo.driver.vehicle_model || '—'} {driverInfo.driver.vehicle_plate || ''}</Typography>
                 <Typography sx={{ color:'#ccc', fontSize:13 }}>CPF: {maskCpf(driverInfo.driver.document_cpf)}</Typography>
-                {driverInfo.driver.approved_at && <Typography sx={{ color:'#ccc', fontSize:13 }}>Aprovado em: {new Date(driverInfo.driver.approved_at).toLocaleDateString('pt-BR')}</Typography>}
+                {driverInfo.driver.approved_at && <Typography sx={{ color:'#ccc', fontSize:13 }}>Aprovado em: {formatDate(driverInfo.driver.approved_at)}</Typography>}
               </Box>
               {!driverInfo.linked && (
                 <Button onClick={handleLinkDriver} startIcon={<LinkIcon />} size="small" variant="outlined" sx={{ mt:1.5, ml:3, borderColor:'#4caf50', color:'#4caf50', textTransform:'none', fontSize:12 }}>
@@ -233,7 +234,7 @@ export default function PetHomologationDetail() {
             <Box><Typography variant="caption" sx={{ color:'#888' }}>E-mail</Typography><Typography sx={{ color:'#E8E3D5' }}>{item.email || '—'}</Typography></Box>
             <Box><Typography variant="caption" sx={{ color:'#888' }}>Região</Typography><Typography sx={{ color:'#E8E3D5' }}>{item.region || '—'}</Typography></Box>
             <Box><Typography variant="caption" sx={{ color:'#888' }}>Veículo</Typography><Typography sx={{ color:'#E8E3D5' }}>{item.vehicle_model || '—'}</Typography></Box>
-            <Box><Typography variant="caption" sx={{ color:'#888' }}>Criado em</Typography><Typography sx={{ color:'#E8E3D5' }}>{new Date(item.created_at).toLocaleDateString('pt-BR')}</Typography></Box>
+            <Box><Typography variant="caption" sx={{ color:'#888' }}>Criado em</Typography><Typography sx={{ color:'#E8E3D5' }}>{formatDate(item.created_at)}</Typography></Box>
             <Box><Typography variant="caption" sx={{ color:'#888' }}>Fonte</Typography><Typography sx={{ color:'#E8E3D5' }}>{item.source}</Typography></Box>
           </Box>
           <Box sx={{ mt:2 }}>
@@ -285,7 +286,7 @@ export default function PetHomologationDetail() {
           {item.quiz_score !== null && item.quiz_score !== undefined ? (
             <Box>
               <Typography sx={{ color:'#E8E3D5', fontSize:22, fontWeight:700 }}>{item.quiz_score}/10</Typography>
-              <Typography sx={{ color:'#888', fontSize:12 }}>Respondido em: {item.quiz_sent_at ? new Date(item.quiz_sent_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—'}</Typography>
+              <Typography sx={{ color:'#888', fontSize:12 }}>Respondido em: {formatDate(item.quiz_sent_at, { showTime: true })}</Typography>
               <Typography sx={{ color: item.quiz_passed ? '#4caf50' : '#f44336', fontSize:12, mt:0.5 }}>{item.quiz_passed ? '✅ Nota mínima atingida (7/10)' : '❌ Nota abaixo do mínimo (7/10)'}</Typography>
             </Box>
           ) : (
@@ -359,7 +360,7 @@ export default function PetHomologationDetail() {
               <Button size="small" variant="outlined" onClick={async () => { await fetch(`${API_BASE_URL}/api/admin/pet/homologations/${id}`, { method:'PATCH', headers:headers(), body:JSON.stringify({ photos_approved: false }) }); fetchData(); }} sx={{ borderColor:'#f44336', color:'#f44336', textTransform:'none', fontSize:11 }}>Reprovar fotos</Button>
             )}
           </Box>
-          {item.photos_sent_at && <Typography sx={{ color:'#888', fontSize:11, mt:1 }}>Recebidas em: {new Date(item.photos_sent_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</Typography>}
+          {item.photos_sent_at && <Typography sx={{ color:'#888', fontSize:11, mt:1 }}>Recebidas em: {formatDate(item.photos_sent_at, { showTime: true })}</Typography>}
         </CardContent>
       </Card>
 
@@ -380,7 +381,7 @@ export default function PetHomologationDetail() {
                   <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
                     <Chip label={doc.document_type.replace(/_/g,' ')} size="small" sx={{ height:20, fontSize:10, bgcolor:'#1a2332', color:'#ccc' }} />
                     <Chip label={doc.status} size="small" sx={{ height:18, fontSize:9, bgcolor: doc.status === 'approved' ? '#4caf5033' : doc.status === 'rejected' ? '#f4433633' : '#ff980033', color: doc.status === 'approved' ? '#4caf50' : doc.status === 'rejected' ? '#f44336' : '#ff9800' }} />
-                    <Typography sx={{ color:'#888', fontSize:10 }}>{new Date(doc.created_at).toLocaleDateString('pt-BR')}</Typography>
+                    <Typography sx={{ color:'#888', fontSize:10 }}>{formatDate(doc.created_at)}</Typography>
                   </Box>
                   <Box sx={{ display:'flex', gap:0.5 }}>
                     <Button size="small" onClick={async () => { const r = await fetch(`${API_BASE_URL}/api/admin/pet/homologations/documents/${doc.id}/file`, { headers:headers() }); const j = await r.json(); if (j.success) window.open(j.url, '_blank'); }} sx={{ color:'#8a9aaa', fontSize:10, minWidth:0, textTransform:'none' }}>Abrir</Button>
@@ -420,7 +421,7 @@ export default function PetHomologationDetail() {
                 <Box key={log.id} sx={{ borderLeft:'2px solid #333', pl:2, pb:2, ml:1, position:'relative', '&::before':{ content:'""', position:'absolute', left:-5, top:6, width:8, height:8, borderRadius:'50%', bgcolor:'#b8960c' } }}>
                   <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <Typography sx={{ fontSize:12, fontWeight:600, color:'#E8E3D5' }}>{ACTION_LABELS[log.action] || log.action}</Typography>
-                    <Typography sx={{ fontSize:11, color:'#666' }}>{new Date(log.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</Typography>
+                    <Typography sx={{ fontSize:11, color:'#666' }}>{formatDate(log.created_at, { showTime: true })}</Typography>
                   </Box>
                   <Typography sx={{ fontSize:11, color:'#888' }}>{log.admin_name || 'Sistema'}</Typography>
                   {log.old_status && log.new_status && <Typography sx={{ fontSize:11, color:'#aaa' }}>{log.old_status.replace(/_/g,' ')} → {log.new_status.replace(/_/g,' ')}</Typography>}

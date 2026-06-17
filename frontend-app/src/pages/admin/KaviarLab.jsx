@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { Science, TrendingUp, TrendingDown, Circle, Download, Search, Print, CameraAlt } from '@mui/icons-material';
 import api from '../../api';
+import { formatDate } from '../../utils/formatDate';
 
 const printStyles = (
   <GlobalStyles styles={{
@@ -615,7 +616,7 @@ export default function KaviarLab() {
                 {snapshots.map(s => (
                   <Box key={s.id} sx={{ px: 1.5, py: 1, bgcolor: '#0D0D0D', border: '1px solid #2A2A2A', borderRadius: 1.5 }}>
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#E5E5E5' }}>
-                      {new Date(s.snapshot_date).toLocaleDateString('pt-BR')}
+                      {formatDate(s.snapshot_date)}
                     </Typography>
                     <Typography sx={{ fontSize: 11, color: '#9CA3AF' }}>
                       Score: {s.maturity_score} · {s.maturity_status}

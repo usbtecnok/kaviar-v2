@@ -27,6 +27,7 @@ import { DriverCreditsCard } from '../../components/admin/DriverCreditsCard';
 import { DriverReputationCard } from '../../components/admin/DriverReputationCard';
 import { DriverFinancialCard } from '../../components/admin/DriverFinancialCard';
 import { DriverEditCard } from '../../components/admin/DriverEditCard';
+import { formatDate } from '../../utils/formatDate';
 
 
 const isSuperAdmin = () => {
@@ -338,8 +339,8 @@ export default function AdminDriverDetail() {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5, flexWrap: 'wrap' }}>
                         <Chip label={statusLabel(doc.status)} size="small" color={statusColor(doc.status)} />
                         {isExpired(doc) && <Chip label="⚠️ Renovação necessária" size="small" color="warning" variant="outlined" />}
-                        {doc.verified_at && <Typography variant="caption" color="text.secondary">Aprovada em {new Date(doc.verified_at).toLocaleDateString('pt-BR')}</Typography>}
-                        {!doc.verified_at && doc.submitted_at && <Typography variant="caption" color="text.secondary">Enviada em {new Date(doc.submitted_at).toLocaleDateString('pt-BR')}</Typography>}
+                        {doc.verified_at && <Typography variant="caption" color="text.secondary">Aprovada em {formatDate(doc.verified_at)}</Typography>}
+                        {!doc.verified_at && doc.submitted_at && <Typography variant="caption" color="text.secondary">Enviada em {formatDate(doc.submitted_at)}</Typography>}
                       </Box>
                     ) : (
                       <Typography variant="caption" color="text.disabled">Não enviada</Typography>
@@ -525,7 +526,7 @@ export default function AdminDriverDetail() {
                     </Grid>
                     <Grid item xs={12}>
                       <Typography variant="caption" color="text.secondary">
-                        Declarado em: {acceptedAt ? new Date(acceptedAt).toLocaleDateString('pt-BR') : '—'}
+                        Declarado em: {acceptedAt ? formatDate(acceptedAt) : '—'}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -551,7 +552,7 @@ export default function AdminDriverDetail() {
                   <Typography variant="body2" color="text.secondary">Promovido em:</Typography>
                   <Typography variant="body2">
                     {driver.premium_tourism_promoted_at 
-                      ? new Date(driver.premium_tourism_promoted_at).toLocaleDateString('pt-BR')
+                      ? formatDate(driver.premium_tourism_promoted_at)
                       : '—'}
                   </Typography>
                 </Grid>

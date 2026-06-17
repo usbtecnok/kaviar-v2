@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Paper, Typography, Box, Chip, CircularProgress, Rating, Divider } from '@mui/material';
 import { Star } from '@mui/icons-material';
 import api from '../../api/index';
+import { formatDate } from '../../utils/formatDate';
 
 const gold = '#FFD700';
 
@@ -134,7 +135,7 @@ export function DriverReputationCard({ driverId }) {
             <Box key={i} sx={{ mb: 1, p: 1.5, bgcolor: 'rgba(244,67,54,0.04)', borderRadius: 1, border: '1px solid rgba(244,67,54,0.1)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                 <Rating value={r.rating} readOnly size="small" />
-                <Typography variant="caption" sx={{ color: '#666' }}>{new Date(r.createdAt || r.created_at).toLocaleDateString('pt-BR')}</Typography>
+                <Typography variant="caption" sx={{ color: '#666' }}>{formatDate(r.createdAt || r.created_at)}</Typography>
               </Box>
               <Typography variant="body2" sx={{ color: '#ccc', fontStyle: 'italic' }}>"{r.comment}"</Typography>
             </Box>
@@ -150,7 +151,7 @@ export function DriverReputationCard({ driverId }) {
             <Box key={i} sx={{ mb: 1, p: 1.5, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                 <Rating value={r.rating} readOnly size="small" sx={{ '& .MuiRating-iconFilled': { color: gold } }} />
-                <Typography variant="caption" sx={{ color: '#666' }}>{new Date(r.createdAt || r.created_at).toLocaleDateString('pt-BR')}</Typography>
+                <Typography variant="caption" sx={{ color: '#666' }}>{formatDate(r.createdAt || r.created_at)}</Typography>
               </Box>
               <Typography variant="body2" sx={{ color: '#aaa', fontStyle: 'italic' }}>"{r.comment}"</Typography>
             </Box>

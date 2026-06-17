@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 export default function MatchMonitor() {
   const [config, setConfig] = useState({
@@ -291,7 +292,7 @@ export default function MatchMonitor() {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      {new Date(match.created_at).toLocaleString('pt-BR')}
+                      {formatDate(match.created_at, { showTime: true })}
                     </TableCell>
                   </TableRow>
                 ))}

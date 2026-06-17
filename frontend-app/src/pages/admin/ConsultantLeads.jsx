@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Container, Typography, Box, Card, CardContent, Grid, Chip, IconButton, TextField, CircularProgress, Alert, Button, Tooltip } from '@mui/material';
 import { Phone, CheckCircle, Close, ChatBubble, ContentCopy, Share } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const STATUS_MAP = {
   new: { label: 'Novo', color: 'warning' },
@@ -77,7 +78,7 @@ export default function ConsultantLeads() {
                     </Box>
                     <Typography sx={{ color: '#ccc', mb: 1 }}>📱 {lead.phone}</Typography>
                     <Typography variant="caption" sx={{ color: '#888' }}>
-                      {new Date(lead.created_at).toLocaleString('pt-BR')} · via {lead.source}
+                      {formatDate(lead.created_at, { showTime: true })} · via {lead.source}
                     </Typography>
                     {lead.referral_agent?.referral_code && (
                       <Box sx={{ bgcolor: '#111217', borderRadius: 2, p: 1.5, mt: 1.5, border: '1px solid #FFD700', textAlign: 'center' }}>

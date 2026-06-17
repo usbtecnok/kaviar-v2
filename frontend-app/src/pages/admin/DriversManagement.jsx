@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import { CheckCircle, Cancel, Block, Visibility, Restore } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { formatDate } from '../../utils/formatDate';
 const isSuperAdmin = () => {
   const data = localStorage.getItem('kaviar_admin_data');
   return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
@@ -276,7 +277,7 @@ export default function DriversManagement() {
                   )}
                 </TableCell>
                 <TableCell>
-                  {new Date(driver.createdAt).toLocaleDateString('pt-BR')}
+                  {formatDate(driver.createdAt)}
                 </TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex', gap: 1 }}>

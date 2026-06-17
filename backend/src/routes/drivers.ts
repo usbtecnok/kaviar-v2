@@ -27,6 +27,7 @@ router.get('/me', authenticateDriver, async (req: Request, res: Response) => {
         vehicle_plate: true,
         neighborhood_id: true,
         community_id: true,
+        pending_reason: true,
         created_at: true,
         approved_at: true,
       }
@@ -403,6 +404,14 @@ router.post('/me/documents', authenticateDriver, uploadToS3.fields([
         if (vehicleModel) updateData.vehicle_model = vehicleModel;
         if (vehicleColor) updateData.vehicle_color = vehicleColor;
         if (communityId) updateData.community_id = communityId;
+
+        // Auto-return to pending when driver resubmits in needs_documents
+        const currentDriver = await tx.drivers.findUnique({ where: { id: driverId }, select: { status: true } });
+        if (currentDriver?.status === 'needs_documents') {
+          updateData.status = 'pending';
+          updateData.pending_reason = null;
+          updateData.pending_reason_updated_at = new Date();
+        }
 
         await tx.drivers.update({
           where: { id: driverId },

@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/index';
+import { formatDate } from '../../utils/formatDate';
 
 export default function AdminDriversList() {
   const [drivers, setDrivers] = useState([]);
@@ -102,7 +103,7 @@ export default function AdminDriversList() {
                     />
                   </TableCell>
                   <TableCell>
-                    {new Date(driver.created_at).toLocaleDateString('pt-BR')}
+                    {formatDate(driver.created_at)}
                   </TableCell>
                   <TableCell align="center">
                     <Button

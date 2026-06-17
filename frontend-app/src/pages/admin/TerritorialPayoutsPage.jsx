@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Tabs, Tab, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Alert, CircularProgress, Switch } from '@mui/material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const RECIPIENT_LABELS = { individual: 'Pessoa Física', company: 'Pessoa Jurídica', association: 'Associação' };
 const STATUS_COLORS = { calculated: '#D97706', requested: '#8B5CF6', approved: '#2563EB', paid: '#059669', received: '#047857', canceled: '#DC2626', pending: '#6B7280', verified: '#059669', rejected: '#DC2626' };
@@ -223,7 +224,7 @@ function ContractsQueue({ token, headers }) {
                   <TableCell sx={{ fontWeight: 600 }}>{s.operator_name}</TableCell>
                   <TableCell>{s.territory}</TableCell>
                   <TableCell><Chip label={s.status} size="small" color={s.status === 'submitted' ? 'warning' : 'info'} /></TableCell>
-                  <TableCell>{new Date(s.submitted_at).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>{formatDate(s.submitted_at)}</TableCell>
                   <TableCell sx={{ display: 'flex', gap: 0.5 }}>
                     <Button size="small" onClick={() => handleOpenPdf(s.id)} sx={{ color: '#3B82F6' }}>Abrir PDF</Button>
                     <Button size="small" onClick={() => handleApprove(s.id)} disabled={processing} sx={{ color: '#059669' }}>Aprovar</Button>
@@ -716,13 +717,13 @@ export default function TerritorialPayoutsPage() {
                 <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Contrato</Typography><Chip label={detailTarget.contract_status} size="small" /></Box>
                 <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Status</Typography><Chip label={detailTarget.is_active ? 'Ativo' : 'Inativo'} size="small" color={detailTarget.is_active ? 'success' : 'default'} /></Box>
               </Box>
-              {detailTarget.verified_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Verificado em</Typography><Typography variant="body2">{new Date(detailTarget.verified_at).toLocaleString('pt-BR')}</Typography></Box>}
+              {detailTarget.verified_at && <Box><Typography variant="caption" sx={{ color: '#6B7280' }}>Verificado em</Typography><Typography variant="body2">{formatDate(detailTarget.verified_at, { showTime: true })}</Typography></Box>}
               <Typography variant="subtitle2" sx={{ color: '#C8A84E', mt: 2, mb: 1 }}>Termos e Contrato</Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, p: 1.5, bgcolor: 'rgba(255,255,255,0.02)', borderRadius: 1, border: '1px solid rgba(184,148,46,0.15)' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Termo de Responsabilidade</Typography><Typography variant="body2" sx={{ color: detailTarget.responsibility_terms_accepted_at ? '#059669' : '#DC2626' }}>{detailTarget.responsibility_terms_accepted_at ? new Date(detailTarget.responsibility_terms_accepted_at).toLocaleString('pt-BR') : 'Pendente'}</Typography></Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Confidencialidade/LGPD</Typography><Typography variant="body2" sx={{ color: detailTarget.confidentiality_terms_accepted_at ? '#059669' : '#DC2626' }}>{detailTarget.confidentiality_terms_accepted_at ? new Date(detailTarget.confidentiality_terms_accepted_at).toLocaleString('pt-BR') : 'Pendente'}</Typography></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Termo de Responsabilidade</Typography><Typography variant="body2" sx={{ color: detailTarget.responsibility_terms_accepted_at ? '#059669' : '#DC2626' }}>{detailTarget.responsibility_terms_accepted_at ? formatDate(detailTarget.responsibility_terms_accepted_at, { showTime: true }) : 'Pendente'}</Typography></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Confidencialidade/LGPD</Typography><Typography variant="body2" sx={{ color: detailTarget.confidentiality_terms_accepted_at ? '#059669' : '#DC2626' }}>{detailTarget.confidentiality_terms_accepted_at ? formatDate(detailTarget.confidentiality_terms_accepted_at, { showTime: true }) : 'Pendente'}</Typography></Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Versão dos termos</Typography><Typography variant="body2">{detailTarget.terms_version || '—'}</Typography></Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Contrato</Typography><Typography variant="body2" sx={{ color: detailTarget.contract_status === 'signed' ? '#059669' : '#6B7280' }}>{detailTarget.contract_status}{detailTarget.contract_signed_at ? ` (${new Date(detailTarget.contract_signed_at).toLocaleDateString('pt-BR')})` : ''}</Typography></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>Contrato</Typography><Typography variant="body2" sx={{ color: detailTarget.contract_status === 'signed' ? '#059669' : '#6B7280' }}>{detailTarget.contract_status}{detailTarget.contract_signed_at ? ` (${formatDate(detailTarget.contract_signed_at)})` : ''}</Typography></Box>
                 {detailTarget.contract_url && <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><Typography variant="body2" sx={{ color: '#9CA3AF' }}>URL contrato</Typography><Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}><Button size="small" onClick={() => window.open(detailTarget.contract_url, '_blank')} sx={{ color: '#2563EB', textTransform: 'none', fontSize: '0.8rem' }}>Abrir</Button><Button size="small" onClick={() => { navigator.clipboard.writeText(detailTarget.contract_url); setFeedback({ open: true, severity: 'success', message: 'Link copiado.' }); }} sx={{ color: '#6B7280', textTransform: 'none', fontSize: '0.8rem' }}>Copiar</Button></Box></Box>}
               </Box>
               <Alert severity="info" sx={{ mt: 2, bgcolor: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.2)' }}>Este aceite interno não substitui contrato jurídico formal nem orientação contábil.</Alert>

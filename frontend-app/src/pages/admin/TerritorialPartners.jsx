@@ -3,6 +3,7 @@ import { Container, Typography, Box, Card, CardContent, Grid, Chip, TextField, C
 import { Add, Edit, Close, People, AttachMoney, CheckCircle, LinkOff } from '@mui/icons-material';
 import { QRCodeSVG } from 'qrcode.react';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const TYPE_MAP = {
   association: { label: 'Associação', color: 'primary' },
@@ -279,7 +280,7 @@ export default function TerritorialPartners() {
             {detail.monthly_fee_cents && <Typography><strong>Mensalidade:</strong> R$ {(detail.monthly_fee_cents / 100).toFixed(2)}</Typography>}
             {detail.billing_due_day && <Typography><strong>Vencimento:</strong> dia {detail.billing_due_day}</Typography>}
             <Typography><strong>Status financeiro:</strong> <Chip label={BILLING_MAP[detail.billing_status]?.label || detail.billing_status} color={BILLING_MAP[detail.billing_status]?.color || 'default'} size="small" /></Typography>
-            {detail.last_payment_at && <Typography><strong>Último pagamento:</strong> {new Date(detail.last_payment_at).toLocaleDateString('pt-BR')}</Typography>}
+            {detail.last_payment_at && <Typography><strong>Último pagamento:</strong> {formatDate(detail.last_payment_at)}</Typography>}
             {detail.notes && <Typography sx={{ mt: 1 }}><strong>Notas:</strong> {detail.notes}</Typography>}
 
             {/* Links e Acesso — blocos organizados */}
@@ -370,7 +371,7 @@ export default function TerritorialPartners() {
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>📋 Contrato</Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Typography variant="body2"><strong>Status:</strong> <Chip label={detail.contract_status || 'pending'} size="small" color={detail.contract_status === 'signed' ? 'success' : detail.contract_status === 'not_required' ? 'default' : 'warning'} /></Typography>
-                {detail.contract_signed_at && <Typography variant="body2"><strong>Assinado em:</strong> {new Date(detail.contract_signed_at).toLocaleDateString('pt-BR')}</Typography>}
+                {detail.contract_signed_at && <Typography variant="body2"><strong>Assinado em:</strong> {formatDate(detail.contract_signed_at)}</Typography>}
               </Box>
               {detail.contract_url && (
                 <Box sx={{ mt: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -419,8 +420,8 @@ export default function TerritorialPartners() {
                   <TableRow key={d.id}>
                     <TableCell><a href={`/admin/drivers/${d.id}`} style={{ color: '#1976d2', textDecoration: 'none', fontWeight: 500 }}>{d.name}</a></TableCell>
                     <TableCell><Chip label={d.status} size="small" color={d.status === 'approved' ? 'success' : 'default'} /></TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{d.linked_at ? new Date(d.linked_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{d.last_ride_at ? new Date(d.last_ride_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{formatDate(d.linked_at)}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{formatDate(d.last_ride_at)}</TableCell>
                     <TableCell>{d.rides || 0}</TableCell>
                     <TableCell>R$ {Number(d.commission_value || 0).toFixed(2)}</TableCell>
                     <TableCell sx={{ color: (d.commission_pending || 0) > 0 ? '#ed6c02' : 'inherit' }}>R$ {Number(d.commission_pending || 0).toFixed(2)}</TableCell>
@@ -443,7 +444,7 @@ export default function TerritorialPartners() {
                     <TableCell><a href={`/admin/drivers/${r.driver_id}`} style={{ color: '#1976d2', textDecoration: 'none', fontWeight: 500 }}>{r.driver?.name || r.driver_id.slice(0, 12)}</a></TableCell>
                     <TableCell>{r.driver?.phone || '—'}</TableCell>
                     <TableCell><Chip label={r.driver?.status || '?'} size="small" /></TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{formatDate(r.created_at)}</TableCell>
                     <TableCell><Chip label={r.status === 'pending' ? 'Pendente' : r.status === 'approved' ? 'Aprovado' : 'Rejeitado'} size="small" color={r.status === 'pending' ? 'warning' : r.status === 'approved' ? 'success' : 'default'} /></TableCell>
                     <TableCell>
                       {r.status === 'pending' && (<>
@@ -477,7 +478,7 @@ export default function TerritorialPartners() {
               <TableBody>
                 {commissions.map(c => (
                   <TableRow key={c.id}>
-                    <TableCell>{new Date(c.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>{formatDate(c.created_at)}</TableCell>
                     <TableCell sx={{ fontSize: 11 }}>{c.ride_id.slice(0, 8)}</TableCell>
                     <TableCell>R$ {Number(c.ride_final_price).toFixed(2)}</TableCell>
                     <TableCell>{Number(c.commission_percent)}%</TableCell>
@@ -498,7 +499,7 @@ export default function TerritorialPartners() {
               <TableBody>
                 {payments.map(p => (
                   <TableRow key={p.id}>
-                    <TableCell>{new Date(p.paid_at).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>{formatDate(p.paid_at)}</TableCell>
                     <TableCell>{p.reference_month || '-'}</TableCell>
                     <TableCell>R$ {(p.amount_cents / 100).toFixed(2)}</TableCell>
                     <TableCell>{p.receipt_url ? <a href={p.receipt_url} target="_blank" rel="noreferrer">Ver</a> : '-'}</TableCell>
@@ -703,7 +704,7 @@ export default function TerritorialPartners() {
                       <TableCell sx={{ color: '#E8E3D5', borderColor: '#1a1a1a' }}>{d.name}</TableCell>
                       <TableCell align="right" sx={{ color: '#B8942E', fontWeight: 700, borderColor: '#1a1a1a' }}>{d.rides}</TableCell>
                       <TableCell align="right" sx={{ color: '#E8E3D5', borderColor: '#1a1a1a' }}>R$ {Number(d.commission || 0).toFixed(2)}</TableCell>
-                      <TableCell align="right" sx={{ color: '#666', borderColor: '#1a1a1a', fontSize: 12 }}>{d.last_ride_at ? new Date(d.last_ride_at).toLocaleDateString('pt-BR') : '—'}</TableCell>
+                      <TableCell align="right" sx={{ color: '#666', borderColor: '#1a1a1a', fontSize: 12 }}>{formatDate(d.last_ride_at)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

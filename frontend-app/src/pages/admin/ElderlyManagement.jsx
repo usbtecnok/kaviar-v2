@@ -28,6 +28,7 @@ import {
   InputLabel,
   Select
 } from '@mui/material';
+import { formatDate } from '../../utils/formatDate';
 import { 
   Add, 
   Visibility, 
@@ -296,11 +297,11 @@ export default function ElderlyManagement() {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  {new Date(contract.startsAt).toLocaleDateString('pt-BR')}
+                  {formatDate(contract.startsAt)}
                 </TableCell>
                 <TableCell>
                   {contract.endsAt ? 
-                    new Date(contract.endsAt).toLocaleDateString('pt-BR') : 
+                    formatDate(contract.endsAt) : 
                     'Indefinido'
                   }
                 </TableCell>
@@ -496,7 +497,7 @@ export default function ElderlyManagement() {
                   Data de Início
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                  {new Date(detailDialog.contract.startsAt).toLocaleDateString('pt-BR')}
+                  {formatDate(detailDialog.contract.startsAt)}
                 </Typography>
               </Grid>
               
@@ -506,7 +507,7 @@ export default function ElderlyManagement() {
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
                   {detailDialog.contract.endsAt ? 
-                    new Date(detailDialog.contract.endsAt).toLocaleDateString('pt-BR') : 
+                    formatDate(detailDialog.contract.endsAt) : 
                     'Contrato indefinido'
                   }
                 </Typography>

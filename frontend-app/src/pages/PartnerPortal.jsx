@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Grid, Table, TableBody, TableCell, TableHead, TableRow, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Select, FormControl, InputLabel, Tabs, Tab } from '@mui/material';
 import { QRCodeSVG } from 'qrcode.react';
 import { API_BASE_URL } from '../config/api';
+import { formatDate } from '../utils/formatDate';
 
 const gold = '#B8942E';
 
@@ -359,7 +360,7 @@ export default function PartnerPortal() {
             <Box key={p.id} sx={{ p: 1.5, mb: 1, border: '1px solid #222', borderRadius: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box>
                 <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{p.member?.name} {p.member?.unit ? `(${p.member.unit})` : ''}</Typography>
-                <Typography variant="caption" sx={{ color: '#888' }}>R$ {(p.amount_cents / 100).toFixed(2)} • {p.payment_method} • {new Date(p.paid_at).toLocaleDateString('pt-BR')}</Typography>
+                <Typography variant="caption" sx={{ color: '#888' }}>R$ {(p.amount_cents / 100).toFixed(2)} • {p.payment_method} • {formatDate(p.paid_at)}</Typography>
                 <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>Código: {p.receipt_code}</Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 0.5 }}>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Table, TableBody, TableCell, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar, Switch, CircularProgress, Card, CardContent, IconButton, Tabs, Tab, Grid } from '@mui/material';
 import { Add, Edit, Delete, ContentCopy, PhotoCamera, Close } from '@mui/icons-material';
 import { API_BASE_URL } from '../config/api';
+import { formatDate } from '../utils/formatDate';
 
 const GOLD = '#B8942E';
 const ORDER_STATUS = { PENDING: { label: 'Novo', color: '#3B82F6' }, ACCEPTED: { label: 'Aceito', color: '#8B5CF6' }, PREPARING: { label: 'Preparando', color: '#F59E0B' }, READY: { label: 'Pronto', color: '#10B981' }, CANCELED: { label: 'Cancelado', color: '#EF4444' }, COMPLETED: { label: 'Concluído', color: '#6B7280' } };
@@ -139,7 +140,7 @@ export default function CommercePortal() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                     <Box>
                       <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{o.customer_name}</Typography>
-                      <Typography sx={{ fontSize: 12, color: '#6B7280' }}>{o.customer_phone} • {new Date(o.created_at).toLocaleString('pt-BR')}</Typography>
+                      <Typography sx={{ fontSize: 12, color: '#6B7280' }}>{o.customer_phone} • {formatDate(o.created_at, { showTime: true })}</Typography>
                     </Box>
                     <Chip label={ORDER_STATUS[o.status]?.label || o.status} size="small" sx={{ bgcolor: `${ORDER_STATUS[o.status]?.color || '#6B7280'}20`, color: ORDER_STATUS[o.status]?.color, fontWeight: 600 }} />
                   </Box>

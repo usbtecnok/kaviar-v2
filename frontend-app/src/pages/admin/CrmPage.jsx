@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import { Add, Download, Close, Phone, Email, Business, AccessTime, FilterList, Store, Apartment, Warning, LocationOn } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { formatDate } from '../../utils/formatDate';
 
 const GOLD = '#B8942E';
 
@@ -235,7 +236,7 @@ export default function CrmPage() {
     return <Chip label={`${p.icon} ${p.label}`} size="small" sx={{ bgcolor: `${p.color}15`, color: p.color, fontWeight: 600, fontSize: 10 }} />;
   };
 
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+  const fmtDate = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); };
 
   const totalLeads = Object.entries(stats).filter(([k]) => k !== 'LOCAL_BUSINESSES').reduce((sum, [, v]) => sum + v, 0);
 
@@ -497,7 +498,7 @@ export default function CrmPage() {
                   <Box key={i.id} sx={{ mb: 1.5, p: 1, bgcolor: '#F9FAFB', borderRadius: 1, borderLeft: `3px solid ${i.event_type === 'STATUS_CHANGE' ? '#8B5CF6' : '#D1D5DB'}` }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                       <Chip label={EVENT_TYPES.find(e => e.value === i.event_type)?.label || i.event_type} size="small" sx={{ fontSize: 10 }} />
-                      <Typography sx={{ fontSize: 10, color: '#9CA3AF' }}>{new Date(i.created_at).toLocaleString('pt-BR')}</Typography>
+                      <Typography sx={{ fontSize: 10, color: '#9CA3AF' }}>{formatDate(i.created_at, { showTime: true })}</Typography>
                     </Box>
                     {i.description && <Typography sx={{ fontSize: 12, mt: 0.5, color: '#374151' }}>{i.description}</Typography>}
                     {i.old_status && i.new_status && <Typography sx={{ fontSize: 11, color: '#6B7280', mt: 0.3 }}>{STATUS_MAP[i.old_status]?.label || i.old_status} → {STATUS_MAP[i.new_status]?.label || i.new_status}</Typography>}

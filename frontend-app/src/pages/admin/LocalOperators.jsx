@@ -4,6 +4,7 @@ import { Phone, Add, Edit, Close, OpenInNew, CheckCircle, Cancel, WhatsApp, Emai
 import { API_BASE_URL } from '../../config/api';
 import Markdown from 'react-markdown';
 import prospeccaoMd from '../../../../docs/comercial/prospeccao-associacoes-kaviar.md?raw';
+import { formatDate } from '../../utils/formatDate';
 
 const STATUS_MAP = {
   researching: { label: 'A pesquisar', color: 'default' },
@@ -184,7 +185,7 @@ export default function LocalOperators() {
                     {op.source && <span>📌 {op.source}</span>}
                   </Box>
                   {op.notes && <Typography sx={{ color: '#666', fontSize: 11, mt: 1, fontStyle: 'italic' }}>{op.notes}</Typography>}
-                  {op.next_followup_at && <Typography sx={{ color: '#A08030', fontSize: 11, mt: 0.5 }}>⏰ Retorno: {new Date(op.next_followup_at).toLocaleDateString('pt-BR')}</Typography>}
+                  {op.next_followup_at && <Typography sx={{ color: '#A08030', fontSize: 11, mt: 0.5 }}>⏰ Retorno: {formatDate(op.next_followup_at)}</Typography>}
 
                   {/* Proposal actions */}
                   {!op.verified && <Typography sx={{ color: '#f44336', fontSize: 11, mt: 1 }}>⚠️ Contato ainda não verificado</Typography>}

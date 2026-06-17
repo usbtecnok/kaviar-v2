@@ -20,6 +20,7 @@ import {
   ListItemText
 } from '@mui/material';
 import { Warning, CheckCircle, Upload, History } from '@mui/icons-material';
+import { formatDate } from '../../utils/formatDate';
 
 
 export default function ComplianceStatus() {
@@ -266,7 +267,7 @@ export default function ComplianceStatus() {
                   primary={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Typography variant="body1">
-                        {new Date(doc.created_at).toLocaleDateString('pt-BR')}
+                        {formatDate(doc.created_at)}
                       </Typography>
                       <Chip
                         label={doc.status === 'approved' ? 'Aprovado' : doc.status === 'pending' ? 'Em análise' : 'Rejeitado'}
@@ -280,7 +281,7 @@ export default function ComplianceStatus() {
                     <Box>
                       {doc.valid_from && doc.valid_until && (
                         <Typography variant="caption" display="block">
-                          Válido de {new Date(doc.valid_from).toLocaleDateString('pt-BR')} até {new Date(doc.valid_until).toLocaleDateString('pt-BR')}
+                          Válido de {formatDate(doc.valid_from)} até {formatDate(doc.valid_until)}
                         </Typography>
                       )}
                       {doc.rejection_reason && (

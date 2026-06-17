@@ -56,7 +56,7 @@ export default function CompensationsPage() {
   };
 
   const copy = (text) => { navigator.clipboard.writeText(text); };
-  const fmtDate = (d) => d ? new Date(d).toLocaleString('pt-BR') : '—';
+  const fmtDate = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleString('pt-BR'); };
   const fmtMoney = (cents) => `R$ ${(cents / 100).toFixed(2)}`;
 
   return (
