@@ -137,9 +137,9 @@ export default function DriverApproval() {
           {superAdmin && isNeedsDocs && <>
             <Tooltip title="Aprovar"><IconButton size="small" color="success" onClick={() => setConfirmDialog({ open: true, action: 'approve', driverId: driver.id })} disabled={isLoading}><CheckCircle fontSize="small" /></IconButton></Tooltip>
           </>}
-          {superAdmin && isRejected && <Tooltip title="Reabrir Análise"><IconButton size="small" color="primary" onClick={() => setConfirmDialog({ open: true, action: 'reopen', driverId: driver.id })} disabled={isLoading}><Replay fontSize="small" /></IconButton></Tooltip>}
+          {superAdmin && isRejected && <Button size="small" variant="outlined" color="primary" startIcon={<Replay sx={{ fontSize: 16 }} />} onClick={() => setConfirmDialog({ open: true, action: 'reopen', driverId: driver.id })} disabled={isLoading} sx={{ textTransform: 'none', fontSize: 11 }}>Reabrir</Button>}
           {superAdmin && isRejected && <Tooltip title="Arquivar"><IconButton size="small" onClick={() => setConfirmDialog({ open: true, action: 'archive', driverId: driver.id })} disabled={isLoading}><Archive fontSize="small" /></IconButton></Tooltip>}
-          {superAdmin && <Tooltip title="Excluir"><IconButton size="small" color="error" onClick={() => setConfirmDialog({ open: true, action: 'delete', driverId: driver.id })} disabled={isLoading}><Delete fontSize="small" /></IconButton></Tooltip>}
+          {superAdmin && !isRejected && <Tooltip title="Excluir"><IconButton size="small" color="error" onClick={() => setConfirmDialog({ open: true, action: 'delete', driverId: driver.id })} disabled={isLoading}><Delete fontSize="small" /></IconButton></Tooltip>}
         </Box>
       );
     }
@@ -152,9 +152,9 @@ export default function DriverApproval() {
           <Button size="small" variant="outlined" color="error" startIcon={<Cancel />} onClick={() => setConfirmDialog({ open: true, action: 'reject', driverId: driver.id })} disabled={isLoading}>Rejeitar</Button>
         </>}
         {superAdmin && isNeedsDocs && <Button size="small" variant="contained" color="success" startIcon={<CheckCircle />} onClick={() => setConfirmDialog({ open: true, action: 'approve', driverId: driver.id })} disabled={isLoading}>Aprovar</Button>}
-        {superAdmin && isRejected && <Button size="small" variant="contained" color="primary" startIcon={<Replay />} onClick={() => setConfirmDialog({ open: true, action: 'reopen', driverId: driver.id })} disabled={isLoading}>Reabrir</Button>}
+        {superAdmin && isRejected && <Button size="small" variant="contained" color="primary" startIcon={<Replay />} onClick={() => setConfirmDialog({ open: true, action: 'reopen', driverId: driver.id })} disabled={isLoading}>Reabrir Análise</Button>}
         {superAdmin && isRejected && <Button size="small" variant="outlined" startIcon={<Archive />} onClick={() => setConfirmDialog({ open: true, action: 'archive', driverId: driver.id })} disabled={isLoading}>Arquivar</Button>}
-        {superAdmin && <IconButton size="small" color="error" onClick={() => setConfirmDialog({ open: true, action: 'delete', driverId: driver.id })} disabled={isLoading}><Delete fontSize="small" /></IconButton>}
+        {superAdmin && !isRejected && <IconButton size="small" color="error" onClick={() => setConfirmDialog({ open: true, action: 'delete', driverId: driver.id })} disabled={isLoading}><Delete fontSize="small" /></IconButton>}
       </Box>
     );
   };
