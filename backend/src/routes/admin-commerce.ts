@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { authenticateAdmin, requireSuperAdmin, requireRole } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { audit, auditCtx } from '../utils/audit';
+import { emailService } from '../services/email/email.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -413,8 +414,22 @@ router.post('/accounts/:id/activate', authenticateAdmin, CRM_ROLES, applyTerrito
     const ctx = auditCtx(req);
     audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_activated', entityType: 'commerce_account', entityId: account.id, oldValue: { status: account.status }, newValue: { status: 'active', temporary_password_issued: true }, reason: req.body.reason.trim(), ipAddress: ctx.ip, userAgent: ctx.ua });
 
+    // Send welcome email with credentials
+    let emailSent = false;
+    try {
+      await emailService.sendMail({
+        to: account.email!,
+        subject: 'Seu acesso ao KAVIAR Local',
+        text: `Olá,\n\nSeu comércio "${account.name}" foi cadastrado no KAVIAR Local.\n\nAcesse o painel pelo link:\nhttps://kaviar.com.br/comercio/login\n\nE-mail: ${account.email}\nSenha temporária: ${tempPassword}\n\nPor segurança, altere sua senha no primeiro acesso.\n\nEquipe KAVIAR\nRio de Janeiro/RJ — Atendimento digital`,
+        html: `<p>Olá,</p><p>Seu comércio <strong>${account.name}</strong> foi cadastrado no <strong>KAVIAR Local</strong>.</p><p>Acesse o painel pelo link:<br><a href="https://kaviar.com.br/comercio/login">https://kaviar.com.br/comercio/login</a></p><p><strong>E-mail:</strong> ${account.email}<br><strong>Senha temporária:</strong> ${tempPassword}</p><p>Por segurança, altere sua senha no primeiro acesso.</p><p>Equipe KAVIAR<br>Rio de Janeiro/RJ — Atendimento digital</p>`
+      });
+      emailSent = true;
+    } catch (e) {
+      console.error('[admin-commerce] email send failed:', (e as Error).message);
+    }
+
     const updatedAccount = await prisma.commerce_accounts.findUnique({ where: { id: account.id } });
-    res.json({ success: true, data: { account: updatedAccount, user: { id: user.id, email: user.email }, temp_password: tempPassword } });
+    res.json({ success: true, data: { account: updatedAccount, user: { id: user.id, email: user.email }, temp_password: tempPassword, email_sent: emailSent } });
   } catch (error: any) {
     if (error.message === 'CONCURRENT_ACTIVATION') return res.status(409).json({ success: false, error: 'Ativação já foi processada por outra requisição.' });
     if (error.code === 'P2002') return res.status(409).json({ success: false, error: 'Comércio já foi ativado anteriormente.' });
@@ -503,6 +518,39 @@ router.post('/accounts/:id/reset-password', authenticateAdmin, requireSuperAdmin
     res.json({ success: true, data: { email: user.email, temp_password: tempPassword } });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Erro ao resetar senha' });
+  }
+});
+
+// POST /api/admin/commerce/accounts/:id/resend-invite — resend welcome email with new temp password
+router.post('/accounts/:id/resend-invite', authenticateAdmin, CRM_ROLES, async (req: Request, res: Response) => {
+  try {
+    const account = await prisma.commerce_accounts.findFirst({ where: { id: req.params.id, deleted_at: null } });
+    if (!account) return res.status(404).json({ success: false, error: 'Comércio não encontrado' });
+    if (!account.email) return res.status(400).json({ success: false, error: 'Comércio não tem email cadastrado' });
+
+    const user = await prisma.commerce_users.findFirst({ where: { commerce_account_id: account.id, role: 'owner' } });
+    if (!user) return res.status(400).json({ success: false, error: 'Comércio ainda não foi ativado. Ative primeiro.' });
+
+    const tempPassword = generateSecureTempPassword();
+    const password_hash = await bcrypt.hash(tempPassword, 10);
+    await prisma.commerce_users.update({ where: { id: user.id }, data: { password_hash, must_change_password: true } });
+
+    let emailSent = false;
+    try {
+      await emailService.sendMail({
+        to: account.email,
+        subject: 'Seu acesso ao KAVIAR Local',
+        text: `Olá,\n\nSeu acesso ao KAVIAR Local foi atualizado.\n\nAcesse: https://kaviar.com.br/comercio/login\n\nE-mail: ${account.email}\nNova senha temporária: ${tempPassword}\n\nPor segurança, altere sua senha no primeiro acesso.\n\nEquipe KAVIAR`,
+        html: `<p>Olá,</p><p>Seu acesso ao <strong>KAVIAR Local</strong> foi atualizado.</p><p>Acesse: <a href="https://kaviar.com.br/comercio/login">https://kaviar.com.br/comercio/login</a></p><p><strong>E-mail:</strong> ${account.email}<br><strong>Nova senha temporária:</strong> ${tempPassword}</p><p>Por segurança, altere sua senha no primeiro acesso.</p><p>Equipe KAVIAR</p>`
+      });
+      emailSent = true;
+    } catch (e) {
+      console.error('[admin-commerce] resend-invite email failed:', (e as Error).message);
+    }
+
+    res.json({ success: true, data: { email: account.email, temp_password: tempPassword, email_sent: emailSent } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Erro ao reenviar convite' });
   }
 });
 
