@@ -28,18 +28,8 @@ export function HomeOpportunityCarousel() {
 
   return (
     <View>
-      {/* Ofertas Locais — link para tela real */}
-      <TouchableOpacity onPress={() => router.push('/(passenger)/local')} style={s.localEmptyCard} activeOpacity={0.8}>
-        <Ionicons name="storefront-outline" size={22} color={COLORS.primary} />
-        <View style={{ flex: 1 }}>
-          <Text style={s.localEmptyTitle}>KAVIAR Local</Text>
-          <Text style={s.localEmptySub}>Veja comércios e ofertas da sua região</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
-      </TouchableOpacity>
-
       {/* Destaques KAVIAR */}
-      <Text style={[s.sectionTitle, { marginTop: 18 }]}>Destaques para você</Text>
+      <Text style={s.sectionTitle}>Destaques para você</Text>
 
       <ScrollView
         horizontal
