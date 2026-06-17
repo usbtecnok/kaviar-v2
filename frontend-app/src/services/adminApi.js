@@ -232,7 +232,21 @@ class AdminApiService {
   async updateShowcaseItem(id, data) { return this.put(`/api/admin/showcase/${id}`, data); }
   async patchShowcaseItem(id, data) { return this.patch(`/api/admin/showcase/${id}`, data); }
 
-  // Vitrine Local — comércios locais (local_businesses)
+  // KAVIAR Local — comércios (commerce_accounts)
+  async getCommerceAccounts() {
+    return this.get('/api/admin/commerce/accounts');
+  }
+  async getCommerceAccount(id) {
+    return this.get(`/api/admin/commerce/accounts/${id}`);
+  }
+  async createCommerceAccount(data) {
+    return this.post('/api/admin/commerce/accounts', data);
+  }
+  async updateCommerceAccount(id, data) {
+    return this.patch(`/api/admin/commerce/accounts/${id}`, data);
+  }
+
+  // DEPRECATED — local_businesses (legado, não aparece no app passageiro)
   async getLocalBusinesses() {
     return this.get('/api/admin/local-businesses');
   }

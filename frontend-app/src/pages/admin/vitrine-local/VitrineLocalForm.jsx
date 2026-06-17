@@ -4,7 +4,7 @@ import {
   Container, Typography, Box, Button, TextField, MenuItem, Alert,
   FormControlLabel, Switch, Grid, Paper,
 } from '@mui/material';
-import { adminApi } from '../../../services/adminApi';
+import { API_BASE_URL } from '../../../config/api';
 
 const CATEGORIES = [
   { value: 'bar', label: 'Bar' },
@@ -24,7 +24,6 @@ const fieldSx = {
   '& .MuiInputLabel-root': { color: '#8888A0', '&.Mui-focused': { color: '#C8A84E' } },
   '& .MuiSelect-icon': { color: '#8888A0' },
   '& .MuiFormHelperText-root': { color: '#9CA3AF' },
-  '& input::placeholder, & textarea::placeholder': { color: '#555570', opacity: 1 },
 };
 
 const sectionSx = { bgcolor: '#0D0D1A', border: '1px solid #1A1A2E', borderRadius: 2, p: 3, mb: 3 };
@@ -35,39 +34,52 @@ export default function VitrineLocalForm() {
   const isEdit = Boolean(id);
 
   const [form, setForm] = useState({
-    name: '',
-    category: 'outro',
-    description: '',
-    region_slug: '',
-    territory_id: '',
-    whatsapp: '',
-    address: '',
-    logo_url: '',
+    name: '', trade_name: '', category: 'outro',
+    phone: '', email: '', address: '',
+    territory_id: '', neighborhood_id: '',
     is_active: true,
   });
   const [territories, setTerritories] = useState([]);
+  const [neighborhoods, setNeighborhoods] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const token = localStorage.getItem('kaviar_admin_token');
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const admin = adminData ? JSON.parse(adminData) : null;
+  const isManager = admin?.role === 'TERRITORIAL_MANAGER';
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
   useEffect(() => {
-    adminApi.get('/api/admin/local-businesses/territories').then(d => setTerritories(d.data || [])).catch(() => {});
+    const terrUrl = isManager
+      ? `${API_BASE_URL}/api/admin/commerce/my-territories`
+      : `${API_BASE_URL}/api/admin/territories`;
+    fetch(terrUrl, { headers }).then(r => r.json()).then(d => {
+      const active = (d.data || []).filter(t => t.is_active !== false);
+      setTerritories(active);
+      if (active.length === 1 && !form.territory_id) {
+        setForm(f => ({ ...f, territory_id: active[0].id }));
+      }
+    }).catch(() => {});
+    fetch(`${API_BASE_URL}/api/governance/neighborhoods`, { headers })
+      .then(r => r.json()).then(d => setNeighborhoods((d.data || []).filter(n => n.is_active)))
+      .catch(() => {});
     if (isEdit) loadItem();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadItem = async () => {
     try {
-      const res = await adminApi.getLocalBusiness(id);
-      const item = res.data;
+      const res = await fetch(`${API_BASE_URL}/api/admin/commerce/accounts/${id}`, { headers });
+      const d = await res.json();
+      if (!d.success) { setError('Comércio não encontrado'); return; }
+      const item = d.data;
       setForm({
-        name: item.name || '',
+        name: item.name || '', trade_name: item.trade_name || '',
         category: item.category || 'outro',
-        description: item.description || '',
-        region_slug: item.region_slug || '',
-        territory_id: item.territory_id || '',
-        whatsapp: item.whatsapp || '',
+        phone: item.phone || '', email: item.email || '',
         address: item.address || '',
-        logo_url: item.logo_url || '',
+        territory_id: item.territory_id || '',
+        neighborhood_id: item.neighborhood_id || '',
         is_active: Boolean(item.is_active),
       });
     } catch {
@@ -80,7 +92,7 @@ export default function VitrineLocalForm() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || (!form.territory_id && !form.region_slug.trim())) {
+    if (!form.name.trim() || !form.territory_id) {
       setError('Preencha nome e selecione um território.');
       return;
     }
@@ -89,20 +101,24 @@ export default function VitrineLocalForm() {
     try {
       const payload = {
         name: form.name.trim(),
+        trade_name: form.trade_name.trim() || null,
         category: form.category || 'outro',
-        description: form.description.trim() || null,
-        region_slug: form.region_slug.trim() || form.territory_id || '',
-        territory_id: form.territory_id || null,
-        whatsapp: form.whatsapp.trim() || null,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
         address: form.address.trim() || null,
-        logo_url: form.logo_url.trim() || null,
+        territory_id: form.territory_id || null,
+        neighborhood_id: form.neighborhood_id || null,
         is_active: form.is_active,
       };
-      if (isEdit) {
-        await adminApi.updateLocalBusiness(id, payload);
-      } else {
-        await adminApi.createLocalBusiness(payload);
-      }
+      const url = isEdit
+        ? `${API_BASE_URL}/api/admin/commerce/accounts/${id}`
+        : `${API_BASE_URL}/api/admin/commerce/accounts`;
+      const res = await fetch(url, {
+        method: isEdit ? 'PATCH' : 'POST', headers,
+        body: JSON.stringify(payload),
+      });
+      const d = await res.json();
+      if (!d.success) { setError(d.error || 'Erro ao salvar'); setLoading(false); return; }
       navigate('/admin/vitrine-local');
     } catch (err) {
       setError(err.message || 'Erro ao salvar');
@@ -111,56 +127,51 @@ export default function VitrineLocalForm() {
     }
   };
 
+  const filteredNeighborhoods = form.territory_id
+    ? neighborhoods.filter(n => n.territory_id === form.territory_id)
+    : [];
+
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
         <Typography sx={{ fontSize: 11, color: '#6B6045', textTransform: 'uppercase', letterSpacing: '0.08em', mb: 0.3 }}>
-          Vitrine Local
+          KAVIAR Local
         </Typography>
         <Typography variant="h5" sx={{ fontWeight: 700, color: '#C8A84E' }}>
           {isEdit ? 'Editar comércio' : 'Novo comércio'}
+        </Typography>
+        <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
+          Comércios cadastrados aqui aparecem no app passageiro
         </Typography>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {/* Identificação */}
       <Paper sx={sectionSx} elevation={0}>
         <Typography sx={{ fontSize: 12, color: '#C8A84E', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
           Identificação
         </Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={7}>
-            <TextField
-              fullWidth label="Nome *" value={form.name}
-              onChange={handleChange('name')}
-              placeholder="Ex: Bar do Halfe"
-              sx={fieldSx}
-            />
+          <Grid item xs={12} sm={6}>
+            <TextField fullWidth label="Nome *" value={form.name} onChange={handleChange('name')} placeholder="Ex: Mel Artesanal" sx={fieldSx} />
           </Grid>
-          <Grid item xs={12} sm={5}>
-            <TextField
-              select fullWidth label="Categoria"
-              value={form.category} onChange={handleChange('category')}
-              sx={fieldSx}
-            >
-              {CATEGORIES.map((c) => (
-                <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
-              ))}
+          <Grid item xs={12} sm={6}>
+            <TextField fullWidth label="Nome fantasia" value={form.trade_name} onChange={handleChange('trade_name')} placeholder="Nome exibido no app" sx={fieldSx} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField select fullWidth label="Categoria" value={form.category} onChange={handleChange('category')} sx={fieldSx}>
+              {CATEGORIES.map((c) => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
             </TextField>
           </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth multiline rows={3} label="Descrição"
-              value={form.description} onChange={handleChange('description')}
-              placeholder="Breve descrição do comércio"
-              sx={fieldSx}
-            />
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth label="Telefone / WhatsApp" value={form.phone} onChange={handleChange('phone')} placeholder="+55 12 99999-9999" sx={fieldSx} />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField fullWidth label="Email" value={form.email} onChange={handleChange('email')} sx={fieldSx} />
           </Grid>
         </Grid>
       </Paper>
 
-      {/* Localização */}
       <Paper sx={sectionSx} elevation={0}>
         <Typography sx={{ fontSize: 12, color: '#C8A84E', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
           Localização
@@ -170,55 +181,33 @@ export default function VitrineLocalForm() {
             <TextField
               select fullWidth label="Território *"
               value={form.territory_id} onChange={handleChange('territory_id')}
-              helperText="Selecione o território onde o comércio opera"
+              helperText="Passageiros deste território verão o comércio no app"
               sx={fieldSx}
             >
               <MenuItem value="">Selecione...</MenuItem>
-              {territories.map((t) => (
-                <MenuItem key={t.id} value={t.id}>{t.name}{t.uf ? ` (${t.uf})` : ''}</MenuItem>
-              ))}
+              {territories.map((t) => <MenuItem key={t.id} value={t.id}>{t.name}{t.uf ? ` (${t.uf})` : ''}</MenuItem>)}
             </TextField>
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
-              fullWidth label="Endereço"
-              value={form.address} onChange={handleChange('address')}
-              placeholder="Rua, número, bairro"
+              select fullWidth label="Bairro (opcional)"
+              value={form.neighborhood_id} onChange={handleChange('neighborhood_id')}
               sx={fieldSx}
-            />
+              disabled={!form.territory_id}
+            >
+              <MenuItem value="">Nenhum</MenuItem>
+              {filteredNeighborhoods.map((n) => <MenuItem key={n.id} value={n.id}>{n.name}</MenuItem>)}
+            </TextField>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField fullWidth label="Endereço" value={form.address} onChange={handleChange('address')} placeholder="Rua, número, bairro" sx={fieldSx} />
           </Grid>
         </Grid>
       </Paper>
 
-      {/* Contato e visual */}
-      <Paper sx={sectionSx} elevation={0}>
-        <Typography sx={{ fontSize: 12, color: '#C8A84E', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 2 }}>
-          Contato e visual
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth label="WhatsApp"
-              value={form.whatsapp} onChange={handleChange('whatsapp')}
-              placeholder="Ex: +55 21 99999-9999"
-              sx={fieldSx}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth label="Logo (URL)"
-              value={form.logo_url} onChange={handleChange('logo_url')}
-              placeholder="https://..."
-              sx={fieldSx}
-            />
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Status */}
       <Paper sx={sectionSx} elevation={0}>
         <Typography sx={{ fontSize: 12, color: '#C8A84E', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', mb: 1 }}>
-          Status
+          Visibilidade no app
         </Typography>
         <FormControlLabel
           control={
@@ -233,21 +222,17 @@ export default function VitrineLocalForm() {
           }
           label={
             <Typography sx={{ color: form.is_active ? '#C8A84E' : '#8888A0', fontWeight: 600, fontSize: 14 }}>
-              {form.is_active ? 'Ativo (aparece na vitrine)' : 'Inativo (oculto)'}
+              {form.is_active ? 'Ativo — aparece no app passageiro' : 'Inativo — oculto no app'}
             </Typography>
           }
         />
       </Paper>
 
-      {/* Ações */}
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
         <Button
           variant="outlined"
           onClick={() => navigate('/admin/vitrine-local')}
-          sx={{
-            borderColor: '#2A2A45', color: '#8888A0', px: 4,
-            '&:hover': { borderColor: '#C8A84E44', color: '#C8A84E' },
-          }}
+          sx={{ borderColor: '#2A2A45', color: '#8888A0', px: 4, '&:hover': { borderColor: '#C8A84E44', color: '#C8A84E' } }}
         >
           Cancelar
         </Button>
@@ -255,10 +240,7 @@ export default function VitrineLocalForm() {
           variant="contained"
           onClick={handleSubmit}
           disabled={loading}
-          sx={{
-            bgcolor: '#C8A84E', color: '#0D0D1A', fontWeight: 700, px: 4,
-            '&:hover': { bgcolor: '#B8982E' },
-          }}
+          sx={{ bgcolor: '#C8A84E', color: '#0D0D1A', fontWeight: 700, px: 4, '&:hover': { bgcolor: '#B8982E' } }}
         >
           {loading ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Cadastrar comércio'}
         </Button>
