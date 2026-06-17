@@ -178,7 +178,7 @@ export class ApprovalController {
     try {
       const { status } = req.query;
       
-      const where: any = {};
+      const where: any = { deleted_at: null };
       if (status) {
         where.status = status;
       }
@@ -387,7 +387,7 @@ export class ApprovalController {
     try {
       const { status } = req.query;
       
-      const where: any = {};
+      const where: any = { deleted_at: null };
       if (status) {
         where.status = status;
       }
