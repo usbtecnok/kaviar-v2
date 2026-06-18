@@ -64,13 +64,14 @@ function resolveManagerPhone(admin: { phone: string | null; operator_profile: { 
 
 async function getManagerPhonesForTerritory(territoryId: string, type: 'driver' | 'passenger'): Promise<string[]> {
   try {
+    const typeFilter = type === 'driver' ? { notify_new_drivers: true } : { notify_new_passengers: true };
     const managers = await prisma.admins.findMany({
       where: {
         is_active: true,
         sms_alerts_enabled: true,
         role: { in: ['TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'] },
         territory_access: { some: { territory_id: territoryId } },
-        ...(type === 'driver' ? { notify_new_drivers: true } : { notify_new_passengers: true }),
+        ...typeFilter,
       },
       select: { phone: true, operator_profile: { select: { phone: true, pix_key: true, pix_key_type: true } } },
     });
@@ -153,6 +154,30 @@ export async function notifyAdminNewPassenger(data: NewPassengerAlert): Promise<
   }
 
   await sendToAll(phones, body);
+}
+
+interface NewCommerceAlert {
+  name: string;
+  responsible?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  region?: string | null;
+  neighborhood?: string | null;
+  status?: string | null;
+}
+
+export async function notifyAdminNewCommerce(data: NewCommerceAlert): Promise<void> {
+  if (!ADMIN_ALERT_ENABLED || !ADMIN_ALERT_PHONE) return;
+
+  const parts = [`KAVIAR: novo comércio${data.region ? ` em ${data.region}` : ''}.`, `Nome: ${data.name}.`];
+  if (data.responsible) parts.push(`Cadastrado por: ${data.responsible}.`);
+  if (data.phone) parts.push(`Tel: ${data.phone}.`);
+  if (data.email) parts.push(`Email: ${data.email}.`);
+  if (data.neighborhood) parts.push(`Bairro: ${data.neighborhood}.`);
+  if (data.status) parts.push(`Status: ${data.status}.`);
+  parts.push('Acesse o Admin para revisar.');
+
+  await sendSmsTo(ADMIN_ALERT_PHONE, parts.join(' '));
 }
 
 export async function notifyAdminNewContact(data: NewContactAlert): Promise<void> {

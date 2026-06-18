@@ -6,6 +6,7 @@ import { authenticateAdmin, requireSuperAdmin, requireRole } from '../middleware
 import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { audit, auditCtx } from '../utils/audit';
 import { emailService } from '../services/email/email.service';
+import { notifyAdminNewCommerce } from '../services/admin-alert.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -230,6 +231,29 @@ router.post('/accounts', authenticateAdmin, CRM_ROLES, applyTerritoryScope, asyn
     audit({ adminId: ctx.adminId, adminEmail: ctx.adminEmail, action: 'commerce_account_created', entityType: 'commerce_account', entityId: account.id, newValue: { name, territory_id: finalTerritoryId, neighborhood_id: finalNeighborhoodId, category, created_by_role: admin.role }, ipAddress: ctx.ip, userAgent: ctx.ua });
 
     res.status(201).json({ success: true, data: account });
+
+    // SMS alert to Super Admin (non-blocking)
+    (async () => {
+      let regionName: string | undefined;
+      if (finalTerritoryId) {
+        const t = await prisma.operational_territories.findUnique({ where: { id: finalTerritoryId }, select: { name: true, uf: true } });
+        regionName = t ? `${t.name}${t.uf ? `/${t.uf}` : ''}` : undefined;
+      }
+      let neighborhoodName: string | undefined;
+      if (finalNeighborhoodId) {
+        const n = await prisma.neighborhoods.findUnique({ where: { id: finalNeighborhoodId }, select: { name: true } });
+        neighborhoodName = n?.name ?? undefined;
+      }
+      await notifyAdminNewCommerce({
+        name: account.name,
+        responsible: admin.name,
+        phone: account.phone,
+        email: account.email,
+        region: regionName,
+        neighborhood: neighborhoodName || 'Todo o território',
+        status: account.status || 'pending',
+      });
+    })().catch(() => {});
   } catch (error) {
     console.error('[admin-commerce] create error:', error);
     res.status(500).json({ success: false, error: 'Erro ao criar comércio' });
