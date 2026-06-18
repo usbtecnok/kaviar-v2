@@ -111,13 +111,21 @@ router.post('/driver/register', async (req, res) => {
     }
 
     // Admin SMS alert (non-blocking)
-    notifyAdminNewDriver({
-      name: data.name,
-      phone: data.phone,
-      email: data.email,
-      modality: data.vehicle_color ? 'CAR' : undefined,
-      region: data.neighborhoodName || undefined,
-    }).catch(() => {});
+    (async () => {
+      let territoryId: string | undefined;
+      if (result.driver?.neighborhood_id) {
+        const n = await prisma.neighborhoods.findUnique({ where: { id: result.driver.neighborhood_id }, select: { territory_id: true, name: true } });
+        territoryId = n?.territory_id ?? undefined;
+      }
+      await notifyAdminNewDriver({
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        modality: 'CAR',
+        region: data.neighborhoodName || undefined,
+        territoryId,
+      });
+    })().catch(() => {});
   } catch (error) {
     console.error('Error in driver register:', error);
 

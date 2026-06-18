@@ -118,13 +118,21 @@ router.post('/onboarding', async (req: Request, res: Response) => {
 
     // Admin SMS alert (non-blocking)
     if (result.driver) {
-      notifyAdminNewDriver({
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        modality: 'CAR',
-        region: data.neighborhoodId || undefined,
-      }).catch(() => {});
+      (async () => {
+        let territoryId: string | undefined;
+        if (result.driver!.neighborhood_id) {
+          const n = await prisma.neighborhoods.findUnique({ where: { id: result.driver!.neighborhood_id }, select: { territory_id: true } });
+          territoryId = n?.territory_id ?? undefined;
+        }
+        await notifyAdminNewDriver({
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          modality: 'CAR',
+          region: data.neighborhoodId || undefined,
+          territoryId,
+        });
+      })().catch(() => {});
     }
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -128,12 +128,20 @@ router.post('/passenger/register', async (req, res) => {
     });
 
     // Admin SMS alert (non-blocking)
-    notifyAdminNewPassenger({
-      name: passenger.name,
-      phone: passenger.phone,
-      email: passenger.email,
-      region: territoryName || undefined,
-    }).catch(() => {});
+    (async () => {
+      let territoryId: string | undefined;
+      if (neighborhoodId) {
+        const n = await prisma.neighborhoods.findUnique({ where: { id: neighborhoodId }, select: { territory_id: true } });
+        territoryId = n?.territory_id ?? undefined;
+      }
+      await notifyAdminNewPassenger({
+        name: passenger.name,
+        phone: passenger.phone,
+        email: passenger.email,
+        region: territoryName || undefined,
+        territoryId,
+      });
+    })().catch(() => {});
   } catch (error) {
     console.error('Error in passenger register:', error);
     

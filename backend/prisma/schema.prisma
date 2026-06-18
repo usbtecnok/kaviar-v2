@@ -22,6 +22,9 @@ model admins {
   lead_regions                String?
   invite_code                 String?             @unique
   invite_code_expires_at      DateTime?
+  sms_alerts_enabled          Boolean             @default(true)
+  notify_new_drivers          Boolean             @default(true)
+  notify_new_passengers       Boolean             @default(false)
   created_at                  DateTime            @default(now())
   updated_at                  DateTime            @updatedAt
   community_leaders           community_leaders[]
