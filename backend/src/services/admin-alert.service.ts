@@ -52,20 +52,39 @@ function normalizeDigits(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
+function resolveManagerPhone(admin: { phone: string | null; operator_profile: { phone: string | null; pix_key: string | null; pix_key_type: string | null } | null }): string | null {
+  // Priority 1: admins.phone
+  if (admin.phone) return admin.phone;
+  // Priority 2: operator_profiles.phone
+  if (admin.operator_profile?.phone) return admin.operator_profile.phone;
+  // Priority 3: pix_key of type 'phone'
+  if (admin.operator_profile?.pix_key_type === 'phone' && admin.operator_profile.pix_key) return admin.operator_profile.pix_key;
+  return null;
+}
+
 async function getManagerPhonesForTerritory(territoryId: string, type: 'driver' | 'passenger'): Promise<string[]> {
   try {
     const managers = await prisma.admins.findMany({
       where: {
         is_active: true,
         sms_alerts_enabled: true,
-        phone: { not: null },
         role: { in: ['TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'] },
         territory_access: { some: { territory_id: territoryId } },
         ...(type === 'driver' ? { notify_new_drivers: true } : { notify_new_passengers: true }),
       },
-      select: { phone: true },
+      select: { phone: true, operator_profile: { select: { phone: true, pix_key: true, pix_key_type: true } } },
     });
-    return managers.map(m => m.phone!).filter(Boolean);
+
+    const phones: string[] = [];
+    for (const m of managers) {
+      const resolved = resolveManagerPhone(m);
+      if (resolved) {
+        phones.push(normalizePhoneE164(resolved));
+      } else {
+        console.log(`[MANAGER_ALERT] skipped no valid phone for manager`);
+      }
+    }
+    return phones;
   } catch (err: any) {
     console.error(`[MANAGER_ALERT] lookup failed: ${err.message}`);
     return [];
