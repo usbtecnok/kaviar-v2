@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { PrismaClient } from '@prisma/client';
 import { driverRegistrationService } from '../services/driver-registration.service';
+import { notifyAdminNewDriver } from '../services/admin-alert.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -113,6 +114,17 @@ router.post('/onboarding', async (req: Request, res: Response) => {
       } catch (e) {
         console.error('[PARTNER_LINK_REQUEST_FAILED]', e);
       }
+    }
+
+    // Admin SMS alert (non-blocking)
+    if (result.driver) {
+      notifyAdminNewDriver({
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        modality: 'CAR',
+        region: data.neighborhoodId || undefined,
+      }).catch(() => {});
     }
   } catch (error) {
     if (error instanceof z.ZodError) {

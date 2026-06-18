@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { driverRegistrationService } from '../services/driver-registration.service';
+import { notifyAdminNewDriver } from '../services/admin-alert.service';
 import { loginByEmailRateLimit } from '../middlewares/auth-rate-limit';
 
 const router = Router();
@@ -108,6 +109,15 @@ router.post('/driver/register', async (req, res) => {
     } catch (refErr) {
       console.error('[REFERRAL_AUTO_ERROR] Non-blocking:', refErr);
     }
+
+    // Admin SMS alert (non-blocking)
+    notifyAdminNewDriver({
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      modality: data.vehicle_color ? 'CAR' : undefined,
+      region: data.neighborhoodName || undefined,
+    }).catch(() => {});
   } catch (error) {
     console.error('Error in driver register:', error);
 

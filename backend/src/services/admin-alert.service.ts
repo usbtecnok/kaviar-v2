@@ -13,6 +13,55 @@ interface NewContactAlert {
   conversationId: string;
 }
 
+interface NewDriverAlert {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  modality?: string | null;
+  region?: string | null;
+}
+
+interface NewPassengerAlert {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  region?: string | null;
+}
+
+async function sendAdminSms(body: string): Promise<void> {
+  if (!ADMIN_ALERT_ENABLED || !ADMIN_ALERT_PHONE) return;
+  if (ADMIN_ALERT_DRY_RUN) {
+    console.log(`[ADMIN_ALERT] DRY_RUN — ${body}`);
+    return;
+  }
+  try {
+    if (!ADMIN_ALERT_SMS_FROM) { console.error('[ADMIN_ALERT] SMS failed: ADMIN_ALERT_SMS_FROM not configured'); return; }
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+    const msg = await client.messages.create({ from: ADMIN_ALERT_SMS_FROM, to: ADMIN_ALERT_PHONE, body });
+    console.log(`[ADMIN_ALERT] SMS sent sid=${msg.sid}`);
+  } catch (err: any) {
+    console.error(`[ADMIN_ALERT] SMS failed: ${err.message}`);
+  }
+}
+
+export async function notifyAdminNewDriver(data: NewDriverAlert): Promise<void> {
+  const parts = ['KAVIAR: novo parceiro cadastrado.', `Nome: ${data.name}`];
+  if (data.phone) parts.push(`Tel: ${data.phone}`);
+  if (data.email) parts.push(`Email: ${data.email}`);
+  if (data.modality) parts.push(`Modalidade: ${data.modality}`);
+  if (data.region) parts.push(`Região: ${data.region}`);
+  parts.push('Acesse o Admin para aprovar.');
+  await sendAdminSms(parts.join(' '));
+}
+
+export async function notifyAdminNewPassenger(data: NewPassengerAlert): Promise<void> {
+  const parts = ['KAVIAR: novo passageiro cadastrado.', `Nome: ${data.name}`];
+  if (data.phone) parts.push(`Tel: ${data.phone}`);
+  if (data.email) parts.push(`Email: ${data.email}`);
+  if (data.region) parts.push(`Região: ${data.region}`);
+  await sendAdminSms(parts.join(' '));
+}
+
 function formatSms(data: NewContactAlert): string {
   return [
     "🔔 Novo contato KAVIAR",
@@ -29,9 +78,7 @@ function normalizeDigits(phone: string): string {
 }
 
 export async function notifyAdminNewContact(data: NewContactAlert): Promise<void> {
-  if (!ADMIN_ALERT_ENABLED || !ADMIN_ALERT_PHONE) {
-    return;
-  }
+  if (!ADMIN_ALERT_ENABLED || !ADMIN_ALERT_PHONE) return;
 
   // Anti-loop: não alertar se o contato é o próprio admin
   const incomingDigits = normalizeDigits(data.phone);
@@ -42,28 +89,5 @@ export async function notifyAdminNewContact(data: NewContactAlert): Promise<void
   }
 
   const body = formatSms(data);
-
-  if (ADMIN_ALERT_DRY_RUN) {
-    console.log(`[ADMIN_ALERT] DRY_RUN — SMS that would be sent to ${ADMIN_ALERT_PHONE}:`);
-    console.log(body);
-    console.log(`[ADMIN_ALERT] DRY_RUN — conversation_id=${data.conversationId}`);
-    return;
-  }
-
-  // Envio real via Twilio SMS
-  try {
-    if (!ADMIN_ALERT_SMS_FROM) {
-      console.error(`[ADMIN_ALERT] SMS failed: ADMIN_ALERT_SMS_FROM not configured conv=${data.conversationId}`);
-      return;
-    }
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
-    const msg = await client.messages.create({
-      from: ADMIN_ALERT_SMS_FROM,
-      to: ADMIN_ALERT_PHONE,
-      body,
-    });
-    console.log(`[ADMIN_ALERT] SMS sent sid=${msg.sid} to=${ADMIN_ALERT_PHONE} conv=${data.conversationId}`);
-  } catch (err: any) {
-    console.error(`[ADMIN_ALERT] SMS failed: ${err.message} conv=${data.conversationId}`);
-  }
+  await sendAdminSms(body);
 }

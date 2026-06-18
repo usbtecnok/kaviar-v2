@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { GeoResolveService } from '../services/geo-resolve';
 import { loginByEmailRateLimit } from '../middlewares/auth-rate-limit';
+import { notifyAdminNewPassenger } from '../services/admin-alert.service';
 
 const router = Router();
 const geoResolveService = new GeoResolveService();
@@ -125,6 +126,14 @@ router.post('/passenger/register', async (req, res) => {
         user_type: 'PASSENGER'
       }
     });
+
+    // Admin SMS alert (non-blocking)
+    notifyAdminNewPassenger({
+      name: passenger.name,
+      phone: passenger.phone,
+      email: passenger.email,
+      region: territoryName || undefined,
+    }).catch(() => {});
   } catch (error) {
     console.error('Error in passenger register:', error);
     
