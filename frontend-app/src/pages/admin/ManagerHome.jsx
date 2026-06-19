@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
-import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star, Pets, Shield, Storefront } from '@mui/icons-material';
+import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star, Pets, Shield, Storefront, ContentCopy, Share } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#C99A16';
@@ -217,6 +217,36 @@ export default function ManagerHome() {
                   </Grid>
                 ))}
               </Grid>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Links de indicação */}
+        {referral?.has_code ? (
+          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography sx={{ fontSize: 10, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>Links de indicação KAVIAR</Typography>
+              <Typography sx={{ fontSize: 12, color: KAVIAR_BLACK, mb: 1.5 }}>{admin?.name} — Código: <b style={{ fontFamily: 'monospace', color: GOLD }}>{referral.referral_code}</b></Typography>
+              {[
+                { label: 'Motoristas', url: `https://kaviar.com.br/motorista?ref=${referral.referral_code}` },
+                { label: 'Passageiros', url: `https://kaviar.com.br/passageiro?ref=${referral.referral_code}` },
+              ].map(link => (
+                <Box key={link.label} sx={{ mb: 1.5, p: 1.5, bgcolor: GOLD_LIGHT, borderRadius: 2 }}>
+                  <Typography sx={{ fontSize: 11, color: TEXT_GRAY, fontWeight: 600, mb: 0.5 }}>Link para {link.label}</Typography>
+                  <Typography sx={{ fontSize: 11, color: KAVIAR_BLACK, fontFamily: 'monospace', wordBreak: 'break-all', mb: 1 }}>{link.url}</Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button size="small" startIcon={<ContentCopy sx={{ fontSize: 14 }} />} onClick={() => { navigator.clipboard.writeText(link.url); }} sx={{ fontSize: 11, color: GOLD, textTransform: 'none' }}>Copiar</Button>
+                    <Button size="small" startIcon={<Share sx={{ fontSize: 14 }} />} onClick={() => { window.open(`https://wa.me/?text=${encodeURIComponent(link.url)}`, '_blank'); }} sx={{ fontSize: 11, color: '#25D366', textTransform: 'none' }}>WhatsApp</Button>
+                  </Box>
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+        ) : !loading && (
+          <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <CardContent sx={{ p: 2 }}>
+              <Typography sx={{ fontSize: 10, color: TEXT_GRAY, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>Links de indicação KAVIAR</Typography>
+              <Typography sx={{ fontSize: 12, color: '#DC2626' }}>Código de indicação não encontrado. Fale com o suporte KAVIAR.</Typography>
             </CardContent>
           </Card>
         )}
