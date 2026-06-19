@@ -221,6 +221,9 @@ export default function ManagerHome() {
           </Card>
         )}
 
+        {/* Links de indicação */}
+        <ReferralLinksCard referral={referral} adminName={admin?.name} loading={loading} />
+
         {/* Equipe & Captação */}
         {teamMembers.length > 0 && (
           <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
@@ -476,5 +479,58 @@ function OperatorDraftDialog({ open, onClose, headers, onSuccess }) {
         </Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+// ─── Referral Links Card ─────────────────────────────────────────────────────
+function ReferralLinksCard({ referral, adminName, loading }) {
+  if (loading) return null;
+
+  const rawCode = referral?.referral_code;
+  const code = typeof rawCode === 'string' ? rawCode.trim() : '';
+
+  if (!code) {
+    return (
+      <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <CardContent sx={{ p: 2 }}>
+          <Typography sx={{ fontSize: 10, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>Links de indicação KAVIAR</Typography>
+          <Typography sx={{ fontSize: 12, color: '#DC2626' }}>Código de indicação não encontrado. Fale com o suporte KAVIAR.</Typography>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const links = [
+    { label: 'Motoristas', url: `https://kaviar.com.br/motorista?ref=${code}` },
+    { label: 'Passageiros', url: `https://kaviar.com.br/passageiro?ref=${code}` },
+  ];
+
+  const copyToClipboard = async (text) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      }
+    } catch (error) {
+      console.warn('Não foi possível copiar link', error);
+    }
+  };
+
+  return (
+    <Card sx={{ mb: 3, bgcolor: '#fff', border: '1px solid rgba(201,154,22,0.25)', borderRadius: 3, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <CardContent sx={{ p: 2 }}>
+        <Typography sx={{ fontSize: 10, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.5 }}>Links de indicação KAVIAR</Typography>
+        <Typography sx={{ fontSize: 12, color: '#090A0F', mb: 1.5 }}>{adminName || 'Gestor'} — Código: <b style={{ fontFamily: 'monospace', color: '#C99A16' }}>{code}</b></Typography>
+        {links.map(link => (
+          <Box key={link.label} sx={{ mb: 1.5, p: 1.5, bgcolor: '#FFF7DF', borderRadius: 2 }}>
+            <Typography sx={{ fontSize: 11, color: '#667085', fontWeight: 600, mb: 0.5 }}>Link para {link.label}</Typography>
+            <Typography sx={{ fontSize: 11, color: '#090A0F', fontFamily: 'monospace', wordBreak: 'break-all', mb: 1 }}>{link.url}</Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button size="small" onClick={() => copyToClipboard(link.url)} sx={{ fontSize: 11, color: '#C99A16', textTransform: 'none' }}>📋 Copiar</Button>
+              <Button size="small" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(link.url)}`, '_blank')} sx={{ fontSize: 11, color: '#25D366', textTransform: 'none' }}>💬 WhatsApp</Button>
+            </Box>
+          </Box>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
