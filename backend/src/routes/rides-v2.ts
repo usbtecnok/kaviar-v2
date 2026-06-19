@@ -15,6 +15,8 @@ import { getPresignedUrl } from '../config/s3-upload';
 import { createPixPayment } from '../services/asaas.service';
 import { config } from '../config';
 import { isWalletV2Enabled } from './driver-wallet-v2';
+import { getRouteDistance } from '../services/google-directions.service';
+import { getFloorForRoute } from '../services/territory-floor.service';
 import { WalletService } from '../services/wallet-v2/wallet.service';
 import { FeeSplitService } from '../services/wallet-v2/fee-split.service';
 import { TerritoryLedgerService } from '../services/wallet-v2/territory-ledger.service';
@@ -54,7 +56,6 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
     }
 
     // Google Directions (real route) with haversine fallback
-    const { getRouteDistance } = require('../services/google-directions.service');
     let distance_km: number;
     let duration_min = 0;
     let pricing_source: string = 'fallback_haversine';
@@ -99,7 +100,6 @@ router.post('/estimate', authenticatePassenger, async (req: Request, res: Respon
     }
 
     // Territory price floor (paridade com quote)
-    const { getFloorForRoute } = require('../services/territory-floor.service');
     const originNeighborhoodId = originRes.neighborhood?.id || null;
     const destNeighborhoodId = destRes.neighborhood?.id || null;
     let territory_floor_applied = false;

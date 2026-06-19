@@ -19,6 +19,20 @@ vi.mock('../src/lib/prisma', () => ({
   },
 }));
 
+vi.mock('../src/services/territory-resolver.service', () => ({
+  resolveTerritory: vi.fn(async () => ({
+    resolved: false,
+    community: null,
+    neighborhood: null,
+    method: 'outside',
+    srid: 4326,
+  })),
+}));
+
+vi.mock('../src/services/territory-floor.service', () => ({
+  getFloorForRoute: vi.fn(async () => null),
+}));
+
 // Mock pricing-engine to avoid DB calls
 vi.mock('../src/services/pricing-engine', () => ({
   haversineKm: vi.fn((lat1: number, lng1: number, lat2: number, lng2: number) => {
@@ -36,6 +50,10 @@ vi.mock('../src/services/pricing-engine', () => ({
     credit_cost_local: 1, credit_cost_external: 2, max_dispatch_km: 12,
     center_lat: null, center_lng: null, radius_km: null,
   })),
+  classifyRouteFromIds: vi.fn((originNeighborhoodId: string | null, destNeighborhoodId: string | null) => {
+    if (!originNeighborhoodId || !destNeighborhoodId) return 'external';
+    return originNeighborhoodId === destNeighborhoodId ? 'local' : 'adjacent';
+  }),
 }));
 
 import app from '../src/app';
