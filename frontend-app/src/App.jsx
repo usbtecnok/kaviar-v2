@@ -26,6 +26,7 @@ import AdminResetPassword from "./pages/admin/ResetPassword";
 import ConviteExpirado from "./pages/admin/ConviteExpirado";
 import SetPassword from "./pages/driver/SetPassword";
 import MotoristaReferral from "./pages/MotoristaReferral";
+import PassageiroReferral from "./pages/PassageiroReferral";
 import ConsultorOnboarding from "./pages/ConsultorOnboarding";
 import PartnerPublicView from "./pages/PartnerPublicView";
 import PartnerPortal from "./pages/PartnerPortal";
@@ -457,6 +458,7 @@ export default function App() {
           <Route path="/pet/solicitar" element={<PetRideRequest />} />
           <Route path="/regiao/:slug" element={<RegionPage />} />
           <Route path="/motorista" element={<MotoristaReferral />} />
+          <Route path="/passageiro" element={<PassageiroReferral />} />
           {/* Convite curto — redireciona para backend que valida e redireciona para reset-password */}
           <Route path="/i/:code" element={<InviteRedirect />} />
           <Route path="/admin/convite-expirado" element={<ConviteExpirado />} />
