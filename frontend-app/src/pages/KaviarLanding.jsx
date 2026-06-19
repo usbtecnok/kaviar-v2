@@ -348,7 +348,7 @@ export default function KaviarLanding() {
               <li>Experiência conectada à rede local</li>
               <li>Acompanhe a expansão na sua região</li>
             </Box>
-            <Button variant="outlined" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.13.8-ota.apk" target="_blank" rel="noopener" sx={sx.outlineBtn}>
+            <Button variant="contained" href="https://downloads.kaviar.com.br/kaviar-passageiro-v1.13.8-ota.apk" target="_blank" rel="noopener" sx={{ bgcolor: '#2563EB', color: '#fff', border: '1px solid #2563EB', fontWeight: 600, borderRadius: 3, textTransform: 'none', py: 1.8, px: 4, fontSize: '0.9rem', boxShadow: '0 4px 20px rgba(37,99,235,0.35)', '&:hover': { bgcolor: '#1D4ED8', boxShadow: '0 6px 24px rgba(37,99,235,0.45)', transform: 'translateY(-1px)' }, transition: 'all 0.2s' }}>
               Baixar app do passageiro
             </Button>
           </Box>
