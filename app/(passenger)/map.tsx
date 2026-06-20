@@ -79,6 +79,19 @@ export default function PassengerMap() {
 
   // Community status (Base KAVIAR)
   const [communityStatus, setCommunityStatus] = useState<{ communityName: string; driversOnline: number } | null>(null);
+  const noDriverHasOnlinePartners = communityStatus?.driversOnline != null
+    ? communityStatus.driversOnline > 0
+    : null;
+  const noDriverTitle = ride?.scheduled_for
+    ? 'Agenda ainda sem motorista confirmado'
+    : noDriverHasOnlinePartners === false
+      ? 'Estamos crescendo na sua região'
+      : 'Alta demanda na sua região';
+  const noDriverBody = ride?.scheduled_for
+    ? 'Para este horário, ainda estamos tentando localizar um motorista parceiro disponível na sua região. Você pode buscar novamente agora ou tentar em alguns minutos.'
+    : noDriverHasOnlinePartners === false
+      ? 'Sua área já está recebendo pedidos pelo KAVIAR, mas neste momento ainda estamos ampliando a disponibilidade de motoristas próximos. Tente novamente em alguns minutos ou indique um motorista parceiro para ajudar a melhorar o atendimento na sua região.'
+      : 'Neste momento, sua área está com alta procura por corridas e estamos tentando localizar motoristas parceiros próximos para atender você.\n\nVocê pode tentar novamente agora ou aguardar alguns minutos.';
 
   // Return home card
   const [showReturnCard, setShowReturnCard] = useState(false);
@@ -1293,32 +1306,24 @@ export default function PassengerMap() {
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>
             <Text style={s.modalIcon}>{ride?.scheduled_for ? '🕐' : '🚗'}</Text>
-            <Text style={s.modalTitle}>
-              {ride?.scheduled_for
-                ? 'Não encontramos motorista para o horário agendado.'
-                : 'Ainda não encontramos um motorista disponível no momento.'}
-            </Text>
-            <Text style={s.modalBody}>
-              {ride?.scheduled_for
-                ? 'Isso pode acontecer em horários com menos motoristas na sua região.'
-                : 'Estamos expandindo nossa rede de motoristas na sua região. Seja um Consultor Kaviar e tenha uma renda extra indicando novos motoristas.'}
-            </Text>
+            <Text style={s.modalTitle}>{noDriverTitle}</Text>
+            <Text style={s.modalBody}>{noDriverBody}</Text>
 
             {/* Primary CTAs */}
             <TouchableOpacity style={s.ctaPrimary} onPress={() => { setShowNoDriver(false); handleRetry(); }}>
-              <Text style={s.ctaPrimaryText}>Tentar agora</Text>
+              <Text style={s.ctaPrimaryText}>Buscar novamente</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.ctaSecondaryHighlight} onPress={() => { setShowNoDriver(false); resetToIdle(); }}>
+              <Text style={s.ctaSecondaryHighlightText}>Tentar em alguns minutos</Text>
             </TouchableOpacity>
             {!ride?.scheduled_for && (
-              <TouchableOpacity style={s.ctaSecondaryHighlight} onPress={() => { setShowNoDriver(false); router.push('/(passenger)/refer-driver'); }}>
-                <Text style={s.ctaSecondaryHighlightText}>Indicar motorista</Text>
+              <TouchableOpacity style={s.ctaLink} onPress={() => { setShowNoDriver(false); router.push('/(passenger)/refer-driver'); }}>
+                <Text style={s.ctaLinkText}>Indicar motorista para minha região</Text>
               </TouchableOpacity>
             )}
 
-            {/* Secondary CTAs */}
+            {/* Close action */}
             <View style={s.ctaRow}>
-              <TouchableOpacity style={s.ctaLink} onPress={() => Linking.openURL('https://kaviar.com.br/#saiba-mais')}>
-                <Text style={s.ctaLinkText}>Saber mais</Text>
-              </TouchableOpacity>
               <TouchableOpacity style={s.ctaLink} onPress={() => { setShowNoDriver(false); resetToIdle(); }}>
                 <Text style={s.noDriverCloseText}>Fechar</Text>
               </TouchableOpacity>
