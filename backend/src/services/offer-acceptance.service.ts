@@ -52,8 +52,12 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
       }
     }
 
-    await tx.ride_offers.update({
-      where: { id: offerId },
+    if (!['requested', 'offered'].includes(offer.ride.status)) {
+      throw new Error('Ride not available');
+    }
+
+    const acceptedOffer = await tx.ride_offers.updateMany({
+      where: { id: offerId, status: 'pending' },
       data: {
         status: 'accepted',
         responded_at: new Date(),
@@ -62,13 +66,12 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
       }
     });
 
-    await tx.ride_offers.updateMany({
-      where: { ride_id: offer.ride_id, id: { not: offerId }, status: 'pending' },
-      data: { status: 'canceled' }
-    });
+    if (acceptedOffer.count !== 1) {
+      throw new Error('Offer acceptance conflict');
+    }
 
-    await tx.rides_v2.update({
-      where: { id: offer.ride_id },
+    const updatedRide = await tx.rides_v2.updateMany({
+      where: { id: offer.ride_id, status: { in: ['requested', 'offered'] } },
       data: {
         driver_id: driverId,
         status: rideStatus,
@@ -79,6 +82,15 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
           ? new Decimal(Number(offer.ride.quoted_price) + adjustment!)
           : null,
       }
+    });
+
+    if (updatedRide.count !== 1) {
+      throw new Error('Offer acceptance conflict');
+    }
+
+    await tx.ride_offers.updateMany({
+      where: { ride_id: offer.ride_id, id: { not: offerId }, status: 'pending' },
+      data: { status: 'canceled' }
     });
 
     await tx.driver_status.upsert({

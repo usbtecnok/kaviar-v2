@@ -125,6 +125,9 @@ router.post('/offers/:offer_id/accept', authenticateDriver, async (req: Request,
     if (error.message === 'Offer not pending' || error.message === 'Offer expired') {
       return res.status(400).json({ error: 'Oferta já expirou ou foi respondida' });
     }
+    if (error.message === 'Offer acceptance conflict' || error.message === 'Ride not available') {
+      return res.status(409).json({ error: 'Outra oferta já aceitou esta corrida' });
+    }
     
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
