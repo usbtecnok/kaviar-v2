@@ -88,11 +88,6 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
       throw new Error('Offer acceptance conflict');
     }
 
-    await tx.ride_offers.updateMany({
-      where: { ride_id: offer.ride_id, id: { not: offerId }, status: 'pending' },
-      data: { status: 'canceled' }
-    });
-
     await tx.driver_status.upsert({
       where: { driver_id: driverId },
       create: { driver_id: driverId, availability: 'busy' },
@@ -116,10 +111,8 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
   });
 
   const { ride, adjustmentStatus, rideStatus } = result;
-
   // Wallet V2: reserve estimated fee on accept
   if (rideStatus === 'accepted' && await isWalletV2Enabled()) {
-    try {
       const price = Number(ride.quoted_price || ride.locked_price || 0);
       const estimatedFee = estimateFeeCentsFromPrice(price);
       if (estimatedFee > 0) {
@@ -128,16 +121,48 @@ export async function acceptOfferInternal(offerId: string, driverId: string, adj
         const ledgerSvc = new TerritoryLedgerService(pool);
         const pendingSvc = new PendingDebitService(pool);
         const settlement = new WalletSettlementService(walletSvc, feeSplitSvc, ledgerSvc, pendingSvc);
-        await settlement.handleReserve(ride.id, driverId, BigInt(estimatedFee));
+        // Attempt reserve; if it fails we must revert the acceptance to avoid
+        // leaving the ride assigned without reserve.
+        try {
+          await settlement.handleReserve(ride.id, driverId, BigInt(estimatedFee));
+          await prisma.ride_offers.updateMany({
+            where: { ride_id: ride.id, id: { not: offerId }, status: 'pending' },
+            data: { status: 'canceled' }
+          });
+        } catch (reserveErr: any) {
+          // If insufficient balance, perform compensating rollback of acceptance
+          console.warn(`[WALLET_V2_RESERVE_FAIL] ride=${ride.id} driver=${driverId} reason=${reserveErr.message}`);
+          await prisma.$transaction(async (tx) => {
+            // Only revert if ride is still assigned to this driver and in accepted-like state
+            const current = await tx.rides_v2.findUnique({ where: { id: ride.id } });
+            if (current && current.driver_id === driverId && ['accepted', 'pending_adjustment'].includes(String(current.status))) {
+              const pendingCount = await tx.ride_offers.count({ where: { ride_id: ride.id, status: 'pending' } });
+              await tx.rides_v2.update({
+                where: { id: ride.id },
+                data: {
+                  status: pendingCount > 0 ? 'offered' : 'requested',
+                  driver_id: null,
+                  accepted_at: null,
+                  driver_adjustment: null,
+                  adjusted_price: null
+                }
+              });
+              await tx.ride_offers.updateMany({ where: { id: offerId }, data: { status: 'canceled' } });
+              await tx.driver_status.updateMany({ where: { driver_id: driverId }, data: { availability: 'online' } });
+            }
+          });
+
+          if (reserveErr.message === 'INSUFFICIENT_BALANCE') {
+            const e: any = new Error('INSUFFICIENT_BALANCE');
+            e.cause = reserveErr;
+            throw e;
+          }
+
+          const e: any = new Error('RESERVE_FAILED');
+          e.cause = reserveErr;
+          throw e;
+        }
       }
-    } catch (reserveErr: any) {
-      if (reserveErr.message === 'INSUFFICIENT_BALANCE') {
-        console.warn(`[WALLET_V2_RESERVE_FAIL] ride=${ride.id} driver=${driverId} reason=insufficient_balance`);
-        // Note: gate should have prevented this, but log for safety
-      } else {
-        console.error(`[WALLET_V2_RESERVE_ERROR] ride=${ride.id}`, reserveErr.message);
-      }
-    }
   }
 
   // SSE: notify passenger

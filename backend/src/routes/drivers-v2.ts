@@ -128,6 +128,9 @@ router.post('/offers/:offer_id/accept', authenticateDriver, async (req: Request,
     if (error.message === 'Offer acceptance conflict' || error.message === 'Ride not available') {
       return res.status(409).json({ error: 'Outra oferta já aceitou esta corrida' });
     }
+    if (error.message === 'INSUFFICIENT_BALANCE') {
+      return res.status(402).json({ error: 'Saldo insuficiente. Recarregue sua carteira.' });
+    }
     
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
