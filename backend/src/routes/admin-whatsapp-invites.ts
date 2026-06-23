@@ -139,7 +139,14 @@ function validateTwilioStatusSignature(req: Request): { ok: boolean; status: num
   return { ok: true, status: 200 };
 }
 
-async function resolveTargetTerritory(phone: string, type: InviteType): Promise<{ territoryId: string | null; targetName: string | null; source: string | null }> {
+type TargetTerritoryResolution = {
+  territoryId: string | null;
+  targetName: string | null;
+  source: string | null;
+  matched: boolean;
+};
+
+async function resolveTargetTerritory(phone: string, type: InviteType): Promise<TargetTerritoryResolution> {
   const variants = phoneVariants(phone);
   const suffix9 = phone.replace(/\D/g, '').slice(-9);
 
@@ -148,7 +155,7 @@ async function resolveTargetTerritory(phone: string, type: InviteType): Promise<
       where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
       select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
     });
-    if (driver) return { territoryId: driver.neighborhoods?.territory_id || null, targetName: driver.name, source: 'driver' };
+    if (driver) return { territoryId: driver.neighborhoods?.territory_id || null, targetName: driver.name, source: 'driver', matched: true };
   }
 
   if (type === 'passenger') {
@@ -156,7 +163,7 @@ async function resolveTargetTerritory(phone: string, type: InviteType): Promise<
       where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
       select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
     });
-    if (passenger) return { territoryId: passenger.neighborhoods?.territory_id || null, targetName: passenger.name, source: 'passenger' };
+    if (passenger) return { territoryId: passenger.neighborhoods?.territory_id || null, targetName: passenger.name, source: 'passenger', matched: true };
   }
 
   if (type === 'guide') {
@@ -166,7 +173,7 @@ async function resolveTargetTerritory(phone: string, type: InviteType): Promise<
     });
     if (guide) {
       const neighborhood = await prisma.neighborhoods.findUnique({ where: { id: guide.community_id }, select: { territory_id: true } });
-      return { territoryId: neighborhood?.territory_id || null, targetName: guide.name, source: 'guide' };
+      return { territoryId: neighborhood?.territory_id || null, targetName: guide.name, source: 'guide', matched: true };
     }
   }
 
@@ -175,13 +182,13 @@ async function resolveTargetTerritory(phone: string, type: InviteType): Promise<
       where: { deleted_at: null, OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
       select: { name: true, territory_id: true },
     });
-    if (crmLead) return { territoryId: crmLead.territory_id || null, targetName: crmLead.name, source: 'crm_lead' };
+    if (crmLead) return { territoryId: crmLead.territory_id || null, targetName: crmLead.name, source: 'crm_lead', matched: true };
 
     const consultantLead = await prisma.consultant_leads.findFirst({
       where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
       select: { name: true },
     });
-    if (consultantLead) return { territoryId: null, targetName: consultantLead.name, source: 'consultant_lead' };
+    if (consultantLead) return { territoryId: null, targetName: consultantLead.name, source: 'consultant_lead', matched: true };
   }
 
   if (type === 'pet') {
@@ -191,22 +198,60 @@ async function resolveTargetTerritory(phone: string, type: InviteType): Promise<
     });
     if (pet?.driver_id) {
       const driver = await prisma.drivers.findUnique({ where: { id: pet.driver_id }, select: { neighborhoods: { select: { territory_id: true } } } });
-      return { territoryId: driver?.neighborhoods?.territory_id || null, targetName: pet.name, source: 'pet_homologation' };
+      return { territoryId: driver?.neighborhoods?.territory_id || null, targetName: pet.name, source: 'pet_homologation', matched: true };
     }
     if (pet?.operator_id) {
       const operator = await prisma.operator_profiles.findFirst({ where: { admin_id: pet.operator_id }, select: { territory_id: true } });
-      return { territoryId: operator?.territory_id || null, targetName: pet.name, source: 'pet_homologation' };
+      return { territoryId: operator?.territory_id || null, targetName: pet.name, source: 'pet_homologation', matched: true };
     }
-    if (pet) return { territoryId: null, targetName: pet.name, source: 'pet_homologation' };
+    if (pet) return { territoryId: null, targetName: pet.name, source: 'pet_homologation', matched: true };
   }
 
-  return { territoryId: null, targetName: null, source: null };
+  return { territoryId: null, targetName: null, source: null, matched: false };
 }
 
-function scopeAllows(admin: any, scope: any, territoryId: string | null): boolean {
-  if (admin.role === 'SUPER_ADMIN') return true;
-  if (!territoryId) return false;
-  return Array.isArray(scope?.territoryIds) && scope.territoryIds.includes(territoryId);
+function isTerritorialRole(role: string): boolean {
+  return role === 'TERRITORIAL_MANAGER' || role === 'TERRITORIAL_OPERATOR';
+}
+
+async function resolveAdminOwnTerritoryId(admin: any, scope: any): Promise<string | null> {
+  if (!isTerritorialRole(admin.role)) return null;
+
+  const profile = await prisma.operator_profiles.findUnique({
+    where: { admin_id: admin.id },
+    select: { territory_id: true, territory: { select: { id: true, is_active: true } } },
+  });
+
+  if (!profile?.territory_id || !profile.territory?.is_active) return null;
+
+  const territoryIds = Array.isArray(scope?.territoryIds) ? scope.territoryIds : [];
+  if (!territoryIds.includes(profile.territory_id)) return null;
+
+  return profile.territory_id;
+}
+
+function buildTargetResolutions(resolutions: TargetTerritoryResolution[]): {
+  matched: boolean;
+  territoryIds: string[];
+  targetName: string | null;
+  source: string | null;
+} {
+  const matched = resolutions.filter((resolution) => resolution.matched);
+  const territoryIds = Array.from(new Set(matched.map((resolution) => resolution.territoryId).filter((id): id is string => Boolean(id))));
+  const named = matched.find((resolution) => resolution.targetName);
+
+  return {
+    matched: matched.length > 0,
+    territoryIds,
+    targetName: named?.targetName || null,
+    source: named?.source || matched[0]?.source || null,
+  };
+}
+
+async function resolveKnownTargetTerritories(phone: string, preferredType: InviteType) {
+  const types = Array.from(new Set([preferredType, ...INVITE_TYPES.filter((inviteType) => inviteType !== 'manager')]));
+  const resolutions = await Promise.all(types.map((inviteType) => resolveTargetTerritory(phone, inviteType)));
+  return buildTargetResolutions(resolutions);
 }
 
 function scopedWhere(admin: any, scope: any): any {
@@ -263,11 +308,23 @@ router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
     }
 
     normalizedPhone = normalizeBrazilPhone(phone);
-    const resolved = await resolveTargetTerritory(normalizedPhone, type);
+    const resolved = await resolveKnownTargetTerritories(normalizedPhone, type);
     const finalTargetName = String(targetName || resolved.targetName || '').trim() || null;
+    let logTerritoryId = resolved.territoryIds[0] || null;
 
-    if (!scopeAllows(admin, scope, resolved.territoryId)) {
-      return res.status(403).json({ success: false, error: 'Contato fora do seu território ou território não identificado.' });
+    if (isTerritorialRole(admin.role)) {
+      const adminTerritoryId = await resolveAdminOwnTerritoryId(admin, scope);
+      if (!adminTerritoryId) {
+        return res.status(403).json({ success: false, error: 'Usuário territorial sem territory_id válido no perfil.' });
+      }
+
+      const territoryIds = Array.isArray(scope?.territoryIds) ? scope.territoryIds : [];
+      const outOfScopeTerritoryId = resolved.territoryIds.find((territoryId) => !territoryIds.includes(territoryId));
+      if (outOfScopeTerritoryId) {
+        return res.status(403).json({ success: false, error: 'Contato fora do seu território ou território não identificado.' });
+      }
+
+      logTerritoryId = adminTerritoryId;
     }
 
     const templateConfig = requireTwilioConfig(type);
@@ -325,7 +382,7 @@ router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
         admin_name: admin.name || null,
         admin_email: admin.email || null,
         admin_role: admin.role,
-        territory_id: resolved.territoryId,
+        territory_id: logTerritoryId,
         target_phone_normalized: normalizedPhone,
         target_name: finalTargetName,
         invite_type: type,
@@ -365,7 +422,7 @@ router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
         action: 'whatsapp_official_invite_failed',
         entityType: 'whatsapp_invite_log',
         entityId: failed.id,
-        newValue: { phone: normalizedPhone, invite_type: type, territory_id: resolved.territoryId, template_key: templateConfig.template.key, twilio_error_code: sendErr?.code || null, twilio_error_message: sendErr?.message || null },
+        newValue: { phone: normalizedPhone, invite_type: type, territory_id: logTerritoryId, template_key: templateConfig.template.key, twilio_error_code: sendErr?.code || null, twilio_error_message: sendErr?.message || null },
         ipAddress: ctx.ip,
         userAgent: ctx.ua,
       });
@@ -390,7 +447,7 @@ router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
       action: 'whatsapp_official_invite_sent',
       entityType: 'whatsapp_invite_log',
       entityId: updated.id,
-      newValue: { phone: normalizedPhone, invite_type: type, territory_id: resolved.territoryId, template_key: templateConfig.template.key, twilio_message_sid: message.sid, forced: Boolean(force), duplicate_of_log_id: duplicateLogId },
+      newValue: { phone: normalizedPhone, invite_type: type, territory_id: logTerritoryId, template_key: templateConfig.template.key, twilio_message_sid: message.sid, forced: Boolean(force), duplicate_of_log_id: duplicateLogId },
       ipAddress: ctx.ip,
       userAgent: ctx.ua,
     });
