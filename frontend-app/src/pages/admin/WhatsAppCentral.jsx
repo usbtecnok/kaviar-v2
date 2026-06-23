@@ -346,10 +346,13 @@ export default function WhatsAppCentral() {
     setOfficialSending(true);
     setInviteFeedback(null);
     try {
+      const map = { motorista: 'driver', passageiro: 'passenger', gestor: 'manager', guia: 'guide' };
+      const sendType = (String(inviteType || '').trim().toLowerCase());
+      const canonicalType = map[sendType] || (sendType || '');
       const res = await fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/send`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ phone: invitePhone, type: inviteType, targetName: inviteTargetName || undefined, force: false }),
+        body: JSON.stringify({ phone: invitePhone, type: canonicalType, targetName: inviteTargetName || undefined, force: false }),
       });
       const data = await res.json();
       if (res.status === 409 && data.code === 'DUPLICATE_INVITE') {
