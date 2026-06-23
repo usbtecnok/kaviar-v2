@@ -53,7 +53,7 @@ jobs:
       - name: Update Task Definition
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition kaviar-backend --region us-east-2)
-          NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:${{ github.sha }}" --arg COMMIT "${{ github.sha }}" \
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq --arg IMAGE "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:${{ github.sha }}" --arg COMMIT "${{ github.sha }}" \
             --arg TWILIO_WHATSAPP_FROM "${{ secrets.TWILIO_WHATSAPP_FROM }}" \
             --arg TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID "${{ secrets.TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID }}" \
             --arg TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID "${{ secrets.TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID }}" \
@@ -80,19 +80,19 @@ jobs:
             } |
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
           '
-          echo $NEW_TASK_DEF > task-def.json
+          echo "$NEW_TASK_DEF" > task-def.json
           
           # Safety check: ensure sensitive values are NOT in environment (they must stay in secrets/SSM)
-          LEAKED=$(echo $NEW_TASK_DEF | jq -r '[.containerDefinitions[0].environment[]?.name] | map(select(. == "DATABASE_URL" or . == "JWT_SECRET" or . == "JWT_RESET_SECRET" or . == "ADMIN_DEFAULT_PASSWORD" or . == "ASAAS_API_KEY" or . == "MERCADOPAGO_ACCESS_TOKEN" or . == "GOOGLE_PLACES_KEY")) | join(",")')
+          LEAKED=$(echo "$NEW_TASK_DEF" | jq -r '[.containerDefinitions[0].environment[]?.name] | map(select(. == "DATABASE_URL" or . == "JWT_SECRET" or . == "JWT_RESET_SECRET" or . == "ADMIN_DEFAULT_PASSWORD" or . == "ASAAS_API_KEY" or . == "MERCADOPAGO_ACCESS_TOKEN" or . == "GOOGLE_PLACES_KEY")) | join(",")')
           if [ -n "$LEAKED" ]; then
             echo "❌ ABORT: Sensitive values found in plaintext environment: $LEAKED"
             exit 1
           fi
           
           echo "Secrets in SSM (preserved):"
-          echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].secrets[]?.name' | sort
-          echo "WA_TPL_* env vars (preserved):"
-          echo $NEW_TASK_DEF | jq -r '.containerDefinitions[0].environment[]? | select(.name | startswith("WA_TPL_")) | .name' | sort
+          echo "$NEW_TASK_DEF" | jq -r '.containerDefinitions[0].secrets[]?.name' | sort
+          echo "TWILIO_WHATSAPP_TEMPLATE_* env vars (preserved):"
+          echo "$NEW_TASK_DEF" | jq -r '.containerDefinitions[0].environment[]? | select(.name | startswith("TWILIO_WHATSAPP_TEMPLATE_")) | .name' | sort
           
           NEW_REV=$(aws ecs register-task-definition --cli-input-json file://task-def.json --region us-east-2 | jq -r '.taskDefinition.revision')
           echo "Registered task definition: kaviar-backend:${NEW_REV}"
