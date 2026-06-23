@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/api';
-import { 
-  Box, 
-  Typography, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableRow, 
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
   CircularProgress,
   Alert,
   Paper,
@@ -17,8 +17,9 @@ import {
   Button,
   InputAdornment
 } from '@mui/material';
-import { Visibility, Search } from '@mui/icons-material';
+import { Visibility, Search, WhatsApp } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { openDriverWhatsAppInvite, openPassengerWhatsAppInvite } from '../../utils/whatsappInvite';
 
 
 export default function PassengersManagement() {
@@ -45,9 +46,9 @@ export default function PassengersManagement() {
       const response = await fetch(`${API_BASE_URL}/api/admin/passengers?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setPassengers(data.data);
         setPagination(data.pagination || { total: 0, totalPages: 1 });
@@ -115,20 +116,28 @@ export default function PassengersManagement() {
                   <TableCell>{passenger.email}</TableCell>
                   <TableCell>{passenger.phone || 'N/A'}</TableCell>
                   <TableCell>
-                    <Chip 
-                      label={passenger.status || 'active'} 
-                      size="small" 
+                    <Chip
+                      label={passenger.status || 'active'}
+                      size="small"
                       color={passenger.status === 'active' ? 'success' : 'default'}
                     />
                   </TableCell>
                   <TableCell>
-                    <IconButton 
-                      size="small" 
-                      onClick={() => navigate(`/admin/passengers/${passenger.id}`)}
-                      title="Ver detalhes"
-                    >
-                      <Visibility />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => navigate(`/admin/passengers/${passenger.id}`)}
+                        title="Ver detalhes"
+                      >
+                        <Visibility />
+                      </IconButton>
+                      <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={() => openDriverWhatsAppInvite(passenger.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        WhatsApp Motorista
+                      </Button>
+                      <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={() => openPassengerWhatsAppInvite(passenger.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        WhatsApp Passageiro
+                      </Button>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}

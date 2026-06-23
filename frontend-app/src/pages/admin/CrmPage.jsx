@@ -5,9 +5,10 @@ import {
   CircularProgress, Alert, Pagination, Dialog, DialogTitle, DialogContent, DialogActions,
   Snackbar, Tooltip, ToggleButtonGroup, ToggleButton
 } from '@mui/material';
-import { Add, Download, Close, Phone, Email, Business, AccessTime, FilterList, Store, Apartment, Warning, LocationOn } from '@mui/icons-material';
+import { Add, Download, Close, Phone, Email, Business, AccessTime, FilterList, Store, Apartment, Warning, LocationOn, WhatsApp } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 import { formatDate } from '../../utils/formatDate';
+import { openDriverWhatsAppInvite, openPassengerWhatsAppInvite } from '../../utils/whatsappInvite';
 
 const GOLD = '#B8942E';
 
@@ -237,6 +238,11 @@ export default function CrmPage() {
   };
 
   const fmtDate = (d) => { if (!d) return '—'; const dt = new Date(d); return isNaN(dt.getTime()) ? '—' : dt.toLocaleDateString('pt-BR'); };
+  const openInviteForLead = (event, lead, inviteType) => {
+    event.stopPropagation();
+    if (inviteType === 'driver') openDriverWhatsAppInvite(lead.phone);
+    else openPassengerWhatsAppInvite(lead.phone);
+  };
 
   const totalLeads = Object.entries(stats).filter(([k]) => k !== 'LOCAL_BUSINESSES').reduce((sum, [, v]) => sum + v, 0);
 
@@ -383,6 +389,7 @@ export default function CrmPage() {
                   <TableCell>Próxima Ação</TableCell>
                   <TableCell>Último Contato</TableCell>
                   <TableCell>Criado</TableCell>
+                  <TableCell>Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -407,10 +414,24 @@ export default function CrmPage() {
                       <TableCell sx={{ fontSize: 12, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: overdue ? '#EF4444' : '#374151' }}>{lead.next_action || <span style={{ color: '#F59E0B', fontStyle: 'italic' }}>definir...</span>}</TableCell>
                       <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.last_contact_at)}</TableCell>
                       <TableCell sx={{ fontSize: 12, color: '#6B7280' }}>{fmtDate(lead.created_at)}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          <Tooltip title="WhatsApp Motorista">
+                            <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={(event) => openInviteForLead(event, lead, 'driver')} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
+                              WhatsApp Motorista
+                            </Button>
+                          </Tooltip>
+                          <Tooltip title="WhatsApp Passageiro">
+                            <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={(event) => openInviteForLead(event, lead, 'passenger')} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
+                              WhatsApp Passageiro
+                            </Button>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
-                {leads.length === 0 && <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum lead encontrado</TableCell></TableRow>}
+                {leads.length === 0 && <TableRow><TableCell colSpan={9} sx={{ textAlign: 'center', py: 4, color: '#9CA3AF' }}>Nenhum lead encontrado</TableCell></TableRow>}
               </TableBody>
             </Table>
           </Box>
@@ -476,7 +497,8 @@ export default function CrmPage() {
             <Box sx={{ display: 'flex', gap: 1, mt: 3, flexWrap: 'wrap' }}>
               <Button size="small" variant="outlined" onClick={() => { setNewStatus(selectedLead.status); setStatusOpen(true); }}>Alterar Status</Button>
               <Button size="small" variant="outlined" onClick={() => setInteractionOpen(true)}>+ Observação</Button>
-              {selectedLead.phone && <Tooltip title="WhatsApp"><IconButton size="small" sx={{ color: '#25D366' }} onClick={() => window.open(`https://wa.me/55${selectedLead.phone.replace(/\D/g, '')}`, '_blank')}><Phone /></IconButton></Tooltip>}
+              <Button size="small" variant="outlined" startIcon={<WhatsApp />} onClick={() => openDriverWhatsAppInvite(selectedLead.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none' }}>WhatsApp Motorista</Button>
+              <Button size="small" variant="outlined" startIcon={<WhatsApp />} onClick={() => openPassengerWhatsAppInvite(selectedLead.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none' }}>WhatsApp Passageiro</Button>
               {(isSuperAdmin || admin?.role === 'TERRITORIAL_MANAGER') && ['ACTIVE','INTERESTED','WAITING_DOCUMENTS','WAITING_CONTRACT','WAITING_APPROVAL'].includes(selectedLead.status) && ['LOCAL_BUSINESS','RESTAURANT','BAKERY','PIZZERIA','SNACK_BAR','MARKET','PHARMACY','PET_SHOP','BEAUTY_SALON','WORKSHOP'].includes(selectedLead.lead_type) && (
                 <Button size="small" variant="contained" startIcon={<Store />} sx={{ bgcolor: '#059669', textTransform: 'none', '&:hover': { bgcolor: '#047857' } }}
                   onClick={async () => {
