@@ -76,7 +76,7 @@ jobs:
               "startPeriod": 60
             } |
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
-          '
+          ')
           echo "$NEW_TASK_DEF" > task-def.json
           
           # Safety check: ensure sensitive values are NOT in environment (they must stay in secrets/SSM)
