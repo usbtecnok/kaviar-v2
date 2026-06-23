@@ -41,15 +41,22 @@ export function buildWhatsAppInviteUrl({ phone, message }) {
   return `https://wa.me${recipientPath}?text=${encodedMessage}`;
 }
 
-export function openWhatsAppInvite({ phone, message }) {
-  const url = buildWhatsAppInviteUrl({ phone, message });
+export function getWhatsAppInviteMessage(type) {
+  return type === 'passenger' ? WHATSAPP_PASSENGER_INVITE_MESSAGE : WHATSAPP_DRIVER_INVITE_MESSAGE;
+}
+
+export function openWhatsAppInvite(phoneOrOptions, type = 'driver') {
+  const options = typeof phoneOrOptions === 'object' && phoneOrOptions !== null
+    ? phoneOrOptions
+    : { phone: phoneOrOptions, message: getWhatsAppInviteMessage(type) };
+  const url = buildWhatsAppInviteUrl(options);
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 export function openDriverWhatsAppInvite(phone) {
-  openWhatsAppInvite({ phone, message: WHATSAPP_DRIVER_INVITE_MESSAGE });
+  openWhatsAppInvite(phone, 'driver');
 }
 
 export function openPassengerWhatsAppInvite(phone) {
-  openWhatsAppInvite({ phone, message: WHATSAPP_PASSENGER_INVITE_MESSAGE });
+  openWhatsAppInvite(phone, 'passenger');
 }

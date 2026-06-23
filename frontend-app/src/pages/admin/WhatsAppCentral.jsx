@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, TextField, InputAdornment, Chip, Badge, CircularProgress, IconButton, Tooltip } from '@mui/material';
-import { Search, FilterList, Refresh, Send } from '@mui/icons-material';
+import { Box, Typography, TextField, InputAdornment, Chip, Badge, CircularProgress, IconButton, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, Alert } from '@mui/material';
+import { Search, FilterList, Refresh, Send, WhatsApp } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
+import { openWhatsAppInvite } from '../../utils/whatsappInvite';
 
 const CONTACT_BADGES = {
   driver:     { emoji: '🚗', label: 'Motorista', color: '#2196F3' },
@@ -212,6 +213,9 @@ export default function WhatsAppCentral() {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [unreadTotal, setUnreadTotal] = useState(0);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [invitePhone, setInvitePhone] = useState('');
+  const [inviteType, setInviteType] = useState('driver');
 
   // Chat state
   const [selectedId, setSelectedId] = useState(null);
@@ -305,6 +309,11 @@ export default function WhatsAppCentral() {
     finally { setSending(false); }
   };
 
+  const handleOpenInvite = () => {
+    openWhatsAppInvite(invitePhone, inviteType);
+    setInviteOpen(false);
+  };
+
   // ─── Date separator helper ───
   function shouldShowDate(messages, idx) {
     if (idx === 0) return true;
@@ -318,14 +327,64 @@ export default function WhatsAppCentral() {
 
   return (
     <Box sx={{ maxWidth: 1400, mx: 'auto', px: 2, pt: 2 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ color: '#e0e6ed', fontWeight: 700, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box component="span" sx={{ color: '#25D366', fontSize: 22 }}>●</Box> Central de Atendimento WhatsApp
-        </Typography>
-        <Typography variant="body2" sx={{ color: '#BFC7D5', mt: 0.5 }}>
-          Conversas, contexto e operação em um só lugar
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, flexWrap: 'wrap' }}>
+        <Box>
+          <Typography variant="h5" sx={{ color: '#e0e6ed', fontWeight: 700, letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box component="span" sx={{ color: '#25D366', fontSize: 22 }}>●</Box> Central de Atendimento WhatsApp
+          </Typography>
+          <Typography variant="body2" sx={{ color: '#BFC7D5', mt: 0.5 }}>
+            Conversas, contexto e operação em um só lugar
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<WhatsApp />}
+          onClick={() => setInviteOpen(true)}
+          sx={{ bgcolor: '#25D366', color: '#06130b', fontWeight: 800, textTransform: 'none', borderRadius: 2, px: 2, '&:hover': { bgcolor: '#1da851' } }}
+        >
+          Novo convite
+        </Button>
       </Box>
+
+      <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: '#0d1117', color: '#e0e6ed', borderRadius: 3, border: '1px solid #1a2332' } }}>
+        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Novo convite</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '12px !important' }}>
+          <TextField
+            autoFocus
+            label="Telefone/WhatsApp"
+            placeholder="(21) 99999-9999"
+            value={invitePhone}
+            onChange={(e) => setInvitePhone(e.target.value)}
+            fullWidth
+            size="small"
+            InputLabelProps={{ sx: { color: '#8a9aaa' } }}
+            InputProps={{ sx: { bgcolor: '#111a22', color: '#E8E3D5', '& fieldset': { borderColor: '#1a2332' } } }}
+          />
+          {!invitePhone.trim() && (
+            <Alert severity="info" sx={{ bgcolor: '#102033', color: '#BFC7D5', border: '1px solid #1a3a55', '& .MuiAlert-icon': { color: '#6ab7ff' } }}>
+              Sem telefone, o WhatsApp abre apenas com a mensagem pronta para escolher o destinatário.
+            </Alert>
+          )}
+          <Box>
+            <Typography sx={{ fontSize: 12, color: '#8a9aaa', fontWeight: 700, mb: 1 }}>Tipo de convite</Typography>
+            <ToggleButtonGroup
+              exclusive
+              value={inviteType}
+              onChange={(_, value) => value && setInviteType(value)}
+              fullWidth
+              size="small"
+              sx={{ '& .MuiToggleButton-root': { color: '#BFC7D5', borderColor: '#1a2332', textTransform: 'none', fontWeight: 700 }, '& .Mui-selected': { bgcolor: '#25D36622 !important', color: '#25D366 !important' } }}
+            >
+              <ToggleButton value="driver">Motorista</ToggleButton>
+              <ToggleButton value="passenger">Passageiro</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setInviteOpen(false)} sx={{ color: '#8a9aaa', textTransform: 'none' }}>Cancelar</Button>
+          <Button variant="contained" startIcon={<WhatsApp />} onClick={handleOpenInvite} sx={{ bgcolor: '#25D366', color: '#06130b', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#1da851' } }}>Abrir WhatsApp</Button>
+        </DialogActions>
+      </Dialog>
 
       <Box sx={{ display: 'flex', gap: 1.5, height: 'calc(100vh - 200px)' }}>
 
