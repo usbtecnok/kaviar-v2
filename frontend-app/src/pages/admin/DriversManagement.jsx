@@ -25,9 +25,10 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import { CheckCircle, Cancel, Block, Visibility, Restore, Replay, Archive } from '@mui/icons-material';
+import { CheckCircle, Cancel, Block, Visibility, Restore, Replay, Archive, WhatsApp } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { formatDate } from '../../utils/formatDate';
+import { openDriverWhatsAppInvite, openPassengerWhatsAppInvite } from '../../utils/whatsappInvite';
 const isSuperAdmin = () => {
   const data = localStorage.getItem('kaviar_admin_data');
   return data ? JSON.parse(data)?.role === 'SUPER_ADMIN' : false;
@@ -348,6 +349,12 @@ export default function DriversManagement() {
                     >
                       <Visibility />
                     </IconButton>
+                    <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={() => openDriverWhatsAppInvite(driver.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      WhatsApp Motorista
+                    </Button>
+                    <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={() => openPassengerWhatsAppInvite(driver.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      WhatsApp Passageiro
+                    </Button>
                   </Box>
                 </TableCell>
               </TableRow>

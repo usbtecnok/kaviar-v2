@@ -1,0 +1,55 @@
+export const DRIVER_APK_URL = 'https://downloads.kaviar.com.br/kaviar-motorista-v1.12.1-ota.apk';
+export const PASSENGER_APK_URL = 'https://downloads.kaviar.com.br/kaviar-passageiro-v1.13.8-ota.apk';
+
+export const WHATSAPP_DRIVER_INVITE_MESSAGE = `Olá! Tudo bem?
+
+Estamos convidando motoristas parceiros para conhecer o KAVIAR.
+
+O KAVIAR é uma nova plataforma de mobilidade feita para motoristas, passageiros e também para transporte pet.
+
+Baixe o app do motorista por aqui:
+${DRIVER_APK_URL}
+
+Depois do cadastro, sua documentação será analisada para liberação na plataforma.
+
+KAVIAR. Para todos.`;
+
+export const WHATSAPP_PASSENGER_INVITE_MESSAGE = `Olá! Tudo bem?
+
+Conheça o KAVIAR, uma nova opção de mobilidade feita para passageiros, motoristas e também para quem precisa transportar seu pet com mais conforto e segurança.
+
+Baixe o app do passageiro por aqui:
+${PASSENGER_APK_URL}
+
+KAVIAR. Para todos.`;
+
+export function normalizeBrazilianPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+
+  if (digits.startsWith('55') && digits.length > 11) return digits;
+
+  const localDigits = digits.replace(/^0+/, '');
+  return localDigits ? `55${localDigits}` : '';
+}
+
+export function buildWhatsAppInviteUrl({ phone, message }) {
+  const normalizedPhone = normalizeBrazilianPhone(phone);
+  const encodedMessage = encodeURIComponent(message);
+  const recipientPath = normalizedPhone ? `/${normalizedPhone}` : '/';
+
+  return `https://wa.me${recipientPath}?text=${encodedMessage}`;
+}
+
+export function openWhatsAppInvite({ phone, message }) {
+  const url = buildWhatsAppInviteUrl({ phone, message });
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+export function openDriverWhatsAppInvite(phone) {
+  openWhatsAppInvite({ phone, message: WHATSAPP_DRIVER_INVITE_MESSAGE });
+}
+
+export function openPassengerWhatsAppInvite(phone) {
+  openWhatsAppInvite({ phone, message: WHATSAPP_PASSENGER_INVITE_MESSAGE });
+}
