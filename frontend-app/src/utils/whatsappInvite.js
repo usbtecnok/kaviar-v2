@@ -1,5 +1,6 @@
 export const DRIVER_APK_URL = 'https://downloads.kaviar.com.br/kaviar-motorista-v1.12.1-ota.apk';
 export const PASSENGER_APK_URL = 'https://downloads.kaviar.com.br/kaviar-passageiro-v1.13.8-ota.apk';
+export const MANAGER_INVITE_URL = 'https://kaviar.com.br/gestor';
 
 export const WHATSAPP_DRIVER_INVITE_MESSAGE = `Olá! Tudo bem?
 
@@ -23,6 +24,19 @@ ${PASSENGER_APK_URL}
 
 KAVIAR. Para todos.`;
 
+export const WHATSAPP_MANAGER_INVITE_MESSAGE = `Olá! Tudo bem?
+
+Estamos convidando novos gestores territoriais para conhecer o KAVIAR.
+
+O KAVIAR é uma plataforma de mobilidade feita para conectar motoristas, passageiros, pets, turismo e oportunidades locais dentro da sua região.
+
+Como gestor, você pode ajudar a expandir o KAVIAR na sua cidade ou território, convidando motoristas e passageiros e acompanhando o crescimento da operação local.
+
+Conheça a oportunidade para gestores:
+${MANAGER_INVITE_URL}
+
+KAVIAR. Para todos.`;
+
 export function normalizeBrazilianPhone(phone) {
   const digits = String(phone || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -42,7 +56,9 @@ export function buildWhatsAppInviteUrl({ phone, message }) {
 }
 
 export function getWhatsAppInviteMessage(type) {
-  return type === 'passenger' ? WHATSAPP_PASSENGER_INVITE_MESSAGE : WHATSAPP_DRIVER_INVITE_MESSAGE;
+  if (type === 'passenger') return WHATSAPP_PASSENGER_INVITE_MESSAGE;
+  if (type === 'manager' || type === 'gestor') return WHATSAPP_MANAGER_INVITE_MESSAGE;
+  return WHATSAPP_DRIVER_INVITE_MESSAGE;
 }
 
 export function openWhatsAppInvite(phoneOrOptions, type = 'driver') {

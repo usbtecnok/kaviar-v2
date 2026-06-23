@@ -377,6 +377,7 @@ export default function WhatsAppCentral() {
             >
               <ToggleButton value="driver">Motorista</ToggleButton>
               <ToggleButton value="passenger">Passageiro</ToggleButton>
+              <ToggleButton value="manager">Gestor</ToggleButton>
             </ToggleButtonGroup>
           </Box>
         </DialogContent>
