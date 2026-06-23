@@ -1,6 +1,6 @@
 export const DRIVER_APK_URL = 'https://downloads.kaviar.com.br/kaviar-motorista-v1.12.1-ota.apk';
 export const PASSENGER_APK_URL = 'https://downloads.kaviar.com.br/kaviar-passageiro-v1.13.8-ota.apk';
-export const MANAGER_INVITE_URL = 'https://kaviar.com.br/gestor';
+export const MANAGER_INVITE_URL = 'https://kaviar.com.br/#gestor';
 
 export const WHATSAPP_DRIVER_INVITE_MESSAGE = `Olá! Tudo bem?
 
