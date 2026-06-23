@@ -74,6 +74,7 @@ import adminPetOperatorsRoutes from './routes/admin-pet-operators';
 import adminPetHomologationsRoutes from './routes/admin-pet-homologations';
 import petIntakeRoutes from './routes/pet-intake';
 import adminWhatsappRoutes from './routes/admin-whatsapp';
+import adminWhatsappInvitesRoutes, { twilioWhatsappStatusRouter } from './routes/admin-whatsapp-invites';
 import adminOperationsRoutes from './routes/admin-operations';
 import adminPricingRoutes from './routes/admin-pricing';
 import adminTerritoryFloorsRoutes from './routes/admin-territory-floors';
@@ -251,6 +252,8 @@ app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/match', matchRoutes);
 // Media proxy (antes do adminRoutes que tem auth global)
 app.use('/api/admin/whatsapp', adminWhatsappRoutes);
+app.use('/api/admin/whatsapp-invites', adminWhatsappInvitesRoutes);
+app.use('/api/webhooks', twilioWhatsappStatusRouter);
 app.use('/api/admin', adminApprovalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDriversRoutes);

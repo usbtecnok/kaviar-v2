@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Box, Typography, TextField, InputAdornment, Chip, Badge, CircularProgress, IconButton, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, Alert } from '@mui/material';
+import { Box, Typography, TextField, InputAdornment, Chip, Badge, CircularProgress, IconButton, Tooltip, Button, Dialog, DialogTitle, DialogContent, DialogActions, ToggleButton, ToggleButtonGroup, Alert, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { Search, FilterList, Refresh, Send, WhatsApp } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 import { openWhatsAppInvite } from '../../utils/whatsappInvite';
@@ -31,6 +31,7 @@ const TYPE_FILTERS = [
 function timeAgo(d) { if (!d) return ''; const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000); if (m < 1) return 'agora'; if (m < 60) return `${m}min`; const h = Math.floor(m / 60); if (h < 24) return `${h}h`; return `${Math.floor(h / 24)}d`; }
 function fmtTime(d) { if (!d) return ''; const dt = new Date(d); return dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
 function fmtDate(d) { if (!d) return ''; return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }); }
+function fmtDateTime(d) { if (!d) return ''; return new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
 function getDisplayName(c) { return c.contact_name || c.whatsapp_name || c.phone; }
 
 // ─── Context Panel (Coluna 3) ───
@@ -215,7 +216,14 @@ export default function WhatsAppCentral() {
   const [unreadTotal, setUnreadTotal] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [invitePhone, setInvitePhone] = useState('');
+  const [inviteTargetName, setInviteTargetName] = useState('');
   const [inviteType, setInviteType] = useState('driver');
+  const [officialSending, setOfficialSending] = useState(false);
+  const [inviteFeedback, setInviteFeedback] = useState(null);
+  const [inviteStats, setInviteStats] = useState({ today: 0, week: 0, month: 0, byType: {}, byStatus: {} });
+  const [inviteLogs, setInviteLogs] = useState([]);
+  const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
+  const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
 
   // Chat state
   const [selectedId, setSelectedId] = useState(null);
@@ -246,6 +254,23 @@ export default function WhatsAppCentral() {
   }, [search, statusFilter, typeFilter, token]);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);
+
+  const loadInviteReport = useCallback(async () => {
+    try {
+      const [statsRes, logsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/stats`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/logs?limit=10`, { headers }),
+      ]);
+      const statsData = await statsRes.json();
+      const logsData = await logsRes.json();
+      if (statsData.success) setInviteStats(statsData.data);
+      if (logsData.success) setInviteLogs(logsData.data);
+    } catch (e) {
+      console.error('[WA_INVITES] report:', e);
+    }
+  }, [token]);
+
+  useEffect(() => { loadInviteReport(); }, [loadInviteReport]);
   useEffect(() => { const id = setInterval(() => { if (!isTyping) loadConversations(); }, 15000); return () => clearInterval(id); }, [loadConversations, isTyping]);
 
   // ─── Chat detail ───
@@ -314,6 +339,36 @@ export default function WhatsAppCentral() {
     setInviteOpen(false);
   };
 
+  const handleOfficialInvite = async () => {
+    if (!invitePhone.trim() || officialSending) return;
+    setOfficialSending(true);
+    setInviteFeedback(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/send`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ phone: invitePhone, type: inviteType, targetName: inviteTargetName || undefined, force: false }),
+      });
+      const data = await res.json();
+      if (res.status === 409 && data.code === 'DUPLICATE_INVITE') {
+        setInviteFeedback({ type: 'warning', message: `Este número já recebeu esse convite recentemente. Último envio: ${fmtDateTime(data.lastInvite?.createdAt)}.` });
+        return;
+      }
+      if (!data.success) {
+        setInviteFeedback({ type: 'error', message: data.error || data.message || 'Erro ao enviar convite oficial.' });
+        return;
+      }
+      setInviteFeedback({ type: 'success', message: 'Convite oficial enviado e registrado.' });
+      setInvitePhone('');
+      setInviteTargetName('');
+      await loadInviteReport();
+    } catch (e) {
+      setInviteFeedback({ type: 'error', message: 'Erro de conexão ao enviar convite oficial.' });
+    } finally {
+      setOfficialSending(false);
+    }
+  };
+
   // ─── Date separator helper ───
   function shouldShowDate(messages, idx) {
     if (idx === 0) return true;
@@ -360,6 +415,16 @@ export default function WhatsAppCentral() {
             InputLabelProps={{ sx: { color: '#8a9aaa' } }}
             InputProps={{ sx: { bgcolor: '#111a22', color: '#E8E3D5', '& fieldset': { borderColor: '#1a2332' } } }}
           />
+          <TextField
+            label="Nome opcional"
+            placeholder="Nome do contato"
+            value={inviteTargetName}
+            onChange={(e) => setInviteTargetName(e.target.value)}
+            fullWidth
+            size="small"
+            InputLabelProps={{ sx: { color: '#8a9aaa' } }}
+            InputProps={{ sx: { bgcolor: '#111a22', color: '#E8E3D5', '& fieldset': { borderColor: '#1a2332' } } }}
+          />
           {!invitePhone.trim() && (
             <Alert severity="info" sx={{ bgcolor: '#102033', color: '#BFC7D5', border: '1px solid #1a3a55', '& .MuiAlert-icon': { color: '#6ab7ff' } }}>
               Sem telefone, o WhatsApp abre apenas com a mensagem pronta para escolher o destinatário.
@@ -377,17 +442,59 @@ export default function WhatsAppCentral() {
             >
               <ToggleButton value="driver">Motorista</ToggleButton>
               <ToggleButton value="passenger">Passageiro</ToggleButton>
-              <ToggleButton value="manager">Gestor</ToggleButton>
+              {isSuperAdmin && <ToggleButton value="manager">Gestor</ToggleButton>}
             </ToggleButtonGroup>
           </Box>
+          {inviteFeedback && (
+            <Alert severity={inviteFeedback.type} sx={{ bgcolor: inviteFeedback.type === 'success' ? '#10261a' : inviteFeedback.type === 'warning' ? '#2b210c' : '#2a1212', color: '#E8E3D5', border: '1px solid #1a2332', '& .MuiAlert-icon': { color: inviteFeedback.type === 'success' ? '#25D366' : inviteFeedback.type === 'warning' ? '#D4AF37' : '#f44336' } }}>
+              {inviteFeedback.message}
+            </Alert>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setInviteOpen(false)} sx={{ color: '#8a9aaa', textTransform: 'none' }}>Cancelar</Button>
-          <Button variant="contained" startIcon={<WhatsApp />} onClick={handleOpenInvite} sx={{ bgcolor: '#25D366', color: '#06130b', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#1da851' } }}>Abrir WhatsApp</Button>
+          <Button variant="outlined" startIcon={<WhatsApp />} onClick={handleOpenInvite} sx={{ borderColor: '#25D36666', color: '#25D366', fontWeight: 800, textTransform: 'none', '&:hover': { borderColor: '#25D366', bgcolor: '#25D36611' } }}>Abrir WhatsApp</Button>
+          <Button variant="contained" startIcon={officialSending ? <CircularProgress size={16} sx={{ color: '#06130b' }} /> : <Send />} disabled={!invitePhone.trim() || officialSending} onClick={handleOfficialInvite} sx={{ bgcolor: '#D4AF37', color: '#06130b', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#b99424' } }}>Enviar convite oficial</Button>
         </DialogActions>
       </Dialog>
 
-      <Box sx={{ display: 'flex', gap: 1.5, height: 'calc(100vh - 200px)' }}>
+      <Box sx={{ mb: 2.5, bgcolor: '#0d1117', borderRadius: 3, border: '1px solid #1a2332', overflow: 'hidden' }}>
+        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #1a2332', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography sx={{ color: '#e0e6ed', fontWeight: 800, fontSize: 14 }}>Relatório de convites oficiais</Typography>
+          <Tooltip title="Atualizar relatório"><IconButton size="small" onClick={loadInviteReport}><Refresh sx={{ color: '#6a7a8a', fontSize: 16 }} /></IconButton></Tooltip>
+        </Box>
+        <Box sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.2 }}>
+          {[{ label: 'Hoje', value: inviteStats.today }, { label: 'Esta semana', value: inviteStats.week }, { label: 'Este mês', value: inviteStats.month }].map(card => (
+            <Box key={card.label} sx={{ bgcolor: '#111a22', border: '1px solid #1a2332', borderRadius: 2, px: 2, py: 1.4 }}>
+              <Typography sx={{ color: '#6a7a8a', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{card.label}</Typography>
+              <Typography sx={{ color: '#D4AF37', fontSize: 24, fontWeight: 900 }}>{card.value || 0}</Typography>
+            </Box>
+          ))}
+        </Box>
+        <Box sx={{ px: 2, pb: 2, overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 760, '& th': { color: '#6a7a8a', borderColor: '#1a2332', fontSize: 11 }, '& td': { color: '#BFC7D5', borderColor: '#1a2332', fontSize: 12 } }}>
+            <TableHead>
+              <TableRow><TableCell>Data/hora</TableCell><TableCell>Usuário</TableCell><TableCell>Número</TableCell><TableCell>Tipo</TableCell><TableCell>Status</TableCell><TableCell>Território</TableCell></TableRow>
+            </TableHead>
+            <TableBody>
+              {inviteLogs.length === 0 ? (
+                <TableRow><TableCell colSpan={6} sx={{ color: '#5a6a7a' }}>Nenhum convite oficial registrado.</TableCell></TableRow>
+              ) : inviteLogs.map(log => (
+                <TableRow key={log.id}>
+                  <TableCell>{fmtDateTime(log.createdAt)}</TableCell>
+                  <TableCell>{log.adminName || log.adminEmail || '-'}</TableCell>
+                  <TableCell>{log.targetPhoneNormalized}</TableCell>
+                  <TableCell>{CONTACT_BADGES[log.inviteType]?.label || log.inviteType}</TableCell>
+                  <TableCell><Chip label={log.twilioStatus || 'queued'} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#1a2332', color: log.twilioStatus === 'failed' || log.twilioStatus === 'undelivered' ? '#f44336' : '#25D366' }} /></TableCell>
+                  <TableCell>{log.territoryId || '-'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 1.5, height: 'calc(100vh - 460px)', minHeight: 520 }}>
 
         {/* ═══ COLUNA 1 — CONVERSAS ═══ */}
         <Box sx={{ width: 360, minWidth: 360, display: 'flex', flexDirection: 'column', bgcolor: '#0d1117', borderRadius: 3, border: '1px solid #1a2332', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}>
