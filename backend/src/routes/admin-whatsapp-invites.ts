@@ -1,0 +1,499 @@
+import { Router, Request, Response } from 'express';
+import twilio from 'twilio';
+import { prisma } from '../lib/prisma';
+import { authenticateAdmin, requireRole } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { getTwilioClient, getWhatsAppFrom, normalizeWhatsAppTo } from '../modules/whatsapp/whatsapp-client';
+import { audit, auditCtx } from '../utils/audit';
+
+const router = Router();
+
+const INVITE_TYPES = ['driver', 'passenger', 'manager', 'pet', 'guide', 'lead'] as const;
+type InviteType = typeof INVITE_TYPES[number];
+
+const TEMPLATE_ENV_BY_TYPE: Record<'driver' | 'passenger' | 'manager', string> = {
+  driver: 'TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID',
+  passenger: 'TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID',
+  manager: 'TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID',
+};
+
+const TEMPLATE_KEY_BY_TYPE: Record<'driver' | 'passenger' | 'manager', string> = {
+  driver: 'official_invite_driver',
+  passenger: 'official_invite_passenger',
+  manager: 'official_invite_manager',
+};
+
+const SEND_ROLES = ['SUPER_ADMIN', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'];
+const DUPLICATE_WINDOW_DAYS = 7;
+const MANAGER_DAILY_LIMIT = 30;
+const SUPER_ADMIN_DAILY_LIMIT = 200;
+
+function startOfDay(d = new Date()): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function daysAgo(days: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d;
+}
+
+function normalizeBrazilPhone(input: string): string {
+  const digits = String(input || '').replace(/\D/g, '');
+  if (!digits) throw new Error('Informe um telefone válido.');
+
+  let normalized = digits;
+  if (normalized.startsWith('00')) normalized = normalized.slice(2);
+  if (normalized.startsWith('55')) normalized = normalized.slice(2);
+
+  if (normalized.length !== 10 && normalized.length !== 11) {
+    throw new Error('Informe um telefone brasileiro com DDD.');
+  }
+
+  return `+55${normalized}`;
+}
+
+function phoneVariants(e164: string): string[] {
+  const digits = e164.replace(/\D/g, '');
+  const national = digits.startsWith('55') ? digits.slice(2) : digits;
+  return Array.from(new Set([
+    e164,
+    digits,
+    national,
+    `+${digits}`,
+    `55${national}`,
+    `+55${national}`,
+  ]));
+}
+
+function getTemplateSid(type: InviteType): { sid: string; key: string; envName: string } | null {
+  if (type !== 'driver' && type !== 'passenger' && type !== 'manager') return null;
+  const envName = TEMPLATE_ENV_BY_TYPE[type];
+  return { sid: (process.env[envName] || '').trim(), key: TEMPLATE_KEY_BY_TYPE[type], envName };
+}
+
+function requireTwilioConfig(type: InviteType) {
+  const missing: string[] = [];
+  if (!process.env.TWILIO_ACCOUNT_SID) missing.push('TWILIO_ACCOUNT_SID');
+  if (!process.env.TWILIO_AUTH_TOKEN) missing.push('TWILIO_AUTH_TOKEN');
+  if (!process.env.TWILIO_WHATSAPP_FROM) missing.push('TWILIO_WHATSAPP_FROM');
+
+  const template = getTemplateSid(type);
+  if (!template) {
+    return { ok: false as const, status: 400, message: 'Template Twilio ainda não configurado para este tipo de convite.' };
+  }
+  if (!template.sid) {
+    return { ok: false as const, status: 400, message: 'Template Twilio ainda não configurado para este tipo de convite.', details: [template.envName] };
+  }
+  if (missing.length) {
+    return { ok: false as const, status: 503, message: 'Configuração Twilio ausente no backend.', details: missing };
+  }
+
+  return { ok: true as const, template };
+}
+
+function publicApiBaseUrl(): string | null {
+  const value = process.env.PUBLIC_API_BASE_URL || process.env.API_PUBLIC_BASE_URL || process.env.BACKEND_PUBLIC_URL || process.env.APP_PUBLIC_API_URL || process.env.API_BASE_URL || process.env.BASE_URL;
+  if (!value) return null;
+  return value.replace(/\/$/, '');
+}
+
+function statusCallbackUrl(): string | undefined {
+  const base = publicApiBaseUrl();
+  return base ? `${base}/api/webhooks/twilio/whatsapp-status` : undefined;
+}
+
+function statusTimestamp(status: string): Record<string, Date> {
+  const now = new Date();
+  if (status === 'sent') return { sent_at: now };
+  if (status === 'delivered') return { delivered_at: now };
+  if (status === 'read') return { read_at: now };
+  if (status === 'failed' || status === 'undelivered') return { failed_at: now };
+  return {};
+}
+
+function validateTwilioStatusSignature(req: Request): { ok: boolean; status: number; error?: string } {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const callbackUrl = statusCallbackUrl();
+  const signature = String(req.headers['x-twilio-signature'] || '');
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!authToken || !callbackUrl) {
+    if (isProduction) {
+      return { ok: false, status: !authToken ? 500 : 403, error: 'Configuração de validação Twilio ausente.' };
+    }
+    // Local/test bypass: permite testes manuais sem URL pública ou secret carregado. Nunca habilitar em produção.
+    return { ok: true, status: 200 };
+  }
+
+  if (!signature) {
+    if (isProduction) return { ok: false, status: 403, error: 'Assinatura Twilio ausente.' };
+    // Local/test bypass: alguns clientes locais não conseguem assinar o callback completo.
+    return { ok: true, status: 200 };
+  }
+
+  const params = { ...(req.body || {}) };
+  const valid = twilio.validateRequest(authToken, signature, callbackUrl, params);
+  if (!valid) return { ok: false, status: 403, error: 'Assinatura Twilio inválida.' };
+
+  return { ok: true, status: 200 };
+}
+
+async function resolveTargetTerritory(phone: string, type: InviteType): Promise<{ territoryId: string | null; targetName: string | null; source: string | null }> {
+  const variants = phoneVariants(phone);
+  const suffix9 = phone.replace(/\D/g, '').slice(-9);
+
+  if (type === 'driver') {
+    const driver = await prisma.drivers.findFirst({
+      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+      select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
+    });
+    if (driver) return { territoryId: driver.neighborhoods?.territory_id || null, targetName: driver.name, source: 'driver' };
+  }
+
+  if (type === 'passenger') {
+    const passenger = await prisma.passengers.findFirst({
+      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+      select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
+    });
+    if (passenger) return { territoryId: passenger.neighborhoods?.territory_id || null, targetName: passenger.name, source: 'passenger' };
+  }
+
+  if (type === 'guide') {
+    const guide = await prisma.tourist_guides.findFirst({
+      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+      select: { name: true, community_id: true },
+    });
+    if (guide) {
+      const neighborhood = await prisma.neighborhoods.findUnique({ where: { id: guide.community_id }, select: { territory_id: true } });
+      return { territoryId: neighborhood?.territory_id || null, targetName: guide.name, source: 'guide' };
+    }
+  }
+
+  if (type === 'lead') {
+    const crmLead = await prisma.crm_leads.findFirst({
+      where: { deleted_at: null, OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+      select: { name: true, territory_id: true },
+    });
+    if (crmLead) return { territoryId: crmLead.territory_id || null, targetName: crmLead.name, source: 'crm_lead' };
+
+    const consultantLead = await prisma.consultant_leads.findFirst({
+      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+      select: { name: true },
+    });
+    if (consultantLead) return { territoryId: null, targetName: consultantLead.name, source: 'consultant_lead' };
+  }
+
+  if (type === 'pet') {
+    const pet = await prisma.pet_homologations.findFirst({
+      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+      select: { name: true, driver_id: true, operator_id: true },
+    });
+    if (pet?.driver_id) {
+      const driver = await prisma.drivers.findUnique({ where: { id: pet.driver_id }, select: { neighborhoods: { select: { territory_id: true } } } });
+      return { territoryId: driver?.neighborhoods?.territory_id || null, targetName: pet.name, source: 'pet_homologation' };
+    }
+    if (pet?.operator_id) {
+      const operator = await prisma.operator_profiles.findFirst({ where: { admin_id: pet.operator_id }, select: { territory_id: true } });
+      return { territoryId: operator?.territory_id || null, targetName: pet.name, source: 'pet_homologation' };
+    }
+    if (pet) return { territoryId: null, targetName: pet.name, source: 'pet_homologation' };
+  }
+
+  return { territoryId: null, targetName: null, source: null };
+}
+
+function scopeAllows(admin: any, scope: any, territoryId: string | null): boolean {
+  if (admin.role === 'SUPER_ADMIN') return true;
+  if (!territoryId) return false;
+  return Array.isArray(scope?.territoryIds) && scope.territoryIds.includes(territoryId);
+}
+
+function scopedWhere(admin: any, scope: any): any {
+  if (admin.role === 'SUPER_ADMIN') return {};
+  const territoryIds = Array.isArray(scope?.territoryIds) ? scope.territoryIds : [];
+  return { territory_id: { in: territoryIds.length ? territoryIds : ['__none__'] } };
+}
+
+function serializeLog(log: any) {
+  return {
+    id: log.id,
+    adminId: log.admin_id,
+    adminName: log.admin_name,
+    adminEmail: log.admin_email,
+    adminRole: log.admin_role,
+    territoryId: log.territory_id,
+    targetPhoneNormalized: log.target_phone_normalized,
+    targetName: log.target_name,
+    inviteType: log.invite_type,
+    channel: log.channel,
+    templateKey: log.template_key,
+    twilioMessageSid: log.twilio_message_sid,
+    twilioStatus: log.twilio_status,
+    twilioErrorCode: log.twilio_error_code,
+    twilioErrorMessage: log.twilio_error_message,
+    duplicateOfLogId: log.duplicate_of_log_id,
+    sourceScreen: log.source_screen,
+    createdAt: log.created_at,
+    updatedAt: log.updated_at,
+    sentAt: log.sent_at,
+    deliveredAt: log.delivered_at,
+    readAt: log.read_at,
+    failedAt: log.failed_at,
+  };
+}
+
+router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryScope, async (req: Request, res: Response) => {
+  let normalizedPhone: string | null = null;
+  let type: InviteType | null = null;
+  let duplicateLogId: string | null = null;
+
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const { phone, targetName, force = false } = req.body || {};
+    type = String(req.body?.type || '') as InviteType;
+
+    if (!phone || !type || !INVITE_TYPES.includes(type)) {
+      return res.status(400).json({ success: false, error: 'phone e type válido são obrigatórios.' });
+    }
+
+    if (type === 'manager' && admin.role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, error: 'Convite de Gestor é permitido apenas para SUPER_ADMIN.' });
+    }
+
+    normalizedPhone = normalizeBrazilPhone(phone);
+    const resolved = await resolveTargetTerritory(normalizedPhone, type);
+    const finalTargetName = String(targetName || resolved.targetName || '').trim() || null;
+
+    if (!scopeAllows(admin, scope, resolved.territoryId)) {
+      return res.status(403).json({ success: false, error: 'Contato fora do seu território ou território não identificado.' });
+    }
+
+    const templateConfig = requireTwilioConfig(type);
+    if (!templateConfig.ok) {
+      return res.status(templateConfig.status).json({ success: false, error: templateConfig.message, missing: (templateConfig as any).details });
+    }
+
+    const duplicate = await prisma.whatsapp_invite_logs.findFirst({
+      where: {
+        target_phone_normalized: normalizedPhone,
+        invite_type: type,
+        created_at: { gte: daysAgo(DUPLICATE_WINDOW_DAYS) },
+        duplicate_of_log_id: null,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (duplicate && (!force || admin.role !== 'SUPER_ADMIN')) {
+      return res.status(409).json({
+        success: false,
+        code: 'DUPLICATE_INVITE',
+        message: 'Este número já recebeu esse convite recentemente.',
+        lastInvite: serializeLog(duplicate),
+      });
+    }
+    if (duplicate) duplicateLogId = duplicate.id;
+
+    const todayCount = await prisma.whatsapp_invite_logs.count({
+      where: {
+        admin_id: admin.id,
+        created_at: { gte: startOfDay() },
+        duplicate_of_log_id: null,
+      },
+    });
+    const dailyLimit = admin.role === 'SUPER_ADMIN' ? SUPER_ADMIN_DAILY_LIMIT : MANAGER_DAILY_LIMIT;
+    if (todayCount >= dailyLimit) {
+      return res.status(429).json({ success: false, error: `Limite diário de ${dailyLimit} convites oficiais atingido.` });
+    }
+
+    const callback = statusCallbackUrl();
+    if (!callback) {
+      return res.status(503).json({ success: false, error: 'PUBLIC_API_BASE_URL ainda não configurado para statusCallback Twilio.' });
+    }
+
+    const log = await prisma.whatsapp_invite_logs.create({
+      data: {
+        admin_id: admin.id,
+        admin_name: admin.name || null,
+        admin_email: admin.email || null,
+        admin_role: admin.role,
+        territory_id: resolved.territoryId,
+        target_phone_normalized: normalizedPhone,
+        target_name: finalTargetName,
+        invite_type: type,
+        channel: 'twilio_whatsapp',
+        template_key: templateConfig.template.key,
+        duplicate_of_log_id: duplicateLogId,
+        source_screen: 'whatsapp_central',
+        twilio_status: 'queued',
+      },
+    });
+
+    const client = getTwilioClient();
+    let message: any;
+    try {
+      message = await client.messages.create({
+        to: normalizeWhatsAppTo(normalizedPhone),
+        from: getWhatsAppFrom(),
+        contentSid: templateConfig.template.sid,
+        contentVariables: JSON.stringify({ '1': finalTargetName || 'KAVIAR' }),
+        statusCallback: callback,
+      });
+    } catch (sendErr: any) {
+      const failed = await prisma.whatsapp_invite_logs.update({
+        where: { id: log.id },
+        data: {
+          twilio_status: 'failed',
+          twilio_error_code: sendErr?.code ? String(sendErr.code) : null,
+          twilio_error_message: sendErr?.message || 'Falha ao chamar Twilio.',
+          failed_at: new Date(),
+        },
+      });
+
+      const ctx = auditCtx(req);
+      audit({
+        adminId: ctx.adminId,
+        adminEmail: ctx.adminEmail,
+        action: 'whatsapp_official_invite_failed',
+        entityType: 'whatsapp_invite_log',
+        entityId: failed.id,
+        newValue: { phone: normalizedPhone, invite_type: type, territory_id: resolved.territoryId, template_key: templateConfig.template.key, twilio_error_code: sendErr?.code || null, twilio_error_message: sendErr?.message || null },
+        ipAddress: ctx.ip,
+        userAgent: ctx.ua,
+      });
+
+      return res.status(502).json({ success: false, error: sendErr?.message || 'Twilio não conseguiu enviar o convite oficial.', data: serializeLog(failed) });
+    }
+
+    const status = message.status || 'queued';
+    const updated = await prisma.whatsapp_invite_logs.update({
+      where: { id: log.id },
+      data: {
+        twilio_message_sid: message.sid,
+        twilio_status: status,
+        ...statusTimestamp(status),
+      },
+    });
+
+    const ctx = auditCtx(req);
+    audit({
+      adminId: ctx.adminId,
+      adminEmail: ctx.adminEmail,
+      action: 'whatsapp_official_invite_sent',
+      entityType: 'whatsapp_invite_log',
+      entityId: updated.id,
+      newValue: { phone: normalizedPhone, invite_type: type, territory_id: resolved.territoryId, template_key: templateConfig.template.key, twilio_message_sid: message.sid, forced: Boolean(force), duplicate_of_log_id: duplicateLogId },
+      ipAddress: ctx.ip,
+      userAgent: ctx.ua,
+    });
+
+    return res.json({ success: true, message: 'Convite oficial enviado e registrado.', data: serializeLog(updated) });
+  } catch (err: any) {
+    console.error('[WA_INVITE_SEND] error:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'Erro ao enviar convite oficial.' });
+  }
+});
+
+router.get('/stats', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const where = scopedWhere(admin, scope);
+    const now = new Date();
+    const today = startOfDay(now);
+    const week = new Date(now); week.setDate(now.getDate() - 7);
+    const month = new Date(now); month.setDate(now.getDate() - 30);
+
+    const [todayCount, weekCount, monthCount, typeRows, statusRows] = await Promise.all([
+      prisma.whatsapp_invite_logs.count({ where: { ...where, created_at: { gte: today } } }),
+      prisma.whatsapp_invite_logs.count({ where: { ...where, created_at: { gte: week } } }),
+      prisma.whatsapp_invite_logs.count({ where: { ...where, created_at: { gte: month } } }),
+      prisma.whatsapp_invite_logs.groupBy({ by: ['invite_type'], where: { ...where, created_at: { gte: month } }, _count: { _all: true } }),
+      prisma.whatsapp_invite_logs.groupBy({ by: ['twilio_status'], where: { ...where, created_at: { gte: month } }, _count: { _all: true } }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        today: todayCount,
+        week: weekCount,
+        month: monthCount,
+        byType: Object.fromEntries(typeRows.map(r => [r.invite_type, r._count._all])),
+        byStatus: Object.fromEntries(statusRows.map(r => [r.twilio_status || 'unknown', r._count._all])),
+      },
+    });
+  } catch (err: any) {
+    console.error('[WA_INVITE_STATS] error:', err);
+    res.status(500).json({ success: false, error: 'Erro ao carregar estatísticas de convites.' });
+  }
+});
+
+router.get('/logs', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryScope, async (req: Request, res: Response) => {
+  try {
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope;
+    const page = Math.max(parseInt(String(req.query.page || '1'), 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit || '10'), 10) || 10, 1), 100);
+    const where: any = scopedWhere(admin, scope);
+
+    if (req.query.type) where.invite_type = String(req.query.type);
+    if (req.query.status) where.twilio_status = String(req.query.status);
+    if (req.query.phone) where.target_phone_normalized = { contains: String(req.query.phone).replace(/\D/g, '') };
+    if (req.query.from || req.query.to) {
+      where.created_at = {};
+      if (req.query.from) where.created_at.gte = new Date(String(req.query.from));
+      if (req.query.to) where.created_at.lte = new Date(String(req.query.to));
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.whatsapp_invite_logs.findMany({ where, orderBy: { created_at: 'desc' }, skip: (page - 1) * limit, take: limit }),
+      prisma.whatsapp_invite_logs.count({ where }),
+    ]);
+
+    res.json({ success: true, data: logs.map(serializeLog), pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+  } catch (err: any) {
+    console.error('[WA_INVITE_LOGS] error:', err);
+    res.status(500).json({ success: false, error: 'Erro ao carregar logs de convites.' });
+  }
+});
+
+export const twilioWhatsappStatusRouter = Router();
+
+twilioWhatsappStatusRouter.post('/twilio/whatsapp-status', async (req: Request, res: Response) => {
+  try {
+    const signatureCheck = validateTwilioStatusSignature(req);
+    if (!signatureCheck.ok) {
+      return res.status(signatureCheck.status).json({ success: false, error: signatureCheck.error });
+    }
+
+    const sid = req.body.MessageSid || req.body.SmsSid;
+    const status = req.body.MessageStatus || req.body.SmsStatus;
+    const errorCode = req.body.ErrorCode || null;
+    const errorMessage = req.body.ErrorMessage || null;
+
+    if (!sid || !status) {
+      return res.status(400).json({ success: false, error: 'MessageSid e MessageStatus são obrigatórios.' });
+    }
+
+    const existing = await prisma.whatsapp_invite_logs.findUnique({ where: { twilio_message_sid: sid } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Log não encontrado para MessageSid.' });
+
+    await prisma.whatsapp_invite_logs.update({
+      where: { id: existing.id },
+      data: {
+        twilio_status: status,
+        twilio_error_code: errorCode,
+        twilio_error_message: errorMessage,
+        ...statusTimestamp(status),
+      },
+    });
+
+    res.json({ success: true });
+  } catch (err: any) {
+    console.error('[WA_INVITE_STATUS] error:', err);
+    res.status(500).json({ success: false, error: 'Erro ao atualizar status Twilio.' });
+  }
+});
+
+export default router;
