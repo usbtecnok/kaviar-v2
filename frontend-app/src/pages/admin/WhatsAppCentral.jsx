@@ -415,6 +415,9 @@ export default function WhatsAppCentral() {
             InputLabelProps={{ sx: { color: '#8a9aaa' } }}
             InputProps={{ sx: { bgcolor: '#111a22', color: '#E8E3D5', '& fieldset': { borderColor: '#1a2332' } } }}
           />
+          <Typography sx={{ mt: -1, color: '#9fb0c3', fontSize: 12, lineHeight: 1.45 }}>
+            O envio oficial via Twilio exige telefone. O envio manual apenas abre o WhatsApp.
+          </Typography>
           <TextField
             label="Nome opcional"
             placeholder="Nome do contato"
@@ -451,10 +454,43 @@ export default function WhatsAppCentral() {
             </Alert>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setInviteOpen(false)} sx={{ color: '#8a9aaa', textTransform: 'none' }}>Cancelar</Button>
-          <Button variant="outlined" startIcon={<WhatsApp />} onClick={handleOpenInvite} sx={{ borderColor: '#25D36666', color: '#25D366', fontWeight: 800, textTransform: 'none', '&:hover': { borderColor: '#25D366', bgcolor: '#25D36611' } }}>Abrir WhatsApp</Button>
-          <Button variant="contained" startIcon={officialSending ? <CircularProgress size={16} sx={{ color: '#06130b' }} /> : <Send />} disabled={!invitePhone.trim() || officialSending} onClick={handleOfficialInvite} sx={{ bgcolor: '#D4AF37', color: '#06130b', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#b99424' } }}>Enviar convite oficial</Button>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 1.2, '& > :not(style) ~ :not(style)': { ml: 0 } }}>
+          <Button
+            variant="outlined"
+            startIcon={<WhatsApp />}
+            onClick={handleOpenInvite}
+            fullWidth
+            sx={{ minHeight: 46, borderColor: '#25D366', color: '#25D366', fontWeight: 900, textTransform: 'none', borderRadius: 2, justifyContent: 'center', '&:hover': { borderColor: '#45e07c', bgcolor: '#25D36618' } }}
+          >
+            Abrir WhatsApp manual
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={officialSending ? <CircularProgress size={16} sx={{ color: '#06130b' }} /> : <Send />}
+            disabled={!invitePhone.trim() || officialSending}
+            onClick={handleOfficialInvite}
+            fullWidth
+            sx={{
+              minHeight: 48,
+              bgcolor: '#D4AF37',
+              color: '#06130b',
+              fontWeight: 900,
+              textTransform: 'none',
+              borderRadius: 2,
+              boxShadow: '0 8px 18px rgba(212, 175, 55, 0.18)',
+              '&:hover': { bgcolor: '#e0bf50', boxShadow: '0 10px 22px rgba(212, 175, 55, 0.24)' },
+              '&.Mui-disabled': {
+                bgcolor: '#3d3520',
+                color: '#e7d28a',
+                border: '1px solid #8f7730',
+                opacity: 1,
+                boxShadow: 'none',
+              },
+            }}
+          >
+            {invitePhone.trim() ? 'Enviar convite oficial via Twilio' : 'Digite o telefone para enviar oficial'}
+          </Button>
+          <Button onClick={() => setInviteOpen(false)} sx={{ alignSelf: 'center', color: '#8a9aaa', textTransform: 'none' }}>Cancelar</Button>
         </DialogActions>
       </Dialog>
 
