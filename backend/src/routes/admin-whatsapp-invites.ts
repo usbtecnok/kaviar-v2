@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { getTwilioClient, getWhatsAppFrom, normalizeWhatsAppTo } from '../modules/whatsapp/whatsapp-client';
+import { normalizeInviteType } from '../utils/normalize-invite-type';
 import { audit, auditCtx } from '../utils/audit';
 
 const router = Router();
@@ -297,7 +298,10 @@ router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
     const admin = (req as any).admin;
     const scope = (req as any).territoryScope;
     const { phone, targetName, force = false } = req.body || {};
-    type = String(req.body?.type || '') as InviteType;
+
+    const rawType = req.body?.type;
+    const normalized = normalizeInviteType(rawType);
+    type = normalized as InviteType | null;
 
     if (!phone || !type || !INVITE_TYPES.includes(type)) {
       return res.status(400).json({ success: false, error: 'phone e type válido são obrigatórios.' });
@@ -501,7 +505,11 @@ router.get('/logs', authenticateAdmin, requireRole(SEND_ROLES), applyTerritorySc
     const limit = Math.min(Math.max(parseInt(String(req.query.limit || '10'), 10) || 10, 1), 100);
     const where: any = scopedWhere(admin, scope);
 
-    if (req.query.type) where.invite_type = String(req.query.type);
+    if (req.query.type) {
+      const q = normalizeInviteType(req.query.type);
+      if (q) where.invite_type = q;
+      else where.invite_type = String(req.query.type);
+    }
     if (req.query.status) where.twilio_status = String(req.query.status);
     if (req.query.phone) where.target_phone_normalized = { contains: String(req.query.phone).replace(/\D/g, '') };
     if (req.query.from || req.query.to) {
