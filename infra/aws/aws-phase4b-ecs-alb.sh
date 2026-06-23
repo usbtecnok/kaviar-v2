@@ -332,6 +332,9 @@ cat > /tmp/task-definition.json <<EOF
         {"name": "S3_BUCKET", "value": "$S3_BUCKET"},
         {"name": "SQS_URL", "value": "$SQS_URL"},
         {"name": "AWS_REGION", "value": "$AWS_REGION"}
+        ,{"name": "TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID", "value": "$TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID"}
+        ,{"name": "TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID", "value": "$TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID"}
+        ,{"name": "TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID", "value": "$TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID"}
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

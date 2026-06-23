@@ -54,17 +54,23 @@ jobs:
         run: |
           TASK_DEF=$(aws ecs describe-task-definition --task-definition kaviar-backend --region us-east-2)
           NEW_TASK_DEF=$(echo $TASK_DEF | jq --arg IMAGE "847895361928.dkr.ecr.us-east-2.amazonaws.com/kaviar-backend:${{ github.sha }}" --arg COMMIT "${{ github.sha }}" \
-            --arg TWILIO_WHATSAPP_FROM "${{ secrets.TWILIO_WHATSAPP_FROM }}" '
+            --arg TWILIO_WHATSAPP_FROM "${{ secrets.TWILIO_WHATSAPP_FROM }}" \
+            --arg TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID "${{ secrets.TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID }}" \
+            --arg TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID "${{ secrets.TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID }}" \
+            --arg TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID "${{ secrets.TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID }}" '
             .taskDefinition |
             .containerDefinitions[0].image = $IMAGE |
-            # Only touch: TWILIO_* env vars and GIT_COMMIT (remove and re-add controlled set)
-            # Everything else (WA_TPL_*, feature flags, non-sensitive config) is preserved as-is
-            # Secrets block (SSM references) is never touched — carried over from previous revision
-            .containerDefinitions[0].environment = [.containerDefinitions[0].environment[]? | select(.name | startswith("TWILIO_") | not) | select(.name != "GIT_COMMIT")] |
+            # Preserve existing environment entries except GIT_COMMIT (we'll update it)
+            .containerDefinitions[0].environment = [.containerDefinitions[0].environment[]? | select(.name != "GIT_COMMIT")] |
             .containerDefinitions[0].environment += [{"name": "GIT_COMMIT", "value": $COMMIT}] |
             .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_ENABLED", "value": "true"}] |
             .containerDefinitions[0].environment += [{"name": "ENABLE_TWILIO_WHATSAPP", "value": "true"}] |
+            # Optionally set/override TWILIO_WHATSAPP_FROM
             (if $TWILIO_WHATSAPP_FROM != "" then .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_FROM", "value": $TWILIO_WHATSAPP_FROM}] else . end) |
+            # Ensure template SIDs exist in the environment when provided as secrets
+            (if $TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID != "" then .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID", "value": $TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID}] else . end) |
+            (if $TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID != "" then .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID", "value": $TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID}] else . end) |
+            (if $TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID != "" then .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID", "value": $TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID}] else . end) |
             .containerDefinitions[0].healthCheck = {
               "command": ["CMD-SHELL", "node /app/healthcheck.js"],
               "interval": 30,
@@ -73,7 +79,7 @@ jobs:
               "startPeriod": 60
             } |
             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
-          ')
+          '
           echo $NEW_TASK_DEF > task-def.json
           
           # Safety check: ensure sensitive values are NOT in environment (they must stay in secrets/SSM)
