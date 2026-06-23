@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Chip } from '@mui/material';
-import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star, Pets, Shield, Storefront } from '@mui/icons-material';
+import { DirectionsCar, Explore, Handshake, Apartment, Description, PersonAdd, AddBusiness, GroupAdd, AccountBalance, Star, Pets, Shield, Storefront, ChatBubble } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const GOLD = '#C99A16';
@@ -281,6 +281,7 @@ export default function ManagerHome() {
         <Grid container spacing={1.5} sx={{ mb: 3 }}>
           {[
             { Icon: DirectionsCar, title: 'Motoristas', desc: 'Motoristas do território', to: '/admin/drivers' },
+            { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Convites e atendimento do território', to: '/admin/whatsapp' },
             { Icon: Explore, title: 'Corridas', desc: 'Corridas do território', to: '/admin/rides' },
             { Icon: PersonAdd, title: 'Indicações', desc: 'Link de captação e indicados', to: '/admin/manager-referrals' },
             { Icon: Handshake, title: 'Parceiros', desc: 'Parceiros territoriais', to: '/admin/territorial-partners' },

@@ -304,7 +304,14 @@ router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
     });
     const dailyLimit = admin.role === 'SUPER_ADMIN' ? SUPER_ADMIN_DAILY_LIMIT : MANAGER_DAILY_LIMIT;
     if (todayCount >= dailyLimit) {
-      return res.status(429).json({ success: false, error: `Limite diário de ${dailyLimit} convites oficiais atingido.` });
+      return res.status(429).json({
+        success: false,
+        code: 'DAILY_LIMIT_REACHED',
+        message: 'Limite diário de convites oficiais atingido.',
+        error: 'Limite diário de convites oficiais atingido.',
+        limit: dailyLimit,
+        used: todayCount,
+      });
     }
 
     const callback = statusCallbackUrl();

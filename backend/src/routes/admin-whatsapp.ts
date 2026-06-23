@@ -1,10 +1,88 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { getAdminTerritoryScope, TerritoryScope } from '../services/territory-scope.service';
 import { auditWrite } from '../middlewares/audit-write';
 import { getTwilioClient, getWhatsAppFrom, normalizeWhatsAppTo, WHATSAPP_ENV } from '../modules/whatsapp/whatsapp-client';
 
 const router = Router();
+
+const TERRITORIAL_ROLES = ["TERRITORIAL_MANAGER", "TERRITORIAL_OPERATOR"];
+
+function isTerritorialRole(role: string | undefined): boolean {
+  return Boolean(role && TERRITORIAL_ROLES.includes(role));
+}
+
+function noRowsWhere() {
+  return { id: "__none__" };
+}
+
+async function buildTerritorialConversationWhere(admin: any, scope: TerritoryScope | null): Promise<any> {
+  if (!isTerritorialRole(admin?.role)) return {};
+
+  const territoryIds = Array.isArray(scope?.territoryIds) ? scope!.territoryIds : [];
+  const neighborhoodIds = Array.isArray(scope?.neighborhoodIds) ? scope!.neighborhoodIds : [];
+  if (!territoryIds.length && !neighborhoodIds.length) return noRowsWhere();
+
+  const [drivers, passengers, guides, crmLeads] = await Promise.all([
+    neighborhoodIds.length
+      ? prisma.drivers.findMany({ where: { neighborhood_id: { in: neighborhoodIds } }, select: { id: true } })
+      : Promise.resolve([]),
+    neighborhoodIds.length
+      ? prisma.passengers.findMany({ where: { neighborhood_id: { in: neighborhoodIds } }, select: { id: true } })
+      : Promise.resolve([]),
+    neighborhoodIds.length
+      ? prisma.tourist_guides.findMany({ where: { community_id: { in: neighborhoodIds } }, select: { id: true } })
+      : Promise.resolve([]),
+    territoryIds.length
+      ? prisma.crm_leads.findMany({ where: { deleted_at: null, territory_id: { in: territoryIds } }, select: { id: true } })
+      : Promise.resolve([]),
+  ]);
+
+  const driverIds = drivers.map((d) => d.id);
+  const passengerIds = passengers.map((p) => p.id);
+  const guideIds = guides.map((g) => g.id);
+  const crmLeadIds = crmLeads.map((l) => l.id);
+  const petHomologations = await prisma.pet_homologations.findMany({
+    where: {
+      OR: [
+        ...(driverIds.length ? [{ driver_id: { in: driverIds } }] : []),
+        { operator_id: admin.id },
+      ],
+    },
+    select: { id: true },
+  });
+  const petIds = petHomologations.map((p) => p.id);
+
+  const or: any[] = [];
+  if (driverIds.length) or.push({ linked_entity_type: "driver", linked_entity_id: { in: driverIds } });
+  if (passengerIds.length) or.push({ linked_entity_type: "passenger", linked_entity_id: { in: passengerIds } });
+  if (guideIds.length) or.push({ linked_entity_type: "guide", linked_entity_id: { in: guideIds } });
+  if (crmLeadIds.length) or.push({ linked_entity_type: "consultant_lead", linked_entity_id: { in: crmLeadIds } });
+  if (crmLeadIds.length) or.push({ linked_entity_type: "lead", linked_entity_id: { in: crmLeadIds } });
+  if (petIds.length) or.push({ linked_entity_type: "pet_homologation", linked_entity_id: { in: petIds } });
+
+  return or.length ? { OR: or } : noRowsWhere();
+}
+
+async function buildConversationWhere(admin: any, scope: TerritoryScope | null, filters: any[] = []): Promise<any> {
+  if (admin?.role === "PET_OPERATOR") return { assignee_id: admin.id, ...Object.assign({}, ...filters) };
+  const scopeWhere = await buildTerritorialConversationWhere(admin, scope);
+  const and = [scopeWhere, ...filters].filter((item) => item && Object.keys(item).length > 0);
+  return and.length ? { AND: and } : {};
+}
+
+async function canAccessConversation(conversation: any, admin: any, scope: TerritoryScope | null): Promise<boolean> {
+  if (!conversation) return false;
+  if (admin?.role === "SUPER_ADMIN" || admin?.role === "OPERATOR") return true;
+  if (admin?.role === "PET_OPERATOR") return conversation.assignee_id === admin.id;
+  if (!isTerritorialRole(admin?.role)) return false;
+
+  const scopeWhere = await buildTerritorialConversationWhere(admin, scope);
+  const count = await prisma.wa_conversations.count({ where: { AND: [{ id: conversation.id }, scopeWhere] } });
+  return count > 0;
+}
 
 // GET /api/admin/whatsapp/messages/:id/media — proxy seguro (auth via query param para <img src>)
 router.get('/messages/:id/media', async (req: Request, res: Response) => {
@@ -26,7 +104,7 @@ router.get('/messages/:id/media', async (req: Request, res: Response) => {
 
     const message = await prisma.wa_messages.findUnique({
       where: { id: req.params.id },
-      include: { conversation: { select: { assignee_id: true } } },
+      include: { conversation: { select: { id: true, assignee_id: true, linked_entity_type: true, linked_entity_id: true } } },
     });
 
     if (!message || !message.media_url) {
@@ -35,6 +113,12 @@ router.get('/messages/:id/media', async (req: Request, res: Response) => {
 
     if (admin.role === 'PET_OPERATOR' && message.conversation.assignee_id !== admin.id) {
       return res.status(403).json({ success: false, error: 'Sem permissão' });
+    }
+    if (isTerritorialRole(admin.role)) {
+      const scope = await getAdminTerritoryScope(admin.id, admin.role);
+      if (!(await canAccessConversation(message.conversation, admin, scope))) {
+        return res.status(403).json({ success: false, error: 'Conversa fora do seu território.' });
+      }
     }
 
     const twilioUrl = message.media_url;
@@ -60,7 +144,8 @@ router.get('/messages/:id/media', async (req: Request, res: Response) => {
 });
 
 router.use(authenticateAdmin);
-router.use(requireRole(['SUPER_ADMIN', 'OPERATOR', 'PET_OPERATOR']));
+router.use(requireRole(['SUPER_ADMIN', 'OPERATOR', 'PET_OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR']));
+router.use(applyTerritoryScope);
 
 // GET /api/admin/whatsapp/conversations
 router.get('/conversations', async (req: Request, res: Response) => {
@@ -69,23 +154,22 @@ router.get('/conversations', async (req: Request, res: Response) => {
     const take = Math.min(parseInt(limit as string) || 30, 100);
     const skip = (Math.max(parseInt(page as string) || 1, 1) - 1) * take;
 
-    const where: any = {};
-    if (status) where.status = status;
-    if (contact_type) where.contact_type = contact_type;
-
-    // PET_OPERATOR vê apenas conversas pet atribuídas a ele
     const admin = (req as any).admin;
-    if (admin.role === 'PET_OPERATOR') {
-      where.assignee_id = admin.id;
-    }
+    const scope = (req as any).territoryScope as TerritoryScope | null;
+    const filters: any[] = [];
+    if (status) filters.push({ status });
+    if (contact_type) filters.push({ contact_type });
     if (search) {
       const s = String(search).trim();
-      where.OR = [
-        { phone: { contains: s } },
-        { contact_name: { contains: s, mode: 'insensitive' } },
-        { whatsapp_name: { contains: s, mode: 'insensitive' } },
-      ];
+      filters.push({
+        OR: [
+          { phone: { contains: s } },
+          { contact_name: { contains: s, mode: "insensitive" } },
+          { whatsapp_name: { contains: s, mode: "insensitive" } },
+        ],
+      });
     }
+    const where = await buildConversationWhere(admin, scope, filters);
 
     const [conversations, total] = await Promise.all([
       prisma.wa_conversations.findMany({
@@ -102,7 +186,7 @@ router.get('/conversations', async (req: Request, res: Response) => {
 
     const unreadTotal = await prisma.wa_conversations.aggregate({
       _sum: { unread_count: true },
-      where: { unread_count: { gt: 0 } },
+      where: { AND: [where, { unread_count: { gt: 0 } }] },
     });
 
     res.json({
@@ -126,6 +210,10 @@ router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), 
     }
 
     const admin = (req as any).admin;
+    const scope = (req as any).territoryScope as TerritoryScope | null;
+    if (isTerritorialRole(admin.role) && (!linked_entity_type || !linked_entity_id)) {
+      return res.status(403).json({ success: false, error: 'Informe um contato vinculado ao seu território para iniciar conversa.' });
+    }
     const cleanPhone = phone.replace(/[^\d+]/g, '');
     // Normalizar para E.164: +55DDDNÚMERO
     let normalizedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
@@ -166,6 +254,10 @@ router.post('/conversations/send', auditWrite('send_whatsapp', 'conversation'), 
           ...(assignee_id ? { assignee_id } : {}),
         },
       });
+    }
+
+    if (!(await canAccessConversation(conversation, admin, scope))) {
+      return res.status(403).json({ success: false, error: 'Conversa fora do seu território.' });
     }
 
     // Enviar via Twilio
@@ -221,15 +313,16 @@ router.post('/conversations/send-template', auditWrite('send_whatsapp_template',
     }
 
     const admin = (req as any).admin;
+    const scope = (req as any).territoryScope as TerritoryScope | null;
+    if (isTerritorialRole(admin.role) && (!linked_entity_type || !linked_entity_id)) {
+      return res.status(403).json({ success: false, error: 'Informe um contato vinculado ao seu território para iniciar conversa.' });
+    }
     const { WhatsAppService } = require('../modules/whatsapp/whatsapp.service');
     const wa = new WhatsAppService();
 
     // Normalizar telefone
     const digits = phone.replace(/[^\d]/g, '');
     let normalizedPhone = digits.length === 11 ? `+55${digits}` : digits.length === 13 && digits.startsWith('55') ? `+${digits}` : phone.startsWith('+') ? phone : `+${digits}`;
-
-    // Enviar template
-    const result = await wa.sendTemplate({ to: normalizedPhone, template, variables: variables || {} });
 
     // Buscar ou criar conversa
     const suffix9 = digits.slice(-9);
@@ -243,6 +336,13 @@ router.post('/conversations/send-template', auditWrite('send_whatsapp_template',
     } else if (contact_type && linked_entity_type && linked_entity_id) {
       conversation = await prisma.wa_conversations.update({ where: { id: conversation.id }, data: { contact_type, linked_entity_type, linked_entity_id, ...(assignee_id ? { assignee_id } : {}) } });
     }
+
+    if (!(await canAccessConversation(conversation, admin, scope))) {
+      return res.status(403).json({ success: false, error: 'Conversa fora do seu território.' });
+    }
+
+    // Enviar template
+    const result = await wa.sendTemplate({ to: normalizedPhone, template, variables: variables || {} });
 
     // Salvar outbound
     await prisma.wa_messages.create({
@@ -272,10 +372,16 @@ router.get('/conversations/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Conversa não encontrada' });
     }
 
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope as TerritoryScope | null;
+    if (!(await canAccessConversation(conversation, admin, scope))) {
+      return res.status(403).json({ success: false, error: 'Conversa fora do seu território.' });
+    }
+
     // Resolver contexto da entidade vinculada
     let linkedEntity: any = null;
     if (conversation.linked_entity_type && conversation.linked_entity_id) {
-      linkedEntity = await resolveLinkedEntity(conversation.linked_entity_type, conversation.linked_entity_id);
+      linkedEntity = await resolveLinkedEntity(conversation.linked_entity_type, conversation.linked_entity_id, !isTerritorialRole(admin.role));
     }
 
     // Marcar como lida
@@ -314,6 +420,10 @@ router.post('/conversations/:id/messages', auditWrite('send_whatsapp', 'conversa
     }
 
     const admin = (req as any).admin;
+    const scope = (req as any).territoryScope as TerritoryScope | null;
+    if (!(await canAccessConversation(conversation, admin, scope))) {
+      return res.status(403).json({ success: false, error: 'Conversa fora do seu território.' });
+    }
     const messageBody = body.trim();
 
     // Enviar via Twilio
@@ -368,6 +478,12 @@ router.patch('/conversations/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, error: 'Conversa não encontrada' });
     }
 
+    const admin = (req as any).admin;
+    const scope = (req as any).territoryScope as TerritoryScope | null;
+    if (!(await canAccessConversation(conversation, admin, scope))) {
+      return res.status(403).json({ success: false, error: 'Conversa fora do seu território.' });
+    }
+
     const { status, contact_type, linked_entity_type, linked_entity_id, internal_notes } = req.body;
     const data: any = {};
 
@@ -399,7 +515,7 @@ router.patch('/conversations/:id', async (req: Request, res: Response) => {
 });
 
 // Resolver entidade vinculada para o painel de contexto
-async function resolveLinkedEntity(type: string, id: string): Promise<any> {
+async function resolveLinkedEntity(type: string, id: string, includeCredit = true): Promise<any> {
   switch (type) {
     case 'driver': {
       const d = await prisma.drivers.findUnique({
@@ -407,6 +523,7 @@ async function resolveLinkedEntity(type: string, id: string): Promise<any> {
         select: { id: true, name: true, email: true, phone: true, status: true, vehicle_model: true, vehicle_color: true, vehicle_plate: true, neighborhood_id: true },
       });
       if (!d) return null;
+      if (!includeCredit) return { ...d, type: 'driver' };
       const balance = await prisma.$queryRawUnsafe<any[]>('SELECT balance FROM credit_balance WHERE driver_id = $1', id);
       return { ...d, type: 'driver', credits: balance[0]?.balance ? parseFloat(balance[0].balance) : 0 };
     }
