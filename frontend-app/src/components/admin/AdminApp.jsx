@@ -688,7 +688,7 @@ export default function AdminApp() {
             </ProtectedAdminRoute>
           } />
           <Route path="/whatsapp" element={
-            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR']}>
               <WhatsAppCentral />
             </ProtectedAdminRoute>
           } />

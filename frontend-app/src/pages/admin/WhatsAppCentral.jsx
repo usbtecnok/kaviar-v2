@@ -224,6 +224,8 @@ export default function WhatsAppCentral() {
   const [inviteLogs, setInviteLogs] = useState([]);
   const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+  const dailyInviteLimit = isSuperAdmin ? 200 : 30;
+  const inviteScopeLabel = isSuperAdmin ? 'Visão global' : 'Visão do seu território';
 
   // Chat state
   const [selectedId, setSelectedId] = useState(null);
@@ -355,6 +357,10 @@ export default function WhatsAppCentral() {
         return;
       }
       if (!data.success) {
+        if (data.code === 'DAILY_LIMIT_REACHED') {
+          setInviteFeedback({ type: 'error', message: `${data.message || 'Limite diário de convites oficiais atingido.'} (${data.used || dailyInviteLimit}/${data.limit || dailyInviteLimit})` });
+          return;
+        }
         setInviteFeedback({ type: 'error', message: data.error || data.message || 'Erro ao enviar convite oficial.' });
         return;
       }
@@ -389,6 +395,9 @@ export default function WhatsAppCentral() {
           </Typography>
           <Typography variant="body2" sx={{ color: '#BFC7D5', mt: 0.5 }}>
             Conversas, contexto e operação em um só lugar
+          </Typography>
+          <Typography variant="caption" sx={{ color: '#8a9aaa', display: 'block', mt: 0.6 }}>
+            {inviteScopeLabel} · Seu limite diário: {dailyInviteLimit} convites oficiais.
           </Typography>
         </Box>
         <Button
@@ -496,7 +505,10 @@ export default function WhatsAppCentral() {
 
       <Box sx={{ mb: 2.5, bgcolor: '#0d1117', borderRadius: 3, border: '1px solid #1a2332', overflow: 'hidden' }}>
         <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid #1a2332', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography sx={{ color: '#e0e6ed', fontWeight: 800, fontSize: 14 }}>Relatório de convites oficiais</Typography>
+          <Box>
+            <Typography sx={{ color: '#e0e6ed', fontWeight: 800, fontSize: 14 }}>Relatório de convites oficiais</Typography>
+            <Typography sx={{ color: '#6a7a8a', fontSize: 11, mt: 0.3 }}>{inviteScopeLabel}</Typography>
+          </Box>
           <Tooltip title="Atualizar relatório"><IconButton size="small" onClick={loadInviteReport}><Refresh sx={{ color: '#6a7a8a', fontSize: 16 }} /></IconButton></Tooltip>
         </Box>
         <Box sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.2 }}>
