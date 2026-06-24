@@ -17,7 +17,7 @@ import { enqueue, getQueueSize } from '../../src/services/offline-queue';
 import { ENV } from '../../src/config/env';
 import { groupLabel } from '../../src/utils/tripLabel';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
-import { RIDE_QUICK_MESSAGES, RideQuickMessageCode } from '../../src/config/rideMessages';
+import { DRIVER_TO_PASSENGER_RIDE_QUICK_MESSAGES, RIDE_QUICK_MESSAGE_TEXT_BY_CODE, RideQuickMessageCode } from '../../src/config/rideMessages';
 
 const BOARDING_LABELS: Record<string, { icon: string; text: string }> = {
   at_door: { icon: '🚪', text: 'Na porta' },
@@ -131,7 +131,7 @@ export default function CompleteRide() {
   useEffect(() => { rideStatusRef.current = rideStatus; }, [rideStatus]);
 
   const showIncomingRideMessage = useCallback((messageCode: string) => {
-    const messageText = RIDE_QUICK_MESSAGES.find((msg) => msg.code === messageCode)?.text || 'Nova mensagem na corrida.';
+    const messageText = RIDE_QUICK_MESSAGE_TEXT_BY_CODE[messageCode as RideQuickMessageCode] || 'Nova mensagem na corrida.';
     Alert.alert('Mensagem do passageiro', messageText);
   }, []);
 
@@ -822,7 +822,7 @@ export default function CompleteRide() {
           <View style={st.modalCard}>
             <Text style={st.modalTitle}>Mensagem ao passageiro</Text>
             <Text style={st.modalSub}>Escolha uma mensagem rápida para enviar pelo KAVIAR.</Text>
-            {RIDE_QUICK_MESSAGES.map((msg) => (
+            {DRIVER_TO_PASSENGER_RIDE_QUICK_MESSAGES.map((msg) => (
               <TouchableOpacity key={msg.code} style={st.modalOption} disabled={messageSending} onPress={() => handleSendRideMessage(msg.code)}>
                 <Text style={st.modalOptionText}>{msg.text}</Text>
               </TouchableOpacity>

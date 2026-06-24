@@ -35,21 +35,13 @@ const toPhotoUrl = async (key: string | null | undefined): Promise<string | null
   try { return await getPresignedUrl(k); } catch { return null; }
 };
 import { triggerEmergency, appendTrailPoint } from '../services/ride-emergency.service';
+import { RIDE_QUICK_MESSAGES, RIDE_QUICK_MESSAGE_TEXT_BY_CODE, RideQuickMessageCode } from '../config/rideMessages';
 
 const ACTIVE_MESSAGE_STATUSES = new Set(['accepted', 'arrived', 'in_progress', 'pending_adjustment']);
-const RIDE_QUICK_MESSAGES = {
-  on_my_way: 'Estou a caminho',
-  already_arrived: 'Já cheguei',
-  at_location: 'Estou no local',
-  waiting: 'Estou aguardando',
-  please_wait: 'Pode aguardar um instante?',
-  contact_support: 'Preciso de ajuda do suporte KAVIAR',
-} as const;
-
-type RideQuickMessageCode = keyof typeof RIDE_QUICK_MESSAGES;
+const ALLOWED_RIDE_MESSAGE_CODES = new Set(RIDE_QUICK_MESSAGES.map((msg) => msg.code));
 
 function isRideQuickMessageCode(code: unknown): code is RideQuickMessageCode {
-  return typeof code === 'string' && Object.prototype.hasOwnProperty.call(RIDE_QUICK_MESSAGES, code);
+  return typeof code === 'string' && ALLOWED_RIDE_MESSAGE_CODES.has(code as RideQuickMessageCode);
 }
 function notifyRideCancelledToDriver(ride: { id: string; driver_id: string | null }) {
   if (!ride.driver_id) return;
@@ -1296,7 +1288,7 @@ router.post('/:ride_id/messages', requireAuth, async (req: Request, res: Respons
 
     const recipientType = userType === 'passenger' ? 'driver' : 'passenger';
     const recipientId = recipientType === 'driver' ? ride.driver_id : ride.passenger_id;
-    const messageText = RIDE_QUICK_MESSAGES[message_code];
+    const messageText = RIDE_QUICK_MESSAGE_TEXT_BY_CODE[message_code];
 
     const message = await prisma.ride_messages.create({
       data: {

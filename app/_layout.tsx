@@ -8,7 +8,7 @@ import { checkAppVersion, VersionCheckResult } from "../src/services/version-che
 import { UpdateRequiredModal } from "../src/components/UpdateRequiredModal";
 import { NetworkProvider } from "../src/hooks/useNetworkStatus";
 import { OfflineBanner } from "../src/components/OfflineBanner";
-import { RIDE_QUICK_MESSAGES } from "../src/config/rideMessages";
+import { RIDE_QUICK_MESSAGE_TEXT_BY_CODE } from "../src/config/rideMessages";
 
 const variant = Constants.expoConfig?.extra?.APP_VARIANT as string | undefined;
 
@@ -95,7 +95,7 @@ export default function RootLayout() {
 
         const isRideScreen = pathnameRef.current?.startsWith('/(driver)/complete-ride') || pathnameRef.current?.startsWith('/(passenger)/map');
         if (!isRideScreen && rideEvent.type === 'ride_message') {
-          const messageText = RIDE_QUICK_MESSAGES.find((msg) => msg.code === rideEvent.messageCode)?.text || 'Nova mensagem na corrida.';
+          const messageText = RIDE_QUICK_MESSAGE_TEXT_BY_CODE[rideEvent.messageCode as keyof typeof RIDE_QUICK_MESSAGE_TEXT_BY_CODE] || 'Nova mensagem na corrida.';
           Alert.alert('Mensagem na corrida', messageText);
         }
 

@@ -33,7 +33,7 @@ import { ENV } from '../../src/config/env';
 import { apiClient } from '../../src/api/client';
 import { persistPassengerRide, getPersistedPassengerRide } from '../../src/services/ride-persistence';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
-import { RIDE_QUICK_MESSAGES, RideQuickMessageCode } from '../../src/config/rideMessages';
+import { PASSENGER_TO_DRIVER_RIDE_QUICK_MESSAGES, RIDE_QUICK_MESSAGE_TEXT_BY_CODE, RideQuickMessageCode } from '../../src/config/rideMessages';
 
 const POLL_INTERVAL = 3000;
 const POLL_BACKOFF_P = [3000, 5000, 8000, 10000]; // normal, 1 fail, 2 fails, 3+ fails
@@ -459,7 +459,7 @@ export default function PassengerMap() {
         if (rideNotificationState.seenMessageIds.has(msg.id)) continue;
         rideNotificationState.seenMessageIds.add(msg.id);
         lastMessageAtRef.current = msg.created_at;
-        const messageText = RIDE_QUICK_MESSAGES.find((item) => item.code === msg.message_code)?.text || 'Nova mensagem na corrida.';
+        const messageText = RIDE_QUICK_MESSAGE_TEXT_BY_CODE[msg.message_code as RideQuickMessageCode] || 'Nova mensagem na corrida.';
         Alert.alert('Mensagem do motorista', messageText);
       }
       if (!lastMessageAtRef.current && messages.length > 0) {
@@ -1324,7 +1324,7 @@ export default function PassengerMap() {
           <View style={s.modalCard}>
             <Text style={s.modalTitle}>Mensagem ao motorista</Text>
             <Text style={s.modalBody}>Escolha uma mensagem rápida para enviar pelo KAVIAR.</Text>
-            {RIDE_QUICK_MESSAGES.map((msg) => (
+            {PASSENGER_TO_DRIVER_RIDE_QUICK_MESSAGES.map((msg) => (
               <TouchableOpacity key={msg.code} style={s.ctaPrimary} disabled={messageSending} onPress={() => handleSendRideMessage(msg.code)}>
                 <Text style={s.ctaPrimaryText}>{msg.text}</Text>
               </TouchableOpacity>
