@@ -145,6 +145,7 @@ type TargetTerritoryResolution = {
   targetName: string | null;
   source: string | null;
   matched: boolean;
+  matchStrength: 'exact' | 'suffix' | 'none';
 };
 
 async function resolveTargetTerritory(phone: string, type: InviteType): Promise<TargetTerritoryResolution> {
@@ -152,63 +153,111 @@ async function resolveTargetTerritory(phone: string, type: InviteType): Promise<
   const suffix9 = phone.replace(/\D/g, '').slice(-9);
 
   if (type === 'driver') {
-    const driver = await prisma.drivers.findFirst({
-      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+    let matchStrength: TargetTerritoryResolution['matchStrength'] = 'exact';
+    let driver = await prisma.drivers.findFirst({
+      where: { phone: { in: variants } },
       select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
     });
-    if (driver) return { territoryId: driver.neighborhoods?.territory_id || null, targetName: driver.name, source: 'driver', matched: true };
+    if (!driver) {
+      matchStrength = 'suffix';
+      driver = await prisma.drivers.findFirst({
+        where: { phone: { endsWith: suffix9 } },
+        select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
+      });
+    }
+    if (driver) return { territoryId: driver.neighborhoods?.territory_id || null, targetName: driver.name, source: 'driver', matched: true, matchStrength };
   }
 
   if (type === 'passenger') {
-    const passenger = await prisma.passengers.findFirst({
-      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+    let matchStrength: TargetTerritoryResolution['matchStrength'] = 'exact';
+    let passenger = await prisma.passengers.findFirst({
+      where: { phone: { in: variants } },
       select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
     });
-    if (passenger) return { territoryId: passenger.neighborhoods?.territory_id || null, targetName: passenger.name, source: 'passenger', matched: true };
+    if (!passenger) {
+      matchStrength = 'suffix';
+      passenger = await prisma.passengers.findFirst({
+        where: { phone: { endsWith: suffix9 } },
+        select: { name: true, neighborhood_id: true, neighborhoods: { select: { territory_id: true } } },
+      });
+    }
+    if (passenger) return { territoryId: passenger.neighborhoods?.territory_id || null, targetName: passenger.name, source: 'passenger', matched: true, matchStrength };
   }
 
   if (type === 'guide') {
-    const guide = await prisma.tourist_guides.findFirst({
-      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+    let matchStrength: TargetTerritoryResolution['matchStrength'] = 'exact';
+    let guide = await prisma.tourist_guides.findFirst({
+      where: { phone: { in: variants } },
       select: { name: true, community_id: true },
     });
+    if (!guide) {
+      matchStrength = 'suffix';
+      guide = await prisma.tourist_guides.findFirst({
+        where: { phone: { endsWith: suffix9 } },
+        select: { name: true, community_id: true },
+      });
+    }
     if (guide) {
       const neighborhood = await prisma.neighborhoods.findUnique({ where: { id: guide.community_id }, select: { territory_id: true } });
-      return { territoryId: neighborhood?.territory_id || null, targetName: guide.name, source: 'guide', matched: true };
+      return { territoryId: neighborhood?.territory_id || null, targetName: guide.name, source: 'guide', matched: true, matchStrength };
     }
   }
 
   if (type === 'lead') {
-    const crmLead = await prisma.crm_leads.findFirst({
-      where: { deleted_at: null, OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+    let matchStrength: TargetTerritoryResolution['matchStrength'] = 'exact';
+    let crmLead = await prisma.crm_leads.findFirst({
+      where: { deleted_at: null, phone: { in: variants } },
       select: { name: true, territory_id: true },
     });
-    if (crmLead) return { territoryId: crmLead.territory_id || null, targetName: crmLead.name, source: 'crm_lead', matched: true };
+    if (!crmLead) {
+      matchStrength = 'suffix';
+      crmLead = await prisma.crm_leads.findFirst({
+        where: { deleted_at: null, phone: { endsWith: suffix9 } },
+        select: { name: true, territory_id: true },
+      });
+    }
+    if (crmLead) return { territoryId: crmLead.territory_id || null, targetName: crmLead.name, source: 'crm_lead', matched: true, matchStrength };
 
-    const consultantLead = await prisma.consultant_leads.findFirst({
-      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+    matchStrength = 'exact';
+    let consultantLead = await prisma.consultant_leads.findFirst({
+      where: { phone: { in: variants } },
       select: { name: true },
     });
-    if (consultantLead) return { territoryId: null, targetName: consultantLead.name, source: 'consultant_lead', matched: true };
+    if (!consultantLead) {
+      matchStrength = 'suffix';
+      consultantLead = await prisma.consultant_leads.findFirst({
+        where: { phone: { endsWith: suffix9 } },
+        select: { name: true },
+      });
+    }
+    if (consultantLead) return { territoryId: null, targetName: consultantLead.name, source: 'consultant_lead', matched: true, matchStrength };
   }
 
   if (type === 'pet') {
-    const pet = await prisma.pet_homologations.findFirst({
-      where: { OR: [{ phone: { in: variants } }, { phone: { endsWith: suffix9 } }] },
+    let matchStrength: TargetTerritoryResolution['matchStrength'] = 'exact';
+    let pet = await prisma.pet_homologations.findFirst({
+      where: { phone: { in: variants } },
       select: { name: true, driver_id: true, operator_id: true },
     });
+    if (!pet) {
+      matchStrength = 'suffix';
+      pet = await prisma.pet_homologations.findFirst({
+        where: { phone: { endsWith: suffix9 } },
+        select: { name: true, driver_id: true, operator_id: true },
+      });
+    }
     if (pet?.driver_id) {
       const driver = await prisma.drivers.findUnique({ where: { id: pet.driver_id }, select: { neighborhoods: { select: { territory_id: true } } } });
-      return { territoryId: driver?.neighborhoods?.territory_id || null, targetName: pet.name, source: 'pet_homologation', matched: true };
+      return { territoryId: driver?.neighborhoods?.territory_id || null, targetName: pet.name, source: 'pet_homologation', matched: true, matchStrength };
     }
     if (pet?.operator_id) {
       const operator = await prisma.operator_profiles.findFirst({ where: { admin_id: pet.operator_id }, select: { territory_id: true } });
-      return { territoryId: operator?.territory_id || null, targetName: pet.name, source: 'pet_homologation', matched: true };
+      return { territoryId: operator?.territory_id || null, targetName: pet.name, source: 'pet_homologation', matched: true, matchStrength };
     }
-    if (pet) return { territoryId: null, targetName: pet.name, source: 'pet_homologation', matched: true };
+    if (pet) return { territoryId: null, targetName: pet.name, source: 'pet_homologation', matched: true, matchStrength };
   }
 
-  return { territoryId: null, targetName: null, source: null, matched: false };
+  return { territoryId: null, targetName: null, source: null, matched: false, matchStrength: 'none' };
 }
 
 function isTerritorialRole(role: string): boolean {
@@ -234,16 +283,22 @@ async function resolveAdminOwnTerritoryId(admin: any, scope: any): Promise<strin
 function buildTargetResolutions(resolutions: TargetTerritoryResolution[]): {
   matched: boolean;
   territoryIds: string[];
+  exactTerritoryIds: string[];
   targetName: string | null;
   source: string | null;
 } {
   const matched = resolutions.filter((resolution) => resolution.matched);
   const territoryIds = Array.from(new Set(matched.map((resolution) => resolution.territoryId).filter((id): id is string => Boolean(id))));
+  const exactTerritoryIds = Array.from(new Set(matched
+    .filter((resolution) => resolution.matchStrength === 'exact')
+    .map((resolution) => resolution.territoryId)
+    .filter((id): id is string => Boolean(id))));
   const named = matched.find((resolution) => resolution.targetName);
 
   return {
     matched: matched.length > 0,
     territoryIds,
+    exactTerritoryIds,
     targetName: named?.targetName || null,
     source: named?.source || matched[0]?.source || null,
   };
@@ -323,7 +378,7 @@ router.post('/send', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
       }
 
       const territoryIds = Array.isArray(scope?.territoryIds) ? scope.territoryIds : [];
-      const outOfScopeTerritoryId = resolved.territoryIds.find((territoryId) => !territoryIds.includes(territoryId));
+      const outOfScopeTerritoryId = resolved.exactTerritoryIds.find((territoryId) => !territoryIds.includes(territoryId));
       if (outOfScopeTerritoryId) {
         return res.status(403).json({ success: false, error: 'Contato fora do seu território ou território não identificado.' });
       }
