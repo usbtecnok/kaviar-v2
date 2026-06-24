@@ -11,7 +11,7 @@ import { OfflineBanner } from "../src/components/OfflineBanner";
 
 const variant = Constants.expoConfig?.extra?.APP_VARIANT as string | undefined;
 
-if (variant === 'driver') {
+if (variant === 'driver' || variant === 'passenger') {
   if (Platform.OS === 'android') {
     Notifications.setNotificationChannelAsync('rides', {
       name: 'Corridas',
@@ -48,11 +48,10 @@ export default function RootLayout() {
       console.warn('[VersionCheck] APP_VARIANT not detected, skipping version check');
     }
 
-    // Driver: navigate to online screen when tapping push notification
     let responseSub: Notifications.Subscription | undefined;
-    if (variant === 'driver') {
+    if (variant === 'driver' || variant === 'passenger') {
       responseSub = Notifications.addNotificationResponseReceivedListener(() => {
-        router.push('/(driver)/online');
+        router.push(variant === 'driver' ? '/(driver)/online' : '/(passenger)/map');
       });
     }
 

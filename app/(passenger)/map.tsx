@@ -5,6 +5,7 @@ import { useIsFocused } from '@react-navigation/core';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { Button } from '../../src/components/Button';
@@ -32,6 +33,7 @@ import { ENV } from '../../src/config/env';
 import { apiClient } from '../../src/api/client';
 import { persistPassengerRide, getPersistedPassengerRide } from '../../src/services/ride-persistence';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
+import { RIDE_QUICK_MESSAGES, RideQuickMessageCode } from '../../src/config/rideMessages';
 
 const POLL_INTERVAL = 3000;
 const POLL_BACKOFF_P = [3000, 5000, 8000, 10000]; // normal, 1 fail, 2 fails, 3+ fails
@@ -142,6 +144,10 @@ export default function PassengerMap() {
   // Emergency
   const [showEmergency, setShowEmergency] = useState(false);
 
+  // Internal ride messages
+  const [showRideMessageModal, setShowRideMessageModal] = useState(false);
+  const [messageSending, setMessageSending] = useState(false);
+
   // Women preference (for RideWizard note)
   const [preferWomanDriver, setPreferWomanDriver] = useState(false);
 
@@ -180,6 +186,30 @@ export default function PassengerMap() {
       setSelectedVehicle('moto');
       setMotoConsented(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const registerPushToken = async () => {
+      try {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') return;
+        const { data: token } = await Notifications.getExpoPushTokenAsync({
+          projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85',
+        });
+
+        let fcmToken: string | undefined;
+        try {
+          const { data } = await Notifications.getDevicePushTokenAsync();
+          fcmToken = data as string;
+        } catch {}
+
+        await apiClient.put('/api/passengers/me/push-token', { token, fcmToken });
+      } catch (e) {
+        console.warn('[Passenger] Push token registration failed:', e);
+      }
+    };
+
+    registerPushToken();
   }, []);
 
   // Search microcopy rotation
@@ -440,7 +470,7 @@ export default function PassengerMap() {
         }
         // Feedback tátil nas transições importantes
         if (updated.status !== lastStatusRef.current) {
-          if (['accepted', 'arrived', 'in_progress'].includes(updated.status)) {
+          if (['accepted', 'arrived', 'started', 'in_progress'].includes(updated.status)) {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           }
           if (updated.status === 'pending_adjustment' && adjustmentShownForRef.current !== updated.id) {
@@ -556,6 +586,20 @@ export default function PassengerMap() {
     if (!ride) return;
     setBoardingStatus(status);
     try { await passengerApi.sendBoardingStatus(ride.id, status); } catch {}
+  };
+
+  const handleSendRideMessage = async (messageCode: RideQuickMessageCode) => {
+    if (!ride || messageSending) return;
+    setMessageSending(true);
+    try {
+      await passengerApi.sendRideMessage(ride.id, messageCode);
+      setShowRideMessageModal(false);
+      Alert.alert('Mensagem enviada', 'O motorista recebeu sua mensagem pelo KAVIAR.');
+    } catch (e: any) {
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível enviar a mensagem.'));
+    } finally {
+      setMessageSending(false);
+    }
   };
 
   const handleAdjustmentAccept = async () => {
@@ -995,7 +1039,7 @@ export default function PassengerMap() {
             ) : (
             <>
             {/* Boarding code — inside bottomSheet to avoid z-index overlap */}
-            {(rideStatus === 'accepted' || rideStatus === 'arrived') && ride?.boarding_code && (
+            {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'started') && ride?.boarding_code && (
               <View style={s.boardingCodeInlineCard}>
                 <Text style={s.boardingCodeLabel}>Código de embarque</Text>
                 <Text style={s.boardingCodeValue}>{ride.boarding_code}</Text>
@@ -1154,7 +1198,7 @@ export default function PassengerMap() {
             {canCancel && (
               <Button title="Cancelar Corrida" variant="danger" onPress={handleCancel} style={{ marginTop: 12 }} />
             )}
-            {(rideStatus === 'accepted' || rideStatus === 'arrived') && (
+            {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'started') && (
               <TouchableOpacity
                 style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, marginTop: 10, borderRadius: 10, backgroundColor: sharingLocation ? '#1a3a1a' : '#1a1a2e', borderWidth: 1, borderColor: sharingLocation ? COLORS.success : '#333' }}
                 onPress={() => setSharingLocation(!sharingLocation)}
@@ -1165,7 +1209,7 @@ export default function PassengerMap() {
                 </Text>
               </TouchableOpacity>
             )}
-            {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress') && (
+            {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'started' || rideStatus === 'in_progress') && (
               <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8, flexWrap: 'wrap' }}>
                 {rideStatus === 'accepted' && (
                   <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }} onPress={handleFocusDriverOnMap}>
@@ -1173,6 +1217,10 @@ export default function PassengerMap() {
                     <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '600' }}>Ver motorista</Text>
                   </TouchableOpacity>
                 )}
+                <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#14351f', borderWidth: 1, borderColor: COLORS.accent }} onPress={() => setShowRideMessageModal(true)}>
+                  <Ionicons name="chatbubble-ellipses-outline" size={15} color={COLORS.accent} />
+                  <Text style={{ color: COLORS.accent, fontSize: 13, fontWeight: '600' }}>Mensagem ao motorista</Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a3a' }} onPress={async () => {
                   if (!ride?.id) return;
                   try {
@@ -1234,6 +1282,23 @@ export default function PassengerMap() {
       />
 
       {/* EMERGENCY MODAL */}
+      <Modal visible={isFocused && showRideMessageModal} transparent animationType="fade" onRequestClose={() => setShowRideMessageModal(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <Text style={s.modalTitle}>Mensagem ao motorista</Text>
+            <Text style={s.modalBody}>Escolha uma mensagem rápida para enviar pelo KAVIAR.</Text>
+            {RIDE_QUICK_MESSAGES.map((msg) => (
+              <TouchableOpacity key={msg.code} style={s.ctaPrimary} disabled={messageSending} onPress={() => handleSendRideMessage(msg.code)}>
+                <Text style={s.ctaPrimaryText}>{msg.text}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={s.ctaLink} onPress={() => setShowRideMessageModal(false)}>
+              <Text style={s.ctaLinkText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={isFocused && showEmergency} transparent animationType="fade" onRequestClose={() => setShowEmergency(false)}>
         <View style={s.modalOverlay}>
           <View style={s.modalCard}>

@@ -52,7 +52,7 @@ class RealTimeService {
       if (client.type === 'driver' && client.entityId === driverId) {
         const data = JSON.stringify(event);
         client.res.write(`data: ${data}\n\n`);
-        console.log(`[REALTIME] Sent to driver ${driverId}: ${event.type}`);
+        console.log(`[REALTIME] Sent to driver ${driverId}: ${event?.type || 'custom'}`);
       }
     }
   }
@@ -63,7 +63,7 @@ class RealTimeService {
       if (client.type === 'passenger' && client.entityId === rideId) {
         const data = JSON.stringify(event);
         client.res.write(`data: ${data}\n\n`);
-        console.log(`[REALTIME] Sent to ride ${rideId}: ${event.type}`);
+        console.log(`[REALTIME] Sent to ride ${rideId}: ${event?.type || 'custom'}`);
       }
     }
   }

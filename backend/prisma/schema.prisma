@@ -887,6 +887,7 @@ enum RideStatus {
   pending_adjustment
   accepted
   arrived
+  started
   in_progress
   completed
   canceled_by_passenger
@@ -968,6 +969,7 @@ model rides_v2 {
   offers                 ride_offers[]
   settlement             ride_settlements?
   emergency_events       ride_emergency_events[]
+  messages               ride_messages[]
   shadow_result          wallet_shadow_results[]
 
   @@map("rides_v2")
@@ -976,6 +978,24 @@ model rides_v2 {
   @@index([driver_id])
   @@index([idempotency_key])
   @@index([created_at(sort: Desc)])
+}
+
+model ride_messages {
+  id             String    @id @default(uuid())
+  ride_id        String
+  sender_type    String    @db.VarChar(20)
+  sender_id      String
+  recipient_type String    @db.VarChar(20)
+  recipient_id   String
+  message_code   String    @db.VarChar(40)
+  message_text   String
+  created_at     DateTime  @default(now())
+  read_at        DateTime?
+  ride           rides_v2  @relation(fields: [ride_id], references: [id], onDelete: Cascade)
+
+  @@map("ride_messages")
+  @@index([ride_id, created_at])
+  @@index([recipient_type, recipient_id, read_at])
 }
 
 model ride_offers {

@@ -23,6 +23,7 @@ import { TerritoryLedgerService } from '../services/wallet-v2/territory-ledger.s
 import { PendingDebitService } from '../services/wallet-v2/pending-debit.service';
 import { WalletSettlementService } from '../services/wallet-v2/wallet-settlement.service';
 import { pool } from '../db';
+import { sendPushToDriver, sendPushToPassenger } from '../services/push.service';
 import { estimateFeeCentsFromPrice, calculateFeeCents } from '../services/wallet-v2/fee-helper';
 
 const toPhotoUrl = async (key: string | null | undefined): Promise<string | null> => {
@@ -34,6 +35,29 @@ const toPhotoUrl = async (key: string | null | undefined): Promise<string | null
   try { return await getPresignedUrl(k); } catch { return null; }
 };
 import { triggerEmergency, appendTrailPoint } from '../services/ride-emergency.service';
+
+const ACTIVE_MESSAGE_STATUSES = new Set(['accepted', 'arrived', 'started', 'in_progress']);
+const RIDE_QUICK_MESSAGES = {
+  on_my_way: 'Estou a caminho',
+  already_arrived: 'Já cheguei',
+  at_location: 'Estou no local',
+  waiting: 'Estou aguardando',
+  please_wait: 'Pode aguardar um instante?',
+  contact_support: 'Preciso de ajuda do suporte KAVIAR',
+} as const;
+
+type RideQuickMessageCode = keyof typeof RIDE_QUICK_MESSAGES;
+
+function isRideQuickMessageCode(code: unknown): code is RideQuickMessageCode {
+  return typeof code === 'string' && Object.prototype.hasOwnProperty.call(RIDE_QUICK_MESSAGES, code);
+}
+
+function normalizeRideUserType(userType: unknown): 'passenger' | 'driver' | null {
+  const type = String(userType || '').toUpperCase();
+  if (type === 'PASSENGER') return 'passenger';
+  if (type === 'DRIVER') return 'driver';
+  return null;
+}
 
 const getVehiclePhotoUrl = async (driverId: string | null | undefined): Promise<string | null> => {
   if (!driverId) return null;
@@ -141,7 +165,7 @@ router.get('/active', authenticatePassenger, async (req: Request, res: Response)
     const ride = await prisma.rides_v2.findFirst({
       where: {
         passenger_id: passengerId,
-        status: { in: ['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'in_progress'] }
+        status: { in: ['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'started', 'in_progress'] }
       },
       orderBy: { updated_at: 'desc' },
       include: { driver: { select: { name: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, id: true, last_lat: true, last_lng: true, photo_url: true } } }
@@ -1185,6 +1209,125 @@ router.post('/:ride_id/location', authenticateDriver, async (req: Request, res: 
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_LOCATION_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
+// Ride quick messages: internal contact without exposing personal phones
+router.get('/:ride_id/messages', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userType = normalizeRideUserType(user?.userType);
+    const userId = user?.userId;
+    const { ride_id } = req.params;
+
+    if (!userType || !userId) return res.status(403).json({ error: 'Acesso negado' });
+
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: ride_id },
+      select: { id: true, passenger_id: true, driver_id: true, status: true }
+    });
+
+    if (!ride) return res.status(404).json({ error: 'Corrida não encontrada' });
+    if (userType === 'passenger' && ride.passenger_id !== userId) return res.status(403).json({ error: 'Acesso negado' });
+    if (userType === 'driver' && ride.driver_id !== userId) return res.status(403).json({ error: 'Acesso negado' });
+    if (!ACTIVE_MESSAGE_STATUSES.has(String(ride.status))) return res.status(400).json({ error: 'Mensagens disponíveis apenas em corrida aceita/ativa' });
+
+    const messages = await prisma.ride_messages.findMany({
+      where: { ride_id },
+      orderBy: { created_at: 'asc' },
+      select: {
+        id: true,
+        ride_id: true,
+        sender_type: true,
+        recipient_type: true,
+        message_code: true,
+        message_text: true,
+        created_at: true,
+        read_at: true,
+      }
+    });
+
+    res.json({ success: true, data: messages });
+  } catch (error: any) {
+    console.error('[RIDE_MESSAGES_LIST_ERROR]', error);
+    res.status(500).json({ error: 'Erro interno. Tente novamente.' });
+  }
+});
+
+router.post('/:ride_id/messages', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const userType = normalizeRideUserType(user?.userType);
+    const userId = user?.userId;
+    const { ride_id } = req.params;
+    const { message_code } = req.body || {};
+
+    if (!userType || !userId) return res.status(403).json({ error: 'Acesso negado' });
+    if (!isRideQuickMessageCode(message_code)) return res.status(400).json({ error: 'Mensagem inválida' });
+
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: ride_id },
+      select: { id: true, passenger_id: true, driver_id: true, status: true }
+    });
+
+    if (!ride) return res.status(404).json({ error: 'Corrida não encontrada' });
+    if (!ride.driver_id) return res.status(400).json({ error: 'Corrida sem motorista atribuído' });
+    if (!ACTIVE_MESSAGE_STATUSES.has(String(ride.status))) return res.status(400).json({ error: 'Mensagens disponíveis apenas em corrida aceita/ativa' });
+    if (userType === 'passenger' && ride.passenger_id !== userId) return res.status(403).json({ error: 'Acesso negado' });
+    if (userType === 'driver' && ride.driver_id !== userId) return res.status(403).json({ error: 'Acesso negado' });
+
+    const lastMessage = await prisma.ride_messages.findFirst({
+      where: {
+        ride_id,
+        sender_type: userType,
+        sender_id: userId,
+      },
+      orderBy: { created_at: 'desc' },
+      select: { created_at: true },
+    });
+    if (lastMessage && (Date.now() - lastMessage.created_at.getTime()) < 10_000) {
+      return res.status(429).json({ error: 'Aguarde alguns segundos antes de enviar outra mensagem.' });
+    }
+
+    const recipientType = userType === 'passenger' ? 'driver' : 'passenger';
+    const recipientId = recipientType === 'driver' ? ride.driver_id : ride.passenger_id;
+    const messageText = RIDE_QUICK_MESSAGES[message_code];
+
+    const message = await prisma.ride_messages.create({
+      data: {
+        ride_id,
+        sender_type: userType,
+        sender_id: userId,
+        recipient_type: recipientType,
+        recipient_id: recipientId,
+        message_code,
+        message_text: messageText,
+      },
+      select: {
+        id: true,
+        ride_id: true,
+        sender_type: true,
+        recipient_type: true,
+        message_code: true,
+        message_text: true,
+        created_at: true,
+        read_at: true,
+      }
+    });
+
+    const notificationData = { rideId: ride_id, messageId: message.id, messageCode: message.message_code };
+    if (recipientType === 'driver') {
+      sendPushToDriver(recipientId, 'Mensagem na corrida KAVIAR', 'Você recebeu uma mensagem rápida na corrida.', notificationData).catch(() => {});
+      realTimeService.emitToDriver(recipientId, notificationData);
+    } else {
+      sendPushToPassenger(recipientId, 'Mensagem na corrida KAVIAR', 'Você recebeu uma mensagem rápida na corrida.', notificationData).catch(() => {});
+      realTimeService.emitToRide(ride_id, notificationData);
+    }
+
+    res.status(201).json({ success: true, data: message });
+  } catch (error: any) {
+    console.error('[RIDE_MESSAGE_CREATE_ERROR]', error);
     res.status(500).json({ error: 'Erro interno. Tente novamente.' });
   }
 });

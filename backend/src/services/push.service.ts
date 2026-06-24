@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
-export async function sendPushToDriver(driverId: string, title: string, body: string): Promise<void> {
+export async function sendPushToDriver(driverId: string, title: string, body: string, data?: Record<string, string>): Promise<void> {
   try {
     const driver = await prisma.drivers.findUnique({
       where: { id: driverId },
@@ -21,6 +21,7 @@ export async function sendPushToDriver(driverId: string, title: string, body: st
         sound: 'default',
         priority: 'high',
         channelId: 'rides',
+        data: data || {},
       }),
     });
 

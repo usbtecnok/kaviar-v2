@@ -47,4 +47,13 @@ export const passengerApi = {
     const { data } = await apiClient.post(`/api/v2/rides/${rideId}/emergency`);
     return data;
   },
+
+  sendRideMessage: async (rideId: string, messageCode: string): Promise<void> => {
+    await apiClient.post(`/api/v2/rides/${rideId}/messages`, { message_code: messageCode });
+  },
+
+  getRideMessages: async (rideId: string) => {
+    const { data } = await apiClient.get(`/api/v2/rides/${rideId}/messages`);
+    return data.data || [];
+  },
 };

@@ -17,6 +17,7 @@ import { enqueue, getQueueSize } from '../../src/services/offline-queue';
 import { ENV } from '../../src/config/env';
 import { groupLabel } from '../../src/utils/tripLabel';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
+import { RIDE_QUICK_MESSAGES, RideQuickMessageCode } from '../../src/config/rideMessages';
 
 const BOARDING_LABELS: Record<string, { icon: string; text: string }> = {
   at_door: { icon: '🚪', text: 'Na porta' },
@@ -67,6 +68,10 @@ export default function CompleteRide() {
 
   // B4: Emergency modal
   const [showEmergency, setShowEmergency] = useState(false);
+
+  // Internal ride messages
+  const [showRideMessageModal, setShowRideMessageModal] = useState(false);
+  const [messageSending, setMessageSending] = useState(false);
 
   // B5: Passenger rating
   const [pRating, setPRating] = useState(0);
@@ -348,6 +353,20 @@ export default function CompleteRide() {
     } finally { setLoading(false); }
   };
 
+  const handleSendRideMessage = async (messageCode: RideQuickMessageCode) => {
+    if (!ride || messageSending) return;
+    setMessageSending(true);
+    try {
+      await driverApi.sendRideMessage(ride.id, messageCode);
+      setShowRideMessageModal(false);
+      Alert.alert('Mensagem enviada', 'O passageiro recebeu sua mensagem pelo KAVIAR.');
+    } catch (e: any) {
+      Alert.alert('Erro', friendlyError(e, 'Não foi possível enviar a mensagem.'));
+    } finally {
+      setMessageSending(false);
+    }
+  };
+
   // B3: Cancel ride
   const handleCancel = async (reason: string) => {
     setShowCancelModal(false);
@@ -617,6 +636,10 @@ export default function CompleteRide() {
 
         <Button title={rideStatus === 'in_progress' ? '📍 Navegar até o destino' : '📍 Navegar até o passageiro'} onPress={openNavigation} style={{ backgroundColor: '#1a73e8', marginBottom: 8, paddingVertical: 18 }} />
 
+        {['accepted', 'arrived', 'started', 'in_progress'].includes(rideStatus) && (
+          <Button title="Mensagem ao passageiro" onPress={() => setShowRideMessageModal(true)} style={{ backgroundColor: '#14351f', marginBottom: 8, paddingVertical: 16 }} />
+        )}
+
         {rideStatus === 'accepted' && (
           <Button title={loading ? 'Aguarde...' : arrivedCooldown > 0 ? `Cheguei no local (${arrivedCooldown}s)` : 'Cheguei no local'} onPress={handleArrived} disabled={loading || arrivedCooldown > 0} style={{ backgroundColor: arrivedCooldown > 0 ? '#555' : COLORS.primary, minHeight: 56 }} />
         )}
@@ -709,7 +732,7 @@ export default function CompleteRide() {
         )}
 
         {/* B4: Emergency + Share buttons */}
-        {['accepted', 'arrived', 'in_progress'].includes(rideStatus) && (
+        {['accepted', 'arrived', 'started', 'in_progress'].includes(rideStatus) && (
           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8 }}>
             <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a3a' }} onPress={async () => {
               if (!ride?.id) return;
@@ -729,6 +752,23 @@ export default function CompleteRide() {
           </View>
         )}
       </View>
+
+      <Modal visible={showRideMessageModal} transparent animationType="fade" onRequestClose={() => setShowRideMessageModal(false)}>
+        <View style={st.modalOverlay}>
+          <View style={st.modalCard}>
+            <Text style={st.modalTitle}>Mensagem ao passageiro</Text>
+            <Text style={st.modalSub}>Escolha uma mensagem rápida para enviar pelo KAVIAR.</Text>
+            {RIDE_QUICK_MESSAGES.map((msg) => (
+              <TouchableOpacity key={msg.code} style={st.modalOption} disabled={messageSending} onPress={() => handleSendRideMessage(msg.code)}>
+                <Text style={st.modalOptionText}>{msg.text}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={st.modalClose} onPress={() => setShowRideMessageModal(false)}>
+              <Text style={st.modalCloseText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* B3: Cancel modal */}
       <Modal visible={showCancelModal} transparent animationType="fade" onRequestClose={() => setShowCancelModal(false)}>
