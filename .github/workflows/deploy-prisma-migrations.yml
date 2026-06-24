@@ -1,0 +1,110 @@
+name: Deploy Prisma Migrations
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: kaviar-prisma-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Resolve backend ECS runtime config
+        id: ecs
+        run: |
+          set -euo pipefail
+
+          SERVICE_JSON=$(aws ecs describe-services             --cluster kaviar-cluster             --services kaviar-backend-service             --region us-east-2)
+
+          TASK_DEFINITION=$(echo "$SERVICE_JSON" | jq -r '.services[0].taskDefinition')
+          SUBNETS=$(echo "$SERVICE_JSON" | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.subnets | join(",")')
+          SECURITY_GROUPS=$(echo "$SERVICE_JSON" | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.securityGroups | join(",")')
+          ASSIGN_PUBLIC_IP=$(echo "$SERVICE_JSON" | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.assignPublicIp')
+
+          echo "task_definition=$TASK_DEFINITION" >> "$GITHUB_OUTPUT"
+          echo "subnets=$SUBNETS" >> "$GITHUB_OUTPUT"
+          echo "security_groups=$SECURITY_GROUPS" >> "$GITHUB_OUTPUT"
+          echo "assign_public_ip=$ASSIGN_PUBLIC_IP" >> "$GITHUB_OUTPUT"
+
+          echo "Using task definition: $TASK_DEFINITION"
+          echo "Using subnets: $SUBNETS"
+          echo "Using security groups: $SECURITY_GROUPS"
+          echo "Using assignPublicIp: $ASSIGN_PUBLIC_IP"
+
+      - name: Run Prisma migrate deploy in ECS
+        id: migrate
+        run: |
+          set -euo pipefail
+
+          TASK_DEFINITION='${{ steps.ecs.outputs.task_definition }}'
+          SUBNETS='${{ steps.ecs.outputs.subnets }}'
+          SECURITY_GROUPS='${{ steps.ecs.outputs.security_groups }}'
+          ASSIGN_PUBLIC_IP='${{ steps.ecs.outputs.assign_public_ip }}'
+          CLUSTER='kaviar-cluster'
+          REGION='us-east-2'
+          CONTAINER_NAME='kaviar-backend'
+          LOG_GROUP='/ecs/kaviar-backend'
+
+          OVERRIDES=$(jq -n             --arg container "$CONTAINER_NAME"             '{containerOverrides:[{name:$container,command:["sh","-lc","npx --yes prisma migrate deploy"]}]}' )
+
+          TASK_ARN=$(aws ecs run-task             --cluster "$CLUSTER"             --launch-type FARGATE             --platform-version 1.4.0             --task-definition "$TASK_DEFINITION"             --count 1             --started-by "github-actions-prisma-migrations"             --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUPS],assignPublicIp=$ASSIGN_PUBLIC_IP}"             --overrides "$OVERRIDES"             --region "$REGION"             | jq -r '.tasks[0].taskArn')
+
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "null" ]; then
+            echo "Failed to start ECS migration task" >&2
+            exit 1
+          fi
+
+          echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
+          TASK_ID="${TASK_ARN##*/}"
+          LOG_STREAM="ecs/${CONTAINER_NAME}/${TASK_ID}"
+          echo "log_stream=$LOG_STREAM" >> "$GITHUB_OUTPUT"
+
+          echo "Started task: $TASK_ARN"
+          echo "Log stream: $LOG_STREAM"
+
+          aws ecs wait tasks-stopped             --cluster "$CLUSTER"             --tasks "$TASK_ARN"             --region "$REGION"
+
+          TASK_JSON=$(aws ecs describe-tasks             --cluster "$CLUSTER"             --tasks "$TASK_ARN"             --region "$REGION")
+
+          EXIT_CODE=$(echo "$TASK_JSON" | jq -r '.tasks[0].containers[0].exitCode // empty')
+          STOPPED_REASON=$(echo "$TASK_JSON" | jq -r '.tasks[0].stoppedReason // empty')
+          CONTAINER_REASON=$(echo "$TASK_JSON" | jq -r '.tasks[0].containers[0].reason // empty')
+
+          echo "stop_reason=$STOPPED_REASON" >> "$GITHUB_OUTPUT"
+          echo "container_reason=$CONTAINER_REASON" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+          echo "Stopped reason: $STOPPED_REASON"
+          echo "Container reason: $CONTAINER_REASON"
+          echo "Exit code: ${EXIT_CODE:-unknown}"
+
+          sleep 8
+          echo "--- ECS task logs ---"
+          aws logs get-log-events             --log-group-name "$LOG_GROUP"             --log-stream-name "$LOG_STREAM"             --region "$REGION"             --limit 200             | jq -r '.events[].message'
+
+          if [ -z "$EXIT_CODE" ] || [ "$EXIT_CODE" != "0" ]; then
+            echo "Prisma migration task failed" >&2
+            exit 1
+          fi
+
+      - name: Publish summary
+        run: |
+          {
+            echo "### Prisma migration task"
+            echo "- Task ARN: ${{ steps.migrate.outputs.task_arn }}"
+            echo "- Log stream: ${{ steps.migrate.outputs.log_stream }}"
+            echo "- Exit code: ${{ steps.migrate.outputs.exit_code }}"
+            echo "- Stop reason: ${{ steps.migrate.outputs.stop_reason }}"
+          } >> "$GITHUB_STEP_SUMMARY"
