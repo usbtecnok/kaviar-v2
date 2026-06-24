@@ -60,7 +60,18 @@ jobs:
             --arg TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID "${{ secrets.TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID }}" '
             .taskDefinition |
             .containerDefinitions[0].image = $IMAGE |
-            .containerDefinitions[0].environment = [.containerDefinitions[0].environment[]? | select(.name != "GIT_COMMIT")] |
+            .containerDefinitions[0].environment = [
+              .containerDefinitions[0].environment[]?
+              | select(
+                  .name != "GIT_COMMIT"
+                  and .name != "TWILIO_WHATSAPP_FROM"
+                  and .name != "TWILIO_WHATSAPP_TEMPLATE_DRIVER_SID"
+                  and .name != "TWILIO_WHATSAPP_TEMPLATE_PASSENGER_SID"
+                  and .name != "TWILIO_WHATSAPP_TEMPLATE_MANAGER_SID"
+                  and .name != "TWILIO_WHATSAPP_ENABLED"
+                  and .name != "ENABLE_TWILIO_WHATSAPP"
+                )
+            ] |
             .containerDefinitions[0].environment += [{"name": "GIT_COMMIT", "value": $COMMIT}] |
             .containerDefinitions[0].environment += [{"name": "TWILIO_WHATSAPP_ENABLED", "value": "true"}] |
             .containerDefinitions[0].environment += [{"name": "ENABLE_TWILIO_WHATSAPP", "value": "true"}] |
