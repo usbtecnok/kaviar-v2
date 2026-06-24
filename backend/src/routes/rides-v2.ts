@@ -51,6 +51,19 @@ type RideQuickMessageCode = keyof typeof RIDE_QUICK_MESSAGES;
 function isRideQuickMessageCode(code: unknown): code is RideQuickMessageCode {
   return typeof code === 'string' && Object.prototype.hasOwnProperty.call(RIDE_QUICK_MESSAGES, code);
 }
+function notifyRideCancelledToDriver(ride: { id: string; driver_id: string | null }) {
+  if (!ride.driver_id) return;
+  const payload = { type: "ride_cancelled", rideId: ride.id, cancelledBy: "passenger" as const };
+  sendPushToDriver(ride.driver_id, "Corrida cancelada", "O passageiro cancelou a corrida.", payload).catch(() => {});
+  realTimeService.emitToDriver(ride.driver_id, payload);
+}
+
+function notifyRideCancelledToPassenger(ride: { id: string; passenger_id: string }) {
+  const payload = { type: "ride_cancelled", rideId: ride.id, cancelledBy: "driver" as const };
+  sendPushToPassenger(ride.passenger_id, "Corrida cancelada", "O motorista cancelou a corrida.", payload).catch(() => {});
+  realTimeService.emitToRide(ride.id, payload);
+}
+
 
 function normalizeRideUserType(userType: unknown): 'passenger' | 'driver' | null {
   const type = String(userType || '').toUpperCase();
@@ -588,19 +601,7 @@ router.post('/:ride_id/cancel', authenticatePassenger, async (req: Request, res:
 
     console.log(`[RIDE_STATUS_CHANGED] ride_id=${ride_id} status=canceled_by_passenger`);
 
-    // WhatsApp: notificar motorista do cancelamento (se tinha motorista atribuído)
-    if (ride.driver_id) {
-      try {
-        const driver = await prisma.drivers.findUnique({ where: { id: ride.driver_id }, select: { phone: true, name: true } });
-        if (driver?.phone) {
-          whatsappEvents.ridePassengerCancelled(driver.phone, {
-            driver_name: driver.name || 'Motorista',
-            pickup: ride.origin_text || 'Origem não informada',
-            reason: 'Cancelada pelo passageiro',
-          }).catch((e: any) => console.error('[WA_FAIL] ridePassengerCancelled', e.message));
-        }
-      } catch (e: any) { console.error('[WA_LOOKUP_FAIL] cancel', e.message); }
-    }
+    notifyRideCancelledToDriver(ride);
 
     // Wallet V2: release reserve if driver was assigned
     if (ride.driver_id && ['accepted', 'arrived'].includes(ride.status) && await isWalletV2Enabled()) {
@@ -663,7 +664,9 @@ router.post('/:ride_id/driver-cancel', authenticateDriver, async (req: Request, 
 
       setImmediate(() => dispatcherService.dispatchRide(ride_id).catch(err => {
         console.error(`[REDISPATCH_ERROR] ride_id=${ride_id}`, err);
-        prisma.rides_v2.update({ where: { id: ride_id }, data: { status: 'canceled_by_driver', canceled_at: new Date() } }).catch(() => {});
+        prisma.rides_v2.update({ where: { id: ride_id }, data: { status: 'canceled_by_driver', canceled_at: new Date() } })
+          .then(() => notifyRideCancelledToPassenger({ id: ride_id, passenger_id: ride.passenger_id }))
+          .catch(() => {});
       }));
     } else {
       // Limite de redispatch atingido — cancelar normalmente
@@ -688,6 +691,7 @@ router.post('/:ride_id/driver-cancel', authenticateDriver, async (req: Request, 
       } catch (relErr: any) { console.error(`[WALLET_V2_RELEASE_FAIL] ride=${ride_id}`, relErr.message); }
     }
 
+    notifyRideCancelledToPassenger(ride);
     res.json({ success: true });
   } catch (error: any) {
     console.error('[RIDE_DRIVER_CANCEL_ERROR]', error);
@@ -1316,7 +1320,7 @@ router.post('/:ride_id/messages', requireAuth, async (req: Request, res: Respons
       }
     });
 
-    const notificationData = { rideId: ride_id, messageId: message.id, messageCode: message.message_code };
+    const notificationData = { type: 'ride_message', rideId: ride_id, messageId: message.id, messageCode: message.message_code };
     if (recipientType === 'driver') {
       sendPushToDriver(recipientId, 'Mensagem na corrida KAVIAR', 'Você recebeu uma mensagem rápida na corrida.', notificationData).catch(() => {});
       realTimeService.emitToDriver(recipientId, notificationData);

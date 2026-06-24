@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { Platform } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Platform } from "react-native";
+import { Stack, useRouter, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { startNetInfoListener, stopNetInfoListener } from "../src/services/net-info-listener";
@@ -8,8 +8,32 @@ import { checkAppVersion, VersionCheckResult } from "../src/services/version-che
 import { UpdateRequiredModal } from "../src/components/UpdateRequiredModal";
 import { NetworkProvider } from "../src/hooks/useNetworkStatus";
 import { OfflineBanner } from "../src/components/OfflineBanner";
+import { RIDE_QUICK_MESSAGES } from "../src/config/rideMessages";
 
 const variant = Constants.expoConfig?.extra?.APP_VARIANT as string | undefined;
+
+function parseRideNotification(data: unknown) {
+  if (!data || typeof data !== 'object') return null;
+  const payload = data as Record<string, unknown>;
+  if (payload.type === 'ride_message') {
+    const rideId = typeof payload.rideId === 'string' ? payload.rideId : '';
+    const messageId = typeof payload.messageId === 'string' ? payload.messageId : '';
+    const messageCode = typeof payload.messageCode === 'string' ? payload.messageCode : '';
+    if (!rideId || !messageId || !messageCode) return null;
+    return { type: 'ride_message' as const, rideId, messageId, messageCode };
+  }
+  if (payload.type === 'ride_cancelled') {
+    const rideId = typeof payload.rideId === 'string' ? payload.rideId : '';
+    const cancelledBy = payload.cancelledBy === 'passenger' || payload.cancelledBy === 'driver' ? payload.cancelledBy : null;
+    if (!rideId || !cancelledBy) return null;
+    return { type: 'ride_cancelled' as const, rideId, cancelledBy };
+  }
+  return null;
+const rideNotificationState = (globalThis as any).__kaviarRideNotificationState || ((globalThis as any).__kaviarRideNotificationState = {
+  seenMessageIds: new Set<string>(),
+  seenCancelKeys: new Set<string>(),
+});
+}
 
 if (variant === 'driver' || variant === 'passenger') {
   if (Platform.OS === 'android') {
@@ -36,7 +60,13 @@ if (variant === 'driver' || variant === 'passenger') {
 
 export default function RootLayout() {
   const router = useRouter();
+  const pathname = usePathname();
   const [updateInfo, setUpdateInfo] = useState<VersionCheckResult | null>(null);
+  const pathnameRef = useRef(pathname);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     startNetInfoListener();
@@ -49,7 +79,36 @@ export default function RootLayout() {
     }
 
     let responseSub: Notifications.Subscription | undefined;
+    let receivedSub: Notifications.Subscription | undefined;
     if (variant === 'driver' || variant === 'passenger') {
+      receivedSub = Notifications.addNotificationReceivedListener((notification) => {
+        const rideEvent = parseRideNotification(notification.request.content.data);
+        if (!rideEvent) return;
+
+        if (rideEvent.type === 'ride_message') {
+          rideNotificationState.seenMessageIds.add(rideEvent.messageId);
+        }
+
+        if (rideEvent.type === 'ride_cancelled') {
+          rideNotificationState.seenCancelKeys.add(rideEvent.rideId + ':' + rideEvent.cancelledBy);
+        }
+
+        const isRideScreen = pathnameRef.current?.startsWith('/(driver)/complete-ride') || pathnameRef.current?.startsWith('/(passenger)/map');
+        if (!isRideScreen && rideEvent.type === 'ride_message') {
+          const messageText = RIDE_QUICK_MESSAGES.find((msg) => msg.code === rideEvent.messageCode)?.text || 'Nova mensagem na corrida.';
+          Alert.alert('Mensagem na corrida', messageText);
+        }
+
+        if (!isRideScreen && rideEvent.type === 'ride_cancelled') {
+          Alert.alert(
+            'Corrida cancelada',
+            rideEvent.cancelledBy === 'passenger'
+              ? 'O passageiro cancelou a corrida.'
+              : 'O motorista cancelou a corrida.'
+          );
+        }
+      });
+
       responseSub = Notifications.addNotificationResponseReceivedListener(() => {
         router.push(variant === 'driver' ? '/(driver)/online' : '/(passenger)/map');
       });
@@ -58,6 +117,7 @@ export default function RootLayout() {
     return () => {
       stopNetInfoListener();
       responseSub?.remove();
+      receivedSub?.remove();
     };
   }, [router]);
 

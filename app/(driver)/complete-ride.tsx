@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert, ActivityIndicator, Linking, TouchableOpacity, Modal, Share, TextInput, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MapView, { Marker, Region } from 'react-native-maps';
@@ -124,8 +124,34 @@ export default function CompleteRide() {
 
   const lastRideUpdateRef = useRef<string | undefined>(undefined);
   const rideStatusRef = useRef<RideStatus>(rideStatus);
+  const lastMessageAtRef = useRef<string | null>(null);
+  const cancelAlertRideRef = useRef<string | null>(null);
+  const rideNotificationState = (globalThis as any).__kaviarRideNotificationState || ((globalThis as any).__kaviarRideNotificationState = { seenMessageIds: new Set<string>(), seenCancelKeys: new Set<string>() });
 
   useEffect(() => { rideStatusRef.current = rideStatus; }, [rideStatus]);
+
+  const showIncomingRideMessage = useCallback((messageCode: string) => {
+    const messageText = RIDE_QUICK_MESSAGES.find((msg) => msg.code === messageCode)?.text || 'Nova mensagem na corrida.';
+    Alert.alert('Mensagem do passageiro', messageText);
+  }, []);
+
+  const pollRideMessages = useCallback(async (rideId: string) => {
+    try {
+      const messages = await driverApi.getRideMessages(rideId);
+      const newMessages = messages.filter((msg: any) => msg?.sender_type === 'passenger' && msg?.created_at && (!lastMessageAtRef.current || msg.created_at > lastMessageAtRef.current));
+      for (const msg of newMessages) {
+        if (rideNotificationState.seenMessageIds.has(msg.id)) continue;
+        rideNotificationState.seenMessageIds.add(msg.id);
+        lastMessageAtRef.current = msg.created_at;
+        showIncomingRideMessage(msg.message_code);
+      }
+      if (!lastMessageAtRef.current && messages.length > 0) {
+        lastMessageAtRef.current = messages[messages.length - 1].created_at || null;
+      }
+    } catch (e) {
+      console.warn('[CompleteRide] ride messages polling failed:', e);
+    }
+  }, [showIncomingRideMessage]);
 
   const startPolling = (intervalMs = 5000) => {
     if (pollRef.current) clearInterval(pollRef.current);
@@ -138,9 +164,20 @@ export default function CompleteRide() {
             setRide(current);
             setRideStatus(current.status as RideStatus);
           }
+          await pollRideMessages(current.id);
         } else if (!completionRef.current) {
           setActiveRideId(null);
-          setRideStatus('canceled_by_passenger' as RideStatus);
+          const cancelKey = (params.rideId || "") + ":passenger";
+          if (!rideNotificationState.seenCancelKeys.has(cancelKey) && cancelAlertRideRef.current !== params.rideId) {
+            rideNotificationState.seenCancelKeys.add(cancelKey);
+            cancelAlertRideRef.current = params.rideId || null;
+            Alert.alert("Corrida cancelada", "O passageiro cancelou a corrida.", [
+              { text: "OK", onPress: () => router.replace("/(driver)/online") }
+            ]);
+          } else {
+            router.replace("/(driver)/online");
+          }
+          setRideStatus("canceled_by_passenger" as RideStatus);
           if (pollRef.current) clearInterval(pollRef.current);
         }
         // Update queue indicator

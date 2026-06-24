@@ -447,6 +447,28 @@ export default function PassengerMap() {
 
   // --- Ride ---
   const lastStatusRef = useRef('');
+  const lastMessageAtRef = useRef<string | null>(null);
+  const cancelAlertRideRef = useRef<string | null>(null);
+  const rideNotificationState = (globalThis as any).__kaviarRideNotificationState || ((globalThis as any).__kaviarRideNotificationState = { seenMessageIds: new Set<string>(), seenCancelKeys: new Set<string>() });
+
+  const pollRideMessages = useCallback(async (rideId: string) => {
+    try {
+      const messages = await passengerApi.getRideMessages(rideId);
+      const newMessages = messages.filter((msg: any) => msg?.sender_type === 'driver' && msg?.created_at && (!lastMessageAtRef.current || msg.created_at > lastMessageAtRef.current));
+      for (const msg of newMessages) {
+        if (rideNotificationState.seenMessageIds.has(msg.id)) continue;
+        rideNotificationState.seenMessageIds.add(msg.id);
+        lastMessageAtRef.current = msg.created_at;
+        const messageText = RIDE_QUICK_MESSAGES.find((item) => item.code === msg.message_code)?.text || 'Nova mensagem na corrida.';
+        Alert.alert('Mensagem do motorista', messageText);
+      }
+      if (!lastMessageAtRef.current && messages.length > 0) {
+        lastMessageAtRef.current = messages[messages.length - 1].created_at || null;
+      }
+    } catch (e) {
+      console.warn('[Map] ride messages polling failed:', e);
+    }
+  }, []);
 
   const startPolling = (rideId: string) => {
     pollFailsRef.current = 0;
@@ -503,6 +525,8 @@ export default function PassengerMap() {
           lastStatusRef.current = updated.status;
           setMapFocusMode(false);
         }
+        await pollRideMessages(rideId);
+
         if (['completed', 'canceled_by_passenger', 'canceled_by_driver', 'no_driver'].includes(updated.status)) {
           stopAll();
           if (updated.status === 'completed') {
@@ -511,6 +535,19 @@ export default function PassengerMap() {
             setShowCompleted(true);
           } else if (updated.status === 'no_driver') {
             setShowNoDriver(true);
+          } else if (updated.status === 'canceled_by_driver') {
+            const cancelKey = updated.id + ':driver';
+            if (!rideNotificationState.seenCancelKeys.has(cancelKey) && cancelAlertRideRef.current !== updated.id) {
+              rideNotificationState.seenCancelKeys.add(cancelKey);
+              cancelAlertRideRef.current = updated.id;
+              Alert.alert('Corrida cancelada', 'O motorista cancelou a corrida.', [
+                { text: 'OK', onPress: () => resetToIdle() }
+              ]);
+            } else {
+              resetToIdle();
+            }
+          } else if (updated.status === 'canceled_by_passenger') {
+            resetToIdle();
           }
           return; // don't schedule next poll
         }
@@ -574,7 +611,7 @@ export default function PassengerMap() {
       console.log('[checkReturnHome] ✅ card SHOWN');
     } catch (e) { console.warn('[checkReturnHome] EXCEPTION:', e); }
   };
-  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); persistPassengerRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); setSharingLocation(false); checkReturnHome(rideDestination); };
+  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); persistPassengerRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); setSharingLocation(false); lastMessageAtRef.current = null; cancelAlertRideRef.current = null; checkReturnHome(rideDestination); };
   const rideEndLocation = (r: Ride | null) => {
     if (!r) return null;
     const pwd = (r as any).trip_details?.post_wait_destination;
