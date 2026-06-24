@@ -306,7 +306,7 @@ export class PremiumTourismService {
         rides: {
           none: {
             status: {
-              in: ['accepted', 'arrived', 'started']
+              in: ['accepted', 'arrived', 'in_progress']
             }
           }
         }

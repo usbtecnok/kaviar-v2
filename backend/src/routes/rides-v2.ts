@@ -36,7 +36,7 @@ const toPhotoUrl = async (key: string | null | undefined): Promise<string | null
 };
 import { triggerEmergency, appendTrailPoint } from '../services/ride-emergency.service';
 
-const ACTIVE_MESSAGE_STATUSES = new Set(['accepted', 'arrived', 'started', 'in_progress']);
+const ACTIVE_MESSAGE_STATUSES = new Set(['accepted', 'arrived', 'in_progress']);
 const RIDE_QUICK_MESSAGES = {
   on_my_way: 'Estou a caminho',
   already_arrived: 'Já cheguei',
@@ -178,7 +178,7 @@ router.get('/active', authenticatePassenger, async (req: Request, res: Response)
     const ride = await prisma.rides_v2.findFirst({
       where: {
         passenger_id: passengerId,
-        status: { in: ['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'started', 'in_progress'] }
+        status: { in: ['scheduled', 'requested', 'offered', 'pending_adjustment', 'accepted', 'arrived', 'in_progress'] }
       },
       orderBy: { updated_at: 'desc' },
       include: { driver: { select: { name: true, vehicle_model: true, vehicle_plate: true, vehicle_color: true, id: true, last_lat: true, last_lng: true, photo_url: true } } }

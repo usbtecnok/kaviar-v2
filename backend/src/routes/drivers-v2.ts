@@ -247,7 +247,7 @@ router.get('/me/current-ride', authenticateDriver, async (req: Request, res: Res
     const ride = await prisma.rides_v2.findFirst({
       where: {
         driver_id: driverId,
-        status: { in: ['accepted', 'arrived', 'started', 'in_progress', 'pending_adjustment'] }
+        status: { in: ['accepted', 'arrived', 'in_progress', 'pending_adjustment'] }
       },
       orderBy: { updated_at: 'desc' },
       include: {
