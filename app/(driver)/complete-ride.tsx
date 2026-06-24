@@ -639,22 +639,32 @@ export default function CompleteRide() {
         <Button title={rideStatus === 'in_progress' ? '📍 Navegar até o destino' : '📍 Navegar até o passageiro'} onPress={openNavigation} style={{ backgroundColor: '#1a73e8', marginBottom: 8, paddingVertical: 18 }} />
 
         {canSendRideMessage && (
-          <Button
-            title="Mensagem ao passageiro"
-            onPress={() => setShowRideMessageModal(true)}
-            variant="secondary"
+          <TouchableOpacity
             style={{
-              marginBottom: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
               paddingVertical: 16,
-              borderWidth: 1,
+              marginBottom: 8,
+              borderRadius: 12,
+              borderWidth: 1.5,
               borderColor: COLORS.accent,
-              shadowColor: COLORS.accent,
+              backgroundColor: '#162A30',
+              shadowColor: '#000',
               shadowOpacity: 0.25,
               shadowRadius: 6,
               shadowOffset: { width: 0, height: 2 },
-              elevation: 2,
+              elevation: 3,
             }}
-          />
+            onPress={() => setShowRideMessageModal(true)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Mensagem ao passageiro"
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color={COLORS.accent} />
+            <Text style={{ color: COLORS.textPrimary, fontSize: 15, fontWeight: '700' }}>Mensagem ao passageiro</Text>
+          </TouchableOpacity>
         )}
 
         {rideStatus === 'accepted' && (
