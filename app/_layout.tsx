@@ -5,6 +5,7 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { startNetInfoListener, stopNetInfoListener } from "../src/services/net-info-listener";
 import { checkAppVersion, VersionCheckResult } from "../src/services/version-check";
+import { attemptOtaUpdate } from "../src/services/ota-updates";
 import { UpdateRequiredModal } from "../src/components/UpdateRequiredModal";
 import { NetworkProvider } from "../src/hooks/useNetworkStatus";
 import { OfflineBanner } from "../src/components/OfflineBanner";
@@ -72,11 +73,18 @@ export default function RootLayout() {
     startNetInfoListener();
 
     const appVariant = variant === 'driver' ? 'driver' : variant === 'passenger' ? 'passenger' : null;
-    if (appVariant) {
-      checkAppVersion(appVariant).then(setUpdateInfo);
-    } else {
-      console.warn('[VersionCheck] APP_VARIANT not detected, skipping version check');
-    }
+    (async () => {
+      if (!appVariant) {
+        console.warn('[VersionCheck] APP_VARIANT not detected, skipping version check');
+        return;
+      }
+
+      const applied = await attemptOtaUpdate();
+      if (applied) return;
+
+      const versionInfo = await checkAppVersion(appVariant);
+      setUpdateInfo(versionInfo);
+    })();
 
     let responseSub: Notifications.Subscription | undefined;
     let receivedSub: Notifications.Subscription | undefined;
