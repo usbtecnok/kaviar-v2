@@ -221,6 +221,8 @@ export default function CompleteRide() {
     return { lat: ride.origin_lat, lng: ride.origin_lng, label: ride.origin_text || 'Passageiro' };
   };
 
+  const canSendRideMessage = ['accepted', 'arrived', 'started', 'in_progress'].includes(rideStatus);
+
   const openNavigation = () => {
     const target = getTarget();
     if (!target) return;
@@ -636,8 +638,23 @@ export default function CompleteRide() {
 
         <Button title={rideStatus === 'in_progress' ? '📍 Navegar até o destino' : '📍 Navegar até o passageiro'} onPress={openNavigation} style={{ backgroundColor: '#1a73e8', marginBottom: 8, paddingVertical: 18 }} />
 
-        {['accepted', 'arrived', 'started', 'in_progress'].includes(rideStatus) && (
-          <Button title="Mensagem ao passageiro" onPress={() => setShowRideMessageModal(true)} style={{ backgroundColor: '#14351f', marginBottom: 8, paddingVertical: 16 }} />
+        {canSendRideMessage && (
+          <Button
+            title="Mensagem ao passageiro"
+            onPress={() => setShowRideMessageModal(true)}
+            variant="secondary"
+            style={{
+              marginBottom: 8,
+              paddingVertical: 16,
+              borderWidth: 1,
+              borderColor: COLORS.accent,
+              shadowColor: COLORS.accent,
+              shadowOpacity: 0.25,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
+          />
         )}
 
         {rideStatus === 'accepted' && (
