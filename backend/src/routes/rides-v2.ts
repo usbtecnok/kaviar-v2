@@ -36,7 +36,7 @@ const toPhotoUrl = async (key: string | null | undefined): Promise<string | null
 };
 import { triggerEmergency, appendTrailPoint } from '../services/ride-emergency.service';
 
-const ACTIVE_MESSAGE_STATUSES = new Set(['accepted', 'arrived', 'in_progress']);
+const ACTIVE_MESSAGE_STATUSES = new Set(['accepted', 'arrived', 'in_progress', 'pending_adjustment']);
 const RIDE_QUICK_MESSAGES = {
   on_my_way: 'Estou a caminho',
   already_arrived: 'Já cheguei',

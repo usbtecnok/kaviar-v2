@@ -1246,7 +1246,7 @@ export default function PassengerMap() {
                 </Text>
               </TouchableOpacity>
             )}
-            {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'started' || rideStatus === 'in_progress') && (
+            {(rideStatus === 'accepted' || rideStatus === 'arrived' || rideStatus === 'in_progress' || rideStatus === 'pending_adjustment') && (
               <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 14, marginBottom: 8, flexWrap: 'wrap' }}>
                 {rideStatus === 'accepted' && (
                   <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a2a1a', borderWidth: 1, borderColor: COLORS.accent }} onPress={handleFocusDriverOnMap}>

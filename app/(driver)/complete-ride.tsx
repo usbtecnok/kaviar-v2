@@ -258,7 +258,7 @@ export default function CompleteRide() {
     return { lat: ride.origin_lat, lng: ride.origin_lng, label: ride.origin_text || 'Passageiro' };
   };
 
-  const canSendRideMessage = ['accepted', 'arrived', 'started', 'in_progress'].includes(rideStatus);
+  const canSendRideMessage = ['accepted', 'arrived', 'in_progress', 'pending_adjustment'].includes(rideStatus);
 
   const openNavigation = () => {
     const target = getTarget();
