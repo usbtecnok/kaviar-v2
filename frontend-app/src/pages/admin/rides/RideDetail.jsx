@@ -27,6 +27,7 @@ import {
   ListItemText
 } from '@mui/material';
 import { formatDate } from '../../../utils/formatDate';
+import { openWhatsAppContact } from '../../../utils/whatsappInvite';
 import {
   ArrowBack,
   Cancel,
@@ -35,7 +36,8 @@ import {
   Timeline as TimelineIcon,
   AttachMoney,
   Person,
-  LocationOn
+  LocationOn,
+  WhatsApp
 } from '@mui/icons-material';
 
 const statusColors = {
@@ -337,23 +339,46 @@ export default function RideDetail() {
                     <Typography variant="body2" color="text.secondary">
                       {ride.passenger?.phone}
                     </Typography>
+                    {ride.passenger?.phone && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<WhatsApp fontSize="small" />}
+                        onClick={() => openWhatsAppContact(ride.passenger.phone)}
+                        sx={{ mt: 1, textTransform: 'none' }}
+                      >
+                        Falar com passageiro
+                      </Button>
+                    )}
                   </Box>
                 </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      <Person sx={{ fontSize: 16, mr: 0.5 }} />
-                      Motorista
-                    </Typography>
-                    <Typography variant="body1">
-                      {ride.driver?.name || 'Não atribuído'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {ride.driver?.phone || ''}
-                    </Typography>
-                  </Box>
-                </Grid>
+                {ride.driver && (
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        <Person sx={{ fontSize: 16, mr: 0.5 }} />
+                        Motorista
+                      </Typography>
+                      <Typography variant="body1">
+                        {ride.driver.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {ride.driver.phone || ''}
+                      </Typography>
+                      {ride.driver.phone && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<WhatsApp fontSize="small" />}
+                          onClick={() => openWhatsAppContact(ride.driver.phone)}
+                          sx={{ mt: 1, textTransform: 'none' }}
+                        >
+                          Falar com motorista
+                        </Button>
+                      )}
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
             </CardContent>
           </Card>

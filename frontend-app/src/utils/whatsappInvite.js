@@ -55,6 +55,14 @@ export function buildWhatsAppInviteUrl({ phone, message }) {
   return `https://wa.me${recipientPath}?text=${encodedMessage}`;
 }
 
+export function openWhatsAppContact(phone, message = "") {
+  const normalizedPhone = normalizeBrazilianPhone(phone);
+  const recipientPath = normalizedPhone ? "/" + normalizedPhone : "/";
+  const textQuery = message ? "?text=" + encodeURIComponent(message) : "";
+
+  window.open("https://wa.me" + recipientPath + textQuery, "_blank", "noopener,noreferrer");
+}
+
 export function getWhatsAppInviteMessage(type) {
   if (type === 'passenger') return WHATSAPP_PASSENGER_INVITE_MESSAGE;
   if (type === 'manager' || type === 'gestor') return WHATSAPP_MANAGER_INVITE_MESSAGE;

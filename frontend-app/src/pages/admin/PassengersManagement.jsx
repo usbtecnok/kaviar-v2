@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { Visibility, Search, WhatsApp } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { openDriverWhatsAppInvite, openPassengerWhatsAppInvite } from '../../utils/whatsappInvite';
+import { openWhatsAppContact } from '../../utils/whatsappInvite';
 
 
 export default function PassengersManagement() {
@@ -131,11 +131,8 @@ export default function PassengersManagement() {
                       >
                         <Visibility />
                       </IconButton>
-                      <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={() => openDriverWhatsAppInvite(passenger.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
-                        WhatsApp Motorista
-                      </Button>
-                      <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={() => openPassengerWhatsAppInvite(passenger.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
-                        WhatsApp Passageiro
+                      <Button size="small" variant="outlined" startIcon={<WhatsApp fontSize="small" />} onClick={() => openWhatsAppContact(passenger.phone)} sx={{ borderColor: '#25D36666', color: '#25D366', textTransform: 'none', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        Falar com passageiro
                       </Button>
                     </Box>
                   </TableCell>
