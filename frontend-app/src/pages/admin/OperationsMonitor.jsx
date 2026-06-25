@@ -127,6 +127,25 @@ function fmtDailyDate(date) {
   return day + '/' + month + '/' + year;
 }
 
+function fmtDailyShortDate(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return date || '-';
+  const [, month, day] = date.split('-');
+  return day + '/' + month;
+}
+
+function recentSaoPauloDates(count = 7) {
+  const now = Date.now();
+  return Array.from({ length: count }, (_, index) => (
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date(now - index * 24 * 60 * 60 * 1000))
+  ));
+}
+
+function recentDateLabel(date, index) {
+  if (index === 0) return 'Hoje';
+  if (index === 1) return 'Ontem';
+  return fmtDailyShortDate(date);
+}
+
 function moneyFromCents(cents) {
   if (cents == null) return 'R$ 0,00';
   return fmtMoney(Number(cents) / 100);
@@ -330,6 +349,15 @@ export default function OperationsMonitor() {
     }
   };
 
+  const selectRecentDailyDate = (date) => {
+    setDailyCopyStatus('');
+    if (date === dailyDate) {
+      loadDailyReport();
+      return;
+    }
+    setDailyDate(date);
+  };
+
   const addOperationalNoteToDetail = (note) => {
     setRideDetail(prev => prev ? {
       ...prev,
@@ -397,6 +425,7 @@ export default function OperationsMonitor() {
   const selectedTerritory = territory.active_territory || territories.find(item => item.id === selectedTerritoryId) || null;
   const scopeLabel = territory.scope_label || (selectedTerritory ? `Visualizando: ${selectedTerritory.name}` : 'Visualizando todos os territorios');
   const hasTerritoryFilter = Boolean(selectedTerritoryId);
+  const recentDates = recentSaoPauloDates(7);
 
   return (
     <Box sx={{ maxWidth: 1320, mx: 'auto', px: 2, py: 2 }}>
@@ -511,6 +540,19 @@ export default function OperationsMonitor() {
               Exportar CSV
             </Button>
           </Box>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mb: 2 }}>
+          {recentDates.map((date, index) => (
+            <Chip
+              key={date}
+              label={recentDateLabel(date, index)}
+              onClick={() => selectRecentDailyDate(date)}
+              disabled={dailyLoading}
+              variant={date === dailyDate ? 'filled' : 'outlined'}
+              color={date === dailyDate ? 'warning' : 'default'}
+              sx={{ height: 28, borderRadius: 1.5, fontSize: 11, fontWeight: date === dailyDate ? 800 : 700 }}
+            />
+          ))}
         </Box>
         {dailyError && <Alert severity="error" sx={{ mb: 2 }}>{dailyError}</Alert>}
         {dailyCopyStatus && (
