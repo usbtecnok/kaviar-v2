@@ -1,10 +1,19 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
+import { applyTerritoryScope } from '../middlewares/territory-scope';
 
 const router = Router();
 router.use(authenticateAdmin);
 router.use(requireRole(['SUPER_ADMIN', 'OPERATOR']));
+router.use(applyTerritoryScope);
+
+type TerritoryOption = {
+  id: string;
+  name: string;
+  city_name: string | null;
+  uf: string | null;
+};
 
 function getPeriod(p: string): { start: Date; label: string } {
   const now = new Date();
@@ -41,6 +50,84 @@ function maskPhone(phone?: string | null): string | null {
   const digits = phone.replace(/\D/g, '');
   if (digits.length <= 4) return '****';
   return `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
+}
+
+function getTerritoryScope(req: Request): { territoryIds: string[]; neighborhoodIds: string[] } | null {
+  return (req as Request & { territoryScope?: { territoryIds: string[]; neighborhoodIds: string[] } | null }).territoryScope || null;
+}
+
+async function getAvailableTerritories(req: Request): Promise<TerritoryOption[]> {
+  const scope = getTerritoryScope(req);
+  const where: Record<string, unknown> = { is_active: true };
+  if (scope) where.id = { in: scope.territoryIds };
+
+  return prisma.operational_territories.findMany({
+    where,
+    select: { id: true, name: true, city_name: true, uf: true },
+    orderBy: [{ level: 'asc' }, { name: 'asc' }],
+  });
+}
+
+function buildTerritoryMeta(territories: TerritoryOption[], territoryId: string | null) {
+  const selected = territoryId ? territories.find(territory => territory.id === territoryId) || null : null;
+  return {
+    territories,
+    active_territory_id: territoryId,
+    active_territory: selected,
+    scope_label: selected ? `Visualizando: ${selected.name}` : 'Visualizando todos os territorios',
+  };
+}
+
+async function resolveTerritoryFilter(req: Request, res: Response) {
+  const requestedTerritoryId = typeof req.query.territory_id === 'string' && req.query.territory_id.trim()
+    ? req.query.territory_id.trim()
+    : null;
+  const territories = await getAvailableTerritories(req);
+
+  if (requestedTerritoryId && !territories.some(territory => territory.id === requestedTerritoryId)) {
+    res.status(403).json({ success: false, error: 'Sem permissao para este territorio' });
+    return null;
+  }
+
+  if (!requestedTerritoryId) {
+    const scope = getTerritoryScope(req);
+    return { territoryId: null, neighborhoodIds: scope?.neighborhoodIds || null, territories };
+  }
+
+  const neighborhoods = await prisma.neighborhoods.findMany({
+    where: { territory_id: requestedTerritoryId },
+    select: { id: true },
+  });
+
+  return {
+    territoryId: requestedTerritoryId,
+    neighborhoodIds: neighborhoods.map(neighborhood => neighborhood.id),
+    territories,
+  };
+}
+
+function applyRideTerritoryFilter(where: Record<string, any>, neighborhoodIds: string[] | null) {
+  if (!neighborhoodIds) return where;
+  return {
+    ...where,
+    origin_neighborhood_id: neighborhoodIds.length > 0 ? { in: neighborhoodIds } : '__none__',
+  };
+}
+
+function applyDriverTerritoryFilter(where: Record<string, any>, neighborhoodIds: string[] | null) {
+  if (!neighborhoodIds) return where;
+  return {
+    ...where,
+    driver: {
+      neighborhood_id: neighborhoodIds.length > 0 ? { in: neighborhoodIds } : '__none__',
+    },
+  };
+}
+
+function canAccessRideTerritory(req: Request, territoryId?: string | null): boolean {
+  const scope = getTerritoryScope(req);
+  if (!scope || !territoryId) return true;
+  return scope.territoryIds.includes(territoryId);
 }
 
 function buildAttentionFlags(ride: {
@@ -93,7 +180,7 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
             communities: { select: { name: true } },
           },
         },
-        origin_neighborhood: { select: { name: true } },
+        origin_neighborhood: { select: { name: true, territory_id: true } },
         dest_neighborhood: { select: { name: true } },
         offers: {
           orderBy: { sent_at: 'asc' },
@@ -129,6 +216,14 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
     });
 
     if (!ride) return res.status(404).json({ success: false, error: 'Corrida nao encontrada' });
+
+    const requestedTerritoryId = typeof req.query.territory_id === 'string' && req.query.territory_id.trim()
+      ? req.query.territory_id.trim()
+      : null;
+    const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
+    if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
+      return res.status(404).json({ success: false, error: 'Corrida nao encontrada' });
+    }
 
     const timeline: Array<{
       type: string;
@@ -252,6 +347,17 @@ router.get('/cockpit', async (req: Request, res: Response) => {
     const admin = (req as any).admin;
     const canSeeEmergencyDetails = admin?.role === 'SUPER_ADMIN';
     const activeStatuses = ['requested', 'offered', 'accepted', 'arrived', 'in_progress'];
+    const territoryFilter = await resolveTerritoryFilter(req, res);
+    if (!territoryFilter) return;
+
+    const rideTodayWhere = applyRideTerritoryFilter({ requested_at: { gte: start } }, territoryFilter.neighborhoodIds);
+    const activeRideWhere = applyRideTerritoryFilter({ status: { in: activeStatuses as any } }, territoryFilter.neighborhoodIds);
+    const offerTimingWhere = applyRideTerritoryFilter({ requested_at: { gte: start }, offered_at: { not: null } }, territoryFilter.neighborhoodIds);
+    const demandWhere = applyRideTerritoryFilter({ status: 'no_driver', requested_at: { gte: start } }, territoryFilter.neighborhoodIds);
+    const driverWhere = applyDriverTerritoryFilter({ availability: { in: ['online', 'busy'] } }, territoryFilter.neighborhoodIds);
+    const emergencyWhere: any = territoryFilter.neighborhoodIds
+      ? { status: 'active', ride: { origin_neighborhood_id: territoryFilter.neighborhoodIds.length > 0 ? { in: territoryFilter.neighborhoodIds } : '__none__' } }
+      : { status: 'active' };
 
     const [
       rideGroups,
@@ -264,11 +370,11 @@ router.get('/cockpit', async (req: Request, res: Response) => {
     ] = await Promise.all([
       prisma.rides_v2.groupBy({
         by: ['status'],
-        where: { requested_at: { gte: start } },
+        where: rideTodayWhere,
         _count: true,
       }),
       prisma.rides_v2.findMany({
-        where: { status: { in: activeStatuses as any } },
+        where: activeRideWhere,
         orderBy: { requested_at: 'desc' },
         take: 30,
         select: {
@@ -283,7 +389,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
         },
       }),
       prisma.driver_status.findMany({
-        where: { availability: { in: ['online', 'busy'] } },
+        where: driverWhere,
         orderBy: { updated_at: 'desc' },
         take: 50,
         select: {
@@ -304,11 +410,11 @@ router.get('/cockpit', async (req: Request, res: Response) => {
         },
       }),
       prisma.rides_v2.findMany({
-        where: { requested_at: { gte: start }, offered_at: { not: null } },
+        where: offerTimingWhere,
         select: { requested_at: true, offered_at: true },
       }),
       prisma.rides_v2.findMany({
-        where: { status: 'no_driver', requested_at: { gte: start } },
+        where: demandWhere,
         orderBy: { requested_at: 'desc' },
         take: 100,
         select: {
@@ -318,10 +424,10 @@ router.get('/cockpit', async (req: Request, res: Response) => {
           origin_neighborhood: { select: { name: true } },
         },
       }),
-      prisma.ride_emergency_events.count({ where: { status: 'active' } }),
+      prisma.ride_emergency_events.count({ where: emergencyWhere }),
       canSeeEmergencyDetails
         ? prisma.ride_emergency_events.findMany({
-            where: { status: 'active' },
+            where: emergencyWhere,
             orderBy: { created_at: 'desc' },
             take: 20,
             include: {
@@ -364,6 +470,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
       success: true,
       generated_at: new Date(),
       period: { start, end: new Date(), label },
+      territory: buildTerritoryMeta(territoryFilter.territories, territoryFilter.territoryId),
       cards: {
         drivers_online: onlineDrivers.filter(d => d.availability === 'online').length,
         active_rides: activeStatuses.reduce((sum, status) => sum + (byStatus[status] || 0), 0),

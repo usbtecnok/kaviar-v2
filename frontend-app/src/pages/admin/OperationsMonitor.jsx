@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -14,6 +15,11 @@ import {
   TableRow,
   Alert,
   Drawer,
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
 } from '@mui/material';
 import { Refresh, Close } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
@@ -89,6 +95,8 @@ export default function OperationsMonitor() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [rideDetail, setRideDetail] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedTerritoryId = searchParams.get('territory_id') || '';
   const token = localStorage.getItem('kaviar_admin_token');
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
@@ -97,7 +105,8 @@ export default function OperationsMonitor() {
   const load = useCallback(async () => {
     try {
       setError('');
-      const res = await fetch(`${API_BASE_URL}/api/admin/operations/cockpit`, {
+      const query = selectedTerritoryId ? `?territory_id=${encodeURIComponent(selectedTerritoryId)}` : '';
+      const res = await fetch(`${API_BASE_URL}/api/admin/operations/cockpit${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await res.json();
@@ -111,7 +120,7 @@ export default function OperationsMonitor() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, selectedTerritoryId]);
 
   const openRideDetail = async (rideId) => {
     setDetailOpen(true);
@@ -120,7 +129,8 @@ export default function OperationsMonitor() {
     setRideDetail(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/operations/rides/${rideId}`, {
+      const query = selectedTerritoryId ? `?territory_id=${encodeURIComponent(selectedTerritoryId)}` : '';
+      const res = await fetch(`${API_BASE_URL}/api/admin/operations/rides/${rideId}${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const body = await res.json();
@@ -134,6 +144,13 @@ export default function OperationsMonitor() {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const changeTerritory = (territoryId) => {
+    const next = new URLSearchParams(searchParams);
+    if (territoryId) next.set('territory_id', territoryId);
+    else next.delete('territory_id');
+    setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
@@ -174,6 +191,11 @@ export default function OperationsMonitor() {
   const onlineDrivers = data?.online_drivers || [];
   const demand = data?.demand_unserved || { total: 0, by_region: [], recent: [] };
   const emergencies = data?.emergencies || [];
+  const territory = data?.territory || {};
+  const territories = territory.territories || [];
+  const selectedTerritory = territory.active_territory || territories.find(item => item.id === selectedTerritoryId) || null;
+  const scopeLabel = territory.scope_label || (selectedTerritory ? `Visualizando: ${selectedTerritory.name}` : 'Visualizando todos os territorios');
+  const hasTerritoryFilter = Boolean(selectedTerritoryId);
 
   return (
     <Box sx={{ maxWidth: 1320, mx: 'auto', px: 2, py: 2 }}>
@@ -182,6 +204,9 @@ export default function OperationsMonitor() {
           <Typography sx={{ color: '#f0f4f8', fontSize: 22, fontWeight: 800 }}>Cockpit Operacional</Typography>
           <Typography sx={{ color: '#8a9aaa', fontSize: 12, mt: 0.5 }}>
             Piloto territorial do dia, atualizado automaticamente a cada 30 segundos
+          </Typography>
+          <Typography sx={{ color: '#FFD700', fontSize: 12, mt: 0.7, fontWeight: 750 }}>
+            {scopeLabel}
           </Typography>
           {data?.generated_at && (
             <Typography sx={{ color: '#4f6172', fontSize: 11, mt: 0.5 }}>
@@ -197,6 +222,40 @@ export default function OperationsMonitor() {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+
+      <Box sx={{ ...sectionSx, mb: 3, display: 'flex', alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+        <Box>
+          <Typography sx={{ color: '#f0f4f8', fontSize: 14, fontWeight: 800 }}>Filtro operacional</Typography>
+          <Typography sx={{ color: '#66788a', fontSize: 11, mt: 0.4 }}>
+            {hasTerritoryFilter ? 'Cards, listas e detalhe seguem o territorio selecionado.' : 'Visao consolidada dos territorios permitidos para este usuario.'}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: { xs: '100%', md: 420 } }}>
+          <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } }, '& .MuiInputLabel-root': { color: '#8193a5' } }}>
+            <InputLabel id="territory-filter-label">Territorio</InputLabel>
+            <Select
+              labelId="territory-filter-label"
+              value={selectedTerritoryId}
+              label="Territorio"
+              onChange={(event) => changeTerritory(event.target.value)}
+              disabled={loading && !data}
+            >
+              <MenuItem value="">Todos os territorios</MenuItem>
+              {territories.map(item => (
+                <MenuItem key={item.id} value={item.id}>
+                  {item.name}{item.city_name ? ` - ${item.city_name}` : ''}{item.uf ? `/${item.uf}` : ''}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {hasTerritoryFilter && (
+            <Button variant="outlined" size="small" onClick={() => changeTerritory('')} sx={{ borderColor: '#2b3d4e', color: '#c9d3dc', whiteSpace: 'nowrap', textTransform: 'none' }}>
+              Limpar
+            </Button>
+          )}
+        </Box>
+      </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 1.5, mb: 3 }}>
         {[
@@ -256,7 +315,7 @@ export default function OperationsMonitor() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {activeRides.length === 0 && <EmptyRow columns={8} label="Nenhuma corrida ativa agora" />}
+                {activeRides.length === 0 && <EmptyRow columns={8} label={hasTerritoryFilter ? 'Nenhuma corrida ativa neste territorio.' : 'Nenhuma corrida ativa agora'} />}
               </TableBody>
             </Table>
           </TableContainer>
@@ -289,7 +348,7 @@ export default function OperationsMonitor() {
                     <TableCell sx={bodyCellSx}>{fmtHour(driver.last_seen_at)}</TableCell>
                   </TableRow>
                 ))}
-                {onlineDrivers.length === 0 && <EmptyRow columns={5} label="Nenhum motorista online agora" />}
+                {onlineDrivers.length === 0 && <EmptyRow columns={5} label={hasTerritoryFilter ? 'Nenhum motorista online neste territorio.' : 'Nenhum motorista online agora'} />}
               </TableBody>
             </Table>
           </TableContainer>
@@ -312,7 +371,7 @@ export default function OperationsMonitor() {
               ))}
             </Box>
           ) : (
-            <EmptyBox label="Nenhuma demanda sem atendimento registrada hoje" />
+            <EmptyBox label={hasTerritoryFilter ? 'Nenhuma demanda sem atendimento neste territorio hoje.' : 'Nenhuma demanda sem atendimento registrada hoje'} />
           )}
         </Box>
 
