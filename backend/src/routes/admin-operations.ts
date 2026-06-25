@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { pool } from '../db';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { requireTerritoryScope } from '../middlewares/require-territory-scope';
@@ -137,6 +138,44 @@ function canAccessRideTerritory(req: Request, territoryId?: string | null): bool
   const scope = getTerritoryScope(req);
   if (!scope || !territoryId) return true;
   return scope.territoryIds.includes(territoryId);
+}
+
+const OPERATION_NOTE_TYPES = new Set([
+  'checked',
+  'driver_contacted',
+  'passenger_oriented',
+  'emergency_followup',
+  'no_action_needed',
+  'other',
+]);
+
+function normalizeOperationNoteType(noteType: unknown): string {
+  if (typeof noteType !== 'string') return 'other';
+  const normalized = noteType.trim();
+  return OPERATION_NOTE_TYPES.has(normalized) ? normalized : 'other';
+}
+
+function normalizeOperationNote(note: unknown): string | null {
+  if (typeof note !== 'string') return null;
+  const normalized = note.trim().replace(/\s+/g, ' ');
+  if (!normalized) return null;
+  return normalized.slice(0, 500);
+}
+
+async function getRideOperationalNotes(rideId: string) {
+  const { rows } = await pool.query(
+    "SELECT a.id, a.admin_id, adm.name AS admin_name, adm.role AS admin_role, " +
+      "a.new_value->>'note_type' AS note_type, " +
+      "COALESCE(a.new_value->>'note', a.reason) AS note, a.created_at " +
+      "FROM admin_audit_logs a " +
+      "LEFT JOIN admins adm ON a.admin_id = adm.id::text " +
+      "WHERE a.entity_type = 'rides_v2' " +
+      "AND a.entity_id = $1 " +
+      "AND a.action = 'operation_note' " +
+      "ORDER BY a.created_at DESC LIMIT 30",
+    [rideId]
+  );
+  return rows;
 }
 
 type OperationalAlert = {
@@ -345,7 +384,7 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
 
     timeline.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     const hasActiveEmergency = ride.emergency_events.some(event => event.status === 'active');
-
+    const operationalNotes = await getRideOperationalNotes(ride.id);
 
     res.json({
       success: true,
@@ -396,6 +435,7 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
         }, hasActiveEmergency),
         messages: ride.messages,
         offers: ride.offers,
+        operational_notes: operationalNotes,
         emergencies: {
           total: ride.emergency_events.length,
           active: ride.emergency_events.filter(event => event.status === 'active').length,
@@ -417,6 +457,63 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[OPS_RIDE_DETAIL]', err);
     res.status(500).json({ success: false, error: 'Erro ao carregar detalhe operacional' });
+  }
+});
+
+
+router.post("/rides/:id/notes", async (req: Request, res: Response) => {
+  try {
+    const adminReq = req as Request & { admin: { id: string; email?: string | null; name?: string | null; role?: string | null } };
+    const admin = adminReq.admin;
+    const note = normalizeOperationNote(req.body?.note);
+    const noteType = normalizeOperationNoteType(req.body?.note_type);
+
+    if (!note) return res.status(400).json({ success: false, error: "Observacao obrigatoria" });
+
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, origin_neighborhood: { select: { territory_id: true } } },
+    });
+
+    if (!ride) return res.status(404).json({ success: false, error: "Corrida nao encontrada" });
+
+    const requestedTerritoryId = typeof req.query.territory_id === "string" && req.query.territory_id.trim()
+      ? req.query.territory_id.trim()
+      : null;
+    const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
+    if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
+      return res.status(404).json({ success: false, error: "Corrida nao encontrada" });
+    }
+
+    const payload = { note_type: noteType, note };
+    const { rows } = await pool.query(
+      "INSERT INTO admin_audit_logs (admin_id, admin_email, action, entity_type, entity_id, new_value, reason, ip_address, user_agent) " +
+        "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9) " +
+        "RETURNING id, admin_id, new_value->>'note_type' AS note_type, COALESCE(new_value->>'note', reason) AS note, created_at",
+      [
+        admin.id,
+        admin.email || null,
+        "operation_note",
+        "rides_v2",
+        ride.id,
+        JSON.stringify(payload),
+        note,
+        req.ip || null,
+        req.get("user-agent") || null,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...rows[0],
+        admin_name: admin.name || null,
+        admin_role: admin.role || null,
+      },
+    });
+  } catch (err) {
+    console.error("[OPS_RIDE_NOTE]", err);
+    res.status(500).json({ success: false, error: "Erro ao registrar observacao interna" });
   }
 });
 

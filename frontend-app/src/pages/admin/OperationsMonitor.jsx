@@ -20,6 +20,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  TextField,
 } from '@mui/material';
 import { Refresh, Close } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
@@ -66,6 +67,17 @@ const OPERATIONAL_SEVERITY = {
   attention: { label: 'Atenção', color: '#FFD700' },
   monitor: { label: 'Monitorar', color: '#64B5F6' },
 };
+
+const NOTE_TYPE_OPTIONS = [
+  { value: 'checked', label: 'Verificação realizada' },
+  { value: 'driver_contacted', label: 'Motorista contatado pelo gestor' },
+  { value: 'passenger_oriented', label: 'Passageiro orientado' },
+  { value: 'emergency_followup', label: 'Emergência acompanhada' },
+  { value: 'no_action_needed', label: 'Sem ação necessária' },
+  { value: 'other', label: 'Outra observação' },
+];
+
+const NOTE_TYPE_LABELS = NOTE_TYPE_OPTIONS.reduce((acc, item) => ({ ...acc, [item.value]: item.label }), {});
 
 function fmtTime(seconds) {
   if (seconds == null) return 'Indisponivel';
@@ -158,6 +170,13 @@ export default function OperationsMonitor() {
     if (territoryId) next.set('territory_id', territoryId);
     else next.delete('territory_id');
     setSearchParams(next, { replace: true });
+  };
+
+  const addOperationalNoteToDetail = (note) => {
+    setRideDetail(prev => prev ? {
+      ...prev,
+      operational_notes: [note, ...(prev.operational_notes || [])],
+    } : prev);
   };
 
   useEffect(() => {
@@ -504,14 +523,55 @@ export default function OperationsMonitor() {
         error={detailError}
         detail={rideDetail}
         isSuperAdmin={isSuperAdmin}
+        token={token}
+        selectedTerritoryId={selectedTerritoryId}
+        onNoteSaved={addOperationalNoteToDetail}
       />
     </Box>
   );
 }
 
-function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin }) {
+function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin, token, selectedTerritoryId, onNoteSaved }) {
   const ride = detail?.ride;
   const values = ride?.values || {};
+  const [noteType, setNoteType] = useState('checked');
+  const [noteText, setNoteText] = useState('');
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteError, setNoteError] = useState('');
+
+  const saveOperationalNote = async () => {
+    const note = noteText.trim();
+    if (!ride?.id || !note) {
+      setNoteError('Escreva uma observação interna para registrar.');
+      return;
+    }
+
+    try {
+      setNoteSaving(true);
+      setNoteError('');
+      const query = selectedTerritoryId ? `?territory_id=${encodeURIComponent(selectedTerritoryId)}` : '';
+      const res = await fetch(`${API_BASE_URL}/api/admin/operations/rides/${ride.id}/notes${query}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ note_type: noteType, note }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        throw new Error(body.error || 'Erro ao registrar observação interna');
+      }
+      onNoteSaved?.(body.data);
+      setNoteText('');
+      setNoteType('checked');
+    } catch (err) {
+      console.error('[OPS_RIDE_NOTE]', err);
+      setNoteError(err.message || 'Erro ao registrar observação interna');
+    } finally {
+      setNoteSaving(false);
+    }
+  };
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', md: 620 }, bgcolor: '#0b0f14', color: '#e8eef5' } }}>
@@ -617,6 +677,52 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin 
                   </Box>
                 )}
               />
+            </Panel>
+
+
+            <Panel title="Observações internas">
+              <Typography sx={{ color: '#9aabbc', fontSize: 12, mb: 1.5 }}>
+                Visível apenas para a equipe KAVIAR.
+              </Typography>
+              <SimpleRows
+                rows={detail.operational_notes || []}
+                empty="Nenhuma observação interna registrada."
+                render={note => (
+                  <Box key={note.id} sx={rowSx}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
+                      <Chip label={NOTE_TYPE_LABELS[note.note_type] || 'Outra observação'} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#FFD70022', color: '#FFD700', fontWeight: 750 }} />
+                      <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(note.created_at)}</Typography>
+                    </Box>
+                    <Typography sx={{ color: '#d8e0e8', fontSize: 12, mt: 1 }}>{note.note}</Typography>
+                    <Typography sx={{ color: '#7f91a3', fontSize: 11, mt: 0.6 }}>{note.admin_name || 'Admin'}{note.admin_role ? ` - ${note.admin_role}` : ''}</Typography>
+                  </Box>
+                )}
+              />
+              <Box sx={{ display: 'grid', gap: 1.2, mt: 2 }}>
+                <FormControl size="small" fullWidth sx={{ '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } }, '& .MuiInputLabel-root': { color: '#8193a5' } }}>
+                  <InputLabel id="operation-note-type-label">Tipo</InputLabel>
+                  <Select labelId="operation-note-type-label" value={noteType} label="Tipo" onChange={(event) => setNoteType(event.target.value)} disabled={noteSaving}>
+                    {NOTE_TYPE_OPTIONS.map(item => <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <TextField
+                  value={noteText}
+                  onChange={(event) => { setNoteText(event.target.value.slice(0, 500)); setNoteError(''); }}
+                  placeholder="Registre o acompanhamento operacional desta corrida"
+                  multiline
+                  minRows={3}
+                  inputProps={{ maxLength: 500 }}
+                  disabled={noteSaving}
+                  sx={{ '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } } }}
+                />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                  <Typography sx={{ color: noteText.length >= 480 ? '#FFD700' : '#586b7d', fontSize: 11 }}>{noteText.length}/500</Typography>
+                  <Button onClick={saveOperationalNote} disabled={noteSaving || !noteText.trim()} variant="contained" size="small" sx={{ bgcolor: '#FFD700', color: '#0b0f14', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#e6c200' } }}>
+                    {noteSaving ? 'Registrando...' : 'Registrar observação'}
+                  </Button>
+                </Box>
+                {noteError && <Alert severity="error">{noteError}</Alert>}
+              </Box>
             </Panel>
 
             <Panel title="Emergências">
