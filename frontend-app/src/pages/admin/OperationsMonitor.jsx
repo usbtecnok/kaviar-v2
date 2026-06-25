@@ -560,14 +560,14 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin,
       });
       const body = await res.json();
       if (!res.ok || !body.success) {
-        throw new Error(body.error || 'Erro ao registrar observação interna');
+        throw new Error(body.error || 'Erro ao registrar observação interna.');
       }
       onNoteSaved?.(body.data);
       setNoteText('');
       setNoteType('checked');
     } catch (err) {
       console.error('[OPS_RIDE_NOTE]', err);
-      setNoteError(err.message || 'Erro ao registrar observação interna');
+      setNoteError(err.message || 'Erro ao registrar observação interna.');
     } finally {
       setNoteSaving(false);
     }

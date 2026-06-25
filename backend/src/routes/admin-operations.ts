@@ -468,38 +468,36 @@ router.post("/rides/:id/notes", async (req: Request, res: Response) => {
     const note = normalizeOperationNote(req.body?.note);
     const noteType = normalizeOperationNoteType(req.body?.note_type);
 
-    if (!note) return res.status(400).json({ success: false, error: "Observacao obrigatoria" });
+    if (!note) return res.status(400).json({ success: false, error: "Observação obrigatória" });
 
     const ride = await prisma.rides_v2.findUnique({
       where: { id: req.params.id },
       select: { id: true, origin_neighborhood: { select: { territory_id: true } } },
     });
 
-    if (!ride) return res.status(404).json({ success: false, error: "Corrida nao encontrada" });
+    if (!ride) return res.status(404).json({ success: false, error: "Corrida não encontrada" });
 
     const requestedTerritoryId = typeof req.query.territory_id === "string" && req.query.territory_id.trim()
       ? req.query.territory_id.trim()
       : null;
     const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
     if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
-      return res.status(404).json({ success: false, error: "Corrida nao encontrada" });
+      return res.status(404).json({ success: false, error: "Corrida não encontrada" });
     }
 
     const payload = { note_type: noteType, note };
     const { rows } = await pool.query(
-      "INSERT INTO admin_audit_logs (admin_id, admin_email, action, entity_type, entity_id, new_value, reason, ip_address, user_agent) " +
-        "VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8, $9) " +
+      "INSERT INTO admin_audit_logs (admin_id, action, entity_type, entity_id, new_value, reason, ip_address) " +
+        "VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7) " +
         "RETURNING id, admin_id, new_value->>'note_type' AS note_type, COALESCE(new_value->>'note', reason) AS note, created_at",
       [
         admin.id,
-        admin.email || null,
         "operation_note",
         "rides_v2",
         ride.id,
         JSON.stringify(payload),
         note,
         req.ip || null,
-        req.get("user-agent") || null,
       ]
     );
 
@@ -513,7 +511,7 @@ router.post("/rides/:id/notes", async (req: Request, res: Response) => {
     });
   } catch (err) {
     console.error("[OPS_RIDE_NOTE]", err);
-    res.status(500).json({ success: false, error: "Erro ao registrar observacao interna" });
+    res.status(500).json({ success: false, error: "Erro ao registrar observação interna." });
   }
 });
 
