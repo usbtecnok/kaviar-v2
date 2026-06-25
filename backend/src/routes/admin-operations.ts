@@ -162,6 +162,29 @@ function normalizeOperationNote(note: unknown): string | null {
   return normalized.slice(0, 500);
 }
 
+const EMERGENCY_FOLLOWUP_TYPES = new Set([
+  'emergency_seen',
+  'passenger_contact_attempted',
+  'driver_contact_attempted',
+  'local_manager_followup',
+  'support_followup',
+  'no_action_needed',
+  'other',
+]);
+
+function normalizeEmergencyFollowupType(followupType: unknown): string {
+  if (typeof followupType !== 'string') return 'other';
+  const normalized = followupType.trim();
+  return EMERGENCY_FOLLOWUP_TYPES.has(normalized) ? normalized : 'other';
+}
+
+function normalizeEmergencyFollowupNote(note: unknown): string | null {
+  if (typeof note !== 'string') return null;
+  const normalized = note.trim().replace(/\s+/g, ' ');
+  if (!normalized) return null;
+  return normalized.slice(0, 500);
+}
+
 async function getRideOperationalNotes(rideId: string) {
   const { rows } = await pool.query(
     "SELECT a.id, a.admin_id, adm.name AS admin_name, adm.role AS admin_role, " +
@@ -172,6 +195,22 @@ async function getRideOperationalNotes(rideId: string) {
       "WHERE a.entity_type = 'rides_v2' " +
       "AND a.entity_id = $1 " +
       "AND a.action = 'operation_note' " +
+      "ORDER BY a.created_at DESC LIMIT 30",
+    [rideId]
+  );
+  return rows;
+}
+
+async function getRideEmergencyFollowups(rideId: string) {
+  const { rows } = await pool.query(
+    "SELECT a.id, a.admin_id, adm.name AS admin_name, adm.role AS admin_role, " +
+      "a.new_value->>'followup_type' AS followup_type, " +
+      "COALESCE(a.new_value->>'note', a.reason) AS note, a.created_at " +
+      "FROM admin_audit_logs a " +
+      "LEFT JOIN admins adm ON a.admin_id = adm.id::text " +
+      "WHERE a.entity_type = 'rides_v2' " +
+      "AND a.entity_id = $1 " +
+      "AND a.action = 'emergency_followup' " +
       "ORDER BY a.created_at DESC LIMIT 30",
     [rideId]
   );
@@ -384,7 +423,10 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
 
     timeline.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     const hasActiveEmergency = ride.emergency_events.some(event => event.status === 'active');
-    const operationalNotes = await getRideOperationalNotes(ride.id);
+    const [operationalNotes, emergencyFollowups] = await Promise.all([
+      getRideOperationalNotes(ride.id),
+      getRideEmergencyFollowups(ride.id),
+    ]);
 
     res.json({
       success: true,
@@ -450,7 +492,12 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
                 resolution_notes: event.resolution_notes,
                 trail_points: event._count.location_trail,
               }))
-            : ride.emergency_events.map(event => ({ status: event.status, created_at: event.created_at })),
+            : ride.emergency_events.map(event => ({
+                status: event.status,
+                created_at: event.created_at,
+                resolved_at: event.resolved_at,
+              })),
+          followups: emergencyFollowups,
         },
       },
     });
@@ -512,6 +559,67 @@ router.post("/rides/:id/notes", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("[OPS_RIDE_NOTE]", err);
     res.status(500).json({ success: false, error: "Erro ao registrar observação interna." });
+  }
+});
+
+router.post("/rides/:id/emergency-followups", async (req: Request, res: Response) => {
+  try {
+    const adminReq = req as Request & { admin: { id: string; name?: string | null; role?: string | null } };
+    const admin = adminReq.admin;
+    const followupType = normalizeEmergencyFollowupType(req.body?.followup_type);
+    const note = normalizeEmergencyFollowupNote(req.body?.note);
+
+    if (!note) return res.status(400).json({ success: false, error: "Observação obrigatória" });
+
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        origin_neighborhood: { select: { territory_id: true } },
+        emergency_events: { select: { id: true }, take: 1 },
+      },
+    });
+
+    if (!ride) return res.status(404).json({ success: false, error: "Corrida não encontrada" });
+    if (ride.emergency_events.length === 0) {
+      return res.status(400).json({ success: false, error: "Corrida sem emergência vinculada" });
+    }
+
+    const requestedTerritoryId = typeof req.query.territory_id === "string" && req.query.territory_id.trim()
+      ? req.query.territory_id.trim()
+      : null;
+    const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
+    if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
+      return res.status(404).json({ success: false, error: "Corrida não encontrada" });
+    }
+
+    const payload = { followup_type: followupType, note };
+    const { rows } = await pool.query(
+      "INSERT INTO admin_audit_logs (admin_id, action, entity_type, entity_id, new_value, reason, ip_address) " +
+        "VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7) " +
+        "RETURNING id, admin_id, new_value->>'followup_type' AS followup_type, COALESCE(new_value->>'note', reason) AS note, created_at",
+      [
+        admin.id,
+        "emergency_followup",
+        "rides_v2",
+        ride.id,
+        JSON.stringify(payload),
+        note,
+        req.ip || null,
+      ]
+    );
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...rows[0],
+        admin_name: admin.name || null,
+        admin_role: admin.role || null,
+      },
+    });
+  } catch (err) {
+    console.error("[OPS_EMERGENCY_FOLLOWUP]", err);
+    res.status(500).json({ success: false, error: "Erro ao registrar acompanhamento de emergência." });
   }
 });
 

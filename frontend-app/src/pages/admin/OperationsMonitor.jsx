@@ -79,6 +79,18 @@ const NOTE_TYPE_OPTIONS = [
 
 const NOTE_TYPE_LABELS = NOTE_TYPE_OPTIONS.reduce((acc, item) => ({ ...acc, [item.value]: item.label }), {});
 
+const EMERGENCY_FOLLOWUP_OPTIONS = [
+  { value: 'emergency_seen', label: 'Emergência visualizada' },
+  { value: 'passenger_contact_attempted', label: 'Tentativa de contato com passageiro registrada' },
+  { value: 'driver_contact_attempted', label: 'Tentativa de contato com motorista registrada' },
+  { value: 'local_manager_followup', label: 'Gestor territorial acompanhando' },
+  { value: 'support_followup', label: 'Suporte acompanhando' },
+  { value: 'no_action_needed', label: 'Sem ação adicional necessária' },
+  { value: 'other', label: 'Outro acompanhamento' },
+];
+
+const EMERGENCY_FOLLOWUP_LABELS = EMERGENCY_FOLLOWUP_OPTIONS.reduce((acc, item) => ({ ...acc, [item.value]: item.label }), {});
+
 function fmtTime(seconds) {
   if (seconds == null) return 'Indisponivel';
   if (seconds < 60) return `${seconds}s`;
@@ -176,6 +188,16 @@ export default function OperationsMonitor() {
     setRideDetail(prev => prev ? {
       ...prev,
       operational_notes: [note, ...(prev.operational_notes || [])],
+    } : prev);
+  };
+
+  const addEmergencyFollowupToDetail = (followup) => {
+    setRideDetail(prev => prev ? {
+      ...prev,
+      emergencies: {
+        ...(prev.emergencies || {}),
+        followups: [followup, ...(prev.emergencies?.followups || [])],
+      },
     } : prev);
   };
 
@@ -526,18 +548,23 @@ export default function OperationsMonitor() {
         token={token}
         selectedTerritoryId={selectedTerritoryId}
         onNoteSaved={addOperationalNoteToDetail}
+        onEmergencyFollowupSaved={addEmergencyFollowupToDetail}
       />
     </Box>
   );
 }
 
-function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin, token, selectedTerritoryId, onNoteSaved }) {
+function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin, token, selectedTerritoryId, onNoteSaved, onEmergencyFollowupSaved }) {
   const ride = detail?.ride;
   const values = ride?.values || {};
   const [noteType, setNoteType] = useState('checked');
   const [noteText, setNoteText] = useState('');
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteError, setNoteError] = useState('');
+  const [followupType, setFollowupType] = useState('emergency_seen');
+  const [followupText, setFollowupText] = useState('');
+  const [followupSaving, setFollowupSaving] = useState(false);
+  const [followupError, setFollowupError] = useState('');
 
   const saveOperationalNote = async () => {
     const note = noteText.trim();
@@ -570,6 +597,40 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin,
       setNoteError(err.message || 'Erro ao registrar observação interna.');
     } finally {
       setNoteSaving(false);
+    }
+  };
+
+  const saveEmergencyFollowup = async () => {
+    const note = followupText.trim();
+    if (!ride?.id || !note) {
+      setFollowupError('Escreva um acompanhamento de emergência para registrar.');
+      return;
+    }
+
+    try {
+      setFollowupSaving(true);
+      setFollowupError('');
+      const query = selectedTerritoryId ? '?territory_id=' + encodeURIComponent(selectedTerritoryId) : '';
+      const res = await fetch(API_BASE_URL + '/api/admin/operations/rides/' + ride.id + '/emergency-followups' + query, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ followup_type: followupType, note }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        throw new Error(body.error || 'Erro ao registrar acompanhamento de emergência.');
+      }
+      onEmergencyFollowupSaved?.(body.data);
+      setFollowupText('');
+      setFollowupType('emergency_seen');
+    } catch (err) {
+      console.error('[OPS_EMERGENCY_FOLLOWUP]', err);
+      setFollowupError(err.message || 'Erro ao registrar acompanhamento de emergência.');
+    } finally {
+      setFollowupSaving(false);
     }
   };
 
@@ -725,24 +786,86 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin,
               </Box>
             </Panel>
 
-            <Panel title="Emergências">
-              <Typography sx={{ color: '#9aabbc', fontSize: 12, mb: 1 }}>
-                Total: {detail.emergencies.total} | Ativas: {detail.emergencies.active}
-              </Typography>
+            <Panel title='Emergências'>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 1.5 }}>
+                <Chip label={'Total: ' + detail.emergencies.total} size='small' sx={{ height: 22, fontSize: 10, bgcolor: '#263442', color: '#d8e0e8', fontWeight: 750 }} />
+                {detail.emergencies.active > 0 && <Chip label='Emergência ativa' size='small' sx={{ height: 22, fontSize: 10, bgcolor: '#f4433622', color: '#ff8a80', fontWeight: 850 }} />}
+                {detail.emergencies.active > 0 && <Chip label='Acompanhamento necessário' size='small' sx={{ height: 22, fontSize: 10, bgcolor: '#FFD70022', color: '#FFD700', fontWeight: 850 }} />}
+              </Box>
               {isSuperAdmin ? (
                 <SimpleRows
                   rows={detail.emergencies.items}
-                  empty="Nenhuma emergencia vinculada"
+                  empty='Nenhuma emergência vinculada'
                   render={(event, index) => (
                     <Box key={event.id || index} sx={rowSx}>
-                      <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{event.status}</Typography>
-                      <Typography sx={{ color: '#9aabbc', fontSize: 12 }}>{event.triggered_by_type || 'origem não informada'} - {event.trigger_source || '-'}</Typography>
-                      <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(event.created_at)} | pontos: {event.trail_points ?? '-'}</Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
+                        <Chip label={event.status === 'active' ? 'Ativa' : event.status} size='small' sx={{ height: 20, fontSize: 10, bgcolor: event.status === 'active' ? '#f4433622' : '#25D36622', color: event.status === 'active' ? '#ff8a80' : '#25D366', fontWeight: 750 }} />
+                        <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(event.created_at)}</Typography>
+                      </Box>
+                      <Typography sx={{ color: '#9aabbc', fontSize: 12, mt: 1 }}>{event.triggered_by_type || 'origem não informada'} - {event.trigger_source || '-'}</Typography>
+                      <Typography sx={{ color: '#586b7d', fontSize: 11 }}>Pontos de trilha: {event.trail_points ?? '-'}</Typography>
+                      {event.resolved_at && <Typography sx={{ color: '#586b7d', fontSize: 11 }}>Encerrada: {fmtDateTime(event.resolved_at)}</Typography>}
+                      {event.resolution_notes && <Typography sx={{ color: '#7f91a3', fontSize: 11, mt: 0.6 }}>Notas: {event.resolution_notes}</Typography>}
                     </Box>
                   )}
                 />
               ) : (
-                <EmptyBox label={detail.emergencies.total > 0 ? 'Ha emergencia vinculada. Detalhes restritos ao Super Admin.' : 'Nenhuma emergencia vinculada'} />
+                <SimpleRows
+                  rows={detail.emergencies.items}
+                  empty='Nenhuma emergência vinculada'
+                  render={(event, index) => (
+                    <Box key={index} sx={rowSx}>
+                      <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{event.status === 'active' ? 'Emergência ativa' : 'Emergência encerrada'}</Typography>
+                      <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(event.created_at)}{event.resolved_at ? ' - encerrada ' + fmtDateTime(event.resolved_at) : ''}</Typography>
+                    </Box>
+                  )}
+                />
+              )}
+
+              {detail.emergencies.total > 0 && (
+                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #1d2a38' }}>
+                  <Typography sx={{ color: '#d8e0e8', fontSize: 13, fontWeight: 800, mb: 0.5 }}>Acompanhamento de emergência</Typography>
+                  <Typography sx={{ color: '#9aabbc', fontSize: 12, mb: 1.5 }}>Registro interno de acompanhamento. Não altera a corrida e não notifica passageiro ou motorista.</Typography>
+                  <SimpleRows
+                    rows={detail.emergencies.followups || []}
+                    empty='Nenhum acompanhamento de emergência registrado.'
+                    render={followup => (
+                      <Box key={followup.id} sx={rowSx}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'center' }}>
+                          <Chip label={EMERGENCY_FOLLOWUP_LABELS[followup.followup_type] || 'Outro acompanhamento'} size='small' sx={{ height: 20, fontSize: 10, bgcolor: '#FFD70022', color: '#FFD700', fontWeight: 750 }} />
+                          <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(followup.created_at)}</Typography>
+                        </Box>
+                        <Typography sx={{ color: '#d8e0e8', fontSize: 12, mt: 1 }}>{followup.note}</Typography>
+                        <Typography sx={{ color: '#7f91a3', fontSize: 11, mt: 0.6 }}>{followup.admin_name || 'Admin'}{followup.admin_role ? ' - ' + followup.admin_role : ''}</Typography>
+                      </Box>
+                    )}
+                  />
+                  <Box sx={{ display: 'grid', gap: 1.2, mt: 2 }}>
+                    <FormControl size='small' fullWidth sx={{ '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } }, '& .MuiInputLabel-root': { color: '#8193a5' } }}>
+                      <InputLabel id='emergency-followup-type-label'>Tipo</InputLabel>
+                      <Select labelId='emergency-followup-type-label' value={followupType} label='Tipo' onChange={(event) => setFollowupType(event.target.value)} disabled={followupSaving}>
+                        {EMERGENCY_FOLLOWUP_OPTIONS.map(item => <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>)}
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      value={followupText}
+                      onChange={(event) => { setFollowupText(event.target.value.slice(0, 500)); setFollowupError(''); }}
+                      placeholder='Registre o acompanhamento interno desta emergência'
+                      multiline
+                      minRows={3}
+                      inputProps={{ maxLength: 500 }}
+                      disabled={followupSaving}
+                      sx={{ '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } } }}
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                      <Typography sx={{ color: followupText.length >= 480 ? '#FFD700' : '#586b7d', fontSize: 11 }}>{followupText.length}/500</Typography>
+                      <Button onClick={saveEmergencyFollowup} disabled={followupSaving || !followupText.trim()} variant='contained' size='small' sx={{ bgcolor: '#FFD700', color: '#0b0f14', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: '#e6c200' } }}>
+                        {followupSaving ? 'Registrando...' : 'Registrar acompanhamento'}
+                      </Button>
+                    </Box>
+                    {followupError && <Alert severity='error'>{followupError}</Alert>}
+                  </Box>
+                </Box>
               )}
             </Panel>
           </Box>
