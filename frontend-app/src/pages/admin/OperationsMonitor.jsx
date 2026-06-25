@@ -13,8 +13,9 @@ import {
   TableHead,
   TableRow,
   Alert,
+  Drawer,
 } from '@mui/material';
-import { Refresh } from '@mui/icons-material';
+import { Refresh, Close } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const STATUS_COLORS = {
@@ -47,10 +48,22 @@ const AVAILABILITY_LABELS = {
   offline: 'Offline',
 };
 
+const SEVERITY_COLORS = {
+  info: '#2196F3',
+  success: '#25D366',
+  warning: '#FF9800',
+  critical: '#f44336',
+};
+
 function fmtTime(seconds) {
   if (seconds == null) return 'Indisponivel';
   if (seconds < 60) return `${seconds}s`;
   return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
+function fmtMoney(value) {
+  if (value == null) return '-';
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
 function fmtHour(date) {
@@ -72,6 +85,10 @@ export default function OperationsMonitor() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
+  const [rideDetail, setRideDetail] = useState(null);
   const token = localStorage.getItem('kaviar_admin_token');
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
@@ -95,6 +112,29 @@ export default function OperationsMonitor() {
       setLoading(false);
     }
   }, [token]);
+
+  const openRideDetail = async (rideId) => {
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError('');
+    setRideDetail(null);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/operations/rides/${rideId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        throw new Error(body.error || 'Erro ao carregar detalhe operacional');
+      }
+      setRideDetail(body.data);
+    } catch (err) {
+      console.error('[OPS_RIDE_DETAIL]', err);
+      setDetailError(err.message || 'Erro ao carregar detalhe operacional');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -180,7 +220,7 @@ export default function OperationsMonitor() {
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.8fr)', gap: 1.5, mb: 3 }}>
         <Box sx={sectionSx}>
-          <SectionTitle title="Corridas recentes e ativas" subtitle="Indicadores de atencao aparecem quando uma corrida permanece tempo demais em estado sensivel." />
+          <SectionTitle title="Corridas recentes e ativas" subtitle="Clique em uma corrida para ver a timeline operacional somente leitura." />
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -192,7 +232,12 @@ export default function OperationsMonitor() {
               </TableHead>
               <TableBody>
                 {activeRides.map(ride => (
-                  <TableRow key={ride.id} sx={{ '&:hover': { bgcolor: '#111a22' } }}>
+                  <TableRow
+                    key={ride.id}
+                    hover
+                    onClick={() => openRideDetail(ride.id)}
+                    sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#111a22' } }}
+                  >
                     <TableCell sx={bodyCellSx}>
                       <StatusChip status={ride.status} />
                     </TableCell>
@@ -302,8 +347,181 @@ export default function OperationsMonitor() {
           )}
         </Box>
       </Box>
+
+      <RideDetailDrawer
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        loading={detailLoading}
+        error={detailError}
+        detail={rideDetail}
+        isSuperAdmin={isSuperAdmin}
+      />
     </Box>
   );
+}
+
+function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin }) {
+  const ride = detail?.ride;
+  const values = ride?.values || {};
+
+  return (
+    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: { xs: '100%', md: 620 }, bgcolor: '#0b0f14', color: '#e8eef5' } }}>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+          <Box>
+            <Typography sx={{ fontSize: 20, fontWeight: 850 }}>Detalhe operacional</Typography>
+            <Typography sx={{ color: '#6f8192', fontSize: 12 }}>{ride?.id ? `Corrida ${shortId(ride.id)}` : 'Cockpit somente leitura'}</Typography>
+          </Box>
+          <IconButton onClick={onClose} size="small"><Close sx={{ color: '#8ea0b2' }} /></IconButton>
+        </Box>
+
+        {loading && <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}><CircularProgress sx={{ color: '#FFD700' }} /></Box>}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+        {!loading && !error && detail && (
+          <Box sx={{ display: 'grid', gap: 2 }}>
+            <Panel title="Dados basicos">
+              <InfoGrid items={[
+                ['Status', <StatusChip key="status" status={ride.status} />],
+                ['Passageiro', ride.passenger?.name || '-'],
+                ['Motorista', ride.driver?.name || '-'],
+                ['Regiao', ride.region || '-'],
+                ['Origem', ride.origin_text || '-'],
+                ['Destino', ride.destination_text || '-'],
+              ]} />
+            </Panel>
+
+            <Panel title="Horarios principais">
+              <InfoGrid items={[
+                ['Solicitada', fmtDateTime(ride.requested_at)],
+                ['Ofertada', fmtDateTime(ride.offered_at)],
+                ['Aceita', fmtDateTime(ride.accepted_at)],
+                ['Chegada', fmtDateTime(ride.arrived_at)],
+                ['Inicio', fmtDateTime(ride.started_at)],
+                ['Finalizacao', fmtDateTime(ride.completed_at)],
+                ['Cancelamento', fmtDateTime(ride.canceled_at)],
+              ]} />
+            </Panel>
+
+            <Panel title="Valores existentes">
+              <InfoGrid items={[
+                ['Estimado', fmtMoney(values.quoted_price)],
+                ['Travado', fmtMoney(values.locked_price)],
+                ['Ajustado', fmtMoney(values.adjusted_price)],
+                ['Final', fmtMoney(values.final_price)],
+                ['Taxa', fmtMoney(values.platform_fee)],
+                ['Motorista', fmtMoney(values.driver_earnings)],
+              ]} />
+            </Panel>
+
+            <Panel title="Alertas">
+              {detail.attention_flags.length > 0 ? (
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {detail.attention_flags.map(flag => (
+                    <Chip key={flag.code} label={flag.label} size="small" sx={{ bgcolor: `${SEVERITY_COLORS[flag.severity] || '#777'}22`, color: SEVERITY_COLORS[flag.severity] || '#aaa' }} />
+                  ))}
+                </Box>
+              ) : <EmptyBox label="Nenhum alerta operacional neste momento" />}
+            </Panel>
+
+            <Panel title="Timeline operacional">
+              <Box sx={{ display: 'grid', gap: 1.2 }}>
+                {detail.timeline.map((event, index) => (
+                  <Box key={`${event.type}-${event.at}-${index}`} sx={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 1.5 }}>
+                    <Typography sx={{ color: '#6f8192', fontSize: 11, pt: 0.2 }}>{fmtHour(event.at)}</Typography>
+                    <Box sx={{ borderLeft: `2px solid ${SEVERITY_COLORS[event.severity] || '#263442'}`, pl: 1.5, pb: 1.2 }}>
+                      <Typography sx={{ color: '#e5edf5', fontSize: 13, fontWeight: 750 }}>{event.title}</Typography>
+                      {event.description && <Typography sx={{ color: '#7f91a3', fontSize: 12, mt: 0.2 }}>{event.description}</Typography>}
+                    </Box>
+                  </Box>
+                ))}
+                {detail.timeline.length === 0 && <EmptyBox label="Sem eventos de timeline" />}
+              </Box>
+            </Panel>
+
+            <Panel title="Mensagens rapidas">
+              <SimpleRows
+                rows={detail.messages}
+                empty="Nenhuma mensagem rapida registrada"
+                render={message => (
+                  <Box key={message.id} sx={rowSx}>
+                    <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{message.sender_type}{' -> '}{message.recipient_type}</Typography>
+                    <Typography sx={{ color: '#9aabbc', fontSize: 12 }}>{message.message_text}</Typography>
+                    <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(message.created_at)} {message.read_at ? `- lida ${fmtHour(message.read_at)}` : ''}</Typography>
+                  </Box>
+                )}
+              />
+            </Panel>
+
+            <Panel title="Ofertas">
+              <SimpleRows
+                rows={detail.offers}
+                empty="Nenhuma oferta registrada"
+                render={offer => (
+                  <Box key={offer.id} sx={rowSx}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                      <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{offer.driver?.name || 'Motorista nao informado'}</Typography>
+                      <Chip label={offer.status} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#2196F322', color: '#64B5F6' }} />
+                    </Box>
+                    <Typography sx={{ color: '#7f91a3', fontSize: 11 }}>Enviada {fmtDateTime(offer.sent_at)} {offer.responded_at ? `- resposta ${fmtDateTime(offer.responded_at)}` : ''}</Typography>
+                    {offer.territory_tier && <Typography sx={{ color: '#586b7d', fontSize: 11 }}>Territorio: {offer.territory_tier}</Typography>}
+                  </Box>
+                )}
+              />
+            </Panel>
+
+            <Panel title="Emergencias">
+              <Typography sx={{ color: '#9aabbc', fontSize: 12, mb: 1 }}>
+                Total: {detail.emergencies.total} | Ativas: {detail.emergencies.active}
+              </Typography>
+              {isSuperAdmin ? (
+                <SimpleRows
+                  rows={detail.emergencies.items}
+                  empty="Nenhuma emergencia vinculada"
+                  render={(event, index) => (
+                    <Box key={event.id || index} sx={rowSx}>
+                      <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{event.status}</Typography>
+                      <Typography sx={{ color: '#9aabbc', fontSize: 12 }}>{event.triggered_by_type || 'origem nao informada'} - {event.trigger_source || '-'}</Typography>
+                      <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(event.created_at)} | pontos: {event.trail_points ?? '-'}</Typography>
+                    </Box>
+                  )}
+                />
+              ) : (
+                <EmptyBox label={detail.emergencies.total > 0 ? 'Ha emergencia vinculada. Detalhes restritos ao Super Admin.' : 'Nenhuma emergencia vinculada'} />
+              )}
+            </Panel>
+          </Box>
+        )}
+      </Box>
+    </Drawer>
+  );
+}
+
+function Panel({ title, children }) {
+  return (
+    <Box sx={{ bgcolor: '#0f151d', border: '1px solid #1d2a38', borderRadius: 2, p: 2 }}>
+      <Typography sx={{ color: '#7f91a3', fontSize: 11, fontWeight: 850, textTransform: 'uppercase', mb: 1.5 }}>{title}</Typography>
+      {children}
+    </Box>
+  );
+}
+
+function InfoGrid({ items }) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1.2 }}>
+      {items.map(([label, value]) => (
+        <Box key={label}>
+          <Typography sx={{ color: '#5f7285', fontSize: 10, textTransform: 'uppercase', fontWeight: 800 }}>{label}</Typography>
+          <Typography component="div" sx={{ color: '#d8e0e8', fontSize: 13, mt: 0.3, overflowWrap: 'anywhere' }}>{value}</Typography>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+function SimpleRows({ rows, empty, render }) {
+  if (!rows || rows.length === 0) return <EmptyBox label={empty} />;
+  return <Box sx={{ display: 'grid', gap: 1 }}>{rows.map(render)}</Box>;
 }
 
 function SectionTitle({ title, subtitle }) {
@@ -345,11 +563,18 @@ function EmptyRow({ columns, label }) {
 
 function EmptyBox({ label }) {
   return (
-    <Box sx={{ border: '1px dashed #223142', borderRadius: 2, py: 4, textAlign: 'center' }}>
+    <Box sx={{ border: '1px dashed #223142', borderRadius: 2, py: 4, px: 2, textAlign: 'center' }}>
       <Typography sx={{ color: '#506070', fontSize: 12 }}>{label}</Typography>
     </Box>
   );
 }
+
+const rowSx = {
+  border: '1px solid #1d2a38',
+  borderRadius: 1.5,
+  p: 1.2,
+  bgcolor: '#0b1118',
+};
 
 const headCellSx = {
   color: '#607487',

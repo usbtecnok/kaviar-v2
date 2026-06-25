@@ -31,6 +31,221 @@ function needsAttention(status: string, requestedAt: Date): { attention: boolean
   return { attention: true, reason: `${minutes} min em ${status}` };
 }
 
+function money(value: unknown): number | null {
+  if (value == null) return null;
+  return Number(value);
+}
+
+function maskPhone(phone?: string | null): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length <= 4) return '****';
+  return `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
+}
+
+function buildAttentionFlags(ride: {
+  status: string;
+  requested_at: Date;
+  offered_at: Date | null;
+  arrived_at: Date | null;
+  started_at: Date | null;
+  canceled_at: Date | null;
+}, hasActiveEmergency: boolean) {
+  const flags: Array<{ code: string; label: string; severity: 'info' | 'warning' | 'critical' }> = [];
+
+  if (ride.status === 'requested' && minutesSince(ride.requested_at) >= 3) {
+    flags.push({ code: 'requested_wait', label: `Solicitada ha ${minutesSince(ride.requested_at)} min`, severity: 'warning' });
+  }
+  if (ride.status === 'offered' && ride.offered_at && minutesSince(ride.offered_at) >= 5) {
+    flags.push({ code: 'offered_wait', label: `Ofertada ha ${minutesSince(ride.offered_at)} min`, severity: 'warning' });
+  }
+  if (ride.status === 'arrived' && ride.arrived_at && minutesSince(ride.arrived_at) >= 10) {
+    flags.push({ code: 'arrived_wait', label: `Motorista chegou ha ${minutesSince(ride.arrived_at)} min`, severity: 'warning' });
+  }
+  if (ride.status === 'in_progress' && ride.started_at && minutesSince(ride.started_at) >= 60) {
+    flags.push({ code: 'long_in_progress', label: `Em andamento ha ${minutesSince(ride.started_at)} min`, severity: 'warning' });
+  }
+  if (ride.status === 'canceled_by_passenger' || ride.status === 'canceled_by_driver') {
+    flags.push({ code: 'canceled', label: 'Corrida cancelada', severity: 'warning' });
+  }
+  if (hasActiveEmergency) {
+    flags.push({ code: 'active_emergency', label: 'Emergencia ativa vinculada', severity: 'critical' });
+  }
+
+  return flags;
+}
+
+router.get('/rides/:id', async (req: Request, res: Response) => {
+  try {
+    const adminReq = req as Request & { admin?: { role?: string } };
+    const canSeeEmergencyDetails = adminReq.admin?.role === 'SUPER_ADMIN';
+
+    const ride = await prisma.rides_v2.findUnique({
+      where: { id: req.params.id },
+      include: {
+        passenger: { select: { id: true, name: true, phone: true } },
+        driver: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            neighborhoods: { select: { name: true } },
+            communities: { select: { name: true } },
+          },
+        },
+        origin_neighborhood: { select: { name: true } },
+        dest_neighborhood: { select: { name: true } },
+        offers: {
+          orderBy: { sent_at: 'asc' },
+          select: {
+            id: true,
+            status: true,
+            sent_at: true,
+            expires_at: true,
+            responded_at: true,
+            territory_tier: true,
+            driver: { select: { id: true, name: true } },
+          },
+        },
+        messages: {
+          orderBy: { created_at: 'asc' },
+          select: {
+            id: true,
+            sender_type: true,
+            recipient_type: true,
+            message_code: true,
+            message_text: true,
+            created_at: true,
+            read_at: true,
+          },
+        },
+        emergency_events: {
+          orderBy: { created_at: 'asc' },
+          include: {
+            _count: { select: { location_trail: true } },
+          },
+        },
+      },
+    });
+
+    if (!ride) return res.status(404).json({ success: false, error: 'Corrida nao encontrada' });
+
+    const timeline: Array<{
+      type: string;
+      title: string;
+      at: Date;
+      description?: string | null;
+      severity: 'info' | 'success' | 'warning' | 'critical';
+    }> = [];
+    const addTimeline = (
+      type: string,
+      title: string,
+      at?: Date | null,
+      description?: string | null,
+      severity: 'info' | 'success' | 'warning' | 'critical' = 'info'
+    ) => {
+      if (at) timeline.push({ type, title, at, description, severity });
+    };
+
+    addTimeline('requested', 'Corrida solicitada', ride.requested_at, ride.origin_text || null, 'info');
+    addTimeline('offered', 'Primeira oferta enviada', ride.offered_at, null, 'info');
+    addTimeline('accepted', 'Corrida aceita', ride.accepted_at, ride.driver?.name || null, 'success');
+    addTimeline('arrived', 'Motorista chegou', ride.arrived_at, null, 'success');
+    addTimeline('started', 'Corrida iniciada', ride.started_at, null, 'success');
+    addTimeline('completed', 'Corrida finalizada', ride.completed_at, null, 'success');
+    addTimeline('canceled', 'Corrida cancelada', ride.canceled_at, ride.status, 'warning');
+    if (ride.status === 'no_driver') addTimeline('no_driver', 'Encerrada sem motorista', ride.updated_at, null, 'warning');
+
+    for (const offer of ride.offers) {
+      addTimeline('offer', 'Oferta enviada', offer.sent_at, offer.driver?.name || null, 'info');
+      if (offer.responded_at) addTimeline('offer_response', `Oferta ${offer.status}`, offer.responded_at, offer.driver?.name || null, offer.status === 'accepted' ? 'success' : 'warning');
+    }
+
+    for (const message of ride.messages) {
+      addTimeline('message', 'Mensagem rapida enviada', message.created_at, `${message.sender_type} -> ${message.recipient_type}: ${message.message_text}`, 'info');
+    }
+
+    for (const event of ride.emergency_events) {
+      addTimeline('emergency', 'Evento de emergencia', event.created_at, event.status, event.status === 'active' ? 'critical' : 'warning');
+      addTimeline('emergency_resolved', 'Emergencia resolvida', event.resolved_at, event.status, 'success');
+    }
+
+    timeline.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+    const hasActiveEmergency = ride.emergency_events.some(event => event.status === 'active');
+
+    res.json({
+      success: true,
+      data: {
+        ride: {
+          id: ride.id,
+          status: ride.status,
+          origin_text: ride.origin_text,
+          destination_text: ride.destination_text,
+          passenger: ride.passenger ? {
+            ...ride.passenger,
+            phone: canSeeEmergencyDetails ? ride.passenger.phone : maskPhone(ride.passenger.phone),
+          } : null,
+          driver: ride.driver ? {
+            ...ride.driver,
+            phone: canSeeEmergencyDetails ? ride.driver.phone : maskPhone(ride.driver.phone),
+          } : null,
+          region: ride.origin_neighborhood?.name || null,
+          destination_region: ride.dest_neighborhood?.name || null,
+          territory_match: ride.territory_match,
+          service_category: ride.service_category,
+          ride_type: ride.ride_type,
+          requested_at: ride.requested_at,
+          offered_at: ride.offered_at,
+          accepted_at: ride.accepted_at,
+          arrived_at: ride.arrived_at,
+          started_at: ride.started_at,
+          completed_at: ride.completed_at,
+          canceled_at: ride.canceled_at,
+          updated_at: ride.updated_at,
+          values: {
+            quoted_price: money(ride.quoted_price),
+            locked_price: money(ride.locked_price),
+            adjusted_price: money(ride.adjusted_price),
+            final_price: money(ride.final_price),
+            platform_fee: money(ride.platform_fee),
+            driver_earnings: money(ride.driver_earnings),
+          },
+        },
+        timeline,
+        attention_flags: buildAttentionFlags({
+          status: String(ride.status),
+          requested_at: ride.requested_at,
+          offered_at: ride.offered_at,
+          arrived_at: ride.arrived_at,
+          started_at: ride.started_at,
+          canceled_at: ride.canceled_at,
+        }, hasActiveEmergency),
+        messages: ride.messages,
+        offers: ride.offers,
+        emergencies: {
+          total: ride.emergency_events.length,
+          active: ride.emergency_events.filter(event => event.status === 'active').length,
+          items: canSeeEmergencyDetails
+            ? ride.emergency_events.map(event => ({
+                id: event.id,
+                status: event.status,
+                triggered_by_type: event.triggered_by_type,
+                trigger_source: event.trigger_source,
+                created_at: event.created_at,
+                resolved_at: event.resolved_at,
+                resolution_notes: event.resolution_notes,
+                trail_points: event._count.location_trail,
+              }))
+            : ride.emergency_events.map(event => ({ status: event.status, created_at: event.created_at })),
+        },
+      },
+    });
+  } catch (err) {
+    console.error('[OPS_RIDE_DETAIL]', err);
+    res.status(500).json({ success: false, error: 'Erro ao carregar detalhe operacional' });
+  }
+});
+
 router.get('/cockpit', async (req: Request, res: Response) => {
   try {
     const { start, label } = getPeriod('today');
