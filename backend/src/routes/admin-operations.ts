@@ -14,6 +14,207 @@ function getPeriod(p: string): { start: Date; label: string } {
   return { start: today, label: 'Hoje' };
 }
 
+function minutesSince(date: Date): number {
+  return Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+}
+
+function needsAttention(status: string, requestedAt: Date): { attention: boolean; reason: string | null } {
+  const minutes = minutesSince(requestedAt);
+  const thresholds: Record<string, number> = {
+    requested: 3,
+    offered: 5,
+    arrived: 10,
+    in_progress: 60,
+  };
+  const threshold = thresholds[status];
+  if (!threshold || minutes < threshold) return { attention: false, reason: null };
+  return { attention: true, reason: `${minutes} min em ${status}` };
+}
+
+router.get('/cockpit', async (req: Request, res: Response) => {
+  try {
+    const { start, label } = getPeriod('today');
+    const admin = (req as any).admin;
+    const canSeeEmergencyDetails = admin?.role === 'SUPER_ADMIN';
+    const activeStatuses = ['requested', 'offered', 'accepted', 'arrived', 'in_progress'];
+
+    const [
+      rideGroups,
+      activeRides,
+      onlineDrivers,
+      ridesWithOffer,
+      demandRows,
+      activeEmergencyCount,
+      emergencyEvents,
+    ] = await Promise.all([
+      prisma.rides_v2.groupBy({
+        by: ['status'],
+        where: { requested_at: { gte: start } },
+        _count: true,
+      }),
+      prisma.rides_v2.findMany({
+        where: { status: { in: activeStatuses as any } },
+        orderBy: { requested_at: 'desc' },
+        take: 30,
+        select: {
+          id: true,
+          status: true,
+          origin_text: true,
+          destination_text: true,
+          requested_at: true,
+          passenger: { select: { name: true } },
+          driver: { select: { name: true } },
+          origin_neighborhood: { select: { name: true } },
+        },
+      }),
+      prisma.driver_status.findMany({
+        where: { availability: { in: ['online', 'busy'] } },
+        orderBy: { updated_at: 'desc' },
+        take: 50,
+        select: {
+          availability: true,
+          updated_at: true,
+          driver: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              status: true,
+              secondary_base_label: true,
+              last_location_updated_at: true,
+              neighborhoods: { select: { name: true } },
+              communities: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      prisma.rides_v2.findMany({
+        where: { requested_at: { gte: start }, offered_at: { not: null } },
+        select: { requested_at: true, offered_at: true },
+      }),
+      prisma.rides_v2.findMany({
+        where: { status: 'no_driver', requested_at: { gte: start } },
+        orderBy: { requested_at: 'desc' },
+        take: 100,
+        select: {
+          id: true,
+          requested_at: true,
+          origin_text: true,
+          origin_neighborhood: { select: { name: true } },
+        },
+      }),
+      prisma.ride_emergency_events.count({ where: { status: 'active' } }),
+      canSeeEmergencyDetails
+        ? prisma.ride_emergency_events.findMany({
+            where: { status: 'active' },
+            orderBy: { created_at: 'desc' },
+            take: 20,
+            include: {
+              ride: {
+                select: {
+                  id: true,
+                  status: true,
+                  passenger: { select: { name: true } },
+                  driver: { select: { name: true } },
+                },
+              },
+              _count: { select: { location_trail: true } },
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const byStatus: Record<string, number> = {};
+    rideGroups.forEach(g => { byStatus[g.status] = g._count; });
+    const avgToOfferSeconds = ridesWithOffer.length > 0
+      ? Math.round(
+          ridesWithOffer.reduce((sum, ride) => {
+            return sum + ((ride.offered_at!.getTime() - ride.requested_at.getTime()) / 1000);
+          }, 0) / ridesWithOffer.length
+        )
+      : null;
+
+    const demandByRegion = new Map<string, { region: string; count: number; last_requested_at: Date | null }>();
+    for (const ride of demandRows) {
+      const region = ride.origin_neighborhood?.name || ride.origin_text || 'Região não informada';
+      const current = demandByRegion.get(region) || { region, count: 0, last_requested_at: null };
+      current.count += 1;
+      if (!current.last_requested_at || ride.requested_at > current.last_requested_at) {
+        current.last_requested_at = ride.requested_at;
+      }
+      demandByRegion.set(region, current);
+    }
+
+    res.json({
+      success: true,
+      generated_at: new Date(),
+      period: { start, end: new Date(), label },
+      cards: {
+        drivers_online: onlineDrivers.filter(d => d.availability === 'online').length,
+        active_rides: activeStatuses.reduce((sum, status) => sum + (byStatus[status] || 0), 0),
+        no_driver_today: byStatus['no_driver'] || 0,
+        canceled_today: (byStatus['canceled_by_passenger'] || 0) + (byStatus['canceled_by_driver'] || 0),
+        active_emergencies: activeEmergencyCount,
+        avg_to_offer_seconds: avgToOfferSeconds,
+      },
+      active_rides: activeRides.map(ride => {
+        const attention = needsAttention(ride.status, ride.requested_at);
+        return {
+          id: ride.id,
+          status: ride.status,
+          origin_text: ride.origin_text,
+          destination_text: ride.destination_text,
+          passenger_name: ride.passenger?.name || null,
+          driver_name: ride.driver?.name || null,
+          region: ride.origin_neighborhood?.name || null,
+          requested_at: ride.requested_at,
+          minutes_since_request: minutesSince(ride.requested_at),
+          attention: attention.attention,
+          attention_reason: attention.reason,
+        };
+      }),
+      online_drivers: onlineDrivers.map(status => ({
+        id: status.driver.id,
+        name: status.driver.name,
+        phone: status.driver.phone,
+        base: status.driver.secondary_base_label || status.driver.communities?.name || status.driver.neighborhoods?.name || null,
+        availability: status.availability,
+        driver_status: status.driver.status,
+        last_seen_at: status.updated_at,
+        last_location_at: status.driver.last_location_updated_at,
+      })),
+      demand_unserved: {
+        total: demandRows.length,
+        by_region: Array.from(demandByRegion.values())
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 12),
+        recent: demandRows.slice(0, 20).map(ride => ({
+          id: ride.id,
+          region: ride.origin_neighborhood?.name || ride.origin_text || 'Região não informada',
+          requested_at: ride.requested_at,
+        })),
+      },
+      emergencies: canSeeEmergencyDetails
+        ? emergencyEvents.map(event => ({
+            id: event.id,
+            ride_id: event.ride_id,
+            status: event.status,
+            triggered_by_type: event.triggered_by_type,
+            trigger_source: event.trigger_source,
+            created_at: event.created_at,
+            passenger_name: event.ride?.passenger?.name || null,
+            driver_name: event.ride?.driver?.name || null,
+            ride_status: event.ride?.status || null,
+            trail_points: event._count.location_trail,
+          }))
+        : [],
+    });
+  } catch (err: any) {
+    console.error('[OPS_COCKPIT]', err);
+    res.status(500).json({ success: false, error: 'Erro ao carregar cockpit operacional' });
+  }
+});
+
 router.get('/monitor', async (req: Request, res: Response) => {
   try {
     const { start, label } = getPeriod(req.query.period as string || 'today');

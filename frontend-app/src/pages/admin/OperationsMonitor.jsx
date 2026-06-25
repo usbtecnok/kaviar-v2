@@ -1,213 +1,368 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, Chip, CircularProgress, IconButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Alert,
+} from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
-const PERIODS = [
-  { value: 'today', label: 'Hoje' },
-  { value: '7d', label: '7 dias' },
-  { value: '30d', label: '30 dias' },
-];
-
 const STATUS_COLORS = {
-  completed: '#4CAF50', canceled_by_passenger: '#FF9800', canceled_by_driver: '#FF9800',
-  no_driver: '#f44336', requested: '#2196F3', offered: '#2196F3',
-  accepted: '#25D366', arrived: '#25D366', in_progress: '#25D366',
+  completed: '#4CAF50',
+  canceled_by_passenger: '#FF9800',
+  canceled_by_driver: '#FF9800',
+  no_driver: '#f44336',
+  requested: '#2196F3',
+  offered: '#2196F3',
+  accepted: '#25D366',
+  arrived: '#25D366',
+  in_progress: '#25D366',
 };
-const STATUS_LABELS = {
-  completed: 'Concluída', canceled_by_passenger: 'Canc. passageiro', canceled_by_driver: 'Canc. motorista',
-  no_driver: 'Sem motorista', requested: 'Solicitada', offered: 'Ofertada',
-  accepted: 'Aceita', arrived: 'Chegou', in_progress: 'Em andamento',
-};
-const TIER_COLORS = { COMMUNITY: '#25D366', NEIGHBORHOOD: '#2196F3', OUTSIDE: '#FF9800' };
-const TIER_LABELS = { COMMUNITY: 'Comunidade', NEIGHBORHOOD: 'Bairro', OUTSIDE: 'Fora' };
 
-function fmtTime(s) { if (s == null) return '—'; if (s < 60) return `${s}s`; return `${Math.floor(s / 60)}m ${s % 60}s`; }
-function fmtHour(d) { if (!d) return '—'; return new Date(d).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); }
+const STATUS_LABELS = {
+  completed: 'Concluida',
+  canceled_by_passenger: 'Canc. passageiro',
+  canceled_by_driver: 'Canc. motorista',
+  no_driver: 'Sem motorista',
+  requested: 'Solicitada',
+  offered: 'Ofertada',
+  accepted: 'Aceita',
+  arrived: 'Chegou',
+  in_progress: 'Em andamento',
+};
+
+const AVAILABILITY_LABELS = {
+  online: 'Online',
+  busy: 'Em corrida',
+  offline: 'Offline',
+};
+
+function fmtTime(seconds) {
+  if (seconds == null) return 'Indisponivel';
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
+function fmtHour(date) {
+  if (!date) return '-';
+  return new Date(date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtDateTime(date) {
+  if (!date) return '-';
+  return new Date(date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function shortId(id) {
+  if (!id) return '-';
+  return id.slice(0, 8);
+}
 
 export default function OperationsMonitor() {
   const [data, setData] = useState(null);
-  const [demandGaps, setDemandGaps] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('today');
+  const [error, setError] = useState('');
   const token = localStorage.getItem('kaviar_admin_token');
+  const adminData = localStorage.getItem('kaviar_admin_data');
+  const admin = adminData ? JSON.parse(adminData) : null;
+  const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
 
   const load = useCallback(async () => {
     try {
-      const [monRes, dgRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/admin/operations/monitor?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE_URL}/api/admin/operations/demand-gaps?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
-      const d = await monRes.json();
-      const dg = await dgRes.json();
-      if (d.success) setData(d);
-      if (dg.success) setDemandGaps(dg);
-    } catch (e) { console.error('[OPS]', e); }
-    finally { setLoading(false); }
-  }, [period, token]);
+      setError('');
+      const res = await fetch(`${API_BASE_URL}/api/admin/operations/cockpit`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        throw new Error(body.error || 'Erro ao carregar cockpit operacional');
+      }
+      setData(body);
+    } catch (err) {
+      console.error('[OPS_COCKPIT]', err);
+      setError(err.message || 'Erro ao carregar cockpit operacional');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
-  useEffect(() => { setLoading(true); load(); }, [load]);
-  useEffect(() => { const id = setInterval(load, 30000); return () => clearInterval(id); }, [load]);
+  useEffect(() => {
+    setLoading(true);
+    load();
+  }, [load]);
 
-  const cardSx = { bgcolor: '#111a22', borderRadius: 2.5, border: '1px solid #1a2332', p: 2.5, textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'border-color 0.2s', '&:hover': { borderColor: '#2a3a4a' } };
-  const sectionSx = { bgcolor: '#0d1117', borderRadius: 3, border: '1px solid #1a2332', p: 3, boxShadow: '0 4px 20px rgba(0,0,0,0.25)' };
+  useEffect(() => {
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, [load]);
 
-  if (loading && !data) return <Box sx={{ display: 'flex', justifyContent: 'center', pt: 10 }}><CircularProgress sx={{ color: '#FFD700' }} /></Box>;
+  const cardSx = {
+    bgcolor: '#111a22',
+    borderRadius: 2.5,
+    border: '1px solid #1a2332',
+    p: 2.5,
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+  };
+  const sectionSx = {
+    bgcolor: '#0d1117',
+    borderRadius: 3,
+    border: '1px solid #1a2332',
+    p: 3,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+  };
 
-  const { rides, offers, territory, timing, recent } = data || {};
-  const tierTotal = territory ? Object.values(territory).reduce((a, b) => a + b, 0) : 0;
+  if (loading && !data) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 10 }}>
+        <CircularProgress sx={{ color: '#FFD700' }} />
+      </Box>
+    );
+  }
+
+  const cards = data?.cards || {};
+  const activeRides = data?.active_rides || [];
+  const onlineDrivers = data?.online_drivers || [];
+  const demand = data?.demand_unserved || { total: 0, by_region: [], recent: [] };
+  const emergencies = data?.emergencies || [];
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, pt: 2 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ maxWidth: 1320, mx: 'auto', px: 2, py: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3, gap: 2 }}>
         <Box>
-          <Typography sx={{ color: '#f0f4f8', fontSize: 20, fontWeight: 700 }}>Monitor Operacional</Typography>
-          <Typography sx={{ color: '#8a9aaa', fontSize: 12, mt: 0.3 }}>Dispatch, território e performance em tempo real</Typography>
+          <Typography sx={{ color: '#f0f4f8', fontSize: 22, fontWeight: 800 }}>Cockpit Operacional</Typography>
+          <Typography sx={{ color: '#8a9aaa', fontSize: 12, mt: 0.5 }}>
+            Piloto territorial do dia, atualizado automaticamente a cada 30 segundos
+          </Typography>
+          {data?.generated_at && (
+            <Typography sx={{ color: '#4f6172', fontSize: 11, mt: 0.5 }}>
+              Ultima atualizacao: {fmtDateTime(data.generated_at)}
+            </Typography>
+          )}
         </Box>
-        <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
-          {PERIODS.map(p => (
-            <Chip key={p.value} label={p.label} size="small" onClick={() => setPeriod(p.value)}
-              sx={{ height: 28, fontSize: 11, fontWeight: period === p.value ? 700 : 400, bgcolor: period === p.value ? '#FFD700' : 'transparent', color: period === p.value ? '#000' : '#7a8a9a', border: '1px solid #1a2332', cursor: 'pointer', '&:hover': { bgcolor: period === p.value ? '#FFD700' : '#111a22' } }} />
-          ))}
-          <Tooltip title="Atualizar"><IconButton size="small" onClick={() => { setLoading(true); load(); }}><Refresh sx={{ color: '#5a7a8a', fontSize: 16 }} /></IconButton></Tooltip>
-        </Box>
+        <Tooltip title="Atualizar agora">
+          <IconButton size="small" onClick={() => { setLoading(true); load(); }}>
+            <Refresh sx={{ color: '#FFD700', fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
       </Box>
 
-      {/* KPI Cards */}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 1.5, mb: 3 }}>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 1.5, mb: 3 }}>
         {[
-          { n: rides?.requested, l: 'Solicitadas', c: '#e0e6ed' },
-          { n: rides?.completed, l: 'Concluídas', c: '#4CAF50' },
-          { n: (rides?.canceled_by_passenger || 0) + (rides?.canceled_by_driver || 0), l: 'Canceladas', c: '#FF9800' },
-          { n: offers?.expired, l: 'Expiradas', c: '#f44336' },
-          { n: rides?.no_driver, l: 'Sem motorista', c: '#f44336' },
-          { n: rides?.active, l: 'Ativas agora', c: '#25D366' },
-        ].map(k => (
-          <Box key={k.l} sx={cardSx}>
-            <Typography sx={{ fontSize: 32, fontWeight: 800, color: k.c, lineHeight: 1 }}>{k.n ?? 0}</Typography>
-            <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>{k.l}</Typography>
+          { value: cards.drivers_online, label: 'Motoristas online', color: '#25D366' },
+          { value: cards.active_rides, label: 'Corridas ativas', color: '#2196F3' },
+          { value: cards.no_driver_today, label: 'Sem motorista hoje', color: '#f44336' },
+          { value: cards.canceled_today, label: 'Canceladas hoje', color: '#FF9800' },
+          { value: cards.active_emergencies, label: 'Emergencias ativas', color: cards.active_emergencies > 0 ? '#f44336' : '#25D366' },
+          { value: fmtTime(cards.avg_to_offer_seconds), label: 'Media ate 1a oferta', color: '#FFD700', isText: true },
+        ].map(card => (
+          <Box key={card.label} sx={cardSx}>
+            <Typography sx={{ fontSize: card.isText ? 24 : 34, fontWeight: 850, color: card.color, lineHeight: 1 }}>
+              {card.value ?? 0}
+            </Typography>
+            <Typography sx={{ fontSize: 10, color: '#7a8a9a', textTransform: 'uppercase', mt: 1, fontWeight: 700 }}>
+              {card.label}
+            </Typography>
           </Box>
         ))}
       </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 3 }}>
-        {/* Demand Gaps */}
-        {demandGaps && demandGaps.total_no_driver > 0 && (
-          <Box sx={{ ...sectionSx, gridColumn: '1 / -1' }}>
-            <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>📡 Demanda Reprimida (corridas reais sem motorista)</Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1.5 }}>
-              <Box sx={cardSx}>
-                <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#f44336', lineHeight: 1 }}>{demandGaps.total_no_driver}</Typography>
-                <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>Total sem motorista</Typography>
-              </Box>
-              {demandGaps.by_origin_neighborhood.slice(0, 2).map((n, i) => (
-                <Box key={n.neighborhood} sx={cardSx}>
-                  <Typography sx={{ fontSize: 28, fontWeight: 800, color: i === 0 ? '#FF9800' : '#FFD700', lineHeight: 1 }}>{n.count}</Typography>
-                  <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>{n.neighborhood}</Typography>
-                  {n.peak_hour != null && <Typography sx={{ fontSize: 10, color: '#4a5a6a', mt: 0.3 }}>pico: {n.peak_hour}h</Typography>}
-                </Box>
-              ))}
-              {demandGaps.by_hour && (() => {
-                const peak = demandGaps.by_hour.reduce((a, b) => b.count > a.count ? b : a, { hour: 0, count: 0 });
-                return (
-                  <Box sx={cardSx}>
-                    <Typography sx={{ fontSize: 28, fontWeight: 800, color: '#2196F3', lineHeight: 1 }}>{peak.hour}h</Typography>
-                    <Typography sx={{ fontSize: 10, color: '#6a7a8a', textTransform: 'uppercase', letterSpacing: 0.4, mt: 0.8, fontWeight: 600 }}>Horário crítico</Typography>
-                    <Typography sx={{ fontSize: 10, color: '#4a5a6a', mt: 0.3 }}>{peak.count} corridas</Typography>
-                  </Box>
-                );
-              })()}
-            </Box>
-          </Box>
-        )}
-
-        {/* Territory */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.8fr)', gap: 1.5, mb: 3 }}>
         <Box sx={sectionSx}>
-          <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>Distribuição Territorial</Typography>
-          {tierTotal === 0 ? (
-            <Typography sx={{ color: '#4a5a6a', fontSize: 12, py: 2, textAlign: 'center' }}>Sem dados territoriais no período selecionado</Typography>
-          ) : (
-            Object.entries(TIER_LABELS).map(([key, label]) => {
-              const count = territory?.[key] || 0;
-              const pct = tierTotal > 0 ? (count / tierTotal) * 100 : 0;
-              return (
-                <Box key={key} sx={{ mb: 1.5 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography sx={{ fontSize: 12, color: '#c0c8d0', fontWeight: 600 }}>{label}</Typography>
-                    <Typography sx={{ fontSize: 12, color: '#7a8a9a' }}>{count} ({Math.round(pct)}%)</Typography>
-                  </Box>
-                  <Box sx={{ height: 8, bgcolor: '#1a2332', borderRadius: 4, overflow: 'hidden' }}>
-                    <Box sx={{ height: '100%', width: `${pct}%`, bgcolor: TIER_COLORS[key], borderRadius: 4, transition: 'width 0.5s', boxShadow: `0 0 8px ${TIER_COLORS[key]}33` }} />
-                  </Box>
-                </Box>
-              );
-            })
-          )}
+          <SectionTitle title="Corridas recentes e ativas" subtitle="Indicadores de atencao aparecem quando uma corrida permanece tempo demais em estado sensivel." />
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  {['Status', 'Origem', 'Destino', 'Passageiro', 'Motorista', 'Regiao', 'Tempo', 'Atencao'].map(h => (
+                    <TableCell key={h} sx={headCellSx}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {activeRides.map(ride => (
+                  <TableRow key={ride.id} sx={{ '&:hover': { bgcolor: '#111a22' } }}>
+                    <TableCell sx={bodyCellSx}>
+                      <StatusChip status={ride.status} />
+                    </TableCell>
+                    <CompactCell value={ride.origin_text} />
+                    <CompactCell value={ride.destination_text} />
+                    <TableCell sx={bodyCellSx}>{ride.passenger_name || '-'}</TableCell>
+                    <TableCell sx={bodyCellSx}>{ride.driver_name || '-'}</TableCell>
+                    <TableCell sx={bodyCellSx}>{ride.region || '-'}</TableCell>
+                    <TableCell sx={bodyCellSx}>{ride.minutes_since_request} min</TableCell>
+                    <TableCell sx={bodyCellSx}>
+                      {ride.attention ? (
+                        <Chip label={ride.attention_reason || 'Revisar'} size="small" sx={{ height: 22, fontSize: 10, bgcolor: '#f4433622', color: '#ff8a80' }} />
+                      ) : (
+                        <Typography sx={{ color: '#506070', fontSize: 12 }}>Normal</Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {activeRides.length === 0 && <EmptyRow columns={8} label="Nenhuma corrida ativa agora" />}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
 
-        {/* Timing */}
         <Box sx={sectionSx}>
-          <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>Tempos Operacionais</Typography>
-          {[
-            { l: 'Aceite médio', v: timing?.avg_accept_seconds, icon: '⚡' },
-            { l: 'Até primeira oferta', v: timing?.avg_to_offer_seconds, icon: '📡' },
-            { l: 'Até sem motorista', v: timing?.avg_to_no_driver_seconds, icon: '⏱️' },
-          ].map(t => (
-            <Box key={t.l} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.2, borderBottom: '1px solid #1a2332' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography sx={{ fontSize: 14 }}>{t.icon}</Typography>
-                <Typography sx={{ fontSize: 12, color: '#c0c8d0' }}>{t.l}</Typography>
-              </Box>
-              <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#f0f4f8' }}>{fmtTime(t.v)}</Typography>
-            </Box>
-          ))}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1.5 }}>
-            <Typography sx={{ fontSize: 12, color: '#c0c8d0' }}>Ofertas aceitas / total</Typography>
-            <Typography sx={{ fontSize: 14, fontWeight: 600, color: '#FFD700' }}>
-              {offers?.accepted || 0} / {offers?.total || 0}
-              {offers?.total > 0 && <Typography component="span" sx={{ fontSize: 11, color: '#7a8a9a', ml: 0.5 }}>({Math.round((offers.accepted / offers.total) * 100)}%)</Typography>}
-            </Typography>
-          </Box>
+          <SectionTitle title="Motoristas online" subtitle="Ultima atualizacao operacional informada pelo app motorista." />
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  {['Motorista', 'Telefone', 'Base', 'Status', 'Atualizado'].map(h => (
+                    <TableCell key={h} sx={headCellSx}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {onlineDrivers.map(driver => (
+                  <TableRow key={driver.id} sx={{ '&:hover': { bgcolor: '#111a22' } }}>
+                    <TableCell sx={bodyCellSx}>{driver.name}</TableCell>
+                    <TableCell sx={bodyCellSx}>{driver.phone || '-'}</TableCell>
+                    <TableCell sx={bodyCellSx}>{driver.base || '-'}</TableCell>
+                    <TableCell sx={bodyCellSx}>
+                      <Chip
+                        label={AVAILABILITY_LABELS[driver.availability] || driver.availability}
+                        size="small"
+                        sx={{ height: 21, fontSize: 10, bgcolor: driver.availability === 'busy' ? '#2196F322' : '#25D36622', color: driver.availability === 'busy' ? '#64B5F6' : '#25D366' }}
+                      />
+                    </TableCell>
+                    <TableCell sx={bodyCellSx}>{fmtHour(driver.last_seen_at)}</TableCell>
+                  </TableRow>
+                ))}
+                {onlineDrivers.length === 0 && <EmptyRow columns={5} label="Nenhum motorista online agora" />}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Box>
       </Box>
 
-      {/* Recent rides */}
-      <Box sx={sectionSx}>
-        <Typography sx={{ fontSize: 11, color: '#5a7a8a', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, mb: 2 }}>Corridas Recentes</Typography>
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                {['Hora', 'Status', 'Origem', 'Destino', 'Motorista', 'Território', 'Aceite', 'Duração'].map(h => (
-                  <TableCell key={h} sx={{ color: '#5a7a8a', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', borderColor: '#1a2332', py: 1 }}>{h}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(recent || []).map((r, idx) => (
-                <TableRow key={r.id} sx={{ '&:hover': { bgcolor: '#111a22' }, bgcolor: idx % 2 === 0 ? 'transparent' : 'rgba(17,26,34,0.4)' }}>
-                  <TableCell sx={{ color: '#c0c8d0', fontSize: 12, borderColor: '#1a2332', py: 1 }}>{fmtHour(r.requested_at)}</TableCell>
-                  <TableCell sx={{ borderColor: "#1a2332", py: 1 }}>
-                    <Chip label={STATUS_LABELS[r.status] || r.status} size="small" sx={{ height: 20, fontSize: 10, bgcolor: (STATUS_COLORS[r.status] || '#666') + '22', color: STATUS_COLORS[r.status] || '#666' }} />
-                  </TableCell>
-                  <TableCell sx={{ color: '#c0c8d0', fontSize: 11, borderColor: "#1a2332", py: 1, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.origin_text || '—'}</TableCell>
-                  <TableCell sx={{ color: '#c0c8d0', fontSize: 11, borderColor: "#1a2332", py: 1, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.destination_text || '—'}</TableCell>
-                  <TableCell sx={{ color: '#e0e6ed', fontSize: 12, fontWeight: 500, borderColor: "#1a2332", py: 1 }}>{r.driver_name || '—'}</TableCell>
-                  <TableCell sx={{ borderColor: "#1a2332", py: 1 }}>
-                    {r.territory_tier ? <Chip label={TIER_LABELS[r.territory_tier] || r.territory_tier} size="small" sx={{ height: 18, fontSize: 9, bgcolor: (TIER_COLORS[r.territory_tier] || '#666') + '22', color: TIER_COLORS[r.territory_tier] || '#666' }} /> : <Typography sx={{ color: '#3a4a5a', fontSize: 11 }}>—</Typography>}
-                  </TableCell>
-                  <TableCell sx={{ color: '#c0c8d0', fontSize: 12, borderColor: "#1a2332", py: 1 }}>{r.accept_time_seconds != null ? `${r.accept_time_seconds}s` : '—'}</TableCell>
-                  <TableCell sx={{ color: '#c0c8d0', fontSize: 12, borderColor: "#1a2332", py: 1 }}>{r.total_time_minutes != null ? `${r.total_time_minutes}m` : '—'}</TableCell>
-                </TableRow>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 1.5 }}>
+        <Box sx={sectionSx}>
+          <SectionTitle title="Demanda sem atendimento" subtitle="Pedidos encerrados como sem motorista hoje, agrupados por regiao de origem." />
+          {demand.by_region.length > 0 ? (
+            <Box sx={{ display: 'grid', gap: 1 }}>
+              {demand.by_region.map(region => (
+                <Box key={region.region} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1a2332', py: 1 }}>
+                  <Box>
+                    <Typography sx={{ color: '#d8e0e8', fontSize: 13, fontWeight: 650 }}>{region.region}</Typography>
+                    <Typography sx={{ color: '#647586', fontSize: 11 }}>Ultimo pedido: {fmtHour(region.last_requested_at)}</Typography>
+                  </Box>
+                  <Chip label={`${region.count} hoje`} size="small" sx={{ bgcolor: '#f4433622', color: '#ff8a80', fontSize: 10 }} />
+                </Box>
               ))}
-              {(!recent || recent.length === 0) && (
-                <TableRow><TableCell colSpan={8} sx={{ textAlign: 'center', color: '#4a5a6a', borderColor: '#1a2332', py: 4, fontSize: 12 }}>Nenhuma corrida registrada no período selecionado</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+            </Box>
+          ) : (
+            <EmptyBox label="Nenhuma demanda sem atendimento registrada hoje" />
+          )}
+        </Box>
+
+        <Box sx={sectionSx}>
+          <SectionTitle title="Emergencias ativas" subtitle={isSuperAdmin ? 'Eventos ativos do botao de emergencia.' : 'Detalhes disponiveis apenas para Super Admin.'} />
+          {isSuperAdmin && emergencies.length > 0 ? (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    {['Evento', 'Origem', 'Passageiro', 'Motorista', 'Criado', 'Rastro'].map(h => (
+                      <TableCell key={h} sx={headCellSx}>{h}</TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {emergencies.map(event => (
+                    <TableRow key={event.id} sx={{ '&:hover': { bgcolor: '#111a22' } }}>
+                      <TableCell sx={bodyCellSx}>{shortId(event.id)}</TableCell>
+                      <TableCell sx={bodyCellSx}>{event.triggered_by_type}</TableCell>
+                      <TableCell sx={bodyCellSx}>{event.passenger_name || '-'}</TableCell>
+                      <TableCell sx={bodyCellSx}>{event.driver_name || '-'}</TableCell>
+                      <TableCell sx={bodyCellSx}>{fmtHour(event.created_at)}</TableCell>
+                      <TableCell sx={bodyCellSx}>{event.trail_points}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <EmptyBox label={cards.active_emergencies > 0 ? `${cards.active_emergencies} emergencia(s) ativa(s)` : 'Nenhuma emergencia ativa agora'} />
+          )}
+        </Box>
       </Box>
     </Box>
   );
 }
+
+function SectionTitle({ title, subtitle }) {
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography sx={{ fontSize: 12, color: '#7f91a3', fontWeight: 800, textTransform: 'uppercase' }}>{title}</Typography>
+      <Typography sx={{ color: '#526577', fontSize: 11, mt: 0.3 }}>{subtitle}</Typography>
+    </Box>
+  );
+}
+
+function StatusChip({ status }) {
+  return (
+    <Chip
+      label={STATUS_LABELS[status] || status}
+      size="small"
+      sx={{ height: 21, fontSize: 10, bgcolor: `${STATUS_COLORS[status] || '#666'}22`, color: STATUS_COLORS[status] || '#999' }}
+    />
+  );
+}
+
+function CompactCell({ value }) {
+  return (
+    <TableCell sx={{ ...bodyCellSx, maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {value || '-'}
+    </TableCell>
+  );
+}
+
+function EmptyRow({ columns, label }) {
+  return (
+    <TableRow>
+      <TableCell colSpan={columns} sx={{ textAlign: 'center', color: '#506070', borderColor: '#1a2332', py: 4, fontSize: 12 }}>
+        {label}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function EmptyBox({ label }) {
+  return (
+    <Box sx={{ border: '1px dashed #223142', borderRadius: 2, py: 4, textAlign: 'center' }}>
+      <Typography sx={{ color: '#506070', fontSize: 12 }}>{label}</Typography>
+    </Box>
+  );
+}
+
+const headCellSx = {
+  color: '#607487',
+  fontSize: 10,
+  fontWeight: 800,
+  textTransform: 'uppercase',
+  borderColor: '#1a2332',
+  py: 1,
+};
+
+const bodyCellSx = {
+  color: '#c9d3dc',
+  fontSize: 12,
+  borderColor: '#1a2332',
+  py: 1,
+};
