@@ -22,7 +22,7 @@ import {
   Select,
   TextField,
 } from '@mui/material';
-import { ContentCopy, Refresh, Close } from '@mui/icons-material';
+import { ContentCopy, FileDownload, Refresh, Close } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const STATUS_COLORS = {
@@ -155,6 +155,69 @@ function buildDailyReportSummary(report) {
     '',
     'Observação: ' + (report.scope_rules?.cross_territory || 'Corridas cross-territory entram no relatório pelo território de origem.'),
   ].join('\n');
+}
+
+function formatCsvValue(value) {
+  const normalized = String(value ?? '').replace(/\r?\n|\r/g, ' ').trim();
+  return /[\",\n]/.test(normalized) ? '"' + normalized.replace(/"/g, '""') + '"' : normalized;
+}
+
+function decimalFromCents(cents) {
+  return ((Number(cents) || 0) / 100).toFixed(2);
+}
+
+function buildDailyReportCsv(report) {
+  if (!report?.metrics) return '';
+  const metrics = report.metrics;
+  const territoryName = report.territory?.active_territory?.name || 'Geral';
+  const headers = [
+    'data',
+    'territorio',
+    'solicitadas',
+    'concluidas',
+    'canceladas',
+    'sem_motorista_ou_oferta',
+    'emergencias',
+    'ativas_agora',
+    'receita_final',
+    'taxa_kaviar',
+    'ganho_motorista',
+    'media_ate_primeira_oferta',
+  ];
+  const row = [
+    report.period?.date || '',
+    territoryName,
+    metrics.requested_rides ?? 0,
+    metrics.completed_rides ?? 0,
+    metrics.canceled_rides ?? 0,
+    metrics.no_driver_or_no_offer_rides ?? 0,
+    metrics.emergencies_registered ?? 0,
+    metrics.active_emergencies ?? 0,
+    decimalFromCents(metrics.final_revenue_cents),
+    decimalFromCents(metrics.kaviar_fee_cents),
+    decimalFromCents(metrics.driver_earnings_cents),
+    metrics.avg_to_offer_seconds == null ? '' : metrics.avg_to_offer_seconds,
+  ];
+
+  return [headers, row].map(line => line.map(formatCsvValue).join(',')).join('\r\n');
+}
+
+function dailyReportCsvFilename(report) {
+  const date = report?.period?.date || todaySaoPauloDate();
+  const suffix = report?.territory?.active_territory?.id ? '-territorio' : '';
+  return `kaviar-relatorio-diario-${date}${suffix}.csv`;
+}
+
+function downloadDailyReportCsv(report) {
+  const csv = buildDailyReportCsv(report);
+  if (!csv) return;
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = dailyReportCsvFilename(report);
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function OperationsMonitor() {
@@ -399,7 +462,7 @@ export default function OperationsMonitor() {
       <Box sx={{ ...sectionSx, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
           <SectionTitle title="Relatório diário" subtitle="Agregados reais por território de origem, sem limites de tela." />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: { xs: '100%', md: 280 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', minWidth: { xs: '100%', md: 420 } }}>
             <TextField
               type="date"
               size="small"
@@ -428,6 +491,24 @@ export default function OperationsMonitor() {
               }}
             >
               Copiar resumo
+            </Button>
+            <Button
+              onClick={() => downloadDailyReportCsv(dailyReport)}
+              disabled={dailyLoading || !dailyReport || Boolean(dailyError)}
+              variant="outlined"
+              size="small"
+              startIcon={<FileDownload sx={{ fontSize: 15 }} />}
+              sx={{
+                borderColor: '#B8942E',
+                color: '#D9C06A',
+                fontWeight: 750,
+                whiteSpace: 'nowrap',
+                textTransform: 'none',
+                '&:hover': { borderColor: '#D2AD45', bgcolor: 'rgba(184, 148, 46, 0.08)' },
+                '&.Mui-disabled': { borderColor: '#243444', color: '#566575' },
+              }}
+            >
+              Exportar CSV
             </Button>
           </Box>
         </Box>
