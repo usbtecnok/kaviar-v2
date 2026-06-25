@@ -223,6 +223,7 @@ export default function WhatsAppCentral() {
   const [inviteStats, setInviteStats] = useState({ today: 0, week: 0, month: 0, byType: {}, byStatus: {} });
   const [inviteLogs, setInviteLogs] = useState([]);
   const [inviteReportScope, setInviteReportScope] = useState(null);
+  const [selectedInvitePeriod, setSelectedInvitePeriod] = useState('30d');
   const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
   const dailyInviteLimit = isSuperAdmin ? 200 : 30;
@@ -233,6 +234,12 @@ export default function WhatsAppCentral() {
       ? 'Visão global confirmada pelo backend'
       : 'Visão filtrada por território (' + (inviteReportTerritories.length || 0) + ')')
     : localInviteScopeLabel;
+  const invitePeriodCards = [
+    { period: 'today', label: 'Hoje', value: inviteStats.today },
+    { period: '7d', label: 'Últimos 7 dias', value: inviteStats.week },
+    { period: '30d', label: 'Últimos 30 dias', value: inviteStats.month },
+  ];
+  const selectedInvitePeriodLabel = invitePeriodCards.find(card => card.period === selectedInvitePeriod)?.label || 'Últimos 30 dias';
 
   // Chat state
   const [selectedId, setSelectedId] = useState(null);
@@ -268,7 +275,7 @@ export default function WhatsAppCentral() {
     try {
       const [statsRes, logsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/stats`, { headers }),
-        fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/logs?limit=50`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/logs?limit=50&period=${selectedInvitePeriod}`, { headers }),
       ]);
       const statsData = await statsRes.json();
       const logsData = await logsRes.json();
@@ -283,7 +290,7 @@ export default function WhatsAppCentral() {
     } catch (e) {
       console.error('[WA_INVITES] report:', e);
     }
-  }, [token]);
+  }, [token, selectedInvitePeriod]);
 
   useEffect(() => { loadInviteReport(); }, [loadInviteReport]);
   useEffect(() => { const id = setInterval(() => { if (!isTyping) loadConversations(); }, 15000); return () => clearInterval(id); }, [loadConversations, isTyping]);
@@ -528,15 +535,25 @@ export default function WhatsAppCentral() {
           <Tooltip title="Atualizar relatório"><IconButton size="small" onClick={loadInviteReport}><Refresh sx={{ color: '#6a7a8a', fontSize: 16 }} /></IconButton></Tooltip>
         </Box>
         <Box sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.2 }}>
-          {[{ label: 'Hoje', value: inviteStats.today }, { label: 'Últimos 7 dias', value: inviteStats.week }, { label: 'Últimos 30 dias', value: inviteStats.month }].map(card => (
-            <Box key={card.label} sx={{ bgcolor: '#111a22', border: '1px solid #1a2332', borderRadius: 2, px: 2, py: 1.4 }}>
-              <Typography sx={{ color: '#6a7a8a', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{card.label}</Typography>
-              <Typography sx={{ color: '#D4AF37', fontSize: 24, fontWeight: 900 }}>{card.value || 0}</Typography>
-            </Box>
-          ))}
+          {invitePeriodCards.map(card => {
+            const selected = selectedInvitePeriod === card.period;
+            return (
+              <Box
+                key={card.period}
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedInvitePeriod(card.period)}
+                onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setSelectedInvitePeriod(card.period); }}
+                sx={{ bgcolor: selected ? '#16251b' : '#111a22', border: selected ? '1px solid #25D366' : '1px solid #1a2332', borderRadius: 2, px: 2, py: 1.4, cursor: 'pointer', outline: 'none', boxShadow: selected ? '0 0 0 1px rgba(37, 211, 102, 0.25)' : 'none', transition: 'border-color 0.15s, background 0.15s', '&:hover': { borderColor: selected ? '#25D366' : '#2d3a48', bgcolor: selected ? '#16251b' : '#141f28' }, '&:focus-visible': { borderColor: '#25D366', boxShadow: '0 0 0 2px rgba(37, 211, 102, 0.25)' } }}
+              >
+                <Typography sx={{ color: selected ? '#25D366' : '#6a7a8a', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{card.label}</Typography>
+                <Typography sx={{ color: '#D4AF37', fontSize: 24, fontWeight: 900 }}>{card.value || 0}</Typography>
+              </Box>
+            );
+          })}
         </Box>
         <Box sx={{ px: 2, pb: 1 }}>
-          <Typography sx={{ color: '#6a7a8a', fontSize: 11 }}>Exibindo últimos 50 registros por data/hora.</Typography>
+          <Typography sx={{ color: '#6a7a8a', fontSize: 11 }}>Exibindo últimos 50 registros: {selectedInvitePeriodLabel}</Typography>
         </Box>
         <Box sx={{ px: 2, pb: 2, overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 760, '& th': { color: '#6a7a8a', borderColor: '#1a2332', fontSize: 11 }, '& td': { color: '#BFC7D5', borderColor: '#1a2332', fontSize: 12 } }}>

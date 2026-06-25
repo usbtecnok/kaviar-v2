@@ -108,11 +108,46 @@ describe('admin WhatsApp invite report scope', () => {
     expect(res.body.scope).toEqual({ role: 'SUPER_ADMIN', global: true, territoryIdsApplied: [] });
     expect(res.body.data).toHaveLength(2);
     expect(prismaMock.whatsapp_invite_logs.findMany).toHaveBeenCalledWith({
-      where: {},
+      where: { created_at: { gte: expect.any(Date) } },
       orderBy: { created_at: 'desc' },
       skip: 0,
       take: 50,
     });
-    expect(prismaMock.whatsapp_invite_logs.count).toHaveBeenCalledWith({ where: {} });
+    expect(prismaMock.whatsapp_invite_logs.count).toHaveBeenCalledWith({ where: { created_at: { gte: expect.any(Date) } } });
+    expect(prismaMock.whatsapp_invite_logs.findMany.mock.calls[0][0].where).not.toHaveProperty('territory_id');
+  });
+
+  it.each([
+    ['today'],
+    ['7d'],
+    ['30d'],
+  ])('applies %s period filter to SUPER_ADMIN logs without territory scope', async (period) => {
+    await request(app).get(`/api/admin/whatsapp-invites/logs?limit=50&period=${period}`);
+
+    const where = prismaMock.whatsapp_invite_logs.findMany.mock.calls[0][0].where;
+    expect(where.created_at.gte).toBeInstanceOf(Date);
+    expect(where).not.toHaveProperty('territory_id');
+  });
+
+  it('keeps territory scope when filtering TERRITORIAL_MANAGER logs by period', async () => {
+    setAdmin('TERRITORIAL_MANAGER', { territoryIds: ['territory-a'], neighborhoodIds: [], accessLevel: 'full' });
+
+    await request(app).get('/api/admin/whatsapp-invites/logs?limit=50&period=7d');
+
+    expect(prismaMock.whatsapp_invite_logs.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        territory_id: { in: ['territory-a'] },
+        created_at: { gte: expect.any(Date) },
+      },
+    }));
+  });
+
+  it('falls back to 30d for invalid log periods', async () => {
+    await request(app).get('/api/admin/whatsapp-invites/logs?limit=50&period=invalid');
+
+    const gte = prismaMock.whatsapp_invite_logs.findMany.mock.calls[0][0].where.created_at.gte;
+    const ageDays = (Date.now() - gte.getTime()) / (24 * 60 * 60 * 1000);
+    expect(ageDays).toBeGreaterThan(29);
+    expect(ageDays).toBeLessThan(31);
   });
 });

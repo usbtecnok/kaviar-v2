@@ -28,6 +28,9 @@ const SEND_ROLES = ['SUPER_ADMIN', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'
 const DUPLICATE_WINDOW_DAYS = 7;
 const MANAGER_DAILY_LIMIT = 30;
 const SUPER_ADMIN_DAILY_LIMIT = 200;
+const INVITE_LOG_PERIODS = ['today', '7d', '30d'] as const;
+type InviteLogPeriod = typeof INVITE_LOG_PERIODS[number];
+
 
 function startOfDay(d = new Date()): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -329,6 +332,18 @@ function reportScope(admin: any, scope: any) {
   };
 }
 
+function normalizeInviteLogPeriod(value: unknown): InviteLogPeriod {
+  return INVITE_LOG_PERIODS.includes(value as InviteLogPeriod) ? (value as InviteLogPeriod) : '30d';
+}
+
+function inviteLogPeriodStart(period: InviteLogPeriod, now = new Date()): Date {
+  if (period === 'today') return startOfDay(now);
+  const days = period === '7d' ? 7 : 30;
+  const d = new Date(now);
+  d.setDate(now.getDate() - days);
+  return d;
+}
+
 function serializeLog(log: any) {
   return {
     id: log.id,
@@ -573,6 +588,7 @@ router.get('/logs', authenticateAdmin, requireRole(SEND_ROLES), applyTerritorySc
     const page = Math.max(parseInt(String(req.query.page || '1'), 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(String(req.query.limit || '10'), 10) || 10, 1), 100);
     const where: any = scopedWhere(admin, scope);
+    const period = normalizeInviteLogPeriod(req.query.period);
 
     if (req.query.type) {
       const q = normalizeInviteType(req.query.type);
@@ -585,6 +601,8 @@ router.get('/logs', authenticateAdmin, requireRole(SEND_ROLES), applyTerritorySc
       where.created_at = {};
       if (req.query.from) where.created_at.gte = new Date(String(req.query.from));
       if (req.query.to) where.created_at.lte = new Date(String(req.query.to));
+    } else {
+      where.created_at = { gte: inviteLogPeriodStart(period) };
     }
 
     const [logs, total] = await Promise.all([
