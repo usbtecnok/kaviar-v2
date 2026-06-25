@@ -395,6 +395,10 @@ export default function OperationsMonitor() {
     border: '1px solid #1a2332',
     p: 2.5,
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    minHeight: 90,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
   };
   const sectionSx = {
     bgcolor: '#0d1117',
@@ -402,6 +406,61 @@ export default function OperationsMonitor() {
     border: '1px solid #1a2332',
     p: 3,
     boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+  };
+  const dailySectionHeaderSx = {
+    display: 'flex',
+    alignItems: { xs: 'stretch', md: 'center' },
+    justifyContent: 'space-between',
+    flexDirection: { xs: 'column', md: 'row' },
+    gap: 2,
+    mb: 2,
+  };
+  const dailyActionsSx = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: 1,
+    width: '100%',
+  };
+  const dailyChipRowSx = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 1,
+    px: 1,
+    py: 0.75,
+    borderRadius: 2,
+    border: '1px solid #1d2a3a',
+    bgcolor: '#0b1118',
+  };
+  const dailyChipBaseSx = {
+    height: 32,
+    borderRadius: 2,
+    fontSize: 12,
+    fontWeight: 700,
+    textTransform: 'none',
+  };
+  const dailyButtonSx = {
+    borderRadius: 2,
+    textTransform: 'none',
+    fontSize: 12,
+    fontWeight: 700,
+    minHeight: 36,
+  };
+  const dailyPrimaryButtonSx = {
+    ...dailyButtonSx,
+    bgcolor: '#B8942E',
+    color: '#071018',
+    '&:hover': { bgcolor: '#D2AD45' },
+    '&.Mui-disabled': { bgcolor: '#182330', color: '#566575' },
+  };
+  const dailySecondaryButtonSx = {
+    ...dailyButtonSx,
+    borderColor: '#B8942E',
+    color: '#D9C06A',
+    '&:hover': { borderColor: '#D2AD45', bgcolor: 'rgba(184,148,46,0.08)' },
+    '&.Mui-disabled': { borderColor: '#243444', color: '#566575' },
   };
 
   if (loading && !data) {
@@ -489,18 +548,24 @@ export default function OperationsMonitor() {
 
 
       <Box sx={{ ...sectionSx, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+        <Box sx={dailySectionHeaderSx}>
           <SectionTitle title="Relatório diário" subtitle="Agregados reais por território de origem, sem limites de tela." />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', minWidth: { xs: '100%', md: 420 } }}>
+          <Box sx={dailyActionsSx}>
             <TextField
               type="date"
               size="small"
               value={dailyDate}
               onChange={(event) => setDailyDate(event.target.value || todaySaoPauloDate())}
               disabled={dailyLoading}
-              sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } } }}
+              sx={{ flex: 1, minWidth: 140, '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } } }}
             />
-            <Button onClick={loadDailyReport} disabled={dailyLoading} variant="outlined" size="small" sx={{ borderColor: '#2b3d4e', color: '#c9d3dc', whiteSpace: 'nowrap', textTransform: 'none' }}>
+            <Button
+              onClick={loadDailyReport}
+              disabled={dailyLoading}
+              variant="outlined"
+              size="small"
+              sx={{ ...dailyButtonSx, borderColor: '#2b3d4e', color: '#c9d3dc', minWidth: 110 }}
+            >
               {dailyLoading ? 'Carregando...' : 'Atualizar'}
             </Button>
             <Button
@@ -508,16 +573,8 @@ export default function OperationsMonitor() {
               disabled={dailyLoading || !dailyReport || Boolean(dailyError)}
               variant="contained"
               size="small"
-              startIcon={<ContentCopy sx={{ fontSize: 15 }} />}
-              sx={{
-                bgcolor: '#B8942E',
-                color: '#071018',
-                fontWeight: 800,
-                whiteSpace: 'nowrap',
-                textTransform: 'none',
-                '&:hover': { bgcolor: '#D2AD45' },
-                '&.Mui-disabled': { bgcolor: '#182330', color: '#566575' },
-              }}
+              startIcon={<ContentCopy sx={{ fontSize: 16 }} />}
+              sx={dailyPrimaryButtonSx}
             >
               Copiar resumo
             </Button>
@@ -526,33 +583,33 @@ export default function OperationsMonitor() {
               disabled={dailyLoading || !dailyReport || Boolean(dailyError)}
               variant="outlined"
               size="small"
-              startIcon={<FileDownload sx={{ fontSize: 15 }} />}
-              sx={{
-                borderColor: '#B8942E',
-                color: '#D9C06A',
-                fontWeight: 750,
-                whiteSpace: 'nowrap',
-                textTransform: 'none',
-                '&:hover': { borderColor: '#D2AD45', bgcolor: 'rgba(184, 148, 46, 0.08)' },
-                '&.Mui-disabled': { borderColor: '#243444', color: '#566575' },
-              }}
+              startIcon={<FileDownload sx={{ fontSize: 16 }} />}
+              sx={dailySecondaryButtonSx}
             >
               Exportar CSV
             </Button>
           </Box>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, flexWrap: 'wrap', mb: 2 }}>
-          {recentDates.map((date, index) => (
-            <Chip
-              key={date}
-              label={recentDateLabel(date, index)}
-              onClick={() => selectRecentDailyDate(date)}
-              disabled={dailyLoading}
-              variant={date === dailyDate ? 'filled' : 'outlined'}
-              color={date === dailyDate ? 'warning' : 'default'}
-              sx={{ height: 28, borderRadius: 1.5, fontSize: 11, fontWeight: date === dailyDate ? 800 : 700 }}
-            />
-          ))}
+        <Box sx={dailyChipRowSx}>
+          {recentDates.map((date, index) => {
+            const active = date === dailyDate;
+            return (
+              <Chip
+                key={date}
+                label={recentDateLabel(date, index)}
+                onClick={() => selectRecentDailyDate(date)}
+                disabled={dailyLoading}
+                variant={active ? 'filled' : 'outlined'}
+                sx={{
+                  ...dailyChipBaseSx,
+                  bgcolor: active ? '#B8942E' : '#16212a',
+                  borderColor: active ? '#B8942E' : '#223147',
+                  color: active ? '#071018' : '#d1d9e4',
+                  boxShadow: active ? '0 0 0 1px rgba(184,148,46,0.25)' : 'none',
+                }}
+              />
+            );
+          })}
         </Box>
         {dailyError && <Alert severity="error" sx={{ mb: 2 }}>{dailyError}</Alert>}
         {dailyCopyStatus && (
@@ -560,22 +617,34 @@ export default function OperationsMonitor() {
             {dailyCopyStatus}
           </Alert>
         )}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(5, minmax(0, 1fr))' }, gap: 1.2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(5, minmax(0, 1fr))' }, gap: { xs: 1.2, md: 1.5 } }}>
           {[
-            { label: 'Solicitadas', value: dailyMetrics.requested_rides ?? '-' },
-            { label: 'Concluídas', value: dailyMetrics.completed_rides ?? '-' },
-            { label: 'Canceladas', value: dailyMetrics.canceled_rides ?? '-' },
-            { label: 'Sem motorista', value: dailyMetrics.no_driver_or_no_offer_rides ?? '-' },
-            { label: 'Emergências', value: dailyMetrics.emergencies_registered ?? '-' },
-            { label: 'Ativas agora', value: dailyMetrics.active_emergencies ?? '-' },
-            { label: 'Receita final', value: fmtMoney(dailyMetrics.final_revenue_cents != null ? dailyMetrics.final_revenue_cents / 100 : null) },
-            { label: 'Taxa KAVIAR', value: fmtMoney(dailyMetrics.kaviar_fee_cents != null ? dailyMetrics.kaviar_fee_cents / 100 : null) },
-            { label: 'Ganho motorista', value: fmtMoney(dailyMetrics.driver_earnings_cents != null ? dailyMetrics.driver_earnings_cents / 100 : null) },
-            { label: 'Até 1a oferta', value: fmtTime(dailyMetrics.avg_to_offer_seconds) },
+            { label: 'Solicitadas', value: dailyMetrics.requested_rides ?? '-', variant: 'default' },
+            { label: 'Concluídas', value: dailyMetrics.completed_rides ?? '-', variant: 'default' },
+            { label: 'Canceladas', value: dailyMetrics.canceled_rides ?? '-', variant: 'default' },
+            { label: 'Sem motorista', value: dailyMetrics.no_driver_or_no_offer_rides ?? '-', variant: 'default' },
+            { label: 'Emergências', value: dailyMetrics.emergencies_registered ?? '-', variant: 'default' },
+            { label: 'Ativas agora', value: dailyMetrics.active_emergencies ?? '-', variant: 'default' },
+            { label: 'Receita final', value: fmtMoney(dailyMetrics.final_revenue_cents != null ? dailyMetrics.final_revenue_cents / 100 : null), variant: 'financial' },
+            { label: 'Taxa KAVIAR', value: fmtMoney(dailyMetrics.kaviar_fee_cents != null ? dailyMetrics.kaviar_fee_cents / 100 : null), variant: 'financial' },
+            { label: 'Ganho motorista', value: fmtMoney(dailyMetrics.driver_earnings_cents != null ? dailyMetrics.driver_earnings_cents / 100 : null), variant: 'financial' },
+            { label: 'Até 1a oferta', value: fmtTime(dailyMetrics.avg_to_offer_seconds), variant: 'default' },
           ].map(item => (
-            <Box key={item.label} sx={{ bgcolor: '#111a22', border: '1px solid #1a2332', borderRadius: 2, p: 1.5, minHeight: 76 }}>
-              <Typography sx={{ color: '#f0f4f8', fontSize: 19, fontWeight: 850, lineHeight: 1.1 }}>{item.value}</Typography>
-              <Typography sx={{ color: '#7a8a9a', fontSize: 10, textTransform: 'uppercase', mt: 0.8, fontWeight: 750 }}>{item.label}</Typography>
+            <Box
+              key={item.label}
+              sx={{
+                bgcolor: item.variant === 'financial' ? '#121b24' : '#111a22',
+                border: item.variant === 'financial' ? '1px solid #2c3b49' : '1px solid #1a2332',
+                borderRadius: 2,
+                p: 2,
+                minHeight: 90,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography sx={{ color: '#f0f4f8', fontSize: 20, fontWeight: 850, lineHeight: 1.05 }}>{item.value}</Typography>
+              <Typography sx={{ color: '#7a8a9a', fontSize: 11, textTransform: 'uppercase', mt: 1, fontWeight: 700, letterSpacing: '0.02em' }}>{item.label}</Typography>
             </Box>
           ))}
         </Box>
