@@ -139,6 +139,75 @@ function canAccessRideTerritory(req: Request, territoryId?: string | null): bool
   return scope.territoryIds.includes(territoryId);
 }
 
+type OperationalAlert = {
+  id: string;
+  type: string;
+  title: string;
+  severity: "critical" | "attention" | "monitor";
+  ride_id: string | null;
+  status: string | null;
+  passenger_name: string | null;
+  driver_name: string | null;
+  region: string | null;
+  overdue_minutes: number | null;
+  occurred_at: Date | null;
+};
+
+const ALERT_SEVERITY_WEIGHT: Record<OperationalAlert["severity"], number> = { critical: 0, attention: 1, monitor: 2 };
+
+type RideAlertSource = {
+  id: string;
+  status: string;
+  requested_at: Date;
+  offered_at: Date | null;
+  accepted_at: Date | null;
+  arrived_at: Date | null;
+  started_at: Date | null;
+  passenger?: { name: string | null } | null;
+  driver?: { name: string | null } | null;
+  origin_neighborhood?: { name: string | null } | null;
+};
+
+function buildRideOperationalAlerts(ride: RideAlertSource): OperationalAlert[] {
+  const alerts: OperationalAlert[] = [];
+  const base = {
+    ride_id: ride.id,
+    status: String(ride.status),
+    passenger_name: ride.passenger?.name || null,
+    driver_name: ride.driver?.name || null,
+    region: ride.origin_neighborhood?.name || null,
+  };
+  const add = (type: string, title: string, severity: OperationalAlert["severity"], ref: Date | null | undefined, threshold: number) => {
+    if (!ref) return;
+    const elapsed = minutesSince(ref);
+    if (elapsed < threshold) return;
+    alerts.push({
+      id: ride.id + "-" + type,
+      type,
+      title,
+      severity,
+      ...base,
+      overdue_minutes: Math.max(0, elapsed - threshold),
+      occurred_at: ref,
+    });
+  };
+
+  if (ride.status === "requested") add("requested_wait", "Solicitada sem motorista", minutesSince(ride.requested_at) >= 8 ? "critical" : "attention", ride.requested_at, 3);
+  if (ride.status === "offered") add("offer_wait", "Oferta sem aceite", minutesSince(ride.offered_at || ride.requested_at) >= 10 ? "critical" : "attention", ride.offered_at || ride.requested_at, 5);
+  if (ride.status === "accepted") add("arrival_wait", "Motorista aceitou e ainda não chegou", "attention", ride.accepted_at, 10);
+  if (ride.status === "arrived") add("start_wait", "Motorista chegou e corrida não iniciou", "attention", ride.arrived_at, 10);
+  if (ride.status === "in_progress") add("long_in_progress", "Corrida em andamento acima do esperado", ride.started_at && minutesSince(ride.started_at) >= 90 ? "attention" : "monitor", ride.started_at, 60);
+  return alerts;
+}
+
+function sortOperationalAlerts(alerts: OperationalAlert[]): OperationalAlert[] {
+  return alerts.sort((a, b) => {
+    const severity = ALERT_SEVERITY_WEIGHT[a.severity] - ALERT_SEVERITY_WEIGHT[b.severity];
+    if (severity !== 0) return severity;
+    return (b.overdue_minutes || 0) - (a.overdue_minutes || 0);
+  });
+}
+
 function buildAttentionFlags(ride: {
   status: string;
   requested_at: Date;
@@ -150,22 +219,22 @@ function buildAttentionFlags(ride: {
   const flags: Array<{ code: string; label: string; severity: 'info' | 'warning' | 'critical' }> = [];
 
   if (ride.status === 'requested' && minutesSince(ride.requested_at) >= 3) {
-    flags.push({ code: 'requested_wait', label: `Solicitada ha ${minutesSince(ride.requested_at)} min`, severity: 'warning' });
+    flags.push({ code: 'requested_wait', label: `Solicitada há ${minutesSince(ride.requested_at)} min`, severity: 'warning' });
   }
   if (ride.status === 'offered' && ride.offered_at && minutesSince(ride.offered_at) >= 5) {
-    flags.push({ code: 'offered_wait', label: `Ofertada ha ${minutesSince(ride.offered_at)} min`, severity: 'warning' });
+    flags.push({ code: 'offered_wait', label: `Ofertada há ${minutesSince(ride.offered_at)} min`, severity: 'warning' });
   }
   if (ride.status === 'arrived' && ride.arrived_at && minutesSince(ride.arrived_at) >= 10) {
-    flags.push({ code: 'arrived_wait', label: `Motorista chegou ha ${minutesSince(ride.arrived_at)} min`, severity: 'warning' });
+    flags.push({ code: 'arrived_wait', label: `Motorista chegou há ${minutesSince(ride.arrived_at)} min`, severity: 'warning' });
   }
   if (ride.status === 'in_progress' && ride.started_at && minutesSince(ride.started_at) >= 60) {
-    flags.push({ code: 'long_in_progress', label: `Em andamento ha ${minutesSince(ride.started_at)} min`, severity: 'warning' });
+    flags.push({ code: 'long_in_progress', label: `Em andamento há ${minutesSince(ride.started_at)} min`, severity: 'warning' });
   }
   if (ride.status === 'canceled_by_passenger' || ride.status === 'canceled_by_driver') {
     flags.push({ code: 'canceled', label: 'Corrida cancelada', severity: 'warning' });
   }
   if (hasActiveEmergency) {
-    flags.push({ code: 'active_emergency', label: 'Emergencia ativa vinculada', severity: 'critical' });
+    flags.push({ code: 'active_emergency', label: 'Emergência ativa vinculada', severity: 'critical' });
   }
 
   return flags;
@@ -224,14 +293,14 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
       },
     });
 
-    if (!ride) return res.status(404).json({ success: false, error: 'Corrida nao encontrada' });
+    if (!ride) return res.status(404).json({ success: false, error: 'Corrida não encontrada' });
 
     const requestedTerritoryId = typeof req.query.territory_id === 'string' && req.query.territory_id.trim()
       ? req.query.territory_id.trim()
       : null;
     const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
     if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
-      return res.status(404).json({ success: false, error: 'Corrida nao encontrada' });
+      return res.status(404).json({ success: false, error: 'Corrida não encontrada' });
     }
 
     const timeline: Array<{
@@ -271,11 +340,12 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
 
     for (const event of ride.emergency_events) {
       addTimeline('emergency', 'Evento de emergencia', event.created_at, event.status, event.status === 'active' ? 'critical' : 'warning');
-      addTimeline('emergency_resolved', 'Emergencia resolvida', event.resolved_at, event.status, 'success');
+      addTimeline('emergency_resolved', 'Emergência resolvida', event.resolved_at, event.status, 'success');
     }
 
     timeline.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
     const hasActiveEmergency = ride.emergency_events.some(event => event.status === 'active');
+
 
     res.json({
       success: true,
@@ -364,6 +434,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
     const offerTimingWhere = applyRideTerritoryFilter({ requested_at: { gte: start }, offered_at: { not: null } }, territoryFilter.neighborhoodIds);
     const demandWhere = applyRideTerritoryFilter({ status: 'no_driver', requested_at: { gte: start } }, territoryFilter.neighborhoodIds);
     const completedWhere = applyRideTerritoryFilter({ status: 'completed', completed_at: { gte: start } }, territoryFilter.neighborhoodIds);
+    const canceledWhere = applyRideTerritoryFilter({ status: { in: ['canceled_by_passenger', 'canceled_by_driver'] }, canceled_at: { gte: start } }, territoryFilter.neighborhoodIds);
     const driverWhere = applyDriverTerritoryFilter({ availability: { in: ['online', 'busy'] } }, territoryFilter.neighborhoodIds);
     const emergencyWhere: any = territoryFilter.neighborhoodIds
       ? { status: 'active', ride: { origin_neighborhood_id: territoryFilter.neighborhoodIds.length > 0 ? { in: territoryFilter.neighborhoodIds } : '__none__' } }
@@ -376,7 +447,9 @@ router.get('/cockpit', async (req: Request, res: Response) => {
       ridesWithOffer,
       demandRows,
       completedRides,
+      canceledRows,
       activeEmergencyCount,
+      emergencyAlertEvents,
       emergencyEvents,
     ] = await Promise.all([
       prisma.rides_v2.groupBy({
@@ -394,6 +467,11 @@ router.get('/cockpit', async (req: Request, res: Response) => {
           origin_text: true,
           destination_text: true,
           requested_at: true,
+          offered_at: true,
+          accepted_at: true,
+          arrived_at: true,
+          started_at: true,
+          updated_at: true,
           passenger: { select: { name: true } },
           driver: { select: { name: true } },
           origin_neighborhood: { select: { name: true } },
@@ -453,7 +531,39 @@ router.get('/cockpit', async (req: Request, res: Response) => {
           origin_neighborhood: { select: { name: true } },
         },
       }),
+      prisma.rides_v2.findMany({
+        where: canceledWhere,
+        orderBy: { canceled_at: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          status: true,
+          requested_at: true,
+          canceled_at: true,
+          updated_at: true,
+          passenger: { select: { name: true } },
+          driver: { select: { name: true } },
+          origin_neighborhood: { select: { name: true } },
+        },
+      }),
       prisma.ride_emergency_events.count({ where: emergencyWhere }),
+      prisma.ride_emergency_events.findMany({
+        where: emergencyWhere,
+        orderBy: { created_at: 'desc' },
+        take: 20,
+        include: {
+          ride: {
+            select: {
+              id: true,
+              status: true,
+              requested_at: true,
+              passenger: { select: { name: true } },
+              driver: { select: { name: true } },
+              origin_neighborhood: { select: { name: true } },
+            },
+          },
+        },
+      }),
       canSeeEmergencyDetails
         ? prisma.ride_emergency_events.findMany({
             where: emergencyWhere,
@@ -495,6 +605,49 @@ router.get('/cockpit', async (req: Request, res: Response) => {
       demandByRegion.set(region, current);
     }
 
+    const operationalAlerts = sortOperationalAlerts([
+      ...activeRides.flatMap(ride => buildRideOperationalAlerts(ride)),
+      ...emergencyAlertEvents.map(event => ({
+        id: event.id + '-emergency',
+        type: 'active_emergency',
+        title: 'Emergência ativa',
+        severity: 'critical' as const,
+        ride_id: event.ride_id || null,
+        status: event.ride?.status || event.status || null,
+        passenger_name: event.ride?.passenger?.name || null,
+        driver_name: event.ride?.driver?.name || null,
+        region: event.ride?.origin_neighborhood?.name || null,
+        overdue_minutes: minutesSince(event.created_at),
+        occurred_at: event.created_at,
+      })),
+      ...canceledRows.map(ride => ({
+        id: ride.id + '-canceled',
+        type: 'recent_cancellation',
+        title: 'Cancelamento recente',
+        severity: 'monitor' as const,
+        ride_id: ride.id,
+        status: String(ride.status),
+        passenger_name: ride.passenger?.name || null,
+        driver_name: ride.driver?.name || null,
+        region: ride.origin_neighborhood?.name || null,
+        overdue_minutes: null,
+        occurred_at: ride.canceled_at || ride.updated_at,
+      })),
+      ...demandRows.slice(0, 20).map(ride => ({
+        id: ride.id + '-no-driver',
+        type: 'no_driver',
+        title: 'Pedido encerrado sem motorista',
+        severity: 'attention' as const,
+        ride_id: ride.id,
+        status: 'no_driver',
+        passenger_name: null,
+        driver_name: null,
+        region: ride.origin_neighborhood?.name || ride.origin_text || null,
+        overdue_minutes: minutesSince(ride.requested_at),
+        occurred_at: ride.requested_at,
+      })),
+    ]).slice(0, 20);
+
     res.json({
       success: true,
       generated_at: new Date(),
@@ -508,6 +661,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
         active_emergencies: activeEmergencyCount,
         avg_to_offer_seconds: avgToOfferSeconds,
       },
+      operational_alerts: operationalAlerts,
       active_rides: activeRides.map(ride => {
         const attention = needsAttention(ride.status, ride.requested_at);
         return {

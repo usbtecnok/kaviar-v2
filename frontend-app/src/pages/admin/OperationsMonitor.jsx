@@ -61,6 +61,12 @@ const SEVERITY_COLORS = {
   critical: '#f44336',
 };
 
+const OPERATIONAL_SEVERITY = {
+  critical: { label: 'Crítico', color: '#ff6b6b' },
+  attention: { label: 'Atenção', color: '#FFD700' },
+  monitor: { label: 'Monitorar', color: '#64B5F6' },
+};
+
 function fmtTime(seconds) {
   if (seconds == null) return 'Indisponivel';
   if (seconds < 60) return `${seconds}s`;
@@ -190,6 +196,7 @@ export default function OperationsMonitor() {
   const cards = data?.cards || {};
   const activeRides = data?.active_rides || [];
   const completedRides = data?.completed_rides_today || [];
+  const operationalAlerts = data?.operational_alerts || [];
   const onlineDrivers = data?.online_drivers || [];
   const demand = data?.demand_unserved || { total: 0, by_region: [], recent: [] };
   const emergencies = data?.emergencies || [];
@@ -265,7 +272,7 @@ export default function OperationsMonitor() {
           { value: cards.active_rides, label: 'Corridas ativas', color: '#2196F3' },
           { value: cards.no_driver_today, label: 'Sem motorista hoje', color: '#f44336' },
           { value: cards.canceled_today, label: 'Canceladas hoje', color: '#FF9800' },
-          { value: cards.active_emergencies, label: 'Emergencias ativas', color: cards.active_emergencies > 0 ? '#f44336' : '#25D366' },
+          { value: cards.active_emergencies, label: 'Emergências ativas', color: cards.active_emergencies > 0 ? '#f44336' : '#25D366' },
           { value: fmtTime(cards.avg_to_offer_seconds), label: 'Media ate 1a oferta', color: '#FFD700', isText: true },
         ].map(card => (
           <Box key={card.label} sx={cardSx}>
@@ -279,6 +286,49 @@ export default function OperationsMonitor() {
         ))}
       </Box>
 
+      <Box sx={{ ...sectionSx, mb: 3, borderColor: operationalAlerts.length > 0 ? '#5a4420' : '#1a2332', background: operationalAlerts.length > 0 ? 'linear-gradient(180deg, #111318 0%, #0d1117 100%)' : '#0d1117' }}>
+        <SectionTitle title='Atenção operacional' subtitle='Ocorrências que podem exigir acompanhamento humano no escopo selecionado.' />
+        {operationalAlerts.length > 0 ? (
+          <TableContainer>
+            <Table size='small'>
+              <TableHead>
+                <TableRow>
+                  {['Tipo', 'Severidade', 'Corrida', 'Passageiro / Motorista', 'Região', 'Atraso', 'Status', 'Horário'].map(h => (
+                    <TableCell key={h} sx={headCellSx}>{h}</TableCell>
+                  ))}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {operationalAlerts.map(alert => {
+                  const severity = OPERATIONAL_SEVERITY[alert.severity] || OPERATIONAL_SEVERITY.monitor;
+                  return (
+                    <TableRow
+                      key={alert.id}
+                      hover={Boolean(alert.ride_id)}
+                      onClick={() => alert.ride_id && openRideDetail(alert.ride_id)}
+                      sx={{ cursor: alert.ride_id ? 'pointer' : 'default', '&:hover': { bgcolor: alert.ride_id ? '#111a22' : 'transparent' } }}
+                    >
+                      <TableCell sx={bodyCellSx}>{alert.title}</TableCell>
+                      <TableCell sx={bodyCellSx}>
+                        <Chip label={severity.label} size='small' sx={{ height: 22, fontSize: 10, bgcolor: severity.color + '22', color: severity.color, fontWeight: 800 }} />
+                      </TableCell>
+                      <TableCell sx={bodyCellSx}>{alert.ride_id ? shortId(alert.ride_id) : '-'}</TableCell>
+                      <TableCell sx={bodyCellSx}>{[alert.passenger_name, alert.driver_name].filter(Boolean).join(' / ') || '-'}</TableCell>
+                      <TableCell sx={bodyCellSx}>{alert.region || '-'}</TableCell>
+                      <TableCell sx={bodyCellSx}>{alert.overdue_minutes != null ? alert.overdue_minutes + ' min' : '-'}</TableCell>
+                      <TableCell sx={bodyCellSx}><StatusChip status={alert.status} /></TableCell>
+                      <TableCell sx={bodyCellSx}>{fmtHour(alert.occurred_at)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : (
+          <EmptyBox label='Nenhuma ocorrência crítica no momento.' />
+        )}
+      </Box>
+
       <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.8fr)', gap: 1.5, mb: 3 }}>
         <Box sx={sectionSx}>
           <SectionTitle title="Corridas recentes e ativas" subtitle="Clique em uma corrida para ver a timeline operacional somente leitura." />
@@ -286,7 +336,7 @@ export default function OperationsMonitor() {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  {['Status', 'Origem', 'Destino', 'Passageiro', 'Motorista', 'Regiao', 'Tempo', 'Atencao'].map(h => (
+                  {['Status', 'Origem', 'Destino', 'Passageiro', 'Motorista', 'Região', 'Tempo', 'Atenção'].map(h => (
                     <TableCell key={h} sx={headCellSx}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -364,7 +414,7 @@ export default function OperationsMonitor() {
           <Table size="small">
             <TableHead>
               <TableRow>
-                {['Status', 'Conclusao', 'Passageiro', 'Motorista', 'Origem', 'Destino', 'Regiao', 'Valor final', 'Taxa KAVIAR', 'Ganho motorista'].map(h => (
+                {['Status', 'Conclusao', 'Passageiro', 'Motorista', 'Origem', 'Destino', 'Região', 'Valor final', 'Taxa KAVIAR', 'Ganho motorista'].map(h => (
                   <TableCell key={h} sx={headCellSx}>{h}</TableCell>
                 ))}
               </TableRow>
@@ -416,7 +466,7 @@ export default function OperationsMonitor() {
         </Box>
 
         <Box sx={sectionSx}>
-          <SectionTitle title="Emergencias ativas" subtitle={isSuperAdmin ? 'Eventos ativos do botao de emergencia.' : 'Detalhes disponiveis apenas para Super Admin.'} />
+          <SectionTitle title="Emergências ativas" subtitle={isSuperAdmin ? 'Eventos ativos do botão de emergência.' : 'Detalhes disponiveis apenas para Super Admin.'} />
           {isSuperAdmin && emergencies.length > 0 ? (
             <TableContainer>
               <Table size="small">
@@ -484,13 +534,13 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin 
                 ['Status', <StatusChip key="status" status={ride.status} />],
                 ['Passageiro', ride.passenger?.name || '-'],
                 ['Motorista', ride.driver?.name || '-'],
-                ['Regiao', ride.region || '-'],
+                ['Região', ride.region || '-'],
                 ['Origem', ride.origin_text || '-'],
                 ['Destino', ride.destination_text || '-'],
               ]} />
             </Panel>
 
-            <Panel title="Horarios principais">
+            <Panel title="Horários principais">
               <InfoGrid items={[
                 ['Solicitada', fmtDateTime(ride.requested_at)],
                 ['Ofertada', fmtDateTime(ride.offered_at)],
@@ -559,7 +609,7 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin 
                 render={offer => (
                   <Box key={offer.id} sx={rowSx}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-                      <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{offer.driver?.name || 'Motorista nao informado'}</Typography>
+                      <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{offer.driver?.name || 'Motorista não informado'}</Typography>
                       <Chip label={offer.status} size="small" sx={{ height: 20, fontSize: 10, bgcolor: '#2196F322', color: '#64B5F6' }} />
                     </Box>
                     <Typography sx={{ color: '#7f91a3', fontSize: 11 }}>Enviada {fmtDateTime(offer.sent_at)} {offer.responded_at ? `- resposta ${fmtDateTime(offer.responded_at)}` : ''}</Typography>
@@ -569,7 +619,7 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin 
               />
             </Panel>
 
-            <Panel title="Emergencias">
+            <Panel title="Emergências">
               <Typography sx={{ color: '#9aabbc', fontSize: 12, mb: 1 }}>
                 Total: {detail.emergencies.total} | Ativas: {detail.emergencies.active}
               </Typography>
@@ -580,7 +630,7 @@ function RideDetailDrawer({ open, onClose, loading, error, detail, isSuperAdmin 
                   render={(event, index) => (
                     <Box key={event.id || index} sx={rowSx}>
                       <Typography sx={{ color: '#d8e0e8', fontSize: 12, fontWeight: 700 }}>{event.status}</Typography>
-                      <Typography sx={{ color: '#9aabbc', fontSize: 12 }}>{event.triggered_by_type || 'origem nao informada'} - {event.trigger_source || '-'}</Typography>
+                      <Typography sx={{ color: '#9aabbc', fontSize: 12 }}>{event.triggered_by_type || 'origem não informada'} - {event.trigger_source || '-'}</Typography>
                       <Typography sx={{ color: '#586b7d', fontSize: 11 }}>{fmtDateTime(event.created_at)} | pontos: {event.trail_points ?? '-'}</Typography>
                     </Box>
                   )}
