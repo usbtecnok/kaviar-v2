@@ -88,14 +88,44 @@ A Fase 4B não alterou:
 - permissões;
 - fluxo de corrida.
 
-## Próxima Frente Sugerida
+## Fase 4C — Exportação CSV simples do Relatório Diário
 
-### Fase 4C — Exportação CSV simples do relatório diário
+**Status:** concluída e validada em produção.
 
-Escopo sugerido pequeno e read-only:
+### Escopo entregue
 
-- exportar CSV a partir do mesmo payload já carregado;
-- manter o botão de copiar resumo funcionando;
-- respeitar escopo territorial atual;
-- não criar endpoint novo sem necessidade;
-- não alterar wallet, pricing, dispatch, emergency status, settlement, permissões ou fluxo de corrida.
+- Botão **Exportar CSV** disponível na seção **Relatório diário** em `/admin/operations`.
+- CSV gerado a partir do payload já carregado por `/api/admin/operations/daily-report`.
+- Exportação de uma linha por relatório atual.
+- Exportação limitada a métricas agregadas.
+- Nenhum endpoint novo.
+- Nenhuma alteração backend.
+
+### Validação de produção
+
+- Commit: `ae6112de2a1967bd210f9f9855cf9439eaf9950d`
+- Deploy frontend/admin: GitHub Actions `Deploy Frontend` run `28183063229` success.
+- Backend não iniciou, esperado porque a alteração foi somente em `frontend-app/**`.
+- `/admin/operations`: `200 OK`.
+- Bundle publicado `/assets/index-DXbI0wFs.js` contém:
+  - `Exportar CSV`;
+  - `kaviar-relatorio-diario`;
+  - `sem_motorista_ou_oferta`;
+  - `media_ate_primeira_oferta`;
+  - `final_revenue_cents`.
+- Backend health: `200 OK`.
+- CloudWatch `ERROR`: sem eventos novos após deploy.
+
+### Proteções mantidas
+
+A Fase 4C não alterou:
+
+- wallet;
+- pricing;
+- dispatch;
+- emergency status;
+- settlement;
+- permissões;
+- fluxo de corrida.
+
+A exportação CSV não inclui telefone, passageiro, motorista ou qualquer dado pessoal.
