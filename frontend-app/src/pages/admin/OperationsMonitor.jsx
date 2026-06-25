@@ -22,7 +22,7 @@ import {
   Select,
   TextField,
 } from '@mui/material';
-import { Refresh, Close } from '@mui/icons-material';
+import { ContentCopy, Refresh, Close } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 const STATUS_COLORS = {
@@ -121,6 +121,42 @@ function todaySaoPauloDate() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
 }
 
+function fmtDailyDate(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return date || '-';
+  const [year, month, day] = date.split('-');
+  return day + '/' + month + '/' + year;
+}
+
+function moneyFromCents(cents) {
+  if (cents == null) return 'R$ 0,00';
+  return fmtMoney(Number(cents) / 100);
+}
+
+function buildDailyReportSummary(report) {
+  if (!report?.metrics) return '';
+  const metrics = report.metrics;
+  const territoryName = report.territory?.active_territory?.name || 'Geral';
+
+  return [
+    'Relatório Diário KAVIAR',
+    'Data: ' + fmtDailyDate(report.period?.date),
+    'Território: ' + territoryName,
+    '',
+    'Solicitadas: ' + (metrics.requested_rides ?? 0),
+    'Concluídas: ' + (metrics.completed_rides ?? 0),
+    'Canceladas: ' + (metrics.canceled_rides ?? 0),
+    'Sem motorista/oferta: ' + (metrics.no_driver_or_no_offer_rides ?? 0),
+    'Emergências: ' + (metrics.emergencies_registered ?? 0),
+    'Ativas agora: ' + (metrics.active_emergencies ?? 0),
+    'Receita final: ' + moneyFromCents(metrics.final_revenue_cents),
+    'Taxa KAVIAR: ' + moneyFromCents(metrics.kaviar_fee_cents),
+    'Ganho motorista: ' + moneyFromCents(metrics.driver_earnings_cents),
+    'Média até 1ª oferta: ' + (metrics.avg_to_offer_seconds == null ? 'Indisponível' : fmtTime(metrics.avg_to_offer_seconds)),
+    '',
+    'Observação: ' + (report.scope_rules?.cross_territory || 'Corridas cross-territory entram no relatório pelo território de origem.'),
+  ].join('\n');
+}
+
 export default function OperationsMonitor() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -133,6 +169,7 @@ export default function OperationsMonitor() {
   const [dailyReport, setDailyReport] = useState(null);
   const [dailyLoading, setDailyLoading] = useState(false);
   const [dailyError, setDailyError] = useState('');
+  const [dailyCopyStatus, setDailyCopyStatus] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTerritoryId = searchParams.get('territory_id') || '';
   const token = localStorage.getItem('kaviar_admin_token');
@@ -166,6 +203,7 @@ export default function OperationsMonitor() {
       setDailyLoading(true);
       setDailyError('');
       setDailyReport(null);
+      setDailyCopyStatus('');
       const params = new URLSearchParams({ date: dailyDate });
       if (selectedTerritoryId) params.set('territory_id', selectedTerritoryId);
       const res = await fetch(`${API_BASE_URL}/api/admin/operations/daily-report?${params.toString()}`, {
@@ -179,6 +217,7 @@ export default function OperationsMonitor() {
     } catch (err) {
       console.error('[OPS_DAILY_REPORT]', err);
       setDailyReport(null);
+      setDailyCopyStatus('');
       setDailyError(err.message || 'Erro ao carregar relatório diário');
     } finally {
       setDailyLoading(false);
@@ -214,6 +253,18 @@ export default function OperationsMonitor() {
     if (territoryId) next.set('territory_id', territoryId);
     else next.delete('territory_id');
     setSearchParams(next, { replace: true });
+  };
+
+  const copyDailySummary = async () => {
+    if (!dailyReport) return;
+
+    try {
+      await navigator.clipboard.writeText(buildDailyReportSummary(dailyReport));
+      setDailyCopyStatus('Resumo copiado.');
+    } catch (err) {
+      console.error('[OPS_DAILY_REPORT_COPY]', err);
+      setDailyCopyStatus('Não foi possível copiar automaticamente.');
+    }
   };
 
   const addOperationalNoteToDetail = (note) => {
@@ -360,9 +411,32 @@ export default function OperationsMonitor() {
             <Button onClick={loadDailyReport} disabled={dailyLoading} variant="outlined" size="small" sx={{ borderColor: '#2b3d4e', color: '#c9d3dc', whiteSpace: 'nowrap', textTransform: 'none' }}>
               {dailyLoading ? 'Carregando...' : 'Atualizar'}
             </Button>
+            <Button
+              onClick={copyDailySummary}
+              disabled={dailyLoading || !dailyReport || Boolean(dailyError)}
+              variant="contained"
+              size="small"
+              startIcon={<ContentCopy sx={{ fontSize: 15 }} />}
+              sx={{
+                bgcolor: '#B8942E',
+                color: '#071018',
+                fontWeight: 800,
+                whiteSpace: 'nowrap',
+                textTransform: 'none',
+                '&:hover': { bgcolor: '#D2AD45' },
+                '&.Mui-disabled': { bgcolor: '#182330', color: '#566575' },
+              }}
+            >
+              Copiar resumo
+            </Button>
           </Box>
         </Box>
         {dailyError && <Alert severity="error" sx={{ mb: 2 }}>{dailyError}</Alert>}
+        {dailyCopyStatus && (
+          <Alert severity={dailyCopyStatus.startsWith('Resumo') ? 'success' : 'warning'} sx={{ mb: 2 }}>
+            {dailyCopyStatus}
+          </Alert>
+        )}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(5, minmax(0, 1fr))' }, gap: 1.2 }}>
           {[
             { label: 'Solicitadas', value: dailyMetrics.requested_rides ?? '-' },
