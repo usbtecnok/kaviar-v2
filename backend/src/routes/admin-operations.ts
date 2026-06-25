@@ -7,6 +7,8 @@ import { requireTerritoryScope } from '../middlewares/require-territory-scope';
 
 const router = Router();
 const OPERATIONS_ROLES = ['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'];
+// Operational day helper: Brazil currently has no DST, so Sao Paulo is treated as fixed UTC-03 for current reports.
+const SAO_PAULO_UTC_OFFSET_HOURS = 3;
 
 router.use(authenticateAdmin);
 router.use(requireRole(OPERATIONS_ROLES));
@@ -55,6 +57,11 @@ function maskPhone(phone?: string | null): string | null {
   const digits = phone.replace(/\D/g, '');
   if (digits.length <= 4) return '****';
   return `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`;
+}
+
+export function shouldReturnRawOperationalDriverPhone(role?: string | null): boolean {
+  // OPERATOR is treated as KAVIAR central operations staff and currently keeps global operational phone access.
+  return ['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'].includes(role || '');
 }
 
 function getTerritoryScope(req: Request): { territoryIds: string[]; neighborhoodIds: string[] } | null {
@@ -134,10 +141,102 @@ function applyDriverTerritoryFilter(where: Record<string, any>, neighborhoodIds:
   };
 }
 
-function canAccessRideTerritory(req: Request, territoryId?: string | null): boolean {
-  const scope = getTerritoryScope(req);
-  if (!scope || !territoryId) return true;
+export function canScopedAdminAccessRideTerritory(scope: { territoryIds: string[] } | null, territoryId?: string | null): boolean {
+  if (!scope) return true;
+  if (!territoryId) return false;
   return scope.territoryIds.includes(territoryId);
+}
+
+function forbiddenRideTerritoryResponse(req: Request, territoryId?: string | null): { status: number; error: string } | null {
+  const scope = getTerritoryScope(req);
+  if (canScopedAdminAccessRideTerritory(scope, territoryId)) return null;
+  if (!territoryId) return { status: 403, error: 'Corrida sem território de origem definido' };
+  return { status: 403, error: 'Sem permissao para este territorio' };
+}
+
+export function getSaoPauloDayBounds(dateText: string): { start: Date; end: Date; date: string } {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+    throw new Error('Data inválida. Use YYYY-MM-DD.');
+  }
+  const [year, month, day] = dateText.split('-').map(Number);
+  const start = new Date(Date.UTC(year, month - 1, day, SAO_PAULO_UTC_OFFSET_HOURS, 0, 0, 0));
+  const end = new Date(start.getTime() + 86400000);
+  if (
+    Number.isNaN(start.getTime()) ||
+    start.getUTCFullYear() !== year ||
+    start.getUTCMonth() !== month - 1 ||
+    start.getUTCDate() !== day
+  ) {
+    throw new Error('Data inválida. Use YYYY-MM-DD.');
+  }
+  return { start, end, date: dateText };
+}
+
+type DailyReportRideStatusGroup = { status: string; _count: number };
+type DailyReportSettlementSums = {
+  final_price?: unknown;
+  fee_amount?: unknown;
+  driver_earnings?: unknown;
+};
+type DailyReportOfferTiming = { requested_at: Date; offered_at: Date | null };
+
+function moneyToCents(value: unknown): number {
+  if (value == null) return 0;
+  return Math.round(Number(value) * 100);
+}
+
+export function buildDailyReportPayload(args: {
+  date: string;
+  start: Date;
+  end: Date;
+  territory: ReturnType<typeof buildTerritoryMeta>;
+  requestedGroups: DailyReportRideStatusGroup[];
+  completedCount: number;
+  canceledCount: number;
+  noDriverCount: number;
+  emergencyRegisteredCount: number;
+  activeEmergencyCount: number;
+  settlementSums: DailyReportSettlementSums;
+  offerTimings: DailyReportOfferTiming[];
+}) {
+  const requestedTotal = args.requestedGroups.reduce((sum, group) => sum + group._count, 0);
+  const avgToOfferSeconds = args.offerTimings.length > 0
+    ? Math.round(
+        args.offerTimings.reduce((sum, ride) => {
+          if (!ride.offered_at) return sum;
+          return sum + ((ride.offered_at.getTime() - ride.requested_at.getTime()) / 1000);
+        }, 0) / args.offerTimings.length
+      )
+    : null;
+
+  return {
+    success: true,
+    generated_at: new Date(),
+    period: {
+      date: args.date,
+      timezone: 'America/Sao_Paulo',
+      start: args.start,
+      end: args.end,
+    },
+    territory: args.territory,
+    scope_rules: {
+      rides: 'Corridas são contabilizadas pelo território de origem.',
+      drivers: 'Motoristas seguem o território/base operacional do motorista.',
+      cross_territory: 'Corridas cross-territory entram no relatório do território de origem.',
+    },
+    metrics: {
+      requested_rides: requestedTotal,
+      completed_rides: args.completedCount,
+      canceled_rides: args.canceledCount,
+      no_driver_or_no_offer_rides: args.noDriverCount,
+      emergencies_registered: args.emergencyRegisteredCount,
+      active_emergencies: args.activeEmergencyCount,
+      final_revenue_cents: moneyToCents(args.settlementSums.final_price),
+      kaviar_fee_cents: moneyToCents(args.settlementSums.fee_amount),
+      driver_earnings_cents: moneyToCents(args.settlementSums.driver_earnings),
+      avg_to_offer_seconds: avgToOfferSeconds,
+    },
+  };
 }
 
 const OPERATION_NOTE_TYPES = new Set([
@@ -377,8 +476,12 @@ router.get('/rides/:id', async (req: Request, res: Response) => {
       ? req.query.territory_id.trim()
       : null;
     const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
-    if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
-      return res.status(404).json({ success: false, error: 'Corrida não encontrada' });
+    const territoryBlock = forbiddenRideTerritoryResponse(req, rideTerritoryId);
+    if (territoryBlock) {
+      return res.status(territoryBlock.status).json({ success: false, error: territoryBlock.error });
+    }
+    if (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId) {
+      return res.status(403).json({ success: false, error: 'Sem permissao para este territorio' });
     }
 
     const timeline: Array<{
@@ -528,8 +631,12 @@ router.post("/rides/:id/notes", async (req: Request, res: Response) => {
       ? req.query.territory_id.trim()
       : null;
     const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
-    if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
-      return res.status(404).json({ success: false, error: "Corrida não encontrada" });
+    const territoryBlock = forbiddenRideTerritoryResponse(req, rideTerritoryId);
+    if (territoryBlock) {
+      return res.status(territoryBlock.status).json({ success: false, error: territoryBlock.error });
+    }
+    if (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId) {
+      return res.status(403).json({ success: false, error: "Sem permissao para este territorio" });
     }
 
     const payload = { note_type: noteType, note };
@@ -589,8 +696,12 @@ router.post("/rides/:id/emergency-followups", async (req: Request, res: Response
       ? req.query.territory_id.trim()
       : null;
     const rideTerritoryId = ride.origin_neighborhood?.territory_id || null;
-    if (!canAccessRideTerritory(req, rideTerritoryId) || (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId)) {
-      return res.status(404).json({ success: false, error: "Corrida não encontrada" });
+    const territoryBlock = forbiddenRideTerritoryResponse(req, rideTerritoryId);
+    if (territoryBlock) {
+      return res.status(territoryBlock.status).json({ success: false, error: territoryBlock.error });
+    }
+    if (requestedTerritoryId && rideTerritoryId !== requestedTerritoryId) {
+      return res.status(403).json({ success: false, error: "Sem permissao para este territorio" });
     }
 
     const payload = { followup_type: followupType, note };
@@ -623,11 +734,82 @@ router.post("/rides/:id/emergency-followups", async (req: Request, res: Response
   }
 });
 
+
+router.get('/daily-report', async (req: Request, res: Response) => {
+  try {
+    const rawDate = typeof req.query.date === 'string' && req.query.date.trim()
+      ? req.query.date.trim()
+      : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+    let bounds: { start: Date; end: Date; date: string };
+    try {
+      bounds = getSaoPauloDayBounds(rawDate);
+    } catch (err: any) {
+      return res.status(400).json({ success: false, error: err.message || 'Data inválida. Use YYYY-MM-DD.' });
+    }
+
+    const territoryFilter = await resolveTerritoryFilter(req, res);
+    if (!territoryFilter) return;
+
+    // Fase 4A: relatório read-only por território de origem. Corridas cross-territory entram pelo território da origem.
+    const requestedWhere = applyRideTerritoryFilter({ requested_at: { gte: bounds.start, lt: bounds.end } }, territoryFilter.neighborhoodIds);
+    const completedWhere = applyRideTerritoryFilter({ status: 'completed', completed_at: { gte: bounds.start, lt: bounds.end } }, territoryFilter.neighborhoodIds);
+    const canceledWhere = applyRideTerritoryFilter({ status: { in: ['canceled_by_passenger', 'canceled_by_driver'] }, canceled_at: { gte: bounds.start, lt: bounds.end } }, territoryFilter.neighborhoodIds);
+    const noDriverWhere = applyRideTerritoryFilter({ status: 'no_driver', requested_at: { gte: bounds.start, lt: bounds.end } }, territoryFilter.neighborhoodIds);
+    const offerTimingWhere = applyRideTerritoryFilter({ requested_at: { gte: bounds.start, lt: bounds.end }, offered_at: { not: null } }, territoryFilter.neighborhoodIds);
+    const emergencyRegisteredWhere: any = territoryFilter.neighborhoodIds
+      ? { created_at: { gte: bounds.start, lt: bounds.end }, ride: { origin_neighborhood_id: territoryFilter.neighborhoodIds.length > 0 ? { in: territoryFilter.neighborhoodIds } : '__none__' } }
+      : { created_at: { gte: bounds.start, lt: bounds.end } };
+    const activeEmergencyWhere: any = territoryFilter.neighborhoodIds
+      ? { status: 'active', ride: { origin_neighborhood_id: territoryFilter.neighborhoodIds.length > 0 ? { in: territoryFilter.neighborhoodIds } : '__none__' } }
+      : { status: 'active' };
+
+    const [
+      requestedGroups,
+      completedCount,
+      canceledCount,
+      noDriverCount,
+      settlementSums,
+      offerTimings,
+      emergencyRegisteredCount,
+      activeEmergencyCount,
+    ] = await Promise.all([
+      prisma.rides_v2.groupBy({ by: ['status'], where: requestedWhere, _count: true }),
+      prisma.rides_v2.count({ where: completedWhere }),
+      prisma.rides_v2.count({ where: canceledWhere }),
+      prisma.rides_v2.count({ where: noDriverWhere }),
+      // Financial report values come from ride_settlements, the persisted source of truth.
+      prisma.ride_settlements.aggregate({ where: { ride: { is: completedWhere } }, _sum: { final_price: true, fee_amount: true, driver_earnings: true } }),
+      prisma.rides_v2.findMany({ where: offerTimingWhere, select: { requested_at: true, offered_at: true } }),
+      prisma.ride_emergency_events.count({ where: emergencyRegisteredWhere }),
+      prisma.ride_emergency_events.count({ where: activeEmergencyWhere }),
+    ]);
+
+    res.json(buildDailyReportPayload({
+      date: bounds.date,
+      start: bounds.start,
+      end: bounds.end,
+      territory: buildTerritoryMeta(req, territoryFilter.territories, territoryFilter.territoryId),
+      requestedGroups: requestedGroups.map(group => ({ status: String(group.status), _count: group._count })),
+      completedCount,
+      canceledCount,
+      noDriverCount,
+      emergencyRegisteredCount,
+      activeEmergencyCount,
+      settlementSums: settlementSums._sum,
+      offerTimings,
+    }));
+  } catch (err) {
+    console.error('[OPS_DAILY_REPORT]', err);
+    res.status(500).json({ success: false, error: 'Erro ao carregar relatório diário operacional' });
+  }
+});
+
 router.get('/cockpit', async (req: Request, res: Response) => {
   try {
     const { start, label } = getPeriod('today');
     const admin = (req as any).admin;
     const canSeeEmergencyDetails = admin?.role === 'SUPER_ADMIN';
+    const canSeeRawDriverPhone = shouldReturnRawOperationalDriverPhone(admin?.role);
     const activeStatuses = ['requested', 'offered', 'accepted', 'arrived', 'in_progress'];
     const territoryFilter = await resolveTerritoryFilter(req, res);
     if (!territoryFilter) return;
@@ -884,7 +1066,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
       online_drivers: onlineDrivers.map(status => ({
         id: status.driver.id,
         name: status.driver.name,
-        phone: status.driver.phone,
+        phone: canSeeRawDriverPhone ? status.driver.phone : maskPhone(status.driver.phone),
         base: status.driver.secondary_base_label || status.driver.communities?.name || status.driver.neighborhoods?.name || null,
         availability: status.availability,
         driver_status: status.driver.status,

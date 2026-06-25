@@ -117,6 +117,10 @@ function shortId(id) {
   return id.slice(0, 8);
 }
 
+function todaySaoPauloDate() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+}
+
 export default function OperationsMonitor() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,6 +129,10 @@ export default function OperationsMonitor() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [rideDetail, setRideDetail] = useState(null);
+  const [dailyDate, setDailyDate] = useState(todaySaoPauloDate());
+  const [dailyReport, setDailyReport] = useState(null);
+  const [dailyLoading, setDailyLoading] = useState(false);
+  const [dailyError, setDailyError] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTerritoryId = searchParams.get('territory_id') || '';
   const token = localStorage.getItem('kaviar_admin_token');
@@ -152,6 +160,30 @@ export default function OperationsMonitor() {
       setLoading(false);
     }
   }, [token, selectedTerritoryId]);
+
+  const loadDailyReport = useCallback(async () => {
+    try {
+      setDailyLoading(true);
+      setDailyError('');
+      setDailyReport(null);
+      const params = new URLSearchParams({ date: dailyDate });
+      if (selectedTerritoryId) params.set('territory_id', selectedTerritoryId);
+      const res = await fetch(`${API_BASE_URL}/api/admin/operations/daily-report?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        throw new Error(body.error || 'Erro ao carregar relatório diário');
+      }
+      setDailyReport(body);
+    } catch (err) {
+      console.error('[OPS_DAILY_REPORT]', err);
+      setDailyReport(null);
+      setDailyError(err.message || 'Erro ao carregar relatório diário');
+    } finally {
+      setDailyLoading(false);
+    }
+  }, [token, selectedTerritoryId, dailyDate]);
 
   const openRideDetail = async (rideId) => {
     setDetailOpen(true);
@@ -207,6 +239,10 @@ export default function OperationsMonitor() {
   }, [load]);
 
   useEffect(() => {
+    loadDailyReport();
+  }, [loadDailyReport]);
+
+  useEffect(() => {
     const id = setInterval(load, 30000);
     return () => clearInterval(id);
   }, [load]);
@@ -241,6 +277,7 @@ export default function OperationsMonitor() {
   const onlineDrivers = data?.online_drivers || [];
   const demand = data?.demand_unserved || { total: 0, by_region: [], recent: [] };
   const emergencies = data?.emergencies || [];
+  const dailyMetrics = dailyReport?.metrics || {};
   const territory = data?.territory || {};
   const territories = territory.territories || [];
   const selectedTerritory = territory.active_territory || territories.find(item => item.id === selectedTerritoryId) || null;
@@ -305,6 +342,49 @@ export default function OperationsMonitor() {
             </Button>
           )}
         </Box>
+      </Box>
+
+
+      <Box sx={{ ...sectionSx, mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between', gap: 2, flexDirection: { xs: 'column', md: 'row' }, mb: 2 }}>
+          <SectionTitle title="Relatório diário" subtitle="Agregados reais por território de origem, sem limites de tela." />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: { xs: '100%', md: 280 } }}>
+            <TextField
+              type="date"
+              size="small"
+              value={dailyDate}
+              onChange={(event) => setDailyDate(event.target.value || todaySaoPauloDate())}
+              disabled={dailyLoading}
+              sx={{ flex: 1, '& .MuiOutlinedInput-root': { color: '#e8eef5', bgcolor: '#0b1118', '& fieldset': { borderColor: '#243444' }, '&:hover fieldset': { borderColor: '#3a4c5f' } } }}
+            />
+            <Button onClick={loadDailyReport} disabled={dailyLoading} variant="outlined" size="small" sx={{ borderColor: '#2b3d4e', color: '#c9d3dc', whiteSpace: 'nowrap', textTransform: 'none' }}>
+              {dailyLoading ? 'Carregando...' : 'Atualizar'}
+            </Button>
+          </Box>
+        </Box>
+        {dailyError && <Alert severity="error" sx={{ mb: 2 }}>{dailyError}</Alert>}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(5, minmax(0, 1fr))' }, gap: 1.2 }}>
+          {[
+            { label: 'Solicitadas', value: dailyMetrics.requested_rides ?? '-' },
+            { label: 'Concluídas', value: dailyMetrics.completed_rides ?? '-' },
+            { label: 'Canceladas', value: dailyMetrics.canceled_rides ?? '-' },
+            { label: 'Sem motorista', value: dailyMetrics.no_driver_or_no_offer_rides ?? '-' },
+            { label: 'Emergências', value: dailyMetrics.emergencies_registered ?? '-' },
+            { label: 'Ativas agora', value: dailyMetrics.active_emergencies ?? '-' },
+            { label: 'Receita final', value: fmtMoney(dailyMetrics.final_revenue_cents != null ? dailyMetrics.final_revenue_cents / 100 : null) },
+            { label: 'Taxa KAVIAR', value: fmtMoney(dailyMetrics.kaviar_fee_cents != null ? dailyMetrics.kaviar_fee_cents / 100 : null) },
+            { label: 'Ganho motorista', value: fmtMoney(dailyMetrics.driver_earnings_cents != null ? dailyMetrics.driver_earnings_cents / 100 : null) },
+            { label: 'Até 1a oferta', value: fmtTime(dailyMetrics.avg_to_offer_seconds) },
+          ].map(item => (
+            <Box key={item.label} sx={{ bgcolor: '#111a22', border: '1px solid #1a2332', borderRadius: 2, p: 1.5, minHeight: 76 }}>
+              <Typography sx={{ color: '#f0f4f8', fontSize: 19, fontWeight: 850, lineHeight: 1.1 }}>{item.value}</Typography>
+              <Typography sx={{ color: '#7a8a9a', fontSize: 10, textTransform: 'uppercase', mt: 0.8, fontWeight: 750 }}>{item.label}</Typography>
+            </Box>
+          ))}
+        </Box>
+        {dailyReport?.scope_rules?.cross_territory && (
+          <Typography sx={{ color: '#586b7d', fontSize: 11, mt: 1.5 }}>{dailyReport.scope_rules.cross_territory}</Typography>
+        )}
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 1.5, mb: 3 }}>

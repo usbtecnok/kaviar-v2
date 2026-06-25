@@ -5,6 +5,7 @@ import app from '../src/app';
 const routes: { method: 'get' | 'post' | 'put'; path: string }[] = [
   { method: 'get',  path: '/api/admin/dashboard/overview' },
   { method: 'get',  path: '/api/admin/dashboard/territory' },
+  { method: 'get',  path: '/api/admin/operations/daily-report?date=2026-06-25' },
   { method: 'get',  path: '/api/ratings/driver/test' },
   { method: 'post', path: '/api/ratings' },
   { method: 'get',  path: '/api/drivers/fake/dashboard' },
