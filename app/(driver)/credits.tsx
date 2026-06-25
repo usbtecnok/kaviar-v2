@@ -103,7 +103,14 @@ export default function DriverCredits() {
 
   if (loading) return (
     <SafeAreaView style={s.container}>
-      <View style={s.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+      <View style={s.center}>
+        <View style={s.loadingCard}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={s.loadingTitle}>Carregando saldo KAVIAR…</Text>
+          <View style={s.loadingLine} />
+          <View style={[s.loadingLine, { width: '62%' }]} />
+        </View>
+      </View>
     </SafeAreaView>
   );
 
@@ -224,10 +231,8 @@ export default function DriverCredits() {
         <View style={s.infoCard}>
           <Text style={s.infoTitle}>Como funciona</Text>
           {familyReturn && <Text style={[s.infoText, { color: COLORS.success, fontWeight: '600' }]}>🎁 Retorno Familiar: recargas Pix acumulam {familyReturn.percent}% para resgate entre outubro e dezembro.</Text>}
-          <Text style={s.infoText}>Você adiciona saldo via Pix.</Text>
-          <Text style={s.infoText}>O passageiro paga o valor cheio direto para você.</Text>
-          <Text style={s.infoText}>O KAVIAR desconta a taxa de 18% do seu saldo KAVIAR.</Text>
-          <Text style={s.infoText}>A taxa é descontada somente quando a corrida é concluída.</Text>
+          <Text style={s.infoText}>Você recebe do passageiro. A taxa KAVIAR é debitada do saldo apenas após corrida concluída.</Text>
+          <Text style={s.infoText}>Mantenha saldo disponível para continuar recebendo corridas pelo app.</Text>
           <Text style={[s.infoText, { marginTop: 10, fontWeight: '600', color: COLORS.textPrimary }]}>Exemplo: corrida de R$ 30,00</Text>
           <Text style={s.infoText}>• Passageiro paga R$ 30,00 direto para você</Text>
           <Text style={s.infoText}>• Taxa KAVIAR 18% = R$ 5,40</Text>
@@ -254,7 +259,10 @@ export default function DriverCredits() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  loadingCard: { width: '100%', backgroundColor: COLORS.surface, borderRadius: 18, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
+  loadingTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginTop: 14, marginBottom: 18 },
+  loadingLine: { width: '78%', height: 12, borderRadius: 6, backgroundColor: COLORS.surfaceLight, marginTop: 8 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14 },
   title: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary },
   scroll: { padding: 20, paddingBottom: 40 },

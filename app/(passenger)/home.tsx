@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
   StatusBar, Platform, SafeAreaView, Dimensions, Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -98,7 +98,12 @@ export default function PassengerHome() {
 
               {/* Sino + Menu à direita */}
               <View style={s.headerRight}>
-                <TouchableOpacity hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                <TouchableOpacity
+                  onPress={() => Alert.alert('Notificações KAVIAR', 'Você verá aqui novidades, avisos da corrida e mensagens importantes.')}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Notificações KAVIAR"
+                >
                   <Ionicons name="notifications-outline" size={22} color={COLORS.textSecondary} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
@@ -118,11 +123,11 @@ export default function PassengerHome() {
                   <Ionicons name="location" size={20} color={COLORS.primary} />
                 </View>
                 <View style={s.communityInfo}>
-                  <Text style={s.communityLabel}>SUA COMUNIDADE</Text>
-                  <Text style={s.communityName}>Sua região</Text>
+                  <Text style={s.communityLabel}>SUA REGIÃO</Text>
+                  <Text style={s.communityName}>Atendimento KAVIAR ativo na sua região</Text>
                   <View style={s.driversRow}>
-                    <Ionicons name="people" size={12} color={COLORS.textMuted} />
-                    <Text style={s.driversText}>Motoristas disponíveis</Text>
+                    <Ionicons name="shield-checkmark" size={12} color={COLORS.textMuted} />
+                    <Text style={s.driversText}>Quando houver motoristas próximos, sua solicitação será enviada automaticamente.</Text>
                   </View>
                 </View>
                 <View style={s.statusPill}>
@@ -316,7 +321,7 @@ const s = StyleSheet.create({
   },
   communityInfo: { flex: 1 },
   communityLabel: { fontSize: 8, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 1.2, marginBottom: 2 },
-  communityName: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 3 },
+  communityName: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 3, flexShrink: 1 },
   statusPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: 'rgba(46,204,113,0.15)', borderRadius: 10,
@@ -324,8 +329,8 @@ const s = StyleSheet.create({
   },
   statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.success },
   statusText: { fontSize: 9, fontWeight: '700', color: COLORS.success },
-  driversRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  driversText: { fontSize: 11, color: COLORS.textSecondary },
+  driversRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  driversText: { flex: 1, fontSize: 11, lineHeight: 15, color: COLORS.textSecondary },
 
   // ── Banner
   bannerOuter: {

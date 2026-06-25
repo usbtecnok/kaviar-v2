@@ -214,10 +214,9 @@ export default function PassengerMap() {
 
   // Search microcopy rotation
   const SEARCH_PHRASES = [
-    'Procurando motoristas da sua região...',
-    'Priorizando quem conhece seu bairro...',
-    'Conectando você à comunidade...',
-    'Quase lá...',
+    'Verificando motoristas próximos',
+    'Mantendo sua solicitação ativa',
+    'Avisaremos assim que houver aceite',
   ];
   const [searchPhraseIdx, setSearchPhraseIdx] = useState(0);
 
@@ -247,6 +246,7 @@ export default function PassengerMap() {
   // Search state
   const [searchText, setSearchText] = useState('');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [addressSearching, setAddressSearching] = useState(false);
   const [searchingFor, setSearchingFor] = useState<'origin' | 'destination'>('destination');
 
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -382,13 +382,15 @@ export default function PassengerMap() {
     setSearchingFor(target);
     setSearchText('');
     setPredictions([]);
+    setAddressSearching(false);
     setScreen('search');
     setTimeout(() => searchRef.current?.focus(), 100);
   };
 
   const searchPlaces = useCallback((input: string) => {
     setSearchText(input);
-    if (input.length < 3) { setPredictions([]); return; }
+    if (input.length < 3) { setPredictions([]); setAddressSearching(false); return; }
+    setAddressSearching(true);
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(async () => {
       try {
@@ -396,10 +398,12 @@ export default function PassengerMap() {
         const url = `/api/geo-proxy/autocomplete?input=${encodeURIComponent(input)}${loc}`;
         const res = await apiClient.get(url);
         const data = res.data;
-        if (data.status === 'OK') setPredictions(data.predictions);
+        setPredictions(data.status === 'OK' ? data.predictions : []);
       } catch (e) {
         console.warn('[Map] autocomplete failed:', e);
         setPredictions([]);
+      } finally {
+        setAddressSearching(false);
       }
     }, 300);
   }, [userLocation]);
@@ -867,7 +871,7 @@ export default function PassengerMap() {
             autoFocus
           />
           {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearchText(''); setPredictions([]); }}>
+            <TouchableOpacity onPress={() => { setSearchText(''); setPredictions([]); setAddressSearching(false); }}>
               <Ionicons name="close-circle" size={20} color={COLORS.textMuted} />
             </TouchableOpacity>
           )}
@@ -893,7 +897,7 @@ export default function PassengerMap() {
             </TouchableOpacity>
           ))}
           {searchText.length >= 3 && predictions.length === 0 && (
-            <Text style={s.searchEmpty}>Nenhum resultado encontrado</Text>
+            <Text style={s.searchEmpty}>{addressSearching ? 'Buscando endereços...' : 'Nenhum resultado encontrado'}</Text>
           )}
         </ScrollView>
       </SafeAreaView>

@@ -628,13 +628,19 @@ export default function DriverOnline() {
           noCredits ? (
             <Button title="Adicionar saldo para começar" onPress={() => router.push('/(driver)/credits')} />
           ) : (
-            <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
+            <>
+              <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
+              {loading && (<Text style={styles.connectingHint}>Ativando localização e escuta de corridas.</Text>)}
+            </>
           )
         ) : !pendingOffer ? (
           <>
             <View style={styles.waitingBox}>
               <Ionicons name={isReconnecting ? 'cloud-offline-outline' : 'radio-outline'} size={20} color={isReconnecting ? COLORS.warning : COLORS.textMuted} />
-              <Text style={styles.waitingText}>{isReconnecting ? 'Sem internet. Reconectando para receber corridas...' : 'Aguardando corridas...'}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.waitingText}>{isReconnecting ? 'Sem internet. Reconectando para receber corridas...' : 'Aguardando corridas...'}</Text>
+                {!isReconnecting && <Text style={styles.waitingSubText}>Mantenha o app aberto e a localização ativa.</Text>}
+              </View>
             </View>
             <Button title={isReconnecting ? 'Reconectando...' : 'Ficar Offline'} variant="outline" onPress={handleGoOffline} loading={loading} disabled={isReconnecting} />
           </>
@@ -756,9 +762,11 @@ const styles = StyleSheet.create({
 
   // Waiting
   waitingBox: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24, gap: 8,
   },
-  waitingText: { fontSize: 15, color: COLORS.textMuted, marginLeft: 8 },
+  waitingText: { fontSize: 15, color: COLORS.textMuted, textAlign: 'center' },
+  waitingSubText: { fontSize: 12, color: COLORS.textMuted, marginTop: 4, textAlign: 'center' },
+  connectingHint: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', marginTop: 10, marginBottom: 8 },
 
   // Credits
   creditBadge: {
