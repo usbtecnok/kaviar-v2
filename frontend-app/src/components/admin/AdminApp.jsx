@@ -176,6 +176,7 @@ function AdminHome() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+  const canAccessOperations = ['SUPER_ADMIN', 'OPERATOR'].includes(admin?.role);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchModules, setSearchModules] = useState('');
@@ -435,7 +436,9 @@ function AdminHome() {
               { Icon: DirectionsCar, title: 'Corridas', desc: 'Gestão operacional de corridas', to: '/admin/rides' },
               { Icon: CreditCard, title: 'Histórico de Recargas', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
               { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp' },
-              { Icon: BarChart, title: 'Monitor Operacional', desc: 'Dispatch, território e performance', to: '/admin/operations' },
+              ...(canAccessOperations ? [
+                { Icon: BarChart, title: 'Cockpit Operacional', desc: 'Acompanhe corridas, motoristas, territórios e histórico do dia em tempo real.', to: '/admin/operations', actionLabel: 'Abrir cockpit' },
+              ] : []),
               { Icon: Paid, title: 'Compensações', desc: 'Apoio ao motorista em cancelamentos', to: '/admin/compensations' },
               { Icon: Star, title: 'Avaliações', desc: 'Notas, comentários e atenção', to: '/admin/ratings' },
               ...(isSuperAdmin ? [
@@ -515,7 +518,7 @@ function AdminHome() {
                                 <Typography sx={{ color: '#1A1A1A', fontWeight: 600, fontSize: 13 }}>{c.title}</Typography>
                                 <Typography sx={{ color: '#6B7280', fontSize: 11, lineHeight: 1.4 }}>{c.desc}</Typography>
                               </Box>
-                              <Button component={Link} to={c.to} size="small" sx={{ color: sColor, fontWeight: 600, fontSize: 11, minWidth: 'auto', px: 1.5, '&:hover': { bgcolor: `${sColor}10` } }}>→</Button>
+                              <Button component={Link} to={c.to} size="small" sx={{ color: sColor, fontWeight: 600, fontSize: 11, minWidth: 'auto', px: 1.5, '&:hover': { bgcolor: `${sColor}10` } }}>{c.actionLabel || '→'}</Button>
                             </CardContent>
                           </Card>
                         </Grid>
