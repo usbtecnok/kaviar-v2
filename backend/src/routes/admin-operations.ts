@@ -2,11 +2,15 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
+import { requireTerritoryScope } from '../middlewares/require-territory-scope';
 
 const router = Router();
+const OPERATIONS_ROLES = ['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'];
+
 router.use(authenticateAdmin);
-router.use(requireRole(['SUPER_ADMIN', 'OPERATOR']));
+router.use(requireRole(OPERATIONS_ROLES));
 router.use(applyTerritoryScope);
+router.use(requireTerritoryScope);
 
 type TerritoryOption = {
   id: string;
@@ -68,13 +72,18 @@ async function getAvailableTerritories(req: Request): Promise<TerritoryOption[]>
   });
 }
 
-function buildTerritoryMeta(territories: TerritoryOption[], territoryId: string | null) {
+function buildTerritoryMeta(req: Request, territories: TerritoryOption[], territoryId: string | null) {
+  const scope = getTerritoryScope(req);
   const selected = territoryId ? territories.find(territory => territory.id === territoryId) || null : null;
   return {
     territories,
     active_territory_id: territoryId,
     active_territory: selected,
-    scope_label: selected ? `Visualizando: ${selected.name}` : 'Visualizando todos os territorios',
+    scope_label: selected
+      ? `Visualizando: ${selected.name}`
+      : scope
+        ? 'Visualizando meus territorios'
+        : 'Visualizando todos os territorios',
   };
 }
 
@@ -490,7 +499,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
       success: true,
       generated_at: new Date(),
       period: { start, end: new Date(), label },
-      territory: buildTerritoryMeta(territoryFilter.territories, territoryFilter.territoryId),
+      territory: buildTerritoryMeta(req, territoryFilter.territories, territoryFilter.territoryId),
       cards: {
         drivers_online: onlineDrivers.filter(d => d.availability === 'online').length,
         active_rides: activeStatuses.reduce((sum, status) => sum + (byStatus[status] || 0), 0),
@@ -570,7 +579,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/monitor', async (req: Request, res: Response) => {
+router.get('/monitor', requireRole(['SUPER_ADMIN', 'OPERATOR']), async (req: Request, res: Response) => {
   try {
     const { start, label } = getPeriod(req.query.period as string || 'today');
 

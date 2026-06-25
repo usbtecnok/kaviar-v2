@@ -101,6 +101,7 @@ export default function OperationsMonitor() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+  const isTerritorialAdmin = ['TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'].includes(admin?.role);
 
   const load = useCallback(async () => {
     try {
@@ -229,7 +230,7 @@ export default function OperationsMonitor() {
         <Box>
           <Typography sx={{ color: '#f0f4f8', fontSize: 14, fontWeight: 800 }}>Filtro operacional</Typography>
           <Typography sx={{ color: '#66788a', fontSize: 11, mt: 0.4 }}>
-            {hasTerritoryFilter ? 'Cards, listas e detalhe seguem o territorio selecionado.' : 'Visao consolidada dos territorios permitidos para este usuario.'}
+            {hasTerritoryFilter ? 'Cards, listas e detalhe seguem o territorio selecionado.' : isTerritorialAdmin ? 'Visao consolidada dos seus territorios permitidos.' : 'Visao consolidada dos territorios permitidos para este usuario.'}
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: { xs: '100%', md: 420 } }}>
@@ -242,7 +243,7 @@ export default function OperationsMonitor() {
               onChange={(event) => changeTerritory(event.target.value)}
               disabled={loading && !data}
             >
-              <MenuItem value="">Todos os territorios</MenuItem>
+              <MenuItem value="">{isTerritorialAdmin ? 'Todos os meus territorios' : 'Todos os territorios'}</MenuItem>
               {territories.map(item => (
                 <MenuItem key={item.id} value={item.id}>
                   {item.name}{item.city_name ? ` - ${item.city_name}` : ''}{item.uf ? `/${item.uf}` : ''}

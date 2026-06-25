@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Typography, Box, Card, CardContent, Grid, Button, CircularProgress, Alert } from '@mui/material';
-import { DirectionsCar, Explore, Description, ChatBubble } from '@mui/icons-material';
+import { DirectionsCar, Explore, Description, ChatBubble, BarChart } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
 export default function OperatorHome() {
@@ -133,6 +133,7 @@ export default function OperatorHome() {
             { Icon: DirectionsCar, title: 'Motoristas', desc: 'Ver motoristas do território', to: '/admin/drivers' },
             { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Convites e atendimento do território', to: '/admin/whatsapp' },
             { Icon: Explore, title: 'Corridas', desc: 'Ver corridas do território', to: '/admin/rides' },
+            { Icon: BarChart, title: 'Cockpit Operacional', desc: 'Acompanhe corridas e motoristas do território', to: '/admin/operations' },
             { Icon: Description, title: 'Meu Contrato', desc: 'Perfil e contrato', to: '/admin/meu-contrato' },
           ].map(c => (
             <Grid item xs={12} sm={6} key={c.to}>

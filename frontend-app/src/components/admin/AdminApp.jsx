@@ -176,7 +176,7 @@ function AdminHome() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
-  const canAccessOperations = ['SUPER_ADMIN', 'OPERATOR'].includes(admin?.role);
+  const canAccessOperations = ['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'].includes(admin?.role);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchModules, setSearchModules] = useState('');
@@ -836,7 +836,7 @@ export default function AdminApp() {
           } />
           */}
           <Route path="/operations" element={
-            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR']}>
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR']}>
               <OperationsMonitor />
             </ProtectedAdminRoute>
           } />
