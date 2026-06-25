@@ -35,13 +35,14 @@ const toPhotoUrl = async (key: string | null | undefined): Promise<string | null
   try { return await getPresignedUrl(k); } catch { return null; }
 };
 import { triggerEmergency, appendTrailPoint } from '../services/ride-emergency.service';
-import { RIDE_QUICK_MESSAGES, RIDE_QUICK_MESSAGE_TEXT_BY_CODE, RideQuickMessageCode } from '../config/rideMessages';
+import { LEGACY_RIDE_QUICK_MESSAGES, RIDE_QUICK_MESSAGES, RIDE_QUICK_MESSAGE_TEXT_BY_CODE } from '../config/rideMessages';
 
 const ACTIVE_MESSAGE_STATUSES = new Set(['accepted', 'arrived', 'in_progress', 'pending_adjustment']);
-const ALLOWED_RIDE_MESSAGE_CODES = new Set(RIDE_QUICK_MESSAGES.map((msg) => msg.code));
+const ACTIVE_RIDE_MESSAGE_CODES: Set<string> = new Set(RIDE_QUICK_MESSAGES.map((msg) => msg.code));
+const LEGACY_RIDE_MESSAGE_CODES: Set<string> = new Set(LEGACY_RIDE_QUICK_MESSAGES.map((msg) => msg.code));
 
-function isRideQuickMessageCode(code: unknown): code is RideQuickMessageCode {
-  return typeof code === 'string' && ALLOWED_RIDE_MESSAGE_CODES.has(code as RideQuickMessageCode);
+function isRideQuickMessageCode(code: unknown): code is string {
+  return typeof code === 'string' && (ACTIVE_RIDE_MESSAGE_CODES.has(code) || LEGACY_RIDE_MESSAGE_CODES.has(code));
 }
 function notifyRideCancelledToDriver(ride: { id: string; driver_id: string | null }) {
   if (!ride.driver_id) return;
