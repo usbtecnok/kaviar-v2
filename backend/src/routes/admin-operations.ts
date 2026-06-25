@@ -354,6 +354,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
     const activeRideWhere = applyRideTerritoryFilter({ status: { in: activeStatuses as any } }, territoryFilter.neighborhoodIds);
     const offerTimingWhere = applyRideTerritoryFilter({ requested_at: { gte: start }, offered_at: { not: null } }, territoryFilter.neighborhoodIds);
     const demandWhere = applyRideTerritoryFilter({ status: 'no_driver', requested_at: { gte: start } }, territoryFilter.neighborhoodIds);
+    const completedWhere = applyRideTerritoryFilter({ status: 'completed', completed_at: { gte: start } }, territoryFilter.neighborhoodIds);
     const driverWhere = applyDriverTerritoryFilter({ availability: { in: ['online', 'busy'] } }, territoryFilter.neighborhoodIds);
     const emergencyWhere: any = territoryFilter.neighborhoodIds
       ? { status: 'active', ride: { origin_neighborhood_id: territoryFilter.neighborhoodIds.length > 0 ? { in: territoryFilter.neighborhoodIds } : '__none__' } }
@@ -365,6 +366,7 @@ router.get('/cockpit', async (req: Request, res: Response) => {
       onlineDrivers,
       ridesWithOffer,
       demandRows,
+      completedRides,
       activeEmergencyCount,
       emergencyEvents,
     ] = await Promise.all([
@@ -421,6 +423,24 @@ router.get('/cockpit', async (req: Request, res: Response) => {
           id: true,
           requested_at: true,
           origin_text: true,
+          origin_neighborhood: { select: { name: true } },
+        },
+      }),
+      prisma.rides_v2.findMany({
+        where: completedWhere,
+        orderBy: { completed_at: 'desc' },
+        take: 30,
+        select: {
+          id: true,
+          status: true,
+          origin_text: true,
+          destination_text: true,
+          completed_at: true,
+          final_price: true,
+          platform_fee: true,
+          driver_earnings: true,
+          passenger: { select: { name: true } },
+          driver: { select: { name: true } },
           origin_neighborhood: { select: { name: true } },
         },
       }),
@@ -504,6 +524,19 @@ router.get('/cockpit', async (req: Request, res: Response) => {
         driver_status: status.driver.status,
         last_seen_at: status.updated_at,
         last_location_at: status.driver.last_location_updated_at,
+      })),
+      completed_rides_today: completedRides.map(ride => ({
+        id: ride.id,
+        status: ride.status,
+        origin_text: ride.origin_text,
+        destination_text: ride.destination_text,
+        passenger_name: ride.passenger?.name || null,
+        driver_name: ride.driver?.name || null,
+        region: ride.origin_neighborhood?.name || null,
+        completed_at: ride.completed_at,
+        final_price: money(ride.final_price),
+        platform_fee: money(ride.platform_fee),
+        driver_earnings: money(ride.driver_earnings),
       })),
       demand_unserved: {
         total: demandRows.length,

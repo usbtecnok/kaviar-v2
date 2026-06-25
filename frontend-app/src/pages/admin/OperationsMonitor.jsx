@@ -188,6 +188,7 @@ export default function OperationsMonitor() {
 
   const cards = data?.cards || {};
   const activeRides = data?.active_rides || [];
+  const completedRides = data?.completed_rides_today || [];
   const onlineDrivers = data?.online_drivers || [];
   const demand = data?.demand_unserved || { total: 0, by_region: [], recent: [] };
   const emergencies = data?.emergencies || [];
@@ -353,6 +354,44 @@ export default function OperationsMonitor() {
             </Table>
           </TableContainer>
         </Box>
+      </Box>
+
+
+      <Box sx={{ ...sectionSx, mb: 3 }}>
+        <SectionTitle title="Historico do dia" subtitle="Corridas concluidas, pagas ou encerradas hoje no escopo selecionado." />
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                {['Status', 'Conclusao', 'Passageiro', 'Motorista', 'Origem', 'Destino', 'Regiao', 'Valor final', 'Taxa KAVIAR', 'Ganho motorista'].map(h => (
+                  <TableCell key={h} sx={headCellSx}>{h}</TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {completedRides.map(ride => (
+                <TableRow
+                  key={ride.id}
+                  hover
+                  onClick={() => openRideDetail(ride.id)}
+                  sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#111a22' } }}
+                >
+                  <TableCell sx={bodyCellSx}><StatusChip status={ride.status} /></TableCell>
+                  <TableCell sx={bodyCellSx}>{fmtHour(ride.completed_at)}</TableCell>
+                  <TableCell sx={bodyCellSx}>{ride.passenger_name || '-'}</TableCell>
+                  <TableCell sx={bodyCellSx}>{ride.driver_name || '-'}</TableCell>
+                  <CompactCell value={ride.origin_text} />
+                  <CompactCell value={ride.destination_text} />
+                  <TableCell sx={bodyCellSx}>{ride.region || '-'}</TableCell>
+                  <TableCell sx={bodyCellSx}>{fmtMoney(ride.final_price)}</TableCell>
+                  <TableCell sx={bodyCellSx}>{fmtMoney(ride.platform_fee)}</TableCell>
+                  <TableCell sx={bodyCellSx}>{fmtMoney(ride.driver_earnings)}</TableCell>
+                </TableRow>
+              ))}
+              {completedRides.length === 0 && <EmptyRow columns={10} label={hasTerritoryFilter ? 'Nenhuma corrida finalizada hoje neste territorio.' : 'Nenhuma corrida finalizada hoje.'} />}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Box>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 1.5 }}>
