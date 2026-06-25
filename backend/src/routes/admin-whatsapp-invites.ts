@@ -316,6 +316,19 @@ function scopedWhere(admin: any, scope: any): any {
   return { territory_id: { in: territoryIds.length ? territoryIds : ['__none__'] } };
 }
 
+function reportScope(admin: any, scope: any) {
+  const global = admin.role === 'SUPER_ADMIN' || admin.role === 'OPERATOR';
+  const territoryIdsApplied = global
+    ? []
+    : (Array.isArray(scope?.territoryIds) ? scope.territoryIds : []);
+
+  return {
+    role: admin.role,
+    global,
+    territoryIdsApplied,
+  };
+}
+
 function serializeLog(log: any) {
   return {
     id: log.id,
@@ -538,6 +551,7 @@ router.get('/stats', authenticateAdmin, requireRole(SEND_ROLES), applyTerritoryS
 
     res.json({
       success: true,
+      scope: reportScope(admin, scope),
       data: {
         today: todayCount,
         week: weekCount,
@@ -578,7 +592,7 @@ router.get('/logs', authenticateAdmin, requireRole(SEND_ROLES), applyTerritorySc
       prisma.whatsapp_invite_logs.count({ where }),
     ]);
 
-    res.json({ success: true, data: logs.map(serializeLog), pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+    res.json({ success: true, scope: reportScope(admin, scope), data: logs.map(serializeLog), pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
   } catch (err: any) {
     console.error('[WA_INVITE_LOGS] error:', err);
     res.status(500).json({ success: false, error: 'Erro ao carregar logs de convites.' });

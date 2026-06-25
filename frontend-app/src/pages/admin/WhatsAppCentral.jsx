@@ -222,10 +222,17 @@ export default function WhatsAppCentral() {
   const [inviteFeedback, setInviteFeedback] = useState(null);
   const [inviteStats, setInviteStats] = useState({ today: 0, week: 0, month: 0, byType: {}, byStatus: {} });
   const [inviteLogs, setInviteLogs] = useState([]);
+  const [inviteReportScope, setInviteReportScope] = useState(null);
   const admin = JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
   const dailyInviteLimit = isSuperAdmin ? 200 : 30;
-  const inviteScopeLabel = isSuperAdmin ? 'Visão global' : 'Visão do seu território';
+  const localInviteScopeLabel = isSuperAdmin ? 'Visão global' : 'Visão do seu território';
+  const inviteReportTerritories = Array.isArray(inviteReportScope?.territoryIdsApplied) ? inviteReportScope.territoryIdsApplied : [];
+  const inviteScopeLabel = inviteReportScope
+    ? (inviteReportScope.global
+      ? 'Visão global confirmada pelo backend'
+      : 'Visão filtrada por território (' + (inviteReportTerritories.length || 0) + ')')
+    : localInviteScopeLabel;
 
   // Chat state
   const [selectedId, setSelectedId] = useState(null);
@@ -261,12 +268,18 @@ export default function WhatsAppCentral() {
     try {
       const [statsRes, logsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/stats`, { headers }),
-        fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/logs?limit=10`, { headers }),
+        fetch(`${API_BASE_URL}/api/admin/whatsapp-invites/logs?limit=50`, { headers }),
       ]);
       const statsData = await statsRes.json();
       const logsData = await logsRes.json();
-      if (statsData.success) setInviteStats(statsData.data);
-      if (logsData.success) setInviteLogs(logsData.data);
+      if (statsData.success) {
+        setInviteStats(statsData.data);
+        setInviteReportScope(statsData.scope || null);
+      }
+      if (logsData.success) {
+        setInviteLogs(logsData.data);
+        if (!statsData.success) setInviteReportScope(logsData.scope || null);
+      }
     } catch (e) {
       console.error('[WA_INVITES] report:', e);
     }
@@ -515,12 +528,15 @@ export default function WhatsAppCentral() {
           <Tooltip title="Atualizar relatório"><IconButton size="small" onClick={loadInviteReport}><Refresh sx={{ color: '#6a7a8a', fontSize: 16 }} /></IconButton></Tooltip>
         </Box>
         <Box sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 1.2 }}>
-          {[{ label: 'Hoje', value: inviteStats.today }, { label: 'Esta semana', value: inviteStats.week }, { label: 'Este mês', value: inviteStats.month }].map(card => (
+          {[{ label: 'Hoje', value: inviteStats.today }, { label: 'Últimos 7 dias', value: inviteStats.week }, { label: 'Últimos 30 dias', value: inviteStats.month }].map(card => (
             <Box key={card.label} sx={{ bgcolor: '#111a22', border: '1px solid #1a2332', borderRadius: 2, px: 2, py: 1.4 }}>
               <Typography sx={{ color: '#6a7a8a', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{card.label}</Typography>
               <Typography sx={{ color: '#D4AF37', fontSize: 24, fontWeight: 900 }}>{card.value || 0}</Typography>
             </Box>
           ))}
+        </Box>
+        <Box sx={{ px: 2, pb: 1 }}>
+          <Typography sx={{ color: '#6a7a8a', fontSize: 11 }}>Exibindo últimos 50 registros por data/hora.</Typography>
         </Box>
         <Box sx={{ px: 2, pb: 2, overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 760, '& th': { color: '#6a7a8a', borderColor: '#1a2332', fontSize: 11 }, '& td': { color: '#BFC7D5', borderColor: '#1a2332', fontSize: 12 } }}>
