@@ -52,21 +52,50 @@ A Fase 4A não alterou:
 - emergency status;
 - fluxo de corrida.
 
+## Fase 4B — Exportação / Resumo Operacional do Relatório Diário
+
+**Status:** concluída e validada em produção.
+
+### Escopo entregue
+
+- Botão **Copiar resumo** disponível na seção **Relatório diário** em `/admin/operations`.
+- Resumo gerado a partir do payload já carregado por `/api/admin/operations/daily-report`.
+- Nenhum endpoint novo.
+- Nenhuma alteração em agregações financeiras.
+- Nenhuma alteração backend.
+
+### Validação de produção
+
+- Commit: `2ed65245c84e27c2d08958749c0ba824fa2dd68a`
+- Deploy frontend/admin: GitHub Actions `Deploy Frontend` success.
+- Backend health: `200 OK`.
+- CloudWatch `ERROR`: sem eventos novos após deploy.
+- Validação visual confirmada:
+  - botão **Copiar resumo** aparece na seção **Relatório diário**;
+  - clique no botão mostra **Resumo copiado.**;
+  - texto copiado contém data, território, métricas operacionais, valores financeiros e observação cross-territory;
+  - valores financeiros zerados aparecem corretamente quando não há corrida concluída/liquidada.
+
+### Proteções mantidas
+
+A Fase 4B não alterou:
+
+- wallet;
+- pricing;
+- dispatch;
+- emergency status;
+- settlement;
+- permissões;
+- fluxo de corrida.
+
 ## Próxima Frente Sugerida
 
-### Fase 4B — Relatório por Gestor / Exportação Operacional
+### Fase 4C — Exportação CSV simples do relatório diário
 
-Escopo pequeno e read-only:
+Escopo sugerido pequeno e read-only:
 
-- botão para exportar CSV ou copiar resumo;
-- visão simples para gestor territorial;
-- resumo diário por território;
-- reaproveitar o endpoint diário já validado quando fizer sentido;
-- não alterar wallet, pricing, dispatch, emergency status ou fluxo de corrida.
-
-Critérios mínimos:
-
-- manter `/admin/operations` estável;
-- respeitar escopo territorial já existente;
-- não retornar telefone em exportação de relatório, salvo decisão explícita posterior;
-- cobrir contrato básico do payload/exportação em teste focado.
+- exportar CSV a partir do mesmo payload já carregado;
+- manter o botão de copiar resumo funcionando;
+- respeitar escopo territorial atual;
+- não criar endpoint novo sem necessidade;
+- não alterar wallet, pricing, dispatch, emergency status, settlement, permissões ou fluxo de corrida.
