@@ -9,6 +9,7 @@ describe('sumup-service', () => {
     fetchMock.mockReset();
     process.env.SUMUP_API_KEY = 'sumup_secret_test';
     process.env.SUMUP_BASE_URL = 'https://api.sumup.com';
+    process.env.SUMUP_MERCHANT_CODE = 'MDATH499';
     process.env.SUMUP_ENABLED = 'true';
   });
 
@@ -33,6 +34,25 @@ describe('sumup-service', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [_url, options] = fetchMock.mock.calls[0];
     expect(options.headers.Authorization).toBe('Bearer sumup_secret_test');
+    const body = JSON.parse(options.body as string);
+    expect(body.merchant_code).toBe('MDATH499');
+    expect(body.currency).toBe('BRL');
+  });
+
+  it('createSumUpCheckout falha com erro seguro quando SUMUP_MERCHANT_CODE ausente', async () => {
+    process.env.SUMUP_MERCHANT_CODE = '';
+    const { createSumUpCheckout } = await import('../src/services/sumup-service');
+
+    await expect(
+      createSumUpCheckout({
+        checkout_reference: 'wallet_v2:r0',
+        amount: 5,
+        currency: 'BRL',
+        description: 'Recarga KAVIAR',
+      })
+    ).rejects.toMatchObject({ statusCode: 500, safeMessage: 'Configuração de merchant SumUp indisponível.' });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('createSumUpCheckout mapeia 422 para erro seguro', async () => {

@@ -61,7 +61,8 @@ jobs:
             --arg SUMUP_ENABLED "${{ secrets.SUMUP_ENABLED }}" \
             --arg SUMUP_BASE_URL "${{ secrets.SUMUP_BASE_URL }}" \
             --arg SUMUP_API_KEY "${{ secrets.SUMUP_API_KEY }}" \
-            --arg SUMUP_PUBLIC_KEY "${{ secrets.SUMUP_PUBLIC_KEY }}" '
+            --arg SUMUP_PUBLIC_KEY "${{ secrets.SUMUP_PUBLIC_KEY }}" \
+            --arg SUMUP_MERCHANT_CODE "${{ secrets.SUMUP_MERCHANT_CODE }}" '
             .taskDefinition |
             .containerDefinitions[0].image = $IMAGE |
             .containerDefinitions[0].environment = [
@@ -78,6 +79,7 @@ jobs:
                   and .name != "SUMUP_BASE_URL"
                   and .name != "SUMUP_API_KEY"
                   and .name != "SUMUP_PUBLIC_KEY"
+                  and .name != "SUMUP_MERCHANT_CODE"
                 )
             ] |
             .containerDefinitions[0].environment += [{"name": "GIT_COMMIT", "value": $COMMIT}] |
@@ -91,6 +93,7 @@ jobs:
             (if $SUMUP_BASE_URL != "" then .containerDefinitions[0].environment += [{"name": "SUMUP_BASE_URL", "value": $SUMUP_BASE_URL}] else . end) |
             (if $SUMUP_API_KEY != "" then .containerDefinitions[0].environment += [{"name": "SUMUP_API_KEY", "value": $SUMUP_API_KEY}] else . end) |
             (if $SUMUP_PUBLIC_KEY != "" then .containerDefinitions[0].environment += [{"name": "SUMUP_PUBLIC_KEY", "value": $SUMUP_PUBLIC_KEY}] else . end) |
+            (if $SUMUP_MERCHANT_CODE != "" then .containerDefinitions[0].environment += [{"name": "SUMUP_MERCHANT_CODE", "value": $SUMUP_MERCHANT_CODE}] else . end) |
             .containerDefinitions[0].healthCheck = {
               "command": ["CMD-SHELL", "node /app/healthcheck.js"],
               "interval": 30,

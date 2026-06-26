@@ -82,6 +82,7 @@ Ver `.env.example` para lista completa de variáveis necessárias.
 - `SUMUP_BASE_URL`: base da API SumUp (`https://api.sumup.com`)
 - `SUMUP_API_KEY`: chave secreta do backend (nunca expor no frontend)
 - `SUMUP_PUBLIC_KEY`: chave pública para uso futuro em frontends web (não utilizada pelo backend neste fluxo)
+- `SUMUP_MERCHANT_CODE`: merchant code da conta SumUp (obrigatório para criação de checkout)
 - `SUMUP_ENABLED`: `true` para permitir provider `sumup`; `false` mantém Asaas
 
 Fluxo de segurança:

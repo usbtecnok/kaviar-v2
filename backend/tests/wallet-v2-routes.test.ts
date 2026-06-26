@@ -224,6 +224,29 @@ describe('Wallet V2 Read Endpoints', () => {
     expect(mockCreatePix).not.toHaveBeenCalled();
   });
 
+  it('POST /recharge com sumup converte 500 centavos para amount 5.00', async () => {
+    mockIsSumUpEnabled.mockReturnValue(true);
+    mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-5', amount_cents: '500', label: 'R$ 5' }] }) // package
+      .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
+      .mockResolvedValueOnce({}) // INSERT wallet_recharges
+      .mockResolvedValueOnce({}); // UPDATE external_id
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-5', payment_provider: 'sumup' });
+
+    expect(res.status).toBe(200);
+    expect(mockCreateSumUpCheckout).toHaveBeenCalled();
+    const args = mockCreateSumUpCheckout.mock.calls[0][0];
+    expect(args.amount).toBe(5);
+    expect(args.currency).toBe('BRL');
+    expect(typeof args.checkout_reference).toBe('string');
+    expect(args.checkout_reference.startsWith('wallet_v2:')).toBe(true);
+  });
+
   it('POST /recharge com provider=sumup e flag desativada cai para Asaas', async () => {
     mockIsSumUpEnabled.mockReturnValue(false);
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag

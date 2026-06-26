@@ -1,5 +1,6 @@
 const SUMUP_BASE_URL = process.env.SUMUP_BASE_URL || 'https://api.sumup.com';
 const SUMUP_API_KEY = process.env.SUMUP_API_KEY || '';
+const SUMUP_MERCHANT_CODE = process.env.SUMUP_MERCHANT_CODE || '';
 
 export class SumUpError extends Error {
   readonly statusCode: number;
@@ -93,12 +94,17 @@ async function sumupRequest(path: string, body: unknown): Promise<SumUpCheckoutC
 }
 
 export async function createSumUpCheckout(input: SumUpCheckoutCreateRequest): Promise<SumUpCheckoutCreateResponse> {
+  const merchantCode = input.merchant_code || SUMUP_MERCHANT_CODE;
+  if (!merchantCode) {
+    throw new SumUpError(500, 'Configuração de merchant SumUp indisponível.');
+  }
+
   const payload = {
     checkout_reference: input.checkout_reference,
     amount: input.amount,
     currency: input.currency,
     description: input.description,
-    ...(input.merchant_code ? { merchant_code: input.merchant_code } : {}),
+    merchant_code: merchantCode,
     ...(input.return_url ? { return_url: input.return_url } : {}),
   };
 
