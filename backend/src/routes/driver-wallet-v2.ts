@@ -4,6 +4,7 @@ import { pool } from '../db';
 import { WalletService } from '../services/wallet-v2/wallet.service';
 import crypto from 'crypto';
 import { ensureAsaasCustomer, createPixPayment } from '../services/asaas.service';
+import { createSumUpCheckout, isSumUpEnabled, SumUpError } from '../services/sumup-service';
 
 const router = Router();
 const walletService = new WalletService(pool);
@@ -132,6 +133,8 @@ router.get('/recharges/:id', async (req: Request, res: Response) => {
 router.post('/recharge', async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
+    const requestedProvider = req.body?.payment_provider === 'sumup' ? 'sumup' : 'asaas';
+    const provider = requestedProvider === 'sumup' && isSumUpEnabled() ? 'sumup' : 'asaas';
 
     if (!(await isWalletV2Enabled())) {
       return res.status(403).json({ success: false, error: 'Recarga V2 não disponível' });
@@ -145,12 +148,12 @@ router.post('/recharge', async (req: Request, res: Response) => {
 
     // Anti-spam: retornar existente se pending recente do mesmo pacote
     const recent = await pool.query(
-      "SELECT id, amount_cents, pix_qr_code, pix_copy_paste, pix_expires_at FROM wallet_recharges WHERE driver_id=$1 AND package_id=$2 AND status='pending' AND external_id IS NOT NULL AND created_at > NOW() - INTERVAL '10 minutes' LIMIT 1",
+      "SELECT id, amount_cents, pix_qr_code, pix_copy_paste, pix_expires_at, payment_provider FROM wallet_recharges WHERE driver_id=$1 AND package_id=$2 AND status='pending' AND external_id IS NOT NULL AND created_at > NOW() - INTERVAL '10 minutes' LIMIT 1",
       [driverId, package_id]
     );
-    if (recent.rows[0]) {
+    if (recent.rows[0] && provider === 'asaas') {
       const r = recent.rows[0];
-      return res.json({ success: true, data: { rechargeId: r.id, amount_cents: Number(r.amount_cents), pix: { qrCode: r.pix_qr_code, copyPaste: r.pix_copy_paste, expiresAt: r.pix_expires_at } } });
+      return res.json({ success: true, data: { rechargeId: r.id, amount_cents: Number(r.amount_cents), payment_provider: r.payment_provider || 'asaas', pix: { qrCode: r.pix_qr_code, copyPaste: r.pix_copy_paste, expiresAt: r.pix_expires_at } } });
     }
 
     // Anti-spam: max 3 pending válidas
@@ -165,13 +168,52 @@ router.post('/recharge', async (req: Request, res: Response) => {
     const rechargeId = crypto.randomUUID();
     const amountCents = Number(pkg.rows[0].amount_cents);
 
-    // Insert pending (antes de chamar Asaas)
+    // Insert pending (antes de chamar provider)
     await pool.query(
-      "INSERT INTO wallet_recharges (id, driver_id, package_id, amount_cents, status, payment_provider, external_id, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending','asaas',NULL,NOW(),NOW())",
-      [rechargeId, driverId, package_id, amountCents]
+      "INSERT INTO wallet_recharges (id, driver_id, package_id, amount_cents, status, payment_provider, external_id, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',$5,NULL,NOW(),NOW())",
+      [rechargeId, driverId, package_id, amountCents, provider]
     );
 
-    // Chamar Asaas
+    if (provider === 'sumup') {
+      try {
+        const checkout = await createSumUpCheckout({
+          checkout_reference: `wallet_v2:${rechargeId}`,
+          amount: Math.round((amountCents / 100) * 100) / 100,
+          currency: 'BRL',
+          description: `KAVIAR: Recarga saldo ${pkg.rows[0].label}`,
+        });
+
+        await pool.query(
+          "UPDATE wallet_recharges SET external_id=$2, updated_at=NOW() WHERE id=$1",
+          [rechargeId, checkout.id]
+        );
+
+        return res.json({
+          success: true,
+          data: {
+            rechargeId,
+            amount_cents: amountCents,
+            payment_provider: 'sumup',
+            checkout: {
+              id: checkout.id,
+              checkout_reference: checkout.checkout_reference || null,
+              checkout_url: checkout.checkout_url || null,
+              status: checkout.status || null,
+            },
+          },
+        });
+      } catch (sumupErr) {
+        await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
+        if (sumupErr instanceof SumUpError) {
+          const status = sumupErr.statusCode === 429 ? 429 : (sumupErr.statusCode >= 500 ? 502 : 400);
+          return res.status(status).json({ success: false, error: sumupErr.safeMessage });
+        }
+        console.error(`[WALLET_RECHARGE_SUMUP_FAIL] driver=${driverId} recharge=${rechargeId}`);
+        return res.status(502).json({ success: false, error: 'Erro ao criar checkout de pagamento. Tente novamente.' });
+      }
+    }
+
+    // Provider padrão: Asaas
     try {
       const customerId = await ensureAsaasCustomer(driverId);
       const pix = await createPixPayment(customerId, amountCents, `wallet_v2:${rechargeId}`, `KAVIAR: Recarga saldo ${pkg.rows[0].label}`);
@@ -181,7 +223,7 @@ router.post('/recharge', async (req: Request, res: Response) => {
         [rechargeId, pix.paymentId, pix.qrCode, pix.copyPaste, pix.expirationDate]
       );
 
-      res.json({ success: true, data: { rechargeId, amount_cents: amountCents, pix: { qrCode: pix.qrCode, copyPaste: pix.copyPaste, expiresAt: pix.expirationDate } } });
+      res.json({ success: true, data: { rechargeId, amount_cents: amountCents, payment_provider: 'asaas', pix: { qrCode: pix.qrCode, copyPaste: pix.copyPaste, expiresAt: pix.expirationDate } } });
     } catch (asaasErr) {
       await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
       console.error(`[WALLET_RECHARGE_ASAAS_FAIL] driver=${driverId} recharge=${rechargeId}`, (asaasErr as Error).message?.slice(0, 100));

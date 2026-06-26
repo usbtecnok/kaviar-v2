@@ -19,6 +19,21 @@ vi.mock('../src/middlewares/auth', () => ({
 const mockEnsureCustomer = vi.fn().mockResolvedValue('cus_123');
 const mockCreatePix = vi.fn().mockResolvedValue({ paymentId: 'pay_abc', qrCode: 'QR', copyPaste: 'PIX_CODE', expirationDate: '2026-06-12T00:00:00Z' });
 vi.mock('../src/services/asaas.service', () => ({ ensureAsaasCustomer: (...args: any[]) => mockEnsureCustomer(...args), createPixPayment: (...args: any[]) => mockCreatePix(...args) }));
+const mockCreateSumUpCheckout = vi.fn().mockResolvedValue({ id: 'sumup_checkout_1', checkout_reference: 'wallet_v2:test', checkout_url: 'https://pay.sumup.com/b2c/Q1', status: 'PENDING' });
+const mockIsSumUpEnabled = vi.fn(() => false);
+vi.mock('../src/services/sumup-service', () => ({
+  createSumUpCheckout: (...args: any[]) => mockCreateSumUpCheckout(...args),
+  isSumUpEnabled: () => mockIsSumUpEnabled(),
+  SumUpError: class extends Error {
+    statusCode: number;
+    safeMessage: string;
+    constructor(statusCode: number, safeMessage: string) {
+      super(safeMessage);
+      this.statusCode = statusCode;
+      this.safeMessage = safeMessage;
+    }
+  },
+}));
 
 const { default: driverWalletV2Routes, _resetWalletV2Cache } = await import('../src/routes/driver-wallet-v2');
 
@@ -26,7 +41,16 @@ const app = express();
 app.use(express.json());
 app.use('/api/v2/drivers/me/wallet', driverWalletV2Routes);
 
-beforeEach(() => { mockQuery.mockReset(); mockEnsureCustomer.mockClear(); mockCreatePix.mockClear(); mockCreatePix.mockResolvedValue({ paymentId: 'pay_abc', qrCode: 'QR', copyPaste: 'PIX_CODE', expirationDate: '2026-06-12T00:00:00Z' }); _resetWalletV2Cache(); });
+beforeEach(() => {
+  mockQuery.mockReset();
+  mockEnsureCustomer.mockClear();
+  mockCreatePix.mockClear();
+  mockCreateSumUpCheckout.mockClear();
+  mockCreatePix.mockResolvedValue({ paymentId: 'pay_abc', qrCode: 'QR', copyPaste: 'PIX_CODE', expirationDate: '2026-06-12T00:00:00Z' });
+  mockCreateSumUpCheckout.mockResolvedValue({ id: 'sumup_checkout_1', checkout_reference: 'wallet_v2:test', checkout_url: 'https://pay.sumup.com/b2c/Q1', status: 'PENDING' });
+  mockIsSumUpEnabled.mockReturnValue(false);
+  _resetWalletV2Cache();
+});
 
 describe('Wallet V2 Read Endpoints', () => {
   const auth = { Authorization: 'Bearer test-token' };
@@ -177,6 +201,47 @@ describe('Wallet V2 Read Endpoints', () => {
     // Verify UPDATE to expired was called
     const updateCall = mockQuery.mock.calls.find((c: any) => c[0]?.includes("'expired'"));
     expect(updateCall).toBeTruthy();
+  });
+
+  it('POST /recharge com provider=sumup e flag ativa cria checkout SumUp', async () => {
+    mockIsSumUpEnabled.mockReturnValue(true);
+    mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] }) // package
+      .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
+      .mockResolvedValueOnce({}) // INSERT wallet_recharges
+      .mockResolvedValueOnce({}); // UPDATE external_id
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-50', payment_provider: 'sumup' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.payment_provider).toBe('sumup');
+    expect(res.body.data.checkout.id).toBe('sumup_checkout_1');
+    expect(mockCreateSumUpCheckout).toHaveBeenCalled();
+    expect(mockCreatePix).not.toHaveBeenCalled();
+  });
+
+  it('POST /recharge com provider=sumup e flag desativada cai para Asaas', async () => {
+    mockIsSumUpEnabled.mockReturnValue(false);
+    mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] }) // package
+      .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
+      .mockResolvedValueOnce({}) // INSERT wallet_recharges
+      .mockResolvedValueOnce({}); // UPDATE pix
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.payment_provider).toBe('asaas');
+    expect(mockCreatePix).toHaveBeenCalled();
+    expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
   });
 
   // --- Webhook simulation tests ---
