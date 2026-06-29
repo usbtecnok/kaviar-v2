@@ -951,6 +951,8 @@ model rides_v2 {
   // Share
   share_token            String?      @unique
   share_expires_at       DateTime?
+  group_id               String?
+  group_source           String?
   // Timestamps
   requested_at           DateTime     @default(now())
   offered_at             DateTime?
@@ -977,6 +979,7 @@ model rides_v2 {
   @@index([passenger_id])
   @@index([driver_id])
   @@index([idempotency_key])
+  @@index([group_id])
   @@index([created_at(sort: Desc)])
 }
 
@@ -2738,4 +2741,80 @@ model family_return_accruals {
 
   @@index([driver_id, created_at(sort: Desc)])
   @@index([status])
+}
+
+// ─── Grupo KAVIAR / KAVIAR Comunidade ──────────────────────────────────────
+model kaviar_groups {
+  id                  String   @id @default(uuid())
+  public_name         String   @db.VarChar(120)
+  internal_name       String?  @db.VarChar(160)
+  type                String   @default("private_group") @db.VarChar(40)
+  responsible_name    String?  @db.VarChar(160)
+  responsible_phone   String?  @db.VarChar(30)
+  responsible_email   String?  @db.VarChar(255)
+  description         String?  @db.VarChar(500)
+  rules               Json?
+  status              String   @default("active") @db.VarChar(20)
+  community_id        String?
+  neighborhood_id     String?
+  territory_id        String?
+  created_by_admin_id String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  members             kaviar_group_members[]
+  invites             kaviar_group_invites[]
+
+  @@index([status])
+  @@index([type])
+  @@index([community_id])
+  @@index([neighborhood_id])
+  @@index([territory_id])
+}
+
+model kaviar_group_members {
+  id            String    @id @default(uuid())
+  group_id      String
+  user_type     String    @db.VarChar(20)
+  passenger_id  String?
+  driver_id     String?
+  name          String?   @db.VarChar(160)
+  phone         String?   @db.VarChar(30)
+  role          String    @default("member") @db.VarChar(30)
+  status        String    @default("pending") @db.VarChar(20)
+  invite_id     String?
+  invite_source String?   @db.VarChar(40)
+  consented_at  DateTime?
+  joined_at     DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  group         kaviar_groups        @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  invite        kaviar_group_invites? @relation(fields: [invite_id], references: [id], onDelete: SetNull)
+
+  @@index([group_id, status])
+  @@index([passenger_id])
+  @@index([driver_id])
+  @@index([invite_id])
+}
+
+model kaviar_group_invites {
+  id                  String    @id @default(uuid())
+  group_id            String
+  code                String    @unique @db.VarChar(40)
+  token_hash          String?   @unique @db.VarChar(128)
+  status              String    @default("active") @db.VarChar(20)
+  max_uses            Int?
+  used_count          Int       @default(0)
+  expires_at          DateTime
+  created_by_admin_id String?
+  revoked_at          DateTime?
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  group               kaviar_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  members             kaviar_group_members[]
+
+  @@index([group_id, status])
+  @@index([expires_at])
 }
