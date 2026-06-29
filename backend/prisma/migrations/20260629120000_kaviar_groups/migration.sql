@@ -1,8 +1,6 @@
 -- Grupo KAVIAR / KAVIAR Comunidade backend base
 -- Fase 1A: schema only. Dispatch and ride flows do not consume group_id yet.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 CREATE TABLE IF NOT EXISTS kaviar_groups (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   public_name VARCHAR(120) NOT NULL,
@@ -81,7 +79,3 @@ CREATE INDEX IF NOT EXISTS idx_kaviar_group_members_driver ON kaviar_group_membe
 CREATE INDEX IF NOT EXISTS idx_kaviar_group_members_invite ON kaviar_group_members(invite_id);
 CREATE UNIQUE INDEX IF NOT EXISTS kaviar_group_members_group_passenger_unique ON kaviar_group_members(group_id, passenger_id) WHERE passenger_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS kaviar_group_members_group_driver_unique ON kaviar_group_members(group_id, driver_id) WHERE driver_id IS NOT NULL;
-
-ALTER TABLE rides_v2 ADD COLUMN IF NOT EXISTS group_id TEXT;
-ALTER TABLE rides_v2 ADD COLUMN IF NOT EXISTS group_source TEXT;
-CREATE INDEX IF NOT EXISTS idx_rides_v2_group_id ON rides_v2(group_id);

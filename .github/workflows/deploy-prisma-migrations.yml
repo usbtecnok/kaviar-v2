@@ -7,6 +7,14 @@ concurrency:
   group: kaviar-prisma-migrations
   cancel-in-progress: false
 
+env:
+  AWS_REGION: us-east-2
+  CLUSTER: kaviar-cluster
+  BACKEND_SERVICE: kaviar-backend-service
+  BACKEND_CONTAINER_NAME: kaviar-backend
+  MIGRATION_FAMILY: kaviar-prisma-migration
+  MIGRATION_DATABASE_URL_SSM_PARAMETER: /kaviar/prod/migration_database_url
+
 jobs:
   migrate:
     runs-on: ubuntu-latest
@@ -19,14 +27,17 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Resolve backend ECS runtime config
         id: ecs
         run: |
           set -euo pipefail
 
-          SERVICE_JSON=$(aws ecs describe-services             --cluster kaviar-cluster             --services kaviar-backend-service             --region us-east-2)
+          SERVICE_JSON=$(aws ecs describe-services \
+            --cluster "$CLUSTER" \
+            --services "$BACKEND_SERVICE" \
+            --region "$AWS_REGION")
 
           TASK_DEFINITION=$(echo "$SERVICE_JSON" | jq -r '.services[0].taskDefinition')
           SUBNETS=$(echo "$SERVICE_JSON" | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.subnets | join(",")')
@@ -38,28 +49,101 @@ jobs:
           echo "security_groups=$SECURITY_GROUPS" >> "$GITHUB_OUTPUT"
           echo "assign_public_ip=$ASSIGN_PUBLIC_IP" >> "$GITHUB_OUTPUT"
 
-          echo "Using task definition: $TASK_DEFINITION"
+          echo "Using backend task definition: $TASK_DEFINITION"
           echo "Using subnets: $SUBNETS"
           echo "Using security groups: $SECURITY_GROUPS"
           echo "Using assignPublicIp: $ASSIGN_PUBLIC_IP"
+
+      - name: Register migration task definition
+        id: migration-task
+        run: |
+          set -euo pipefail
+
+          BACKEND_TASK_DEFINITION='${{ steps.ecs.outputs.task_definition }}'
+
+          MIGRATION_DATABASE_URL_ARN=$(aws ssm get-parameter \
+            --name "$MIGRATION_DATABASE_URL_SSM_PARAMETER" \
+            --region "$AWS_REGION" \
+            --query 'Parameter.ARN' \
+            --output text)
+
+          if [ -z "$MIGRATION_DATABASE_URL_ARN" ] || [ "$MIGRATION_DATABASE_URL_ARN" = "None" ]; then
+            echo "Missing migration database URL parameter ARN" >&2
+            exit 1
+          fi
+
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition "$BACKEND_TASK_DEFINITION" \
+            --region "$AWS_REGION")
+
+          HAS_DATABASE_URL_SECRET=$(echo "$TASK_DEF" | jq -r '
+            [.taskDefinition.containerDefinitions[0].secrets[]? | select(.name == "DATABASE_URL")] | length
+          ')
+
+          if [ "$HAS_DATABASE_URL_SECRET" != "1" ]; then
+            echo "Expected exactly one DATABASE_URL secret in backend task definition" >&2
+            exit 1
+          fi
+
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq \
+            --arg family "$MIGRATION_FAMILY" \
+            --arg container "$BACKEND_CONTAINER_NAME" \
+            --arg migrationDatabaseUrlArn "$MIGRATION_DATABASE_URL_ARN" '
+              .taskDefinition
+              | .family = $family
+              | .containerDefinitions[0].name = $container
+              | .containerDefinitions[0].command = ["sh", "-lc", "npx --yes prisma migrate deploy"]
+              | .containerDefinitions[0].secrets = (
+                  .containerDefinitions[0].secrets
+                  | map(if .name == "DATABASE_URL" then .valueFrom = $migrationDatabaseUrlArn else . end)
+                )
+              | del(
+                  .taskDefinitionArn,
+                  .revision,
+                  .status,
+                  .requiresAttributes,
+                  .compatibilities,
+                  .registeredAt,
+                  .registeredBy
+                )
+            ')
+
+          LEAKED=$(echo "$NEW_TASK_DEF" | jq -r '[.containerDefinitions[0].environment[]?.name] | map(select(. == "DATABASE_URL" or . == "MIGRATION_DATABASE_URL")) | join(",")')
+          if [ -n "$LEAKED" ]; then
+            echo "ABORT: database URL found in plaintext environment: $LEAKED" >&2
+            exit 1
+          fi
+
+          echo "$NEW_TASK_DEF" > migration-task-def.json
+          MIGRATION_TASK_DEFINITION=$(aws ecs register-task-definition \
+            --cli-input-json file://migration-task-def.json \
+            --region "$AWS_REGION" \
+            | jq -r '.taskDefinition.taskDefinitionArn')
+
+          echo "migration_task_definition=$MIGRATION_TASK_DEFINITION" >> "$GITHUB_OUTPUT"
+          echo "Registered migration task definition: $MIGRATION_TASK_DEFINITION"
 
       - name: Run Prisma migrate deploy in ECS
         id: migrate
         run: |
           set -euo pipefail
 
-          TASK_DEFINITION='${{ steps.ecs.outputs.task_definition }}'
+          TASK_DEFINITION='${{ steps.migration-task.outputs.migration_task_definition }}'
           SUBNETS='${{ steps.ecs.outputs.subnets }}'
           SECURITY_GROUPS='${{ steps.ecs.outputs.security_groups }}'
           ASSIGN_PUBLIC_IP='${{ steps.ecs.outputs.assign_public_ip }}'
-          CLUSTER='kaviar-cluster'
-          REGION='us-east-2'
-          CONTAINER_NAME='kaviar-backend'
           LOG_GROUP='/ecs/kaviar-backend'
 
-          OVERRIDES=$(jq -n             --arg container "$CONTAINER_NAME"             '{containerOverrides:[{name:$container,command:["sh","-lc","npx --yes prisma migrate deploy"]}]}' )
-
-          TASK_ARN=$(aws ecs run-task             --cluster "$CLUSTER"             --launch-type FARGATE             --platform-version 1.4.0             --task-definition "$TASK_DEFINITION"             --count 1             --started-by "github-actions-prisma-migrations"             --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUPS],assignPublicIp=$ASSIGN_PUBLIC_IP}"             --overrides "$OVERRIDES"             --region "$REGION"             | jq -r '.tasks[0].taskArn')
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "$CLUSTER" \
+            --launch-type FARGATE \
+            --platform-version 1.4.0 \
+            --task-definition "$TASK_DEFINITION" \
+            --count 1 \
+            --started-by "github-actions-prisma-migrations" \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUPS],assignPublicIp=$ASSIGN_PUBLIC_IP}" \
+            --region "$AWS_REGION" \
+            | jq -r '.tasks[0].taskArn')
 
           if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "null" ]; then
             echo "Failed to start ECS migration task" >&2
@@ -68,15 +152,21 @@ jobs:
 
           echo "task_arn=$TASK_ARN" >> "$GITHUB_OUTPUT"
           TASK_ID="${TASK_ARN##*/}"
-          LOG_STREAM="ecs/${CONTAINER_NAME}/${TASK_ID}"
+          LOG_STREAM="ecs/${BACKEND_CONTAINER_NAME}/${TASK_ID}"
           echo "log_stream=$LOG_STREAM" >> "$GITHUB_OUTPUT"
 
           echo "Started task: $TASK_ARN"
           echo "Log stream: $LOG_STREAM"
 
-          aws ecs wait tasks-stopped             --cluster "$CLUSTER"             --tasks "$TASK_ARN"             --region "$REGION"
+          aws ecs wait tasks-stopped \
+            --cluster "$CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --region "$AWS_REGION"
 
-          TASK_JSON=$(aws ecs describe-tasks             --cluster "$CLUSTER"             --tasks "$TASK_ARN"             --region "$REGION")
+          TASK_JSON=$(aws ecs describe-tasks \
+            --cluster "$CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --region "$AWS_REGION")
 
           EXIT_CODE=$(echo "$TASK_JSON" | jq -r '.tasks[0].containers[0].exitCode // empty')
           STOPPED_REASON=$(echo "$TASK_JSON" | jq -r '.tasks[0].stoppedReason // empty')
@@ -92,7 +182,12 @@ jobs:
 
           sleep 8
           echo "--- ECS task logs ---"
-          aws logs get-log-events             --log-group-name "$LOG_GROUP"             --log-stream-name "$LOG_STREAM"             --region "$REGION"             --limit 200             | jq -r '.events[].message'
+          aws logs get-log-events \
+            --log-group-name "$LOG_GROUP" \
+            --log-stream-name "$LOG_STREAM" \
+            --region "$AWS_REGION" \
+            --limit 200 \
+            | jq -r '.events[].message'
 
           if [ -z "$EXIT_CODE" ] || [ "$EXIT_CODE" != "0" ]; then
             echo "Prisma migration task failed" >&2
