@@ -142,7 +142,7 @@ const panelCards = [
     title: 'CRM Comercial Local',
     text: 'Para pizzarias, mercados, pet shops, farmácias, restaurantes, lojas e negócios da cidade administrarem sua presença comercial no KAVIAR.',
     button: 'Acessar CRM Comercial',
-    href: '#paineis',
+    href: '/admin/login',
     kind: 'blue',
   },
   {
