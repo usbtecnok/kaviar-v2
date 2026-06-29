@@ -77,6 +77,7 @@ import ManagerReferrals from "../../pages/admin/ManagerReferrals";
 import ManagerEmergencyAlerts from "../../pages/admin/ManagerEmergencyAlerts";
 import ManagerWomenCoverage from "../../pages/admin/ManagerWomenCoverage";
 import InvestorsPage from "../../pages/admin/InvestorsPage";
+import GroupsManagement from "../../pages/admin/GroupsManagement";
 import PetCentral from "../../pages/admin/PetCentral";
 import PetOperators from "../../pages/admin/PetOperators";
 import PetHomologations from "../../pages/admin/PetHomologations";
@@ -447,6 +448,7 @@ function AdminHome() {
               ] : []),
             ]},
             { section: 'Pessoas e Território', items: [
+              { Icon: Group, title: 'Grupos KAVIAR', desc: 'Criar grupos, convites e acompanhar membros', to: '/admin/groups' },
               { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
               { Icon: People, title: 'Passageiros', desc: 'Gerenciar passageiros', to: '/admin/passengers' },
               { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },
@@ -874,6 +876,15 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <PassengersManagement />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+
+          <Route path="/groups" element={
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR']}>
+              <Container maxWidth="lg" sx={{ mt: 2 }}>
+                <AdminHeader />
+                <GroupsManagement />
               </Container>
             </ProtectedAdminRoute>
           } />

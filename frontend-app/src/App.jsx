@@ -41,6 +41,7 @@ import RegionPage from "./pages/RegionPage";
 import KaviarLanding from "./pages/KaviarLanding";
 import PetLanding from "./pages/PetLanding";
 import PetRideRequest from "./pages/PetRideRequest";
+import GroupInviteLanding from "./pages/GroupInviteLanding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
 import { DriverProvider } from "./contexts/DriverContext";
@@ -462,6 +463,8 @@ export default function App() {
           <Route path="/passageiro" element={<PassageiroReferral />} />
           {/* Convite curto — redireciona para backend que valida e redireciona para reset-password */}
           <Route path="/i/:code" element={<InviteRedirect />} />
+          <Route path="/grupos/convite/:code" element={<GroupInviteLanding />} />
+          <Route path="/convite/grupo/:code" element={<GroupInviteLanding />} />
           <Route path="/admin/convite-expirado" element={<ConviteExpirado />} />
           {/* First access motorista */}
           <Route path="/motorista/definir-senha" element={<SetPassword />} />

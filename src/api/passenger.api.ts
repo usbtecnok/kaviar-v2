@@ -15,6 +15,23 @@ interface RequestRideParams {
 }
 
 export const passengerApi = {
+  getMyGroups: async () => {
+    const { data } = await apiClient.get('/api/passengers/me/groups');
+    return data.data || [];
+  },
+
+  getGroupInvite: async (code: string) => {
+    const normalized = String(code || '').trim().toUpperCase();
+    const { data } = await apiClient.get(`/api/groups/invites/${encodeURIComponent(normalized)}`);
+    return data.data;
+  },
+
+  joinGroupByInvite: async (code: string) => {
+    const normalized = String(code || '').trim().toUpperCase();
+    const { data } = await apiClient.post(`/api/groups/invites/${encodeURIComponent(normalized)}/join`, { consent: true });
+    return data;
+  },
+
   requestRide: async (params: RequestRideParams): Promise<{ ride_id: string; status: string }> => {
     const { data } = await apiClient.post('/api/v2/rides', params);
     return data.data;

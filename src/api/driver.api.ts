@@ -2,6 +2,11 @@ import { apiClient } from './client';
 import { Ride, RideOffer } from '../types/ride';
 
 export const driverApi = {
+  getMyGroups: async () => {
+    const { data } = await apiClient.get('/api/drivers/me/groups');
+    return data.data || [];
+  },
+
   // v2: Disponibilidade
   setAvailability: (availability: 'online' | 'offline') =>
     apiClient.post('/api/v2/drivers/me/availability', { availability }),

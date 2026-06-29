@@ -236,6 +236,7 @@ export default function PassengerMap() {
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(passenger)/profile') },
     { key: 'history', label: 'Histórico de corridas', icon: 'time-outline', onPress: () => router.push('/(passenger)/history') },
+    { key: 'groups', label: 'Meus Grupos KAVIAR', icon: 'people-outline', onPress: () => router.push('/(passenger)/groups') },
     { key: 'favorites', label: 'Favoritos', icon: 'heart-outline', onPress: () => router.push('/(passenger)/favorites') },
     { key: 'tourism', label: 'Turismo Premium', icon: 'diamond-outline', badge: '✦', onPress: () => router.push('/(passenger)/tourism') },
     { key: 'refer', label: 'Indique um motorista', icon: 'people-outline', onPress: () => router.push('/(passenger)/refer-driver') },
