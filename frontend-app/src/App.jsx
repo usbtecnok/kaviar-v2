@@ -449,6 +449,7 @@ export default function App() {
           <Route path="/parceiro/portal" element={<PartnerPortal />} />
           <Route path="/commerce" element={<CommercePortal />} />
           <Route path="/commerce/*" element={<CommercePortal />} />
+          <Route path="/comercio/login" element={<CommercePortal />} />
           <Route path="/comercio/:slug" element={<CommerceStorefront />} />
           <Route path="/pedido/:code" element={<OrderTrackingPage />} />
           <Route path="/driver/register" element={<DriverRegister />} />
