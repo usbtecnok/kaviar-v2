@@ -951,8 +951,6 @@ model rides_v2 {
   // Share
   share_token            String?      @unique
   share_expires_at       DateTime?
-  group_id               String?
-  group_source           String?
   // Timestamps
   requested_at           DateTime     @default(now())
   offered_at             DateTime?
@@ -979,7 +977,6 @@ model rides_v2 {
   @@index([passenger_id])
   @@index([driver_id])
   @@index([idempotency_key])
-  @@index([group_id])
   @@index([created_at(sort: Desc)])
 }
 
