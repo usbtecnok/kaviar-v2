@@ -80,7 +80,15 @@ beforeEach(() => {
 
   prismaMock.driver_fixed_routes.findFirst.mockResolvedValue(routeOwned);
   prismaMock.driver_fixed_route_reservations.findFirst.mockResolvedValue(reservationOwned);
-  prismaMock.driver_fixed_route_reservations.findMany.mockResolvedValue([{ passenger_id: 'passenger-1' }]);
+  prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
+    if (args?.select?.passenger_id) {
+      return [{ passenger_id: 'passenger-1' }];
+    }
+    if (args?.select?.id && args?.select?.route_id) {
+      return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+    }
+    return [];
+  });
   prismaMock.fixed_route_messages.findMany.mockResolvedValue([]);
   prismaMock.fixed_route_messages.create.mockImplementation(async ({ data }: any) => ({
     id: 'msg-1',
@@ -333,5 +341,113 @@ describe('fixed route messages', () => {
     expect(payloadJson).toContain('fixed_route_message');
     expect(payloadJson).not.toContain('phone');
     expect(payloadJson).not.toContain('name');
+  });
+
+  it('summary inclui aviso geral e mensagem direta do motorista', async () => {
+    prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
+      if (args?.select?.id && args?.select?.route_id) {
+        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+      }
+      return [{ passenger_id: 'passenger-1' }];
+    });
+
+    prismaMock.fixed_route_messages.findMany.mockResolvedValue([
+      {
+        id: 'msg-direct-latest',
+        route_id: 'route-1',
+        reservation_id: 'res-1',
+        sender_type: 'DRIVER',
+        recipient_type: 'PASSENGER',
+        created_at: new Date('2026-06-30T10:30:00.000Z'),
+      },
+      {
+        id: 'msg-broadcast-old',
+        route_id: 'route-1',
+        reservation_id: null,
+        sender_type: 'DRIVER',
+        recipient_type: 'ROUTE_CONFIRMED_PASSENGERS',
+        created_at: new Date('2026-06-30T09:00:00.000Z'),
+      },
+    ]);
+
+    const res = await request(app).get('/api/passenger/fixed-route-reservations/messages/summary');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toEqual(expect.objectContaining({
+      reservation_id: 'res-1',
+      route_id: 'route-1',
+      last_message_id: 'msg-direct-latest',
+      last_sender_type: 'DRIVER',
+      has_driver_message: true,
+    }));
+  });
+
+  it('summary nao inclui mensagens de outras reservas', async () => {
+    prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
+      if (args?.select?.id && args?.select?.route_id) {
+        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+      }
+      return [{ passenger_id: 'passenger-1' }];
+    });
+
+    prismaMock.fixed_route_messages.findMany.mockResolvedValue([
+      {
+        id: 'msg-other-reservation',
+        route_id: 'route-1',
+        reservation_id: 'res-other',
+        sender_type: 'DRIVER',
+        recipient_type: 'PASSENGER',
+        created_at: new Date('2026-06-30T11:00:00.000Z'),
+      },
+      {
+        id: 'msg-broadcast',
+        route_id: 'route-1',
+        reservation_id: null,
+        sender_type: 'DRIVER',
+        recipient_type: 'ROUTE_CONFIRMED_PASSENGERS',
+        created_at: new Date('2026-06-30T10:00:00.000Z'),
+      },
+    ]);
+
+    const res = await request(app).get('/api/passenger/fixed-route-reservations/messages/summary');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data[0]).toEqual(expect.objectContaining({
+      reservation_id: 'res-1',
+      last_message_id: 'msg-broadcast',
+      has_driver_message: true,
+    }));
+  });
+
+  it('summary nao retorna telefone nem texto completo', async () => {
+    prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
+      if (args?.select?.id && args?.select?.route_id) {
+        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+      }
+      return [{ passenger_id: 'passenger-1' }];
+    });
+
+    prismaMock.fixed_route_messages.findMany.mockResolvedValue([
+      {
+        id: 'msg-1',
+        route_id: 'route-1',
+        reservation_id: 'res-1',
+        sender_type: 'DRIVER',
+        recipient_type: 'PASSENGER',
+        message_text: 'Nao deveria aparecer',
+        passenger_phone: '21999999999',
+        created_at: new Date('2026-06-30T12:00:00.000Z'),
+      },
+    ]);
+
+    const res = await request(app).get('/api/passenger/fixed-route-reservations/messages/summary');
+
+    expect(res.status).toBe(200);
+    const payload = JSON.stringify(res.body);
+    expect(payload).not.toContain('phone');
+    expect(payload).not.toContain('21999999999');
+    expect(payload).not.toContain('Nao deveria aparecer');
   });
 });

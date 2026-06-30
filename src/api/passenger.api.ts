@@ -62,6 +62,15 @@ export type PassengerFixedRouteMessage = {
   metadata?: Record<string, any> | null;
 };
 
+export type PassengerFixedRouteMessageSummary = {
+  reservation_id: string;
+  route_id: string;
+  last_message_at?: string | null;
+  last_sender_type?: 'DRIVER' | 'PASSENGER' | 'ADMIN' | string | null;
+  last_message_id?: string | null;
+  has_driver_message: boolean;
+};
+
 interface RequestRideParams {
   origin: { lat: number; lng: number; text?: string };
   destination: { lat: number; lng: number; text?: string };
@@ -130,6 +139,11 @@ export const passengerApi = {
   getFixedRouteReservationMessages: async (reservationId: string): Promise<{ reservation: any; messages: PassengerFixedRouteMessage[] }> => {
     const { data } = await apiClient.get(`/api/passenger/fixed-route-reservations/${encodeURIComponent(reservationId)}/messages`);
     return data.data;
+  },
+
+  getFixedRouteMessagesSummary: async (): Promise<PassengerFixedRouteMessageSummary[]> => {
+    const { data } = await apiClient.get('/api/passenger/fixed-route-reservations/messages/summary');
+    return data.data || [];
   },
 
   sendFixedRouteReservationMessage: async (reservationId: string, payload: { message_code?: string; message_text?: string }): Promise<PassengerFixedRouteMessage> => {

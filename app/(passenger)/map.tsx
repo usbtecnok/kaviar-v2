@@ -34,6 +34,12 @@ import { apiClient } from '../../src/api/client';
 import { persistPassengerRide, getPersistedPassengerRide } from '../../src/services/ride-persistence';
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { PASSENGER_TO_DRIVER_RIDE_QUICK_MESSAGES, RIDE_QUICK_MESSAGE_TEXT_BY_CODE, RideQuickMessageCode } from '../../src/config/rideMessages';
+import {
+  computeRecentFixedRouteMessages,
+  getFixedRouteLastSeenMap,
+  getFixedRouteNotificationState,
+  syncFixedRouteNotificationState,
+} from '../../src/services/fixed-route-recent.service';
 
 const POLL_INTERVAL = 3000;
 const POLL_BACKOFF_P = [3000, 5000, 8000, 10000]; // normal, 1 fail, 2 fails, 3+ fails
@@ -232,11 +238,25 @@ export default function PassengerMap() {
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userPhone, setUserPhone] = useState('');
-  const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
-    recentRouteIds: new Set<string>(),
-    recentReservationIds: new Set<string>(),
-    seenMessageIds: new Set<string>(),
-  });
+  const [hasRecentFixedRouteMessages, setHasRecentFixedRouteMessages] = useState(false);
+  const fixedRouteNotificationState = getFixedRouteNotificationState();
+
+  const refreshFixedRouteBadge = async () => {
+    try {
+      const summary = await passengerApi.getFixedRouteMessagesSummary();
+      const lastSeenMap = await getFixedRouteLastSeenMap(summary.map((item) => item.reservation_id));
+      const { recentReservationIds, recentRouteIds } = computeRecentFixedRouteMessages(summary, lastSeenMap);
+      syncFixedRouteNotificationState(summary, recentReservationIds, recentRouteIds);
+      setHasRecentFixedRouteMessages(recentReservationIds.size > 0);
+    } catch (error) {
+      console.warn('[Passenger Map] Fixed route badge refresh failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (!isFocused) return;
+    refreshFixedRouteBadge();
+  }, [isFocused]);
 
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(passenger)/profile') },
@@ -246,7 +266,7 @@ export default function PassengerMap() {
       key: 'fixed-routes',
       label: 'Minhas Rotas Fixas',
       icon: 'repeat-outline',
-      badge: (fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
+      badge: (hasRecentFixedRouteMessages || fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
       onPress: () => router.push('/(passenger)/fixed-routes')
     },
     { key: 'favorites', label: 'Favoritos', icon: 'heart-outline', onPress: () => router.push('/(passenger)/favorites') },

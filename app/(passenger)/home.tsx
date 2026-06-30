@@ -3,12 +3,13 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
   StatusBar, Platform, SafeAreaView, Dimensions, Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authStore } from '../../src/auth/auth.store';
 import { apiClient } from '../../src/api/client';
+import { passengerApi } from '../../src/api/passenger.api';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
@@ -17,6 +18,12 @@ import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPrefe
 import { MotoPromoCard } from '../../src/components/moto/MotoPromoCard';
 import { MotoAcceptModal } from '../../src/components/moto/MotoAcceptModal';
 import { MOTO_FLAGS } from '../../src/config/moto.config';
+import {
+  computeRecentFixedRouteMessages,
+  getFixedRouteLastSeenMap,
+  getFixedRouteNotificationState,
+  syncFixedRouteNotificationState,
+} from '../../src/services/fixed-route-recent.service';
 
 const { width: W } = Dimensions.get('window');
 const ACTION_W = (W - 56) / 4; // 4 cards side-by-side with gaps
@@ -35,11 +42,20 @@ export default function PassengerHome() {
   const scrollRef = useRef<ScrollView>(null);
   const [showWomenInvite, setShowWomenInvite] = useState(false);
   const [showMotoAccept, setShowMotoAccept] = useState(false);
-  const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
-    recentRouteIds: new Set<string>(),
-    recentReservationIds: new Set<string>(),
-    seenMessageIds: new Set<string>(),
-  });
+  const [hasRecentFixedRouteMessages, setHasRecentFixedRouteMessages] = useState(false);
+  const fixedRouteNotificationState = getFixedRouteNotificationState();
+
+  const refreshFixedRouteBadge = async () => {
+    try {
+      const summary = await passengerApi.getFixedRouteMessagesSummary();
+      const lastSeenMap = await getFixedRouteLastSeenMap(summary.map((item) => item.reservation_id));
+      const { recentReservationIds, recentRouteIds } = computeRecentFixedRouteMessages(summary, lastSeenMap);
+      syncFixedRouteNotificationState(summary, recentReservationIds, recentRouteIds);
+      setHasRecentFixedRouteMessages(recentReservationIds.size > 0);
+    } catch (error) {
+      console.warn('[Passenger Home] Fixed route badge refresh failed:', error);
+    }
+  };
 
   useEffect(() => {
     const user = authStore.getUser();
@@ -48,7 +64,14 @@ export default function PassengerHome() {
       setUserName(first.charAt(0).toUpperCase() + first.slice(1).toLowerCase());
     }
     checkWomenInvite();
+    refreshFixedRouteBadge();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshFixedRouteBadge();
+    }, [])
+  );
 
   const checkWomenInvite = async () => {
     try {
@@ -80,7 +103,7 @@ export default function PassengerHome() {
       key: 'fixed-routes',
       label: 'Minhas Rotas Fixas',
       icon: 'repeat-outline',
-      badge: (fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
+      badge: (hasRecentFixedRouteMessages || fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
       onPress: () => router.push('/(passenger)/fixed-routes')
     },
     { key: 'favorites', label: 'Meus destinos',      icon: 'heart-outline',        onPress: () => router.push('/(passenger)/favorites')    },

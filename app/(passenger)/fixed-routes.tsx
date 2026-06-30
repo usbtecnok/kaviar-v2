@@ -12,10 +12,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '../../src/config/colors';
-import { passengerApi, FixedRouteInvitePreview, FixedRouteReservation, PassengerFixedRouteMessage } from '../../src/api/passenger.api';
+import { passengerApi, FixedRouteInvitePreview, FixedRouteReservation, PassengerFixedRouteMessage, PassengerFixedRouteMessageSummary } from '../../src/api/passenger.api';
 import { normalizeFixedRouteInviteCode } from '../../src/utils/groupInviteDeepLink';
+import {
+  computeRecentFixedRouteMessages,
+  getFixedRouteLastSeenMap,
+  getFixedRouteNotificationState,
+  markFixedRouteMessagesSeen,
+  syncFixedRouteNotificationState,
+} from '../../src/services/fixed-route-recent.service';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Seg' },
@@ -84,14 +91,6 @@ function invitationLead(tripType?: string | null) {
   return 'Ida e volta programadas.';
 }
 
-function getFixedRouteNotificationState() {
-  return (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
-    recentRouteIds: new Set<string>(),
-    recentReservationIds: new Set<string>(),
-    seenMessageIds: new Set<string>(),
-  });
-}
-
 export default function PassengerFixedRoutesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ inviteCode?: string; reservationId?: string }>();
@@ -113,22 +112,49 @@ export default function PassengerFixedRoutesScreen() {
   const [openComposer, setOpenComposer] = useState<Record<string, boolean>>({});
   const [quickCodeByReservation, setQuickCodeByReservation] = useState<Record<string, string>>({});
   const [textByReservation, setTextByReservation] = useState<Record<string, string>>({});
+  const [summaryByReservation, setSummaryByReservation] = useState<Record<string, PassengerFixedRouteMessageSummary>>({});
+
+  const refreshRecentMessages = useCallback(async (currentReservations?: FixedRouteReservation[]) => {
+    try {
+      const summary = await passengerApi.getFixedRouteMessagesSummary();
+      const reservationIds = summary.map((item) => item.reservation_id);
+      const lastSeenMap = await getFixedRouteLastSeenMap(reservationIds);
+      const { recentReservationIds, recentRouteIds } = computeRecentFixedRouteMessages(summary, lastSeenMap);
+
+      syncFixedRouteNotificationState(summary, recentReservationIds, recentRouteIds);
+      setSummaryByReservation(Object.fromEntries(summary.map((item) => [item.reservation_id, item])));
+
+      if (currentReservations && currentReservations.length) {
+        const routeIds = new Set(currentReservations.map((reservation) => reservation.route_id));
+        fixedRouteNotificationState.recentRouteIds = new Set(Array.from(recentRouteIds).filter((routeId) => routeIds.has(routeId)));
+      }
+
+      setNotificationTick((current) => current + 1);
+    } catch (error) {
+      console.warn('[Passenger Fixed Routes] Recent summary refresh failed:', error);
+    }
+  }, [fixedRouteNotificationState]);
 
   const loadReservations = useCallback(async () => {
     try {
       const data = await passengerApi.getMyFixedRouteReservations();
       setReservations(data);
+      await refreshRecentMessages(data);
     } catch (error: unknown) {
       Alert.alert('Erro', getErrorMessage(error, 'Não foi possível carregar suas Rotas Fixas.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [refreshRecentMessages]);
 
   useEffect(() => {
     loadReservations();
   }, [loadReservations]);
+
+  useFocusEffect(useCallback(() => {
+    refreshRecentMessages(reservations);
+  }, [refreshRecentMessages, reservations]));
 
   useEffect(() => {
     if (!normalizedParamCode) return;
@@ -160,15 +186,18 @@ export default function PassengerFixedRoutesScreen() {
         const data = await passengerApi.getFixedRouteReservationMessages(reservationId);
         setMessagesByReservation((current) => ({ ...current, [reservationId]: data.messages || [] }));
         setOpenComposer((current) => ({ ...current, [reservationId]: true }));
+        const newestAt = data.messages?.length ? data.messages[data.messages.length - 1]?.created_at : undefined;
+        await markFixedRouteMessagesSeen(reservationId, newestAt || new Date().toISOString());
       } catch {
         // Preserve current screen even when notification context cannot be loaded.
       } finally {
         fixedRouteNotificationState.recentReservationIds.delete(reservationId);
         if (reservation.route_id) fixedRouteNotificationState.recentRouteIds.delete(reservation.route_id);
+        await refreshRecentMessages(reservations);
         setNotificationTick((current) => current + 1);
       }
     })();
-  }, [params.reservationId, reservations, fixedRouteNotificationState]);
+  }, [params.reservationId, reservations, fixedRouteNotificationState, refreshRecentMessages]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -256,6 +285,9 @@ export default function PassengerFixedRoutesScreen() {
       const data = await passengerApi.getFixedRouteReservationMessages(reservation.id);
       setMessagesByReservation((current) => ({ ...current, [reservation.id]: data.messages || [] }));
       setOpenComposer((current) => ({ ...current, [reservation.id]: true }));
+      const newestAt = data.messages?.length ? data.messages[data.messages.length - 1]?.created_at : undefined;
+      await markFixedRouteMessagesSeen(reservation.id, newestAt || new Date().toISOString());
+      await refreshRecentMessages(reservations);
     } catch (error: unknown) {
       Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel carregar mensagens da rota.'));
     } finally {
@@ -321,6 +353,7 @@ export default function PassengerFixedRoutesScreen() {
     const route = reservation.route;
     if (!route) return null;
     const isConfirmed = reservation.status === 'confirmed';
+    const hasRecentBySummary = Boolean(summaryByReservation[reservation.id]?.has_driver_message) && fixedRouteNotificationState.recentReservationIds.has(reservation.id);
 
     return (
       <View key={reservation.id} style={styles.card}>
@@ -353,7 +386,7 @@ export default function PassengerFixedRoutesScreen() {
           <Text style={styles.secondaryBtnText}>
             {messagesByReservation[reservation.id]
               ? 'Ocultar mensagens da rota'
-              : (fixedRouteNotificationState.recentReservationIds.has(reservation.id) || fixedRouteNotificationState.recentRouteIds.has(route.id))
+              : (hasRecentBySummary || fixedRouteNotificationState.recentRouteIds.has(route.id))
                 ? 'Mensagens da rota • nova'
                 : 'Mensagens da rota'}
           </Text>

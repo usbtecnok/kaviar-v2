@@ -394,6 +394,69 @@ driverFixedRouteMessagesRoutes.post('/:routeId/reservations/:reservationId/messa
   }
 });
 
+passengerFixedRouteMessagesRoutes.get('/messages/summary', async (req: Request, res: Response) => {
+  try {
+    const currentPassengerId = passengerId(req);
+    if (!currentPassengerId) {
+      return res.status(401).json({ success: false, error: 'Passageiro não autenticado' });
+    }
+
+    const reservations = await db.driver_fixed_route_reservations.findMany({
+      where: { passenger_id: currentPassengerId },
+      select: { id: true, route_id: true, status: true },
+    });
+
+    if (!reservations.length) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const reservationIds = reservations.map((reservation: any) => reservation.id);
+    const routeIds = Array.from(new Set(reservations.map((reservation: any) => reservation.route_id)));
+
+    const messages = await db.fixed_route_messages.findMany({
+      where: {
+        route_id: { in: routeIds },
+        OR: [
+          { recipient_type: 'ROUTE_CONFIRMED_PASSENGERS' },
+          { reservation_id: { in: reservationIds } },
+        ],
+      },
+      select: {
+        id: true,
+        route_id: true,
+        reservation_id: true,
+        sender_type: true,
+        recipient_type: true,
+        created_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    const summary = reservations.map((reservation: any) => {
+      const lastMessage = messages.find((message: any) => {
+        if (message.route_id !== reservation.route_id) return false;
+        if (message.recipient_type === 'ROUTE_CONFIRMED_PASSENGERS') return true;
+        return message.reservation_id === reservation.id;
+      });
+
+      return {
+        reservation_id: reservation.id,
+        route_id: reservation.route_id,
+        reservation_status: reservation.status,
+        last_message_at: lastMessage?.created_at || null,
+        last_sender_type: lastMessage?.sender_type || null,
+        last_message_id: lastMessage?.id || null,
+        has_driver_message: lastMessage?.sender_type === 'DRIVER',
+      };
+    });
+
+    return res.json({ success: true, data: summary });
+  } catch (error) {
+    console.error('[FIXED_ROUTE_PASSENGER_MESSAGES_SUMMARY_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao gerar resumo de mensagens da rota' });
+  }
+});
+
 passengerFixedRouteMessagesRoutes.get('/:reservationId/messages', async (req: Request, res: Response) => {
   try {
     const reservation = await getOwnPassengerReservation(req, res);
