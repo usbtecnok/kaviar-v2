@@ -48,6 +48,19 @@ export type DriverFixedRouteReservation = {
   passenger?: { id: string; name?: string | null };
 };
 
+export type FixedRouteMessage = {
+  id: string;
+  route_id: string;
+  reservation_id?: string | null;
+  sender_type: 'DRIVER' | 'PASSENGER' | 'ADMIN' | string;
+  recipient_type: 'DRIVER' | 'PASSENGER' | 'ROUTE_CONFIRMED_PASSENGERS' | string;
+  message_code?: string | null;
+  message_text: string;
+  created_at: string;
+  read_at?: string | null;
+  metadata?: Record<string, any> | null;
+};
+
 export const driverApi = {
   getMyGroups: async () => {
     const { data } = await apiClient.get('/api/drivers/me/groups');
@@ -101,6 +114,26 @@ export const driverApi = {
 
   updateFixedRouteReservationStatus: async (routeId: string, reservationId: string, status: string): Promise<DriverFixedRouteReservation> => {
     const { data } = await apiClient.patch(`/api/driver/fixed-routes/${routeId}/reservations/${reservationId}/status`, { status });
+    return data.data;
+  },
+
+  getFixedRouteMessages: async (routeId: string): Promise<FixedRouteMessage[]> => {
+    const { data } = await apiClient.get(`/api/driver/fixed-routes/${routeId}/messages`);
+    return data.data || [];
+  },
+
+  sendFixedRouteBroadcastMessage: async (routeId: string, payload: { message_code?: string; message_text?: string }): Promise<FixedRouteMessage> => {
+    const { data } = await apiClient.post(`/api/driver/fixed-routes/${routeId}/messages`, payload);
+    return data.data;
+  },
+
+  getFixedRouteReservationMessages: async (routeId: string, reservationId: string): Promise<{ reservation: any; messages: FixedRouteMessage[] }> => {
+    const { data } = await apiClient.get(`/api/driver/fixed-routes/${routeId}/reservations/${reservationId}/messages`);
+    return data.data;
+  },
+
+  sendFixedRouteReservationMessage: async (routeId: string, reservationId: string, payload: { message_code?: string; message_text?: string }): Promise<FixedRouteMessage> => {
+    const { data } = await apiClient.post(`/api/driver/fixed-routes/${routeId}/reservations/${reservationId}/messages`, payload);
     return data.data;
   },
 

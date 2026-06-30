@@ -20,6 +20,7 @@ import {
   DriverFixedRoute,
   DriverFixedRoutePayload,
   DriverFixedRouteReservation,
+  FixedRouteMessage,
 } from '../../src/api/driver.api';
 
 const DAY_OPTIONS = [
@@ -52,6 +53,20 @@ const TRIP_TYPE_OPTIONS = [
   { value: 'one_way_return', label: 'So volta' },
   { value: 'round_trip', label: 'Ida e volta' },
 ] as const;
+
+const DRIVER_ROUTE_QUICK_MESSAGES = [
+  { code: 'LEAVING_SOON', text: 'Vou sair em 10 minutos.' },
+  { code: 'AT_MEETING_POINT', text: 'Estou no ponto combinado.' },
+  { code: 'ROUTE_CONFIRMED_TODAY', text: 'A rota de hoje está mantida.' },
+  { code: 'RETURN_TIME_UPDATED', text: 'O horário da volta foi atualizado.' },
+  { code: 'WAITING_PASSENGERS', text: 'Estou aguardando os passageiros confirmados.' },
+];
+
+const DRIVER_RESERVATION_QUICK_MESSAGES = [
+  { code: 'I_AM_WAITING', text: 'Estou aguardando no ponto combinado.' },
+  { code: 'PLEASE_CONFIRM', text: 'Pode confirmar se você vai hoje?' },
+  { code: 'RUNNING_LATE_DRIVER', text: 'Estou com alguns minutos de atraso.' },
+];
 
 type TripType = typeof TRIP_TYPE_OPTIONS[number]['value'];
 
@@ -126,6 +141,16 @@ export default function DriverFixedRoutesScreen() {
   const [form, setForm] = useState(emptyForm());
   const [reservationsByRoute, setReservationsByRoute] = useState<Record<string, DriverFixedRouteReservation[]>>({});
   const [loadingReservations, setLoadingReservations] = useState<Record<string, boolean>>({});
+  const [routeMessagesByRoute, setRouteMessagesByRoute] = useState<Record<string, FixedRouteMessage[]>>({});
+  const [loadingRouteMessages, setLoadingRouteMessages] = useState<Record<string, boolean>>({});
+  const [routeQuickCodeByRoute, setRouteQuickCodeByRoute] = useState<Record<string, string>>({});
+  const [routeTextByRoute, setRouteTextByRoute] = useState<Record<string, string>>({});
+  const [openRouteComposer, setOpenRouteComposer] = useState<Record<string, boolean>>({});
+  const [reservationMessagesById, setReservationMessagesById] = useState<Record<string, FixedRouteMessage[]>>({});
+  const [loadingReservationMessages, setLoadingReservationMessages] = useState<Record<string, boolean>>({});
+  const [openReservationComposer, setOpenReservationComposer] = useState<Record<string, boolean>>({});
+  const [reservationQuickCodeById, setReservationQuickCodeById] = useState<Record<string, string>>({});
+  const [reservationTextById, setReservationTextById] = useState<Record<string, string>>({});
 
   const loadRoutes = useCallback(async () => {
     try {
@@ -368,6 +393,89 @@ export default function DriverFixedRoutesScreen() {
     }
   };
 
+  const toggleRouteMessages = async (route: DriverFixedRoute) => {
+    if (routeMessagesByRoute[route.id]) {
+      setRouteMessagesByRoute((current) => {
+        const next = { ...current };
+        delete next[route.id];
+        return next;
+      });
+      setOpenRouteComposer((current) => ({ ...current, [route.id]: false }));
+      return;
+    }
+    try {
+      setLoadingRouteMessages((current) => ({ ...current, [route.id]: true }));
+      const data = await driverApi.getFixedRouteMessages(route.id);
+      setRouteMessagesByRoute((current) => ({ ...current, [route.id]: data }));
+      setOpenRouteComposer((current) => ({ ...current, [route.id]: true }));
+    } catch (error: unknown) {
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel carregar avisos da rota.'));
+    } finally {
+      setLoadingRouteMessages((current) => ({ ...current, [route.id]: false }));
+    }
+  };
+
+  const sendRouteMessage = async (route: DriverFixedRoute) => {
+    const message_code = routeQuickCodeByRoute[route.id] || undefined;
+    const message_text = (routeTextByRoute[route.id] || '').trim() || undefined;
+
+    if (!message_code && !message_text) {
+      Alert.alert('Mensagem', 'Selecione uma mensagem rapida ou escreva uma mensagem personalizada.');
+      return;
+    }
+
+    try {
+      await driverApi.sendFixedRouteBroadcastMessage(route.id, { message_code, message_text });
+      const refreshed = await driverApi.getFixedRouteMessages(route.id);
+      setRouteMessagesByRoute((current) => ({ ...current, [route.id]: refreshed }));
+      setRouteTextByRoute((current) => ({ ...current, [route.id]: '' }));
+      Alert.alert('Aviso enviado', 'Seu aviso foi enviado para os passageiros confirmados.');
+    } catch (error: unknown) {
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel enviar o aviso.'));
+    }
+  };
+
+  const toggleReservationMessages = async (route: DriverFixedRoute, reservation: DriverFixedRouteReservation) => {
+    if (reservationMessagesById[reservation.id]) {
+      setReservationMessagesById((current) => {
+        const next = { ...current };
+        delete next[reservation.id];
+        return next;
+      });
+      setOpenReservationComposer((current) => ({ ...current, [reservation.id]: false }));
+      return;
+    }
+    try {
+      setLoadingReservationMessages((current) => ({ ...current, [reservation.id]: true }));
+      const data = await driverApi.getFixedRouteReservationMessages(route.id, reservation.id);
+      setReservationMessagesById((current) => ({ ...current, [reservation.id]: data.messages || [] }));
+      setOpenReservationComposer((current) => ({ ...current, [reservation.id]: true }));
+    } catch (error: unknown) {
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel carregar mensagens da reserva.'));
+    } finally {
+      setLoadingReservationMessages((current) => ({ ...current, [reservation.id]: false }));
+    }
+  };
+
+  const sendReservationMessage = async (route: DriverFixedRoute, reservation: DriverFixedRouteReservation) => {
+    const message_code = reservationQuickCodeById[reservation.id] || undefined;
+    const message_text = (reservationTextById[reservation.id] || '').trim() || undefined;
+
+    if (!message_code && !message_text) {
+      Alert.alert('Mensagem', 'Selecione uma mensagem rapida ou escreva uma mensagem personalizada.');
+      return;
+    }
+
+    try {
+      await driverApi.sendFixedRouteReservationMessage(route.id, reservation.id, { message_code, message_text });
+      const refreshed = await driverApi.getFixedRouteReservationMessages(route.id, reservation.id);
+      setReservationMessagesById((current) => ({ ...current, [reservation.id]: refreshed.messages || [] }));
+      setReservationTextById((current) => ({ ...current, [reservation.id]: '' }));
+    } catch (error: unknown) {
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel enviar mensagem para a reserva.'));
+    }
+  };
+
   const renderForm = () => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{editingRouteId ? 'Editar Rota Fixa' : 'Nova Rota Fixa'}</Text>
@@ -462,6 +570,55 @@ export default function DriverFixedRoutesScreen() {
                 </TouchableOpacity>
               </View>
             )}
+
+            <TouchableOpacity style={[styles.smallAction, { marginTop: 8, alignSelf: 'flex-start' }]} onPress={() => toggleReservationMessages(route, reservation)}>
+              <Text style={styles.smallActionText}>{reservationMessagesById[reservation.id] ? 'Ocultar mensagens' : 'Mensagem'}</Text>
+            </TouchableOpacity>
+
+            {loadingReservationMessages[reservation.id] ? <ActivityIndicator color={COLORS.primary} style={{ marginTop: 8 }} /> : null}
+
+            {reservationMessagesById[reservation.id] ? (
+              <View style={styles.messagesBox}>
+                {(reservationMessagesById[reservation.id] || []).map((msg) => {
+                  const isOwn = msg.sender_type === 'DRIVER';
+                  return (
+                    <View key={msg.id} style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+                      <Text style={styles.bubbleLabel}>{isOwn ? 'Voce' : 'Passageiro'}</Text>
+                      <Text style={styles.bubbleText}>{msg.message_text}</Text>
+                    </View>
+                  );
+                })}
+
+                {openReservationComposer[reservation.id] ? (
+                  <>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickChipsRow}>
+                      {DRIVER_RESERVATION_QUICK_MESSAGES.map((option) => {
+                        const selected = reservationQuickCodeById[reservation.id] === option.code;
+                        return (
+                          <TouchableOpacity
+                            key={option.code}
+                            style={[styles.quickChip, selected && styles.quickChipActive]}
+                            onPress={() => setReservationQuickCodeById((current) => ({ ...current, [reservation.id]: selected ? '' : option.code }))}
+                          >
+                            <Text style={[styles.quickChipText, selected && styles.quickChipTextActive]}>{option.text}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                    <TextInput
+                      style={styles.messageInput}
+                      placeholder="Mensagem personalizada (opcional)"
+                      placeholderTextColor={COLORS.textMuted}
+                      value={reservationTextById[reservation.id] || ''}
+                      onChangeText={(value) => setReservationTextById((current) => ({ ...current, [reservation.id]: value.slice(0, 500) }))}
+                    />
+                    <TouchableOpacity style={styles.outlineButton} onPress={() => sendReservationMessage(route, reservation)}>
+                      <Text style={styles.outlineButtonText}>Enviar mensagem</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         ))}
       </View>
@@ -519,7 +676,54 @@ export default function DriverFixedRoutesScreen() {
             <Ionicons name="people-outline" size={16} color={COLORS.primary} />
             <Text style={styles.outlineButtonText}>{reservationsByRoute[route.id] ? 'Ocultar reservas' : 'Ver reservas'}</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.outlineButton} onPress={() => toggleRouteMessages(route)}>
+            <Ionicons name="chatbubble-ellipses-outline" size={16} color={COLORS.primary} />
+            <Text style={styles.outlineButtonText}>{routeMessagesByRoute[route.id] ? 'Ocultar avisos' : 'Avisos da rota'}</Text>
+          </TouchableOpacity>
         </View>
+
+        {loadingRouteMessages[route.id] ? <ActivityIndicator color={COLORS.primary} style={{ marginTop: 10 }} /> : null}
+
+        {routeMessagesByRoute[route.id] ? (
+          <View style={styles.messagesBox}>
+            <Text style={styles.sectionTitle}>Avisos da rota</Text>
+            {(routeMessagesByRoute[route.id] || []).map((msg) => (
+              <View key={msg.id} style={[styles.bubble, styles.bubbleOwn]}>
+                <Text style={styles.bubbleLabel}>Aviso para todos</Text>
+                <Text style={styles.bubbleText}>{msg.message_text}</Text>
+              </View>
+            ))}
+
+            {openRouteComposer[route.id] ? (
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickChipsRow}>
+                  {DRIVER_ROUTE_QUICK_MESSAGES.map((option) => {
+                    const selected = routeQuickCodeByRoute[route.id] === option.code;
+                    return (
+                      <TouchableOpacity
+                        key={option.code}
+                        style={[styles.quickChip, selected && styles.quickChipActive]}
+                        onPress={() => setRouteQuickCodeByRoute((current) => ({ ...current, [route.id]: selected ? '' : option.code }))}
+                      >
+                        <Text style={[styles.quickChipText, selected && styles.quickChipTextActive]}>{option.text}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+                <TextInput
+                  style={styles.messageInput}
+                  placeholder="Mensagem personalizada (opcional)"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={routeTextByRoute[route.id] || ''}
+                  onChangeText={(value) => setRouteTextByRoute((current) => ({ ...current, [route.id]: value.slice(0, 500) }))}
+                />
+                <TouchableOpacity style={styles.outlineButton} onPress={() => sendRouteMessage(route)}>
+                  <Text style={styles.outlineButtonText}>Enviar aviso</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </View>
+        ) : null}
 
         {route.status !== 'archived' && (
           <>
@@ -736,6 +940,29 @@ const styles = StyleSheet.create({
   smallDangerAction: { borderColor: 'rgba(239, 68, 68, 0.35)' },
   smallDangerText: { color: COLORS.danger, fontSize: 11, fontWeight: '800' },
   emptyReservations: { color: COLORS.textMuted, fontSize: 12, marginTop: 12 },
+
+  messagesBox: { marginTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
+  bubble: { borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1 },
+  bubbleOwn: { backgroundColor: 'rgba(184, 148, 46, 0.15)', borderColor: 'rgba(184, 148, 46, 0.35)' },
+  bubbleOther: { backgroundColor: COLORS.background, borderColor: COLORS.border },
+  bubbleLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
+  bubbleText: { color: COLORS.textPrimary, fontSize: 13, marginTop: 3 },
+  quickChipsRow: { gap: 8, paddingBottom: 6 },
+  quickChip: { borderRadius: 999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background, paddingHorizontal: 10, paddingVertical: 7 },
+  quickChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  quickChipText: { color: COLORS.textSecondary, fontSize: 11, fontWeight: '700' },
+  quickChipTextActive: { color: COLORS.textDark },
+  messageInput: {
+    minHeight: 44,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    marginBottom: 8,
+  },
 
   emptyCard: { alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 22, marginTop: 4 },
   emptyTitle: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '800', marginTop: 10 },

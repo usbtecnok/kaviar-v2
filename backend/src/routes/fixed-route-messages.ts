@@ -1,0 +1,328 @@
+import { Router, Request, Response } from 'express';
+import { prisma } from '../lib/prisma';
+import { authenticateDriver, authenticatePassenger } from '../middlewares/auth';
+import { cleanString } from '../services/fixed-route.service';
+
+const db = prisma as any;
+
+const DRIVER_ROUTE_QUICK_CODES = new Set([
+  'LEAVING_SOON',
+  'AT_MEETING_POINT',
+  'ROUTE_CONFIRMED_TODAY',
+  'RETURN_TIME_UPDATED',
+  'WAITING_PASSENGERS',
+]);
+
+const DRIVER_TO_PASSENGER_QUICK_CODES = new Set([
+  'I_AM_WAITING',
+  'PLEASE_CONFIRM',
+  'RUNNING_LATE_DRIVER',
+]);
+
+const PASSENGER_TO_DRIVER_QUICK_CODES = new Set([
+  'PASSENGER_CONFIRMED',
+  'ONLY_RETURN_TODAY',
+  'ARRIVING_POINT',
+  'RUNNING_LATE_PASSENGER',
+  'NEED_HELP',
+]);
+
+const QUICK_CODE_TEXT: Record<string, string> = {
+  LEAVING_SOON: 'Vou sair em 10 minutos.',
+  AT_MEETING_POINT: 'Estou no ponto combinado.',
+  ROUTE_CONFIRMED_TODAY: 'A rota de hoje está mantida.',
+  RETURN_TIME_UPDATED: 'O horário da volta foi atualizado.',
+  WAITING_PASSENGERS: 'Estou aguardando os passageiros confirmados.',
+  I_AM_WAITING: 'Estou aguardando no ponto combinado.',
+  PLEASE_CONFIRM: 'Pode confirmar se você vai hoje?',
+  RUNNING_LATE_DRIVER: 'Estou com alguns minutos de atraso.',
+  PASSENGER_CONFIRMED: 'Confirmo minha ida.',
+  ONLY_RETURN_TODAY: 'Hoje vou apenas na volta.',
+  ARRIVING_POINT: 'Estou chegando ao ponto combinado.',
+  RUNNING_LATE_PASSENGER: 'Estou com alguns minutos de atraso.',
+  NEED_HELP: 'Preciso de ajuda com essa reserva.',
+};
+
+function driverId(req: Request) {
+  return (req as any).driver?.id || (req as any).driverId || (req as any).userId;
+}
+
+function passengerId(req: Request) {
+  return (req as any).passenger?.id || (req as any).passengerId || (req as any).userId;
+}
+
+function buildMessage(messageCodeInput: any, messageTextInput: any, allowedCodes: Set<string>) {
+  const messageCode = cleanString(messageCodeInput, 60);
+  const rawText = typeof messageTextInput === 'string' ? messageTextInput.trim() : '';
+
+  if (rawText.length > 500) {
+    return { error: 'message_text deve ter no máximo 500 caracteres' };
+  }
+
+  const customText = cleanString(rawText, 500);
+
+  if (messageCode && !allowedCodes.has(messageCode)) {
+    return { error: 'message_code inválido para este tipo de envio' };
+  }
+
+  const baseFromCode = messageCode ? QUICK_CODE_TEXT[messageCode] || '' : '';
+  const combined = customText ? (baseFromCode ? `${baseFromCode} ${customText}` : customText) : baseFromCode;
+  const messageText = cleanString(combined, 500);
+
+  if (!messageText) {
+    return { error: 'Informe message_code válido ou message_text' };
+  }
+
+  if (messageText.length > 500) {
+    return { error: 'message_text deve ter no máximo 500 caracteres' };
+  }
+
+  return { data: { messageCode: messageCode || null, messageText } };
+}
+
+function mapMessageOutput(row: any) {
+  return {
+    id: row.id,
+    route_id: row.route_id,
+    reservation_id: row.reservation_id,
+    sender_type: row.sender_type,
+    recipient_type: row.recipient_type,
+    message_code: row.message_code,
+    message_text: row.message_text,
+    created_at: row.created_at,
+    read_at: row.read_at,
+    metadata: row.metadata || null,
+  };
+}
+
+async function getOwnDriverRoute(req: Request, res: Response) {
+  const route = await db.driver_fixed_routes.findFirst({ where: { id: req.params.routeId, driver_id: driverId(req) } });
+  if (!route) {
+    res.status(404).json({ success: false, error: 'Rota fixa não encontrada' });
+    return null;
+  }
+  return route;
+}
+
+async function getOwnPassengerReservation(req: Request, res: Response) {
+  const reservation = await db.driver_fixed_route_reservations.findFirst({
+    where: { id: req.params.reservationId, passenger_id: passengerId(req) },
+    include: { route: true },
+  });
+  if (!reservation) {
+    res.status(404).json({ success: false, error: 'Reserva não encontrada' });
+    return null;
+  }
+  return reservation;
+}
+
+function canDriverWrite(routeStatus: string): boolean {
+  if (routeStatus === 'archived') return false;
+  if (routeStatus === 'cancelled') return false;
+  return routeStatus === 'active' || routeStatus === 'paused';
+}
+
+function canPassengerWrite(routeStatus: string): boolean {
+  return routeStatus === 'active';
+}
+
+export const driverFixedRouteMessagesRoutes = Router();
+export const passengerFixedRouteMessagesRoutes = Router();
+
+driverFixedRouteMessagesRoutes.use(authenticateDriver);
+passengerFixedRouteMessagesRoutes.use(authenticatePassenger);
+
+driverFixedRouteMessagesRoutes.get('/:routeId/messages', async (req: Request, res: Response) => {
+  try {
+    const route = await getOwnDriverRoute(req, res);
+    if (!route) return;
+
+    const messages = await db.fixed_route_messages.findMany({
+      where: {
+        route_id: route.id,
+        reservation_id: null,
+      },
+      orderBy: { created_at: 'asc' },
+      take: Math.min(Number(req.query.limit) || 200, 500),
+    });
+
+    return res.json({ success: true, data: messages.map(mapMessageOutput) });
+  } catch (error) {
+    console.error('[FIXED_ROUTE_DRIVER_MESSAGES_LIST_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao listar mensagens da rota' });
+  }
+});
+
+driverFixedRouteMessagesRoutes.post('/:routeId/messages', async (req: Request, res: Response) => {
+  try {
+    const route = await getOwnDriverRoute(req, res);
+    if (!route) return;
+
+    if (!canDriverWrite(String(route.status))) {
+      return res.status(409).json({ success: false, error: 'Rota não permite novas mensagens neste status' });
+    }
+
+    const built = buildMessage(req.body?.message_code, req.body?.message_text, DRIVER_ROUTE_QUICK_CODES);
+    if ('error' in built) return res.status(400).json({ success: false, error: built.error });
+
+    const created = await db.fixed_route_messages.create({
+      data: {
+        route_id: route.id,
+        sender_type: 'DRIVER',
+        sender_driver_id: driverId(req),
+        recipient_type: 'ROUTE_CONFIRMED_PASSENGERS',
+        message_code: built.data.messageCode,
+        message_text: built.data.messageText,
+      },
+    });
+
+    return res.status(201).json({ success: true, data: mapMessageOutput(created) });
+  } catch (error) {
+    console.error('[FIXED_ROUTE_DRIVER_MESSAGES_CREATE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao enviar aviso da rota' });
+  }
+});
+
+driverFixedRouteMessagesRoutes.get('/:routeId/reservations/:reservationId/messages', async (req: Request, res: Response) => {
+  try {
+    const route = await getOwnDriverRoute(req, res);
+    if (!route) return;
+
+    const reservation = await db.driver_fixed_route_reservations.findFirst({
+      where: { id: req.params.reservationId, route_id: route.id },
+      include: { passenger: { select: { id: true, name: true } } },
+    });
+    if (!reservation) return res.status(404).json({ success: false, error: 'Reserva não encontrada' });
+
+    const messages = await db.fixed_route_messages.findMany({
+      where: { route_id: route.id, reservation_id: reservation.id },
+      orderBy: { created_at: 'asc' },
+      take: Math.min(Number(req.query.limit) || 300, 500),
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        reservation: {
+          id: reservation.id,
+          status: reservation.status,
+          passenger: { id: reservation.passenger?.id, name: reservation.passenger?.name || 'Passageiro' },
+        },
+        messages: messages.map(mapMessageOutput),
+      },
+    });
+  } catch (error) {
+    console.error('[FIXED_ROUTE_DRIVER_RESERVATION_MESSAGES_LIST_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao listar mensagens da reserva' });
+  }
+});
+
+driverFixedRouteMessagesRoutes.post('/:routeId/reservations/:reservationId/messages', async (req: Request, res: Response) => {
+  try {
+    const route = await getOwnDriverRoute(req, res);
+    if (!route) return;
+
+    if (!canDriverWrite(String(route.status))) {
+      return res.status(409).json({ success: false, error: 'Rota não permite novas mensagens neste status' });
+    }
+
+    const reservation = await db.driver_fixed_route_reservations.findFirst({
+      where: { id: req.params.reservationId, route_id: route.id },
+    });
+    if (!reservation) return res.status(404).json({ success: false, error: 'Reserva não encontrada' });
+    if (reservation.status !== 'confirmed') {
+      return res.status(409).json({ success: false, error: 'Somente reservas confirmadas recebem mensagens no MVP' });
+    }
+
+    const built = buildMessage(req.body?.message_code, req.body?.message_text, DRIVER_TO_PASSENGER_QUICK_CODES);
+    if ('error' in built) return res.status(400).json({ success: false, error: built.error });
+
+    const created = await db.fixed_route_messages.create({
+      data: {
+        route_id: route.id,
+        reservation_id: reservation.id,
+        sender_type: 'DRIVER',
+        sender_driver_id: driverId(req),
+        recipient_type: 'PASSENGER',
+        recipient_passenger_id: reservation.passenger_id,
+        message_code: built.data.messageCode,
+        message_text: built.data.messageText,
+      },
+    });
+
+    return res.status(201).json({ success: true, data: mapMessageOutput(created) });
+  } catch (error) {
+    console.error('[FIXED_ROUTE_DRIVER_RESERVATION_MESSAGES_CREATE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao enviar mensagem para reserva' });
+  }
+});
+
+passengerFixedRouteMessagesRoutes.get('/:reservationId/messages', async (req: Request, res: Response) => {
+  try {
+    const reservation = await getOwnPassengerReservation(req, res);
+    if (!reservation) return;
+
+    const messages = await db.fixed_route_messages.findMany({
+      where: {
+        route_id: reservation.route_id,
+        OR: [
+          { recipient_type: 'ROUTE_CONFIRMED_PASSENGERS' },
+          { reservation_id: reservation.id },
+        ],
+      },
+      orderBy: { created_at: 'asc' },
+      take: Math.min(Number(req.query.limit) || 300, 500),
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        reservation: {
+          id: reservation.id,
+          route_id: reservation.route_id,
+          status: reservation.status,
+        },
+        messages: messages.map(mapMessageOutput),
+      },
+    });
+  } catch (error) {
+    console.error('[FIXED_ROUTE_PASSENGER_MESSAGES_LIST_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao listar mensagens da rota' });
+  }
+});
+
+passengerFixedRouteMessagesRoutes.post('/:reservationId/messages', async (req: Request, res: Response) => {
+  try {
+    const reservation = await getOwnPassengerReservation(req, res);
+    if (!reservation) return;
+
+    if (reservation.status !== 'confirmed') {
+      return res.status(409).json({ success: false, error: 'Somente reservas confirmadas podem enviar mensagens' });
+    }
+
+    if (!canPassengerWrite(String(reservation.route?.status || ''))) {
+      return res.status(409).json({ success: false, error: 'Esta rota não permite novas mensagens neste status' });
+    }
+
+    const built = buildMessage(req.body?.message_code, req.body?.message_text, PASSENGER_TO_DRIVER_QUICK_CODES);
+    if ('error' in built) return res.status(400).json({ success: false, error: built.error });
+
+    const created = await db.fixed_route_messages.create({
+      data: {
+        route_id: reservation.route_id,
+        reservation_id: reservation.id,
+        sender_type: 'PASSENGER',
+        sender_passenger_id: passengerId(req),
+        recipient_type: 'DRIVER',
+        recipient_driver_id: reservation.route.driver_id,
+        message_code: built.data.messageCode,
+        message_text: built.data.messageText,
+      },
+    });
+
+    return res.status(201).json({ success: true, data: mapMessageOutput(created) });
+  } catch (error) {
+    console.error('[FIXED_ROUTE_PASSENGER_MESSAGES_CREATE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao enviar mensagem da reserva' });
+  }
+});

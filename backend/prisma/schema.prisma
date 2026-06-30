@@ -2774,6 +2774,7 @@ model driver_fixed_routes {
   driver                     drivers @relation(fields: [driver_id], references: [id], onDelete: Restrict)
   reservations               driver_fixed_route_reservations[]
   events                     driver_fixed_route_events[]
+  messages                   fixed_route_messages[]
 
   @@index([driver_id, status])
   @@index([invite_code])
@@ -2801,10 +2802,37 @@ model driver_fixed_route_reservations {
   route              driver_fixed_routes @relation(fields: [route_id], references: [id], onDelete: Cascade)
   passenger          passengers @relation(fields: [passenger_id], references: [id], onDelete: Restrict)
   events             driver_fixed_route_events[]
+  messages           fixed_route_messages[]
 
   @@index([route_id, status])
   @@index([passenger_id, status])
   @@index([created_at(sort: Desc)])
+}
+
+model fixed_route_messages {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  route_id              String   @db.Uuid
+  reservation_id        String?  @db.Uuid
+  sender_type           String   @db.VarChar(30)
+  sender_driver_id      String?
+  sender_passenger_id   String?
+  sender_admin_id       String?
+  recipient_type        String   @db.VarChar(40)
+  recipient_driver_id   String?
+  recipient_passenger_id String?
+  message_code          String?  @db.VarChar(60)
+  message_text          String   @db.VarChar(500)
+  created_at            DateTime @default(now())
+  read_at               DateTime?
+  metadata              Json?
+
+  route                 driver_fixed_routes @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  reservation           driver_fixed_route_reservations? @relation(fields: [reservation_id], references: [id], onDelete: SetNull)
+
+  @@index([route_id, created_at(sort: Desc)])
+  @@index([reservation_id, created_at(sort: Desc)])
+  @@index([recipient_driver_id, read_at])
+  @@index([recipient_passenger_id, read_at])
 }
 
 model driver_fixed_route_events {

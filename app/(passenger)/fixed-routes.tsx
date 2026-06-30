@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '../../src/config/colors';
-import { passengerApi, FixedRouteInvitePreview, FixedRouteReservation } from '../../src/api/passenger.api';
+import { passengerApi, FixedRouteInvitePreview, FixedRouteReservation, PassengerFixedRouteMessage } from '../../src/api/passenger.api';
 import { normalizeFixedRouteInviteCode } from '../../src/utils/groupInviteDeepLink';
 
 const DAY_OPTIONS = [
@@ -34,6 +34,14 @@ const RESERVATION_STATUS_LABELS: Record<string, string> = {
   completed: 'Concluída',
   no_show: 'Ausente',
 };
+
+const PASSENGER_QUICK_MESSAGES = [
+  { code: 'PASSENGER_CONFIRMED', text: 'Confirmo minha ida.' },
+  { code: 'ONLY_RETURN_TODAY', text: 'Hoje vou apenas na volta.' },
+  { code: 'ARRIVING_POINT', text: 'Estou chegando ao ponto combinado.' },
+  { code: 'RUNNING_LATE_PASSENGER', text: 'Estou com alguns minutos de atraso.' },
+  { code: 'NEED_HELP', text: 'Preciso de ajuda com essa reserva.' },
+];
 
 type ApiError = { response?: { data?: { error?: string } }; message?: string };
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -89,6 +97,11 @@ export default function PassengerFixedRoutesScreen() {
   const [code, setCode] = useState('');
   const [preview, setPreview] = useState<FixedRouteInvitePreview | null>(null);
   const [reservations, setReservations] = useState<FixedRouteReservation[]>([]);
+  const [messagesByReservation, setMessagesByReservation] = useState<Record<string, PassengerFixedRouteMessage[]>>({});
+  const [loadingMessages, setLoadingMessages] = useState<Record<string, boolean>>({});
+  const [openComposer, setOpenComposer] = useState<Record<string, boolean>>({});
+  const [quickCodeByReservation, setQuickCodeByReservation] = useState<Record<string, string>>({});
+  const [textByReservation, setTextByReservation] = useState<Record<string, string>>({});
 
   const loadReservations = useCallback(async () => {
     try {
@@ -189,6 +202,47 @@ export default function PassengerFixedRoutesScreen() {
     ]);
   };
 
+  const toggleMessages = async (reservation: FixedRouteReservation) => {
+    if (messagesByReservation[reservation.id]) {
+      setMessagesByReservation((current) => {
+        const next = { ...current };
+        delete next[reservation.id];
+        return next;
+      });
+      setOpenComposer((current) => ({ ...current, [reservation.id]: false }));
+      return;
+    }
+    try {
+      setLoadingMessages((current) => ({ ...current, [reservation.id]: true }));
+      const data = await passengerApi.getFixedRouteReservationMessages(reservation.id);
+      setMessagesByReservation((current) => ({ ...current, [reservation.id]: data.messages || [] }));
+      setOpenComposer((current) => ({ ...current, [reservation.id]: true }));
+    } catch (error: unknown) {
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel carregar mensagens da rota.'));
+    } finally {
+      setLoadingMessages((current) => ({ ...current, [reservation.id]: false }));
+    }
+  };
+
+  const sendMessage = async (reservation: FixedRouteReservation) => {
+    const message_code = quickCodeByReservation[reservation.id] || undefined;
+    const message_text = (textByReservation[reservation.id] || '').trim() || undefined;
+
+    if (!message_code && !message_text) {
+      Alert.alert('Mensagem', 'Selecione uma mensagem rapida ou escreva uma mensagem personalizada.');
+      return;
+    }
+
+    try {
+      await passengerApi.sendFixedRouteReservationMessage(reservation.id, { message_code, message_text });
+      const data = await passengerApi.getFixedRouteReservationMessages(reservation.id);
+      setMessagesByReservation((current) => ({ ...current, [reservation.id]: data.messages || [] }));
+      setTextByReservation((current) => ({ ...current, [reservation.id]: '' }));
+    } catch (error: unknown) {
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel enviar mensagem ao motorista.'));
+    }
+  };
+
   const renderPreview = () => {
     if (!preview) return null;
 
@@ -255,6 +309,56 @@ export default function PassengerFixedRoutesScreen() {
             {cancellingId === reservation.id ? <ActivityIndicator color={COLORS.danger} /> : <Text style={styles.cancelBtnText}>Cancelar reserva</Text>}
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity style={styles.secondaryBtnInline} onPress={() => toggleMessages(reservation)}>
+          <Text style={styles.secondaryBtnText}>{messagesByReservation[reservation.id] ? 'Ocultar mensagens da rota' : 'Mensagens da rota'}</Text>
+        </TouchableOpacity>
+
+        {loadingMessages[reservation.id] ? <ActivityIndicator color={COLORS.primary} style={{ marginTop: 10 }} /> : null}
+
+        {messagesByReservation[reservation.id] ? (
+          <View style={styles.messagesBox}>
+            {(messagesByReservation[reservation.id] || []).map((msg) => {
+              const isOwn = msg.sender_type === 'PASSENGER';
+              const label = msg.recipient_type === 'ROUTE_CONFIRMED_PASSENGERS' ? 'Aviso para todos' : isOwn ? 'Voce' : 'Motorista';
+              return (
+                <View key={msg.id} style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+                  <Text style={styles.bubbleLabel}>{label}</Text>
+                  <Text style={styles.bubbleText}>{msg.message_text}</Text>
+                </View>
+              );
+            })}
+
+            {openComposer[reservation.id] && reservation.status === 'confirmed' ? (
+              <>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickChipsRow}>
+                  {PASSENGER_QUICK_MESSAGES.map((option) => {
+                    const selected = quickCodeByReservation[reservation.id] === option.code;
+                    return (
+                      <TouchableOpacity
+                        key={option.code}
+                        style={[styles.quickChip, selected && styles.quickChipActive]}
+                        onPress={() => setQuickCodeByReservation((current) => ({ ...current, [reservation.id]: selected ? '' : option.code }))}
+                      >
+                        <Text style={[styles.quickChipText, selected && styles.quickChipTextActive]}>{option.text}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+                <TextInput
+                  style={styles.messageInput}
+                  placeholder="Mensagem personalizada (opcional)"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={textByReservation[reservation.id] || ''}
+                  onChangeText={(value) => setTextByReservation((current) => ({ ...current, [reservation.id]: value.slice(0, 500) }))}
+                />
+                <TouchableOpacity style={styles.secondaryBtnInline} onPress={() => sendMessage(reservation)}>
+                  <Text style={styles.secondaryBtnText}>Enviar mensagem</Text>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -344,6 +448,7 @@ const styles = StyleSheet.create({
   input: { flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: 12, color: COLORS.textPrimary, backgroundColor: COLORS.background },
   secondaryBtn: { minHeight: 44, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   secondaryBtnText: { color: COLORS.primary, fontWeight: '800' },
+  secondaryBtnInline: { marginTop: 10, minHeight: 40, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary, alignItems: 'center', justifyContent: 'center' },
 
   previewBox: { marginTop: 12, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 12 },
   previewEyebrow: { color: COLORS.primary, fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
@@ -374,6 +479,28 @@ const styles = StyleSheet.create({
 
   cancelBtn: { marginTop: 12, minHeight: 42, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(231, 76, 60, 0.4)', alignItems: 'center', justifyContent: 'center' },
   cancelBtnText: { color: COLORS.danger, fontSize: 13, fontWeight: '800' },
+
+  messagesBox: { marginTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
+  bubble: { borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1 },
+  bubbleOwn: { backgroundColor: 'rgba(184, 148, 46, 0.16)', borderColor: 'rgba(184, 148, 46, 0.38)' },
+  bubbleOther: { backgroundColor: COLORS.background, borderColor: COLORS.border },
+  bubbleLabel: { color: COLORS.textMuted, fontSize: 11, fontWeight: '700' },
+  bubbleText: { color: COLORS.textPrimary, fontSize: 13, marginTop: 3 },
+  quickChipsRow: { gap: 8, paddingBottom: 6 },
+  quickChip: { borderRadius: 999, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background, paddingHorizontal: 10, paddingVertical: 7 },
+  quickChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  quickChipText: { color: COLORS.textSecondary, fontSize: 11, fontWeight: '700' },
+  quickChipTextActive: { color: COLORS.textDark },
+  messageInput: {
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
+    color: COLORS.textPrimary,
+    backgroundColor: COLORS.background,
+    marginBottom: 8,
+  },
 
   emptyCard: { alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 22, marginTop: 4 },
   emptyTitle: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '800', marginTop: 10 },

@@ -49,6 +49,19 @@ export type FixedRouteReservation = {
   };
 };
 
+export type PassengerFixedRouteMessage = {
+  id: string;
+  route_id: string;
+  reservation_id?: string | null;
+  sender_type: 'DRIVER' | 'PASSENGER' | 'ADMIN' | string;
+  recipient_type: 'DRIVER' | 'PASSENGER' | 'ROUTE_CONFIRMED_PASSENGERS' | string;
+  message_code?: string | null;
+  message_text: string;
+  created_at: string;
+  read_at?: string | null;
+  metadata?: Record<string, any> | null;
+};
+
 interface RequestRideParams {
   origin: { lat: number; lng: number; text?: string };
   destination: { lat: number; lng: number; text?: string };
@@ -111,6 +124,16 @@ export const passengerApi = {
 
   cancelFixedRouteReservation: async (id: string): Promise<FixedRouteReservation> => {
     const { data } = await apiClient.patch(`/api/passenger/fixed-route-reservations/${encodeURIComponent(id)}/cancel`, {});
+    return data.data;
+  },
+
+  getFixedRouteReservationMessages: async (reservationId: string): Promise<{ reservation: any; messages: PassengerFixedRouteMessage[] }> => {
+    const { data } = await apiClient.get(`/api/passenger/fixed-route-reservations/${encodeURIComponent(reservationId)}/messages`);
+    return data.data;
+  },
+
+  sendFixedRouteReservationMessage: async (reservationId: string, payload: { message_code?: string; message_text?: string }): Promise<PassengerFixedRouteMessage> => {
+    const { data } = await apiClient.post(`/api/passenger/fixed-route-reservations/${encodeURIComponent(reservationId)}/messages`, payload);
     return data.data;
   },
 
