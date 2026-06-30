@@ -7,6 +7,10 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Drawer,
   FormControl,
   Grid,
@@ -23,6 +27,8 @@ import {
   TextField,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -95,7 +101,39 @@ function weekdaysLabel(days) {
   return days.map((d) => map[d] || d).join(' • ');
 }
 
+function timeLabel(departureTime, returnTime, tripType) {
+  if (tripType === 'one_way_outbound') return `Saida: ${departureTime || '-'}`;
+  if (tripType === 'one_way_return') return `Volta: ${returnTime || '-'}`;
+  return `Saida: ${departureTime || '-'} · Volta: ${returnTime || '-'}`;
+}
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+const CONFIRM_ACTIONS = {
+  pause: {
+    title: 'Pausar rota fixa?',
+    message: 'Essa rota deixara de aceitar novas reservas ate ser reativada.',
+    confirmLabel: 'Pausar rota',
+    successLabel: 'pausada',
+  },
+  reactivate: {
+    title: 'Reativar rota fixa?',
+    message: 'A rota voltara a aceitar reservas, se ainda houver vagas disponiveis.',
+    confirmLabel: 'Reativar rota',
+    successLabel: 'reativada',
+  },
+  archive: {
+    title: 'Arquivar rota fixa?',
+    message: 'Essa rota ficara oculta da lista principal e nao aceitara novas reservas. Essa acao nao apaga o historico.',
+    confirmLabel: 'Arquivar rota',
+    successLabel: 'arquivada',
+  },
+};
+
 export default function AdminFixedRoutes() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
@@ -103,10 +141,14 @@ export default function AdminFixedRoutes() {
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState({ status: '', trip_type: '', search: '' });
+  const [appliedFilters, setAppliedFilters] = useState({ status: '', trip_type: '', search: '' });
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [selectedId, setSelectedId] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detail, setDetail] = useState(null);
   const [reservations, setReservations] = useState([]);
+  const [confirmState, setConfirmState] = useState({ open: false, action: '', error: '' });
 
   const admin = useMemo(() => {
     try {
@@ -118,13 +160,14 @@ export default function AdminFixedRoutes() {
   const canWrite = admin?.role === 'SUPER_ADMIN';
 
   const loadList = useCallback(async () => {
+    const offset = page * pageSize;
     try {
       setLoading(true);
       setError('');
       const response = await adminApi.getAdminFixedRoutes({
-        ...filters,
-        limit: 100,
-        offset: 0,
+        ...appliedFilters,
+        limit: pageSize,
+        offset,
       });
       setRows(response.data || []);
       setTotal(Number(response.pagination?.total || 0));
@@ -133,7 +176,7 @@ export default function AdminFixedRoutes() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [appliedFilters, page, pageSize]);
 
   const loadDetail = useCallback(async (id) => {
     try {
@@ -161,25 +204,68 @@ export default function AdminFixedRoutes() {
     await loadDetail(id);
   };
 
-  const executeAction = async (action) => {
-    if (!selectedId || !canWrite) return;
+  const executeAction = async () => {
+    const action = confirmState.action;
+    if (!selectedId || !canWrite || !action) return;
     try {
       setActionLoading(true);
       setError('');
       setSuccess('');
+      setConfirmState((prev) => ({ ...prev, error: '' }));
 
       if (action === 'pause') await adminApi.pauseAdminFixedRoute(selectedId);
       if (action === 'reactivate') await adminApi.reactivateAdminFixedRoute(selectedId);
       if (action === 'archive') await adminApi.archiveAdminFixedRoute(selectedId);
 
-      const actionLabel = action === 'pause' ? 'pausada' : action === 'reactivate' ? 'reativada' : 'arquivada';
-      setSuccess(`Rota ${actionLabel} com sucesso`);
-      await Promise.all([loadList(), loadDetail(selectedId)]);
+      setSuccess(`Rota ${CONFIRM_ACTIONS[action]?.successLabel || 'atualizada'} com sucesso`);
+      setConfirmState({ open: false, action: '', error: '' });
+      if (drawerOpen && selectedId) {
+        await Promise.all([loadList(), loadDetail(selectedId)]);
+      } else {
+        await loadList();
+      }
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || 'Erro ao executar ação na rota');
+      const message = err?.response?.data?.error || err.message || 'Erro ao executar acao na rota';
+      setError(message);
+      setConfirmState((prev) => ({ ...prev, error: message }));
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const openConfirm = (action) => {
+    setConfirmState({ open: true, action, error: '' });
+  };
+
+  const closeConfirm = () => {
+    if (actionLoading) return;
+    setConfirmState({ open: false, action: '', error: '' });
+  };
+
+  const handleApplyFilters = () => {
+    setPage(0);
+    setAppliedFilters({ ...filters });
+  };
+
+  const handleClearFilters = () => {
+    const empty = { status: '', trip_type: '', search: '' };
+    setFilters(empty);
+    setAppliedFilters(empty);
+    setPage(0);
+  };
+
+  const handlePrevPage = () => {
+    setPage((prev) => Math.max(0, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    if ((page + 1) * pageSize >= total) return;
+    setPage((prev) => prev + 1);
+  };
+
+  const handlePageSizeChange = (event) => {
+    setPageSize(Number(event.target.value || 20));
+    setPage(0);
   };
 
   const copyInviteLink = async (inviteCode) => {
@@ -199,6 +285,12 @@ export default function AdminFixedRoutes() {
     }
     return output;
   }, [rows]);
+
+  const rangeStart = total === 0 ? 0 : (page * pageSize) + 1;
+  const rangeEnd = total === 0 ? 0 : (page * pageSize) + rows.length;
+  const hasPrevious = page > 0;
+  const hasNext = (page + 1) * pageSize < total;
+  const confirmMeta = confirmState.action ? CONFIRM_ACTIONS[confirmState.action] : null;
 
   return (
     <Box>
@@ -262,7 +354,8 @@ export default function AdminFixedRoutes() {
               sx={{ flex: 1 }}
             />
 
-            <Button variant="contained" onClick={loadList} disabled={loading}>Aplicar</Button>
+            <Button variant="contained" onClick={handleApplyFilters} disabled={loading}>Aplicar</Button>
+            <Button variant="outlined" onClick={handleClearFilters} disabled={loading}>Limpar filtros</Button>
             <Tooltip title="Recarregar">
               <span>
                 <IconButton onClick={loadList} disabled={loading}>
@@ -272,8 +365,22 @@ export default function AdminFixedRoutes() {
             </Tooltip>
           </Stack>
           <Typography variant="caption" sx={{ mt: 1.5, display: 'block', color: 'text.secondary' }}>
-            Total encontrado: {total}
+            Mostrando {rangeStart}-{rangeEnd} de {total} rotas
           </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 1 }} alignItems={{ xs: 'stretch', sm: 'center' }}>
+            <FormControl size="small" sx={{ width: { xs: '100%', sm: 180 } }}>
+              <InputLabel>Por pagina</InputLabel>
+              <Select label="Por pagina" value={pageSize} onChange={handlePageSizeChange}>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <MenuItem key={size} value={size}>{size} por pagina</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" disabled={loading || !hasPrevious} onClick={handlePrevPage}>Anterior</Button>
+              <Button variant="outlined" disabled={loading || !hasNext} onClick={handleNextPage}>Proxima</Button>
+            </Stack>
+          </Stack>
         </CardContent>
       </Card>
 
@@ -281,7 +388,7 @@ export default function AdminFixedRoutes() {
         <CardContent sx={{ p: 0 }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
-          ) : (
+          ) : !isMobile ? (
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -327,6 +434,37 @@ export default function AdminFixedRoutes() {
                 ))}
               </TableBody>
             </Table>
+          ) : (
+            <Stack spacing={1.25} sx={{ p: 1.25 }}>
+              {rows.length === 0 ? (
+                <Typography variant="body2" sx={{ p: 1, textAlign: 'center', color: 'text.secondary' }}>
+                  Nenhuma rota encontrada
+                </Typography>
+              ) : rows.map((row) => (
+                <Card key={row.id} variant="outlined" sx={{ borderRadius: 2 }}>
+                  <CardContent sx={{ p: 1.5 }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.75 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{row.invite_code}</Typography>
+                      <Chip size="small" label={statusLabel(row.status)} color={statusColor(row.status)} />
+                    </Stack>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>{row.driver_name || '-'}</Typography>
+                    <Typography variant="body2" sx={{ mb: 0.35 }}>{row.origin_label} → {row.destination_label}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Tipo: {tripTypeLabel(row.trip_type)}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Horario: {timeLabel(row.departure_time, row.return_time, row.trip_type)}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Vagas: {row.reserved_count}/{row.seats_total}</Typography>
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>Valor: {formatMoney(row.price_cents)}</Typography>
+                    <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
+                      <Button size="small" onClick={() => copyInviteLink(row.invite_code)} startIcon={<ContentCopyIcon fontSize="small" />}>
+                        Link
+                      </Button>
+                      <Button size="small" variant="outlined" onClick={() => openDetail(row.id)}>
+                        Ver detalhes
+                      </Button>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              ))}
+            </Stack>
           )}
         </CardContent>
       </Card>
@@ -364,14 +502,14 @@ export default function AdminFixedRoutes() {
                 <Button
                   variant="outlined"
                   disabled={!canWrite || actionLoading || detail.route?.status !== 'active'}
-                  onClick={() => executeAction('pause')}
+                  onClick={() => openConfirm('pause')}
                 >
                   Pausar
                 </Button>
                 <Button
                   variant="outlined"
                   disabled={!canWrite || actionLoading || !['paused', 'cancelled'].includes(detail.route?.status)}
-                  onClick={() => executeAction('reactivate')}
+                  onClick={() => openConfirm('reactivate')}
                 >
                   Reativar
                 </Button>
@@ -379,7 +517,7 @@ export default function AdminFixedRoutes() {
                   variant="contained"
                   color="error"
                   disabled={!canWrite || actionLoading || !['paused', 'cancelled'].includes(detail.route?.status)}
-                  onClick={() => executeAction('archive')}
+                  onClick={() => openConfirm('archive')}
                 >
                   Arquivar
                 </Button>
@@ -423,6 +561,26 @@ export default function AdminFixedRoutes() {
           )}
         </Box>
       </Drawer>
+
+      <Dialog open={confirmState.open} onClose={closeConfirm} fullWidth maxWidth="xs">
+        <DialogTitle>{confirmMeta?.title || 'Confirmar ação'}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mt: 0.5 }}>{confirmMeta?.message || ''}</Typography>
+          {confirmState.error ? <Alert severity="error" sx={{ mt: 1.5 }}>{confirmState.error}</Alert> : null}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeConfirm} disabled={actionLoading}>Cancelar</Button>
+          <Button
+            onClick={executeAction}
+            variant="contained"
+            color={confirmState.action === 'archive' ? 'error' : 'primary'}
+            disabled={actionLoading}
+            startIcon={actionLoading ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {confirmMeta?.confirmLabel || 'Confirmar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
