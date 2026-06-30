@@ -32,6 +32,16 @@ export const passengerApi = {
     return data;
   },
 
+  getGroupPosts: async (groupId: string) => {
+    const { data } = await apiClient.get(`/api/passengers/me/groups/${encodeURIComponent(groupId)}/posts`);
+    return data.data || [];
+  },
+
+  markGroupPostAsRead: async (groupId: string, postId: string) => {
+    const { data } = await apiClient.post(`/api/passengers/me/groups/${encodeURIComponent(groupId)}/posts/${encodeURIComponent(postId)}/read`);
+    return data;
+  },
+
   requestRide: async (params: RequestRideParams): Promise<{ ride_id: string; status: string }> => {
     const { data } = await apiClient.post('/api/v2/rides', params);
     return data.data;
