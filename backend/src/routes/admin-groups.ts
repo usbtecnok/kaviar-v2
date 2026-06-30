@@ -22,6 +22,9 @@ import {
 const router = Router();
 const db = prisma as any;
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'];
+const GROUP_POST_CATEGORIES = ['general', 'important', 'schedule', 'meeting_point'] as const;
+const GROUP_POST_STATUSES = ['published', 'archived'] as const;
+const GROUP_POST_AUTHOR_TYPES = ['admin', 'responsible'] as const;
 
 router.use(authenticateAdmin);
 router.use(requireRole(ADMIN_ROLES));
@@ -124,6 +127,59 @@ async function uniqueInviteCode() {
     if (!exists) return code;
   }
   throw new Error('Não foi possível gerar convite único');
+}
+
+function parseOptionalFutureDate(value: any) {
+  if (value == null || value === '') return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { error: 'Data de expiração inválida' };
+  if (date.getTime() <= Date.now()) return { error: 'Data de expiração precisa ser futura' };
+  return { data: date };
+}
+
+function buildGroupPostData(body: any, groupId: string, admin: { id: string; name?: string | null }) {
+  const title = cleanString(body.title, 120);
+  if (!title) return { error: 'Título é obrigatório' };
+
+  const content = cleanString(body.body, 8000);
+  if (!content) return { error: 'Mensagem é obrigatória' };
+
+  const category = cleanString(body.category, 40) || 'general';
+  if (!GROUP_POST_CATEGORIES.includes(category as any)) return { error: 'Categoria de comunicado inválida' };
+
+  const status = cleanString(body.status, 30) || 'published';
+  if (!GROUP_POST_STATUSES.includes(status as any)) return { error: 'Status de comunicado inválido' };
+
+  const pinned = body.is_pinned === true || body.is_pinned === 'true' || body.is_pinned === 1 || body.is_pinned === '1';
+  const expiresAt = parseOptionalFutureDate(body.expires_at);
+  if (expiresAt && 'error' in expiresAt) return expiresAt;
+
+  const authorType = 'admin';
+  if (!GROUP_POST_AUTHOR_TYPES.includes(authorType)) return { error: 'Autor do comunicado inválido' };
+
+  return {
+    data: {
+      group_id: groupId,
+      author_type: authorType,
+      author_admin_id: admin.id,
+      author_member_id: null,
+      author_display_name_snapshot: cleanString(admin.name, 160) || null,
+      title,
+      body: content,
+      category,
+      is_pinned: pinned,
+      status,
+      published_at: new Date(),
+      expires_at: expiresAt ? expiresAt.data : null,
+    },
+  };
+}
+
+function mapPostWithReadCount(post: any) {
+  return {
+    ...post,
+    read_count: post._count?.reads || 0,
+  };
 }
 
 router.get('/', async (req: Request, res: Response) => {
@@ -351,6 +407,181 @@ router.patch('/:id/members/:memberId', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[ADMIN_GROUP_MEMBER_UPDATE_ERROR]', error);
     res.status(500).json({ success: false, error: 'Erro ao atualizar membro' });
+  }
+});
+
+router.get('/:id/posts', async (req: Request, res: Response) => {
+  try {
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const posts = await db.kaviar_group_posts.findMany({
+      where: { group_id: req.params.id },
+      include: { _count: { select: { reads: true } } },
+      orderBy: [
+        { is_pinned: 'desc' },
+        { published_at: 'desc' },
+        { created_at: 'desc' },
+      ],
+    });
+
+    return res.json({ success: true, data: posts.map(mapPostWithReadCount) });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_POSTS_LIST_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao listar comunicados' });
+  }
+});
+
+router.post('/:id/posts', async (req: Request, res: Response) => {
+  try {
+    if (!canWriteGroups((req as any).admin)) return forbiddenWrite(res);
+
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const built = buildGroupPostData(req.body, req.params.id, (req as any).admin);
+    if ('error' in built) return res.status(400).json({ success: false, error: built.error });
+
+    const post = await db.kaviar_group_posts.create({ data: built.data });
+    await auditAdmin(req, 'kaviar_group_post_created', 'kaviar_group_post', post.id, { group_id: req.params.id, post_id: post.id, category: post.category, status: post.status });
+    return res.status(201).json({ success: true, data: post });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_POST_CREATE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao criar comunicado' });
+  }
+});
+
+router.patch('/:id/posts/:postId', async (req: Request, res: Response) => {
+  try {
+    if (!canWriteGroups((req as any).admin)) return forbiddenWrite(res);
+
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const existing = await db.kaviar_group_posts.findFirst({ where: { id: req.params.postId, group_id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Comunicado não encontrado' });
+
+    const data: any = {};
+
+    if (req.body.title !== undefined) {
+      const title = cleanString(req.body.title, 120);
+      if (!title) return res.status(400).json({ success: false, error: 'Título é obrigatório' });
+      data.title = title;
+    }
+
+    if (req.body.body !== undefined) {
+      const content = cleanString(req.body.body, 8000);
+      if (!content) return res.status(400).json({ success: false, error: 'Mensagem é obrigatória' });
+      data.body = content;
+    }
+
+    if (req.body.category !== undefined) {
+      const category = cleanString(req.body.category, 40);
+      if (!category || !GROUP_POST_CATEGORIES.includes(category as any)) {
+        return res.status(400).json({ success: false, error: 'Categoria de comunicado inválida' });
+      }
+      data.category = category;
+    }
+
+    if (req.body.status !== undefined) {
+      const status = cleanString(req.body.status, 30);
+      if (!status || !GROUP_POST_STATUSES.includes(status as any)) {
+        return res.status(400).json({ success: false, error: 'Status de comunicado inválido' });
+      }
+      data.status = status;
+    }
+
+    if (req.body.is_pinned !== undefined) {
+      data.is_pinned = req.body.is_pinned === true || req.body.is_pinned === 'true' || req.body.is_pinned === 1 || req.body.is_pinned === '1';
+    }
+
+    if (req.body.expires_at !== undefined) {
+      const parsed = parseOptionalFutureDate(req.body.expires_at);
+      if (parsed && 'error' in parsed) return res.status(400).json({ success: false, error: parsed.error });
+      data.expires_at = parsed ? parsed.data : null;
+    }
+
+    const updated = await db.kaviar_group_posts.update({ where: { id: existing.id }, data });
+    await auditAdmin(req, 'kaviar_group_post_updated', 'kaviar_group_post', updated.id, { group_id: req.params.id, post_id: updated.id, status: updated.status, is_pinned: updated.is_pinned }, existing);
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_POST_UPDATE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao atualizar comunicado' });
+  }
+});
+
+router.patch('/:id/posts/:postId/archive', async (req: Request, res: Response) => {
+  try {
+    if (!canWriteGroups((req as any).admin)) return forbiddenWrite(res);
+
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const existing = await db.kaviar_group_posts.findFirst({ where: { id: req.params.postId, group_id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Comunicado não encontrado' });
+
+    const updated = await db.kaviar_group_posts.update({
+      where: { id: existing.id },
+      data: { status: 'archived' },
+    });
+
+    await auditAdmin(req, 'kaviar_group_post_archived', 'kaviar_group_post', updated.id, { group_id: req.params.id, post_id: updated.id });
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_POST_ARCHIVE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao arquivar comunicado' });
+  }
+});
+
+router.patch('/:id/posts/:postId/pin', async (req: Request, res: Response) => {
+  try {
+    if (!canWriteGroups((req as any).admin)) return forbiddenWrite(res);
+
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const existing = await db.kaviar_group_posts.findFirst({ where: { id: req.params.postId, group_id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Comunicado não encontrado' });
+
+    const updated = await db.kaviar_group_posts.update({
+      where: { id: existing.id },
+      data: { is_pinned: true },
+    });
+
+    await auditAdmin(req, 'kaviar_group_post_pinned', 'kaviar_group_post', updated.id, { group_id: req.params.id, post_id: updated.id, is_pinned: true });
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_POST_PIN_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao fixar comunicado' });
+  }
+});
+
+router.patch('/:id/posts/:postId/unpin', async (req: Request, res: Response) => {
+  try {
+    if (!canWriteGroups((req as any).admin)) return forbiddenWrite(res);
+
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const existing = await db.kaviar_group_posts.findFirst({ where: { id: req.params.postId, group_id: req.params.id } });
+    if (!existing) return res.status(404).json({ success: false, error: 'Comunicado não encontrado' });
+
+    const updated = await db.kaviar_group_posts.update({
+      where: { id: existing.id },
+      data: { is_pinned: false },
+    });
+
+    await auditAdmin(req, 'kaviar_group_post_unpinned', 'kaviar_group_post', updated.id, { group_id: req.params.id, post_id: updated.id, is_pinned: false });
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_POST_UNPIN_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao desafixar comunicado' });
   }
 });
 

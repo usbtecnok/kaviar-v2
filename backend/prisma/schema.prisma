@@ -37,6 +37,7 @@ model admins {
   op_contract_reviews         operator_profiles[]             @relation("op_contract_reviewer")
   contract_submissions_sent   contract_submissions[]          @relation("cs_submitter")
   contract_submissions_reviewed contract_submissions[]        @relation("cs_reviewer")
+  kaviar_group_posts_author   kaviar_group_posts[]            @relation("kaviar_group_posts_author_admin")
 }
 
 model communities {
@@ -2761,6 +2762,7 @@ model kaviar_groups {
 
   members             kaviar_group_members[]
   invites             kaviar_group_invites[]
+  posts               kaviar_group_posts[]
 
   @@index([status])
   @@index([type])
@@ -2788,6 +2790,8 @@ model kaviar_group_members {
 
   group         kaviar_groups        @relation(fields: [group_id], references: [id], onDelete: Cascade)
   invite        kaviar_group_invites? @relation(fields: [invite_id], references: [id], onDelete: SetNull)
+  authored_posts kaviar_group_posts[]  @relation("kaviar_group_posts_author_member")
+  post_reads     kaviar_group_post_reads[]
 
   @@index([group_id, status])
   @@index([passenger_id])
@@ -2814,4 +2818,47 @@ model kaviar_group_invites {
 
   @@index([group_id, status])
   @@index([expires_at])
+}
+
+model kaviar_group_posts {
+  id                         String                   @id @default(uuid())
+  group_id                   String
+  author_type                String                   @db.VarChar(30)
+  author_admin_id            String?
+  author_member_id           String?
+  author_display_name_snapshot String?                 @db.VarChar(160)
+  title                      String                   @db.VarChar(120)
+  body                       String
+  category                   String                   @default("general") @db.VarChar(40)
+  is_pinned                  Boolean                  @default(false)
+  status                     String                   @default("published") @db.VarChar(30)
+  published_at               DateTime                 @default(now())
+  expires_at                 DateTime?
+  created_at                 DateTime                 @default(now())
+  updated_at                 DateTime                 @updatedAt
+
+  group                      kaviar_groups            @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  author_admin               admins?                  @relation("kaviar_group_posts_author_admin", fields: [author_admin_id], references: [id], onDelete: SetNull)
+  author_member              kaviar_group_members?    @relation("kaviar_group_posts_author_member", fields: [author_member_id], references: [id], onDelete: SetNull)
+  reads                      kaviar_group_post_reads[]
+
+  @@index([group_id, status, is_pinned, published_at])
+  @@index([group_id, status, expires_at])
+  @@index([author_admin_id])
+  @@index([author_member_id])
+}
+
+model kaviar_group_post_reads {
+  id          String               @id @default(uuid())
+  post_id     String
+  member_id   String
+  read_at     DateTime             @default(now())
+  created_at  DateTime             @default(now())
+
+  post        kaviar_group_posts   @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  member      kaviar_group_members  @relation(fields: [member_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, member_id])
+  @@index([post_id])
+  @@index([member_id])
 }
