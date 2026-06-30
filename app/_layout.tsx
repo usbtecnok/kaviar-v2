@@ -4,6 +4,7 @@ import { Stack, useRouter, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { apiClient } from "../src/api/client";
+import { authStore } from "../src/auth/auth.store";
 import { startNetInfoListener, stopNetInfoListener } from "../src/services/net-info-listener";
 import { checkAppVersion, VersionCheckResult } from "../src/services/version-check";
 import { attemptOtaUpdate } from "../src/services/ota-updates";
@@ -65,6 +66,7 @@ const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotifi
 
 const passengerPushBootState = (globalThis as any).__kaviarPassengerPushBootState || ((globalThis as any).__kaviarPassengerPushBootState = {
   registered: false,
+  inFlight: false,
 });
 
 if (variant === 'driver' || variant === 'passenger') {
@@ -122,30 +124,45 @@ export default function RootLayout() {
     let responseSub: Notifications.Subscription | undefined;
     let receivedSub: Notifications.Subscription | undefined;
     let linkSub: { remove: () => void } | undefined;
+    let unsubscribeLogin: (() => void) | undefined;
 
     if (variant === 'passenger') {
-      if (!passengerPushBootState.registered) {
-        passengerPushBootState.registered = true;
-        (async () => {
+      const registerPassengerPushTokenIfAuthenticated = async () => {
+        if (passengerPushBootState.registered || passengerPushBootState.inFlight) return;
+        if (!authStore.isAuthenticated()) return;
+
+        passengerPushBootState.inFlight = true;
+        try {
+          const { status } = await Notifications.requestPermissionsAsync();
+          if (status !== 'granted') return;
+          const { data: token } = await Notifications.getExpoPushTokenAsync({
+            projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
+          });
+
+          let fcmToken: string | undefined;
           try {
-            const { status } = await Notifications.requestPermissionsAsync();
-            if (status !== 'granted') return;
-            const { data: token } = await Notifications.getExpoPushTokenAsync({
-              projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
-            });
+            const { data } = await Notifications.getDevicePushTokenAsync();
+            fcmToken = data as string;
+          } catch {}
 
-            let fcmToken: string | undefined;
-            try {
-              const { data } = await Notifications.getDevicePushTokenAsync();
-              fcmToken = data as string;
-            } catch {}
+          await apiClient.put('/api/passengers/me/push-token', {
+            token,
+            fcmToken,
+            platform: Platform.OS,
+          });
+          passengerPushBootState.registered = true;
+        } catch (error) {
+          console.warn('[Passenger] Boot push token registration failed:', error);
+          passengerPushBootState.registered = false;
+        } finally {
+          passengerPushBootState.inFlight = false;
+        }
+      };
 
-            await apiClient.put('/api/passengers/me/push-token', { token, fcmToken });
-          } catch (error) {
-            console.warn('[Passenger] Boot push token registration failed:', error);
-          }
-        })();
-      }
+      void registerPassengerPushTokenIfAuthenticated();
+      unsubscribeLogin = authStore.onLogin(() => {
+        void registerPassengerPushTokenIfAuthenticated();
+      });
 
       Linking.getInitialURL().then((url) => {
         const code = getPassengerInviteCodeFromUrl(url);
@@ -155,6 +172,7 @@ export default function RootLayout() {
       linkSub = Linking.addEventListener('url', ({ url }) => {
         routePassengerInviteUrl(router, url).catch(() => {});
       });
+
     }
 
     if (variant === 'driver' || variant === 'passenger') {
@@ -231,6 +249,7 @@ export default function RootLayout() {
 
     return () => {
       stopNetInfoListener();
+      unsubscribeLogin?.();
       linkSub?.remove();
       responseSub?.remove();
       receivedSub?.remove();

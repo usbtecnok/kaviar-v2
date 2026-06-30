@@ -6,8 +6,14 @@ import { getCreditBalance } from '../services/credit.service';
 import { getDriverFinancialSummary } from '../services/financial-summary.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { authenticateDriver } from '../middlewares/auth';
+import { createHash } from 'crypto';
 
 const router = Router();
+
+function tokenHash(token?: string | null): string {
+  if (!token) return 'none';
+  return createHash('sha256').update(token).digest('hex').slice(0, 12);
+}
 
 // 5.3 Driver online/offline
 router.post('/me/availability', authenticateDriver, async (req: Request, res: Response) => {
@@ -78,7 +84,16 @@ router.put('/me/push-token', authenticateDriver, async (req: Request, res: Respo
   try {
     const driverId = (req as any).driverId;
     const { token, fcmToken } = req.body;
+    const platform = typeof req.body?.platform === 'string' ? req.body.platform : 'unknown';
     if (!token || typeof token !== 'string') {
+      console.info('[driver_push_token_update]', {
+        driverId,
+        hasToken: false,
+        tokenHash: 'none',
+        platform,
+        success: false,
+        error: 'invalid_token',
+      });
       return res.status(400).json({ error: 'Token inválido' });
     }
     const data: any = { expo_push_token: token, push_token_updated_at: new Date() };
@@ -89,9 +104,23 @@ router.put('/me/push-token', authenticateDriver, async (req: Request, res: Respo
       where: { id: driverId },
       data
     });
+    console.info('[driver_push_token_update]', {
+      driverId,
+      hasToken: true,
+      tokenHash: tokenHash(token),
+      platform,
+      success: true,
+    });
     res.json({ success: true });
   } catch (error: any) {
-    console.error('[PUSH_TOKEN_ERROR]', error);
+    console.error('[driver_push_token_update]', {
+      driverId: (req as any).driverId,
+      hasToken: Boolean(req.body?.token),
+      tokenHash: tokenHash(typeof req.body?.token === 'string' ? req.body.token : null),
+      platform: typeof req.body?.platform === 'string' ? req.body.platform : 'unknown',
+      success: false,
+      error: error?.message || 'unknown_error',
+    });
     res.status(500).json({ error: 'Erro interno.' });
   }
 });

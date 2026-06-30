@@ -386,7 +386,7 @@ export default function DriverOnline() {
         console.warn('[Driver] FCM token failed (non-blocking):', e);
       }
 
-      await apiClient.put('/api/v2/drivers/me/push-token', { token, fcmToken });
+      await apiClient.put('/api/v2/drivers/me/push-token', { token, fcmToken, platform: Platform.OS });
       console.log('[Driver] Push tokens registered');
     } catch (e) {
       console.warn('[Driver] Push token registration failed:', e);

@@ -1,8 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticatePassenger } from '../middlewares/auth';
+import { createHash } from 'crypto';
 
 const router = Router();
+
+function tokenHash(token?: string | null): string {
+  if (!token) return 'none';
+  return createHash('sha256').update(token).digest('hex').slice(0, 12);
+}
 
 // GET /api/passengers/me/profile
 router.get('/me/profile', authenticatePassenger, async (req: Request, res: Response) => {
@@ -222,7 +228,16 @@ router.put('/me/push-token', authenticatePassenger, async (req: Request, res: Re
   try {
     const passengerId = (req as any).passengerId;
     const { token, fcmToken } = req.body;
+    const platform = typeof req.body?.platform === 'string' ? req.body.platform : 'unknown';
     if (!token || typeof token !== 'string') {
+      console.info('[passenger_push_token_update]', {
+        passengerId,
+        hasToken: false,
+        tokenHash: 'none',
+        platform,
+        success: false,
+        error: 'invalid_token',
+      });
       return res.status(400).json({ success: false, error: 'Token obrigatório' });
     }
     const data: any = { expo_push_token: token, push_token_updated_at: new Date() };
@@ -230,9 +245,23 @@ router.put('/me/push-token', authenticatePassenger, async (req: Request, res: Re
       data.fcm_push_token = fcmToken;
     }
     await prisma.passengers.update({ where: { id: passengerId }, data });
+    console.info('[passenger_push_token_update]', {
+      passengerId,
+      hasToken: true,
+      tokenHash: tokenHash(token),
+      platform,
+      success: true,
+    });
     res.json({ success: true });
   } catch (error: any) {
-    console.error('[passenger-push-token]', error.message);
+    console.error('[passenger_push_token_update]', {
+      passengerId: (req as any).passengerId,
+      hasToken: Boolean(req.body?.token),
+      tokenHash: tokenHash(typeof req.body?.token === 'string' ? req.body.token : null),
+      platform: typeof req.body?.platform === 'string' ? req.body.platform : 'unknown',
+      success: false,
+      error: error?.message || 'unknown_error',
+    });
     res.status(500).json({ success: false, error: 'Erro interno do servidor' });
   }
 });

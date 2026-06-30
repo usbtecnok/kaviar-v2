@@ -200,7 +200,7 @@ export default function PassengerMap() {
         const { status } = await Notifications.requestPermissionsAsync();
         if (status !== 'granted') return;
         const { data: token } = await Notifications.getExpoPushTokenAsync({
-          projectId: '01426c18-feb5-44f2-94f1-dab900d8bc85',
+          projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
         });
 
         let fcmToken: string | undefined;
@@ -209,7 +209,7 @@ export default function PassengerMap() {
           fcmToken = data as string;
         } catch {}
 
-        await apiClient.put('/api/passengers/me/push-token', { token, fcmToken });
+        await apiClient.put('/api/passengers/me/push-token', { token, fcmToken, platform: Platform.OS });
       } catch (e) {
         console.warn('[Passenger] Push token registration failed:', e);
       }
