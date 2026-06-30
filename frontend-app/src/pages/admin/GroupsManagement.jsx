@@ -117,6 +117,7 @@ export default function GroupsManagement() {
   const [postSaving, setPostSaving] = useState(false);
   const [responsibleInvitesLoading, setResponsibleInvitesLoading] = useState(false);
   const [responsibleInviteSaving, setResponsibleInviteSaving] = useState(false);
+  const [responsibleInvitesError, setResponsibleInvitesError] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [groups, setGroups] = useState([]);
@@ -226,17 +227,20 @@ export default function GroupsManagement() {
   const loadResponsibleInvites = async (groupId) => {
     if (!groupId || !canManageResponsibleInvites) {
       setResponsibleInvites([]);
+      setResponsibleInvitesError('');
       return;
     }
 
     try {
       setResponsibleInvitesLoading(true);
-      setError('');
+      setResponsibleInvitesError('');
       const data = await adminApi.get(`/api/admin/groups/${groupId}/responsible-invites`);
       setResponsibleInvites(data.data || []);
     } catch (err) {
       setResponsibleInvites([]);
-      setError(err.message || 'Erro ao carregar convites de Responsável do Grupo');
+      const status = err?.response?.status;
+      const message = err?.response?.data?.error || err.message || 'Erro ao carregar convites de Responsável do Grupo';
+      setResponsibleInvitesError(status ? `${message} (HTTP ${status})` : message);
     } finally {
       setResponsibleInvitesLoading(false);
     }
@@ -447,7 +451,7 @@ export default function GroupsManagement() {
 
     try {
       setResponsibleInviteSaving(true);
-      setError('');
+      setResponsibleInvitesError('');
       setSuccess('');
 
       const data = await adminApi.post(`/api/admin/groups/${selectedId}/responsible-invites`, {
@@ -458,7 +462,9 @@ export default function GroupsManagement() {
       setResponsibleInvites((currentInvites) => [data.data, ...currentInvites]);
       await loadResponsibleInvites(selectedId);
     } catch (err) {
-      setError(err.message || 'Erro ao criar convite de Responsável do Grupo');
+      const status = err?.response?.status;
+      const message = err?.response?.data?.error || err.message || 'Erro ao criar convite de Responsável do Grupo';
+      setResponsibleInvitesError(status ? `${message} (HTTP ${status})` : message);
     } finally {
       setResponsibleInviteSaving(false);
     }
@@ -469,14 +475,16 @@ export default function GroupsManagement() {
 
     try {
       setResponsibleInviteSaving(true);
-      setError('');
+      setResponsibleInvitesError('');
       setSuccess('');
 
       await adminApi.patch(`/api/admin/groups/${selectedId}/responsible-invites/${inviteId}/revoke`, {});
       setSuccess('Convite de Responsável do Grupo revogado.');
       await loadResponsibleInvites(selectedId);
     } catch (err) {
-      setError(err.message || 'Erro ao revogar convite de Responsável do Grupo');
+      const status = err?.response?.status;
+      const message = err?.response?.data?.error || err.message || 'Erro ao revogar convite de Responsável do Grupo';
+      setResponsibleInvitesError(status ? `${message} (HTTP ${status})` : message);
     } finally {
       setResponsibleInviteSaving(false);
     }
@@ -612,6 +620,12 @@ export default function GroupsManagement() {
                           {responsibleInviteSaving ? 'Gerando...' : 'Gerar convite'}
                         </Button>
                       </Stack>
+
+                      {responsibleInvitesError && (
+                        <Alert severity="error" sx={{ mb: 1.5 }}>
+                          {responsibleInvitesError}
+                        </Alert>
+                      )}
 
                       {responsibleInvitesLoading ? (
                         <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>

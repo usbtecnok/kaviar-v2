@@ -43,7 +43,7 @@ class AdminApiService {
 
       if (!response.ok) {
         const error = new Error(data.message || data.error || 'Erro na requisição');
-        error.response = { data }; // Preserve full response data
+        error.response = { status: response.status, data }; // Preserve full response data
         throw error;
       }
 
