@@ -232,11 +232,23 @@ export default function PassengerMap() {
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userPhone, setUserPhone] = useState('');
+  const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
+    recentRouteIds: new Set<string>(),
+    recentReservationIds: new Set<string>(),
+    seenMessageIds: new Set<string>(),
+  });
 
   const drawerItems: DrawerItem[] = [
     { key: 'profile', label: 'Perfil', icon: 'person-outline', onPress: () => router.push('/(passenger)/profile') },
     { key: 'history', label: 'Histórico de corridas', icon: 'time-outline', onPress: () => router.push('/(passenger)/history') },
     { key: 'groups', label: 'Meus Grupos KAVIAR', icon: 'people-outline', onPress: () => router.push('/(passenger)/groups') },
+    {
+      key: 'fixed-routes',
+      label: 'Minhas Rotas Fixas',
+      icon: 'repeat-outline',
+      badge: (fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
+      onPress: () => router.push('/(passenger)/fixed-routes')
+    },
     { key: 'favorites', label: 'Favoritos', icon: 'heart-outline', onPress: () => router.push('/(passenger)/favorites') },
     { key: 'tourism', label: 'Turismo Premium', icon: 'diamond-outline', badge: '✦', onPress: () => router.push('/(passenger)/tourism') },
     { key: 'refer', label: 'Indique um motorista', icon: 'people-outline', onPress: () => router.push('/(passenger)/refer-driver') },

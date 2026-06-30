@@ -35,6 +35,11 @@ export default function PassengerHome() {
   const scrollRef = useRef<ScrollView>(null);
   const [showWomenInvite, setShowWomenInvite] = useState(false);
   const [showMotoAccept, setShowMotoAccept] = useState(false);
+  const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
+    recentRouteIds: new Set<string>(),
+    recentReservationIds: new Set<string>(),
+    seenMessageIds: new Set<string>(),
+  });
 
   useEffect(() => {
     const user = authStore.getUser();
@@ -71,7 +76,13 @@ export default function PassengerHome() {
     { key: 'profile',   label: 'Meu perfil',        icon: 'person-outline',       onPress: () => router.push('/(passenger)/profile')      },
     { key: 'history',   label: 'Minhas corridas',    icon: 'time-outline',         onPress: () => router.push('/(passenger)/history')      },
     { key: 'groups',    label: 'Meus Grupos KAVIAR', icon: 'people-outline',       onPress: () => router.push('/(passenger)/groups')       },
-    { key: 'fixed-routes', label: 'Minhas Rotas Fixas', icon: 'repeat-outline',       onPress: () => router.push('/(passenger)/fixed-routes') },
+    {
+      key: 'fixed-routes',
+      label: 'Minhas Rotas Fixas',
+      icon: 'repeat-outline',
+      badge: (fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
+      onPress: () => router.push('/(passenger)/fixed-routes')
+    },
     { key: 'favorites', label: 'Meus destinos',      icon: 'heart-outline',        onPress: () => router.push('/(passenger)/favorites')    },
     { key: 'tourism',   label: 'Turismo Premium',    icon: 'diamond-outline',      badge: '✦', onPress: () => router.push('/(passenger)/tourism') },
     { key: 'refer',     label: 'Convide e ganhe',    icon: 'people-outline',       onPress: () => router.push('/(passenger)/refer-driver') },

@@ -34,6 +34,12 @@ const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
+  recentRouteIds: new Set<string>(),
+  recentReservationIds: new Set<string>(),
+  seenMessageIds: new Set<string>(),
+});
+
 export default function DriverOnline() {
   const router = useRouter();
   const { isConnected } = useNetworkStatus();
@@ -77,7 +83,13 @@ export default function DriverOnline() {
     { key: 'summary', label: 'Resumo', icon: 'stats-chart-outline', onPress: () => router.push('/(driver)/summary') },
     { key: 'history', label: 'Histórico de corridas', icon: 'time-outline', onPress: () => router.push('/(driver)/history') },
     { key: 'groups', label: 'Grupos KAVIAR', icon: 'people-outline', onPress: () => router.push('/(driver)/groups') },
-    { key: 'fixed-routes', label: 'Minhas Rotas Fixas', icon: 'repeat-outline', onPress: () => router.push('/(driver)/fixed-routes') },
+    {
+      key: 'fixed-routes',
+      label: 'Minhas Rotas Fixas',
+      icon: 'repeat-outline',
+      badge: (fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
+      onPress: () => router.push('/(driver)/fixed-routes'),
+    },
     { key: 'credits', label: 'Saldo', icon: 'wallet-outline', onPress: () => router.push('/(driver)/credits') },
     { key: 'documents', label: 'Documentos', icon: 'document-text-outline', onPress: () => router.push('/(driver)/documents') },
     { key: 'refer', label: 'Indique um motorista', icon: 'people-outline', onPress: () => router.push('/(driver)/refer-driver') },
