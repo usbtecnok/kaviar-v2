@@ -2762,6 +2762,7 @@ model kaviar_groups {
 
   members             kaviar_group_members[]
   invites             kaviar_group_invites[]
+  responsible_invites kaviar_group_responsible_invites[]
   posts               kaviar_group_posts[]
 
   @@index([status])
@@ -2818,6 +2819,31 @@ model kaviar_group_invites {
 
   @@index([group_id, status])
   @@index([expires_at])
+}
+
+model kaviar_group_responsible_invites {
+  id                     String   @id @default(uuid())
+  group_id               String
+  code                   String   @unique @db.VarChar(64)
+  status                 String   @default("active") @db.VarChar(30)
+  max_uses               Int      @default(1)
+  used_count             Int      @default(0)
+  invited_by_admin_id    String?
+  accepted_by_member_id  String?
+  accepted_by_passenger_id String?
+  consent_text_version   String?  @db.VarChar(50)
+  consent_given_at       DateTime?
+  accepted_at            DateTime?
+  expires_at             DateTime
+  revoked_at             DateTime?
+  created_at             DateTime @default(now())
+  updated_at             DateTime @updatedAt
+
+  group                  kaviar_groups @relation(fields: [group_id], references: [id], onDelete: Cascade)
+
+  @@index([group_id, status])
+  @@index([expires_at])
+  @@index([invited_by_admin_id])
 }
 
 model kaviar_group_posts {

@@ -22,6 +22,7 @@ import {
 const router = Router();
 const db = prisma as any;
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'];
+const RESPONSIBLE_INVITE_ADMIN_ROLES = ['SUPER_ADMIN', 'TERRITORIAL_MANAGER'];
 const GROUP_POST_CATEGORIES = ['general', 'important', 'schedule', 'meeting_point'] as const;
 const GROUP_POST_STATUSES = ['published', 'archived'] as const;
 const GROUP_POST_AUTHOR_TYPES = ['admin', 'responsible'] as const;
@@ -32,6 +33,14 @@ router.use(applyTerritoryScope);
 
 function forbiddenWrite(res: Response) {
   return res.status(403).json({ success: false, error: 'Permissão insuficiente para alterar grupos' });
+}
+
+function forbiddenResponsibleInvite(res: Response) {
+  return res.status(403).json({ success: false, error: 'Permissão insuficiente para convites de Responsável do Grupo' });
+}
+
+function canManageResponsibleInvites(admin: any) {
+  return RESPONSIBLE_INVITE_ADMIN_ROLES.includes(admin?.role);
 }
 
 function buildGroupData(body: any, adminId?: string) {
@@ -127,6 +136,15 @@ async function uniqueInviteCode() {
     if (!exists) return code;
   }
   throw new Error('Não foi possível gerar convite único');
+}
+
+async function uniqueResponsibleInviteCode() {
+  for (let i = 0; i < 8; i += 1) {
+    const code = `GKR-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
+    const exists = await db.kaviar_group_responsible_invites.findUnique({ where: { code } });
+    if (!exists) return code;
+  }
+  throw new Error('Não foi possível gerar convite único de Responsável do Grupo');
 }
 
 function parseOptionalFutureDate(value: any) {
@@ -326,6 +344,117 @@ router.patch('/:id/invites/:inviteId/revoke', async (req: Request, res: Response
   } catch (error) {
     console.error('[ADMIN_GROUP_INVITE_REVOKE_ERROR]', error);
     res.status(500).json({ success: false, error: 'Erro ao revogar convite' });
+  }
+});
+
+router.get('/:id/responsible-invites', async (req: Request, res: Response) => {
+  try {
+    if (!canManageResponsibleInvites((req as any).admin)) return forbiddenResponsibleInvite(res);
+
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const invites = await db.kaviar_group_responsible_invites.findMany({
+      where: { group_id: req.params.id },
+      orderBy: { created_at: 'desc' },
+      take: Math.min(Number(req.query.limit) || 100, 200),
+    });
+
+    return res.json({ success: true, data: invites });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_RESPONSIBLE_INVITES_LIST_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao listar convites de Responsável do Grupo' });
+  }
+});
+
+router.post('/:id/responsible-invites', async (req: Request, res: Response) => {
+  try {
+    if (!canManageResponsibleInvites((req as any).admin)) return forbiddenResponsibleInvite(res);
+
+    const group = await getScopedGroup(req, req.params.id);
+    if (group === null) return res.status(404).json({ success: false, error: 'Grupo não encontrado' });
+    if (group === false) return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+
+    const expiresAt = new Date(req.body.expires_at);
+    if (!req.body.expires_at || Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+      return res.status(400).json({ success: false, error: 'Convite de Responsável do Grupo precisa ter expiração futura' });
+    }
+
+    const invite = await db.kaviar_group_responsible_invites.create({
+      data: {
+        group_id: req.params.id,
+        code: await uniqueResponsibleInviteCode(),
+        status: 'active',
+        max_uses: 1,
+        used_count: 0,
+        invited_by_admin_id: (req as any).admin?.id,
+        expires_at: expiresAt,
+      },
+    });
+
+    await auditAdmin(
+      req,
+      'kaviar_group_responsible_invite_created',
+      'kaviar_group_responsible_invite',
+      invite.id,
+      {
+        group_id: req.params.id,
+        invite_id: invite.id,
+        code: invite.code,
+        expires_at: invite.expires_at,
+        max_uses: invite.max_uses,
+      }
+    );
+
+    return res.status(201).json({ success: true, data: invite });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_RESPONSIBLE_INVITE_CREATE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao criar convite de Responsável do Grupo' });
+  }
+});
+
+router.patch('/:id/responsible-invites/:inviteId/revoke', async (req: Request, res: Response) => {
+  try {
+    if (!canManageResponsibleInvites((req as any).admin)) return forbiddenResponsibleInvite(res);
+
+    const invite = await db.kaviar_group_responsible_invites.findUnique({
+      where: { id: req.params.inviteId },
+      include: { group: true },
+    });
+
+    if (!invite || invite.group_id !== req.params.id) {
+      return res.status(404).json({ success: false, error: 'Convite de Responsável do Grupo não encontrado' });
+    }
+    if (!canAccessGroup(invite.group, (req as any).admin, (req as any).territoryScope)) {
+      return res.status(403).json({ success: false, error: 'Grupo fora do escopo territorial' });
+    }
+
+    const revoked = await db.kaviar_group_responsible_invites.update({
+      where: { id: req.params.inviteId },
+      data: {
+        status: 'revoked',
+        revoked_at: new Date(),
+      },
+    });
+
+    await auditAdmin(
+      req,
+      'kaviar_group_responsible_invite_revoked',
+      'kaviar_group_responsible_invite',
+      revoked.id,
+      {
+        group_id: req.params.id,
+        invite_id: revoked.id,
+        status: revoked.status,
+      },
+      invite
+    );
+
+    return res.json({ success: true, data: revoked });
+  } catch (error) {
+    console.error('[ADMIN_GROUP_RESPONSIBLE_INVITE_REVOKE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao revogar convite de Responsável do Grupo' });
   }
 });
 
