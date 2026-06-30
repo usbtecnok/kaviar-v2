@@ -110,16 +110,27 @@ function buildPushPayload(routeId: string, messageId: string, reservationId?: st
   return payload;
 }
 
+function normalizeId(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return String(value);
+  }
+  return null;
+}
+
 async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: string) {
-  const confirmedReservations = await db.driver_fixed_route_reservations.findMany({
+  const confirmedReservations: Array<{ passenger_id?: unknown }> = await db.driver_fixed_route_reservations.findMany({
     where: { route_id: routeId, status: 'confirmed' },
     select: { passenger_id: true },
   });
 
-  const uniquePassengerIds = Array.from(new Set(
+  const uniquePassengerIds: string[] = Array.from(new Set(
     confirmedReservations
-      .map((reservation: any) => String(reservation?.passenger_id || ''))
-      .filter(Boolean),
+      .map((reservation) => normalizeId(reservation?.passenger_id))
+      .filter((passengerId): passengerId is string => passengerId !== null),
   ));
 
   const payload = buildPushPayload(routeId, messageId);
