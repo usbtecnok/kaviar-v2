@@ -426,7 +426,20 @@ router.get('/:id/posts', async (req: Request, res: Response) => {
       ],
     });
 
-    return res.json({ success: true, data: posts.map(mapPostWithReadCount) });
+    const activeMembersCount = await db.kaviar_group_members.count({
+      where: {
+        group_id: req.params.id,
+        status: 'active',
+      },
+    });
+
+    return res.json({
+      success: true,
+      data: posts.map((post: any) => ({
+        ...mapPostWithReadCount(post),
+        active_members_count: activeMembersCount,
+      })),
+    });
   } catch (error) {
     console.error('[ADMIN_GROUP_POSTS_LIST_ERROR]', error);
     return res.status(500).json({ success: false, error: 'Erro ao listar comunicados' });

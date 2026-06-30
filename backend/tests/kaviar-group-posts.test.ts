@@ -22,6 +22,7 @@ const { prismaMock, authState, auditMock } = vi.hoisted(() => {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      count: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -170,6 +171,7 @@ beforeEach(() => {
   prismaMock.kaviar_group_posts.create.mockResolvedValue(publishedPost({ id: 'post-created' }));
   prismaMock.kaviar_group_posts.update.mockResolvedValue(publishedPost({ id: 'post-updated', is_pinned: true, status: 'archived' }));
   prismaMock.kaviar_group_members.findFirst.mockResolvedValue(activeMembership());
+  prismaMock.kaviar_group_members.count.mockResolvedValue(1);
   prismaMock.kaviar_group_post_reads.upsert.mockResolvedValue({ id: 'read-1', post_id: 'post-1', member_id: 'member-1', read_at: new Date('2026-06-29T12:00:00.000Z') });
   auditMock.mockResolvedValue(undefined);
 });
@@ -209,10 +211,14 @@ describe('Mural do Grupo KAVIAR', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data[0].read_count).toBe(3);
+    expect(res.body.data[0].active_members_count).toBe(1);
     expect(prismaMock.kaviar_group_posts.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { group_id: 'group-1' },
       include: { _count: { select: { reads: true } } },
     }));
+    expect(prismaMock.kaviar_group_members.count).toHaveBeenCalledWith({
+      where: { group_id: 'group-1', status: 'active' },
+    });
   });
 
   it('passageiro membro ativo lista posts publicados', async () => {

@@ -58,6 +58,24 @@ function formatDate(value) {
   }
 }
 
+function buildReadSummary(post) {
+  const readCount = Number(post?.read_count ?? 0) || 0;
+  const rawTotal = Number(post?.active_members_count);
+  const hasSafeTotal = Number.isFinite(rawTotal) && rawTotal > 0;
+
+  if (!hasSafeTotal) {
+    return { label: `Cientes: ${readCount}`, percentLabel: null };
+  }
+
+  const total = Math.max(0, rawTotal);
+  const boundedReadCount = Math.min(readCount, total);
+  const percent = Math.round((boundedReadCount / total) * 100);
+  return {
+    label: `Cientes: ${boundedReadCount} de ${total}`,
+    percentLabel: `${percent}% ciente`,
+  };
+}
+
 function authHeaders() {
   const token = localStorage.getItem('kaviar_admin_token');
   return {
@@ -521,7 +539,10 @@ export default function GroupsManagement() {
                                 </Stack>
                                 <Typography sx={{ color: '#F5F5F5', fontWeight: 700, fontSize: 14 }}>{post.title}</Typography>
                                 <Typography sx={{ color: '#9CA3AF', fontSize: 12, mt: 0.25 }}>
-                                  Publicado em {formatDate(post.published_at)} • Cientes: {post.read_count ?? 0}
+                                  {(() => {
+                                    const summary = buildReadSummary(post);
+                                    return `Publicado em ${formatDate(post.published_at)} • ${summary.label}${summary.percentLabel ? ` • ${summary.percentLabel}` : ''}`;
+                                  })()}
                                 </Typography>
                               </Box>
                               <Stack direction="row" spacing={0.5}>
