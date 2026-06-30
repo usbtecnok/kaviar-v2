@@ -260,6 +260,7 @@ model drivers {
   territorial_partner_linked_at DateTime?
   territorial_partner           territorial_partners? @relation(fields: [territorial_partner_id], references: [id])
   local_support_profile       local_support_drivers? @relation("LocalSupportDriver")
+  fixed_routes                driver_fixed_routes[]
 
   // Women matching preference
   women_matching_opt_in              Boolean   @default(false)
@@ -432,6 +433,7 @@ model passengers {
   rides_v2                    rides_v2[]                    @relation("PassengerRidesV2")
   tour_bookings               tour_bookings[]
   user_consents               user_consents[]
+  fixed_route_reservations    driver_fixed_route_reservations[]
 
   // Women matching preference
   women_matching_opt_in              Boolean   @default(false)
@@ -2739,6 +2741,88 @@ model family_return_accruals {
 
   @@index([driver_id, created_at(sort: Desc)])
   @@index([status])
+}
+
+
+// ─── Rotas Fixas do Motorista / KAVIAR Rotas Fixas ─────────────────────────
+model driver_fixed_routes {
+  id                         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driver_id                  String
+  title                      String   @db.VarChar(120)
+  description                String?  @db.VarChar(800)
+  origin_label               String   @db.VarChar(160)
+  destination_label          String   @db.VarChar(160)
+  departure_time             String   @db.VarChar(5)
+  return_time                String   @db.VarChar(5)
+  days_of_week               Json
+  seats_total                Int
+  price_per_passenger_cents  Int
+  suggested_price_cents      Int?
+  min_price_cents            Int?
+  max_price_cents            Int?
+  kaviar_fee_percent         Decimal  @db.Decimal(5, 2)
+  status                     String   @default("active") @db.VarChar(30)
+  invite_code                String   @unique @db.VarChar(40)
+  territory_id               String?
+  neighborhood_id            String?
+  paused_at                  DateTime?
+  cancelled_at               DateTime?
+  created_at                 DateTime @default(now())
+  updated_at                 DateTime @updatedAt
+
+  driver                     drivers @relation(fields: [driver_id], references: [id], onDelete: Restrict)
+  reservations               driver_fixed_route_reservations[]
+  events                     driver_fixed_route_events[]
+
+  @@index([driver_id, status])
+  @@index([invite_code])
+  @@index([territory_id])
+  @@index([neighborhood_id])
+  @@index([created_at(sort: Desc)])
+}
+
+model driver_fixed_route_reservations {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  route_id           String   @db.Uuid
+  passenger_id       String
+  status             String   @default("confirmed") @db.VarChar(40)
+  seats_reserved     Int      @default(1)
+  price_cents        Int
+  kaviar_fee_percent Decimal  @db.Decimal(5, 2)
+  kaviar_fee_cents   Int
+  driver_net_cents   Int
+  reserved_at        DateTime @default(now())
+  cancelled_at       DateTime?
+  cancel_reason      String?  @db.VarChar(300)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  route              driver_fixed_routes @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  passenger          passengers @relation(fields: [passenger_id], references: [id], onDelete: Restrict)
+  events             driver_fixed_route_events[]
+
+  @@index([route_id, status])
+  @@index([passenger_id, status])
+  @@index([created_at(sort: Desc)])
+}
+
+model driver_fixed_route_events {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  route_id       String   @db.Uuid
+  reservation_id String?  @db.Uuid
+  actor_type     String   @db.VarChar(30)
+  actor_id       String?
+  action         String   @db.VarChar(80)
+  metadata       Json?
+  created_at     DateTime @default(now())
+
+  route          driver_fixed_routes @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  reservation    driver_fixed_route_reservations? @relation(fields: [reservation_id], references: [id], onDelete: SetNull)
+
+  @@index([route_id, created_at(sort: Desc)])
+  @@index([reservation_id])
+  @@index([actor_type, actor_id])
+  @@index([action])
 }
 
 // ─── Grupo KAVIAR / KAVIAR Comunidade ──────────────────────────────────────

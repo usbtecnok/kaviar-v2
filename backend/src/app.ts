@@ -103,6 +103,9 @@ import publicTeamReferralRoutes from './routes/public-team-referral';
 import ridesV2Routes from './routes/rides-v2';
 import driversV2Routes from './routes/drivers-v2';
 import realtimeRoutes from './routes/realtime';
+import driverFixedRoutesRoutes from './routes/driver-fixed-routes';
+import fixedRouteInviteRoutes from './routes/fixed-route-invites';
+import passengerFixedRouteReservationsRoutes from './routes/passenger-fixed-route-reservations';
 
 const app = express();
 
@@ -345,6 +348,9 @@ app.use('/api/drivers', notificationsRoutes);
 app.use('/api/drivers', driverEarningsRoutes);
 app.use('/api/drivers', driverAvailabilityRoutes);
 app.use('/api/drivers', driverGroupsRoutes);
+app.use('/api/driver/fixed-routes', driverFixedRoutesRoutes);
+app.use('/api/fixed-routes', fixedRouteInviteRoutes);
+app.use('/api/passenger/fixed-route-reservations', passengerFixedRouteReservationsRoutes);
 app.use('/api/neighborhoods', neighborhoodsSmartRoutes);
 app.use('/api/passengers', passengerLocationsRoutes);
 app.use('/api/passengers', passengerProfileRoutes);
