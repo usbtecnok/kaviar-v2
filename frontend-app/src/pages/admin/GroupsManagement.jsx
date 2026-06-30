@@ -21,6 +21,11 @@ import {
 import { API_BASE_URL } from '../../config/api';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
 
 const GROUP_TYPES = [
   'private_group',
@@ -32,6 +37,26 @@ const GROUP_TYPES = [
   'elderly_support',
   'other',
 ];
+
+const GROUP_POST_CATEGORY_OPTIONS = [
+  { value: 'general', label: 'Geral' },
+  { value: 'important', label: 'Importante' },
+  { value: 'schedule', label: 'Horário' },
+  { value: 'meeting_point', label: 'Ponto de encontro' },
+];
+
+function categoryLabel(value) {
+  return GROUP_POST_CATEGORY_OPTIONS.find((option) => option.value === value)?.label || value || 'Geral';
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  try {
+    return new Date(value).toLocaleString('pt-BR');
+  } catch {
+    return value;
+  }
+}
 
 function authHeaders() {
   const token = localStorage.getItem('kaviar_admin_token');
@@ -53,13 +78,18 @@ export default function GroupsManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [inviteSaving, setInviteSaving] = useState(false);
+  const [postLoading, setPostLoading] = useState(false);
+  const [postSaving, setPostSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [groups, setGroups] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [groupPosts, setGroupPosts] = useState([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [postOpen, setPostOpen] = useState(false);
+  const [editingPostId, setEditingPostId] = useState('');
 
   const [newGroup, setNewGroup] = useState({
     public_name: '',
@@ -76,6 +106,14 @@ export default function GroupsManagement() {
   const [newInvite, setNewInvite] = useState({
     expires_at: '',
     max_uses: '',
+  });
+
+  const [postForm, setPostForm] = useState({
+    title: '',
+    body: '',
+    category: 'general',
+    is_pinned: false,
+    expires_at: '',
   });
 
   const selectedSummary = useMemo(() => groups.find((g) => g.id === selectedId) || null, [groups, selectedId]);
@@ -119,6 +157,26 @@ export default function GroupsManagement() {
     }
   };
 
+  const loadGroupPosts = async (groupId) => {
+    if (!groupId) return;
+    try {
+      setPostLoading(true);
+      setError('');
+      const response = await fetch(`${API_BASE_URL}/api/admin/groups/${groupId}/posts`, {
+        headers: authHeaders(),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(parseErrorMessage(data, 'Erro ao carregar comunicados'));
+      }
+      setGroupPosts(data.data || []);
+    } catch (err) {
+      setError(err.message || 'Erro ao carregar comunicados');
+    } finally {
+      setPostLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadGroups();
   }, []);
@@ -126,6 +184,7 @@ export default function GroupsManagement() {
   useEffect(() => {
     if (selectedId) {
       loadGroupDetail(selectedId);
+      loadGroupPosts(selectedId);
     }
   }, [selectedId]);
 
@@ -167,6 +226,7 @@ export default function GroupsManagement() {
       await loadGroups();
       setSelectedId(data.data.id);
       await loadGroupDetail(data.data.id);
+      await loadGroupPosts(data.data.id);
     } catch (err) {
       setError(err.message || 'Erro ao criar grupo');
     } finally {
@@ -215,6 +275,113 @@ export default function GroupsManagement() {
       setError('Nao foi possivel copiar automaticamente.');
     }
   };
+
+  const resetPostForm = () => {
+    setPostForm({
+      title: '',
+      body: '',
+      category: 'general',
+      is_pinned: false,
+      expires_at: '',
+    });
+    setEditingPostId('');
+  };
+
+  const openNewPost = () => {
+    resetPostForm();
+    setPostOpen(true);
+  };
+
+  const openEditPost = (post) => {
+    setEditingPostId(post.id);
+    setPostForm({
+      title: post.title || '',
+      body: post.body || '',
+      category: post.category || 'general',
+      is_pinned: !!post.is_pinned,
+      expires_at: post.expires_at ? new Date(post.expires_at).toISOString().slice(0, 16) : '',
+    });
+    setPostOpen(true);
+  };
+
+  const reloadPosts = async () => {
+    if (!selectedId) return;
+    await loadGroupPosts(selectedId);
+  };
+
+  const handleSavePost = async () => {
+    if (!selectedId) return;
+    try {
+      setPostSaving(true);
+      setError('');
+      setSuccess('');
+
+      const payload = {
+        title: postForm.title.trim(),
+        body: postForm.body.trim(),
+        category: postForm.category,
+        is_pinned: postForm.is_pinned,
+        expires_at: postForm.expires_at ? new Date(postForm.expires_at).toISOString() : null,
+      };
+
+      const response = await fetch(
+        editingPostId
+          ? `${API_BASE_URL}/api/admin/groups/${selectedId}/posts/${editingPostId}`
+          : `${API_BASE_URL}/api/admin/groups/${selectedId}/posts`,
+        {
+          method: editingPostId ? 'PATCH' : 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(parseErrorMessage(data, 'Erro ao salvar comunicado'));
+      }
+
+      setSuccess(editingPostId ? 'Comunicado atualizado com sucesso.' : 'Comunicado publicado com sucesso.');
+      setPostOpen(false);
+      resetPostForm();
+      await reloadPosts();
+    } catch (err) {
+      setError(err.message || 'Erro ao salvar comunicado');
+    } finally {
+      setPostSaving(false);
+    }
+  };
+
+  const handlePostAction = async (postId, action) => {
+    if (!selectedId) return;
+    try {
+      setError('');
+      setSuccess('');
+      const response = await fetch(`${API_BASE_URL}/api/admin/groups/${selectedId}/posts/${postId}/${action}`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(parseErrorMessage(data, 'Erro ao atualizar comunicado'));
+      }
+      setSuccess(
+        action === 'archive'
+          ? 'Comunicado arquivado.'
+          : action === 'pin'
+            ? 'Comunicado fixado.'
+            : 'Comunicado atualizado.'
+      );
+      await reloadPosts();
+    } catch (err) {
+      setError(err.message || 'Erro ao atualizar comunicado');
+    }
+  };
+
+  const sortedPosts = useMemo(() => {
+    return [...groupPosts].sort((a, b) => {
+      if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
+      return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+    });
+  }, [groupPosts]);
 
   return (
     <Container maxWidth="lg" sx={{ mt: 2, pb: 3 }}>
@@ -321,6 +488,69 @@ export default function GroupsManagement() {
                     {(selectedGroup?.invites || []).length === 0 && <Typography sx={{ color: '#9CA3AF', fontSize: 13 }}>Nenhum convite criado ainda.</Typography>}
                   </Stack>
 
+                  <Box sx={{ mt: 3, p: 2, borderRadius: 2, border: '1px solid #2A2E3A', bgcolor: '#0F1117' }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 1.5 }}>
+                      <Box>
+                        <Typography sx={{ color: '#F5F5F5', fontWeight: 800, fontSize: 16 }}>Mural do Grupo</Typography>
+                        <Typography sx={{ color: '#9CA3AF', fontSize: 12 }}>Comunicados oficiais do grupo.</Typography>
+                      </Box>
+                      <Button
+                        variant="contained"
+                        startIcon={<AddIcon />}
+                        onClick={openNewPost}
+                        sx={{ bgcolor: '#C8A84E', color: '#121212', '&:hover': { bgcolor: '#B08E30' } }}
+                      >
+                        Novo comunicado
+                      </Button>
+                    </Stack>
+
+                    {postLoading ? (
+                      <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>
+                    ) : sortedPosts.length === 0 ? (
+                      <Typography sx={{ color: '#9CA3AF', fontSize: 13 }}>Nenhum comunicado publicado ainda.</Typography>
+                    ) : (
+                      <Stack spacing={1.25}>
+                        {sortedPosts.map((post) => (
+                          <Box key={post.id} sx={{ border: '1px solid #2A2E3A', borderRadius: 1.5, p: 1.25, bgcolor: post.is_pinned ? 'rgba(200,168,78,0.08)' : '#11131A' }}>
+                            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1} sx={{ mb: 0.75 }}>
+                              <Box>
+                                <Stack direction="row" spacing={1} sx={{ mb: 0.5, flexWrap: 'wrap' }}>
+                                  <Chip size="small" label={post.status} sx={{ bgcolor: post.status === 'archived' ? '#3B1E1E' : '#1F3A2E', color: '#F5F5F5' }} />
+                                  <Chip size="small" label={categoryLabel(post.category)} sx={{ bgcolor: '#222838', color: '#D3D8E2' }} />
+                                  {post.is_pinned && <Chip size="small" label="Fixado" sx={{ bgcolor: '#3B2D1A', color: '#F6D497' }} />}
+                                </Stack>
+                                <Typography sx={{ color: '#F5F5F5', fontWeight: 700, fontSize: 14 }}>{post.title}</Typography>
+                                <Typography sx={{ color: '#9CA3AF', fontSize: 12, mt: 0.25 }}>
+                                  Publicado em {formatDate(post.published_at)} • Cientes: {post.read_count ?? 0}
+                                </Typography>
+                              </Box>
+                              <Stack direction="row" spacing={0.5}>
+                                <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => openEditPost(post)} sx={{ color: '#D3D8E2', borderColor: '#2A2E3A' }}>
+                                  Editar
+                                </Button>
+                                {post.is_pinned ? (
+                                  <Button size="small" variant="outlined" startIcon={<PushPinOutlinedIcon />} onClick={() => handlePostAction(post.id, 'unpin')} sx={{ color: '#D3D8E2', borderColor: '#2A2E3A' }}>
+                                    Desfixar
+                                  </Button>
+                                ) : (
+                                  <Button size="small" variant="outlined" startIcon={<PushPinIcon />} onClick={() => handlePostAction(post.id, 'pin')} sx={{ color: '#D3D8E2', borderColor: '#2A2E3A' }}>
+                                    Fixar
+                                  </Button>
+                                )}
+                                {post.status !== 'archived' && (
+                                  <Button size="small" variant="outlined" startIcon={<ArchiveIcon />} onClick={() => handlePostAction(post.id, 'archive')} sx={{ color: '#F6D497', borderColor: '#3B2D1A' }}>
+                                    Arquivar
+                                  </Button>
+                                )}
+                              </Stack>
+                            </Stack>
+                            <Typography sx={{ color: '#D3D8E2', fontSize: 13, whiteSpace: 'pre-wrap' }}>{post.body}</Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </Box>
+
                   <Typography sx={{ color: '#F5F5F5', fontWeight: 700, mb: 1 }}>Membros (basico)</Typography>
                   <Stack spacing={1}>
                     {(selectedGroup?.members || []).slice(0, 20).map((member) => (
@@ -388,6 +618,63 @@ export default function GroupsManagement() {
         <DialogActions>
           <Button onClick={() => setInviteOpen(false)}>Cancelar</Button>
           <Button onClick={handleCreateInvite} disabled={inviteSaving || !newInvite.expires_at} variant="contained">{inviteSaving ? 'Salvando...' : 'Criar convite'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={postOpen} onClose={() => { setPostOpen(false); resetPostForm(); }} fullWidth maxWidth="sm">
+        <DialogTitle>{editingPostId ? 'Editar comunicado' : 'Novo comunicado'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.5} sx={{ mt: 1 }}>
+            <TextField
+              label="Título"
+              value={postForm.title}
+              onChange={(e) => setPostForm((p) => ({ ...p, title: e.target.value }))}
+              fullWidth
+              required
+              inputProps={{ maxLength: 120 }}
+            />
+            <TextField
+              label="Mensagem"
+              value={postForm.body}
+              onChange={(e) => setPostForm((p) => ({ ...p, body: e.target.value }))}
+              fullWidth
+              required
+              multiline
+              minRows={4}
+            />
+            <TextField
+              select
+              SelectProps={{ native: true }}
+              label="Categoria"
+              value={postForm.category}
+              onChange={(e) => setPostForm((p) => ({ ...p, category: e.target.value }))}
+            >
+              {GROUP_POST_CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </TextField>
+            <TextField
+              label="Expira em (opcional)"
+              type="datetime-local"
+              value={postForm.expires_at}
+              onChange={(e) => setPostForm((p) => ({ ...p, expires_at: e.target.value }))}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+            <Button
+              variant={postForm.is_pinned ? 'contained' : 'outlined'}
+              onClick={() => setPostForm((p) => ({ ...p, is_pinned: !p.is_pinned }))}
+              sx={{ alignSelf: 'flex-start', color: postForm.is_pinned ? '#121212' : '#D3D8E2', borderColor: '#2A2E3A', bgcolor: postForm.is_pinned ? '#F6D497' : 'transparent' }}
+            >
+              {postForm.is_pinned ? 'Fixar comunicado: ligado' : 'Fixar comunicado'}
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setPostOpen(false); resetPostForm(); }}>Cancelar</Button>
+          <Button onClick={handleSavePost} disabled={postSaving || !postForm.title.trim() || !postForm.body.trim()} variant="contained">
+            {postSaving ? 'Salvando...' : editingPostId ? 'Salvar alterações' : 'Publicar comunicado'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
