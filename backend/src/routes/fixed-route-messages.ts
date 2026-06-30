@@ -110,6 +110,29 @@ function buildPushPayload(routeId: string, messageId: string, reservationId?: st
   return payload;
 }
 
+type FixedRoutePushDirection = 'driver_to_passenger_broadcast' | 'driver_to_passenger_direct' | 'passenger_to_driver';
+type FixedRoutePushResult = 'success' | 'failure' | 'skip';
+
+function logFixedRoutePushAttempt(details: {
+  direction: FixedRoutePushDirection;
+  routeId: string;
+  reservationId?: string | null;
+  messageId: string;
+  recipientCount: number;
+  hasPassengerId: boolean;
+  pushResult: FixedRoutePushResult;
+}) {
+  console.info('[fixed_route_message_push_attempt]', {
+    direction: details.direction,
+    routeId: details.routeId,
+    reservationId: details.reservationId || null,
+    messageId: details.messageId,
+    recipientCount: details.recipientCount,
+    hasPassengerId: details.hasPassengerId,
+    pushResult: details.pushResult,
+  });
+}
+
 function normalizeId(value: unknown): string | null {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -135,32 +158,61 @@ async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: st
 
   const payload = buildPushPayload(routeId, messageId);
 
-  await Promise.allSettled(uniquePassengerIds.map((passengerId) => (
-    sendPushToPassenger(
+  await Promise.allSettled(uniquePassengerIds.map(async (passengerId) => {
+    const pushResult = await sendPushToPassenger(
       passengerId,
       'Aviso da sua Rota Fixa',
       'O motorista enviou uma atualização da rota.',
       payload,
-    )
-  )));
+    );
+
+    logFixedRoutePushAttempt({
+      direction: 'driver_to_passenger_broadcast',
+      routeId,
+      messageId,
+      recipientCount: uniquePassengerIds.length,
+      hasPassengerId: true,
+      pushResult: pushResult === 'sent' ? 'success' : pushResult === 'skipped' ? 'skip' : 'failure',
+    });
+  }));
 }
 
 async function notifyPassengerFromReservation(routeId: string, reservationId: string, messageId: string, targetPassengerId: string) {
-  await sendPushToPassenger(
+  const pushResult = await sendPushToPassenger(
     targetPassengerId,
     'Mensagem do motorista',
     'Você recebeu uma mensagem sobre sua Rota Fixa.',
     buildPushPayload(routeId, messageId, reservationId),
   );
+
+  logFixedRoutePushAttempt({
+    direction: 'driver_to_passenger_direct',
+    routeId,
+    reservationId,
+    messageId,
+    recipientCount: 1,
+    hasPassengerId: Boolean(targetPassengerId),
+    pushResult: pushResult === 'sent' ? 'success' : pushResult === 'skipped' ? 'skip' : 'failure',
+  });
 }
 
 async function notifyRouteDriver(routeId: string, reservationId: string, messageId: string, targetDriverId: string) {
-  await sendPushToDriver(
+  const pushResult = await sendPushToDriver(
     targetDriverId,
     'Mensagem de passageiro',
     'Um passageiro enviou uma mensagem sobre a Rota Fixa.',
     buildPushPayload(routeId, messageId, reservationId),
   );
+
+  logFixedRoutePushAttempt({
+    direction: 'passenger_to_driver',
+    routeId,
+    reservationId,
+    messageId,
+    recipientCount: 1,
+    hasPassengerId: true,
+    pushResult: pushResult === 'sent' ? 'success' : pushResult === 'skipped' ? 'skip' : 'failure',
+  });
 }
 
 async function getOwnDriverRoute(req: Request, res: Response) {

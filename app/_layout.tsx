@@ -3,6 +3,7 @@ import { Alert, Linking, Platform } from "react-native";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import { apiClient } from "../src/api/client";
 import { startNetInfoListener, stopNetInfoListener } from "../src/services/net-info-listener";
 import { checkAppVersion, VersionCheckResult } from "../src/services/version-check";
 import { attemptOtaUpdate } from "../src/services/ota-updates";
@@ -62,6 +63,10 @@ const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotifi
   seenMessageIds: new Set<string>(),
 });
 
+const passengerPushBootState = (globalThis as any).__kaviarPassengerPushBootState || ((globalThis as any).__kaviarPassengerPushBootState = {
+  registered: false,
+});
+
 if (variant === 'driver' || variant === 'passenger') {
   if (Platform.OS === 'android') {
     Notifications.setNotificationChannelAsync('rides', {
@@ -119,6 +124,29 @@ export default function RootLayout() {
     let linkSub: { remove: () => void } | undefined;
 
     if (variant === 'passenger') {
+      if (!passengerPushBootState.registered) {
+        passengerPushBootState.registered = true;
+        (async () => {
+          try {
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status !== 'granted') return;
+            const { data: token } = await Notifications.getExpoPushTokenAsync({
+              projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
+            });
+
+            let fcmToken: string | undefined;
+            try {
+              const { data } = await Notifications.getDevicePushTokenAsync();
+              fcmToken = data as string;
+            } catch {}
+
+            await apiClient.put('/api/passengers/me/push-token', { token, fcmToken });
+          } catch (error) {
+            console.warn('[Passenger] Boot push token registration failed:', error);
+          }
+        })();
+      }
+
       Linking.getInitialURL().then((url) => {
         const code = getPassengerInviteCodeFromUrl(url);
         if (code) savePendingPassengerInviteCode(code).catch(() => {});

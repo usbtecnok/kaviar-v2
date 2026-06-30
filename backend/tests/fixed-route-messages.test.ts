@@ -89,8 +89,8 @@ beforeEach(() => {
     metadata: null,
     ...data,
   }));
-  pushMock.sendPushToDriver.mockResolvedValue(undefined);
-  pushMock.sendPushToPassenger.mockResolvedValue(undefined);
+  pushMock.sendPushToDriver.mockResolvedValue('sent');
+  pushMock.sendPushToPassenger.mockResolvedValue('sent');
 });
 
 describe('fixed route messages', () => {
