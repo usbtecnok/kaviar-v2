@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Alert, Linking, Platform } from "react-native";
 import { Stack, useRouter, usePathname } from "expo-router";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
@@ -10,6 +10,7 @@ import { UpdateRequiredModal } from "../src/components/UpdateRequiredModal";
 import { NetworkProvider } from "../src/hooks/useNetworkStatus";
 import { OfflineBanner } from "../src/components/OfflineBanner";
 import { RIDE_QUICK_MESSAGE_TEXT_BY_CODE } from "../src/config/rideMessages";
+import { getGroupInviteCodeFromUrl, routePassengerInviteUrl, savePendingGroupInviteCode } from "../src/utils/groupInviteDeepLink";
 
 const variant = Constants.expoConfig?.extra?.APP_VARIANT as string | undefined;
 
@@ -30,11 +31,12 @@ function parseRideNotification(data: unknown) {
     return { type: 'ride_cancelled' as const, rideId, cancelledBy };
   }
   return null;
+}
+
 const rideNotificationState = (globalThis as any).__kaviarRideNotificationState || ((globalThis as any).__kaviarRideNotificationState = {
   seenMessageIds: new Set<string>(),
   seenCancelKeys: new Set<string>(),
 });
-}
 
 if (variant === 'driver' || variant === 'passenger') {
   if (Platform.OS === 'android') {
@@ -53,6 +55,8 @@ if (variant === 'driver' || variant === 'passenger') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
@@ -88,6 +92,19 @@ export default function RootLayout() {
 
     let responseSub: Notifications.Subscription | undefined;
     let receivedSub: Notifications.Subscription | undefined;
+    let linkSub: { remove: () => void } | undefined;
+
+    if (variant === 'passenger') {
+      Linking.getInitialURL().then((url) => {
+        const code = getGroupInviteCodeFromUrl(url);
+        if (code) savePendingGroupInviteCode(code).catch(() => {});
+      }).catch(() => {});
+
+      linkSub = Linking.addEventListener('url', ({ url }) => {
+        routePassengerInviteUrl(router, url).catch(() => {});
+      });
+    }
+
     if (variant === 'driver' || variant === 'passenger') {
       receivedSub = Notifications.addNotificationReceivedListener((notification) => {
         const rideEvent = parseRideNotification(notification.request.content.data);
@@ -124,6 +141,7 @@ export default function RootLayout() {
 
     return () => {
       stopNetInfoListener();
+      linkSub?.remove();
       responseSub?.remove();
       receivedSub?.remove();
     };

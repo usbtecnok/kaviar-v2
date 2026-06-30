@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authStore } from '../src/auth/auth.store';
 import { COLORS } from '../src/config/colors';
+import { consumePendingGroupInviteCode, passengerGroupsRoute } from '../src/utils/groupInviteDeepLink';
 
 export default function Index() {
   const router = useRouter();
@@ -25,7 +26,8 @@ export default function Index() {
     if (authStore.isAuthenticated()) {
       const userType = authStore.getUserType();
       if (userType === 'PASSENGER') {
-        router.replace('/(passenger)/home');
+        const pendingCode = await consumePendingGroupInviteCode();
+        router.replace(pendingCode ? passengerGroupsRoute(pendingCode) : '/(passenger)/home');
       } else if (userType === 'DRIVER') {
         const user = authStore.getUser();
         router.replace(user?.status === 'pending' || user?.status === 'needs_documents' || user?.status === 'rejected' ? '/(driver)/pending-approval' : '/(driver)/online');

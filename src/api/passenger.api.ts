@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import { Ride } from '../types/ride';
+import { normalizeGroupInviteCode } from '../utils/groupInviteDeepLink';
 
 interface RequestRideParams {
   origin: { lat: number; lng: number; text?: string };
@@ -21,14 +22,26 @@ export const passengerApi = {
   },
 
   getGroupInvite: async (code: string) => {
-    const normalized = String(code || '').trim().toUpperCase();
+    const normalized = normalizeGroupInviteCode(code);
     const { data } = await apiClient.get(`/api/groups/invites/${encodeURIComponent(normalized)}`);
     return data.data;
   },
 
+  getResponsibleInvite: async (code: string) => {
+    const normalized = normalizeGroupInviteCode(code);
+    const { data } = await apiClient.get(`/api/groups/responsible-invites/${encodeURIComponent(normalized)}`);
+    return data.data;
+  },
+
   joinGroupByInvite: async (code: string) => {
-    const normalized = String(code || '').trim().toUpperCase();
+    const normalized = normalizeGroupInviteCode(code);
     const { data } = await apiClient.post(`/api/groups/invites/${encodeURIComponent(normalized)}/join`, { consent: true });
+    return data;
+  },
+
+  acceptResponsibleInvite: async (code: string) => {
+    const normalized = normalizeGroupInviteCode(code);
+    const { data } = await apiClient.post(`/api/groups/responsible-invites/${encodeURIComponent(normalized)}/accept`, { consent: true });
     return data;
   },
 

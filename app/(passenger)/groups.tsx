@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '../../src/config/colors';
 import { passengerApi } from '../../src/api/passenger.api';
+import { normalizeGroupInviteCode } from '../../src/utils/groupInviteDeepLink';
 
 type Membership = {
   id: string;
@@ -25,6 +26,17 @@ type InvitePreview = {
   status: string;
   expires_at?: string | null;
   remaining_uses?: number | null;
+  group?: {
+    id: string;
+    public_name: string;
+    description?: string | null;
+  };
+};
+
+type ResponsibleInvitePreview = {
+  code: string;
+  status: string;
+  expires_at?: string | null;
   group?: {
     id: string;
     public_name: string;
@@ -54,6 +66,12 @@ const GROUP_POST_CATEGORY_LABELS: Record<string, string> = {
   meeting_point: 'Ponto de encontro',
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  member: 'Membro',
+  responsible: 'Responsável do Grupo',
+  trusted_driver: 'Motorista de confiança',
+};
+
 function formatDate(value?: string | null) {
   if (!value) return '-';
   try {
@@ -67,7 +85,7 @@ export default function PassengerGroupsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ inviteCode?: string }>();
   const normalizedInviteCode = useMemo(
-    () => String(params?.inviteCode || '').trim().toUpperCase().replace(/\s+/g, ''),
+    () => normalizeGroupInviteCode(params?.inviteCode),
     [params?.inviteCode]
   );
   const [loading, setLoading] = useState(true);
@@ -75,6 +93,7 @@ export default function PassengerGroupsScreen() {
   const [code, setCode] = useState('');
   const [groups, setGroups] = useState<Membership[]>([]);
   const [invite, setInvite] = useState<InvitePreview | null>(null);
+  const [responsibleInvite, setResponsibleInvite] = useState<ResponsibleInvitePreview | null>(null);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [groupPosts, setGroupPosts] = useState<GroupPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(false);
@@ -107,6 +126,10 @@ export default function PassengerGroupsScreen() {
     });
   }, [normalizedInviteCode]);
 
+  useEffect(() => {
+    if (normalizedInviteCode) checkInvite(normalizedInviteCode);
+  }, [normalizedInviteCode]);
+
   const loadGroups = async () => {
     try {
       setLoading(true);
@@ -136,25 +159,38 @@ export default function PassengerGroupsScreen() {
     }
   };
 
-  const checkInvite = async () => {
-    const normalized = code.trim().toUpperCase();
+  const checkInvite = async (explicitCode?: string) => {
+    const normalized = normalizeGroupInviteCode(explicitCode || code);
     if (!normalized) {
       Alert.alert('Codigo obrigatorio', 'Digite um codigo de convite.');
       return;
     }
+    if (!normalized.startsWith('GKV-') && !normalized.startsWith('GKR-')) {
+      Alert.alert('Convite', 'Digite um codigo GKV ou GKR valido.');
+      return;
+    }
 
     try {
+      if (normalized.startsWith('GKR-')) {
+        const data = await passengerApi.getResponsibleInvite(normalized);
+        setResponsibleInvite(data);
+        setInvite(null);
+        return;
+      }
+
       const data = await passengerApi.getGroupInvite(normalized);
       setInvite(data);
+      setResponsibleInvite(null);
     } catch (error: any) {
       const message = error?.response?.data?.error || 'Convite nao encontrado';
       setInvite(null);
+      setResponsibleInvite(null);
       Alert.alert('Convite', message);
     }
   };
 
   const joinGroup = async () => {
-    const normalized = code.trim().toUpperCase();
+    const normalized = normalizeGroupInviteCode(code);
     if (!normalized) return;
 
     try {
@@ -163,10 +199,34 @@ export default function PassengerGroupsScreen() {
       Alert.alert('Sucesso', 'Voce entrou no Grupo KAVIAR.');
       setCode('');
       setInvite(null);
+      setResponsibleInvite(null);
       await loadGroups();
     } catch (error: any) {
       const message = error?.response?.data?.error || 'Nao foi possivel entrar no grupo';
       Alert.alert('Falha ao entrar', message);
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const acceptResponsibleInvite = async () => {
+    const normalized = normalizeGroupInviteCode(code);
+    if (!normalized.startsWith('GKR-')) return;
+
+    try {
+      setJoining(true);
+      const response = await passengerApi.acceptResponsibleInvite(normalized);
+      Alert.alert('Sucesso', 'Responsabilidade aceita. Voce agora e Responsavel do Grupo.');
+      setCode('');
+      setInvite(null);
+      setResponsibleInvite(null);
+      const memberships = await passengerApi.getMyGroups();
+      setGroups(memberships);
+      const acceptedGroupId = response?.data?.group_id;
+      setSelectedGroupId(acceptedGroupId || memberships[0]?.group?.id || '');
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'Nao foi possivel aceitar a responsabilidade';
+      Alert.alert('Falha ao aceitar', message);
     } finally {
       setJoining(false);
     }
@@ -222,7 +282,7 @@ export default function PassengerGroupsScreen() {
         <Text style={styles.groupName}>{item.group.public_name}</Text>
         {!!item.group.description && <Text style={styles.groupDescription}>{item.group.description}</Text>}
         <View style={styles.metaRow}>
-          <Text style={styles.metaText}>Papel: {item.role}</Text>
+          <Text style={styles.metaText}>Papel: {ROLE_LABELS[item.role] || item.role}</Text>
           <Text style={styles.metaText}>Status: {item.status}</Text>
         </View>
         <Text style={styles.metaText}>Entrada: {formatDate(item.joined_at)}</Text>
@@ -246,12 +306,12 @@ export default function PassengerGroupsScreen() {
           <TextInput
             value={code}
             onChangeText={(value) => setCode(value.toUpperCase())}
-            placeholder="Ex.: GKV-ABC123"
+            placeholder="Ex.: GKV-ABC123 ou GKR-ABC123"
             placeholderTextColor={COLORS.textMuted}
             style={styles.input}
             autoCapitalize="characters"
           />
-          <TouchableOpacity style={styles.secondaryBtn} onPress={checkInvite}>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => checkInvite()}>
             <Text style={styles.secondaryBtnText}>Validar</Text>
           </TouchableOpacity>
         </View>
@@ -264,6 +324,31 @@ export default function PassengerGroupsScreen() {
             <Text style={styles.metaText}>Expira em: {formatDate(invite.expires_at)}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={joinGroup} disabled={joining}>
               {joining ? <ActivityIndicator color="#111" /> : <Text style={styles.primaryBtnText}>Entrar no grupo</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {responsibleInvite && (
+          <View style={styles.previewBox}>
+            <Text style={styles.previewTitle}>Convite de Responsável do Grupo</Text>
+            <Text style={styles.previewTitle}>{responsibleInvite.group?.public_name || 'Grupo KAVIAR'}</Text>
+            {!!responsibleInvite.group?.description && <Text style={styles.previewDescription}>{responsibleInvite.group.description}</Text>}
+            <Text style={styles.metaText}>Status do convite: {responsibleInvite.status}</Text>
+            <Text style={styles.metaText}>Expira em: {formatDate(responsibleInvite.expires_at)}</Text>
+
+            <View style={styles.consentBox}>
+              <Text style={styles.consentTitle}>Responsabilidade e consentimento</Text>
+              <Text style={styles.consentText}>
+                Ao aceitar, voce ajuda a organizar horarios, pontos de encontro e comunicados do grupo. Essa funcao nao permite ver telefone,
+                localizacao exata ou rotas individuais dos membros, nao escolhe motorista, nao define preco e nao garante disponibilidade de corrida.
+              </Text>
+              <Text style={styles.consentText}>
+                Confirmo que entendi que a funcao e apenas de organizacao e comunicacao, sem acesso a dados sensiveis e sem vinculo trabalhista com o KAVIAR.
+              </Text>
+            </View>
+
+            <TouchableOpacity style={styles.primaryBtn} onPress={acceptResponsibleInvite} disabled={joining || responsibleInvite.status !== 'active'}>
+              {joining ? <ActivityIndicator color="#111" /> : <Text style={styles.primaryBtnText}>Aceitar responsabilidade</Text>}
             </TouchableOpacity>
           </View>
         )}
@@ -348,6 +433,9 @@ const styles = StyleSheet.create({
   previewBox: { marginTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
   previewTitle: { fontSize: 16, fontWeight: '700', color: COLORS.textPrimary },
   previewDescription: { color: COLORS.textSecondary, marginTop: 4, marginBottom: 6 },
+  consentBox: { marginTop: 10, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background, padding: 10, gap: 8 },
+  consentTitle: { color: COLORS.textPrimary, fontWeight: '800', fontSize: 13 },
+  consentText: { color: COLORS.textSecondary, fontSize: 12, lineHeight: 18 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
   metaText: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
   primaryBtn: { marginTop: 10, backgroundColor: COLORS.primary, borderRadius: 10, alignItems: 'center', justifyContent: 'center', height: 44 },
