@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material';
 import { API_BASE_URL } from '../../config/api';
+import { adminApi } from '../../services/adminApi';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -92,18 +93,37 @@ function invitePublicLink(code) {
   return `${window.location.origin}/grupos/convite/${encodeURIComponent(code)}`;
 }
 
+function responsibleInvitePublicLink(code) {
+  return `${window.location.origin}/grupos/responsavel/${encodeURIComponent(code)}`;
+}
+
+function responsibleInviteStatusLabel(status) {
+  if (status === 'active') return 'Ativo';
+  if (status === 'revoked') return 'Revogado';
+  if (status === 'consumed') return 'Utilizado';
+  if (status === 'expired') return 'Expirado';
+  return status || 'Indisponivel';
+}
+
+function nextResponsibleInviteExpiryIso() {
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+}
+
 export default function GroupsManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [inviteSaving, setInviteSaving] = useState(false);
   const [postLoading, setPostLoading] = useState(false);
   const [postSaving, setPostSaving] = useState(false);
+  const [responsibleInvitesLoading, setResponsibleInvitesLoading] = useState(false);
+  const [responsibleInviteSaving, setResponsibleInviteSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [groups, setGroups] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [groupPosts, setGroupPosts] = useState([]);
+  const [responsibleInvites, setResponsibleInvites] = useState([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
@@ -135,6 +155,14 @@ export default function GroupsManagement() {
   });
 
   const selectedSummary = useMemo(() => groups.find((g) => g.id === selectedId) || null, [groups, selectedId]);
+  const adminData = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('kaviar_admin_data') || '{}');
+    } catch {
+      return {};
+    }
+  }, []);
+  const canManageResponsibleInvites = adminData?.role === 'SUPER_ADMIN' || adminData?.role === 'TERRITORIAL_MANAGER';
 
   const loadGroups = async () => {
     try {
@@ -195,6 +223,25 @@ export default function GroupsManagement() {
     }
   };
 
+  const loadResponsibleInvites = async (groupId) => {
+    if (!groupId || !canManageResponsibleInvites) {
+      setResponsibleInvites([]);
+      return;
+    }
+
+    try {
+      setResponsibleInvitesLoading(true);
+      setError('');
+      const data = await adminApi.get(`/api/admin/groups/${groupId}/responsible-invites`);
+      setResponsibleInvites(data.data || []);
+    } catch (err) {
+      setResponsibleInvites([]);
+      setError(err.message || 'Erro ao carregar convites de Responsável do Grupo');
+    } finally {
+      setResponsibleInvitesLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadGroups();
   }, []);
@@ -203,6 +250,7 @@ export default function GroupsManagement() {
     if (selectedId) {
       loadGroupDetail(selectedId);
       loadGroupPosts(selectedId);
+      loadResponsibleInvites(selectedId);
     }
   }, [selectedId]);
 
@@ -394,6 +442,46 @@ export default function GroupsManagement() {
     }
   };
 
+  const handleCreateResponsibleInvite = async () => {
+    if (!selectedId || !canManageResponsibleInvites) return;
+
+    try {
+      setResponsibleInviteSaving(true);
+      setError('');
+      setSuccess('');
+
+      const data = await adminApi.post(`/api/admin/groups/${selectedId}/responsible-invites`, {
+        expires_at: nextResponsibleInviteExpiryIso(),
+      });
+
+      setSuccess('Convite de Responsável do Grupo criado com sucesso.');
+      setResponsibleInvites((currentInvites) => [data.data, ...currentInvites]);
+      await loadResponsibleInvites(selectedId);
+    } catch (err) {
+      setError(err.message || 'Erro ao criar convite de Responsável do Grupo');
+    } finally {
+      setResponsibleInviteSaving(false);
+    }
+  };
+
+  const handleRevokeResponsibleInvite = async (inviteId) => {
+    if (!selectedId || !inviteId || !canManageResponsibleInvites) return;
+
+    try {
+      setResponsibleInviteSaving(true);
+      setError('');
+      setSuccess('');
+
+      await adminApi.patch(`/api/admin/groups/${selectedId}/responsible-invites/${inviteId}/revoke`, {});
+      setSuccess('Convite de Responsável do Grupo revogado.');
+      await loadResponsibleInvites(selectedId);
+    } catch (err) {
+      setError(err.message || 'Erro ao revogar convite de Responsável do Grupo');
+    } finally {
+      setResponsibleInviteSaving(false);
+    }
+  };
+
   const sortedPosts = useMemo(() => {
     return [...groupPosts].sort((a, b) => {
       if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
@@ -505,6 +593,91 @@ export default function GroupsManagement() {
                     })}
                     {(selectedGroup?.invites || []).length === 0 && <Typography sx={{ color: '#9CA3AF', fontSize: 13 }}>Nenhum convite criado ainda.</Typography>}
                   </Stack>
+
+                  {canManageResponsibleInvites && (
+                    <Box sx={{ mt: 3, p: 2, borderRadius: 2, border: '1px solid #2A2E3A', bgcolor: '#0F1117' }}>
+                      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 1.5 }}>
+                        <Box>
+                          <Typography sx={{ color: '#F5F5F5', fontWeight: 800, fontSize: 16 }}>Convite de Responsável do Grupo</Typography>
+                          <Typography sx={{ color: '#9CA3AF', fontSize: 12 }}>
+                            Convite individual para definir o Responsável do Grupo com aceite posterior.
+                          </Typography>
+                        </Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleCreateResponsibleInvite}
+                          disabled={responsibleInviteSaving}
+                          sx={{ bgcolor: '#C8A84E', color: '#121212', '&:hover': { bgcolor: '#B08E30' } }}
+                        >
+                          {responsibleInviteSaving ? 'Gerando...' : 'Gerar convite'}
+                        </Button>
+                      </Stack>
+
+                      {responsibleInvitesLoading ? (
+                        <Box sx={{ py: 3, textAlign: 'center' }}><CircularProgress size={24} /></Box>
+                      ) : responsibleInvites.length === 0 ? (
+                        <Typography sx={{ color: '#9CA3AF', fontSize: 13 }}>Nenhum convite de Responsável do Grupo criado ainda.</Typography>
+                      ) : (
+                        <Stack spacing={1.25}>
+                          {responsibleInvites.map((invite) => {
+                            const publicLink = responsibleInvitePublicLink(invite.code);
+                            const canRevoke = invite.status === 'active';
+
+                            return (
+                              <Box key={invite.id} sx={{ border: '1px solid #2A2E3A', borderRadius: 1.5, p: 1.25, bgcolor: '#11131A' }}>
+                                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                                    <Stack direction="row" spacing={1} sx={{ mb: 0.5, flexWrap: 'wrap' }}>
+                                      <Chip
+                                        size="small"
+                                        label={responsibleInviteStatusLabel(invite.status)}
+                                        sx={{
+                                          bgcolor: invite.status === 'active' ? '#1F3A2E' : invite.status === 'revoked' ? '#3B1E1E' : '#3B2D1A',
+                                          color: '#F5F5F5',
+                                        }}
+                                      />
+                                      <Chip size="small" label="Uso 0/1" sx={{ bgcolor: '#222838', color: '#D3D8E2' }} />
+                                    </Stack>
+                                    <Typography sx={{ color: '#F5F5F5', fontWeight: 700, fontSize: 14 }}>{invite.code}</Typography>
+                                    <Typography sx={{ color: '#9CA3AF', fontSize: 12, mt: 0.25 }}>
+                                      Expira: {formatDate(invite.expires_at)}
+                                    </Typography>
+                                    <Typography sx={{ color: '#D3D8E2', fontSize: 12, mt: 0.75, wordBreak: 'break-all' }}>
+                                      {publicLink}
+                                    </Typography>
+                                  </Box>
+
+                                  <Stack direction="row" spacing={0.5} flexWrap="wrap" justifyContent="flex-end">
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      startIcon={<ContentCopyIcon />}
+                                      onClick={() => copyText(publicLink, 'Link do convite de Responsável do Grupo')}
+                                      sx={{ color: '#D3D8E2', borderColor: '#2A2E3A' }}
+                                    >
+                                      Copiar link
+                                    </Button>
+                                    {canRevoke && (
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<ArchiveIcon />}
+                                        onClick={() => handleRevokeResponsibleInvite(invite.id)}
+                                        disabled={responsibleInviteSaving}
+                                        sx={{ color: '#F6D497', borderColor: '#3B2D1A' }}
+                                      >
+                                        Revogar convite
+                                      </Button>
+                                    )}
+                                  </Stack>
+                                </Stack>
+                              </Box>
+                            );
+                          })}
+                        </Stack>
+                      )}
+                    </Box>
+                  )}
 
                   <Box sx={{ mt: 3, p: 2, borderRadius: 2, border: '1px solid #2A2E3A', bgcolor: '#0F1117' }}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mb: 1.5 }}>
