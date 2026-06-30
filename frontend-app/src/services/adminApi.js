@@ -132,6 +132,11 @@ class AdminApiService {
     return this.get(`/api/admin/fixed-routes${queryString ? `?${queryString}` : ''}`);
   }
 
+  async getAdminFixedRouteMetrics(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.get(`/api/admin/fixed-routes/metrics${queryString ? `?${queryString}` : ''}`);
+  }
+
   async getAdminFixedRoute(id) {
     return this.get(`/api/admin/fixed-routes/${id}`);
   }

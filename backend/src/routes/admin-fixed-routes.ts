@@ -11,6 +11,7 @@ const db = prisma as any;
 const ADMIN_READ_ROLES = ['SUPER_ADMIN', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'];
 const ROUTE_STATUSES = ['active', 'paused', 'cancelled', 'archived'];
 const TRIP_TYPES = ['one_way_outbound', 'one_way_return', 'round_trip'];
+const RESERVATION_CANCELLED_STATUSES = ['cancelled', 'cancelled_by_driver', 'cancelled_by_passenger'];
 
 router.use(authenticateAdmin);
 router.use(requireRole(ADMIN_READ_ROLES));
@@ -24,6 +25,76 @@ function parseIntParam(value: any, fallback: number, min: number, max: number): 
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(parsed)));
+}
+
+function parseDateParam(value: any): Date | null {
+  if (!value) return null;
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function addDays(base: Date, days: number): Date {
+  const next = new Date(base);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function startOfDay(date: Date): Date {
+  const out = new Date(date);
+  out.setHours(0, 0, 0, 0);
+  return out;
+}
+
+function resolvePeriod(inputPeriod: string, inputStart: any, inputEnd: any) {
+  const now = new Date();
+  const todayStart = startOfDay(now);
+
+  if (inputPeriod === 'today' || !inputPeriod) {
+    return {
+      startDate: todayStart,
+      endDate: addDays(todayStart, 1),
+      label: 'Hoje',
+    };
+  }
+
+  if (inputPeriod === '7d') {
+    return {
+      startDate: addDays(todayStart, -6),
+      endDate: addDays(todayStart, 1),
+      label: 'Ultimos 7 dias',
+    };
+  }
+
+  if (inputPeriod === '30d') {
+    return {
+      startDate: addDays(todayStart, -29),
+      endDate: addDays(todayStart, 1),
+      label: 'Ultimos 30 dias',
+    };
+  }
+
+  if (inputPeriod === 'custom') {
+    const startDate = parseDateParam(inputStart);
+    const endDate = parseDateParam(inputEnd);
+    if (!startDate || !endDate) return null;
+    if (endDate <= startDate) return null;
+    return {
+      startDate,
+      endDate,
+      label: 'Periodo personalizado',
+    };
+  }
+
+  return null;
+}
+
+function statusBucket(status: string): 'confirmed' | 'completed' | 'no_show' | 'cancelled' | 'other' {
+  if (status === 'confirmed') return 'confirmed';
+  if (status === 'completed') return 'completed';
+  if (status === 'no_show') return 'no_show';
+  if (RESERVATION_CANCELLED_STATUSES.includes(status)) return 'cancelled';
+  return 'other';
 }
 
 function maskPhone(phone?: string | null): string | null {
@@ -234,6 +305,258 @@ router.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[ADMIN_FIXED_ROUTES_LIST_ERROR]', error);
     return res.status(500).json({ success: false, error: 'Erro ao listar Rotas Fixas' });
+  }
+});
+
+router.get('/metrics', async (req: Request, res: Response) => {
+  try {
+    const period = cleanText(req.query.period, 20) || 'today';
+    const status = cleanText(req.query.status, 40);
+    const tripType = cleanText(req.query.trip_type, 40);
+    const territoryId = cleanText(req.query.territory_id, 80);
+
+    if (status && !ROUTE_STATUSES.includes(status)) {
+      return res.status(400).json({ success: false, error: 'Status invalido' });
+    }
+    if (tripType && !TRIP_TYPES.includes(tripType)) {
+      return res.status(400).json({ success: false, error: 'Tipo de rota invalido' });
+    }
+
+    const periodBounds = resolvePeriod(period, req.query.start_date, req.query.end_date);
+    if (!periodBounds) {
+      return res.status(400).json({ success: false, error: 'Periodo invalido. Use today, 7d, 30d ou custom com start_date/end_date validos.' });
+    }
+
+    const routeWhere: any = {
+      created_at: {
+        gte: periodBounds.startDate,
+        lt: periodBounds.endDate,
+      },
+    };
+
+    if (status) routeWhere.status = status;
+    if (tripType) routeWhere.trip_type = tripType;
+
+    if (isSuperAdmin(req)) {
+      if (territoryId) routeWhere.territory_id = territoryId;
+    } else {
+      const territoryIds = scopedTerritoryIds(req);
+      if (territoryIds.length === 0) {
+        return res.json({
+          success: true,
+          data: {
+            period: {
+              start_date: periodBounds.startDate.toISOString(),
+              end_date: periodBounds.endDate.toISOString(),
+              label: periodBounds.label,
+            },
+            totals: {
+              routes_created: 0,
+              routes_active: 0,
+              routes_paused: 0,
+              routes_cancelled: 0,
+              routes_archived: 0,
+              routes_with_reservations: 0,
+              reservations_confirmed: 0,
+              reservations_completed: 0,
+              reservations_no_show: 0,
+              reservations_cancelled: 0,
+              seats_total: 0,
+              seats_reserved: 0,
+              occupancy_rate: 0,
+              gross_revenue_cents: 0,
+              kaviar_fee_cents: 0,
+              driver_net_cents: 0,
+            },
+            funnel: {
+              created: 0,
+              with_reservation: 0,
+              completed: 0,
+              no_show: 0,
+              cancelled: 0,
+            },
+            by_trip_type: TRIP_TYPES.map((tt) => ({
+              trip_type: tt,
+              routes_count: 0,
+              reservations_count: 0,
+              completed_count: 0,
+              no_show_count: 0,
+              gross_revenue_cents: 0,
+              kaviar_fee_cents: 0,
+            })),
+            by_status: ROUTE_STATUSES.map((routeStatus) => ({ status: routeStatus, count: 0 })),
+          },
+        });
+      }
+
+      if (territoryId && !territoryIds.includes(territoryId)) {
+        return res.status(403).json({ success: false, error: 'Territorio fora do escopo' });
+      }
+
+      routeWhere.territory_id = territoryId || { in: territoryIds };
+    }
+
+    const routes = await db.driver_fixed_routes.findMany({
+      where: routeWhere,
+      select: {
+        id: true,
+        trip_type: true,
+        status: true,
+        seats_total: true,
+      },
+    });
+
+    const routeIds = routes.map((route: any) => route.id);
+    const reservations = routeIds.length === 0
+      ? []
+      : await db.driver_fixed_route_reservations.findMany({
+        where: {
+          route_id: { in: routeIds },
+          created_at: { gte: periodBounds.startDate, lt: periodBounds.endDate },
+        },
+        select: {
+          route_id: true,
+          status: true,
+          seats_reserved: true,
+          price_cents: true,
+          kaviar_fee_cents: true,
+          driver_net_cents: true,
+        },
+      });
+
+    const routesCreated = routes.length;
+    let routesActive = 0;
+    let routesPaused = 0;
+    let routesCancelled = 0;
+    let routesArchived = 0;
+    let seatsTotal = 0;
+
+    const routeIdsWithReservations = new Set<string>();
+    const byTripTypeMap = new Map<string, any>();
+    const byStatusMap = new Map<string, number>();
+
+    for (const tt of TRIP_TYPES) {
+      byTripTypeMap.set(tt, {
+        trip_type: tt,
+        routes_count: 0,
+        reservations_count: 0,
+        completed_count: 0,
+        no_show_count: 0,
+        gross_revenue_cents: 0,
+        kaviar_fee_cents: 0,
+      });
+    }
+    for (const st of ROUTE_STATUSES) {
+      byStatusMap.set(st, 0);
+    }
+
+    const routeTripTypeMap = new Map<string, string>();
+
+    for (const route of routes) {
+      const routeStatus = String(route.status || '');
+      const routeTripType = String(route.trip_type || 'round_trip');
+      routeTripTypeMap.set(route.id, routeTripType);
+
+      if (routeStatus === 'active') routesActive += 1;
+      else if (routeStatus === 'paused') routesPaused += 1;
+      else if (routeStatus === 'cancelled') routesCancelled += 1;
+      else if (routeStatus === 'archived') routesArchived += 1;
+
+      seatsTotal += Number(route.seats_total || 0);
+
+      if (byStatusMap.has(routeStatus)) {
+        byStatusMap.set(routeStatus, Number(byStatusMap.get(routeStatus) || 0) + 1);
+      }
+      const tripBucket = byTripTypeMap.get(routeTripType);
+      if (tripBucket) tripBucket.routes_count += 1;
+    }
+
+    let reservationsConfirmed = 0;
+    let reservationsCompleted = 0;
+    let reservationsNoShow = 0;
+    let reservationsCancelled = 0;
+    let seatsReserved = 0;
+    let grossRevenue = 0;
+    let kaviarFee = 0;
+    let driverNet = 0;
+
+    for (const reservation of reservations) {
+      const reservationStatus = String(reservation.status || '');
+      const bucket = statusBucket(reservationStatus);
+      if (bucket === 'confirmed') reservationsConfirmed += 1;
+      else if (bucket === 'completed') reservationsCompleted += 1;
+      else if (bucket === 'no_show') reservationsNoShow += 1;
+      else if (bucket === 'cancelled') reservationsCancelled += 1;
+
+      routeIdsWithReservations.add(String(reservation.route_id));
+
+      // Occupancy usa assentos de reservas ativas/consumidas no periodo.
+      if (bucket === 'confirmed' || bucket === 'completed' || bucket === 'no_show') {
+        seatsReserved += Number(reservation.seats_reserved || 0);
+      }
+
+      // Receita ignora cancelamentos; no_show mantem valor pois a vaga foi consumida.
+      if (bucket !== 'cancelled') {
+        grossRevenue += Number(reservation.price_cents || 0);
+        kaviarFee += Number(reservation.kaviar_fee_cents || 0);
+        driverNet += Number(reservation.driver_net_cents || 0);
+      }
+
+      const routeTripType = routeTripTypeMap.get(String(reservation.route_id)) || 'round_trip';
+      const tripBucket = byTripTypeMap.get(routeTripType);
+      if (tripBucket) {
+        tripBucket.reservations_count += 1;
+        if (bucket === 'completed') tripBucket.completed_count += 1;
+        if (bucket === 'no_show') tripBucket.no_show_count += 1;
+        if (bucket !== 'cancelled') {
+          tripBucket.gross_revenue_cents += Number(reservation.price_cents || 0);
+          tripBucket.kaviar_fee_cents += Number(reservation.kaviar_fee_cents || 0);
+        }
+      }
+    }
+
+    const occupancyRate = seatsTotal > 0 ? Number((seatsReserved / seatsTotal).toFixed(4)) : 0;
+
+    return res.json({
+      success: true,
+      data: {
+        period: {
+          start_date: periodBounds.startDate.toISOString(),
+          end_date: periodBounds.endDate.toISOString(),
+          label: periodBounds.label,
+        },
+        totals: {
+          routes_created: routesCreated,
+          routes_active: routesActive,
+          routes_paused: routesPaused,
+          routes_cancelled: routesCancelled,
+          routes_archived: routesArchived,
+          routes_with_reservations: routeIdsWithReservations.size,
+          reservations_confirmed: reservationsConfirmed,
+          reservations_completed: reservationsCompleted,
+          reservations_no_show: reservationsNoShow,
+          reservations_cancelled: reservationsCancelled,
+          seats_total: seatsTotal,
+          seats_reserved: seatsReserved,
+          occupancy_rate: occupancyRate,
+          gross_revenue_cents: grossRevenue,
+          kaviar_fee_cents: kaviarFee,
+          driver_net_cents: driverNet,
+        },
+        funnel: {
+          created: routesCreated,
+          with_reservation: routeIdsWithReservations.size,
+          completed: reservationsCompleted,
+          no_show: reservationsNoShow,
+          cancelled: reservationsCancelled,
+        },
+        by_trip_type: TRIP_TYPES.map((tt) => byTripTypeMap.get(tt)),
+        by_status: ROUTE_STATUSES.map((st) => ({ status: st, count: Number(byStatusMap.get(st) || 0) })),
+      },
+    });
+  } catch (error) {
+    console.error('[ADMIN_FIXED_ROUTES_METRICS_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao carregar metricas de Rotas Fixas' });
   }
 });
 

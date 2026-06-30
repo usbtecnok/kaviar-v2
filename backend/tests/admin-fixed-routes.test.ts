@@ -268,4 +268,106 @@ describe('admin fixed routes', () => {
 
     expect(res.status).toBe(409);
   });
+
+  it('super admin acessa metricas agregadas', async () => {
+    prismaMock.driver_fixed_routes.findMany.mockResolvedValue([
+      { ...baseRoute, id: 'route-1', status: 'active', trip_type: 'round_trip', seats_total: 4 },
+      { ...baseRoute, id: 'route-2', status: 'paused', trip_type: 'one_way_outbound', seats_total: 2 },
+    ]);
+    prismaMock.driver_fixed_route_reservations.findMany.mockResolvedValue([
+      { route_id: 'route-1', status: 'confirmed', seats_reserved: 2, price_cents: 5000, kaviar_fee_cents: 750, driver_net_cents: 4250 },
+      { route_id: 'route-1', status: 'completed', seats_reserved: 1, price_cents: 2500, kaviar_fee_cents: 375, driver_net_cents: 2125 },
+      { route_id: 'route-2', status: 'no_show', seats_reserved: 1, price_cents: 2000, kaviar_fee_cents: 300, driver_net_cents: 1700 },
+      { route_id: 'route-2', status: 'cancelled_by_passenger', seats_reserved: 1, price_cents: 3000, kaviar_fee_cents: 450, driver_net_cents: 2550 },
+    ]);
+
+    const res = await request(app).get('/api/admin/fixed-routes/metrics?period=7d');
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.totals.routes_created).toBe(2);
+    expect(res.body.data.totals.routes_with_reservations).toBe(2);
+    expect(res.body.data.totals.reservations_confirmed).toBe(1);
+    expect(res.body.data.totals.reservations_completed).toBe(1);
+    expect(res.body.data.totals.reservations_no_show).toBe(1);
+    expect(res.body.data.totals.reservations_cancelled).toBe(1);
+    expect(res.body.data.totals.seats_total).toBe(6);
+    expect(res.body.data.totals.seats_reserved).toBe(4);
+    expect(res.body.data.totals.gross_revenue_cents).toBe(9500);
+    expect(res.body.data.totals.kaviar_fee_cents).toBe(1425);
+    expect(res.body.data.totals.driver_net_cents).toBe(8075);
+    expect(res.body.data.funnel.created).toBe(2);
+    expect(res.body.data.funnel.with_reservation).toBe(2);
+    expect(res.body.data.funnel.completed).toBe(1);
+    expect(res.body.data.funnel.no_show).toBe(1);
+    expect(res.body.data.funnel.cancelled).toBe(1);
+  });
+
+  it('manager territorial enxerga metricas apenas no proprio escopo', async () => {
+    authState.admin = { id: 'mgr-1', email: 'mgr@test.local', role: 'TERRITORIAL_MANAGER' };
+    authState.scope = { territoryIds: ['territory-1'], neighborhoodIds: [], accessLevel: 'read' };
+
+    await request(app).get('/api/admin/fixed-routes/metrics?period=today');
+
+    expect(prismaMock.driver_fixed_routes.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ territory_id: { in: ['territory-1'] } }),
+    }));
+  });
+
+  it('manager territorial sem escopo recebe metricas zeradas', async () => {
+    authState.admin = { id: 'mgr-1', email: 'mgr@test.local', role: 'TERRITORIAL_MANAGER' };
+    authState.scope = { territoryIds: [], neighborhoodIds: [], accessLevel: 'read' };
+
+    const res = await request(app).get('/api/admin/fixed-routes/metrics?period=today');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.totals.routes_created).toBe(0);
+    expect(res.body.data.totals.reservations_confirmed).toBe(0);
+    expect(prismaMock.driver_fixed_routes.findMany).not.toHaveBeenCalled();
+  });
+
+  it('rotas sem territory_id nao entram para TERRITORIAL_MANAGER', async () => {
+    authState.admin = { id: 'mgr-1', email: 'mgr@test.local', role: 'TERRITORIAL_MANAGER' };
+    authState.scope = { territoryIds: ['territory-1'], neighborhoodIds: [], accessLevel: 'read' };
+
+    await request(app).get('/api/admin/fixed-routes/metrics?period=7d');
+
+    const callArg = prismaMock.driver_fixed_routes.findMany.mock.calls[0][0];
+    expect(callArg.where.territory_id).toEqual({ in: ['territory-1'] });
+  });
+
+  it('filtro trip_type funciona nas metricas', async () => {
+    await request(app).get('/api/admin/fixed-routes/metrics?period=7d&trip_type=one_way_outbound');
+
+    expect(prismaMock.driver_fixed_routes.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ trip_type: 'one_way_outbound' }),
+    }));
+  });
+
+  it('filtro de periodo custom aplica intervalo', async () => {
+    await request(app).get('/api/admin/fixed-routes/metrics?period=custom&start_date=2026-06-01T00:00:00.000Z&end_date=2026-06-10T00:00:00.000Z');
+
+    expect(prismaMock.driver_fixed_routes.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        created_at: expect.objectContaining({
+          gte: new Date('2026-06-01T00:00:00.000Z'),
+          lt: new Date('2026-06-10T00:00:00.000Z'),
+        }),
+      }),
+    }));
+  });
+
+  it('metricas nao expoem dados sensiveis de passageiro', async () => {
+    const res = await request(app).get('/api/admin/fixed-routes/metrics?period=today');
+
+    expect(res.status).toBe(200);
+    expect(JSON.stringify(res.body)).not.toContain('passenger_phone');
+    expect(JSON.stringify(res.body)).not.toContain('219');
+  });
+
+  it('retorna erro para periodo invalido', async () => {
+    const res = await request(app).get('/api/admin/fixed-routes/metrics?period=custom&start_date=bad&end_date=bad');
+
+    expect(res.status).toBe(400);
+  });
 });
