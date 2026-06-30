@@ -55,12 +55,46 @@ function codeParam(req: Request) {
   return String(req.params.code || '').trim().toUpperCase();
 }
 
+function responsibleCodeParam(req: Request) {
+  return String(req.params.code || '').trim().toUpperCase();
+}
+
 function isInviteUnavailable(invite: any): string | null {
   if (invite.status === 'revoked') return 'Convite revogado';
   if (invite.status !== 'active') return 'Convite indisponível';
   if (new Date(invite.expires_at).getTime() <= Date.now()) return 'Convite expirado';
   if (invite.max_uses != null && invite.used_count >= invite.max_uses) return 'Convite atingiu o limite de uso';
   return null;
+}
+
+function mapResponsibleInviteStatus(invite: any): string {
+  if (!invite) return 'invalid';
+  if (invite.status === 'revoked') return 'revoked';
+  if (invite.status === 'consumed') return 'consumed';
+  if (new Date(invite.expires_at).getTime() <= Date.now()) return 'expired';
+  if (invite.max_uses != null && invite.used_count >= invite.max_uses) return 'consumed';
+  if (invite.status !== 'active') return 'invalid';
+  return 'active';
+}
+
+function responsibleInvitePublicPayload(invite: any) {
+  return {
+    code: invite.code,
+    status: mapResponsibleInviteStatus(invite),
+    expires_at: invite.expires_at,
+    group: {
+      id: invite.group.id,
+      public_name: invite.group.public_name,
+      description: invite.group.description,
+    },
+  };
+}
+
+function getResponsibleInviteError(status: string) {
+  if (status === 'expired') return 'Convite expirado.';
+  if (status === 'revoked') return 'Convite revogado.';
+  if (status === 'consumed') return 'Convite já utilizado.';
+  return 'Convite inválido.';
 }
 
 router.get('/invites/:code', async (req: Request, res: Response) => {
@@ -149,6 +183,162 @@ router.post('/invites/:code/join', authenticateGroupUser, async (req: Request, r
     if (error?.statusCode) return res.status(error.statusCode).json({ success: false, error: error.message });
     console.error('[GROUP_INVITE_JOIN_ERROR]', error);
     return res.status(500).json({ success: false, error: 'Erro ao aceitar convite' });
+  }
+});
+
+router.get('/responsible-invites/:code', async (req: Request, res: Response) => {
+  try {
+    const invite = await db.kaviar_group_responsible_invites.findUnique({
+      where: { code: responsibleCodeParam(req) },
+      include: { group: true },
+    });
+
+    if (!invite) return res.status(404).json({ success: false, error: 'Convite inválido.' });
+    return res.json({ success: true, data: responsibleInvitePublicPayload(invite) });
+  } catch (error) {
+    console.error('[GROUP_RESPONSIBLE_INVITE_PUBLIC_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao buscar convite de Responsável do Grupo' });
+  }
+});
+
+router.post('/responsible-invites/:code/accept', authenticateGroupUser, async (req: Request, res: Response) => {
+  try {
+    if (req.body?.consent !== true) {
+      return res.status(400).json({ success: false, error: 'Consentimento explícito é obrigatório' });
+    }
+
+    const user = (req as any).groupUser as GroupUser;
+    if (user.type !== 'passenger') {
+      return res.status(403).json({ success: false, error: 'Você não tem permissão para aceitar este convite.' });
+    }
+
+    const invite = await db.kaviar_group_responsible_invites.findUnique({
+      where: { code: responsibleCodeParam(req) },
+      include: { group: true },
+    });
+
+    if (!invite) return res.status(404).json({ success: false, error: 'Convite inválido.' });
+
+    const inviteStatus = mapResponsibleInviteStatus(invite);
+    if (inviteStatus === 'consumed' && invite.accepted_by_passenger_id === user.id) {
+      return res.json({
+        success: true,
+        idempotent: true,
+        data: {
+          invite_id: invite.id,
+          group_id: invite.group_id,
+          status: invite.status,
+        },
+      });
+    }
+    if (inviteStatus !== 'active') {
+      const statusCode = inviteStatus === 'consumed' ? 409 : inviteStatus === 'invalid' ? 404 : 410;
+      return res.status(statusCode).json({ success: false, error: getResponsibleInviteError(inviteStatus) });
+    }
+
+    const consentTextVersion = String(req.body?.consent_text_version || 'v1').trim().slice(0, 50) || 'v1';
+    const now = new Date();
+
+    const result = await db.$transaction(async (tx: any) => {
+      const latestInvite = await tx.kaviar_group_responsible_invites.findUnique({ where: { id: invite.id } });
+      if (!latestInvite) throw Object.assign(new Error('Convite inválido.'), { statusCode: 404 });
+
+      const latestStatus = mapResponsibleInviteStatus(latestInvite);
+      if (latestStatus === 'consumed' && latestInvite.accepted_by_passenger_id === user.id) {
+        return {
+          idempotent: true,
+          invite: latestInvite,
+          member: await tx.kaviar_group_members.findFirst({ where: { group_id: latestInvite.group_id, passenger_id: user.id } }),
+        };
+      }
+      if (latestStatus !== 'active') {
+        const statusCode = latestStatus === 'consumed' ? 409 : latestStatus === 'invalid' ? 404 : 410;
+        throw Object.assign(new Error(getResponsibleInviteError(latestStatus)), { statusCode });
+      }
+
+      const existingMember = await tx.kaviar_group_members.findFirst({
+        where: { group_id: latestInvite.group_id, passenger_id: user.id },
+      });
+
+      if (existingMember?.status === 'blocked') {
+        throw Object.assign(new Error('Você não tem permissão para aceitar este convite.'), { statusCode: 403 });
+      }
+
+      await tx.kaviar_group_members.updateMany({
+        where: {
+          group_id: latestInvite.group_id,
+          role: 'responsible',
+          status: 'active',
+        },
+        data: { role: 'member' },
+      });
+
+      const memberData: any = {
+        user_type: 'passenger',
+        passenger_id: user.id,
+        name: user.name || null,
+        phone: user.phone || null,
+        role: 'responsible',
+        status: 'active',
+        invite_source: 'responsible_invite',
+        joined_at: existingMember?.joined_at || now,
+        consented_at: now,
+      };
+
+      const member = existingMember
+        ? await tx.kaviar_group_members.update({ where: { id: existingMember.id }, data: memberData })
+        : await tx.kaviar_group_members.create({
+          data: {
+            group_id: latestInvite.group_id,
+            ...memberData,
+          },
+        });
+
+      const updatedInvite = await tx.kaviar_group_responsible_invites.update({
+        where: { id: latestInvite.id },
+        data: {
+          status: 'consumed',
+          used_count: 1,
+          accepted_by_member_id: member.id,
+          accepted_by_passenger_id: user.id,
+          consent_text_version: consentTextVersion,
+          consent_given_at: now,
+          accepted_at: now,
+        },
+      });
+
+      return { idempotent: false, invite: updatedInvite, member };
+    });
+
+    await audit({
+      adminId: invite.invited_by_admin_id || 'system',
+      action: 'kaviar_group_responsible_invite_accepted',
+      entityType: 'kaviar_group_responsible_invite',
+      entityId: invite.id,
+      newValue: {
+        group_id: invite.group_id,
+        invite_id: invite.id,
+        accepted_by_passenger_id: user.id,
+        idempotent: !!result.idempotent,
+      },
+      ipAddress: req.ip,
+      userAgent: String(req.headers['user-agent'] || '').slice(0, 200),
+    });
+
+    return res.status(result.idempotent ? 200 : 201).json({
+      success: true,
+      idempotent: !!result.idempotent,
+      data: {
+        invite_id: result.invite.id,
+        group_id: result.invite.group_id,
+        invite_status: result.invite.status,
+        member_id: result.member?.id || null,
+      },
+    });
+  } catch (error: any) {
+    if (error?.statusCode) return res.status(error.statusCode).json({ success: false, error: error.message });
+    console.error('[GROUP_RESPONSIBLE_INVITE_ACCEPT_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Não foi possível concluir o aceite agora. Tente novamente.' });
   }
 });
 

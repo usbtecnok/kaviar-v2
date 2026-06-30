@@ -1,6 +1,9 @@
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+process.env.JWT_SECRET = 'test-secret';
 
 const { prismaMock, authState, auditMock } = vi.hoisted(() => {
   const prismaMock: any = {
@@ -13,12 +16,25 @@ const { prismaMock, authState, auditMock } = vi.hoisted(() => {
       create: vi.fn(),
       update: vi.fn(),
     },
+    kaviar_group_members: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    passengers: {
+      findUnique: vi.fn(),
+    },
+    drivers: {
+      findUnique: vi.fn(),
+    },
     rides_v2: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
+    $transaction: vi.fn(async (callback: any) => callback(prismaMock)),
   };
 
   return {
@@ -60,10 +76,20 @@ vi.mock('../src/middlewares/auth', () => ({
 }));
 
 const { default: adminGroupsRoutes } = await import('../src/routes/admin-groups');
+const { default: groupInvitesRoutes } = await import('../src/routes/group-invites');
 
 const app = express();
 app.use(express.json());
 app.use('/api/admin/groups', adminGroupsRoutes);
+app.use('/api/groups', groupInvitesRoutes);
+
+function passengerAuth(id = 'passenger-1') {
+  return `Bearer ${jwt.sign({ userType: 'PASSENGER', userId: id }, 'test-secret')}`;
+}
+
+function driverAuth(id = 'driver-1') {
+  return `Bearer ${jwt.sign({ userType: 'DRIVER', userId: id }, 'test-secret')}`;
+}
 
 function group(overrides: any = {}) {
   return {
@@ -109,6 +135,26 @@ beforeEach(() => {
   prismaMock.kaviar_group_responsible_invites.update.mockResolvedValue(
     responsibleInvite({ status: 'revoked', revoked_at: new Date() })
   );
+  prismaMock.kaviar_group_members.findFirst.mockResolvedValue(null);
+  prismaMock.kaviar_group_members.updateMany.mockResolvedValue({ count: 1 });
+  prismaMock.kaviar_group_members.create.mockResolvedValue({
+    id: 'member-1',
+    group_id: 'group-1',
+    passenger_id: 'passenger-1',
+    user_type: 'passenger',
+    role: 'responsible',
+    status: 'active',
+  });
+  prismaMock.kaviar_group_members.update.mockResolvedValue({
+    id: 'member-1',
+    group_id: 'group-1',
+    passenger_id: 'passenger-1',
+    user_type: 'passenger',
+    role: 'responsible',
+    status: 'active',
+  });
+  prismaMock.passengers.findUnique.mockResolvedValue({ id: 'passenger-1', name: 'Passageiro', phone: '21999990000' });
+  prismaMock.drivers.findUnique.mockResolvedValue({ id: 'driver-1', name: 'Motorista', phone: '21888880000' });
 
   auditMock.mockResolvedValue(undefined);
 });
@@ -237,5 +283,131 @@ describe('Convite de Responsável do Grupo - admin', () => {
     expect(prismaMock.rides_v2.findUnique).not.toHaveBeenCalled();
     expect(prismaMock.rides_v2.create).not.toHaveBeenCalled();
     expect(prismaMock.rides_v2.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('Convite de Responsável do Grupo - público', () => {
+  it('GET público retorna dados seguros do convite', async () => {
+    prismaMock.kaviar_group_responsible_invites.findUnique.mockResolvedValue(
+      responsibleInvite({
+        group: {
+          id: 'group-1',
+          public_name: 'Grupo KAVIAR Centro',
+          description: 'Mobilidade por convite',
+          territory_id: 'territory-1',
+        },
+      })
+    );
+
+    const res = await request(app).get('/api/groups/responsible-invites/GKR-ABC123XYZ9');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.group.public_name).toBe('Grupo KAVIAR Centro');
+    expect(res.body.data.group.phone).toBeUndefined();
+    expect(res.body.data.group.members).toBeUndefined();
+    expect(res.body.data.group.location).toBeUndefined();
+  });
+
+  it('GET público retorna inválido quando código não existe', async () => {
+    prismaMock.kaviar_group_responsible_invites.findUnique.mockResolvedValue(null);
+
+    const res = await request(app).get('/api/groups/responsible-invites/GKR-INVALIDO');
+
+    expect(res.status).toBe(404);
+  });
+
+  it('POST accept exige consent=true', async () => {
+    prismaMock.kaviar_group_responsible_invites.findUnique.mockResolvedValue(
+      responsibleInvite({ group: group() })
+    );
+
+    const res = await request(app)
+      .post('/api/groups/responsible-invites/GKR-ABC123XYZ9/accept')
+      .set('Authorization', passengerAuth())
+      .send({ consent: false });
+
+    expect(res.status).toBe(400);
+  });
+
+  it('POST accept exige passageiro autenticado', async () => {
+    prismaMock.kaviar_group_responsible_invites.findUnique.mockResolvedValue(
+      responsibleInvite({ group: group() })
+    );
+
+    const res = await request(app)
+      .post('/api/groups/responsible-invites/GKR-ABC123XYZ9/accept')
+      .set('Authorization', driverAuth())
+      .send({ consent: true });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('POST accept promove passageiro para responsible e consome convite', async () => {
+    const active = responsibleInvite({ id: 'resp-invite-1', group: group() });
+    prismaMock.kaviar_group_responsible_invites.findUnique
+      .mockResolvedValueOnce(active)
+      .mockResolvedValueOnce(active);
+
+    const res = await request(app)
+      .post('/api/groups/responsible-invites/GKR-ABC123XYZ9/accept')
+      .set('Authorization', passengerAuth())
+      .send({ consent: true, consent_text_version: 'v1' });
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.kaviar_group_members.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ group_id: 'group-1', role: 'responsible', status: 'active' }),
+        data: { role: 'member' },
+      })
+    );
+    expect(prismaMock.kaviar_group_responsible_invites.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'resp-invite-1' },
+        data: expect.objectContaining({
+          status: 'consumed',
+          used_count: 1,
+          accepted_by_passenger_id: 'passenger-1',
+          consent_text_version: 'v1',
+        }),
+      })
+    );
+  });
+
+  it('POST accept é idempotente para o mesmo passageiro', async () => {
+    const consumedBySame = responsibleInvite({
+      id: 'resp-invite-1',
+      status: 'consumed',
+      used_count: 1,
+      accepted_by_passenger_id: 'passenger-1',
+      group: group(),
+    });
+    prismaMock.kaviar_group_responsible_invites.findUnique.mockResolvedValue(consumedBySame);
+
+    const res = await request(app)
+      .post('/api/groups/responsible-invites/GKR-ABC123XYZ9/accept')
+      .set('Authorization', passengerAuth())
+      .send({ consent: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.idempotent).toBe(true);
+  });
+
+  it('POST accept retorna erro quando convite já foi usado por outra pessoa', async () => {
+    const consumedByOther = responsibleInvite({
+      id: 'resp-invite-1',
+      status: 'consumed',
+      used_count: 1,
+      accepted_by_passenger_id: 'passenger-999',
+      group: group(),
+    });
+    prismaMock.kaviar_group_responsible_invites.findUnique.mockResolvedValue(consumedByOther);
+
+    const res = await request(app)
+      .post('/api/groups/responsible-invites/GKR-ABC123XYZ9/accept')
+      .set('Authorization', passengerAuth())
+      .send({ consent: true });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('Convite já utilizado.');
   });
 });
