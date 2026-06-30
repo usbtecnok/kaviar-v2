@@ -9,6 +9,7 @@ const { prismaMock, authState } = vi.hoisted(() => {
     },
     driver_fixed_route_reservations: {
       findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
     fixed_route_messages: {
       findMany: vi.fn(),
@@ -25,7 +26,13 @@ const { prismaMock, authState } = vi.hoisted(() => {
   };
 });
 
+const pushMock = vi.hoisted(() => ({
+  sendPushToDriver: vi.fn(),
+  sendPushToPassenger: vi.fn(),
+}));
+
 vi.mock('../src/lib/prisma', () => ({ prisma: prismaMock }));
+vi.mock('../src/services/push.service', () => pushMock);
 vi.mock('../src/middlewares/auth', () => ({
   authenticateDriver: (req: any, _res: any, next: any) => {
     req.driver = authState.driver;
@@ -73,6 +80,7 @@ beforeEach(() => {
 
   prismaMock.driver_fixed_routes.findFirst.mockResolvedValue(routeOwned);
   prismaMock.driver_fixed_route_reservations.findFirst.mockResolvedValue(reservationOwned);
+  prismaMock.driver_fixed_route_reservations.findMany.mockResolvedValue([{ passenger_id: 'passenger-1' }]);
   prismaMock.fixed_route_messages.findMany.mockResolvedValue([]);
   prismaMock.fixed_route_messages.create.mockImplementation(async ({ data }: any) => ({
     id: 'msg-1',
@@ -81,6 +89,8 @@ beforeEach(() => {
     metadata: null,
     ...data,
   }));
+  pushMock.sendPushToDriver.mockResolvedValue(undefined);
+  pushMock.sendPushToPassenger.mockResolvedValue(undefined);
 });
 
 describe('fixed route messages', () => {
@@ -99,6 +109,48 @@ describe('fixed route messages', () => {
         recipient_type: 'ROUTE_CONFIRMED_PASSENGERS',
       }),
     }));
+    expect(pushMock.sendPushToPassenger).toHaveBeenCalledWith(
+      'passenger-1',
+      'Aviso da sua Rota Fixa',
+      'O motorista enviou uma atualização da rota.',
+      expect.objectContaining({
+        type: 'fixed_route_message',
+        routeId: 'route-1',
+        messageId: 'msg-1',
+      }),
+    );
+  });
+
+  it('aviso geral notifica apenas reservas confirmed', async () => {
+    prismaMock.driver_fixed_route_reservations.findMany.mockResolvedValue([
+      { passenger_id: 'passenger-confirmed-1' },
+      { passenger_id: 'passenger-confirmed-2' },
+    ]);
+
+    const res = await request(app)
+      .post('/api/driver/fixed-routes/route-1/messages')
+      .send({ message_code: 'AT_MEETING_POINT' });
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.driver_fixed_route_reservations.findMany).toHaveBeenCalledWith({
+      where: { route_id: 'route-1', status: 'confirmed' },
+      select: { passenger_id: true },
+    });
+    expect(pushMock.sendPushToPassenger).toHaveBeenCalledTimes(2);
+    expect(pushMock.sendPushToPassenger).toHaveBeenNthCalledWith(
+      1,
+      'passenger-confirmed-1',
+      'Aviso da sua Rota Fixa',
+      'O motorista enviou uma atualização da rota.',
+      expect.any(Object),
+    );
+    expect(pushMock.sendPushToPassenger).toHaveBeenNthCalledWith(
+      2,
+      'passenger-confirmed-2',
+      'Aviso da sua Rota Fixa',
+      'O motorista enviou uma atualização da rota.',
+      expect.any(Object),
+    );
   });
 
   it('motorista nao dono nao envia nem le', async () => {
@@ -160,6 +212,48 @@ describe('fixed route messages', () => {
         recipient_driver_id: 'driver-1',
       }),
     }));
+    expect(pushMock.sendPushToDriver).toHaveBeenCalledWith(
+      'driver-1',
+      'Mensagem de passageiro',
+      'Um passageiro enviou uma mensagem sobre a Rota Fixa.',
+      expect.objectContaining({
+        type: 'fixed_route_message',
+        routeId: 'route-1',
+        reservationId: 'res-1',
+        messageId: 'msg-1',
+      }),
+    );
+  });
+
+  it('motorista envia mensagem direta e notifica apenas passageiro da reserva', async () => {
+    const res = await request(app)
+      .post('/api/driver/fixed-routes/route-1/reservations/res-1/messages')
+      .send({ message_code: 'PLEASE_CONFIRM' });
+
+    expect(res.status).toBe(201);
+    expect(pushMock.sendPushToPassenger).toHaveBeenCalledTimes(1);
+    expect(pushMock.sendPushToPassenger).toHaveBeenCalledWith(
+      'passenger-1',
+      'Mensagem do motorista',
+      'Você recebeu uma mensagem sobre sua Rota Fixa.',
+      expect.objectContaining({
+        type: 'fixed_route_message',
+        routeId: 'route-1',
+        reservationId: 'res-1',
+        messageId: 'msg-1',
+      }),
+    );
+  });
+
+  it('falha no push nao impede criacao da mensagem', async () => {
+    pushMock.sendPushToPassenger.mockRejectedValueOnce(new Error('push down'));
+
+    const res = await request(app)
+      .post('/api/driver/fixed-routes/route-1/messages')
+      .send({ message_code: 'LEAVING_SOON' });
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.fixed_route_messages.create).toHaveBeenCalledTimes(1);
   });
 
   it('passageiro nao envia em reserva de outro passageiro', async () => {
@@ -190,6 +284,18 @@ describe('fixed route messages', () => {
       .send({ message_code: 'ROUTE_CONFIRMED_TODAY' });
 
     expect(res.status).toBe(409);
+    expect(pushMock.sendPushToPassenger).not.toHaveBeenCalled();
+  });
+
+  it('rota cancelled bloqueia nova mensagem e nao dispara push', async () => {
+    prismaMock.driver_fixed_routes.findFirst.mockResolvedValue({ ...routeOwned, status: 'cancelled' });
+
+    const res = await request(app)
+      .post('/api/driver/fixed-routes/route-1/messages')
+      .send({ message_code: 'ROUTE_CONFIRMED_TODAY' });
+
+    expect(res.status).toBe(409);
+    expect(pushMock.sendPushToPassenger).not.toHaveBeenCalled();
   });
 
   it('nao retorna telefone completo nem dados sensiveis', async () => {
@@ -215,5 +321,17 @@ describe('fixed route messages', () => {
     const payload = JSON.stringify(res.body);
     expect(payload).not.toContain('phone');
     expect(payload).not.toContain('21999999999');
+  });
+
+  it('payload de notificacao nao contem telefone nem dados sensiveis', async () => {
+    await request(app)
+      .post('/api/driver/fixed-routes/route-1/reservations/res-1/messages')
+      .send({ message_code: 'PLEASE_CONFIRM' });
+
+    const payloadArg = pushMock.sendPushToPassenger.mock.calls[0]?.[3] || {};
+    const payloadJson = JSON.stringify(payloadArg);
+    expect(payloadJson).toContain('fixed_route_message');
+    expect(payloadJson).not.toContain('phone');
+    expect(payloadJson).not.toContain('name');
   });
 });

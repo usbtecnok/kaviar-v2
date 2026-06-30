@@ -33,9 +33,33 @@ function parseRideNotification(data: unknown) {
   return null;
 }
 
+function parseFixedRouteNotification(data: unknown) {
+  if (!data || typeof data !== 'object') return null;
+  const payload = data as Record<string, unknown>;
+  if (payload.type !== 'fixed_route_message') return null;
+
+  const routeId = typeof payload.routeId === 'string' ? payload.routeId : '';
+  const messageId = typeof payload.messageId === 'string' ? payload.messageId : '';
+  const reservationId = typeof payload.reservationId === 'string' ? payload.reservationId : '';
+  if (!routeId || !messageId) return null;
+
+  return {
+    type: 'fixed_route_message' as const,
+    routeId,
+    reservationId: reservationId || null,
+    messageId,
+  };
+}
+
 const rideNotificationState = (globalThis as any).__kaviarRideNotificationState || ((globalThis as any).__kaviarRideNotificationState = {
   seenMessageIds: new Set<string>(),
   seenCancelKeys: new Set<string>(),
+});
+
+const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
+  recentRouteIds: new Set<string>(),
+  recentReservationIds: new Set<string>(),
+  seenMessageIds: new Set<string>(),
 });
 
 if (variant === 'driver' || variant === 'passenger') {
@@ -107,24 +131,37 @@ export default function RootLayout() {
 
     if (variant === 'driver' || variant === 'passenger') {
       receivedSub = Notifications.addNotificationReceivedListener((notification) => {
-        const rideEvent = parseRideNotification(notification.request.content.data);
-        if (!rideEvent) return;
+        const data = notification.request.content.data;
+        const rideEvent = parseRideNotification(data);
+        const fixedRouteEvent = parseFixedRouteNotification(data);
 
-        if (rideEvent.type === 'ride_message') {
-          rideNotificationState.seenMessageIds.add(rideEvent.messageId);
+        if (rideEvent) {
+          if (rideEvent.type === 'ride_message') {
+            rideNotificationState.seenMessageIds.add(rideEvent.messageId);
+          }
+
+          if (rideEvent.type === 'ride_cancelled') {
+            rideNotificationState.seenCancelKeys.add(rideEvent.rideId + ':' + rideEvent.cancelledBy);
+          }
         }
 
-        if (rideEvent.type === 'ride_cancelled') {
-          rideNotificationState.seenCancelKeys.add(rideEvent.rideId + ':' + rideEvent.cancelledBy);
+        if (fixedRouteEvent) {
+          fixedRouteNotificationState.recentRouteIds.add(fixedRouteEvent.routeId);
+          fixedRouteNotificationState.seenMessageIds.add(fixedRouteEvent.messageId);
+          if (fixedRouteEvent.reservationId) {
+            fixedRouteNotificationState.recentReservationIds.add(fixedRouteEvent.reservationId);
+          }
         }
 
         const isRideScreen = pathnameRef.current?.startsWith('/(driver)/complete-ride') || pathnameRef.current?.startsWith('/(passenger)/map');
-        if (!isRideScreen && rideEvent.type === 'ride_message') {
+        const isFixedRouteScreen = pathnameRef.current?.startsWith('/(driver)/fixed-routes') || pathnameRef.current?.startsWith('/(passenger)/fixed-routes');
+
+        if (!isRideScreen && rideEvent?.type === 'ride_message') {
           const messageText = RIDE_QUICK_MESSAGE_TEXT_BY_CODE[rideEvent.messageCode as keyof typeof RIDE_QUICK_MESSAGE_TEXT_BY_CODE] || 'Nova mensagem na corrida.';
           Alert.alert('Mensagem na corrida', messageText);
         }
 
-        if (!isRideScreen && rideEvent.type === 'ride_cancelled') {
+        if (!isRideScreen && rideEvent?.type === 'ride_cancelled') {
           Alert.alert(
             'Corrida cancelada',
             rideEvent.cancelledBy === 'passenger'
@@ -132,9 +169,34 @@ export default function RootLayout() {
               : 'O motorista cancelou a corrida.'
           );
         }
+
+        if (!isFixedRouteScreen && fixedRouteEvent?.type === 'fixed_route_message') {
+          Alert.alert('Mensagens da Rota Fixa', 'Voce recebeu uma nova mensagem em sua Rota Fixa.');
+        }
       });
 
-      responseSub = Notifications.addNotificationResponseReceivedListener(() => {
+      responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content.data;
+        const fixedRouteEvent = parseFixedRouteNotification(data);
+        if (fixedRouteEvent) {
+          fixedRouteNotificationState.recentRouteIds.add(fixedRouteEvent.routeId);
+          fixedRouteNotificationState.seenMessageIds.add(fixedRouteEvent.messageId);
+          if (fixedRouteEvent.reservationId) {
+            fixedRouteNotificationState.recentReservationIds.add(fixedRouteEvent.reservationId);
+          }
+
+          if (variant === 'driver') {
+            const routeQuery = `routeId=${encodeURIComponent(fixedRouteEvent.routeId)}`;
+            const reservationQuery = fixedRouteEvent.reservationId ? `&reservationId=${encodeURIComponent(fixedRouteEvent.reservationId)}` : '';
+            router.push(`/(driver)/fixed-routes?${routeQuery}${reservationQuery}`);
+            return;
+          }
+
+          const reservationQuery = fixedRouteEvent.reservationId ? `?reservationId=${encodeURIComponent(fixedRouteEvent.reservationId)}` : '';
+          router.push(`/(passenger)/fixed-routes${reservationQuery}`);
+          return;
+        }
+
         router.push(variant === 'driver' ? '/(driver)/online' : '/(passenger)/map');
       });
     }

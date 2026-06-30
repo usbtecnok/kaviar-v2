@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '../../src/config/colors';
 import {
   driverApi,
@@ -130,8 +130,20 @@ function getErrorMessage(error: unknown, fallback: string) {
   return apiError.response?.data?.error || apiError.message || fallback;
 }
 
+function getFixedRouteNotificationState() {
+  return (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
+    recentRouteIds: new Set<string>(),
+    recentReservationIds: new Set<string>(),
+    seenMessageIds: new Set<string>(),
+  });
+}
+
 export default function DriverFixedRoutesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ routeId?: string; reservationId?: string }>();
+  const handledNotificationOpenRef = useRef('');
+  const fixedRouteNotificationState = getFixedRouteNotificationState();
+  const [, setNotificationTick] = useState(0);
   const [routes, setRoutes] = useState<DriverFixedRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -167,6 +179,53 @@ export default function DriverFixedRoutesScreen() {
   useEffect(() => {
     loadRoutes();
   }, [loadRoutes]);
+
+  useEffect(() => {
+    const routeId = typeof params.routeId === 'string' ? params.routeId : '';
+    const reservationId = typeof params.reservationId === 'string' ? params.reservationId : '';
+    if (!routeId) return;
+
+    const key = `${routeId}:${reservationId}`;
+    if (handledNotificationOpenRef.current === key) return;
+
+    const route = routes.find((item) => item.id === routeId);
+    if (!route) return;
+
+    handledNotificationOpenRef.current = key;
+
+    (async () => {
+      try {
+        if (!routeMessagesByRoute[route.id]) {
+          const data = await driverApi.getFixedRouteMessages(route.id);
+          setRouteMessagesByRoute((current) => ({ ...current, [route.id]: data }));
+        }
+        setOpenRouteComposer((current) => ({ ...current, [route.id]: true }));
+        fixedRouteNotificationState.recentRouteIds.delete(route.id);
+
+        if (reservationId) {
+          if (!reservationsByRoute[route.id]) {
+            const reservations = await driverApi.getFixedRouteReservations(route.id);
+            setReservationsByRoute((current) => ({ ...current, [route.id]: reservations }));
+          }
+          const reservationData = await driverApi.getFixedRouteReservationMessages(route.id, reservationId);
+          setReservationMessagesById((current) => ({ ...current, [reservationId]: reservationData.messages || [] }));
+          setOpenReservationComposer((current) => ({ ...current, [reservationId]: true }));
+          fixedRouteNotificationState.recentReservationIds.delete(reservationId);
+        }
+      } catch {
+        // Keep the screen resilient if opening context from notification fails.
+      } finally {
+        setNotificationTick((current) => current + 1);
+      }
+    })();
+  }, [
+    params.routeId,
+    params.reservationId,
+    routes,
+    routeMessagesByRoute,
+    reservationsByRoute,
+    fixedRouteNotificationState,
+  ]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -394,6 +453,8 @@ export default function DriverFixedRoutesScreen() {
   };
 
   const toggleRouteMessages = async (route: DriverFixedRoute) => {
+    fixedRouteNotificationState.recentRouteIds.delete(route.id);
+    setNotificationTick((current) => current + 1);
     if (routeMessagesByRoute[route.id]) {
       setRouteMessagesByRoute((current) => {
         const next = { ...current };
@@ -436,6 +497,9 @@ export default function DriverFixedRoutesScreen() {
   };
 
   const toggleReservationMessages = async (route: DriverFixedRoute, reservation: DriverFixedRouteReservation) => {
+    fixedRouteNotificationState.recentReservationIds.delete(reservation.id);
+    fixedRouteNotificationState.recentRouteIds.delete(route.id);
+    setNotificationTick((current) => current + 1);
     if (reservationMessagesById[reservation.id]) {
       setReservationMessagesById((current) => {
         const next = { ...current };
@@ -572,7 +636,13 @@ export default function DriverFixedRoutesScreen() {
             )}
 
             <TouchableOpacity style={[styles.smallAction, { marginTop: 8, alignSelf: 'flex-start' }]} onPress={() => toggleReservationMessages(route, reservation)}>
-              <Text style={styles.smallActionText}>{reservationMessagesById[reservation.id] ? 'Ocultar mensagens' : 'Mensagem'}</Text>
+              <Text style={styles.smallActionText}>
+                {reservationMessagesById[reservation.id]
+                  ? 'Ocultar mensagens'
+                  : fixedRouteNotificationState.recentReservationIds.has(reservation.id)
+                    ? 'Mensagem • nova'
+                    : 'Mensagem'}
+              </Text>
             </TouchableOpacity>
 
             {loadingReservationMessages[reservation.id] ? <ActivityIndicator color={COLORS.primary} style={{ marginTop: 8 }} /> : null}
@@ -678,7 +748,13 @@ export default function DriverFixedRoutesScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.outlineButton} onPress={() => toggleRouteMessages(route)}>
             <Ionicons name="chatbubble-ellipses-outline" size={16} color={COLORS.primary} />
-            <Text style={styles.outlineButtonText}>{routeMessagesByRoute[route.id] ? 'Ocultar avisos' : 'Avisos da rota'}</Text>
+            <Text style={styles.outlineButtonText}>
+              {routeMessagesByRoute[route.id]
+                ? 'Ocultar avisos'
+                : fixedRouteNotificationState.recentRouteIds.has(route.id)
+                  ? 'Avisos da rota • recente'
+                  : 'Avisos da rota'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -800,6 +876,9 @@ export default function DriverFixedRoutesScreen() {
         <View style={styles.heroBox}>
           <Text style={styles.heroTitle}>KAVIAR Rotas Fixas</Text>
           <Text style={styles.heroText}>Organize rotas com horario combinado, vaga reservada e valor por passageiro.</Text>
+          {(fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? (
+            <Text style={styles.heroRecentText}>Mensagens recentes: abra os avisos da rota ou conversas com selo novo.</Text>
+          ) : null}
         </View>
 
         {showForm ? renderForm() : (
@@ -866,6 +945,7 @@ const styles = StyleSheet.create({
   heroBox: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, marginBottom: 12 },
   heroTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800' },
   heroText: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 6 },
+  heroRecentText: { color: COLORS.primary, fontSize: 12, fontWeight: '700', marginTop: 8 },
 
   createButton: { backgroundColor: COLORS.primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 },
   createButtonText: { color: COLORS.textDark, fontSize: 14, fontWeight: '800' },

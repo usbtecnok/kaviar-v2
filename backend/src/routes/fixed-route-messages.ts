@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticateDriver, authenticatePassenger } from '../middlewares/auth';
 import { cleanString } from '../services/fixed-route.service';
+import { sendPushToDriver, sendPushToPassenger } from '../services/push.service';
 
 const db = prisma as any;
 
@@ -95,6 +96,62 @@ function mapMessageOutput(row: any) {
   };
 }
 
+function buildPushPayload(routeId: string, messageId: string, reservationId?: string | null) {
+  const payload: Record<string, string> = {
+    type: 'fixed_route_message',
+    routeId,
+    messageId,
+  };
+
+  if (reservationId) {
+    payload.reservationId = reservationId;
+  }
+
+  return payload;
+}
+
+async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: string) {
+  const confirmedReservations = await db.driver_fixed_route_reservations.findMany({
+    where: { route_id: routeId, status: 'confirmed' },
+    select: { passenger_id: true },
+  });
+
+  const uniquePassengerIds = Array.from(new Set(
+    confirmedReservations
+      .map((reservation: any) => String(reservation?.passenger_id || ''))
+      .filter(Boolean),
+  ));
+
+  const payload = buildPushPayload(routeId, messageId);
+
+  await Promise.allSettled(uniquePassengerIds.map((passengerId) => (
+    sendPushToPassenger(
+      passengerId,
+      'Aviso da sua Rota Fixa',
+      'O motorista enviou uma atualização da rota.',
+      payload,
+    )
+  )));
+}
+
+async function notifyPassengerFromReservation(routeId: string, reservationId: string, messageId: string, targetPassengerId: string) {
+  await sendPushToPassenger(
+    targetPassengerId,
+    'Mensagem do motorista',
+    'Você recebeu uma mensagem sobre sua Rota Fixa.',
+    buildPushPayload(routeId, messageId, reservationId),
+  );
+}
+
+async function notifyRouteDriver(routeId: string, reservationId: string, messageId: string, targetDriverId: string) {
+  await sendPushToDriver(
+    targetDriverId,
+    'Mensagem de passageiro',
+    'Um passageiro enviou uma mensagem sobre a Rota Fixa.',
+    buildPushPayload(routeId, messageId, reservationId),
+  );
+}
+
 async function getOwnDriverRoute(req: Request, res: Response) {
   const route = await db.driver_fixed_routes.findFirst({ where: { id: req.params.routeId, driver_id: driverId(req) } });
   if (!route) {
@@ -176,6 +233,14 @@ driverFixedRouteMessagesRoutes.post('/:routeId/messages', async (req: Request, r
       },
     });
 
+    void notifyConfirmedPassengersFromRoute(route.id, created.id).catch((error) => {
+      console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_CONFIRMED_PASSENGERS_ERROR]', {
+        routeId: route.id,
+        messageId: created.id,
+        error: error instanceof Error ? error.message : 'unknown_error',
+      });
+    });
+
     return res.status(201).json({ success: true, data: mapMessageOutput(created) });
   } catch (error) {
     console.error('[FIXED_ROUTE_DRIVER_MESSAGES_CREATE_ERROR]', error);
@@ -250,6 +315,15 @@ driverFixedRouteMessagesRoutes.post('/:routeId/reservations/:reservationId/messa
       },
     });
 
+    void notifyPassengerFromReservation(route.id, reservation.id, created.id, reservation.passenger_id).catch((error) => {
+      console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_PASSENGER_ERROR]', {
+        routeId: route.id,
+        reservationId: reservation.id,
+        messageId: created.id,
+        error: error instanceof Error ? error.message : 'unknown_error',
+      });
+    });
+
     return res.status(201).json({ success: true, data: mapMessageOutput(created) });
   } catch (error) {
     console.error('[FIXED_ROUTE_DRIVER_RESERVATION_MESSAGES_CREATE_ERROR]', error);
@@ -318,6 +392,15 @@ passengerFixedRouteMessagesRoutes.post('/:reservationId/messages', async (req: R
         message_code: built.data.messageCode,
         message_text: built.data.messageText,
       },
+    });
+
+    void notifyRouteDriver(reservation.route_id, reservation.id, created.id, reservation.route.driver_id).catch((error) => {
+      console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_DRIVER_ERROR]', {
+        routeId: reservation.route_id,
+        reservationId: reservation.id,
+        messageId: created.id,
+        error: error instanceof Error ? error.message : 'unknown_error',
+      });
     });
 
     return res.status(201).json({ success: true, data: mapMessageOutput(created) });

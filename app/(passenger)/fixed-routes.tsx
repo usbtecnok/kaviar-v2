@@ -84,11 +84,22 @@ function invitationLead(tripType?: string | null) {
   return 'Ida e volta programadas.';
 }
 
+function getFixedRouteNotificationState() {
+  return (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
+    recentRouteIds: new Set<string>(),
+    recentReservationIds: new Set<string>(),
+    seenMessageIds: new Set<string>(),
+  });
+}
+
 export default function PassengerFixedRoutesScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ inviteCode?: string }>();
+  const params = useLocalSearchParams<{ inviteCode?: string; reservationId?: string }>();
   const normalizedParamCode = useMemo(() => normalizeFixedRouteInviteCode(params?.inviteCode), [params?.inviteCode]);
   const lastAutoFilledCode = useRef('');
+  const handledNotificationOpenRef = useRef('');
+  const fixedRouteNotificationState = getFixedRouteNotificationState();
+  const [, setNotificationTick] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -133,6 +144,31 @@ export default function PassengerFixedRoutesScreen() {
   useEffect(() => {
     if (normalizedParamCode) checkInvite(normalizedParamCode);
   }, [normalizedParamCode]);
+
+  useEffect(() => {
+    const reservationId = typeof params.reservationId === 'string' ? params.reservationId : '';
+    if (!reservationId) return;
+    if (handledNotificationOpenRef.current === reservationId) return;
+
+    const reservation = reservations.find((item) => item.id === reservationId);
+    if (!reservation) return;
+
+    handledNotificationOpenRef.current = reservationId;
+
+    (async () => {
+      try {
+        const data = await passengerApi.getFixedRouteReservationMessages(reservationId);
+        setMessagesByReservation((current) => ({ ...current, [reservationId]: data.messages || [] }));
+        setOpenComposer((current) => ({ ...current, [reservationId]: true }));
+      } catch {
+        // Preserve current screen even when notification context cannot be loaded.
+      } finally {
+        fixedRouteNotificationState.recentReservationIds.delete(reservationId);
+        if (reservation.route_id) fixedRouteNotificationState.recentRouteIds.delete(reservation.route_id);
+        setNotificationTick((current) => current + 1);
+      }
+    })();
+  }, [params.reservationId, reservations, fixedRouteNotificationState]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -203,6 +239,9 @@ export default function PassengerFixedRoutesScreen() {
   };
 
   const toggleMessages = async (reservation: FixedRouteReservation) => {
+    fixedRouteNotificationState.recentReservationIds.delete(reservation.id);
+    if (reservation.route_id) fixedRouteNotificationState.recentRouteIds.delete(reservation.route_id);
+    setNotificationTick((current) => current + 1);
     if (messagesByReservation[reservation.id]) {
       setMessagesByReservation((current) => {
         const next = { ...current };
@@ -311,7 +350,13 @@ export default function PassengerFixedRoutesScreen() {
         )}
 
         <TouchableOpacity style={styles.secondaryBtnInline} onPress={() => toggleMessages(reservation)}>
-          <Text style={styles.secondaryBtnText}>{messagesByReservation[reservation.id] ? 'Ocultar mensagens da rota' : 'Mensagens da rota'}</Text>
+          <Text style={styles.secondaryBtnText}>
+            {messagesByReservation[reservation.id]
+              ? 'Ocultar mensagens da rota'
+              : (fixedRouteNotificationState.recentReservationIds.has(reservation.id) || fixedRouteNotificationState.recentRouteIds.has(route.id))
+                ? 'Mensagens da rota • nova'
+                : 'Mensagens da rota'}
+          </Text>
         </TouchableOpacity>
 
         {loadingMessages[reservation.id] ? <ActivityIndicator color={COLORS.primary} style={{ marginTop: 10 }} /> : null}
@@ -409,6 +454,9 @@ export default function PassengerFixedRoutesScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>Suas reservas</Text>
+        {(fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? (
+          <Text style={styles.recentHint}>Mensagens recentes: abra os cards com selo nova para atualizar a conversa.</Text>
+        ) : null}
         {reservations.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="repeat-outline" size={42} color={COLORS.textMuted} />
@@ -442,6 +490,8 @@ const styles = StyleSheet.create({
   loadingText: { color: COLORS.textSecondary, marginTop: 10 },
   sectionTitle: { color: COLORS.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 8 },
   helperText: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: 12 },
+  recentHint: { color: COLORS.primary, fontSize: 12, fontWeight: '700', marginBottom: 10 },
+
 
   inviteBox: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 14, marginBottom: 14 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
