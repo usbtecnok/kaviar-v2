@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { COLORS } from '../../src/config/colors';
 import { passengerApi } from '../../src/api/passenger.api';
 
@@ -43,15 +43,32 @@ function formatDate(value?: string | null) {
 
 export default function PassengerGroupsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ inviteCode?: string }>();
+  const normalizedInviteCode = useMemo(
+    () => String(params?.inviteCode || '').trim().toUpperCase().replace(/\s+/g, ''),
+    [params?.inviteCode]
+  );
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [code, setCode] = useState('');
   const [groups, setGroups] = useState<Membership[]>([]);
   const [invite, setInvite] = useState<InvitePreview | null>(null);
+  const lastAutoFilledCode = useRef<string>('');
 
   useEffect(() => {
     loadGroups();
   }, []);
+
+  useEffect(() => {
+    if (!normalizedInviteCode) return;
+
+    setCode((currentCode) => {
+      const canReplace = currentCode.trim() === '' || currentCode === lastAutoFilledCode.current;
+      if (!canReplace) return currentCode;
+      lastAutoFilledCode.current = normalizedInviteCode;
+      return normalizedInviteCode;
+    });
+  }, [normalizedInviteCode]);
 
   const loadGroups = async () => {
     try {

@@ -21,6 +21,12 @@ export default function GroupInviteLanding() {
   const [invite, setInvite] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  function handleOpenPassengerApp() {
+    const inviteCode = invite?.code || normalizedCode;
+    const deepLink = `kaviar-passenger://groups?inviteCode=${encodeURIComponent(inviteCode)}`;
+    window.location.href = deepLink;
+  }
+
   function handleCopy() {
     const textToCopy = invite?.code || normalizedCode;
     if (navigator.clipboard) {
@@ -104,11 +110,24 @@ export default function GroupInviteLanding() {
                 <Button
                   variant="contained"
                   fullWidth
+                  onClick={handleOpenPassengerApp}
+                  sx={{ bgcolor: '#2E6AE6', color: '#F9FAFB', fontWeight: 800, mb: 2, '&:hover': { bgcolor: '#1F4FAF' } }}
+                >
+                  Abrir app passageiro
+                </Button>
+
+                <Button
+                  variant="contained"
+                  fullWidth
                   onClick={handleCopy}
                   sx={{ bgcolor: '#C8A84E', color: '#111827', fontWeight: 800, mb: 2, '&:hover': { bgcolor: '#B08E30' } }}
                 >
                   Copiar código
                 </Button>
+
+                <Typography sx={{ color: '#9CA3AF', mb: 2, fontSize: 13 }}>
+                  Se o app não abrir, copie o código ou baixe o app passageiro.
+                </Typography>
 
                 <Typography sx={{ color: '#D1D5DB', mb: 3, fontSize: 14, lineHeight: 1.6 }}>
                   Para entrar, copie o código acima, abra o app <strong>KAVIAR Passageiro</strong> e acesse:<br />
