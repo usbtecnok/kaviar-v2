@@ -10,7 +10,7 @@ import { UpdateRequiredModal } from "../src/components/UpdateRequiredModal";
 import { NetworkProvider } from "../src/hooks/useNetworkStatus";
 import { OfflineBanner } from "../src/components/OfflineBanner";
 import { RIDE_QUICK_MESSAGE_TEXT_BY_CODE } from "../src/config/rideMessages";
-import { getGroupInviteCodeFromUrl, routePassengerInviteUrl, savePendingGroupInviteCode } from "../src/utils/groupInviteDeepLink";
+import { getPassengerInviteCodeFromUrl, routePassengerInviteUrl, savePendingPassengerInviteCode } from "../src/utils/groupInviteDeepLink";
 
 const variant = Constants.expoConfig?.extra?.APP_VARIANT as string | undefined;
 
@@ -96,8 +96,8 @@ export default function RootLayout() {
 
     if (variant === 'passenger') {
       Linking.getInitialURL().then((url) => {
-        const code = getGroupInviteCodeFromUrl(url);
-        if (code) savePendingGroupInviteCode(code).catch(() => {});
+        const code = getPassengerInviteCodeFromUrl(url);
+        if (code) savePendingPassengerInviteCode(code).catch(() => {});
       }).catch(() => {});
 
       linkSub = Linking.addEventListener('url', ({ url }) => {

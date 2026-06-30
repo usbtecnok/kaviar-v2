@@ -9,7 +9,7 @@ import { authApi } from '../../src/api/auth.api';
 import { authStore } from '../../src/auth/auth.store';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
-import { consumePendingGroupInviteCode, passengerGroupsRoute } from '../../src/utils/groupInviteDeepLink';
+import { consumePendingPassengerInviteCode, passengerInviteRoute } from '../../src/utils/groupInviteDeepLink';
 
 const APP_VARIANT = Constants.expoConfig?.extra?.APP_VARIANT || 'driver';
 
@@ -32,8 +32,8 @@ export default function Login() {
       const { token, user } = await loginFn(email, password);
       await authStore.setAuth(token, user);
       if (userType === 'PASSENGER') {
-        const pendingCode = await consumePendingGroupInviteCode();
-        router.replace(pendingCode ? passengerGroupsRoute(pendingCode) : '/(passenger)/home');
+        const pendingCode = await consumePendingPassengerInviteCode();
+        router.replace(pendingCode ? passengerInviteRoute(pendingCode) : '/(passenger)/home');
       } else {
         router.replace(user.status === 'pending' || user.status === 'needs_documents' || user.status === 'rejected' ? '/(driver)/pending-approval' : '/(driver)/online');
       }

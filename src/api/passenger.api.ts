@@ -1,6 +1,51 @@
 import { apiClient } from './client';
 import { Ride } from '../types/ride';
-import { normalizeGroupInviteCode } from '../utils/groupInviteDeepLink';
+import { normalizeFixedRouteInviteCode, normalizeGroupInviteCode } from '../utils/groupInviteDeepLink';
+
+export type FixedRouteInvitePreview = {
+  code: string;
+  status: string;
+  title: string;
+  description?: string | null;
+  origin_label: string;
+  destination_label: string;
+  departure_time: string;
+  return_time: string;
+  days_of_week: number[];
+  seats_total: number;
+  seats_available: number;
+  price_per_passenger_cents: number;
+  driver?: { first_name?: string | null } | null;
+};
+
+export type FixedRouteReservation = {
+  id: string;
+  route_id: string;
+  passenger_id: string;
+  status: string;
+  seats_reserved: number;
+  price_cents: number;
+  kaviar_fee_cents?: number;
+  driver_net_cents?: number;
+  reserved_at?: string;
+  cancelled_at?: string | null;
+  route?: {
+    id: string;
+    title: string;
+    description?: string | null;
+    origin_label: string;
+    destination_label: string;
+    departure_time: string;
+    return_time: string;
+    days_of_week: number[];
+    seats_total: number;
+    seats_available?: number;
+    price_per_passenger_cents: number;
+    status: string;
+    invite_code: string;
+    driver?: { id: string; name?: string | null } | null;
+  };
+};
 
 interface RequestRideParams {
   origin: { lat: number; lng: number; text?: string };
@@ -43,6 +88,28 @@ export const passengerApi = {
     const normalized = normalizeGroupInviteCode(code);
     const { data } = await apiClient.post(`/api/groups/responsible-invites/${encodeURIComponent(normalized)}/accept`, { consent: true });
     return data;
+  },
+
+  getFixedRouteInvite: async (code: string): Promise<FixedRouteInvitePreview> => {
+    const normalized = normalizeFixedRouteInviteCode(code);
+    const { data } = await apiClient.get(`/api/fixed-routes/invites/${encodeURIComponent(normalized)}`);
+    return data.data;
+  },
+
+  reserveFixedRoute: async (code: string): Promise<FixedRouteReservation> => {
+    const normalized = normalizeFixedRouteInviteCode(code);
+    const { data } = await apiClient.post(`/api/fixed-routes/invites/${encodeURIComponent(normalized)}/reserve`, { seats_reserved: 1 });
+    return data.data;
+  },
+
+  getMyFixedRouteReservations: async (): Promise<FixedRouteReservation[]> => {
+    const { data } = await apiClient.get('/api/passenger/fixed-route-reservations');
+    return data.data || [];
+  },
+
+  cancelFixedRouteReservation: async (id: string): Promise<FixedRouteReservation> => {
+    const { data } = await apiClient.patch(`/api/passenger/fixed-route-reservations/${encodeURIComponent(id)}/cancel`, {});
+    return data.data;
   },
 
   getGroupPosts: async (groupId: string) => {
