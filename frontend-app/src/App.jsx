@@ -43,6 +43,7 @@ import PetLanding from "./pages/PetLanding";
 import PetRideRequest from "./pages/PetRideRequest";
 import GroupInviteLanding from "./pages/GroupInviteLanding";
 import ResponsibleInviteLanding from "./pages/ResponsibleInviteLanding";
+import FixedRouteInviteLanding from "./pages/FixedRouteInviteLanding";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { RideProvider } from "./contexts/RideContext";
 import { DriverProvider } from "./contexts/DriverContext";
@@ -468,6 +469,7 @@ export default function App() {
           <Route path="/convite/grupo/:code" element={<GroupInviteLanding />} />
           <Route path="/grupos/responsavel/:code" element={<ResponsibleInviteLanding />} />
           <Route path="/convite/responsavel/:code" element={<ResponsibleInviteLanding />} />
+          <Route path="/rotas-fixas/:code" element={<FixedRouteInviteLanding />} />
           <Route path="/admin/convite-expirado" element={<ConviteExpirado />} />
           {/* First access motorista */}
           <Route path="/motorista/definir-senha" element={<SetPassword />} />
