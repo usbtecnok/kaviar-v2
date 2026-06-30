@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TouchableWithoutFeedback,
-  Animated, Dimensions, Platform, StatusBar,
+  Animated, Dimensions, Platform, ScrollView, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const DRAWER_W = SCREEN_W * 0.78;
@@ -29,6 +30,7 @@ interface Props {
 export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Props) {
   const slideAnim = useRef(new Animated.Value(-DRAWER_W)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (visible) {
@@ -58,7 +60,16 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
       </TouchableWithoutFeedback>
 
       {/* Drawer panel */}
-      <Animated.View style={[s.drawer, { transform: [{ translateX: slideAnim }] }]}>
+      <Animated.View
+        style={[
+          s.drawer,
+          {
+            transform: [{ translateX: slideAnim }],
+            paddingTop: Math.max(STATUSBAR_H, insets.top),
+            paddingBottom: Math.max(insets.bottom, 12),
+          },
+        ]}
+      >
         {/* Header */}
         <View style={s.header}>
           <View style={s.avatar}>
@@ -70,9 +81,13 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
         </View>
 
         {/* Items */}
-        <View style={s.itemsContainer}>
+        <ScrollView
+          style={s.itemsContainer}
+          contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 12) + 8 }}
+          showsVerticalScrollIndicator={false}
+          bounces
+        >
           {items.map((item, i) => {
-            const isLast = i === items.length - 1;
             return (
               <React.Fragment key={item.key}>
                 {/* Separator before logout */}
@@ -106,7 +121,7 @@ export function DrawerMenu({ visible, onClose, userName, userPhone, items }: Pro
               </React.Fragment>
             );
           })}
-        </View>
+        </ScrollView>
 
         {/* Footer */}
         <View style={s.footer}>
@@ -131,7 +146,6 @@ const s = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRightWidth: 1,
     borderRightColor: COLORS.border,
-    paddingTop: STATUSBAR_H,
   },
   // Header
   header: {
@@ -200,7 +214,8 @@ const s = StyleSheet.create({
   },
   // Footer
   footer: {
-    paddingVertical: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
     paddingHorizontal: 24,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
