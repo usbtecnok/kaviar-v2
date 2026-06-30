@@ -12,6 +12,7 @@ import {
   mapRouteWithAvailability,
   parseDaysOfWeek,
   parseHHmm,
+  parseTripType,
   uniqueFixedRouteInviteCode,
 } from '../services/fixed-route.service';
 
@@ -24,7 +25,7 @@ function driverId(req: Request) {
   return (req as any).driver?.id || (req as any).driverId || (req as any).userId;
 }
 
-function validateRouteBody(body: any, partial = false) {
+function validateRouteBody(body: any, partial = false, existingRoute?: any) {
   const data: any = {};
   if (!partial || body.title !== undefined) {
     const title = cleanString(body.title, 120);
@@ -42,16 +43,33 @@ function validateRouteBody(body: any, partial = false) {
     if (!destination) return { error: 'Destino geral é obrigatório' };
     data.destination_label = destination;
   }
-  if (!partial || body.departure_time !== undefined) {
-    const departure = parseHHmm(body.departure_time);
-    if (!departure) return { error: 'Horário de ida deve estar no formato HH:mm' };
-    data.departure_time = departure;
+
+  if (!partial || body.trip_type !== undefined) {
+    const tripType = parseTripType(body.trip_type || 'round_trip');
+    if (!tripType) return { error: 'Tipo de rota inválido' };
+    data.trip_type = tripType;
   }
-  if (!partial || body.return_time !== undefined) {
-    const returnTime = parseHHmm(body.return_time);
-    if (!returnTime) return { error: 'Horário de volta deve estar no formato HH:mm' };
-    data.return_time = returnTime;
+
+  if (body.departure_time !== undefined) {
+    if (body.departure_time === null || body.departure_time === '') {
+      data.departure_time = null;
+    } else {
+      const departure = parseHHmm(body.departure_time);
+      if (!departure) return { error: 'Horário de ida deve estar no formato HH:mm' };
+      data.departure_time = departure;
+    }
   }
+
+  if (body.return_time !== undefined) {
+    if (body.return_time === null || body.return_time === '') {
+      data.return_time = null;
+    } else {
+      const returnTime = parseHHmm(body.return_time);
+      if (!returnTime) return { error: 'Horário de volta deve estar no formato HH:mm' };
+      data.return_time = returnTime;
+    }
+  }
+
   if (!partial || body.days_of_week !== undefined) {
     const days = parseDaysOfWeek(body.days_of_week);
     if (!days) return { error: 'Dias da semana devem ser números de 1 a 7' };
@@ -67,6 +85,7 @@ function validateRouteBody(body: any, partial = false) {
     if (!Number.isInteger(price) || price <= 0) return { error: 'Valor por passageiro é obrigatório' };
     data.price_per_passenger_cents = price;
   }
+
   for (const key of ['suggested_price_cents', 'min_price_cents', 'max_price_cents']) {
     if (body[key] !== undefined) {
       const value = body[key] === null || body[key] === '' ? null : Number(body[key]);
@@ -74,8 +93,28 @@ function validateRouteBody(body: any, partial = false) {
       data[key] = value;
     }
   }
+
   if (body.territory_id !== undefined) data.territory_id = cleanString(body.territory_id, 255) || null;
   if (body.neighborhood_id !== undefined) data.neighborhood_id = cleanString(body.neighborhood_id, 255) || null;
+
+  const finalTripType = data.trip_type || existingRoute?.trip_type || 'round_trip';
+  const finalDeparture = data.departure_time !== undefined ? data.departure_time : existingRoute?.departure_time;
+  const finalReturn = data.return_time !== undefined ? data.return_time : existingRoute?.return_time;
+
+  if (finalTripType === 'round_trip') {
+    if (!finalDeparture || !finalReturn) return { error: 'Rota ida e volta exige horário de ida e de volta' };
+    data.departure_time = finalDeparture;
+    data.return_time = finalReturn;
+  } else if (finalTripType === 'one_way_outbound') {
+    if (!finalDeparture) return { error: 'Rota só ida exige horário de ida' };
+    data.departure_time = finalDeparture;
+    data.return_time = null;
+  } else if (finalTripType === 'one_way_return') {
+    if (!finalReturn) return { error: 'Rota só volta exige horário de volta' };
+    data.departure_time = null;
+    data.return_time = finalReturn;
+  }
+
   return { data };
 }
 
@@ -91,7 +130,7 @@ async function getOwnRoute(req: Request, res: Response) {
 router.get('/', async (req: Request, res: Response) => {
   try {
     const routes = await db.driver_fixed_routes.findMany({
-      where: { driver_id: driverId(req) },
+      where: { driver_id: driverId(req), status: { not: 'archived' } },
       orderBy: { created_at: 'desc' },
       take: Math.min(Number(req.query.limit) || 100, 200),
     });
@@ -109,7 +148,7 @@ router.post('/', async (req: Request, res: Response) => {
     if (!isApprovedActiveCarDriver(driver)) {
       return res.status(403).json({ success: false, error: 'Apenas motoristas aprovados e ativos com carro podem criar Rotas Fixas.' });
     }
-    const built = validateRouteBody(req.body);
+    const built = validateRouteBody(req.body, false);
     if ('error' in built) return res.status(400).json({ success: false, error: built.error });
 
     const route = await db.driver_fixed_routes.create({
@@ -145,7 +184,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
     const route = await getOwnRoute(req, res);
     if (!route) return;
     if (route.status === 'cancelled' || route.status === 'archived') return res.status(409).json({ success: false, error: 'Rota fixa não pode ser editada neste status' });
-    const built = validateRouteBody(req.body, true);
+    const built = validateRouteBody(req.body, true, route);
     if ('error' in built) return res.status(400).json({ success: false, error: built.error });
     if (built.data.seats_total !== undefined) {
       const reservedSeats = await confirmedSeats(db, route.id);
@@ -166,6 +205,8 @@ router.patch('/:id/pause', async (req: Request, res: Response) => {
   try {
     const route = await getOwnRoute(req, res);
     if (!route) return;
+    if (route.status === 'archived') return res.status(409).json({ success: false, error: 'Rota arquivada não pode ser pausada' });
+    if (route.status !== 'active') return res.status(409).json({ success: false, error: 'Somente rotas ativas podem ser pausadas' });
     const updated = await db.driver_fixed_routes.update({ where: { id: route.id }, data: { status: 'paused', paused_at: new Date() } });
     await createFixedRouteEvent(db, { route_id: route.id, actor_type: 'DRIVER', actor_id: driverId(req), action: 'route_paused' });
     return res.json({ success: true, data: mapRouteWithAvailability(updated, await confirmedSeats(db, route.id)) });
@@ -179,12 +220,55 @@ router.patch('/:id/cancel', async (req: Request, res: Response) => {
   try {
     const route = await getOwnRoute(req, res);
     if (!route) return;
+    if (route.status === 'archived') return res.status(409).json({ success: false, error: 'Rota arquivada não pode ser cancelada' });
+    if (route.status === 'cancelled') return res.status(409).json({ success: false, error: 'Rota já está cancelada' });
     const updated = await db.driver_fixed_routes.update({ where: { id: route.id }, data: { status: 'cancelled', cancelled_at: new Date() } });
     await createFixedRouteEvent(db, { route_id: route.id, actor_type: 'DRIVER', actor_id: driverId(req), action: 'route_cancelled' });
     return res.json({ success: true, data: mapRouteWithAvailability(updated, await confirmedSeats(db, route.id)) });
   } catch (error) {
     console.error('[DRIVER_FIXED_ROUTES_CANCEL_ERROR]', error);
     return res.status(500).json({ success: false, error: 'Erro ao cancelar rota fixa' });
+  }
+});
+
+router.patch('/:id/reactivate', async (req: Request, res: Response) => {
+  try {
+    const route = await getOwnRoute(req, res);
+    if (!route) return;
+    if (route.status === 'archived') return res.status(409).json({ success: false, error: 'Rota arquivada não pode ser reativada neste MVP' });
+    if (route.status !== 'cancelled' && route.status !== 'paused') {
+      return res.status(409).json({ success: false, error: 'Somente rotas pausadas ou canceladas podem ser reativadas' });
+    }
+
+    const updated = await db.driver_fixed_routes.update({
+      where: { id: route.id },
+      data: { status: 'active', paused_at: null, cancelled_at: null },
+    });
+    await createFixedRouteEvent(db, { route_id: route.id, actor_type: 'DRIVER', actor_id: driverId(req), action: 'route_reactivated' });
+    return res.json({ success: true, data: mapRouteWithAvailability(updated, await confirmedSeats(db, route.id)) });
+  } catch (error) {
+    console.error('[DRIVER_FIXED_ROUTES_REACTIVATE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao reativar rota fixa' });
+  }
+});
+
+router.patch('/:id/archive', async (req: Request, res: Response) => {
+  try {
+    const route = await getOwnRoute(req, res);
+    if (!route) return;
+    if (route.status === 'archived') {
+      return res.status(409).json({ success: false, error: 'Rota já está arquivada' });
+    }
+    if (route.status === 'active') {
+      return res.status(409).json({ success: false, error: 'Pause ou cancele a rota antes de arquivar' });
+    }
+
+    const updated = await db.driver_fixed_routes.update({ where: { id: route.id }, data: { status: 'archived' } });
+    await createFixedRouteEvent(db, { route_id: route.id, actor_type: 'DRIVER', actor_id: driverId(req), action: 'route_archived' });
+    return res.json({ success: true, data: mapRouteWithAvailability(updated, await confirmedSeats(db, route.id)) });
+  } catch (error) {
+    console.error('[DRIVER_FIXED_ROUTES_ARCHIVE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao arquivar rota fixa' });
   }
 });
 

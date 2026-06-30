@@ -2,6 +2,8 @@ import crypto from 'crypto';
 
 export const FIXED_ROUTE_ACTIVE_RESERVATION_STATUSES = ['confirmed'];
 export const FIXED_ROUTE_STATUSES = ['active', 'paused', 'cancelled', 'archived'];
+export const FIXED_ROUTE_TRIP_TYPES = ['one_way_outbound', 'one_way_return', 'round_trip'] as const;
+export type FixedRouteTripType = typeof FIXED_ROUTE_TRIP_TYPES[number];
 export const FIXED_ROUTE_DRIVER_RESERVATION_STATUSES = ['confirmed', 'cancelled_by_driver', 'completed', 'no_show'];
 
 export function normalizeFixedRouteInviteCode(value?: string | null): string {
@@ -46,6 +48,13 @@ export function parseDaysOfWeek(value: any): number[] | null {
   return days.sort((a, b) => a - b);
 }
 
+export function parseTripType(value: any): FixedRouteTripType | null {
+  const normalized = String(value || '').trim();
+  if (!normalized) return null;
+  if (!FIXED_ROUTE_TRIP_TYPES.includes(normalized as FixedRouteTripType)) return null;
+  return normalized as FixedRouteTripType;
+}
+
 export function isApprovedActiveCarDriver(driver: any): boolean {
   if (!driver) return false;
   if (driver.deleted_at || driver.banned_at || driver.suspended_at) return false;
@@ -58,6 +67,7 @@ export function buildPublicFixedRoutePayload(route: any, seatsAvailable: number)
   return {
     code: route.invite_code,
     status: route.status,
+    trip_type: route.trip_type || 'round_trip',
     title: route.title,
     description: route.description,
     origin_label: route.origin_label,

@@ -55,6 +55,24 @@ function formatDays(days) {
     .join('  ·  ');
 }
 
+function tripTypeLabel(tripType) {
+  if (tripType === 'one_way_outbound') return 'Só ida';
+  if (tripType === 'one_way_return') return 'Só volta';
+  return 'Ida e volta';
+}
+
+function tripTypeLead(tripType) {
+  if (tripType === 'one_way_outbound') return 'Ida programada com horário combinado.';
+  if (tripType === 'one_way_return') return 'Volta programada com horário combinado.';
+  return 'Ida e volta programadas.';
+}
+
+function scheduleText(tripType, departureTime, returnTime) {
+  if (tripType === 'one_way_outbound') return `Ida programada: ${departureTime || '-'}`;
+  if (tripType === 'one_way_return') return `Volta programada: ${returnTime || '-'}`;
+  return `Ida: ${departureTime || '-'} · Volta: ${returnTime || '-'}`;
+}
+
 function fallbackCopy(text) {
   const el = document.createElement('textarea');
   el.value = text;
@@ -152,7 +170,7 @@ export default function FixedRouteInviteLanding() {
   async function copyInviteText() {
     const inviteCode = invite?.code || normalizedCode;
     const text = [
-      'Tenho uma Rota Fixa no KAVIAR com ida e volta programadas.',
+      `Tenho uma Rota Fixa no KAVIAR. ${tripTypeLead(invite?.trip_type || 'round_trip')}`,
       'Para reservar sua vaga, baixe o app Passageiro e use o código:',
       inviteCode,
       'Link:',
@@ -177,6 +195,7 @@ export default function FixedRouteInviteLanding() {
 
   const routeTitle = invite?.title || 'Rota Fixa KAVIAR';
   const driverName = invite?.driver?.first_name || invite?.driver?.name || '';
+  const tripType = invite?.trip_type || 'round_trip';
 
   return (
     <Box
@@ -209,7 +228,7 @@ export default function FixedRouteInviteLanding() {
               Reserve sua vaga com horário combinado.
             </Typography>
             <Typography sx={{ color: '#A8B3C7', mb: 3 }}>
-              Ida e volta programadas.
+              {tripTypeLead(tripType)}
             </Typography>
 
             {loading ? (
@@ -270,12 +289,12 @@ export default function FixedRouteInviteLanding() {
 
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2} sx={{ mb: 2 }}>
                   <Box sx={{ flex: 1, border: '1px solid #2A344A', borderRadius: 2, p: 1.6, bgcolor: '#0E1628' }}>
-                    <Typography sx={{ color: '#8FA2C7', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Ida</Typography>
-                    <Typography sx={{ color: '#F1F5F9', fontWeight: 800, fontSize: 17 }}>{invite?.departure_time || '-'}</Typography>
+                    <Typography sx={{ color: '#8FA2C7', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Tipo</Typography>
+                    <Typography sx={{ color: '#F1F5F9', fontWeight: 800, fontSize: 17 }}>{tripTypeLabel(tripType)}</Typography>
                   </Box>
                   <Box sx={{ flex: 1, border: '1px solid #2A344A', borderRadius: 2, p: 1.6, bgcolor: '#0E1628' }}>
-                    <Typography sx={{ color: '#8FA2C7', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Volta</Typography>
-                    <Typography sx={{ color: '#F1F5F9', fontWeight: 800, fontSize: 17 }}>{invite?.return_time || '-'}</Typography>
+                    <Typography sx={{ color: '#8FA2C7', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Horário</Typography>
+                    <Typography sx={{ color: '#F1F5F9', fontWeight: 800, fontSize: 17 }}>{scheduleText(tripType, invite?.departure_time, invite?.return_time)}</Typography>
                   </Box>
                 </Stack>
 

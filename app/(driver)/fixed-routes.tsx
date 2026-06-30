@@ -47,6 +47,14 @@ const RESERVATION_STATUS_LABELS: Record<string, string> = {
   no_show: 'Ausente',
 };
 
+const TRIP_TYPE_OPTIONS = [
+  { value: 'one_way_outbound', label: 'So ida' },
+  { value: 'one_way_return', label: 'So volta' },
+  { value: 'round_trip', label: 'Ida e volta' },
+] as const;
+
+type TripType = typeof TRIP_TYPE_OPTIONS[number]['value'];
+
 const PUBLIC_FIXED_ROUTE_URL = 'https://kaviar.com.br/rotas-fixas';
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 type ApiError = { response?: { data?: { error?: string } }; message?: string };
@@ -54,6 +62,7 @@ type ApiError = { response?: { data?: { error?: string } }; message?: string };
 function emptyForm() {
   return {
     title: '',
+    trip_type: 'round_trip' as TripType,
     origin_label: '',
     destination_label: '',
     departure_time: '',
@@ -82,6 +91,18 @@ function formatDays(days: number[] = []) {
   return days
     .map((day) => DAY_OPTIONS.find((item) => item.value === day)?.label || String(day))
     .join(', ');
+}
+
+function tripTypeLabel(tripType?: string | null) {
+  if (tripType === 'one_way_outbound') return 'So ida';
+  if (tripType === 'one_way_return') return 'So volta';
+  return 'Ida e volta';
+}
+
+function scheduleLabel(route: DriverFixedRoute) {
+  if (route.trip_type === 'one_way_outbound') return `Ida programada: ${route.departure_time || '-'}`;
+  if (route.trip_type === 'one_way_return') return `Volta programada: ${route.return_time || '-'}`;
+  return `Ida: ${route.departure_time || '-'} · Volta: ${route.return_time || '-'}`;
 }
 
 function feePercent(route: DriverFixedRoute) {
@@ -152,6 +173,7 @@ export default function DriverFixedRoutesScreen() {
     setEditingRouteId(route.id);
     setForm({
       title: route.title || '',
+      trip_type: (route.trip_type || 'round_trip') as TripType,
       origin_label: route.origin_label || '',
       destination_label: route.destination_label || '',
       departure_time: route.departure_time || '',
@@ -167,12 +189,15 @@ export default function DriverFixedRoutesScreen() {
   const buildPayload = (): DriverFixedRoutePayload | null => {
     const price = parseMoneyToCents(form.price);
     const seats = Number(form.seats_total);
+    const departure = form.departure_time.trim();
+    const returnTime = form.return_time.trim();
     const payload: DriverFixedRoutePayload = {
       title: form.title.trim(),
+      trip_type: form.trip_type,
       origin_label: form.origin_label.trim(),
       destination_label: form.destination_label.trim(),
-      departure_time: form.departure_time.trim(),
-      return_time: form.return_time.trim(),
+      departure_time: form.trip_type === 'one_way_return' ? null : departure,
+      return_time: form.trip_type === 'one_way_outbound' ? null : returnTime,
       days_of_week: form.days_of_week,
       seats_total: seats,
       price_per_passenger_cents: price,
@@ -183,10 +208,26 @@ export default function DriverFixedRoutesScreen() {
       Alert.alert('Dados obrigatorios', 'Informe titulo, origem geral e destino geral.');
       return null;
     }
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(payload.departure_time) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(payload.return_time)) {
-      Alert.alert('Horario invalido', 'Use o formato HH:mm para ida e volta.');
-      return null;
+
+    if (payload.trip_type === 'round_trip') {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(departure) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(returnTime)) {
+        Alert.alert('Horario invalido', 'Use o formato HH:mm para ida e volta.');
+        return null;
+      }
     }
+    if (payload.trip_type === 'one_way_outbound') {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(departure)) {
+        Alert.alert('Horario invalido', 'Use o formato HH:mm para a ida.');
+        return null;
+      }
+    }
+    if (payload.trip_type === 'one_way_return') {
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(returnTime)) {
+        Alert.alert('Horario invalido', 'Use o formato HH:mm para a volta.');
+        return null;
+      }
+    }
+
     if (payload.days_of_week.length === 0) {
       Alert.alert('Dias da semana', 'Escolha pelo menos um dia da semana.');
       return null;
@@ -267,6 +308,33 @@ export default function DriverFixedRoutesScreen() {
     ]);
   };
 
+  const reactivateRoute = async (route: DriverFixedRoute) => {
+    try {
+      await driverApi.reactivateFixedRoute(route.id);
+      await loadRoutes();
+    } catch (error: unknown) {
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel reativar a rota.'));
+    }
+  };
+
+  const archiveRoute = (route: DriverFixedRoute) => {
+    Alert.alert('Arquivar rota', 'A rota arquivada sai da lista principal e nao aceita novas reservas.', [
+      { text: 'Voltar', style: 'cancel' },
+      {
+        text: 'Arquivar',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await driverApi.archiveFixedRoute(route.id);
+            await loadRoutes();
+          } catch (error: unknown) {
+            Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel arquivar a rota.'));
+          }
+        },
+      },
+    ]);
+  };
+
   const loadReservations = async (route: DriverFixedRoute) => {
     if (reservationsByRoute[route.id]) {
       setReservationsByRoute((current) => {
@@ -309,9 +377,29 @@ export default function DriverFixedRoutesScreen() {
       <Input label="Origem geral" value={form.origin_label} onChangeText={(value) => updateForm('origin_label', value)} placeholder="Bairro ou ponto de referencia" />
       <Input label="Destino geral" value={form.destination_label} onChangeText={(value) => updateForm('destination_label', value)} placeholder="Regiao de destino" />
 
+      <Text style={styles.label}>Tipo de rota</Text>
+      <View style={styles.tripTypeRow}>
+        {TRIP_TYPE_OPTIONS.map((option) => {
+          const selected = form.trip_type === option.value;
+          return (
+            <TouchableOpacity
+              key={option.value}
+              style={[styles.tripTypeChip, selected && styles.tripTypeChipActive]}
+              onPress={() => updateForm('trip_type', option.value)}
+            >
+              <Text style={[styles.tripTypeChipText, selected && styles.tripTypeChipTextActive]}>{option.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <View style={styles.twoColumns}>
-        <Input label="Ida" value={form.departure_time} onChangeText={(value) => updateForm('departure_time', value)} placeholder="07:30" keyboardType="numbers-and-punctuation" half />
-        <Input label="Volta" value={form.return_time} onChangeText={(value) => updateForm('return_time', value)} placeholder="18:10" keyboardType="numbers-and-punctuation" half />
+        {form.trip_type !== 'one_way_return' && (
+          <Input label="Horario de ida" value={form.departure_time} onChangeText={(value) => updateForm('departure_time', value)} placeholder="07:30" keyboardType="numbers-and-punctuation" half />
+        )}
+        {form.trip_type !== 'one_way_outbound' && (
+          <Input label="Horario de volta" value={form.return_time} onChangeText={(value) => updateForm('return_time', value)} placeholder="18:10" keyboardType="numbers-and-punctuation" half />
+        )}
       </View>
 
       <Text style={styles.label}>Dias da semana</Text>
@@ -384,7 +472,9 @@ export default function DriverFixedRoutesScreen() {
     const percent = feePercent(route);
     const feeCents = Math.round(route.price_per_passenger_cents * percent / 100);
     const driverNetCents = route.price_per_passenger_cents - feeCents;
-    const canManage = route.status !== 'cancelled' && route.status !== 'archived';
+    const canEdit = route.status === 'active' || route.status === 'paused';
+    const canReactivate = route.status === 'paused' || route.status === 'cancelled';
+    const canArchive = route.status === 'paused' || route.status === 'cancelled';
 
     return (
       <View key={route.id} style={styles.card}>
@@ -402,8 +492,8 @@ export default function DriverFixedRoutesScreen() {
 
         <View style={styles.infoGrid}>
           <Info label="Dias" value={formatDays(route.days_of_week)} icon="calendar-outline" />
-          <Info label="Ida" value={route.departure_time} icon="arrow-up-circle-outline" />
-          <Info label="Volta" value={route.return_time} icon="arrow-down-circle-outline" />
+          <Info label="Tipo" value={tripTypeLabel(route.trip_type)} icon="swap-horizontal-outline" />
+          <Info label="Horario" value={scheduleLabel(route)} icon="time-outline" />
           <Info label="Vagas" value={`${route.seats_available ?? '-'} de ${route.seats_total}`} icon="person-outline" />
           <Info label="Valor" value={formatMoney(route.price_per_passenger_cents)} icon="cash-outline" />
           <Info label="Taxa KAVIAR" value={percent ? `${percent}% (${formatMoney(feeCents)})` : '-'} icon="receipt-outline" />
@@ -431,25 +521,41 @@ export default function DriverFixedRoutesScreen() {
           </TouchableOpacity>
         </View>
 
-        {canManage && (
+        {route.status !== 'archived' && (
           <>
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.outlineButton} onPress={() => startEdit(route)}>
-                <Ionicons name="create-outline" size={16} color={COLORS.primary} />
-                <Text style={styles.outlineButtonText}>Editar</Text>
-              </TouchableOpacity>
+              {canEdit && (
+                <TouchableOpacity style={styles.outlineButton} onPress={() => startEdit(route)}>
+                  <Ionicons name="create-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.outlineButtonText}>Editar</Text>
+                </TouchableOpacity>
+              )}
               {route.status === 'active' && (
                 <TouchableOpacity style={styles.outlineButton} onPress={() => pauseRoute(route)}>
                   <Ionicons name="pause-outline" size={16} color={COLORS.primary} />
                   <Text style={styles.outlineButtonText}>Pausar</Text>
                 </TouchableOpacity>
               )}
+              {canReactivate && (
+                <TouchableOpacity style={styles.outlineButton} onPress={() => reactivateRoute(route)}>
+                  <Ionicons name="play-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.outlineButtonText}>Reativar</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.actionRow}>
-              <TouchableOpacity style={styles.dangerButton} onPress={() => cancelRoute(route)}>
-                <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
-                <Text style={styles.dangerButtonText}>Cancelar rota</Text>
-              </TouchableOpacity>
+              {route.status !== 'cancelled' && (
+                <TouchableOpacity style={styles.dangerButton} onPress={() => cancelRoute(route)}>
+                  <Ionicons name="close-circle-outline" size={16} color={COLORS.danger} />
+                  <Text style={styles.dangerButtonText}>Cancelar rota</Text>
+                </TouchableOpacity>
+              )}
+              {canArchive && (
+                <TouchableOpacity style={styles.dangerButton} onPress={() => archiveRoute(route)}>
+                  <Ionicons name="archive-outline" size={16} color={COLORS.danger} />
+                  <Text style={styles.dangerButtonText}>Excluir/Arquivar</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </>
         )}
@@ -489,7 +595,7 @@ export default function DriverFixedRoutesScreen() {
       >
         <View style={styles.heroBox}>
           <Text style={styles.heroTitle}>KAVIAR Rotas Fixas</Text>
-          <Text style={styles.heroText}>Organize ida e volta programadas, horario combinado, vaga reservada e valor por passageiro.</Text>
+          <Text style={styles.heroText}>Organize rotas com horario combinado, vaga reservada e valor por passageiro.</Text>
         </View>
 
         {showForm ? renderForm() : (
@@ -580,6 +686,11 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 82, paddingTop: 10, textAlignVertical: 'top' },
   twoColumns: { flexDirection: 'row', gap: 10 },
   daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  tripTypeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  tripTypeChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
+  tripTypeChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  tripTypeChipText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '700' },
+  tripTypeChipTextActive: { color: COLORS.textDark },
   dayChip: { minWidth: 43, alignItems: 'center', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
   dayChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   dayChipText: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '700' },

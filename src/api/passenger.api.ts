@@ -5,12 +5,13 @@ import { normalizeFixedRouteInviteCode, normalizeGroupInviteCode } from '../util
 export type FixedRouteInvitePreview = {
   code: string;
   status: string;
+  trip_type: 'one_way_outbound' | 'one_way_return' | 'round_trip' | string;
   title: string;
   description?: string | null;
   origin_label: string;
   destination_label: string;
-  departure_time: string;
-  return_time: string;
+  departure_time?: string | null;
+  return_time?: string | null;
   days_of_week: number[];
   seats_total: number;
   seats_available: number;
@@ -33,10 +34,11 @@ export type FixedRouteReservation = {
     id: string;
     title: string;
     description?: string | null;
+    trip_type: 'one_way_outbound' | 'one_way_return' | 'round_trip' | string;
     origin_label: string;
     destination_label: string;
-    departure_time: string;
-    return_time: string;
+    departure_time?: string | null;
+    return_time?: string | null;
     days_of_week: number[];
     seats_total: number;
     seats_available?: number;

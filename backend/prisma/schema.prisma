@@ -2752,8 +2752,9 @@ model driver_fixed_routes {
   description                String?  @db.VarChar(800)
   origin_label               String   @db.VarChar(160)
   destination_label          String   @db.VarChar(160)
-  departure_time             String   @db.VarChar(5)
-  return_time                String   @db.VarChar(5)
+  trip_type                  String   @default("round_trip") @db.VarChar(30)
+  departure_time             String?  @db.VarChar(5)
+  return_time                String?  @db.VarChar(5)
   days_of_week               Json
   seats_total                Int
   price_per_passenger_cents  Int

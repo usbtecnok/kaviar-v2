@@ -22,6 +22,7 @@ const { prismaMock, authState } = vi.hoisted(() => {
   const includeDriver = (route: any) => ({ ...route, driver: state.drivers[route.driver_id] ? { id: route.driver_id, name: state.drivers[route.driver_id].name } : null });
   const matchWhere = (item: any, where: any) => Object.entries(where || {}).every(([key, value]: any) => {
     if (value && typeof value === 'object' && 'in' in value) return value.in.includes(item[key]);
+    if (value && typeof value === 'object' && 'not' in value) return item[key] !== value.not;
     return item[key] === value;
   });
   const aggregateSeats = (where: any) => state.reservations
@@ -111,6 +112,7 @@ app.use('/api/passenger/fixed-route-reservations', passengerReservations);
 
 const validRoute = {
   title: 'Barra para Centro',
+  trip_type: 'round_trip',
   origin_label: 'Barra da Tijuca',
   destination_label: 'Centro',
   departure_time: '08:00',
@@ -118,7 +120,7 @@ const validRoute = {
   days_of_week: [1, 2, 3, 4, 5],
   seats_total: 2,
   price_per_passenger_cents: 2500,
-  description: 'Ida e volta programadas em horário combinado.',
+  description: 'Viagem programada em horário combinado.',
 };
 
 async function createRoute(driver = 'driver1', overrides: any = {}) {
@@ -151,17 +153,17 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.body.data.kaviar_fee_percent).toBe(10);
   });
 
-  it('motorista não aprovado não cria', async () => {
+  it('motorista nao aprovado nao cria', async () => {
     const res = await createRoute('pending');
     expect(res.status).toBe(403);
   });
 
-  it('motorista de moto não cria no MVP', async () => {
+  it('motorista de moto nao cria no MVP', async () => {
     const res = await createRoute('moto');
     expect(res.status).toBe(403);
   });
 
-  it('lista só rotas do próprio motorista', async () => {
+  it('lista so rotas do proprio motorista (archived oculto)', async () => {
     await createRoute('driver1', { title: 'Minha rota' });
     await createRoute('driver2', { title: 'Outra rota' });
     authState.userType = 'DRIVER';
@@ -172,11 +174,56 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.body.data[0].title).toBe('Minha rota');
   });
 
-  it('preview público por KFR retorna dados seguros', async () => {
+  it('cria rota so ida sem return_time', async () => {
+    const res = await createRoute('driver1', { trip_type: 'one_way_outbound', departure_time: '07:30', return_time: undefined });
+    expect(res.status).toBe(201);
+    expect(res.body.data.trip_type).toBe('one_way_outbound');
+    expect(res.body.data.departure_time).toBe('07:30');
+    expect(res.body.data.return_time).toBeNull();
+  });
+
+  it('cria rota so volta sem departure_time', async () => {
+    const res = await createRoute('driver1', { trip_type: 'one_way_return', departure_time: undefined, return_time: '18:00' });
+    expect(res.status).toBe(201);
+    expect(res.body.data.trip_type).toBe('one_way_return');
+    expect(res.body.data.return_time).toBe('18:00');
+    expect(res.body.data.departure_time).toBeNull();
+  });
+
+  it('cria ida e volta com os dois horarios', async () => {
+    const res = await createRoute('driver1', { trip_type: 'round_trip', departure_time: '08:00', return_time: '18:00' });
+    expect(res.status).toBe(201);
+    expect(res.body.data.trip_type).toBe('round_trip');
+    expect(res.body.data.departure_time).toBe('08:00');
+    expect(res.body.data.return_time).toBe('18:00');
+  });
+
+  it('bloqueia round_trip sem horario de ida', async () => {
+    const res = await createRoute('driver1', { trip_type: 'round_trip', departure_time: undefined, return_time: '18:00' });
+    expect(res.status).toBe(400);
+  });
+
+  it('bloqueia round_trip sem horario de volta', async () => {
+    const res = await createRoute('driver1', { trip_type: 'round_trip', departure_time: '08:00', return_time: undefined });
+    expect(res.status).toBe(400);
+  });
+
+  it('bloqueia one_way_outbound sem departure_time', async () => {
+    const res = await createRoute('driver1', { trip_type: 'one_way_outbound', departure_time: undefined, return_time: undefined });
+    expect(res.status).toBe(400);
+  });
+
+  it('bloqueia one_way_return sem return_time', async () => {
+    const res = await createRoute('driver1', { trip_type: 'one_way_return', departure_time: undefined, return_time: undefined });
+    expect(res.status).toBe(400);
+  });
+
+  it('preview publico por KFR retorna dados seguros com trip_type', async () => {
     const created = await createRoute();
     const res = await request(app).get(`/api/fixed-routes/invites/${created.body.data.invite_code}`);
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({ origin_label: 'Barra da Tijuca', destination_label: 'Centro', seats_available: 2 });
+    expect(res.body.data).toHaveProperty('trip_type');
     expect(JSON.stringify(res.body.data)).not.toContain('phone');
   });
 
@@ -190,14 +237,14 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.body.data.driver_net_cents).toBe(2250);
   });
 
-  it('reserva não ultrapassa vagas', async () => {
+  it('reserva nao ultrapassa vagas', async () => {
     const created = await createRoute('driver1', { seats_total: 1 });
     expect((await reserve(created.body.data.invite_code, 'pass1')).status).toBe(201);
     const second = await reserve(created.body.data.invite_code, 'pass2');
     expect(second.status).toBe(409);
   });
 
-  it('reserva duplicada do mesmo passageiro é idempotente', async () => {
+  it('reserva duplicada do mesmo passageiro e idempotente', async () => {
     const created = await createRoute();
     expect((await reserve(created.body.data.invite_code, 'pass1')).status).toBe(201);
     const duplicate = await reserve(created.body.data.invite_code, 'pass1');
@@ -205,17 +252,17 @@ describe('driver fixed routes backend MVP', () => {
     expect(duplicate.body.idempotent).toBe(true);
   });
 
-  it('passageiro cancela própria reserva', async () => {
+  it('passageiro cancela propria reserva', async () => {
     const created = await createRoute();
     const reserved = await reserve(created.body.data.invite_code, 'pass1');
     authState.userType = 'PASSENGER';
     authState.userId = 'pass1';
-    const res = await request(app).patch(`/api/passenger/fixed-route-reservations/${reserved.body.data.id}/cancel`).send({ cancel_reason: 'Mudança de plano' });
+    const res = await request(app).patch(`/api/passenger/fixed-route-reservations/${reserved.body.data.id}/cancel`).send({ cancel_reason: 'Mudanca de plano' });
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe('cancelled_by_passenger');
   });
 
-  it('passageiro não cancela reserva de outro', async () => {
+  it('passageiro nao cancela reserva de outro', async () => {
     const created = await createRoute();
     const reserved = await reserve(created.body.data.invite_code, 'pass1');
     authState.userType = 'PASSENGER';
@@ -224,7 +271,7 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.status).toBe(404);
   });
 
-  it('motorista lista reservas da própria rota', async () => {
+  it('motorista lista reservas da propria rota', async () => {
     const created = await createRoute();
     await reserve(created.body.data.invite_code, 'pass1');
     authState.userType = 'DRIVER';
@@ -234,7 +281,7 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.body.data).toHaveLength(1);
   });
 
-  it('motorista não acessa rota de outro motorista', async () => {
+  it('motorista nao acessa rota de outro motorista', async () => {
     const created = await createRoute('driver2');
     authState.userType = 'DRIVER';
     authState.userId = 'driver1';
@@ -242,7 +289,7 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.status).toBe(404);
   });
 
-  it('rota pausada não aceita reserva', async () => {
+  it('rota pausada nao aceita reserva', async () => {
     const created = await createRoute();
     authState.userType = 'DRIVER';
     authState.userId = 'driver1';
@@ -251,7 +298,77 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.status).toBe(410);
   });
 
-  it('código KFR aceita normalização com espaços e lowercase', async () => {
+  it('reativa rota cancelada', async () => {
+    const created = await createRoute();
+    authState.userType = 'DRIVER';
+    authState.userId = 'driver1';
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/cancel`).send({});
+    const res = await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/reactivate`).send({});
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('active');
+  });
+
+  it('reativa rota pausada', async () => {
+    const created = await createRoute();
+    authState.userType = 'DRIVER';
+    authState.userId = 'driver1';
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/pause`).send({});
+    const res = await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/reactivate`).send({});
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('active');
+  });
+
+  it('arquiva rota cancelada', async () => {
+    const created = await createRoute();
+    authState.userType = 'DRIVER';
+    authState.userId = 'driver1';
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/cancel`).send({});
+    const res = await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/archive`).send({});
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('archived');
+  });
+
+  it('rota archived nao aparece na lista normal', async () => {
+    const created = await createRoute('driver1', { title: 'Vai arquivar' });
+    authState.userType = 'DRIVER';
+    authState.userId = 'driver1';
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/cancel`).send({});
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/archive`).send({});
+    const list = await request(app).get('/api/driver/fixed-routes');
+    expect(list.status).toBe(200);
+    expect(list.body.data.find((r: any) => r.id === created.body.data.id)).toBeUndefined();
+  });
+
+  it('rota archived nao aceita reserva - preview retorna 410', async () => {
+    const created = await createRoute();
+    authState.userType = 'DRIVER';
+    authState.userId = 'driver1';
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/cancel`).send({});
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/archive`).send({});
+    const res = await request(app).get(`/api/fixed-routes/invites/${created.body.data.invite_code}`);
+    expect(res.status).toBe(410);
+    expect(JSON.stringify(res.body)).not.toContain('phone');
+  });
+
+  it('nao permite arquivar rota ativa diretamente', async () => {
+    const created = await createRoute();
+    authState.userType = 'DRIVER';
+    authState.userId = 'driver1';
+    const res = await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/archive`).send({});
+    expect(res.status).toBe(409);
+  });
+
+  it('archived nao pode ser reativada no MVP', async () => {
+    const created = await createRoute();
+    authState.userType = 'DRIVER';
+    authState.userId = 'driver1';
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/cancel`).send({});
+    await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/archive`).send({});
+    const res = await request(app).patch(`/api/driver/fixed-routes/${created.body.data.id}/reactivate`).send({});
+    expect(res.status).toBe(409);
+  });
+
+  it('codigo KFR aceita normalizacao com espacos e lowercase', async () => {
     const created = await createRoute();
     const spaced = created.body.data.invite_code.toLowerCase().replace('KFR-', ' kfr- ');
     const res = await request(app).get(`/api/fixed-routes/invites/${encodeURIComponent(spaced)}`);
@@ -259,7 +376,7 @@ describe('driver fixed routes backend MVP', () => {
     expect(res.body.data.code).toBe(created.body.data.invite_code);
   });
 
-  it('motorista altera status de reserva da própria rota', async () => {
+  it('motorista altera status de reserva da propria rota', async () => {
     const created = await createRoute();
     const reserved = await reserve(created.body.data.invite_code, 'pass1');
     authState.userType = 'DRIVER';

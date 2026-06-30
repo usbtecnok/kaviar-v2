@@ -5,10 +5,11 @@ export type DriverFixedRoute = {
   id: string;
   title: string;
   description?: string | null;
+  trip_type: 'one_way_outbound' | 'one_way_return' | 'round_trip' | string;
   origin_label: string;
   destination_label: string;
-  departure_time: string;
-  return_time: string;
+  departure_time?: string | null;
+  return_time?: string | null;
   days_of_week: number[];
   seats_total: number;
   seats_reserved?: number;
@@ -24,10 +25,11 @@ export type DriverFixedRoute = {
 export type DriverFixedRoutePayload = {
   title: string;
   description?: string | null;
+  trip_type: 'one_way_outbound' | 'one_way_return' | 'round_trip';
   origin_label: string;
   destination_label: string;
-  departure_time: string;
-  return_time: string;
+  departure_time?: string | null;
+  return_time?: string | null;
   days_of_week: number[];
   seats_total: number;
   price_per_passenger_cents: number;
@@ -79,6 +81,16 @@ export const driverApi = {
 
   cancelFixedRoute: async (id: string): Promise<DriverFixedRoute> => {
     const { data } = await apiClient.patch(`/api/driver/fixed-routes/${id}/cancel`);
+    return data.data;
+  },
+
+  reactivateFixedRoute: async (id: string): Promise<DriverFixedRoute> => {
+    const { data } = await apiClient.patch(`/api/driver/fixed-routes/${id}/reactivate`);
+    return data.data;
+  },
+
+  archiveFixedRoute: async (id: string): Promise<DriverFixedRoute> => {
+    const { data } = await apiClient.patch(`/api/driver/fixed-routes/${id}/archive`);
     return data.data;
   },
 

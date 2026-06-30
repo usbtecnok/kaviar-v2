@@ -58,6 +58,24 @@ function driverFirstName(reservation: FixedRouteReservation) {
   return name.trim().split(/\s+/)[0] || 'Motorista KAVIAR';
 }
 
+function tripTypeLabel(tripType?: string | null) {
+  if (tripType === 'one_way_outbound') return 'So ida';
+  if (tripType === 'one_way_return') return 'So volta';
+  return 'Ida e volta';
+}
+
+function scheduleCopy(tripType?: string | null, departureTime?: string | null, returnTime?: string | null) {
+  if (tripType === 'one_way_outbound') return `Ida programada: ${departureTime || '-'}`;
+  if (tripType === 'one_way_return') return `Volta programada: ${returnTime || '-'}`;
+  return `Ida: ${departureTime || '-'} · Volta: ${returnTime || '-'}`;
+}
+
+function invitationLead(tripType?: string | null) {
+  if (tripType === 'one_way_outbound') return 'Ida programada com horario combinado.';
+  if (tripType === 'one_way_return') return 'Volta programada com horario combinado.';
+  return 'Ida e volta programadas.';
+}
+
 export default function PassengerFixedRoutesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ inviteCode?: string }>();
@@ -139,7 +157,7 @@ export default function PassengerFixedRoutesScreen() {
     try {
       setReserving(true);
       await passengerApi.reserveFixedRoute(normalized);
-      Alert.alert('Vaga reservada', 'Sua vaga foi reservada. A ida e a volta estão programadas conforme os horários da rota.');
+      Alert.alert('Vaga reservada', `Sua vaga foi reservada. ${invitationLead(preview?.trip_type)}`);
       setCode('');
       setPreview(null);
       await loadReservations();
@@ -186,8 +204,8 @@ export default function PassengerFixedRoutesScreen() {
           <Info icon="location-outline" label="Origem" value={preview.origin_label} />
           <Info icon="flag-outline" label="Destino" value={preview.destination_label} />
           <Info icon="calendar-outline" label="Dias" value={formatDays(preview.days_of_week)} />
-          <Info icon="arrow-up-circle-outline" label="Ida" value={preview.departure_time} />
-          <Info icon="arrow-down-circle-outline" label="Volta" value={preview.return_time} />
+          <Info icon="swap-horizontal-outline" label="Tipo" value={tripTypeLabel(preview.trip_type)} />
+          <Info icon="time-outline" label="Horario" value={scheduleCopy(preview.trip_type, preview.departure_time, preview.return_time)} />
           <Info icon="people-outline" label="Vagas" value={`${preview.seats_available} disponíveis`} />
           <Info icon="cash-outline" label="Valor" value={formatMoney(preview.price_per_passenger_cents)} />
         </View>
@@ -195,8 +213,8 @@ export default function PassengerFixedRoutesScreen() {
         {!!preview.description && <Text style={styles.description}>{preview.description}</Text>}
 
         <View style={styles.consentBox}>
-          <Text style={styles.consentTitle}>Ida e volta programadas</Text>
-          <Text style={styles.consentText}>Confira horário, valor, origem, destino e vagas antes de confirmar. A volta é combinada com o motorista pela rota.</Text>
+          <Text style={styles.consentTitle}>{invitationLead(preview.trip_type)}</Text>
+          <Text style={styles.consentText}>Confira horário, valor, origem, destino e vagas antes de confirmar. A vaga só fica reservada quando você confirma pelo KAVIAR.</Text>
         </View>
 
         <TouchableOpacity style={[styles.primaryBtn, reserving && styles.disabledBtn]} onPress={reserveSeat} disabled={reserving || preview.status !== 'active' || preview.seats_available <= 0}>
@@ -226,10 +244,10 @@ export default function PassengerFixedRoutesScreen() {
         <View style={styles.infoGrid}>
           <Info icon="person-outline" label="Motorista" value={driverFirstName(reservation)} />
           <Info icon="calendar-outline" label="Dias" value={formatDays(route.days_of_week)} />
-          <Info icon="arrow-up-circle-outline" label="Ida" value={route.departure_time} />
-          <Info icon="arrow-down-circle-outline" label="Volta" value={route.return_time} />
+          <Info icon="swap-horizontal-outline" label="Tipo" value={tripTypeLabel(route.trip_type)} />
+          <Info icon="time-outline" label="Horario" value={scheduleCopy(route.trip_type, route.departure_time, route.return_time)} />
           <Info icon="cash-outline" label="Valor" value={formatMoney(reservation.price_cents)} />
-          <Info icon="checkmark-circle-outline" label="Reserva" value="Ida e volta programadas" />
+          <Info icon="checkmark-circle-outline" label="Reserva" value={invitationLead(route.trip_type)} />
         </View>
 
         {isConfirmed && (

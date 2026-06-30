@@ -36,6 +36,7 @@ router.get('/invites/:code', async (req: Request, res: Response) => {
   try {
     const route = await findRouteByCode(codeParam(req));
     if (!route) return res.status(404).json({ success: false, error: 'Convite de Rota Fixa não encontrado' });
+    if (route.status === 'archived') return res.status(410).json({ success: false, error: 'Rota Fixa indisponível' });
     const reservedSeats = await confirmedSeats(db, route.id);
     return res.json({ success: true, data: buildPublicFixedRoutePayload(route, Number(route.seats_total || 0) - reservedSeats) });
   } catch (error) {
