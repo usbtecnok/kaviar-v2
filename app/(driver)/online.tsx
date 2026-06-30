@@ -77,6 +77,7 @@ export default function DriverOnline() {
     { key: 'summary', label: 'Resumo', icon: 'stats-chart-outline', onPress: () => router.push('/(driver)/summary') },
     { key: 'history', label: 'Histórico de corridas', icon: 'time-outline', onPress: () => router.push('/(driver)/history') },
     { key: 'groups', label: 'Grupos KAVIAR', icon: 'people-outline', onPress: () => router.push('/(driver)/groups') },
+    { key: 'fixed-routes', label: 'Minhas Rotas Fixas', icon: 'repeat-outline', onPress: () => router.push('/(driver)/fixed-routes') },
     { key: 'credits', label: 'Saldo', icon: 'wallet-outline', onPress: () => router.push('/(driver)/credits') },
     { key: 'documents', label: 'Documentos', icon: 'document-text-outline', onPress: () => router.push('/(driver)/documents') },
     { key: 'refer', label: 'Indique um motorista', icon: 'people-outline', onPress: () => router.push('/(driver)/refer-driver') },

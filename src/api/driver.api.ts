@@ -1,10 +1,95 @@
 import { apiClient } from './client';
 import { Ride, RideOffer } from '../types/ride';
 
+export type DriverFixedRoute = {
+  id: string;
+  title: string;
+  description?: string | null;
+  origin_label: string;
+  destination_label: string;
+  departure_time: string;
+  return_time: string;
+  days_of_week: number[];
+  seats_total: number;
+  seats_reserved?: number;
+  seats_available?: number;
+  price_per_passenger_cents: number;
+  kaviar_fee_percent?: number | string | null;
+  status: 'active' | 'paused' | 'cancelled' | 'archived' | string;
+  invite_code: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type DriverFixedRoutePayload = {
+  title: string;
+  description?: string | null;
+  origin_label: string;
+  destination_label: string;
+  departure_time: string;
+  return_time: string;
+  days_of_week: number[];
+  seats_total: number;
+  price_per_passenger_cents: number;
+};
+
+export type DriverFixedRouteReservation = {
+  id: string;
+  route_id: string;
+  passenger_id: string;
+  status: string;
+  seats_reserved: number;
+  price_cents: number;
+  kaviar_fee_cents: number;
+  driver_net_cents: number;
+  reserved_at?: string;
+  passenger?: { id: string; name?: string | null };
+};
+
 export const driverApi = {
   getMyGroups: async () => {
     const { data } = await apiClient.get('/api/drivers/me/groups');
     return data.data || [];
+  },
+
+  getFixedRoutes: async (): Promise<DriverFixedRoute[]> => {
+    const { data } = await apiClient.get('/api/driver/fixed-routes');
+    return data.data || [];
+  },
+
+  createFixedRoute: async (payload: DriverFixedRoutePayload): Promise<DriverFixedRoute> => {
+    const { data } = await apiClient.post('/api/driver/fixed-routes', payload);
+    return data.data;
+  },
+
+  getFixedRoute: async (id: string): Promise<DriverFixedRoute> => {
+    const { data } = await apiClient.get(`/api/driver/fixed-routes/${id}`);
+    return data.data;
+  },
+
+  updateFixedRoute: async (id: string, payload: Partial<DriverFixedRoutePayload>): Promise<DriverFixedRoute> => {
+    const { data } = await apiClient.patch(`/api/driver/fixed-routes/${id}`, payload);
+    return data.data;
+  },
+
+  pauseFixedRoute: async (id: string): Promise<DriverFixedRoute> => {
+    const { data } = await apiClient.patch(`/api/driver/fixed-routes/${id}/pause`);
+    return data.data;
+  },
+
+  cancelFixedRoute: async (id: string): Promise<DriverFixedRoute> => {
+    const { data } = await apiClient.patch(`/api/driver/fixed-routes/${id}/cancel`);
+    return data.data;
+  },
+
+  getFixedRouteReservations: async (id: string): Promise<DriverFixedRouteReservation[]> => {
+    const { data } = await apiClient.get(`/api/driver/fixed-routes/${id}/reservations`);
+    return data.data || [];
+  },
+
+  updateFixedRouteReservationStatus: async (routeId: string, reservationId: string, status: string): Promise<DriverFixedRouteReservation> => {
+    const { data } = await apiClient.patch(`/api/driver/fixed-routes/${routeId}/reservations/${reservationId}/status`, { status });
+    return data.data;
   },
 
   // v2: Disponibilidade
