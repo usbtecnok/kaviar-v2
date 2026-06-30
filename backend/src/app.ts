@@ -106,6 +106,7 @@ import realtimeRoutes from './routes/realtime';
 import driverFixedRoutesRoutes from './routes/driver-fixed-routes';
 import fixedRouteInviteRoutes from './routes/fixed-route-invites';
 import passengerFixedRouteReservationsRoutes from './routes/passenger-fixed-route-reservations';
+import adminFixedRoutesRoutes from './routes/admin-fixed-routes';
 
 const app = express();
 
@@ -351,6 +352,7 @@ app.use('/api/drivers', driverGroupsRoutes);
 app.use('/api/driver/fixed-routes', driverFixedRoutesRoutes);
 app.use('/api/fixed-routes', fixedRouteInviteRoutes);
 app.use('/api/passenger/fixed-route-reservations', passengerFixedRouteReservationsRoutes);
+app.use('/api/admin/fixed-routes', adminFixedRoutesRoutes);
 app.use('/api/neighborhoods', neighborhoodsSmartRoutes);
 app.use('/api/passengers', passengerLocationsRoutes);
 app.use('/api/passengers', passengerProfileRoutes);

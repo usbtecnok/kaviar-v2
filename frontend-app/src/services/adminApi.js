@@ -127,6 +127,32 @@ class AdminApiService {
     return this.get(`/api/admin/rides${queryString ? `?${queryString}` : ''}`);
   }
 
+  async getAdminFixedRoutes(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.get(`/api/admin/fixed-routes${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getAdminFixedRoute(id) {
+    return this.get(`/api/admin/fixed-routes/${id}`);
+  }
+
+  async getAdminFixedRouteReservations(id, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.get(`/api/admin/fixed-routes/${id}/reservations${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async pauseAdminFixedRoute(id) {
+    return this.patch(`/api/admin/fixed-routes/${id}/pause`, {});
+  }
+
+  async reactivateAdminFixedRoute(id) {
+    return this.patch(`/api/admin/fixed-routes/${id}/reactivate`, {});
+  }
+
+  async archiveAdminFixedRoute(id) {
+    return this.patch(`/api/admin/fixed-routes/${id}/archive`, {});
+  }
+
   async getRideById(id) {
     return this.get(`/api/admin/rides/${id}`);
   }
