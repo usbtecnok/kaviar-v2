@@ -1,24 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert,
-  StatusBar, Platform, SafeAreaView, Dimensions, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  StatusBar, Platform, SafeAreaView,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authStore } from '../../src/auth/auth.store';
 import { apiClient } from '../../src/api/client';
 import { passengerApi } from '../../src/api/passenger.api';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
-import { FeatureRail } from '../../src/components/FeatureRail';
 import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
-import { HomeOpportunityCarousel } from '../../src/components/passenger/HomeOpportunityCarousel';
 import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPreferenceInvite';
-import { MotoPromoCard } from '../../src/components/moto/MotoPromoCard';
-import { MotoAcceptModal } from '../../src/components/moto/MotoAcceptModal';
-import { MOTO_FLAGS } from '../../src/config/moto.config';
 import {
   computeRecentFixedRouteMessages,
   getFixedRouteLastSeenMap,
@@ -28,33 +22,11 @@ import {
 import { ensurePassengerPushTokenRegistration } from '../../src/services/passenger-push-token.service';
 import { fetchUnreadCount } from '../../src/services/notifications.service';
 
-const { width: W } = Dimensions.get('window');
-const ACTION_W = (W - 56) / 4; // 4 cards side-by-side with gaps
-
-const QUICK_ACTIONS = [
-  { key: 'schedule',  icon: 'calendar'     as const, title: 'Agendar',  sub: 'Programar',       route: '/(passenger)/map'       },
-  { key: 'favorites', icon: 'location'     as const, title: 'Destinos', sub: 'Salvos',          route: '/(passenger)/favorites' },
-  { key: 'tourism',   icon: 'diamond'      as const, title: 'Turismo',  sub: 'Passeios',        route: '/(passenger)/tourism'   },
-  { key: 'help',      icon: 'chatbubble-ellipses' as const, title: 'Suporte',  sub: 'Ajuda',    route: '/(passenger)/help'      },
-] as const;
-
-const EXPLORE_ITEMS = [
-  {
-    key: 'fixed-routes',
-    icon: 'repeat-outline' as const,
-    title: 'Rotas Fixas',
-    description: 'Viagens frequentes para sua rotina.',
-    badge: 'Recorrente',
-    route: '/(passenger)/fixed-routes',
-  },
-  {
-    key: 'groups',
-    icon: 'people-outline' as const,
-    title: 'Meus Grupos',
-    description: 'Avisos e recursos da sua comunidade.',
-    badge: 'Comunidade',
-    route: '/(passenger)/groups',
-  },
+const SERVICE_ITEMS = [
+  { key: 'ride', icon: 'car-sport-outline' as const, label: 'Corrida', route: '/(passenger)/map' },
+  { key: 'routes', icon: 'repeat-outline' as const, label: 'Rotas', route: '/(passenger)/fixed-routes' },
+  { key: 'groups', icon: 'people-outline' as const, label: 'Grupos', route: '/(passenger)/groups' },
+  { key: 'help', icon: 'help-circle-outline' as const, label: 'Ajuda', route: '/(passenger)/help' },
 ] as const;
 
 export default function PassengerHome() {
@@ -63,10 +35,38 @@ export default function PassengerHome() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const [showWomenInvite, setShowWomenInvite] = useState(false);
-  const [showMotoAccept, setShowMotoAccept] = useState(false);
   const [hasRecentFixedRouteMessages, setHasRecentFixedRouteMessages] = useState(false);
   const [notifUnread, setNotifUnread] = useState(0);
   const fixedRouteNotificationState = getFixedRouteNotificationState();
+
+  const hasFixedRouteHighlight =
+    hasRecentFixedRouteMessages
+    || fixedRouteNotificationState.recentRouteIds.size > 0
+    || fixedRouteNotificationState.recentReservationIds.size > 0;
+
+  const highlight = hasFixedRouteHighlight
+    ? {
+      icon: 'repeat-outline' as const,
+      title: 'Você tem novidade em Rotas Fixas',
+      text: 'Abra suas rotas para acompanhar mensagens e próximos embarques.',
+      cta: 'Ver rotas',
+      onPress: () => router.push('/(passenger)/fixed-routes'),
+    }
+    : notifUnread > 0
+      ? {
+        icon: 'people-outline' as const,
+        title: 'Novo aviso no seu grupo',
+        text: 'Acompanhe atualizações da sua comunidade no KAVIAR.',
+        cta: 'Ver grupos',
+        onPress: () => router.push('/(passenger)/groups'),
+      }
+      : {
+        icon: 'sparkles-outline' as const,
+        title: 'Conheça Rotas Fixas',
+        text: 'Crie viagens frequentes para agilizar sua rotina.',
+        cta: 'Explorar',
+        onPress: () => router.push('/(passenger)/fixed-routes'),
+      };
 
   const refreshFixedRouteBadge = async () => {
     try {
@@ -164,24 +164,18 @@ export default function PassengerHome() {
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle="dark-content" backgroundColor="#F6F7F8" />
 
       <ScrollView ref={scrollRef} style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* ── TOPO PRETO ── */}
         <SafeAreaView>
           <View style={s.header}>
             <View style={s.headerRow}>
-              {/* Logo com coroa integrada */}
-              <View style={s.logoWrap}>
-                <View style={s.brandRow}>
-                  <Text style={s.brand}>KAVIAR</Text>
-                  <MaterialCommunityIcons name="crown" size={14} color={COLORS.primary} style={s.crown} />
-                </View>
-                <Text style={s.brandSub}>TRANSPORTE LOCAL</Text>
+              <View>
+                <Text style={s.greeting}>Olá{userName ? `, ${userName}` : ''}</Text>
+                <Text style={s.subGreeting}>Sua jornada começa aqui</Text>
               </View>
 
-              {/* Sino + Menu à direita */}
               <View style={s.headerRight}>
                 <TouchableOpacity
                   onPress={() => router.push('/(passenger)/notifications' as any)}
@@ -197,86 +191,22 @@ export default function PassengerHome() {
                     </View>
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                  <Ionicons name="menu-outline" size={26} color={COLORS.primary} />
+                <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }} style={s.menuButton}>
+                  <Ionicons name="menu-outline" size={20} color="#121316" />
                 </TouchableOpacity>
               </View>
             </View>
-            <Text style={s.greeting}>Olá{userName ? `, ${userName}` : ''} 👋</Text>
-            <Text style={s.subGreeting}>Bem-vindo ao KAVIAR</Text>
-          </View>
 
-          {/* ── CARD COMUNIDADE ── */}
-          <View style={s.communityCard}>
-            <LinearGradient colors={['#1E1E10', '#1A1A2E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.communityGradient}>
-              <View style={s.communityRow}>
-                <View style={s.communityPin}>
-                  <Ionicons name="location" size={20} color={COLORS.primary} />
-                </View>
-                <View style={s.communityInfo}>
-                  <Text style={s.communityLabel}>SUA REGIÃO</Text>
-                  <Text style={s.communityName}>Atendimento KAVIAR ativo na sua região</Text>
-                  <View style={s.driversRow}>
-                    <Ionicons name="shield-checkmark" size={12} color={COLORS.textMuted} />
-                    <Text style={s.driversText}>Quando houver motoristas próximos, sua solicitação será enviada automaticamente.</Text>
-                  </View>
-                </View>
-                <View style={s.statusPill}>
-                  <View style={s.statusDot} />
-                  <Text style={s.statusText}>Ativa</Text>
-                </View>
-              </View>
-            </LinearGradient>
-          </View>
-
-          {/* ── BANNER PREMIUM ── */}
-          <View style={s.bannerOuter}>
-            <View style={s.banner}>
-              {/* Imagem do carro */}
-              <Image
-                source={require('../../assets/images/kaviar-banner-car.jpg')}
-                style={s.bannerImage}
-                resizeMode="cover"
-              />
-
-              {/* Overlay gradiente escuro — legibilidade do texto */}
-              <LinearGradient
-                colors={['rgba(10,10,5,0.95)', 'rgba(10,10,5,0.7)', 'rgba(10,10,5,0.2)']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={StyleSheet.absoluteFill}
-              />
-
-              {/* Overlay gradiente vertical — escurece topo e base */}
-              <LinearGradient
-                colors={['rgba(10,10,5,0.6)', 'transparent', 'rgba(10,10,5,0.8)']}
-                style={StyleSheet.absoluteFill}
-              />
-
-              {/* Texto */}
-              <View style={s.bannerContent}>
-                <View style={s.bannerBadge}>
-                  <Ionicons name="shield-checkmark" size={12} color={COLORS.primary} />
-                  <Text style={s.bannerBadgeText}>KAVIAR OFICIAL</Text>
-                </View>
-                <Text style={s.bannerTitle}>Transporte local feito{'\n'}por quem conhece você.</Text>
-                <Text style={s.bannerSub}>Confiável  •  Seguro  •  Comunidade</Text>
-              </View>
-
-              {/* Borda inferior dourada */}
-              <LinearGradient
-                colors={['transparent', 'rgba(255,215,0,0.2)', 'transparent']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                style={s.bannerBottomLine}
-              />
+            <View style={s.regionPill}>
+              <Ionicons name="location-outline" size={14} color="#8A6D1A" />
+              <Text style={s.regionText}>Sua região está ativa no KAVIAR</Text>
             </View>
           </View>
         </SafeAreaView>
 
-        {/* ── PAINEL BRANCO ── */}
         <View style={s.whitePanel}>
-          <Text style={s.panelTitle}>O que você deseja fazer?</Text>
+          <Text style={s.panelTitle}>Para onde vamos?</Text>
 
-          {/* Women preference invite */}
           {showWomenInvite && (
             <WomenPreferenceInvite
               onActivate={() => { setShowWomenInvite(false); router.push('/(passenger)/profile'); }}
@@ -284,86 +214,57 @@ export default function PassengerHome() {
             />
           )}
 
-          {/* Card principal — Chamar corrida */}
-          <TouchableOpacity style={s.callCard} onPress={() => router.push('/(passenger)/map')} activeOpacity={0.8}>
-            <View style={s.callCardIcon}>
-              <Ionicons name="car-sport" size={24} color={COLORS.primary} />
+          <TouchableOpacity style={s.mainActionCard} onPress={() => router.push('/(passenger)/map')} activeOpacity={0.88}>
+            <View style={s.mainActionIcon}>
+              <Ionicons name="navigate" size={20} color="#8A6D1A" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.callCardTitle}>Chamar corrida agora</Text>
-              <Text style={s.callCardSub}>Carro ou moto para sua viagem local</Text>
+              <Text style={s.mainActionTitle}>Chamar corrida agora</Text>
+              <Text style={s.mainActionSub}>Carro ou moto para sua viagem local</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
+            <Ionicons name="arrow-forward" size={18} color="#8A6D1A" />
           </TouchableOpacity>
 
-          <FeatureRail
-            title="Explore o KAVIAR"
-            subtitle="Acessos rápidos para recursos importantes sem ocupar a Home inteira."
-            items={EXPLORE_ITEMS.map((item) => ({
-              ...item,
-              onPress: () => router.push(item.route as any),
-            }))}
-          />
+          <View style={s.servicesWrap}>
+            <Text style={s.servicesTitle}>Serviços</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.servicesScroll}>
+              {SERVICE_ITEMS.map((item, index) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[s.serviceItem, index === 0 && s.serviceItemActive]}
+                  onPress={() => router.push(item.route as any)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name={item.icon} size={18} color={index === 0 ? '#8A6D1A' : '#5E6470'} />
+                  <Text style={[s.serviceLabel, index === 0 && s.serviceLabelActive]}>{item.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
 
-          {/* Banner Moto — complementar, após corrida principal */}
-          <MotoPromoCard onPress={() => setShowMotoAccept(true)} />
-
-          {/* KAVIAR Local */}
-          <TouchableOpacity style={s.localCard} onPress={() => router.push('/(passenger)/local')} activeOpacity={0.8}>
-            <View style={s.localCardIcon}>
-              <Ionicons name="storefront" size={20} color="#D6A928" />
+          <TouchableOpacity style={s.contextCard} onPress={highlight.onPress} activeOpacity={0.9}>
+            <View style={s.contextIcon}>
+              <Ionicons name={highlight.icon} size={18} color="#8A6D1A" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.localCardTitle}>KAVIAR Local</Text>
-              <Text style={s.localCardSub}>Comércios e ofertas da sua região</Text>
+              <Text style={s.contextTitle}>{highlight.title}</Text>
+              <Text style={s.contextText}>{highlight.text}</Text>
             </View>
-            <Text style={s.localCardCta}>Explorar</Text>
+            <View style={s.contextCtaWrap}>
+              <Text style={s.contextCta}>{highlight.cta}</Text>
+            </View>
           </TouchableOpacity>
-
-          {/* Ações rápidas — 4 compactos lado a lado */}
-          <View style={s.actionsRow}>
-            {QUICK_ACTIONS.map(a => (
-              <TouchableOpacity
-                key={a.key}
-                style={s.actionCard}
-                onPress={() => router.push(a.route as any)}
-                activeOpacity={0.7}
-              >
-                <View style={s.actionIconWrap}>
-                  <Ionicons name={a.icon} size={20} color="#D6A928" />
-                </View>
-                <Text style={s.actionTitle}>{a.title}</Text>
-                <Text style={s.actionSub}>{a.sub}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* ── CARROSSEL ── */}
-          <View style={s.carouselWrap}>
-            <HomeOpportunityCarousel />
-          </View>
 
           <View style={{ height: 16 }} />
         </View>
       </ScrollView>
 
-      {/* ── BOTTOM BAR ── */}
       <HomeBottomBar
         onCall={() => router.push('/(passenger)/map')}
         onHome={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         onAccount={() => router.push('/(passenger)/profile')}
       />
 
-      {/* MOTO ACCEPT MODAL (flag-guarded) */}
-      {MOTO_FLAGS.enabled && (
-        <MotoAcceptModal
-          visible={showMotoAccept}
-          onAccept={() => { setShowMotoAccept(false); router.push({ pathname: '/(passenger)/map', params: { vehicle: 'moto' } }); }}
-          onClose={() => setShowMotoAccept(false)}
-        />
-      )}
-
-      {/* ── DRAWER ── */}
       <DrawerMenu
         visible={drawerOpen}
         onClose={() => setDrawerOpen(false)}
@@ -377,32 +278,36 @@ export default function PassengerHome() {
 const STATUSBAR_H = Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0;
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F2EFE5' },
+  root: { flex: 1, backgroundColor: '#F6F7F8' },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 0 },
 
-  // ── Header
   header: {
-    backgroundColor: COLORS.background,
-    paddingTop: STATUSBAR_H + 8,
+    paddingTop: STATUSBAR_H + 10,
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 10,
   },
   headerRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 14,
   },
-  logoWrap: { alignItems: 'flex-start' },
-  brandRow: { position: 'relative' },
-  crown: { position: 'absolute', top: -11, left: '42%', },
-  brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 5 },
-  brandSub: { fontSize: 7, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 2.5, marginTop: 1 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  bellWrap: { position: 'relative' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  greeting: { fontSize: 23, fontWeight: '700', color: '#121316' },
+  subGreeting: { fontSize: 12, color: '#5E6470', marginTop: 2 },
+  bellWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7E9EE',
+    position: 'relative',
+  },
   bellBadge: {
     position: 'absolute',
-    top: -4,
-    right: -5,
+    top: -3,
+    right: -3,
     backgroundColor: '#E53935',
     borderRadius: 8,
     minWidth: 16,
@@ -412,125 +317,157 @@ const s = StyleSheet.create({
     paddingHorizontal: 3,
   },
   bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  greeting: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary },
-  subGreeting: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2, letterSpacing: 0.5 },
+  menuButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7E9EE',
+  },
+  regionPill: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  regionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#5E6470',
+  },
 
-  // ── Community
-  communityCard: {
-    marginHorizontal: 16, marginTop: 12,
-    borderRadius: 14, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3, shadowRadius: 6, elevation: 4,
-  },
-  communityGradient: { padding: 14 },
-  communityRow: {
-    flexDirection: 'row', alignItems: 'center',
-  },
-  communityPin: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,215,0,0.1)',
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.2)',
-    justifyContent: 'center', alignItems: 'center',
-    marginRight: 12,
-  },
-  communityInfo: { flex: 1 },
-  communityLabel: { fontSize: 8, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 1.2, marginBottom: 2 },
-  communityName: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary, marginBottom: 3, flexShrink: 1 },
-  statusPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: 'rgba(46,204,113,0.15)', borderRadius: 10,
-    paddingHorizontal: 8, paddingVertical: 3,
-  },
-  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.success },
-  statusText: { fontSize: 9, fontWeight: '700', color: COLORS.success },
-  driversRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  driversText: { flex: 1, fontSize: 11, lineHeight: 15, color: COLORS.textSecondary },
-
-  // ── Banner
-  bannerOuter: {
-    marginHorizontal: 16, marginTop: 12,
-    borderRadius: 18, overflow: 'hidden',
-    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15, shadowRadius: 12, elevation: 6,
-  },
-  banner: {
-    minHeight: 140, overflow: 'hidden',
-    borderRadius: 18,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.12)',
-  },
-  bannerImage: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%', height: '100%',
-  },
-  bannerContent: { padding: 18, paddingRight: 80, zIndex: 2 },
-  bannerBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    marginBottom: 8,
-  },
-  bannerBadgeText: { fontSize: 8, fontWeight: '800', color: COLORS.primary, letterSpacing: 1.5 },
-  bannerTitle: { fontSize: 15, fontWeight: '800', color: '#F5F5F5', lineHeight: 21, marginBottom: 6 },
-  bannerSub: { fontSize: 10, fontWeight: '600', color: 'rgba(255,215,0,0.7)', letterSpacing: 0.8 },
-  bannerBottomLine: { height: 1.5 },
-
-  // ── White panel
   whitePanel: {
-    backgroundColor: '#F2EFE5',
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    marginTop: -6,
-    paddingTop: 22, paddingHorizontal: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 6,
+    backgroundColor: '#F6F7F8',
+    paddingTop: 6,
+    paddingHorizontal: 20,
   },
-  panelTitle: { fontSize: 13, fontWeight: '700', color: '#444', marginBottom: 14, letterSpacing: 0.2 },
+  panelTitle: { fontSize: 22, fontWeight: '800', color: '#121316', marginBottom: 12 },
 
-  // ── Call card
-  callCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#1A1A2E', borderRadius: 16, padding: 16, marginBottom: 18,
-    borderWidth: 1.5, borderColor: 'rgba(214,169,40,0.4)',
-    shadowColor: '#FFD700', shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 5,
+  mainActionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    padding: 16,
+    marginBottom: 14,
+    shadowColor: '#121316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  callCardIcon: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: 'rgba(214,169,40,0.15)', borderWidth: 1.5, borderColor: 'rgba(214,169,40,0.4)',
-    justifyContent: 'center', alignItems: 'center',
+  mainActionIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#FFF8E6',
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  callCardTitle: { fontSize: 16, fontWeight: '800', color: '#F5F5F5', marginBottom: 2 },
-  callCardSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)' },
+  mainActionTitle: { fontSize: 16, fontWeight: '800', color: '#121316', marginBottom: 2 },
+  mainActionSub: { fontSize: 12, color: '#5E6470' },
 
-  // KAVIAR Local card
-  localCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFDF5', borderRadius: 14, padding: 14, marginBottom: 18, borderWidth: 1, borderColor: 'rgba(214,169,40,0.3)' },
-  localCardIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(214,169,40,0.12)', justifyContent: 'center', alignItems: 'center' },
-  localCardTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A2E', marginBottom: 1 },
-  localCardSub: { fontSize: 11, color: '#666' },
-  localCardCta: { fontSize: 12, fontWeight: '700', color: '#D6A928' },
+  servicesWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  servicesTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5E6470',
+    marginBottom: 10,
+    paddingHorizontal: 12,
+  },
+  servicesScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  serviceItem: {
+    minWidth: 88,
+    height: 58,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    backgroundColor: '#FCFCFD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+  },
+  serviceItemActive: {
+    borderColor: '#E8D9AA',
+    backgroundColor: '#FFFBF0',
+  },
+  serviceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#5E6470',
+  },
+  serviceLabelActive: {
+    color: '#121316',
+  },
 
-  // ── Action cards — 4 compactos
-  actionsRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    marginBottom: 22,
+  contextCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E9DBAE',
+    padding: 14,
+    marginBottom: 4,
   },
-  actionCard: {
-    width: ACTION_W, alignItems: 'center',
-    backgroundColor: '#FBFAF5', borderRadius: 14,
-    paddingVertical: 14, paddingHorizontal: 4,
-    shadowColor: 'rgba(255,215,0,0.3)', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4, shadowRadius: 6, elevation: 3,
-    borderWidth: 1, borderColor: 'rgba(255,215,0,0.12)',
+  contextIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF8E6',
   },
-  actionIconWrap: {
-    width: 42, height: 42, borderRadius: 21,
-    backgroundColor: '#FFFDF5',
-    borderWidth: 1.5, borderColor: 'rgba(214,169,40,0.4)',
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: '#D6A928', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3, shadowRadius: 5, elevation: 3,
+  contextTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#121316',
+    marginBottom: 2,
   },
-  actionTitle: { fontSize: 11, fontWeight: '700', color: '#1A1A2E', textAlign: 'center' },
-  actionSub: { fontSize: 8, color: '#999', marginTop: 2, textAlign: 'center' },
-
-  // ── Carousel
-  carouselWrap: { marginHorizontal: -20, paddingLeft: 20 },
+  contextText: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#5E6470',
+  },
+  contextCtaWrap: {
+    marginLeft: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    backgroundColor: '#FFFBF0',
+  },
+  contextCta: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#8A6D1A',
+  },
 });

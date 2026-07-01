@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView, AppState } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView, AppState, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
@@ -14,9 +14,8 @@ import { authStore } from '../../src/auth/auth.store';
 import { RideOffer } from '../../src/types/ride';
 import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
-import { EarningsCard, StatusPill } from '../../src/components/PremiumCards';
+import { StatusPill } from '../../src/components/PremiumCards';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
-import { FeatureRail } from '../../src/components/FeatureRail';
 import { groupLabel } from '../../src/utils/tripLabel';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../src/services/background-location';
 import { persistDriverRide, getPersistedDriverRide } from '../../src/services/ride-persistence';
@@ -43,22 +42,10 @@ const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotifi
 });
 
 const OPPORTUNITY_ITEMS = [
-  {
-    key: 'fixed-routes',
-    icon: 'repeat-outline' as const,
-    title: 'Rotas Fixas',
-    description: 'Ganhe com passageiros recorrentes.',
-    badge: 'Recorrente',
-    route: '/(driver)/fixed-routes',
-  },
-  {
-    key: 'groups',
-    icon: 'people-outline' as const,
-    title: 'Meus Grupos',
-    description: 'Avisos e oportunidades locais.',
-    badge: 'Local',
-    route: '/(driver)/groups',
-  },
+  { key: 'rides', icon: 'car-sport-outline' as const, label: 'Corridas' },
+  { key: 'routes', icon: 'repeat-outline' as const, label: 'Rotas', route: '/(driver)/fixed-routes' },
+  { key: 'groups', icon: 'people-outline' as const, label: 'Grupos', route: '/(driver)/groups' },
+  { key: 'earnings', icon: 'wallet-outline' as const, label: 'Ganhos', route: '/(driver)/summary' },
 ] as const;
 
 export default function DriverOnline() {
@@ -69,7 +56,6 @@ export default function DriverOnline() {
   const [userName, setUserName] = useState('');
   const [pendingOffer, setPendingOffer] = useState<RideOffer | null>(null);
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
-  const [todayRides, setTodayRides] = useState(0);
   const [gpsEnabled, setGpsEnabled] = useState(true);
   const [locationPermission, setLocationPermission] = useState(true);
   const [backgroundDenied, setBackgroundDenied] = useState(false);
@@ -292,7 +278,9 @@ export default function DriverOnline() {
       if (histRes.status === 'fulfilled') {
         const rides = histRes.value.data?.rides || histRes.value.data || [];
         const todayStr = new Date().toISOString().slice(0, 10);
-        setTodayRides(rides.filter((r: any) => r.status === 'completed' && r.requested_at?.slice(0, 10) === todayStr).length);
+        console.info('[Driver] completed rides today', {
+          count: rides.filter((r: any) => r.status === 'completed' && r.requested_at?.slice(0, 10) === todayStr).length,
+        });
       }
     } catch (e) {
       console.warn('[Driver] loadDashboard failed:', e);
@@ -496,14 +484,43 @@ export default function DriverOnline() {
   const lowCredits = creditBalance !== null && creditBalance > 0 && creditBalance < 10;
   const isReconnecting = isOnline && !isConnected;
   const effectiveOnline = isOnline && isConnected;
-  const hasOperationalIssue = !gpsEnabled || !locationPermission || noCredits;
 
   const distanceToPickup = pendingOffer && currentCoords
     ? haversineKm(currentCoords.lat, currentCoords.lng, pendingOffer.ride.origin_lat, pendingOffer.ride.origin_lng)
     : null;
 
+  const hasRouteContext =
+    fixedRouteNotificationState.recentRouteIds.size > 0
+    || fixedRouteNotificationState.recentReservationIds.size > 0;
+
+  const opportunityContext = hasRouteContext
+    ? {
+      icon: 'repeat-outline' as const,
+      title: 'Você tem mensagens de rota',
+      text: 'Confira suas Rotas Fixas para responder passageiros e organizar horários.',
+      cta: 'Ver rotas',
+      onPress: () => router.push('/(driver)/fixed-routes'),
+    }
+    : !isOnline
+      ? {
+        icon: 'sparkles-outline' as const,
+        title: 'Crie uma rota fixa',
+        text: 'Ganhe previsibilidade com passageiros recorrentes da sua região.',
+        cta: 'Criar agora',
+        onPress: () => router.push('/(driver)/fixed-routes'),
+      }
+      : {
+        icon: 'people-outline' as const,
+        title: 'Avisos da sua região',
+        text: 'Acompanhe oportunidades locais e comunicados da comunidade.',
+        cta: 'Abrir grupos',
+        onPress: () => router.push('/(driver)/groups'),
+      };
+
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F6F7F8" />
+
       {/* Header */}
       <View style={styles.header}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -588,19 +605,36 @@ export default function DriverOnline() {
           {isReconnecting ? 'RECONECTANDO...' : isOnline ? 'ONLINE' : 'OFFLINE'}
         </Text>
 
-        {/* Mini-resumo when offline */}
-        {!isOnline && !pendingOffer && (
-          <View style={styles.quickStats}>
-            <TouchableOpacity onPress={() => router.push('/(driver)/summary')}>
-              <EarningsCard icon="🚗" value={String(todayRides)} label="Corridas" sub="hoje" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/(driver)/credits')}>
-              <EarningsCard icon="💰" value={creditBalance != null ? `R$${creditBalance.toFixed(0)}` : '—'} label="Saldo" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push('/(driver)/help')}>
-              <EarningsCard icon="🛡️" value="" label="Suporte" sub="24h" />
-            </TouchableOpacity>
+        {!pendingOffer && (
+          <View style={styles.opportunityBar}>
+            {OPPORTUNITY_ITEMS.map((item, index) => (
+              <TouchableOpacity
+                key={item.key}
+                style={[styles.opportunityItem, index === 0 && styles.opportunityItemActive]}
+                onPress={() => {
+                  if (!item.route) return;
+                  router.push(item.route as any);
+                }}
+                activeOpacity={0.86}
+              >
+                <Ionicons name={item.icon} size={17} color={index === 0 ? '#8A6D1A' : '#5E6470'} />
+                <Text style={[styles.opportunityLabel, index === 0 && styles.opportunityLabelActive]}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
+        )}
+
+        {!pendingOffer && (
+          <TouchableOpacity style={styles.contextCard} onPress={opportunityContext.onPress} activeOpacity={0.9}>
+            <View style={styles.contextIcon}>
+              <Ionicons name={opportunityContext.icon} size={18} color="#8A6D1A" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.contextTitle}>{opportunityContext.title}</Text>
+              <Text style={styles.contextText}>{opportunityContext.text}</Text>
+            </View>
+            <Text style={styles.contextCta}>{opportunityContext.cta}</Text>
+          </TouchableOpacity>
         )}
 
         {/* Offer card */}
@@ -707,16 +741,6 @@ export default function DriverOnline() {
           </>
         ) : null}
 
-        {!pendingOffer && (
-          <FeatureRail
-            title="Oportunidades KAVIAR"
-            subtitle="Atalhos para ganhos recorrentes e avisos da sua comunidade."
-            items={OPPORTUNITY_ITEMS.map((item) => ({
-              ...item,
-              onPress: () => router.push(item.route as any),
-            }))}
-          />
-        )}
       </ScrollView>
 
       {/* Fixed offer action buttons */}
@@ -753,54 +777,114 @@ export default function DriverOnline() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#F6F7F8' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 24, paddingTop: 12, paddingBottom: 8,
+    backgroundColor: '#F6F7F8',
   },
-  brand: { fontSize: 20, fontWeight: '900', color: COLORS.primary, letterSpacing: 5 },
-  menuBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 6 },
-  bellButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  brand: { fontSize: 18, fontWeight: '900', color: '#121316', letterSpacing: 3 },
+  menuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginRight: 12, borderWidth: 1, borderColor: '#EAEDF2' },
+  bellButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EAEDF2', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   bellBadge: { position: 'absolute', top: -4, right: -5, backgroundColor: '#E53935', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' as const },
-  userName: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },
+  userName: { fontSize: 13, color: '#5E6470', marginTop: 2 },
   center: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
 
   // Banners
   banner: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff8e1',
-    marginHorizontal: 24, marginBottom: 6, padding: 10, borderRadius: 8, gap: 8,
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF8E6',
+    borderWidth: 1, borderColor: '#E8D9AA', marginHorizontal: 24, marginBottom: 6, padding: 10, borderRadius: 10, gap: 8,
   },
-  bannerText: { fontSize: 13, color: COLORS.textSecondary, flex: 1 },
+  bannerText: { fontSize: 13, color: '#5E6470', flex: 1 },
 
   // Status
   statusRing: {
     width: 100, height: 100, borderRadius: 50,
-    borderWidth: 3, borderColor: COLORS.border,
+    borderWidth: 3, borderColor: '#E2E5EB',
     justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginBottom: 12,
-    shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 8,
+    shadowColor: '#121316', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
   statusDot: { width: 44, height: 44, borderRadius: 22 },
   statusText: {
-    fontSize: 24, fontWeight: '900', color: COLORS.textMuted,
+    fontSize: 24, fontWeight: '900', color: '#5E6470',
     textAlign: 'center', letterSpacing: 6, marginBottom: 8,
   },
 
-  // Quick stats
-  quickStats: {
-    flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 32, paddingHorizontal: 8,
+  opportunityBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    padding: 8,
+    gap: 8,
+    marginBottom: 12,
   },
-  quickStatItem: {
-    backgroundColor: COLORS.surface, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18,
-    alignItems: 'center', minWidth: 80, borderWidth: 1, borderColor: COLORS.border,
+  opportunityItem: {
+    flex: 1,
+    minHeight: 54,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    backgroundColor: '#FCFCFD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
   },
-  quickStatValue: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary, marginTop: 6 },
-  quickStatLabel: { fontSize: 11, color: COLORS.textMuted, marginTop: 2, textTransform: 'uppercase', letterSpacing: 1 },
+  opportunityItemActive: {
+    borderColor: '#E8D9AA',
+    backgroundColor: '#FFFBF0',
+  },
+  opportunityLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#5E6470',
+  },
+  opportunityLabelActive: {
+    color: '#121316',
+  },
+
+  contextCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    padding: 12,
+    marginBottom: 14,
+  },
+  contextIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF8E6',
+  },
+  contextTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#121316',
+    marginBottom: 2,
+  },
+  contextText: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#5E6470',
+  },
+  contextCta: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#8A6D1A',
+  },
 
   // Offer
   offerCard: {
-    backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 24,
-    borderLeftWidth: 4, borderLeftColor: COLORS.primary,
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginBottom: 24,
+    borderWidth: 1, borderColor: '#EAEDF2',
   },
   territoryBadge: {
     paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, marginBottom: 12,
@@ -812,17 +896,17 @@ const styles = StyleSheet.create({
     fontSize: 12, color: COLORS.textMuted, marginTop: 2,
   },
   offerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  offerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textPrimary, marginLeft: 10, flex: 1 },
+  offerTitle: { fontSize: 18, fontWeight: '700', color: '#121316', marginLeft: 10, flex: 1 },
   offerTimer: {
     fontSize: 15, fontWeight: '800', color: COLORS.warning,
-    backgroundColor: COLORS.surfaceLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
+    backgroundColor: '#F5F7FA', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
   routeRow: { flexDirection: 'row', marginBottom: 12 },
   routeDots: { alignItems: 'center', marginRight: 12, paddingTop: 4 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  dotLine: { width: 2, height: 24, backgroundColor: COLORS.border, marginVertical: 2 },
+  dotLine: { width: 2, height: 24, backgroundColor: '#E2E5EB', marginVertical: 2 },
   routeTexts: { flex: 1, justifyContent: 'space-between', gap: 14 },
-  routeText: { fontSize: 15, color: COLORS.textPrimary },
+  routeText: { fontSize: 15, color: '#121316' },
   offerMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   offerMetaText: { fontSize: 13, color: COLORS.textMuted },
   offerPassenger: { fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 },
@@ -839,9 +923,9 @@ const styles = StyleSheet.create({
   waitingBox: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24, gap: 8,
   },
-  waitingText: { fontSize: 15, color: COLORS.textMuted, textAlign: 'center' },
-  waitingSubText: { fontSize: 12, color: COLORS.textMuted, marginTop: 4, textAlign: 'center' },
-  connectingHint: { fontSize: 12, color: COLORS.textSecondary, textAlign: 'center', marginTop: 10, marginBottom: 8 },
+  waitingText: { fontSize: 15, color: '#5E6470', textAlign: 'center' },
+  waitingSubText: { fontSize: 12, color: '#5E6470', marginTop: 4, textAlign: 'center' },
+  connectingHint: { fontSize: 12, color: '#5E6470', textAlign: 'center', marginTop: 10, marginBottom: 8 },
 
   // Credits
   creditBadge: {
