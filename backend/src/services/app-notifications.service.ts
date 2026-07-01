@@ -83,6 +83,8 @@ export async function createAppNotification(input: CreateAppNotificationInput): 
     recipient_type: row.recipient_type,
     recipient_id: row.recipient_id,
     type: row.type,
+    source_type: row.source_type ?? null,
+    source_id: row.source_id ?? null,
     route_id: row.route_id ?? null,
     reservation_id: row.reservation_id ?? null,
   });

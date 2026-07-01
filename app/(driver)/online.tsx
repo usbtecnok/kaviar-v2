@@ -201,7 +201,16 @@ export default function DriverOnline() {
     loadDashboard();
     checkGps();
     checkLocationPermission();
-    fetchUnreadCount('driver').then(setNotifUnread).catch(() => {});
+    fetchUnreadCount('driver')
+      .then((count) => {
+        console.info('[DriverOnline] notifications unread-count', { count });
+        setNotifUnread(count);
+      })
+      .catch((error) => {
+        console.warn('[DriverOnline] notifications unread-count failed', {
+          error: error instanceof Error ? error.message : 'unknown_error',
+        });
+      });
   }, []));
 
   useEffect(() => {
@@ -491,9 +500,9 @@ export default function DriverOnline() {
             onPress={() => router.push('/(driver)/notifications' as any)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             accessibilityLabel="Central de Notificações"
-            style={{ position: 'relative' }}
+            style={styles.bellButton}
           >
-            <Ionicons name="notifications-outline" size={22} color={COLORS.textDark} />
+            <Ionicons name="notifications-outline" size={20} color={COLORS.textDark} />
             {notifUnread > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{notifUnread > 9 ? '9+' : notifUnread}</Text>
@@ -720,6 +729,7 @@ const styles = StyleSheet.create({
   },
   brand: { fontSize: 20, fontWeight: '900', color: COLORS.primary, letterSpacing: 5 },
   menuBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 12, shadowColor: COLORS.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 6 },
+  bellButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primary, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   bellBadge: { position: 'absolute', top: -4, right: -5, backgroundColor: '#E53935', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' as const },
   userName: { fontSize: 13, color: COLORS.textSecondary, marginTop: 2 },

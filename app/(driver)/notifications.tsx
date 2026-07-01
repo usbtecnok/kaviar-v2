@@ -24,12 +24,20 @@ export default function DriverNotificationsScreen() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await fetchNotifications('driver', 50);
+      console.info('[DriverNotifications] list loaded', { count: data.length });
       setItems(data);
+    } catch (error) {
+      setLoadError('Falha ao carregar notificações. Tente novamente.');
+      console.warn('[DriverNotifications] load failed', {
+        error: error instanceof Error ? error.message : 'unknown_error',
+      });
     } finally {
       setLoading(false);
     }
@@ -43,17 +51,25 @@ export default function DriverNotificationsScreen() {
 
   const handleMarkAllRead = async () => {
     setMarkingAll(true);
-    await markAllRead('driver');
-    setItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
+    try {
+      await markAllRead('driver');
+      setItems((prev) => prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
+    } catch {
+      // no-op UI: mantém itens atuais
+    }
     setMarkingAll(false);
   };
 
   const handlePress = async (item: AppNotification) => {
     if (!item.read_at) {
-      await markRead('driver', item.id);
-      setItems((prev) =>
-        prev.map((n) => (n.id === item.id ? { ...n, read_at: new Date().toISOString() } : n)),
-      );
+      try {
+        await markRead('driver', item.id);
+        setItems((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, read_at: new Date().toISOString() } : n)),
+        );
+      } catch {
+        // mantém estado atual
+      }
     }
 
     if (
@@ -126,6 +142,14 @@ export default function DriverNotificationsScreen() {
         <View style={s.center}>
           <ActivityIndicator color={COLORS.primary} />
         </View>
+      ) : loadError ? (
+        <View style={s.center}>
+          <Ionicons name="alert-circle-outline" size={44} color={COLORS.warning} />
+          <Text style={s.emptyText}>{loadError}</Text>
+          <TouchableOpacity onPress={() => void load()} style={s.retryBtn}>
+            <Text style={s.retryBtnText}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
       ) : items.length === 0 ? (
         <View style={s.center}>
           <Ionicons name="notifications-off-outline" size={48} color={COLORS.textMuted} />
@@ -161,6 +185,8 @@ const s = StyleSheet.create({
   readAllText: { color: COLORS.primary, fontSize: 13 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { color: COLORS.textMuted, fontSize: 15 },
+  retryBtn: { marginTop: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: COLORS.primary },
+  retryBtnText: { color: '#111', fontWeight: '700' },
   list: { paddingVertical: 8 },
   separator: { height: 1, backgroundColor: '#2a2a2a', marginLeft: 56 },
   item: {

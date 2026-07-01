@@ -68,13 +68,31 @@ export default function PassengerHome() {
     }
     checkWomenInvite();
     refreshFixedRouteBadge();
-    fetchUnreadCount('passenger').then(setNotifUnread).catch(() => {});
+    fetchUnreadCount('passenger')
+      .then((count) => {
+        console.info('[PassengerHome] notifications unread-count', { count });
+        setNotifUnread(count);
+      })
+      .catch((error) => {
+        console.warn('[PassengerHome] notifications unread-count failed', {
+          error: error instanceof Error ? error.message : 'unknown_error',
+        });
+      });
   }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       refreshFixedRouteBadge();
-      fetchUnreadCount('passenger').then(setNotifUnread).catch(() => {});
+      fetchUnreadCount('passenger')
+        .then((count) => {
+          console.info('[PassengerHome] notifications unread-count (focus)', { count });
+          setNotifUnread(count);
+        })
+        .catch((error) => {
+          console.warn('[PassengerHome] notifications unread-count failed (focus)', {
+            error: error instanceof Error ? error.message : 'unknown_error',
+          });
+        });
     }, [])
   );
 

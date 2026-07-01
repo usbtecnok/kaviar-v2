@@ -7,38 +7,26 @@ export type NotificationUserType = 'passenger' | 'driver';
 
 /** Busca lista de notificações. Não lança — retorna [] em caso de erro. */
 export async function fetchNotifications(userType: NotificationUserType, limit = 50): Promise<AppNotification[]> {
-  try {
-    if (userType === 'passenger') return await passengerApi.getNotifications(limit);
-    return await driverApi.getNotifications(limit);
-  } catch {
-    return [];
-  }
+  if (userType === 'passenger') return await passengerApi.getNotifications(limit);
+  return await driverApi.getNotifications(limit);
 }
 
 /** Conta notificações não lidas. Não lança — retorna 0 em caso de erro. */
 export async function fetchUnreadCount(userType: NotificationUserType): Promise<number> {
-  try {
-    if (userType === 'passenger') return await passengerApi.getNotificationsUnreadCount();
-    return await driverApi.getNotificationsUnreadCount();
-  } catch {
-    return 0;
-  }
+  if (userType === 'passenger') return await passengerApi.getNotificationsUnreadCount();
+  return await driverApi.getNotificationsUnreadCount();
 }
 
 /** Marca uma notificação como lida. Não lança. */
 export async function markRead(userType: NotificationUserType, id: string): Promise<void> {
-  try {
-    if (userType === 'passenger') await passengerApi.markNotificationRead(id);
-    else await driverApi.markNotificationRead(id);
-  } catch { /* silent */ }
+  if (userType === 'passenger') await passengerApi.markNotificationRead(id);
+  else await driverApi.markNotificationRead(id);
 }
 
 /** Marca todas como lidas. Não lança. */
 export async function markAllRead(userType: NotificationUserType): Promise<void> {
-  try {
-    if (userType === 'passenger') await passengerApi.markAllNotificationsRead();
-    else await driverApi.markAllNotificationsRead();
-  } catch { /* silent */ }
+  if (userType === 'passenger') await passengerApi.markAllNotificationsRead();
+  else await driverApi.markAllNotificationsRead();
 }
 
 export function formatNotificationDate(isoString: string): string {

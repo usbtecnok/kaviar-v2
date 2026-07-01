@@ -111,6 +111,14 @@ describe('app-notifications — rotas REST', () => {
       type: 'fixed_route_broadcast',
       route_id: 'route-1',
     });
+    expect(prismaMock.app_notifications.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          recipient_type: 'PASSENGER',
+          recipient_id: 'passenger-1',
+        }),
+      }),
+    );
   });
 
   // 2. Motorista lista suas notificações
@@ -124,6 +132,14 @@ describe('app-notifications — rotas REST', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(1);
     expect(res.body.data[0].type).toBe('fixed_route_message');
+    expect(prismaMock.app_notifications.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          recipient_type: 'DRIVER',
+          recipient_id: 'driver-1',
+        }),
+      }),
+    );
   });
 
   // 3. Passageiro só vê as suas (recipient_id filtrado)
@@ -182,6 +198,28 @@ describe('app-notifications — rotas REST', () => {
         }),
       }),
     );
+    expect(prismaMock.app_notifications.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'notif-1' } }),
+    );
+  });
+
+  it('unread-count cai após marcar notificação como lida', async () => {
+    prismaMock.app_notifications.count
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0);
+    prismaMock.app_notifications.findFirst.mockResolvedValue(makeNotif({ read_at: null }));
+    prismaMock.app_notifications.update.mockResolvedValue(makeNotif({ read_at: new Date() }));
+
+    const before = await request(app).get('/api/passenger/notifications/unread-count');
+    expect(before.status).toBe(200);
+    expect(before.body.data.count).toBe(1);
+
+    const mark = await request(app).patch('/api/passenger/notifications/notif-1/read');
+    expect(mark.status).toBe(200);
+
+    const after = await request(app).get('/api/passenger/notifications/unread-count');
+    expect(after.status).toBe(200);
+    expect(after.body.data.count).toBe(0);
   });
 
   // 7. read retorna 404 se notificação não for do dono
