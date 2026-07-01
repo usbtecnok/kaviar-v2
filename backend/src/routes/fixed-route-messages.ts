@@ -45,6 +45,8 @@ const QUICK_CODE_TEXT: Record<string, string> = {
   NEED_HELP: 'Preciso de ajuda com essa reserva.',
 };
 
+const NOTIFICATION_PREVIEW_MAX = 160;
+
 function driverId(req: Request) {
   return (req as any).driver?.id || (req as any).driverId || (req as any).userId;
 }
@@ -80,6 +82,18 @@ function buildMessage(messageCodeInput: any, messageTextInput: any, allowedCodes
   }
 
   return { data: { messageCode: messageCode || null, messageText } };
+}
+
+function buildNotificationPreview(messageText: string, fallback: string): string {
+  const normalized = messageText
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\b\d{8,}\b/g, '[oculto]')
+    .trim();
+
+  const safe = cleanString(normalized, NOTIFICATION_PREVIEW_MAX + 20) || fallback;
+  if (safe.length <= NOTIFICATION_PREVIEW_MAX) return safe;
+  return `${safe.slice(0, NOTIFICATION_PREVIEW_MAX - 3).trimEnd()}...`;
 }
 
 function mapMessageOutput(row: any) {
@@ -145,7 +159,7 @@ function normalizeId(value: unknown): string | null {
   return null;
 }
 
-async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: string) {
+async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: string, messageText: string) {
   const confirmedReservations: Array<{ passenger_id?: unknown }> = await db.driver_fixed_route_reservations.findMany({
     where: { route_id: routeId, status: 'confirmed' },
     select: { passenger_id: true },
@@ -164,13 +178,13 @@ async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: st
     uniquePassengerIds,
     'PASSENGER',
     {
-      title: 'Aviso da sua Rota Fixa',
-      body: 'O motorista enviou uma atualização da rota.',
+      title: 'Nova mensagem da Rota Fixa',
+      body: buildNotificationPreview(messageText, 'Você recebeu uma nova mensagem sobre sua rota.'),
       type: 'fixed_route_broadcast',
       source_type: 'fixed_route_message',
       source_id: messageId,
       route_id: routeId,
-      data: { routeId, messageId },
+      data: { routeId, messageId, direction: 'driver_to_passenger_broadcast', notificationType: 'fixed_route_broadcast' },
     },
   ).catch((err) => {
     console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_BROADCAST_ERROR]', {
@@ -199,19 +213,19 @@ async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: st
   }));
 }
 
-async function notifyPassengerFromReservation(routeId: string, reservationId: string, messageId: string, targetPassengerId: string) {
+async function notifyPassengerFromReservation(routeId: string, reservationId: string, messageId: string, targetPassengerId: string, messageText: string) {
   // Notificação persistente: falha não interrompe push
   void createAppNotification({
     recipient_type: 'PASSENGER',
     recipient_id: targetPassengerId,
-    title: 'Mensagem do motorista',
-    body: 'Você recebeu uma mensagem sobre sua Rota Fixa.',
+    title: 'Nova mensagem da Rota Fixa',
+    body: buildNotificationPreview(messageText, 'Você recebeu uma nova mensagem sobre sua rota.'),
     type: 'fixed_route_direct',
     source_type: 'fixed_route_message',
     source_id: messageId,
     route_id: routeId,
     reservation_id: reservationId,
-    data: { routeId, reservationId, messageId },
+    data: { routeId, reservationId, messageId, direction: 'driver_to_passenger_direct', notificationType: 'fixed_route_direct' },
   }).catch((err) => {
     console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_DIRECT_ERROR]', {
       routeId,
@@ -239,19 +253,19 @@ async function notifyPassengerFromReservation(routeId: string, reservationId: st
   });
 }
 
-async function notifyRouteDriver(routeId: string, reservationId: string, messageId: string, targetDriverId: string) {
+async function notifyRouteDriver(routeId: string, reservationId: string, messageId: string, targetDriverId: string, messageText: string) {
   // Notificação persistente: falha não interrompe push
   void createAppNotification({
     recipient_type: 'DRIVER',
     recipient_id: targetDriverId,
-    title: 'Mensagem de passageiro',
-    body: 'Um passageiro enviou uma mensagem sobre a Rota Fixa.',
+    title: 'Nova mensagem da Rota Fixa',
+    body: buildNotificationPreview(messageText, 'Você recebeu uma nova mensagem sobre sua rota.'),
     type: 'fixed_route_message',
     source_type: 'fixed_route_message',
     source_id: messageId,
     route_id: routeId,
     reservation_id: reservationId,
-    data: { routeId, reservationId, messageId },
+    data: { routeId, reservationId, messageId, direction: 'passenger_to_driver', notificationType: 'fixed_route_message' },
   }).catch((err) => {
     console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_DRIVER_ERROR]', {
       routeId,
@@ -360,7 +374,7 @@ driverFixedRouteMessagesRoutes.post('/:routeId/messages', async (req: Request, r
       },
     });
 
-    void notifyConfirmedPassengersFromRoute(route.id, created.id).catch((error) => {
+    void notifyConfirmedPassengersFromRoute(route.id, created.id, created.message_text).catch((error) => {
       console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_CONFIRMED_PASSENGERS_ERROR]', {
         routeId: route.id,
         messageId: created.id,
@@ -442,7 +456,7 @@ driverFixedRouteMessagesRoutes.post('/:routeId/reservations/:reservationId/messa
       },
     });
 
-    void notifyPassengerFromReservation(route.id, reservation.id, created.id, reservation.passenger_id).catch((error) => {
+    void notifyPassengerFromReservation(route.id, reservation.id, created.id, reservation.passenger_id, created.message_text).catch((error) => {
       console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_PASSENGER_ERROR]', {
         routeId: route.id,
         reservationId: reservation.id,
@@ -584,7 +598,7 @@ passengerFixedRouteMessagesRoutes.post('/:reservationId/messages', async (req: R
       },
     });
 
-    void notifyRouteDriver(reservation.route_id, reservation.id, created.id, reservation.route.driver_id).catch((error) => {
+    void notifyRouteDriver(reservation.route_id, reservation.id, created.id, reservation.route.driver_id, created.message_text).catch((error) => {
       console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_DRIVER_ERROR]', {
         routeId: reservation.route_id,
         reservationId: reservation.id,

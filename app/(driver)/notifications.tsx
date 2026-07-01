@@ -25,6 +25,16 @@ export default function DriverNotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handleClose = () => {
+    const nav = router as any;
+    if (typeof nav.canGoBack === 'function' && nav.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace('/(driver)/online' as any);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,28 +82,27 @@ export default function DriverNotificationsScreen() {
       }
     }
 
-    if (
-      item.type === 'fixed_route_message' ||
-      item.type === 'fixed_route_broadcast' ||
-      item.type === 'fixed_route_direct'
-    ) {
-      const routeId = item.data?.routeId || item.route_id;
-      const reservationId = item.data?.reservationId || item.reservation_id;
-      if (routeId) {
-        router.push({
-          pathname: '/(driver)/fixed-routes',
-          params: reservationId ? { routeId, reservationId } : { routeId },
-        } as any);
-      } else {
-        router.push('/(driver)/fixed-routes');
-      }
+    setExpandedId((current) => (current === item.id ? null : item.id));
+  };
+
+  const handleOpenRoute = (item: AppNotification) => {
+    const routeId = item.data?.routeId || item.route_id;
+    const reservationId = item.data?.reservationId || item.reservation_id;
+    if (routeId) {
+      router.push({
+        pathname: '/(driver)/fixed-routes',
+        params: reservationId ? { routeId, reservationId } : { routeId },
+      } as any);
+      return;
     }
+    router.push('/(driver)/fixed-routes');
   };
 
   const unreadCount = items.filter((n) => !n.read_at).length;
 
   const renderItem = ({ item }: { item: AppNotification }) => {
     const isUnread = !item.read_at;
+    const isExpanded = expandedId === item.id;
     return (
       <TouchableOpacity
         style={[s.item, isUnread && s.itemUnread]}
@@ -104,15 +113,35 @@ export default function DriverNotificationsScreen() {
           <View style={[s.dot, isUnread ? s.dotUnread : s.dotRead]} />
         </View>
         <View style={s.itemBody}>
-          <Text style={[s.itemTitle, isUnread && s.itemTitleBold]} numberOfLines={2}>
-            {item.title}
-          </Text>
-          <Text style={s.itemBodyText} numberOfLines={2}>
+          <View style={s.itemTopRow}>
+            <Text style={[s.itemTitle, isUnread && s.itemTitleBold]} numberOfLines={isExpanded ? 4 : 2}>
+              {item.title}
+            </Text>
+            <View style={[s.statusChip, isUnread ? s.statusChipUnread : s.statusChipRead]}>
+              <Text style={[s.statusChipText, isUnread ? s.statusChipTextUnread : s.statusChipTextRead]}>
+                {isUnread ? 'Nova' : 'Lida'}
+              </Text>
+            </View>
+          </View>
+          <Text style={s.itemBodyText} numberOfLines={isExpanded ? 8 : 2}>
             {item.body}
           </Text>
           <Text style={s.itemDate}>{formatNotificationDate(item.created_at)}</Text>
+
+          {isExpanded && (
+            <View style={s.expandedBox}>
+              <Text style={s.expandedLabel}>Conteúdo</Text>
+              <Text style={s.expandedText}>{item.body}</Text>
+              {(item.route_id || item.data?.routeId) ? (
+                <TouchableOpacity onPress={() => handleOpenRoute(item)} style={s.secondaryBtn}>
+                  <Ionicons name="open-outline" size={14} color={COLORS.primary} />
+                  <Text style={s.secondaryBtnText}>Abrir mensagens da rota</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          )}
         </View>
-        <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} style={s.itemChevron} />
+        <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textMuted} style={s.itemChevron} />
       </TouchableOpacity>
     );
   };
@@ -121,7 +150,7 @@ export default function DriverNotificationsScreen() {
     <SafeAreaView style={s.root} edges={['top']}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+        <TouchableOpacity onPress={handleClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Ionicons name="arrow-back" size={22} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Notificações</Text>
@@ -191,7 +220,7 @@ const s = StyleSheet.create({
   separator: { height: 1, backgroundColor: '#2a2a2a', marginLeft: 56 },
   item: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: '#1a1a1a',
@@ -202,9 +231,21 @@ const s = StyleSheet.create({
   dotUnread: { backgroundColor: COLORS.primary },
   dotRead: { backgroundColor: 'transparent' },
   itemBody: { flex: 1, gap: 3 },
+  itemTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
   itemTitle: { color: '#eee', fontSize: 14, lineHeight: 19 },
   itemTitleBold: { fontWeight: '600', color: '#fff' },
+  statusChip: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, marginTop: 1 },
+  statusChipUnread: { backgroundColor: '#7A5F00' },
+  statusChipRead: { backgroundColor: '#2F2F2F' },
+  statusChipText: { fontSize: 11, fontWeight: '700' },
+  statusChipTextUnread: { color: '#F8D56B' },
+  statusChipTextRead: { color: '#B3B3B3' },
   itemBodyText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
   itemDate: { color: '#555', fontSize: 11, marginTop: 2 },
+  expandedBox: { marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: '#252515', borderWidth: 1, borderColor: '#4A4120', gap: 8 },
+  expandedLabel: { color: '#B3B3B3', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  expandedText: { color: '#F2F2F2', fontSize: 13, lineHeight: 20 },
+  secondaryBtn: { marginTop: 4, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 10, borderWidth: 1, borderColor: COLORS.primary, backgroundColor: '#17170B' },
+  secondaryBtnText: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
   itemChevron: { marginLeft: 8 },
 });

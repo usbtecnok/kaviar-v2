@@ -462,7 +462,7 @@ describe('fixed route messages', () => {
   it('broadcast do motorista cria notificacao persistente para passageiros confirmados', async () => {
     const res = await request(app)
       .post('/api/driver/fixed-routes/route-1/messages')
-      .send({ message_code: 'LEAVING_SOON' });
+      .send({ message_code: 'LEAVING_SOON', message_text: 'Saio em breve. Ligue para 21999999999 se precisar.' });
 
     expect(res.status).toBe(201);
     // Aguarda microtasks (void fire-and-forget)
@@ -472,16 +472,20 @@ describe('fixed route messages', () => {
       'PASSENGER',
       expect.objectContaining({
         type: 'fixed_route_broadcast',
+        title: 'Nova mensagem da Rota Fixa',
+        body: expect.stringContaining('Vou sair em 10 minutos.'),
         route_id: 'route-1',
         data: expect.objectContaining({ routeId: 'route-1', messageId: 'msg-1' }),
       }),
     );
+    const body = notifMock.createAppNotificationBroadcast.mock.calls[0]?.[2]?.body || '';
+    expect(body).not.toContain('21999999999');
   });
 
   it('mensagem direta do motorista cria notificacao persistente para passageiro da reserva', async () => {
     const res = await request(app)
       .post('/api/driver/fixed-routes/route-1/reservations/res-1/messages')
-      .send({ message_code: 'PLEASE_CONFIRM' });
+      .send({ message_code: 'PLEASE_CONFIRM', message_text: 'Me confirme ainda hoje, por favor.' });
 
     expect(res.status).toBe(201);
     await new Promise((r) => setTimeout(r, 20));
@@ -489,6 +493,8 @@ describe('fixed route messages', () => {
       expect.objectContaining({
         recipient_type: 'PASSENGER',
         recipient_id: 'passenger-1',
+        title: 'Nova mensagem da Rota Fixa',
+        body: expect.stringContaining('Pode confirmar se você vai hoje?'),
         type: 'fixed_route_direct',
         route_id: 'route-1',
         reservation_id: 'res-1',
@@ -500,7 +506,7 @@ describe('fixed route messages', () => {
   it('mensagem do passageiro cria notificacao persistente para motorista', async () => {
     const res = await request(app)
       .post('/api/passenger/fixed-route-reservations/res-1/messages')
-      .send({ message_code: 'ARRIVING_POINT' });
+      .send({ message_code: 'ARRIVING_POINT', message_text: 'Chego em 5 minutos no ponto.' });
 
     expect(res.status).toBe(201);
     await new Promise((r) => setTimeout(r, 20));
@@ -508,6 +514,8 @@ describe('fixed route messages', () => {
       expect.objectContaining({
         recipient_type: 'DRIVER',
         recipient_id: 'driver-1',
+        title: 'Nova mensagem da Rota Fixa',
+        body: expect.stringContaining('Estou chegando ao ponto combinado.'),
         type: 'fixed_route_message',
         route_id: 'route-1',
         reservation_id: 'res-1',
@@ -530,7 +538,7 @@ describe('fixed route messages', () => {
   it('notificacao nao contem telefone nem token', async () => {
     await request(app)
       .post('/api/driver/fixed-routes/route-1/reservations/res-1/messages')
-      .send({ message_code: 'PLEASE_CONFIRM' });
+      .send({ message_code: 'PLEASE_CONFIRM', message_text: 'Meu telefone é 21999999999 e nao deve aparecer.' });
 
     await new Promise((r) => setTimeout(r, 20));
     const callArg = notifMock.createAppNotification.mock.calls[0]?.[0] || {};
@@ -538,5 +546,18 @@ describe('fixed route messages', () => {
     expect(serialized).not.toContain('phone');
     expect(serialized).not.toContain('token');
     expect(serialized).not.toContain('expo_push_token');
+    expect(serialized).not.toContain('21999999999');
+  });
+
+  it('preview da notificacao é limitado em tamanho', async () => {
+    const longText = 'mensagem '.repeat(40);
+
+    await request(app)
+      .post('/api/driver/fixed-routes/route-1/reservations/res-1/messages')
+      .send({ message_text: longText });
+
+    await new Promise((r) => setTimeout(r, 20));
+    const body = String(notifMock.createAppNotification.mock.calls[0]?.[0]?.body || '');
+    expect(body.length).toBeLessThanOrEqual(160);
   });
 });
