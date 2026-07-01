@@ -22,6 +22,8 @@ import { persistDriverRide, getPersistedDriverRide } from '../../src/services/ri
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ENV } from '../../src/config/env';
 import { fetchUnreadCount } from '../../src/services/notifications.service';
+import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
+import { KAVIAR_SOLUTION_ARTWORK_READY, KAVIAR_SOLUTION_IMAGES } from '../../src/components/kaviarSolutionAssets';
 
 const POLL_INTERVAL = 5000;
 const POLL_BACKOFF = [5000, 8000, 12000, 15000]; // normal, 1 fail, 2 fails, 3+ fails
@@ -51,31 +53,55 @@ const OPPORTUNITY_ITEMS = [
 const ECOSYSTEM_ITEMS = [
   {
     key: 'fixed-routes',
-    icon: 'repeat-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.rotas,
+    fallbackIcon: 'repeat-outline' as const,
+    fallbackEmoji: '🚕',
+    fallbackDetailEmoji: '🛣️',
+    tint: '#EAF9F2',
+    accent: '#8A6D1A',
     title: 'Rotas Fixas',
-    text: 'Ganhe com passageiros recorrentes.',
+    description: 'Ganhe com passageiros recorrentes.',
     cta: 'Ver',
     route: '/(driver)/fixed-routes',
   },
   {
     key: 'commercial',
-    icon: 'storefront-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.comercial,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.comercial,
+    fallbackIcon: 'storefront-outline' as const,
+    fallbackEmoji: '🏬',
+    fallbackDetailEmoji: '🤝',
+    tint: '#EAF4FF',
+    accent: '#8A6D1A',
     title: 'Comercial Local',
-    text: 'Parcerias e demandas do comercio da regiao.',
+    description: 'Parcerias e demandas do comercio da regiao.',
     cta: 'Em breve',
   },
   {
     key: 'pet',
-    icon: 'paw-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.pet,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.pet,
+    fallbackIcon: 'paw-outline' as const,
+    fallbackEmoji: '🐾',
+    fallbackDetailEmoji: '🐶',
+    tint: '#FFE8EF',
+    accent: '#8A6D1A',
     title: 'KAVIAR Pet',
-    text: 'Viagens especiais com passageiros e pets.',
+    description: 'Viagens especiais com passageiros e pets.',
     cta: 'Em breve',
   },
   {
     key: 'groups',
-    icon: 'people-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.regiao,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.regiao,
+    fallbackIcon: 'people-outline' as const,
+    fallbackEmoji: '🧭',
+    fallbackDetailEmoji: '👥',
+    tint: '#F2EEFF',
+    accent: '#8A6D1A',
     title: 'Grupos/Regiao',
-    text: 'Avisos e oportunidades locais.',
+    description: 'Avisos e oportunidades locais.',
     cta: 'Ver',
     route: '/(driver)/groups',
   },
@@ -663,24 +689,15 @@ export default function DriverOnline() {
             <Text style={styles.ecosystemSubtitle}>Solucoes para ampliar ganhos e presenca local.</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ecosystemScroll}>
               {ECOSYSTEM_ITEMS.map((item) => (
-                <TouchableOpacity
+                <KaviarPremiumRailCard
                   key={item.key}
-                  style={styles.ecosystemCard}
-                  activeOpacity={item.route ? 0.88 : 1}
+                  item={item}
+                  disabled={!item.route}
                   onPress={() => {
                     if (!item.route) return;
                     router.push(item.route as any);
                   }}
-                >
-                  <View style={styles.ecosystemIconWrap}>
-                    <Ionicons name={item.icon} size={18} color="#8A6D1A" />
-                  </View>
-                  <Text style={styles.ecosystemCardTitle}>{item.title}</Text>
-                  <Text style={styles.ecosystemCardText} numberOfLines={3}>{item.text}</Text>
-                  <View style={styles.ecosystemCtaWrap}>
-                    <Text style={styles.ecosystemCta}>{item.cta}</Text>
-                  </View>
-                </TouchableOpacity>
+                />
               ))}
             </ScrollView>
           </View>
@@ -699,17 +716,14 @@ export default function DriverOnline() {
           </TouchableOpacity>
         )}
 
-        {/* Offer card */}
         {pendingOffer && (
           <View style={styles.offerCard}>
-            {/* Header */}
             <View style={styles.offerHeader}>
               <Ionicons name="car-sport" size={20} color={COLORS.primary} />
               <Text style={styles.offerTitle}>Nova corrida</Text>
               {offerCountdown ? <Text style={styles.offerTimer}>{offerCountdown}</Text> : null}
             </View>
 
-            {/* Route compact */}
             <View style={styles.routeRow}>
               <View style={styles.routeDots}>
                 <View style={[styles.dot, { backgroundColor: COLORS.statusOnline }]} />
@@ -731,50 +745,28 @@ export default function DriverOnline() {
               </View>
             </View>
 
-            {/* Meta row: value + credits + distance */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              {(pendingOffer.ride as any).quoted_price != null && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a2a1a', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Text style={{ color: COLORS.primary, fontSize: 14, fontWeight: '800' }}>R$ {Number((pendingOffer.ride as any).quoted_price).toFixed(2)}</Text>
-                </View>
-              )}
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a2e', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
-                <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>{pendingOffer.territory_tier === 'OUTSIDE' ? '2 créd · externa' : '1 créd · local'}</Text>
-              </View>
-              {distanceToPickup !== null && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a2e', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Text style={{ color: COLORS.textMuted, fontSize: 12 }}>{distanceToPickup.toFixed(1)} km</Text>
-                </View>
-              )}
-              {(pendingOffer.ride as any).wait_requested && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#2a2a1a', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Text style={{ color: '#f57f17', fontSize: 12, fontWeight: '700' }}>⏳ {(pendingOffer.ride as any).wait_estimated_min || '?'} min</Text>
-                </View>
-              )}
+            <View style={styles.offerMeta}>
+              <Ionicons name="speedometer-outline" size={14} color={COLORS.textMuted} />
+              <Text style={styles.offerMetaText}>
+                {typeof distanceToPickup === 'number'
+                  ? `${distanceToPickup.toFixed(1)} km ate a origem`
+                  : 'Distancia nao informada'}
+              </Text>
             </View>
+            <Text style={styles.offerPassenger} numberOfLines={1}>Passageiro: {(pendingOffer as any).passenger_name || 'Nao informado'}</Text>
 
-            {/* Territory + passenger compact */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 }}>
-              {pendingOffer.ride.is_homebound ? (
-                <Text style={{ fontSize: 11, color: '#2e7d32' }}>🏠 Retorno</Text>
-              ) : pendingOffer.territory_tier === 'COMMUNITY' ? (
-                <Text style={{ fontSize: 11, color: '#1565c0' }}>Comunidade</Text>
-              ) : pendingOffer.territory_tier === 'NEIGHBORHOOD' ? (
-                <Text style={{ fontSize: 11, color: '#e65100' }}>Bairro</Text>
-              ) : null}
-              {pendingOffer.ride.passenger?.name && (
-                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>👤 {pendingOffer.ride.passenger.name}</Text>
-              )}
-              {(pendingOffer.ride as any).trip_details && (
-                <Text style={{ fontSize: 11, color: COLORS.textMuted }}>
+            {(pendingOffer.ride as any).trip_details && (
+              <View style={styles.offerGroup}>
+                <Ionicons name="people-outline" size={14} color={COLORS.textPrimary} />
+                <Text style={styles.offerGroupText}>
                   {groupLabel((pendingOffer.ride as any).trip_details.passengers || 1, !!(pendingOffer.ride as any).trip_details.has_luggage)}
                 </Text>
-              )}
-            </View>
+              </View>
+            )}
 
             {(pendingOffer.ride as any).trip_details?.post_wait_destination && (
               <View style={{ backgroundColor: '#1a1a0a', borderRadius: 6, borderWidth: 1, borderColor: '#C8A84E', paddingVertical: 4, paddingHorizontal: 8, marginTop: 6, alignSelf: 'flex-start' }}>
-                <Text style={{ fontSize: 11, color: '#C8A84E', fontWeight: '700' }}>✨ Valor inclui trecho após espera</Text>
+                <Text style={{ fontSize: 11, color: '#C8A84E', fontWeight: '700' }}>Valor inclui trecho apos espera</Text>
               </View>
             )}
           </View>
@@ -940,16 +932,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#FCFCFD',
     padding: 12,
   },
-  ecosystemIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+  ecosystemScene: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E8D9AA',
-    backgroundColor: '#FFF8E6',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  ecosystemHero: {
+    fontSize: 24,
+  },
+  ecosystemDetailBubble: {
+    position: 'absolute',
+    right: -5,
+    bottom: -5,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7E9EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ecosystemDetail: {
+    fontSize: 10,
   },
   ecosystemCardTitle: {
     fontSize: 13,

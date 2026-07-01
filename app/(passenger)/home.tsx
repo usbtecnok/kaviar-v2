@@ -21,6 +21,8 @@ import {
 } from '../../src/services/fixed-route-recent.service';
 import { ensurePassengerPushTokenRegistration } from '../../src/services/passenger-push-token.service';
 import { fetchUnreadCount } from '../../src/services/notifications.service';
+import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
+import { KAVIAR_SOLUTION_ARTWORK_READY, KAVIAR_SOLUTION_IMAGES } from '../../src/components/kaviarSolutionAssets';
 
 const SERVICE_ITEMS = [
   { key: 'ride', icon: 'car-sport-outline' as const, label: 'Corrida', route: '/(passenger)/map' },
@@ -32,33 +34,57 @@ const SERVICE_ITEMS = [
 const SOLUTION_ITEMS = [
   {
     key: 'pet',
-    icon: 'paw-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.pet,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.pet,
+    fallbackIcon: 'paw-outline' as const,
+    fallbackEmoji: '🐶',
+    fallbackDetailEmoji: '❤️',
+    tint: '#FFE8EF',
+    accent: '#8A6D1A',
     title: 'KAVIAR Pet',
-    text: 'Viagens com mais cuidado para você e seu pet.',
+    description: 'Viagens com mais cuidado para você e seu pet.',
     cta: 'Conhecer',
     externalUrl: 'https://kaviar.com.br/pet',
   },
   {
     key: 'commercial',
-    icon: 'storefront-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.comercial,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.comercial,
+    fallbackIcon: 'storefront-outline' as const,
+    fallbackEmoji: '🏪',
+    fallbackDetailEmoji: '📈',
+    tint: '#EAF4FF',
+    accent: '#8A6D1A',
     title: 'KAVIAR Comercial',
-    text: 'CRM, divulgacao e clientes para o comercio local.',
+    description: 'CRM, divulgacao e clientes para o comercio local.',
     cta: 'Abrir',
     route: '/(passenger)/local',
   },
   {
     key: 'fixed-routes',
-    icon: 'repeat-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.rotas,
+    fallbackIcon: 'repeat-outline' as const,
+    fallbackEmoji: '🚗',
+    fallbackDetailEmoji: '🗺️',
+    tint: '#EAF9F2',
+    accent: '#8A6D1A',
     title: 'Rotas Fixas',
-    text: 'Viagens frequentes para trabalho, escola, igreja e rotina.',
+    description: 'Viagens frequentes para trabalho, escola, igreja e rotina.',
     cta: 'Ver',
     route: '/(passenger)/fixed-routes',
   },
   {
     key: 'groups',
-    icon: 'people-outline' as const,
+    image: KAVIAR_SOLUTION_IMAGES.grupos,
+    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.grupos,
+    fallbackIcon: 'people-outline' as const,
+    fallbackEmoji: '👥',
+    fallbackDetailEmoji: '💬',
+    tint: '#F2EEFF',
+    accent: '#8A6D1A',
     title: 'Grupos KAVIAR',
-    text: 'Avisos, beneficios e comunidade na sua regiao.',
+    description: 'Avisos, beneficios e comunidade na sua regiao.',
     cta: 'Ver',
     route: '/(passenger)/groups',
   },
@@ -282,10 +308,9 @@ export default function PassengerHome() {
             <Text style={s.solutionsSubtitle}>Mais formas de usar o KAVIAR no dia a dia.</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.solutionsScroll}>
               {SOLUTION_ITEMS.map((item) => (
-                <TouchableOpacity
+                <KaviarPremiumRailCard
                   key={item.key}
-                  style={s.solutionCard}
-                  activeOpacity={0.88}
+                  item={item}
                   onPress={() => {
                     if (item.route) {
                       router.push(item.route as any);
@@ -297,16 +322,7 @@ export default function PassengerHome() {
                       });
                     }
                   }}
-                >
-                  <View style={s.solutionIconWrap}>
-                    <Ionicons name={item.icon} size={18} color="#8A6D1A" />
-                  </View>
-                  <Text style={s.solutionCardTitle}>{item.title}</Text>
-                  <Text style={s.solutionCardText} numberOfLines={3}>{item.text}</Text>
-                  <View style={s.solutionCtaWrap}>
-                    <Text style={s.solutionCta}>{item.cta}</Text>
-                  </View>
-                </TouchableOpacity>
+                />
               ))}
             </ScrollView>
           </View>
@@ -520,53 +536,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     gap: 8,
   },
-  solutionCard: {
-    width: 188,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EAEDF2',
-    backgroundColor: '#FCFCFD',
-    padding: 12,
-  },
-  solutionIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E8D9AA',
-    backgroundColor: '#FFF8E6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  solutionCardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#121316',
-    marginBottom: 4,
-  },
-  solutionCardText: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: '#5E6470',
-    minHeight: 48,
-  },
-  solutionCtaWrap: {
-    marginTop: 8,
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E8D9AA',
-    backgroundColor: '#FFFBF0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  solutionCta: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#8A6D1A',
-  },
-
   contextCard: {
     flexDirection: 'row',
     alignItems: 'center',
