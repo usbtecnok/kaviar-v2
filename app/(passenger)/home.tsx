@@ -12,6 +12,7 @@ import { apiClient } from '../../src/api/client';
 import { passengerApi } from '../../src/api/passenger.api';
 import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
+import { FeatureRail } from '../../src/components/FeatureRail';
 import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
 import { HomeOpportunityCarousel } from '../../src/components/passenger/HomeOpportunityCarousel';
 import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPreferenceInvite';
@@ -35,6 +36,25 @@ const QUICK_ACTIONS = [
   { key: 'favorites', icon: 'location'     as const, title: 'Destinos', sub: 'Salvos',          route: '/(passenger)/favorites' },
   { key: 'tourism',   icon: 'diamond'      as const, title: 'Turismo',  sub: 'Passeios',        route: '/(passenger)/tourism'   },
   { key: 'help',      icon: 'chatbubble-ellipses' as const, title: 'Suporte',  sub: 'Ajuda',    route: '/(passenger)/help'      },
+] as const;
+
+const EXPLORE_ITEMS = [
+  {
+    key: 'fixed-routes',
+    icon: 'repeat-outline' as const,
+    title: 'Rotas Fixas',
+    description: 'Viagens frequentes para sua rotina.',
+    badge: 'Recorrente',
+    route: '/(passenger)/fixed-routes',
+  },
+  {
+    key: 'groups',
+    icon: 'people-outline' as const,
+    title: 'Meus Grupos',
+    description: 'Avisos e recursos da sua comunidade.',
+    badge: 'Comunidade',
+    route: '/(passenger)/groups',
+  },
 ] as const;
 
 export default function PassengerHome() {
@@ -275,6 +295,15 @@ export default function PassengerHome() {
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.primary} />
           </TouchableOpacity>
+
+          <FeatureRail
+            title="Explore o KAVIAR"
+            subtitle="Acessos rápidos para recursos importantes sem ocupar a Home inteira."
+            items={EXPLORE_ITEMS.map((item) => ({
+              ...item,
+              onPress: () => router.push(item.route as any),
+            }))}
+          />
 
           {/* Banner Moto — complementar, após corrida principal */}
           <MotoPromoCard onPress={() => setShowMotoAccept(true)} />

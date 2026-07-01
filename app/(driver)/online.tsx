@@ -16,6 +16,7 @@ import { friendlyError } from '../../src/utils/errorMessage';
 import { COLORS } from '../../src/config/colors';
 import { EarningsCard, StatusPill } from '../../src/components/PremiumCards';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
+import { FeatureRail } from '../../src/components/FeatureRail';
 import { groupLabel } from '../../src/utils/tripLabel';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../src/services/background-location';
 import { persistDriverRide, getPersistedDriverRide } from '../../src/services/ride-persistence';
@@ -40,6 +41,25 @@ const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotifi
   recentReservationIds: new Set<string>(),
   seenMessageIds: new Set<string>(),
 });
+
+const OPPORTUNITY_ITEMS = [
+  {
+    key: 'fixed-routes',
+    icon: 'repeat-outline' as const,
+    title: 'Rotas Fixas',
+    description: 'Ganhe com passageiros recorrentes.',
+    badge: 'Recorrente',
+    route: '/(driver)/fixed-routes',
+  },
+  {
+    key: 'groups',
+    icon: 'people-outline' as const,
+    title: 'Meus Grupos',
+    description: 'Avisos e oportunidades locais.',
+    badge: 'Local',
+    route: '/(driver)/groups',
+  },
+] as const;
 
 export default function DriverOnline() {
   const router = useRouter();
@@ -686,6 +706,17 @@ export default function DriverOnline() {
             <Button title={isReconnecting ? 'Reconectando...' : 'Ficar Offline'} variant="outline" onPress={handleGoOffline} loading={loading} disabled={isReconnecting} />
           </>
         ) : null}
+
+        {!pendingOffer && (
+          <FeatureRail
+            title="Oportunidades KAVIAR"
+            subtitle="Atalhos para ganhos recorrentes e avisos da sua comunidade."
+            items={OPPORTUNITY_ITEMS.map((item) => ({
+              ...item,
+              onPress: () => router.push(item.route as any),
+            }))}
+          />
+        )}
       </ScrollView>
 
       {/* Fixed offer action buttons */}
