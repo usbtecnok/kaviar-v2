@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { apiClient } from '../api/client';
 import { authStore } from '../auth/auth.store';
@@ -6,6 +7,7 @@ import { authStore } from '../auth/auth.store';
 const PASSENGER_EXPO_PROJECT_ID = '23cab91b-82a5-4d92-9709-017279a2539d';
 
 let inFlightRegistration: Promise<boolean> | null = null;
+let inFlightTokenKey: string | null = null;
 let lastSuccessfulAuthToken: string | null = null;
 let lastSuccessfulRegistrationAt = 0;
 let lastFailureAt = 0;
@@ -13,8 +15,52 @@ let lastFailureAt = 0;
 const SUCCESS_COOLDOWN_MS = 5 * 60 * 1000;
 const FAILURE_RETRY_COOLDOWN_MS = 30 * 1000;
 
-function isPassengerSessionReady() {
-  return authStore.getUserType() === 'passenger' && Boolean(authStore.getToken());
+type AuthResolution = {
+  token: string | null;
+  hasAuthToken: boolean;
+  canProceedAsPassenger: boolean;
+  userType: string | null;
+  source: 'store' | 'storage' | 'none';
+};
+
+function normalizeUserType(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  return raw.trim().toLowerCase();
+}
+
+async function resolvePassengerAuth(): Promise<AuthResolution> {
+  const storeToken = authStore.getToken();
+  const storageToken = await AsyncStorage.getItem('auth_token');
+  const token = storeToken || storageToken;
+
+  const storeUserType = normalizeUserType(authStore.getUserType());
+  let storageUserType: string | null = null;
+
+  if (!storeUserType) {
+    const rawUser = await AsyncStorage.getItem('auth_user');
+    if (rawUser) {
+      try {
+        const parsed = JSON.parse(rawUser) as { user_type?: string };
+        storageUserType = normalizeUserType(parsed?.user_type);
+      } catch {
+        storageUserType = null;
+      }
+    }
+  }
+
+  const userType = storeUserType || storageUserType;
+  const hasAuthToken = Boolean(token);
+
+  // If user type is not hydrated yet but token exists, allow flow to continue.
+  const canProceedAsPassenger = hasAuthToken && (!userType || userType === 'passenger');
+
+  return {
+    token,
+    hasAuthToken,
+    canProceedAsPassenger,
+    userType,
+    source: storeToken ? 'store' : storageToken ? 'storage' : 'none',
+  };
 }
 
 type PassengerPushDiagnosticPayload = {
@@ -41,19 +87,50 @@ async function sendPassengerPushTokenDiagnostic(payload: PassengerPushDiagnostic
 export async function ensurePassengerPushTokenRegistration(source: string): Promise<boolean> {
   await sendPassengerPushTokenDiagnostic({
     stage: 'service_started',
-    hasAuthToken: Boolean(authStore.getToken()),
     platform: Platform.OS,
   });
 
-  const authToken = authStore.getToken();
-  if (!isPassengerSessionReady() || !authToken) {
+  const auth = await resolvePassengerAuth();
+  if (!auth.canProceedAsPassenger) {
+    await sendPassengerPushTokenDiagnostic({
+      stage: 'auth_missing',
+      hasAuthToken: auth.hasAuthToken,
+      finalStatus: auth.hasAuthToken ? 'auth_user_type_mismatch' : 'no_auth_token',
+      platform: Platform.OS,
+      errorCode: auth.userType && auth.userType !== 'passenger' ? `user_type_${auth.userType}` : undefined,
+    });
+
     await sendPassengerPushTokenDiagnostic({
       stage: 'skipped_no_auth',
-      hasAuthToken: false,
+      hasAuthToken: auth.hasAuthToken,
       finalStatus: 'skipped',
       platform: Platform.OS,
     });
-    console.info('[PassengerPushToken] skipped: auth not ready', { source });
+
+    console.info('[PassengerPushToken] skipped: auth not ready', {
+      source,
+      hasAuthToken: auth.hasAuthToken,
+      userType: auth.userType,
+      tokenSource: auth.source,
+    });
+    return false;
+  }
+
+  await sendPassengerPushTokenDiagnostic({
+    stage: 'auth_resolved',
+    hasAuthToken: auth.hasAuthToken,
+    finalStatus: 'auth_resolved',
+    platform: Platform.OS,
+  });
+
+  const authToken = auth.token;
+  if (!authToken) {
+    await sendPassengerPushTokenDiagnostic({
+      stage: 'auth_missing',
+      hasAuthToken: false,
+      finalStatus: 'no_auth_token',
+      platform: Platform.OS,
+    });
     return false;
   }
 
@@ -85,6 +162,7 @@ export async function ensurePassengerPushTokenRegistration(source: string): Prom
     return inFlightRegistration;
   }
 
+  inFlightTokenKey = authToken;
   inFlightRegistration = (async () => {
     try {
       await sendPassengerPushTokenDiagnostic({
@@ -244,6 +322,7 @@ export async function ensurePassengerPushTokenRegistration(source: string): Prom
       return false;
     } finally {
       inFlightRegistration = null;
+      inFlightTokenKey = null;
     }
   })();
 
