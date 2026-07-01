@@ -155,8 +155,15 @@ export default function PassengerNotificationsScreen() {
     <SafeAreaView style={s.root} edges={['top']}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity onPress={handleClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
+        <TouchableOpacity
+          onPress={handleClose}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={s.backBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
+        >
+          <Ionicons name="arrow-back" size={18} color={COLORS.text} />
+          <Text style={s.backBtnText}>Voltar</Text>
         </TouchableOpacity>
         <Text style={s.headerTitle}>Notificações</Text>
         {unreadCount > 0 ? (
@@ -211,6 +218,17 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: COLORS.background,
+  },
+  backBtn: {
+    width: 92,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  backBtnText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: '600',
   },
   headerTitle: {
     color: COLORS.text,
