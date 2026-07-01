@@ -48,6 +48,39 @@ const OPPORTUNITY_ITEMS = [
   { key: 'earnings', icon: 'wallet-outline' as const, label: 'Ganhos', route: '/(driver)/summary' },
 ] as const;
 
+const ECOSYSTEM_ITEMS = [
+  {
+    key: 'fixed-routes',
+    icon: 'repeat-outline' as const,
+    title: 'Rotas Fixas',
+    text: 'Ganhe com passageiros recorrentes.',
+    cta: 'Ver',
+    route: '/(driver)/fixed-routes',
+  },
+  {
+    key: 'commercial',
+    icon: 'storefront-outline' as const,
+    title: 'Comercial Local',
+    text: 'Parcerias e demandas do comercio da regiao.',
+    cta: 'Em breve',
+  },
+  {
+    key: 'pet',
+    icon: 'paw-outline' as const,
+    title: 'KAVIAR Pet',
+    text: 'Viagens especiais com passageiros e pets.',
+    cta: 'Em breve',
+  },
+  {
+    key: 'groups',
+    icon: 'people-outline' as const,
+    title: 'Grupos/Regiao',
+    text: 'Avisos e oportunidades locais.',
+    cta: 'Ver',
+    route: '/(driver)/groups',
+  },
+] as const;
+
 export default function DriverOnline() {
   const router = useRouter();
   const { isConnected } = useNetworkStatus();
@@ -625,6 +658,35 @@ export default function DriverOnline() {
         )}
 
         {!pendingOffer && (
+          <View style={styles.ecosystemWrap}>
+            <Text style={styles.ecosystemTitle}>Oportunidades KAVIAR</Text>
+            <Text style={styles.ecosystemSubtitle}>Solucoes para ampliar ganhos e presenca local.</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ecosystemScroll}>
+              {ECOSYSTEM_ITEMS.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={styles.ecosystemCard}
+                  activeOpacity={item.route ? 0.88 : 1}
+                  onPress={() => {
+                    if (!item.route) return;
+                    router.push(item.route as any);
+                  }}
+                >
+                  <View style={styles.ecosystemIconWrap}>
+                    <Ionicons name={item.icon} size={18} color="#8A6D1A" />
+                  </View>
+                  <Text style={styles.ecosystemCardTitle}>{item.title}</Text>
+                  <Text style={styles.ecosystemCardText} numberOfLines={3}>{item.text}</Text>
+                  <View style={styles.ecosystemCtaWrap}>
+                    <Text style={styles.ecosystemCta}>{item.cta}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {!pendingOffer && (
           <TouchableOpacity style={styles.contextCard} onPress={opportunityContext.onPress} activeOpacity={0.9}>
             <View style={styles.contextIcon}>
               <Ionicons name={opportunityContext.icon} size={18} color="#8A6D1A" />
@@ -843,6 +905,78 @@ const styles = StyleSheet.create({
   },
   opportunityLabelActive: {
     color: '#121316',
+  },
+
+  ecosystemWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  ecosystemTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#121316',
+    paddingHorizontal: 12,
+  },
+  ecosystemSubtitle: {
+    fontSize: 11,
+    color: '#5E6470',
+    marginTop: 2,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+  },
+  ecosystemScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  ecosystemCard: {
+    width: 184,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    backgroundColor: '#FCFCFD',
+    padding: 12,
+  },
+  ecosystemIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    backgroundColor: '#FFF8E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  ecosystemCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#121316',
+    marginBottom: 4,
+  },
+  ecosystemCardText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#5E6470',
+    minHeight: 48,
+  },
+  ecosystemCtaWrap: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    backgroundColor: '#FFFBF0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  ecosystemCta: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#8A6D1A',
   },
 
   contextCard: {

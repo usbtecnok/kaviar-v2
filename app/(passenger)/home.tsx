@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
   StatusBar, Platform, SafeAreaView,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -27,6 +27,41 @@ const SERVICE_ITEMS = [
   { key: 'routes', icon: 'repeat-outline' as const, label: 'Rotas', route: '/(passenger)/fixed-routes' },
   { key: 'groups', icon: 'people-outline' as const, label: 'Grupos', route: '/(passenger)/groups' },
   { key: 'help', icon: 'help-circle-outline' as const, label: 'Ajuda', route: '/(passenger)/help' },
+] as const;
+
+const SOLUTION_ITEMS = [
+  {
+    key: 'pet',
+    icon: 'paw-outline' as const,
+    title: 'KAVIAR Pet',
+    text: 'Viagens com mais cuidado para você e seu pet.',
+    cta: 'Conhecer',
+    externalUrl: 'https://kaviar.com.br/pet',
+  },
+  {
+    key: 'commercial',
+    icon: 'storefront-outline' as const,
+    title: 'KAVIAR Comercial',
+    text: 'CRM, divulgacao e clientes para o comercio local.',
+    cta: 'Abrir',
+    route: '/(passenger)/local',
+  },
+  {
+    key: 'fixed-routes',
+    icon: 'repeat-outline' as const,
+    title: 'Rotas Fixas',
+    text: 'Viagens frequentes para trabalho, escola, igreja e rotina.',
+    cta: 'Ver',
+    route: '/(passenger)/fixed-routes',
+  },
+  {
+    key: 'groups',
+    icon: 'people-outline' as const,
+    title: 'Grupos KAVIAR',
+    text: 'Avisos, beneficios e comunidade na sua regiao.',
+    cta: 'Ver',
+    route: '/(passenger)/groups',
+  },
 ] as const;
 
 export default function PassengerHome() {
@@ -242,6 +277,40 @@ export default function PassengerHome() {
             </ScrollView>
           </View>
 
+          <View style={s.solutionsWrap}>
+            <Text style={s.solutionsTitle}>Solucoes KAVIAR</Text>
+            <Text style={s.solutionsSubtitle}>Mais formas de usar o KAVIAR no dia a dia.</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.solutionsScroll}>
+              {SOLUTION_ITEMS.map((item) => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={s.solutionCard}
+                  activeOpacity={0.88}
+                  onPress={() => {
+                    if (item.route) {
+                      router.push(item.route as any);
+                      return;
+                    }
+                    if (item.externalUrl) {
+                      Linking.openURL(item.externalUrl).catch((error) => {
+                        console.warn('[PassengerHome] failed to open external solution link', { key: item.key, error });
+                      });
+                    }
+                  }}
+                >
+                  <View style={s.solutionIconWrap}>
+                    <Ionicons name={item.icon} size={18} color="#8A6D1A" />
+                  </View>
+                  <Text style={s.solutionCardTitle}>{item.title}</Text>
+                  <Text style={s.solutionCardText} numberOfLines={3}>{item.text}</Text>
+                  <View style={s.solutionCtaWrap}>
+                    <Text style={s.solutionCta}>{item.cta}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
           <TouchableOpacity style={s.contextCard} onPress={highlight.onPress} activeOpacity={0.9}>
             <View style={s.contextIcon}>
               <Ionicons name={highlight.icon} size={18} color="#8A6D1A" />
@@ -424,6 +493,78 @@ const s = StyleSheet.create({
   },
   serviceLabelActive: {
     color: '#121316',
+  },
+
+  solutionsWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  solutionsTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#121316',
+    paddingHorizontal: 12,
+  },
+  solutionsSubtitle: {
+    fontSize: 11,
+    color: '#5E6470',
+    marginTop: 2,
+    marginBottom: 10,
+    paddingHorizontal: 12,
+  },
+  solutionsScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  solutionCard: {
+    width: 188,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#EAEDF2',
+    backgroundColor: '#FCFCFD',
+    padding: 12,
+  },
+  solutionIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    backgroundColor: '#FFF8E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  solutionCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#121316',
+    marginBottom: 4,
+  },
+  solutionCardText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: '#5E6470',
+    minHeight: 48,
+  },
+  solutionCtaWrap: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#E8D9AA',
+    backgroundColor: '#FFFBF0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  solutionCta: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#8A6D1A',
   },
 
   contextCard: {
