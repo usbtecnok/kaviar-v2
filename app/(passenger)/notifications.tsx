@@ -162,7 +162,7 @@ export default function PassengerNotificationsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Voltar"
         >
-          <Ionicons name="arrow-back" size={18} color={COLORS.text} />
+          <Ionicons name="arrow-back" size={18} color="#F5C542" />
           <Text style={s.backBtnText}>Voltar</Text>
         </TouchableOpacity>
         <Text style={s.headerTitle}>Notificações</Text>
@@ -217,26 +217,39 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#111827',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.12)',
+    shadowColor: '#000',
+    shadowOpacity: 0.26,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 7,
   },
   backBtn: {
     width: 92,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
   },
   backBtnText: {
-    color: COLORS.text,
+    color: '#F5C542',
     fontSize: 14,
     fontWeight: '600',
   },
   headerTitle: {
-    color: COLORS.text,
+    color: '#FFFFFF',
     fontSize: 17,
     fontWeight: '600',
   },
-  readAllBtn: { width: 80, alignItems: 'flex-end' },
-  readAllText: { color: COLORS.primary, fontSize: 13 },
+  readAllBtn: { width: 96, alignItems: 'flex-end' },
+  readAllText: { color: '#FFD166', fontSize: 13, fontWeight: '700' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   emptyText: { color: COLORS.textMuted, fontSize: 15 },
   retryBtn: { marginTop: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: COLORS.primary },
