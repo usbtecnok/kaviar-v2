@@ -3001,3 +3001,25 @@ model kaviar_group_post_reads {
   @@index([post_id])
   @@index([member_id])
 }
+
+model app_notifications {
+  id             String    @id @default(uuid())
+  recipient_type String    @db.VarChar(30)
+  recipient_id   String
+  title          String    @db.VarChar(200)
+  body           String    @default("") @db.VarChar(500)
+  type           String    @default("system") @db.VarChar(60)
+  source_type    String?   @db.VarChar(60)
+  source_id      String?
+  route_id       String?
+  reservation_id String?
+  data           Json?
+  read_at        DateTime?
+  created_at     DateTime  @default(now())
+  expires_at     DateTime?
+
+  @@index([recipient_type, recipient_id, created_at(sort: Desc)])
+  @@index([recipient_type, recipient_id, read_at])
+  @@index([route_id])
+  @@index([reservation_id])
+}

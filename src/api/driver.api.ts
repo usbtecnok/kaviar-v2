@@ -1,6 +1,19 @@
 import { apiClient } from './client';
 import { Ride, RideOffer } from '../types/ride';
 
+export type AppNotification = {
+  id: string;
+  recipient_type: string;
+  title: string;
+  body: string;
+  type: string;
+  route_id: string | null;
+  reservation_id: string | null;
+  data: Record<string, string | null> | null;
+  read_at: string | null;
+  created_at: string;
+};
+
 export type DriverFixedRoute = {
   id: string;
   title: string;
@@ -278,6 +291,25 @@ export const driverApi = {
   getRideMessages: async (rideId: string) => {
     const { data } = await apiClient.get(`/api/v2/rides/${rideId}/messages`);
     return data.data || [];
+  },
+
+  // Central de notificações
+  getNotifications: async (limit = 50): Promise<AppNotification[]> => {
+    const { data } = await apiClient.get(`/api/driver/notifications?limit=${limit}`);
+    return data.data || [];
+  },
+
+  getNotificationsUnreadCount: async (): Promise<number> => {
+    const { data } = await apiClient.get('/api/driver/notifications/unread-count');
+    return data.data?.count ?? 0;
+  },
+
+  markNotificationRead: async (id: string): Promise<void> => {
+    await apiClient.patch(`/api/driver/notifications/${encodeURIComponent(id)}/read`);
+  },
+
+  markAllNotificationsRead: async (): Promise<void> => {
+    await apiClient.patch('/api/driver/notifications/read-all');
   },
 
   // Modalities

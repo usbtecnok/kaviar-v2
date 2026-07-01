@@ -31,8 +31,14 @@ const pushMock = vi.hoisted(() => ({
   sendPushToPassenger: vi.fn(),
 }));
 
+const notifMock = vi.hoisted(() => ({
+  createAppNotification: vi.fn().mockResolvedValue({ id: 'notif-1' }),
+  createAppNotificationBroadcast: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../src/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('../src/services/push.service', () => pushMock);
+vi.mock('../src/services/app-notifications.service', () => notifMock);
 vi.mock('../src/middlewares/auth', () => ({
   authenticateDriver: (req: any, _res: any, next: any) => {
     req.driver = authState.driver;
@@ -99,6 +105,8 @@ beforeEach(() => {
   }));
   pushMock.sendPushToDriver.mockResolvedValue('sent');
   pushMock.sendPushToPassenger.mockResolvedValue('sent');
+  notifMock.createAppNotification.mockResolvedValue({ id: 'notif-1' });
+  notifMock.createAppNotificationBroadcast.mockResolvedValue(undefined);
 });
 
 describe('fixed route messages', () => {
@@ -449,5 +457,86 @@ describe('fixed route messages', () => {
     expect(payload).not.toContain('phone');
     expect(payload).not.toContain('21999999999');
     expect(payload).not.toContain('Nao deveria aparecer');
+  });
+
+  it('broadcast do motorista cria notificacao persistente para passageiros confirmados', async () => {
+    const res = await request(app)
+      .post('/api/driver/fixed-routes/route-1/messages')
+      .send({ message_code: 'LEAVING_SOON' });
+
+    expect(res.status).toBe(201);
+    // Aguarda microtasks (void fire-and-forget)
+    await new Promise((r) => setTimeout(r, 20));
+    expect(notifMock.createAppNotificationBroadcast).toHaveBeenCalledWith(
+      ['passenger-1'],
+      'PASSENGER',
+      expect.objectContaining({
+        type: 'fixed_route_broadcast',
+        route_id: 'route-1',
+        data: expect.objectContaining({ routeId: 'route-1', messageId: 'msg-1' }),
+      }),
+    );
+  });
+
+  it('mensagem direta do motorista cria notificacao persistente para passageiro da reserva', async () => {
+    const res = await request(app)
+      .post('/api/driver/fixed-routes/route-1/reservations/res-1/messages')
+      .send({ message_code: 'PLEASE_CONFIRM' });
+
+    expect(res.status).toBe(201);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(notifMock.createAppNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipient_type: 'PASSENGER',
+        recipient_id: 'passenger-1',
+        type: 'fixed_route_direct',
+        route_id: 'route-1',
+        reservation_id: 'res-1',
+        data: expect.objectContaining({ routeId: 'route-1', reservationId: 'res-1', messageId: 'msg-1' }),
+      }),
+    );
+  });
+
+  it('mensagem do passageiro cria notificacao persistente para motorista', async () => {
+    const res = await request(app)
+      .post('/api/passenger/fixed-route-reservations/res-1/messages')
+      .send({ message_code: 'ARRIVING_POINT' });
+
+    expect(res.status).toBe(201);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(notifMock.createAppNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipient_type: 'DRIVER',
+        recipient_id: 'driver-1',
+        type: 'fixed_route_message',
+        route_id: 'route-1',
+        reservation_id: 'res-1',
+      }),
+    );
+  });
+
+  it('falha na criacao de notificacao nao impede criacao da mensagem nem do push', async () => {
+    notifMock.createAppNotificationBroadcast.mockRejectedValueOnce(new Error('db down'));
+
+    const res = await request(app)
+      .post('/api/driver/fixed-routes/route-1/messages')
+      .send({ message_code: 'AT_MEETING_POINT' });
+
+    expect(res.status).toBe(201);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(pushMock.sendPushToPassenger).toHaveBeenCalledTimes(1);
+  });
+
+  it('notificacao nao contem telefone nem token', async () => {
+    await request(app)
+      .post('/api/driver/fixed-routes/route-1/reservations/res-1/messages')
+      .send({ message_code: 'PLEASE_CONFIRM' });
+
+    await new Promise((r) => setTimeout(r, 20));
+    const callArg = notifMock.createAppNotification.mock.calls[0]?.[0] || {};
+    const serialized = JSON.stringify(callArg);
+    expect(serialized).not.toContain('phone');
+    expect(serialized).not.toContain('token');
+    expect(serialized).not.toContain('expo_push_token');
   });
 });

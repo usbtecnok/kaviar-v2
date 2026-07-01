@@ -25,6 +25,7 @@ import {
   syncFixedRouteNotificationState,
 } from '../../src/services/fixed-route-recent.service';
 import { ensurePassengerPushTokenRegistration } from '../../src/services/passenger-push-token.service';
+import { fetchUnreadCount } from '../../src/services/notifications.service';
 
 const { width: W } = Dimensions.get('window');
 const ACTION_W = (W - 56) / 4; // 4 cards side-by-side with gaps
@@ -44,6 +45,7 @@ export default function PassengerHome() {
   const [showWomenInvite, setShowWomenInvite] = useState(false);
   const [showMotoAccept, setShowMotoAccept] = useState(false);
   const [hasRecentFixedRouteMessages, setHasRecentFixedRouteMessages] = useState(false);
+  const [notifUnread, setNotifUnread] = useState(0);
   const fixedRouteNotificationState = getFixedRouteNotificationState();
 
   const refreshFixedRouteBadge = async () => {
@@ -66,11 +68,13 @@ export default function PassengerHome() {
     }
     checkWomenInvite();
     refreshFixedRouteBadge();
+    fetchUnreadCount('passenger').then(setNotifUnread).catch(() => {});
   }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       refreshFixedRouteBadge();
+      fetchUnreadCount('passenger').then(setNotifUnread).catch(() => {});
     }, [])
   );
 
@@ -142,12 +146,18 @@ export default function PassengerHome() {
               {/* Sino + Menu à direita */}
               <View style={s.headerRight}>
                 <TouchableOpacity
-                  onPress={() => Alert.alert('Notificações KAVIAR', 'Você verá aqui novidades, avisos da corrida e mensagens importantes.')}
+                  onPress={() => router.push('/(passenger)/notifications' as any)}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   accessibilityRole="button"
-                  accessibilityLabel="Notificações KAVIAR"
+                  accessibilityLabel="Central de Notificações KAVIAR"
+                  style={s.bellWrap}
                 >
                   <Ionicons name="notifications-outline" size={22} color={COLORS.textSecondary} />
+                  {notifUnread > 0 && (
+                    <View style={s.bellBadge}>
+                      <Text style={s.bellBadgeText}>{notifUnread > 9 ? '9+' : notifUnread}</Text>
+                    </View>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setDrawerOpen(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
                   <Ionicons name="menu-outline" size={26} color={COLORS.primary} />
@@ -341,6 +351,20 @@ const s = StyleSheet.create({
   brand: { fontSize: 18, fontWeight: '900', color: COLORS.primary, letterSpacing: 5 },
   brandSub: { fontSize: 7, fontWeight: '700', color: COLORS.textMuted, letterSpacing: 2.5, marginTop: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  bellWrap: { position: 'relative' },
+  bellBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -5,
+    backgroundColor: '#E53935',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
   greeting: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary },
   subGreeting: { fontSize: 11, color: COLORS.textSecondary, marginTop: 2, letterSpacing: 0.5 },
 

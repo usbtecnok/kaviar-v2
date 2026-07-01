@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { authenticateDriver, authenticatePassenger } from '../middlewares/auth';
 import { cleanString } from '../services/fixed-route.service';
 import { sendPushToDriver, sendPushToPassenger } from '../services/push.service';
+import { createAppNotification, createAppNotificationBroadcast } from '../services/app-notifications.service';
 
 const db = prisma as any;
 
@@ -158,6 +159,27 @@ async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: st
 
   const payload = buildPushPayload(routeId, messageId);
 
+  // Notificação persistente (broadcast): falha não interrompe push
+  void createAppNotificationBroadcast(
+    uniquePassengerIds,
+    'PASSENGER',
+    {
+      title: 'Aviso da sua Rota Fixa',
+      body: 'O motorista enviou uma atualização da rota.',
+      type: 'fixed_route_broadcast',
+      source_type: 'fixed_route_message',
+      source_id: messageId,
+      route_id: routeId,
+      data: { routeId, messageId },
+    },
+  ).catch((err) => {
+    console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_BROADCAST_ERROR]', {
+      routeId,
+      messageId,
+      error: err instanceof Error ? err.message : 'unknown_error',
+    });
+  });
+
   await Promise.allSettled(uniquePassengerIds.map(async (passengerId) => {
     const pushResult = await sendPushToPassenger(
       passengerId,
@@ -178,6 +200,27 @@ async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: st
 }
 
 async function notifyPassengerFromReservation(routeId: string, reservationId: string, messageId: string, targetPassengerId: string) {
+  // Notificação persistente: falha não interrompe push
+  void createAppNotification({
+    recipient_type: 'PASSENGER',
+    recipient_id: targetPassengerId,
+    title: 'Mensagem do motorista',
+    body: 'Você recebeu uma mensagem sobre sua Rota Fixa.',
+    type: 'fixed_route_direct',
+    source_type: 'fixed_route_message',
+    source_id: messageId,
+    route_id: routeId,
+    reservation_id: reservationId,
+    data: { routeId, reservationId, messageId },
+  }).catch((err) => {
+    console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_DIRECT_ERROR]', {
+      routeId,
+      reservationId,
+      messageId,
+      error: err instanceof Error ? err.message : 'unknown_error',
+    });
+  });
+
   const pushResult = await sendPushToPassenger(
     targetPassengerId,
     'Mensagem do motorista',
@@ -197,6 +240,27 @@ async function notifyPassengerFromReservation(routeId: string, reservationId: st
 }
 
 async function notifyRouteDriver(routeId: string, reservationId: string, messageId: string, targetDriverId: string) {
+  // Notificação persistente: falha não interrompe push
+  void createAppNotification({
+    recipient_type: 'DRIVER',
+    recipient_id: targetDriverId,
+    title: 'Mensagem de passageiro',
+    body: 'Um passageiro enviou uma mensagem sobre a Rota Fixa.',
+    type: 'fixed_route_message',
+    source_type: 'fixed_route_message',
+    source_id: messageId,
+    route_id: routeId,
+    reservation_id: reservationId,
+    data: { routeId, reservationId, messageId },
+  }).catch((err) => {
+    console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_DRIVER_ERROR]', {
+      routeId,
+      reservationId,
+      messageId,
+      error: err instanceof Error ? err.message : 'unknown_error',
+    });
+  });
+
   const pushResult = await sendPushToDriver(
     targetDriverId,
     'Mensagem de passageiro',
