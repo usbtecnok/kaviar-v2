@@ -91,7 +91,7 @@ beforeEach(() => {
       return [{ passenger_id: 'passenger-1' }];
     }
     if (args?.select?.id && args?.select?.route_id) {
-      return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+      return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed', route: { status: 'active' } }];
     }
     return [];
   });
@@ -314,6 +314,45 @@ describe('fixed route messages', () => {
     expect(pushMock.sendPushToPassenger).not.toHaveBeenCalled();
   });
 
+  it('passageiro recebe mensagens com can_reply false quando rota está arquivada', async () => {
+    prismaMock.driver_fixed_route_reservations.findFirst.mockResolvedValue({
+      ...reservationOwned,
+      route: { ...reservationOwned.route, status: 'archived' },
+    });
+
+    const res = await request(app).get('/api/passenger/fixed-route-reservations/res-1/messages');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.can_reply).toBe(false);
+    expect(res.body.data.is_archived).toBe(true);
+    expect(res.body.data.closure_message).toContain('encerrada');
+  });
+
+  it('summary não marca mensagem recente quando rota está arquivada', async () => {
+    prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
+      if (args?.select?.id && args?.select?.route_id) {
+        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed', route: { status: 'archived' } }];
+      }
+      return [{ passenger_id: 'passenger-1' }];
+    });
+
+    prismaMock.fixed_route_messages.findMany.mockResolvedValue([
+      {
+        id: 'msg-closed',
+        route_id: 'route-1',
+        reservation_id: 'res-1',
+        sender_type: 'DRIVER',
+        recipient_type: 'PASSENGER',
+        created_at: new Date('2026-06-30T12:00:00.000Z'),
+      },
+    ]);
+
+    const res = await request(app).get('/api/passenger/fixed-route-reservations/messages/summary');
+    expect(res.status).toBe(200);
+    expect(res.body.data[0].can_reply).toBe(false);
+    expect(res.body.data[0].has_driver_message).toBe(false);
+  });
+
   it('nao retorna telefone completo nem dados sensiveis', async () => {
     prismaMock.fixed_route_messages.findMany.mockResolvedValue([
       {
@@ -354,7 +393,7 @@ describe('fixed route messages', () => {
   it('summary inclui aviso geral e mensagem direta do motorista', async () => {
     prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
       if (args?.select?.id && args?.select?.route_id) {
-        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed', route: { status: 'active' } }];
       }
       return [{ passenger_id: 'passenger-1' }];
     });
@@ -395,7 +434,7 @@ describe('fixed route messages', () => {
   it('summary nao inclui mensagens de outras reservas', async () => {
     prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
       if (args?.select?.id && args?.select?.route_id) {
-        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed', route: { status: 'active' } }];
       }
       return [{ passenger_id: 'passenger-1' }];
     });
@@ -432,7 +471,7 @@ describe('fixed route messages', () => {
   it('summary nao retorna telefone nem texto completo', async () => {
     prismaMock.driver_fixed_route_reservations.findMany.mockImplementation(async (args: any) => {
       if (args?.select?.id && args?.select?.route_id) {
-        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed' }];
+        return [{ id: 'res-1', route_id: 'route-1', status: 'confirmed', route: { status: 'active' } }];
       }
       return [{ passenger_id: 'passenger-1' }];
     });
@@ -475,7 +514,7 @@ describe('fixed route messages', () => {
         title: 'Nova mensagem da Rota Fixa',
         body: expect.stringContaining('Vou sair em 10 minutos.'),
         route_id: 'route-1',
-        data: expect.objectContaining({ routeId: 'route-1', messageId: 'msg-1' }),
+        data: expect.objectContaining({ routeId: 'route-1', messageId: 'msg-1', routeStatus: 'active', canReply: 'true' }),
       }),
     );
     const body = notifMock.createAppNotificationBroadcast.mock.calls[0]?.[2]?.body || '';
@@ -498,7 +537,7 @@ describe('fixed route messages', () => {
         type: 'fixed_route_direct',
         route_id: 'route-1',
         reservation_id: 'res-1',
-        data: expect.objectContaining({ routeId: 'route-1', reservationId: 'res-1', messageId: 'msg-1' }),
+        data: expect.objectContaining({ routeId: 'route-1', reservationId: 'res-1', messageId: 'msg-1', routeStatus: 'active', canReply: 'true' }),
       }),
     );
   });

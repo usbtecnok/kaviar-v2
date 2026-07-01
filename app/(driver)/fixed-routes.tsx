@@ -130,6 +130,11 @@ function getErrorMessage(error: unknown, fallback: string) {
   return apiError.response?.data?.error || apiError.message || fallback;
 }
 
+function isRouteClosedStatus(status?: string | null) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return normalized === 'archived' || normalized === 'cancelled' || normalized === 'inactive' || normalized === 'deleted';
+}
+
 function getFixedRouteNotificationState() {
   return (globalThis as any).__kaviarFixedRouteNotificationState || ((globalThis as any).__kaviarFixedRouteNotificationState = {
     recentRouteIds: new Set<string>(),
@@ -163,6 +168,7 @@ export default function DriverFixedRoutesScreen() {
   const [openReservationComposer, setOpenReservationComposer] = useState<Record<string, boolean>>({});
   const [reservationQuickCodeById, setReservationQuickCodeById] = useState<Record<string, string>>({});
   const [reservationTextById, setReservationTextById] = useState<Record<string, string>>({});
+  const [archivedRouteNotice, setArchivedRouteNotice] = useState<string | null>(null);
 
   const loadRoutes = useCallback(async () => {
     try {
@@ -199,7 +205,7 @@ export default function DriverFixedRoutesScreen() {
           const data = await driverApi.getFixedRouteMessages(route.id);
           setRouteMessagesByRoute((current) => ({ ...current, [route.id]: data }));
         }
-        setOpenRouteComposer((current) => ({ ...current, [route.id]: true }));
+        setOpenRouteComposer((current) => ({ ...current, [route.id]: !isRouteClosedStatus(route.status) }));
         fixedRouteNotificationState.recentRouteIds.delete(route.id);
 
         if (reservationId) {
@@ -209,7 +215,8 @@ export default function DriverFixedRoutesScreen() {
           }
           const reservationData = await driverApi.getFixedRouteReservationMessages(route.id, reservationId);
           setReservationMessagesById((current) => ({ ...current, [reservationId]: reservationData.messages || [] }));
-          setOpenReservationComposer((current) => ({ ...current, [reservationId]: true }));
+          const canReply = reservationData?.can_reply === true || reservationData?.reservation?.can_reply === true;
+          setOpenReservationComposer((current) => ({ ...current, [reservationId]: canReply }));
           fixedRouteNotificationState.recentReservationIds.delete(reservationId);
         }
       } catch {
@@ -226,6 +233,23 @@ export default function DriverFixedRoutesScreen() {
     reservationsByRoute,
     fixedRouteNotificationState,
   ]);
+
+  useEffect(() => {
+    const routeId = typeof params.routeId === 'string' ? params.routeId : '';
+    if (!routeId) {
+      setArchivedRouteNotice(null);
+      return;
+    }
+    if (loading) return;
+
+    const found = routes.some((item) => item.id === routeId);
+    if (found) {
+      setArchivedRouteNotice(null);
+      return;
+    }
+
+    setArchivedRouteNotice('Esta rota foi encerrada e não aparece mais na lista ativa.');
+  }, [params.routeId, routes, loading]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -659,7 +683,7 @@ export default function DriverFixedRoutesScreen() {
                   );
                 })}
 
-                {openReservationComposer[reservation.id] ? (
+                {openReservationComposer[reservation.id] && !isRouteClosedStatus(route.status) ? (
                   <>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickChipsRow}>
                       {DRIVER_RESERVATION_QUICK_MESSAGES.map((option) => {
@@ -770,7 +794,14 @@ export default function DriverFixedRoutesScreen() {
               </View>
             ))}
 
-            {openRouteComposer[route.id] ? (
+            {isRouteClosedStatus(route.status) ? (
+              <View style={styles.closedBanner}>
+                <Ionicons name="archive-outline" size={14} color={COLORS.warning} />
+                <Text style={styles.closedBannerText}>Esta rota foi encerrada pelo motorista.</Text>
+              </View>
+            ) : null}
+
+            {openRouteComposer[route.id] && !isRouteClosedStatus(route.status) ? (
               <>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickChipsRow}>
                   {DRIVER_ROUTE_QUICK_MESSAGES.map((option) => {
@@ -876,6 +907,7 @@ export default function DriverFixedRoutesScreen() {
         <View style={styles.heroBox}>
           <Text style={styles.heroTitle}>KAVIAR Rotas Fixas</Text>
           <Text style={styles.heroText}>Organize rotas com horario combinado, vaga reservada e valor por passageiro.</Text>
+          {archivedRouteNotice ? <Text style={styles.heroClosedText}>{archivedRouteNotice}</Text> : null}
           {(fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? (
             <Text style={styles.heroRecentText}>Mensagens recentes: abra os avisos da rota ou conversas com selo novo.</Text>
           ) : null}
@@ -945,6 +977,7 @@ const styles = StyleSheet.create({
   heroBox: { backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, padding: 14, marginBottom: 12 },
   heroTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '800' },
   heroText: { color: COLORS.textSecondary, fontSize: 13, lineHeight: 19, marginTop: 6 },
+  heroClosedText: { color: COLORS.warning, fontSize: 12, fontWeight: '700', marginTop: 8 },
   heroRecentText: { color: COLORS.primary, fontSize: 12, fontWeight: '700', marginTop: 8 },
 
   createButton: { backgroundColor: COLORS.primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginBottom: 12 },
@@ -1022,6 +1055,19 @@ const styles = StyleSheet.create({
   emptyReservations: { color: COLORS.textMuted, fontSize: 12, marginTop: 12 },
 
   messagesBox: { marginTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
+  closedBanner: {
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(241, 196, 15, 0.5)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(241, 196, 15, 0.14)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  closedBannerText: { color: COLORS.textPrimary, fontSize: 12, fontWeight: '700', flex: 1 },
   bubble: { borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1 },
   bubbleOwn: { backgroundColor: 'rgba(184, 148, 46, 0.15)', borderColor: 'rgba(184, 148, 46, 0.35)' },
   bubbleOther: { backgroundColor: COLORS.background, borderColor: COLORS.border },

@@ -37,6 +37,10 @@ export type FixedRouteReservation = {
   route_id: string;
   passenger_id: string;
   status: string;
+  route_status?: string;
+  is_archived?: boolean;
+  can_reply?: boolean;
+  closure_message?: string | null;
   seats_reserved: number;
   price_cents: number;
   kaviar_fee_cents?: number;
@@ -78,6 +82,9 @@ export type PassengerFixedRouteMessage = {
 export type PassengerFixedRouteMessageSummary = {
   reservation_id: string;
   route_id: string;
+  route_status?: string;
+  is_archived?: boolean;
+  can_reply?: boolean;
   last_message_at?: string | null;
   last_sender_type?: 'DRIVER' | 'PASSENGER' | 'ADMIN' | string | null;
   last_message_id?: string | null;
@@ -149,7 +156,14 @@ export const passengerApi = {
     return data.data;
   },
 
-  getFixedRouteReservationMessages: async (reservationId: string): Promise<{ reservation: any; messages: PassengerFixedRouteMessage[] }> => {
+  getFixedRouteReservationMessages: async (reservationId: string): Promise<{
+    route_status?: string;
+    is_archived?: boolean;
+    can_reply?: boolean;
+    closure_message?: string | null;
+    reservation: any;
+    messages: PassengerFixedRouteMessage[];
+  }> => {
     const { data } = await apiClient.get(`/api/passenger/fixed-route-reservations/${encodeURIComponent(reservationId)}/messages`);
     return data.data;
   },

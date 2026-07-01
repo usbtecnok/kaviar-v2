@@ -92,6 +92,11 @@ function invitationLead(tripType?: string | null) {
   return 'Ida e volta programadas.';
 }
 
+function isRouteClosedStatus(status?: string | null) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return normalized === 'archived' || normalized === 'cancelled' || normalized === 'inactive' || normalized === 'deleted';
+}
+
 export default function PassengerFixedRoutesScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ inviteCode?: string; reservationId?: string }>();
@@ -114,6 +119,20 @@ export default function PassengerFixedRoutesScreen() {
   const [quickCodeByReservation, setQuickCodeByReservation] = useState<Record<string, string>>({});
   const [textByReservation, setTextByReservation] = useState<Record<string, string>>({});
   const [summaryByReservation, setSummaryByReservation] = useState<Record<string, PassengerFixedRouteMessageSummary>>({});
+
+  const { activeReservations, closedReservations } = useMemo(() => {
+    const active: FixedRouteReservation[] = [];
+    const closed: FixedRouteReservation[] = [];
+
+    for (const reservation of reservations) {
+      const routeStatus = String(reservation.route_status || reservation.route?.status || '');
+      const isClosed = reservation.is_archived === true || isRouteClosedStatus(routeStatus);
+      if (isClosed) closed.push(reservation);
+      else active.push(reservation);
+    }
+
+    return { activeReservations: active, closedReservations: closed };
+  }, [reservations]);
 
   const refreshRecentMessages = useCallback(async (currentReservations?: FixedRouteReservation[]) => {
     try {
@@ -190,7 +209,8 @@ export default function PassengerFixedRoutesScreen() {
       try {
         const data = await passengerApi.getFixedRouteReservationMessages(reservationId);
         setMessagesByReservation((current) => ({ ...current, [reservationId]: data.messages || [] }));
-        setOpenComposer((current) => ({ ...current, [reservationId]: true }));
+        const canReply = data?.can_reply === true || data?.reservation?.can_reply === true;
+        setOpenComposer((current) => ({ ...current, [reservationId]: canReply }));
         const newestAt = data.messages?.length ? data.messages[data.messages.length - 1]?.created_at : undefined;
         await markFixedRouteMessagesSeen(reservationId, newestAt || new Date().toISOString());
       } catch {
@@ -289,7 +309,8 @@ export default function PassengerFixedRoutesScreen() {
       setLoadingMessages((current) => ({ ...current, [reservation.id]: true }));
       const data = await passengerApi.getFixedRouteReservationMessages(reservation.id);
       setMessagesByReservation((current) => ({ ...current, [reservation.id]: data.messages || [] }));
-      setOpenComposer((current) => ({ ...current, [reservation.id]: true }));
+      const canReply = data?.can_reply === true || data?.reservation?.can_reply === true;
+      setOpenComposer((current) => ({ ...current, [reservation.id]: canReply }));
       const newestAt = data.messages?.length ? data.messages[data.messages.length - 1]?.created_at : undefined;
       await markFixedRouteMessagesSeen(reservation.id, newestAt || new Date().toISOString());
       await refreshRecentMessages(reservations);
@@ -357,7 +378,10 @@ export default function PassengerFixedRoutesScreen() {
   const renderReservation = (reservation: FixedRouteReservation) => {
     const route = reservation.route;
     if (!route) return null;
-    const isConfirmed = reservation.status === 'confirmed';
+    const routeStatus = String(reservation.route_status || route.status || '');
+    const isRouteClosed = reservation.is_archived === true || isRouteClosedStatus(routeStatus);
+    const canReply = reservation.can_reply === true && !isRouteClosed;
+    const isConfirmed = reservation.status === 'confirmed' && !isRouteClosed;
     const hasRecentBySummary = Boolean(summaryByReservation[reservation.id]?.has_driver_message) && fixedRouteNotificationState.recentReservationIds.has(reservation.id);
 
     return (
@@ -391,7 +415,9 @@ export default function PassengerFixedRoutesScreen() {
           <Text style={styles.secondaryBtnText}>
             {messagesByReservation[reservation.id]
               ? 'Ocultar mensagens da rota'
-              : (hasRecentBySummary || fixedRouteNotificationState.recentRouteIds.has(route.id))
+              : isRouteClosed
+                ? 'Ver histórico da rota'
+                : (hasRecentBySummary || fixedRouteNotificationState.recentRouteIds.has(route.id))
                 ? 'Mensagens da rota • nova'
                 : 'Mensagens da rota'}
           </Text>
@@ -401,6 +427,13 @@ export default function PassengerFixedRoutesScreen() {
 
         {messagesByReservation[reservation.id] ? (
           <View style={styles.messagesBox}>
+            {isRouteClosed ? (
+              <View style={styles.closedBanner}>
+                <Ionicons name="archive-outline" size={14} color={COLORS.warning} />
+                <Text style={styles.closedBannerText}>{reservation.closure_message || 'Esta rota foi encerrada pelo motorista.'}</Text>
+              </View>
+            ) : null}
+
             {(messagesByReservation[reservation.id] || []).map((msg) => {
               const isOwn = msg.sender_type === 'PASSENGER';
               const label = msg.recipient_type === 'ROUTE_CONFIRMED_PASSENGERS' ? 'Aviso para todos' : isOwn ? 'Voce' : 'Motorista';
@@ -412,7 +445,7 @@ export default function PassengerFixedRoutesScreen() {
               );
             })}
 
-            {openComposer[reservation.id] && reservation.status === 'confirmed' ? (
+            {openComposer[reservation.id] && reservation.status === 'confirmed' && canReply ? (
               <>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickChipsRow}>
                   {PASSENGER_QUICK_MESSAGES.map((option) => {
@@ -491,17 +524,25 @@ export default function PassengerFixedRoutesScreen() {
           {renderPreview()}
         </View>
 
-        <Text style={styles.sectionTitle}>Suas reservas</Text>
+        <Text style={styles.sectionTitle}>Suas reservas ativas</Text>
         {(fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? (
           <Text style={styles.recentHint}>Mensagens recentes: abra os cards com selo nova para atualizar a conversa.</Text>
         ) : null}
-        {reservations.length === 0 ? (
+        {activeReservations.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="repeat-outline" size={42} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>Nenhuma Rota Fixa reservada</Text>
+            <Text style={styles.emptyTitle}>Nenhuma Rota Fixa ativa</Text>
             <Text style={styles.emptyText}>Cole um codigo KFR para ver horario, valor e vagas antes de confirmar.</Text>
           </View>
-        ) : reservations.map(renderReservation)}
+        ) : activeReservations.map(renderReservation)}
+
+        {closedReservations.length > 0 ? (
+          <>
+            <Text style={styles.sectionTitle}>Encerradas</Text>
+            <Text style={styles.helperText}>Rotas encerradas ficam disponíveis apenas para consulta do histórico.</Text>
+            {closedReservations.map(renderReservation)}
+          </>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -569,6 +610,19 @@ const styles = StyleSheet.create({
   cancelBtnText: { color: COLORS.danger, fontSize: 13, fontWeight: '800' },
 
   messagesBox: { marginTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: 10 },
+  closedBanner: {
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(241, 196, 15, 0.5)',
+    borderRadius: 10,
+    backgroundColor: 'rgba(241, 196, 15, 0.14)',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  closedBannerText: { color: COLORS.textPrimary, fontSize: 12, fontWeight: '700', flex: 1 },
   bubble: { borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1 },
   bubbleOwn: { backgroundColor: 'rgba(184, 148, 46, 0.16)', borderColor: 'rgba(184, 148, 46, 0.38)' },
   bubbleOther: { backgroundColor: COLORS.background, borderColor: COLORS.border },

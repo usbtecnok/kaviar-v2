@@ -46,6 +46,7 @@ const QUICK_CODE_TEXT: Record<string, string> = {
 };
 
 const NOTIFICATION_PREVIEW_MAX = 160;
+const CLOSED_ROUTE_STATUSES = new Set(['archived', 'cancelled', 'inactive', 'deleted']);
 
 function driverId(req: Request) {
   return (req as any).driver?.id || (req as any).driverId || (req as any).userId;
@@ -159,7 +160,19 @@ function normalizeId(value: unknown): string | null {
   return null;
 }
 
-async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: string, messageText: string) {
+function normalizeRouteStatus(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isRouteClosedStatus(value: unknown): boolean {
+  return CLOSED_ROUTE_STATUSES.has(normalizeRouteStatus(value));
+}
+
+function closedRouteMessage(): string {
+  return 'Esta rota foi encerrada pelo motorista.';
+}
+
+async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: string, messageText: string, routeStatus: string) {
   const confirmedReservations: Array<{ passenger_id?: unknown }> = await db.driver_fixed_route_reservations.findMany({
     where: { route_id: routeId, status: 'confirmed' },
     select: { passenger_id: true },
@@ -184,7 +197,14 @@ async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: st
       source_type: 'fixed_route_message',
       source_id: messageId,
       route_id: routeId,
-      data: { routeId, messageId, direction: 'driver_to_passenger_broadcast', notificationType: 'fixed_route_broadcast' },
+      data: {
+        routeId,
+        messageId,
+        routeStatus,
+        canReply: String(canPassengerWrite(routeStatus)),
+        direction: 'driver_to_passenger_broadcast',
+        notificationType: 'fixed_route_broadcast',
+      },
     },
   ).catch((err) => {
     console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_BROADCAST_ERROR]', {
@@ -213,7 +233,7 @@ async function notifyConfirmedPassengersFromRoute(routeId: string, messageId: st
   }));
 }
 
-async function notifyPassengerFromReservation(routeId: string, reservationId: string, messageId: string, targetPassengerId: string, messageText: string) {
+async function notifyPassengerFromReservation(routeId: string, reservationId: string, messageId: string, targetPassengerId: string, messageText: string, routeStatus: string) {
   // Notificação persistente: falha não interrompe push
   void createAppNotification({
     recipient_type: 'PASSENGER',
@@ -225,7 +245,15 @@ async function notifyPassengerFromReservation(routeId: string, reservationId: st
     source_id: messageId,
     route_id: routeId,
     reservation_id: reservationId,
-    data: { routeId, reservationId, messageId, direction: 'driver_to_passenger_direct', notificationType: 'fixed_route_direct' },
+    data: {
+      routeId,
+      reservationId,
+      messageId,
+      routeStatus,
+      canReply: String(canPassengerWrite(routeStatus)),
+      direction: 'driver_to_passenger_direct',
+      notificationType: 'fixed_route_direct',
+    },
   }).catch((err) => {
     console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_DIRECT_ERROR]', {
       routeId,
@@ -253,7 +281,7 @@ async function notifyPassengerFromReservation(routeId: string, reservationId: st
   });
 }
 
-async function notifyRouteDriver(routeId: string, reservationId: string, messageId: string, targetDriverId: string, messageText: string) {
+async function notifyRouteDriver(routeId: string, reservationId: string, messageId: string, targetDriverId: string, messageText: string, routeStatus: string) {
   // Notificação persistente: falha não interrompe push
   void createAppNotification({
     recipient_type: 'DRIVER',
@@ -265,7 +293,15 @@ async function notifyRouteDriver(routeId: string, reservationId: string, message
     source_id: messageId,
     route_id: routeId,
     reservation_id: reservationId,
-    data: { routeId, reservationId, messageId, direction: 'passenger_to_driver', notificationType: 'fixed_route_message' },
+    data: {
+      routeId,
+      reservationId,
+      messageId,
+      routeStatus,
+      canReply: String(canDriverWrite(routeStatus)),
+      direction: 'passenger_to_driver',
+      notificationType: 'fixed_route_message',
+    },
   }).catch((err) => {
     console.warn('[FIXED_ROUTE_MESSAGES_NOTIFICATION_DRIVER_ERROR]', {
       routeId,
@@ -374,7 +410,7 @@ driverFixedRouteMessagesRoutes.post('/:routeId/messages', async (req: Request, r
       },
     });
 
-    void notifyConfirmedPassengersFromRoute(route.id, created.id, created.message_text).catch((error) => {
+    void notifyConfirmedPassengersFromRoute(route.id, created.id, created.message_text, String(route.status || '')).catch((error) => {
       console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_CONFIRMED_PASSENGERS_ERROR]', {
         routeId: route.id,
         messageId: created.id,
@@ -409,6 +445,10 @@ driverFixedRouteMessagesRoutes.get('/:routeId/reservations/:reservationId/messag
     return res.json({
       success: true,
       data: {
+        route_status: route.status,
+        is_archived: isRouteClosedStatus(route.status),
+        can_reply: canDriverWrite(String(route.status || '')),
+        closure_message: isRouteClosedStatus(route.status) ? closedRouteMessage() : null,
         reservation: {
           id: reservation.id,
           status: reservation.status,
@@ -456,7 +496,7 @@ driverFixedRouteMessagesRoutes.post('/:routeId/reservations/:reservationId/messa
       },
     });
 
-    void notifyPassengerFromReservation(route.id, reservation.id, created.id, reservation.passenger_id, created.message_text).catch((error) => {
+    void notifyPassengerFromReservation(route.id, reservation.id, created.id, reservation.passenger_id, created.message_text, String(route.status || '')).catch((error) => {
       console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_PASSENGER_ERROR]', {
         routeId: route.id,
         reservationId: reservation.id,
@@ -481,7 +521,7 @@ passengerFixedRouteMessagesRoutes.get('/messages/summary', async (req: Request, 
 
     const reservations = await db.driver_fixed_route_reservations.findMany({
       where: { passenger_id: currentPassengerId },
-      select: { id: true, route_id: true, status: true },
+      select: { id: true, route_id: true, status: true, route: { select: { status: true } } },
     });
 
     if (!reservations.length) {
@@ -511,6 +551,8 @@ passengerFixedRouteMessagesRoutes.get('/messages/summary', async (req: Request, 
     });
 
     const summary = reservations.map((reservation: any) => {
+      const routeStatus = String(reservation?.route?.status || '');
+      const canReply = canPassengerWrite(routeStatus) && reservation.status === 'confirmed';
       const lastMessage = messages.find((message: any) => {
         if (message.route_id !== reservation.route_id) return false;
         if (message.recipient_type === 'ROUTE_CONFIRMED_PASSENGERS') return true;
@@ -521,10 +563,13 @@ passengerFixedRouteMessagesRoutes.get('/messages/summary', async (req: Request, 
         reservation_id: reservation.id,
         route_id: reservation.route_id,
         reservation_status: reservation.status,
+        route_status: routeStatus,
+        is_archived: isRouteClosedStatus(routeStatus),
+        can_reply: canReply,
         last_message_at: lastMessage?.created_at || null,
         last_sender_type: lastMessage?.sender_type || null,
         last_message_id: lastMessage?.id || null,
-        has_driver_message: lastMessage?.sender_type === 'DRIVER',
+        has_driver_message: canReply && lastMessage?.sender_type === 'DRIVER',
       };
     });
 
@@ -555,10 +600,18 @@ passengerFixedRouteMessagesRoutes.get('/:reservationId/messages', async (req: Re
     return res.json({
       success: true,
       data: {
+        route_status: reservation.route?.status,
+        is_archived: isRouteClosedStatus(reservation.route?.status),
+        can_reply: canPassengerWrite(String(reservation.route?.status || '')) && reservation.status === 'confirmed',
+        closure_message: isRouteClosedStatus(reservation.route?.status) ? closedRouteMessage() : null,
         reservation: {
           id: reservation.id,
           route_id: reservation.route_id,
           status: reservation.status,
+          route_status: reservation.route?.status,
+          is_archived: isRouteClosedStatus(reservation.route?.status),
+          can_reply: canPassengerWrite(String(reservation.route?.status || '')) && reservation.status === 'confirmed',
+          closure_message: isRouteClosedStatus(reservation.route?.status) ? closedRouteMessage() : null,
         },
         messages: messages.map(mapMessageOutput),
       },
@@ -598,7 +651,7 @@ passengerFixedRouteMessagesRoutes.post('/:reservationId/messages', async (req: R
       },
     });
 
-    void notifyRouteDriver(reservation.route_id, reservation.id, created.id, reservation.route.driver_id, created.message_text).catch((error) => {
+    void notifyRouteDriver(reservation.route_id, reservation.id, created.id, reservation.route.driver_id, created.message_text, String(reservation.route?.status || '')).catch((error) => {
       console.warn('[FIXED_ROUTE_MESSAGES_NOTIFY_DRIVER_ERROR]', {
         routeId: reservation.route_id,
         reservationId: reservation.id,

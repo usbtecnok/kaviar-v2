@@ -140,7 +140,14 @@ export const driverApi = {
     return data.data;
   },
 
-  getFixedRouteReservationMessages: async (routeId: string, reservationId: string): Promise<{ reservation: any; messages: FixedRouteMessage[] }> => {
+  getFixedRouteReservationMessages: async (routeId: string, reservationId: string): Promise<{
+    route_status?: string;
+    is_archived?: boolean;
+    can_reply?: boolean;
+    closure_message?: string | null;
+    reservation: any;
+    messages: FixedRouteMessage[];
+  }> => {
     const { data } = await apiClient.get(`/api/driver/fixed-routes/${routeId}/reservations/${reservationId}/messages`);
     return data.data;
   },

@@ -98,6 +98,13 @@ export default function DriverNotificationsScreen() {
     router.push('/(driver)/fixed-routes');
   };
 
+  const isClosedRouteNotification = (item: AppNotification) => {
+    const routeStatus = String(item.data?.routeStatus || '').trim().toLowerCase();
+    const canReplyRaw = String(item.data?.canReply || '').trim().toLowerCase();
+    if (canReplyRaw === 'false') return true;
+    return routeStatus === 'archived' || routeStatus === 'cancelled' || routeStatus === 'inactive' || routeStatus === 'deleted';
+  };
+
   const unreadCount = items.filter((n) => !n.read_at).length;
 
   const renderItem = ({ item }: { item: AppNotification }) => {
@@ -135,7 +142,7 @@ export default function DriverNotificationsScreen() {
               {(item.route_id || item.data?.routeId) ? (
                 <TouchableOpacity onPress={() => handleOpenRoute(item)} style={s.secondaryBtn}>
                   <Ionicons name="open-outline" size={14} color={COLORS.primary} />
-                  <Text style={s.secondaryBtnText}>Abrir mensagens da rota</Text>
+                    <Text style={s.secondaryBtnText}>{isClosedRouteNotification(item) ? 'Ver histórico da rota' : 'Abrir mensagens da rota'}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>

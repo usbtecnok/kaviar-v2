@@ -12,6 +12,15 @@ function passengerId(req: Request) {
   return (req as any).passenger?.id || (req as any).passengerId || (req as any).userId;
 }
 
+function normalizeRouteStatus(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isClosedRouteStatus(value: unknown): boolean {
+  const status = normalizeRouteStatus(value);
+  return status === 'archived' || status === 'cancelled' || status === 'inactive' || status === 'deleted';
+}
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const reservations = await db.driver_fixed_route_reservations.findMany({
@@ -20,10 +29,19 @@ router.get('/', async (req: Request, res: Response) => {
       orderBy: { created_at: 'desc' },
       take: Math.min(Number(req.query.limit) || 100, 200),
     });
-    const data = await Promise.all(reservations.map(async (reservation: any) => ({
-      ...reservation,
-      route: mapRouteWithAvailability(reservation.route, await confirmedSeats(db, reservation.route_id)),
-    })));
+    const data = await Promise.all(reservations.map(async (reservation: any) => {
+      const route = mapRouteWithAvailability(reservation.route, await confirmedSeats(db, reservation.route_id));
+      const routeStatus = String(route?.status || '');
+      const isArchived = isClosedRouteStatus(routeStatus);
+      return {
+        ...reservation,
+        route,
+        route_status: routeStatus,
+        is_archived: isArchived,
+        can_reply: routeStatus === 'active' && reservation.status === 'confirmed',
+        closure_message: isArchived ? 'Esta rota foi encerrada pelo motorista.' : null,
+      };
+    }));
     return res.json({ success: true, data });
   } catch (error) {
     console.error('[PASSENGER_FIXED_ROUTE_RESERVATIONS_LIST_ERROR]', error);
