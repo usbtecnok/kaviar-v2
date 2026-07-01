@@ -83,7 +83,9 @@ export default {
       },
       package: variantConfig.package,
       versionCode: variantConfig.versionCode,
-      googleServicesFile: variant === 'driver' ? './google-services.json' : undefined,
+      googleServicesFile: variant === 'driver'
+        ? './google-services.json'
+        : './google-services-passenger.json',
       permissions: variant === 'driver' ? driverPermissions : passengerPermissions,
       blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.SYSTEM_ALERT_WINDOW'],
       config: {
