@@ -23,6 +23,7 @@ import {
   markFixedRouteMessagesSeen,
   syncFixedRouteNotificationState,
 } from '../../src/services/fixed-route-recent.service';
+import { ensurePassengerPushTokenRegistration } from '../../src/services/passenger-push-token.service';
 
 const DAY_OPTIONS = [
   { value: 1, label: 'Seg' },
@@ -155,6 +156,10 @@ export default function PassengerFixedRoutesScreen() {
   useFocusEffect(useCallback(() => {
     refreshRecentMessages(reservations);
   }, [refreshRecentMessages, reservations]));
+
+  useFocusEffect(useCallback(() => {
+    void ensurePassengerPushTokenRegistration('passenger-fixed-routes');
+  }, []));
 
   useEffect(() => {
     if (!normalizedParamCode) return;

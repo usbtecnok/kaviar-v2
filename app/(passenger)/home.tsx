@@ -24,6 +24,7 @@ import {
   getFixedRouteNotificationState,
   syncFixedRouteNotificationState,
 } from '../../src/services/fixed-route-recent.service';
+import { ensurePassengerPushTokenRegistration } from '../../src/services/passenger-push-token.service';
 
 const { width: W } = Dimensions.get('window');
 const ACTION_W = (W - 56) / 4; // 4 cards side-by-side with gaps
@@ -70,6 +71,12 @@ export default function PassengerHome() {
   useFocusEffect(
     React.useCallback(() => {
       refreshFixedRouteBadge();
+    }, [])
+  );
+
+  useFocusEffect(
+    React.useCallback(() => {
+      void ensurePassengerPushTokenRegistration('passenger-home');
     }, [])
   );
 

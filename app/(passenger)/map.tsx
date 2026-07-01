@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TextInput, Keyboard, ScrollView, KeyboardAvoidingView, Platform, Linking, Modal, Share, Animated, AppState, Image } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useIsFocused } from '@react-navigation/core';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -40,6 +41,7 @@ import {
   getFixedRouteNotificationState,
   syncFixedRouteNotificationState,
 } from '../../src/services/fixed-route-recent.service';
+import { ensurePassengerPushTokenRegistration } from '../../src/services/passenger-push-token.service';
 
 const POLL_INTERVAL = 3000;
 const POLL_BACKOFF_P = [3000, 5000, 8000, 10000]; // normal, 1 fail, 2 fails, 3+ fails
@@ -194,29 +196,11 @@ export default function PassengerMap() {
     }
   }, []);
 
-  useEffect(() => {
-    const registerPushToken = async () => {
-      try {
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status !== 'granted') return;
-        const { data: token } = await Notifications.getExpoPushTokenAsync({
-          projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
-        });
-
-        let fcmToken: string | undefined;
-        try {
-          const { data } = await Notifications.getDevicePushTokenAsync();
-          fcmToken = data as string;
-        } catch {}
-
-        await apiClient.put('/api/passengers/me/push-token', { token, fcmToken, platform: Platform.OS });
-      } catch (e) {
-        console.warn('[Passenger] Push token registration failed:', e);
-      }
-    };
-
-    registerPushToken();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void ensurePassengerPushTokenRegistration('passenger-map');
+    }, [])
+  );
 
   // Search microcopy rotation
   const SEARCH_PHRASES = [

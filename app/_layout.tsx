@@ -13,6 +13,7 @@ import { NetworkProvider } from "../src/hooks/useNetworkStatus";
 import { OfflineBanner } from "../src/components/OfflineBanner";
 import { RIDE_QUICK_MESSAGE_TEXT_BY_CODE } from "../src/config/rideMessages";
 import { getPassengerInviteCodeFromUrl, routePassengerInviteUrl, savePendingPassengerInviteCode } from "../src/utils/groupInviteDeepLink";
+import { ensurePassengerPushTokenRegistration } from '../src/services/passenger-push-token.service';
 
 const variant = Constants.expoConfig?.extra?.APP_VARIANT as string | undefined;
 
@@ -62,11 +63,6 @@ const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotifi
   recentRouteIds: new Set<string>(),
   recentReservationIds: new Set<string>(),
   seenMessageIds: new Set<string>(),
-});
-
-const passengerPushBootState = (globalThis as any).__kaviarPassengerPushBootState || ((globalThis as any).__kaviarPassengerPushBootState = {
-  registered: false,
-  inFlight: false,
 });
 
 if (variant === 'driver' || variant === 'passenger') {
@@ -127,41 +123,9 @@ export default function RootLayout() {
     let unsubscribeLogin: (() => void) | undefined;
 
     if (variant === 'passenger') {
-      const registerPassengerPushTokenIfAuthenticated = async () => {
-        if (passengerPushBootState.registered || passengerPushBootState.inFlight) return;
-        if (!authStore.isAuthenticated()) return;
-
-        passengerPushBootState.inFlight = true;
-        try {
-          const { status } = await Notifications.requestPermissionsAsync();
-          if (status !== 'granted') return;
-          const { data: token } = await Notifications.getExpoPushTokenAsync({
-            projectId: '23cab91b-82a5-4d92-9709-017279a2539d',
-          });
-
-          let fcmToken: string | undefined;
-          try {
-            const { data } = await Notifications.getDevicePushTokenAsync();
-            fcmToken = data as string;
-          } catch {}
-
-          await apiClient.put('/api/passengers/me/push-token', {
-            token,
-            fcmToken,
-            platform: Platform.OS,
-          });
-          passengerPushBootState.registered = true;
-        } catch (error) {
-          console.warn('[Passenger] Boot push token registration failed:', error);
-          passengerPushBootState.registered = false;
-        } finally {
-          passengerPushBootState.inFlight = false;
-        }
-      };
-
-      void registerPassengerPushTokenIfAuthenticated();
+      void ensurePassengerPushTokenRegistration('layout:init');
       unsubscribeLogin = authStore.onLogin(() => {
-        void registerPassengerPushTokenIfAuthenticated();
+        void ensurePassengerPushTokenRegistration('layout:onLogin');
       });
 
       Linking.getInitialURL().then((url) => {
