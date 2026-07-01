@@ -33,7 +33,8 @@ const SERVICE_ITEMS = [
 const PASSENGER_SHOWCASE_ITEMS = [
   {
     key: 'women-preference',
-    image: KAVIAR_SOLUTION_IMAGES.grupos,
+    image: KAVIAR_SOLUTION_IMAGES.mulheres,
+    softArtwork: false,
     background: '#121722',
     glow: '#3E4A63',
     featured: true,
@@ -45,7 +46,8 @@ const PASSENGER_SHOWCASE_ITEMS = [
   },
   {
     key: 'moto',
-    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    image: KAVIAR_SOLUTION_IMAGES.moto,
+    softArtwork: false,
     background: '#F4F7FB',
     glow: '#DCE8F6',
     accent: '#8A6D1A',
@@ -57,6 +59,7 @@ const PASSENGER_SHOWCASE_ITEMS = [
   {
     key: 'pet',
     image: KAVIAR_SOLUTION_IMAGES.pet,
+    softArtwork: true,
     background: '#FDF3F7',
     glow: '#F9DDE8',
     accent: '#8A6D1A',
@@ -68,6 +71,7 @@ const PASSENGER_SHOWCASE_ITEMS = [
   {
     key: 'rotas',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
+    softArtwork: true,
     background: '#EEF7F2',
     glow: '#D4EEDD',
     accent: '#8A6D1A',
@@ -79,6 +83,7 @@ const PASSENGER_SHOWCASE_ITEMS = [
   {
     key: 'comercial',
     image: KAVIAR_SOLUTION_IMAGES.comercial,
+    softArtwork: true,
     background: '#EDF4FF',
     glow: '#D8E6FB',
     accent: '#8A6D1A',
@@ -90,6 +95,7 @@ const PASSENGER_SHOWCASE_ITEMS = [
   {
     key: 'grupos',
     image: KAVIAR_SOLUTION_IMAGES.grupos,
+    softArtwork: true,
     background: '#F1EEFF',
     glow: '#E2DAFF',
     accent: '#8A6D1A',
@@ -341,12 +347,22 @@ export default function PassengerHome() {
                   <View style={[s.showcaseGlow, { backgroundColor: item.glow }]} />
                   <View style={s.showcaseTextCol}>
                     <Text style={[s.showcaseCardTitle, item.featured && s.showcaseCardTitleFeatured]}>{item.title}</Text>
-                    <Text style={[s.showcaseCardSubtitle, item.featured && s.showcaseCardSubtitleFeatured]} numberOfLines={2}>{item.subtitle}</Text>
+                    <Text style={[s.showcaseCardSubtitle, item.featured && s.showcaseCardSubtitleFeatured]} numberOfLines={item.featured ? 3 : 2}>{item.subtitle}</Text>
                     <View style={[s.showcaseCtaWrap, { borderColor: item.accent }]}>
                       <Text style={[s.showcaseCta, { color: item.accent }]}>{item.cta}</Text>
                     </View>
                   </View>
-                  <Image source={item.image} style={[s.showcaseImage, item.featured && s.showcaseImageFeatured]} resizeMode="contain" />
+                  <View style={s.showcaseMediaCol}>
+                    <Image
+                      source={item.image}
+                      style={[
+                        s.showcaseImage,
+                        item.featured && s.showcaseImageFeatured,
+                        item.softArtwork && s.showcaseImageSoft,
+                      ]}
+                      resizeMode="contain"
+                    />
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -390,7 +406,7 @@ const STATUSBAR_H = Platform.OS === 'android' ? (StatusBar.currentHeight || 24) 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 0 },
+  scrollContent: { paddingBottom: 104 },
 
   header: {
     paddingTop: STATUSBAR_H + 10,
@@ -589,13 +605,14 @@ const s = StyleSheet.create({
     opacity: 0.6,
   },
   showcaseTextCol: {
-    maxWidth: '55%',
+    width: '58%',
     justifyContent: 'space-between',
     flex: 1,
+    paddingRight: 8,
   },
   showcaseCardTitle: {
-    fontSize: 21,
-    lineHeight: 25,
+    fontSize: 19,
+    lineHeight: 23,
     fontWeight: '800',
     color: '#121316',
     marginBottom: 6,
@@ -604,26 +621,38 @@ const s = StyleSheet.create({
     color: '#F5F7FA',
   },
   showcaseCardSubtitle: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
     color: '#4F5664',
     marginBottom: 10,
   },
   showcaseCardSubtitleFeatured: {
     color: '#DCE2EF',
   },
-  showcaseImage: {
+  showcaseMediaCol: {
     position: 'absolute',
-    width: 188,
-    height: 166,
-    right: -8,
-    bottom: 2,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '42%',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    paddingRight: 4,
+    paddingBottom: 4,
+  },
+  showcaseImage: {
+    width: 156,
+    height: 138,
+    opacity: 0.95,
   },
   showcaseImageFeatured: {
-    width: 212,
-    height: 192,
-    right: -10,
-    bottom: 6,
+    width: 176,
+    height: 160,
+  },
+  showcaseImageSoft: {
+    width: 134,
+    height: 118,
+    opacity: 0.72,
   },
   showcaseCtaWrap: {
     alignSelf: 'flex-start',

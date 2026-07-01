@@ -53,6 +53,7 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'ganhos',
     image: KAVIAR_SOLUTION_IMAGES.ganhos,
+    softArtwork: true,
     background: '#121722',
     glow: '#37445C',
     featured: true,
@@ -64,7 +65,8 @@ const DRIVER_SHOWCASE_ITEMS = [
   },
   {
     key: 'moto-entrega',
-    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    image: KAVIAR_SOLUTION_IMAGES.motoEntrega,
+    softArtwork: false,
     background: '#F5F8FC',
     glow: '#DEE8F8',
     accent: '#8A6D1A',
@@ -74,7 +76,8 @@ const DRIVER_SHOWCASE_ITEMS = [
   },
   {
     key: 'moto-passageiro',
-    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    image: KAVIAR_SOLUTION_IMAGES.moto,
+    softArtwork: false,
     background: '#EEF7F2',
     glow: '#D6EDDF',
     accent: '#8A6D1A',
@@ -84,7 +87,8 @@ const DRIVER_SHOWCASE_ITEMS = [
   },
   {
     key: 'women-drivers',
-    image: KAVIAR_SOLUTION_IMAGES.grupos,
+    image: KAVIAR_SOLUTION_IMAGES.mulheres,
+    softArtwork: false,
     background: '#F9F3FA',
     glow: '#F0DEEE',
     accent: '#8A6D1A',
@@ -95,6 +99,7 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'fixed-routes',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
+    softArtwork: true,
     background: '#EAF9F2',
     glow: '#D2EDDD',
     accent: '#8A6D1A',
@@ -106,6 +111,7 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'region',
     image: KAVIAR_SOLUTION_IMAGES.regiao,
+    softArtwork: true,
     background: '#F2EEFF',
     glow: '#E1D8FF',
     accent: '#8A6D1A',
@@ -659,7 +665,7 @@ export default function DriverOnline() {
       {/* Status */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.center, pendingOffer && { flex: undefined, justifyContent: 'flex-start', paddingTop: 16, paddingBottom: 40 }]}
+        contentContainerStyle={[styles.center, { paddingBottom: 96 }, pendingOffer && { flex: undefined, justifyContent: 'flex-start', paddingTop: 16, paddingBottom: 132 }]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.statusRing}>
@@ -714,12 +720,22 @@ export default function DriverOnline() {
                   <View style={[styles.ecosystemGlow, { backgroundColor: item.glow }]} />
                   <View style={styles.ecosystemTextCol}>
                     <Text style={[styles.ecosystemCardTitle, item.featured && styles.ecosystemCardTitleFeatured]}>{item.title}</Text>
-                    <Text style={[styles.ecosystemCardText, item.featured && styles.ecosystemCardTextFeatured]} numberOfLines={2}>{item.subtitle}</Text>
+                    <Text style={[styles.ecosystemCardText, item.featured && styles.ecosystemCardTextFeatured]} numberOfLines={item.featured ? 3 : 2}>{item.subtitle}</Text>
                     <View style={[styles.ecosystemCtaWrap, { borderColor: item.accent }]}>
                       <Text style={[styles.ecosystemCta, { color: item.accent }]}>{item.cta}</Text>
                     </View>
                   </View>
-                  <Image source={item.image} style={[styles.ecosystemImage, item.featured && styles.ecosystemImageFeatured]} resizeMode="contain" />
+                  <View style={styles.ecosystemMediaCol}>
+                    <Image
+                      source={item.image}
+                      style={[
+                        styles.ecosystemImage,
+                        item.featured && styles.ecosystemImageFeatured,
+                        item.softArtwork && styles.ecosystemImageSoft,
+                      ]}
+                      resizeMode="contain"
+                    />
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -975,13 +991,14 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   ecosystemTextCol: {
-    maxWidth: '55%',
+    width: '58%',
     justifyContent: 'space-between',
     flex: 1,
+    paddingRight: 8,
   },
   ecosystemCardTitle: {
-    fontSize: 21,
-    lineHeight: 25,
+    fontSize: 19,
+    lineHeight: 23,
     fontWeight: '800',
     color: '#121316',
     marginBottom: 6,
@@ -990,26 +1007,38 @@ const styles = StyleSheet.create({
     color: '#F5F7FA',
   },
   ecosystemCardText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 17,
     color: '#4F5664',
     marginBottom: 10,
   },
   ecosystemCardTextFeatured: {
     color: '#DCE2EF',
   },
-  ecosystemImage: {
+  ecosystemMediaCol: {
     position: 'absolute',
-    width: 188,
-    height: 166,
-    right: -8,
-    bottom: 2,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: '42%',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
+    paddingRight: 4,
+    paddingBottom: 4,
+  },
+  ecosystemImage: {
+    width: 156,
+    height: 138,
+    opacity: 0.95,
   },
   ecosystemImageFeatured: {
-    width: 212,
-    height: 192,
-    right: -10,
-    bottom: 6,
+    width: 176,
+    height: 160,
+  },
+  ecosystemImageSoft: {
+    width: 134,
+    height: 118,
+    opacity: 0.72,
   },
   ecosystemCtaWrap: {
     alignSelf: 'flex-start',
