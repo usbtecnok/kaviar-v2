@@ -266,6 +266,45 @@ router.put('/me/push-token', authenticatePassenger, async (req: Request, res: Re
   }
 });
 
+// POST /api/passengers/me/push-token/diagnostic
+router.post('/me/push-token/diagnostic', authenticatePassenger, async (req: Request, res: Response) => {
+  try {
+    const passengerId = (req as any).passengerId;
+    const stage = typeof req.body?.stage === 'string' ? req.body.stage : '';
+
+    if (!stage) {
+      return res.status(400).json({ success: false, error: 'stage obrigatório' });
+    }
+
+    const hasAuthToken = typeof req.body?.hasAuthToken === 'boolean' ? req.body.hasAuthToken : undefined;
+    const notificationStatus = typeof req.body?.notificationStatus === 'string' ? req.body.notificationStatus : undefined;
+    const finalStatus = typeof req.body?.finalStatus === 'string' ? req.body.finalStatus : undefined;
+    const hasExpoToken = typeof req.body?.hasExpoToken === 'boolean' ? req.body.hasExpoToken : undefined;
+    const platform = typeof req.body?.platform === 'string' ? req.body.platform : undefined;
+    const errorCode = typeof req.body?.errorCode === 'string' ? req.body.errorCode : undefined;
+
+    console.info('[passenger_push_token_diagnostic]', {
+      passengerId,
+      stage,
+      hasAuthToken,
+      notificationStatus,
+      finalStatus,
+      hasExpoToken,
+      platform,
+      errorCode,
+    });
+
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('[passenger_push_token_diagnostic]', {
+      passengerId: (req as any).passengerId,
+      stage: typeof req.body?.stage === 'string' ? req.body.stage : 'unknown_stage',
+      error: error?.message || 'unknown_error',
+    });
+    return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
 // GET /api/passengers/me/local-commerce — comércios ativos do território do passageiro
 router.get('/me/local-commerce', authenticatePassenger, async (req: Request, res: Response) => {
   try {
