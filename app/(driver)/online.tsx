@@ -53,11 +53,10 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'ganhos',
     image: KAVIAR_SOLUTION_IMAGES.ganhos,
-    softArtwork: true,
-    background: '#121722',
-    glow: '#37445C',
-    featured: true,
-    accent: '#8A6D1A',
+    useArtwork: false,
+    mediaTone: 'dark',
+    fallbackIcon: 'trending-up-outline' as const,
+    badge: 'Ganhos',
     title: 'Ganhos KAVIAR',
     subtitle: 'Acompanhe oportunidades e crescimento.',
     cta: 'Abrir resumo',
@@ -66,10 +65,10 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'moto-entrega',
     image: KAVIAR_SOLUTION_IMAGES.motoEntrega,
-    softArtwork: false,
-    background: '#F5F8FC',
-    glow: '#DEE8F8',
-    accent: '#8A6D1A',
+    useArtwork: true,
+    mediaTone: 'light',
+    fallbackIcon: 'cube-outline' as const,
+    badge: 'Entrega',
     title: 'Moto Entrega',
     subtitle: 'Ganhe também com entregas locais em regiões habilitadas.',
     cta: 'Em breve',
@@ -77,10 +76,10 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'moto-passageiro',
     image: KAVIAR_SOLUTION_IMAGES.moto,
-    softArtwork: false,
-    background: '#EEF7F2',
-    glow: '#D6EDDF',
-    accent: '#8A6D1A',
+    useArtwork: true,
+    mediaTone: 'light',
+    fallbackIcon: 'bicycle-outline' as const,
+    badge: 'Modalidade',
     title: 'Moto Passageiro',
     subtitle: 'Mais uma modalidade para motoristas aprovados.',
     cta: 'Em breve',
@@ -88,10 +87,10 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'women-drivers',
     image: KAVIAR_SOLUTION_IMAGES.mulheres,
-    softArtwork: false,
-    background: '#F9F3FA',
-    glow: '#F0DEEE',
-    accent: '#8A6D1A',
+    useArtwork: false,
+    mediaTone: 'light',
+    fallbackIcon: 'female-outline' as const,
+    badge: 'Confianca',
     title: 'Motoristas mulheres',
     subtitle: 'Mais confiança para passageiras que preferem ser atendidas por mulheres.',
     cta: 'Em breve',
@@ -99,10 +98,10 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'fixed-routes',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
-    softArtwork: true,
-    background: '#EAF9F2',
-    glow: '#D2EDDD',
-    accent: '#8A6D1A',
+    useArtwork: false,
+    mediaTone: 'light',
+    fallbackIcon: 'repeat-outline' as const,
+    badge: 'Rotina',
     title: 'Rotas Fixas',
     subtitle: 'Viagens recorrentes e rotina previsível.',
     cta: 'Ver',
@@ -111,10 +110,10 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'region',
     image: KAVIAR_SOLUTION_IMAGES.regiao,
-    softArtwork: true,
-    background: '#F2EEFF',
-    glow: '#E1D8FF',
-    accent: '#8A6D1A',
+    useArtwork: false,
+    mediaTone: 'light',
+    fallbackIcon: 'location-outline' as const,
+    badge: 'Territorio',
     title: 'Sua região',
     subtitle: 'Oportunidades próximas de você.',
     cta: 'Ver',
@@ -665,7 +664,12 @@ export default function DriverOnline() {
       {/* Status */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.center, { paddingBottom: 96 }, pendingOffer && { flex: undefined, justifyContent: 'flex-start', paddingTop: 16, paddingBottom: 132 }]}
+        contentContainerStyle={[
+          styles.center,
+          pendingOffer
+            ? { paddingTop: 16, paddingBottom: 220 }
+            : { paddingBottom: 200 },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.statusRing}>
@@ -706,35 +710,35 @@ export default function DriverOnline() {
               {DRIVER_SHOWCASE_ITEMS.map((item) => (
                 <TouchableOpacity
                   key={item.key}
-                  style={[
-                    styles.ecosystemCard,
-                    item.featured ? styles.ecosystemCardFeatured : styles.ecosystemCardRegular,
-                    { backgroundColor: item.background },
-                  ]}
+                  style={styles.ecosystemCard}
                   activeOpacity={item.route ? 0.92 : 1}
                   onPress={() => {
                     if (!item.route) return;
                     router.push(item.route as any);
                   }}
                 >
-                  <View style={[styles.ecosystemGlow, { backgroundColor: item.glow }]} />
-                  <View style={styles.ecosystemTextCol}>
-                    <Text style={[styles.ecosystemCardTitle, item.featured && styles.ecosystemCardTitleFeatured]}>{item.title}</Text>
-                    <Text style={[styles.ecosystemCardText, item.featured && styles.ecosystemCardTextFeatured]} numberOfLines={item.featured ? 3 : 2}>{item.subtitle}</Text>
-                    <View style={[styles.ecosystemCtaWrap, { borderColor: item.accent }]}>
-                      <Text style={[styles.ecosystemCta, { color: item.accent }]}>{item.cta}</Text>
-                    </View>
+                  <View style={[styles.ecosystemMedia, item.mediaTone === 'dark' ? styles.ecosystemMediaDark : styles.ecosystemMediaLight]}>
+                    {item.useArtwork ? (
+                      <Image
+                        source={item.image}
+                        style={styles.ecosystemImage}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View style={styles.ecosystemFallbackWrap}>
+                        <View style={styles.ecosystemFallbackIconWrap}>
+                          <Ionicons name={item.fallbackIcon} size={28} color="#D6B15A" />
+                        </View>
+                        <Text style={styles.ecosystemFallbackBadge}>{item.badge}</Text>
+                      </View>
+                    )}
                   </View>
-                  <View style={styles.ecosystemMediaCol}>
-                    <Image
-                      source={item.image}
-                      style={[
-                        styles.ecosystemImage,
-                        item.featured && styles.ecosystemImageFeatured,
-                        item.softArtwork && styles.ecosystemImageSoft,
-                      ]}
-                      resizeMode="contain"
-                    />
+                  <View style={styles.ecosystemBody}>
+                    <Text style={styles.ecosystemCardTitle}>{item.title}</Text>
+                    <Text style={styles.ecosystemCardText}>{item.subtitle}</Text>
+                    <View style={styles.ecosystemCtaWrap}>
+                      <Text style={styles.ecosystemCta}>{item.cta}</Text>
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -882,7 +886,7 @@ const styles = StyleSheet.create({
   bellBadge: { position: 'absolute', top: -4, right: -5, backgroundColor: '#E53935', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' as const },
   userName: { fontSize: 13, color: '#5E6470', marginTop: 2 },
-  center: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
+  center: { paddingHorizontal: 24, paddingTop: 8 },
 
   // Banners
   banner: {
@@ -939,7 +943,7 @@ const styles = StyleSheet.create({
   },
 
   ecosystemWrap: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8F9FB',
     borderRadius: 20,
     borderWidth: 1,
     borderColor: '#EAEDF2',
@@ -958,99 +962,91 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   ecosystemStack: {
-    gap: 10,
+    gap: 12,
   },
   ecosystemCard: {
-    borderRadius: 22,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E7EAF0',
+    borderColor: '#E2E6ED',
     overflow: 'hidden',
-    paddingLeft: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
+    backgroundColor: '#FCFDFE',
     shadowColor: '#121316',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 4,
-    position: 'relative',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  ecosystemCardFeatured: {
-    minHeight: 238,
+  ecosystemMedia: {
+    height: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8ECF2',
   },
-  ecosystemCardRegular: {
-    minHeight: 196,
+  ecosystemMediaDark: {
+    backgroundColor: '#131821',
   },
-  ecosystemGlow: {
-    position: 'absolute',
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    right: -44,
-    top: -20,
-    opacity: 0.6,
+  ecosystemMediaLight: {
+    backgroundColor: '#F2F4F8',
   },
-  ecosystemTextCol: {
-    width: '58%',
-    justifyContent: 'space-between',
-    flex: 1,
-    paddingRight: 8,
+  ecosystemBody: {
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
   ecosystemCardTitle: {
-    fontSize: 19,
-    lineHeight: 23,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '800',
     color: '#121316',
     marginBottom: 6,
   },
-  ecosystemCardTitleFeatured: {
-    color: '#F5F7FA',
-  },
   ecosystemCardText: {
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 19,
     color: '#4F5664',
-    marginBottom: 10,
-  },
-  ecosystemCardTextFeatured: {
-    color: '#DCE2EF',
-  },
-  ecosystemMediaCol: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-    width: '42%',
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
-    paddingRight: 4,
-    paddingBottom: 4,
+    marginBottom: 12,
   },
   ecosystemImage: {
-    width: 156,
-    height: 138,
-    opacity: 0.95,
+    width: '88%',
+    height: 124,
+    opacity: 0.96,
   },
-  ecosystemImageFeatured: {
-    width: 176,
-    height: 160,
+  ecosystemFallbackWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
   },
-  ecosystemImageSoft: {
-    width: 134,
-    height: 118,
-    opacity: 0.72,
+  ecosystemFallbackIconWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#3B4454',
+    backgroundColor: '#1A2230',
+  },
+  ecosystemFallbackBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#CFB06A',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   ecosystemCtaWrap: {
     alignSelf: 'flex-start',
     borderRadius: 999,
     borderWidth: 1,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
+    borderColor: '#E2C47A',
+    backgroundColor: '#FFFCF4',
+    paddingHorizontal: 11,
     paddingVertical: 5,
   },
   ecosystemCta: {
     fontSize: 11,
     fontWeight: '700',
+    color: '#8A6D1A',
   },
 
   contextCard: {
