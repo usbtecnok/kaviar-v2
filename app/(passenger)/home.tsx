@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Image,
   StatusBar, Platform, SafeAreaView,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -21,8 +21,7 @@ import {
 } from '../../src/services/fixed-route-recent.service';
 import { ensurePassengerPushTokenRegistration } from '../../src/services/passenger-push-token.service';
 import { fetchUnreadCount } from '../../src/services/notifications.service';
-import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
-import { KAVIAR_SOLUTION_ARTWORK_READY, KAVIAR_SOLUTION_IMAGES } from '../../src/components/kaviarSolutionAssets';
+import { KAVIAR_SOLUTION_IMAGES } from '../../src/components/kaviarSolutionAssets';
 
 const SERVICE_ITEMS = [
   { key: 'ride', icon: 'car-sport-outline' as const, label: 'Corrida', route: '/(passenger)/map' },
@@ -31,60 +30,71 @@ const SERVICE_ITEMS = [
   { key: 'help', icon: 'help-circle-outline' as const, label: 'Ajuda', route: '/(passenger)/help' },
 ] as const;
 
-const SOLUTION_ITEMS = [
+const PASSENGER_SHOWCASE_ITEMS = [
+  {
+    key: 'women-preference',
+    image: KAVIAR_SOLUTION_IMAGES.grupos,
+    background: '#121722',
+    glow: '#3E4A63',
+    featured: true,
+    accent: '#8A6D1A',
+    title: 'Preferência por motorista mulher',
+    subtitle: 'Mais conforto para passageiras que preferem viajar com mulheres.',
+    cta: 'Ajustar preferência',
+    route: '/(passenger)/profile',
+  },
+  {
+    key: 'moto',
+    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    background: '#F4F7FB',
+    glow: '#DCE8F6',
+    accent: '#8A6D1A',
+    title: 'Moto em regiões habilitadas',
+    subtitle: 'Mais agilidade para trajetos curtos, quando disponível na sua região.',
+    cta: 'Ver disponibilidade',
+    route: '/(passenger)/map',
+  },
   {
     key: 'pet',
     image: KAVIAR_SOLUTION_IMAGES.pet,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.pet,
-    fallbackIcon: 'paw-outline' as const,
-    fallbackEmoji: '🐶',
-    fallbackDetailEmoji: '❤️',
-    tint: '#FFE8EF',
+    background: '#FDF3F7',
+    glow: '#F9DDE8',
     accent: '#8A6D1A',
     title: 'KAVIAR Pet',
-    description: 'Viagens com mais cuidado para você e seu pet.',
+    subtitle: 'Seu pet também viaja com cuidado.',
     cta: 'Conhecer',
     externalUrl: 'https://kaviar.com.br/pet',
   },
   {
-    key: 'commercial',
-    image: KAVIAR_SOLUTION_IMAGES.comercial,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.comercial,
-    fallbackIcon: 'storefront-outline' as const,
-    fallbackEmoji: '🏪',
-    fallbackDetailEmoji: '📈',
-    tint: '#EAF4FF',
-    accent: '#8A6D1A',
-    title: 'KAVIAR Comercial',
-    description: 'CRM, divulgacao e clientes para o comercio local.',
-    cta: 'Abrir',
-    route: '/(passenger)/local',
-  },
-  {
-    key: 'fixed-routes',
+    key: 'rotas',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.rotas,
-    fallbackIcon: 'repeat-outline' as const,
-    fallbackEmoji: '🚗',
-    fallbackDetailEmoji: '🗺️',
-    tint: '#EAF9F2',
+    background: '#EEF7F2',
+    glow: '#D4EEDD',
     accent: '#8A6D1A',
     title: 'Rotas Fixas',
-    description: 'Viagens frequentes para trabalho, escola, igreja e rotina.',
+    subtitle: 'Sua rotina com mais organização.',
     cta: 'Ver',
     route: '/(passenger)/fixed-routes',
   },
   {
-    key: 'groups',
+    key: 'comercial',
+    image: KAVIAR_SOLUTION_IMAGES.comercial,
+    background: '#EDF4FF',
+    glow: '#D8E6FB',
+    accent: '#8A6D1A',
+    title: 'KAVIAR Comercial',
+    subtitle: 'Soluções para empresas, hotéis e comércio local.',
+    cta: 'Abrir',
+    route: '/(passenger)/local',
+  },
+  {
+    key: 'grupos',
     image: KAVIAR_SOLUTION_IMAGES.grupos,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.grupos,
-    fallbackIcon: 'people-outline' as const,
-    fallbackEmoji: '👥',
-    fallbackDetailEmoji: '💬',
-    tint: '#F2EEFF',
+    background: '#F1EEFF',
+    glow: '#E2DAFF',
     accent: '#8A6D1A',
     title: 'Grupos KAVIAR',
-    description: 'Avisos, beneficios e comunidade na sua regiao.',
+    subtitle: 'Comunidades, rotas e mobilidade local em um só lugar.',
     cta: 'Ver',
     route: '/(passenger)/groups',
   },
@@ -303,14 +313,19 @@ export default function PassengerHome() {
             </ScrollView>
           </View>
 
-          <View style={s.solutionsWrap}>
-            <Text style={s.solutionsTitle}>Solucoes KAVIAR</Text>
-            <Text style={s.solutionsSubtitle}>Mais formas de usar o KAVIAR no dia a dia.</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.solutionsScroll}>
-              {SOLUTION_ITEMS.map((item) => (
-                <KaviarPremiumRailCard
+          <View style={s.showcaseWrap}>
+            <Text style={s.showcaseTitle}>Um KAVIAR para cada momento</Text>
+            <Text style={s.showcaseSubtitle}>Experiências premium para mobilidade, rotina e conveniência.</Text>
+            <View style={s.showcaseStack}>
+              {PASSENGER_SHOWCASE_ITEMS.map((item) => (
+                <TouchableOpacity
                   key={item.key}
-                  item={item}
+                  style={[
+                    s.showcaseCard,
+                    item.featured ? s.showcaseCardFeatured : s.showcaseCardRegular,
+                    { backgroundColor: item.background },
+                  ]}
+                  activeOpacity={0.92}
                   onPress={() => {
                     if (item.route) {
                       router.push(item.route as any);
@@ -322,9 +337,19 @@ export default function PassengerHome() {
                       });
                     }
                   }}
-                />
+                >
+                  <View style={[s.showcaseGlow, { backgroundColor: item.glow }]} />
+                  <View style={s.showcaseTextCol}>
+                    <Text style={[s.showcaseCardTitle, item.featured && s.showcaseCardTitleFeatured]}>{item.title}</Text>
+                    <Text style={[s.showcaseCardSubtitle, item.featured && s.showcaseCardSubtitleFeatured]} numberOfLines={2}>{item.subtitle}</Text>
+                    <View style={[s.showcaseCtaWrap, { borderColor: item.accent }]}>
+                      <Text style={[s.showcaseCta, { color: item.accent }]}>{item.cta}</Text>
+                    </View>
+                  </View>
+                  <Image source={item.image} style={[s.showcaseImage, item.featured && s.showcaseImageFeatured]} resizeMode="contain" />
+                </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
           </View>
 
           <TouchableOpacity style={s.contextCard} onPress={highlight.onPress} activeOpacity={0.9}>
@@ -511,30 +536,106 @@ const s = StyleSheet.create({
     color: '#121316',
   },
 
-  solutionsWrap: {
+  showcaseWrap: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#EAEDF2',
-    paddingVertical: 12,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 14,
   },
-  solutionsTitle: {
-    fontSize: 13,
+  showcaseTitle: {
+    fontSize: 17,
     fontWeight: '800',
     color: '#121316',
-    paddingHorizontal: 12,
   },
-  solutionsSubtitle: {
-    fontSize: 11,
+  showcaseSubtitle: {
+    fontSize: 12,
     color: '#5E6470',
     marginTop: 2,
-    marginBottom: 10,
-    paddingHorizontal: 12,
+    marginBottom: 12,
   },
-  solutionsScroll: {
-    paddingHorizontal: 12,
-    gap: 8,
+  showcaseStack: {
+    gap: 10,
+  },
+  showcaseCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#E7EAF0',
+    overflow: 'hidden',
+    paddingLeft: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    shadowColor: '#121316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 4,
+    position: 'relative',
+  },
+  showcaseCardFeatured: {
+    minHeight: 238,
+  },
+  showcaseCardRegular: {
+    minHeight: 196,
+  },
+  showcaseGlow: {
+    position: 'absolute',
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    right: -44,
+    top: -20,
+    opacity: 0.6,
+  },
+  showcaseTextCol: {
+    maxWidth: '55%',
+    justifyContent: 'space-between',
+    flex: 1,
+  },
+  showcaseCardTitle: {
+    fontSize: 21,
+    lineHeight: 25,
+    fontWeight: '800',
+    color: '#121316',
+    marginBottom: 6,
+  },
+  showcaseCardTitleFeatured: {
+    color: '#F5F7FA',
+  },
+  showcaseCardSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#4F5664',
+    marginBottom: 10,
+  },
+  showcaseCardSubtitleFeatured: {
+    color: '#DCE2EF',
+  },
+  showcaseImage: {
+    position: 'absolute',
+    width: 188,
+    height: 166,
+    right: -8,
+    bottom: 2,
+  },
+  showcaseImageFeatured: {
+    width: 212,
+    height: 192,
+    right: -10,
+    bottom: 6,
+  },
+  showcaseCtaWrap: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  showcaseCta: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   contextCard: {
     flexDirection: 'row',

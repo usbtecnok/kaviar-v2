@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView, AppState, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView, AppState, StatusBar, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
@@ -22,8 +22,7 @@ import { persistDriverRide, getPersistedDriverRide } from '../../src/services/ri
 import { useNetworkStatus } from '../../src/hooks/useNetworkStatus';
 import { ENV } from '../../src/config/env';
 import { fetchUnreadCount } from '../../src/services/notifications.service';
-import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
-import { KAVIAR_SOLUTION_ARTWORK_READY, KAVIAR_SOLUTION_IMAGES } from '../../src/components/kaviarSolutionAssets';
+import { KAVIAR_SOLUTION_IMAGES } from '../../src/components/kaviarSolutionAssets';
 
 const POLL_INTERVAL = 5000;
 const POLL_BACKOFF = [5000, 8000, 12000, 15000]; // normal, 1 fail, 2 fails, 3+ fails
@@ -50,58 +49,68 @@ const OPPORTUNITY_ITEMS = [
   { key: 'earnings', icon: 'wallet-outline' as const, label: 'Ganhos', route: '/(driver)/summary' },
 ] as const;
 
-const ECOSYSTEM_ITEMS = [
+const DRIVER_SHOWCASE_ITEMS = [
+  {
+    key: 'ganhos',
+    image: KAVIAR_SOLUTION_IMAGES.ganhos,
+    background: '#121722',
+    glow: '#37445C',
+    featured: true,
+    accent: '#8A6D1A',
+    title: 'Ganhos KAVIAR',
+    subtitle: 'Acompanhe oportunidades e crescimento.',
+    cta: 'Abrir resumo',
+    route: '/(driver)/summary',
+  },
+  {
+    key: 'moto-entrega',
+    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    background: '#F5F8FC',
+    glow: '#DEE8F8',
+    accent: '#8A6D1A',
+    title: 'Moto Entrega',
+    subtitle: 'Ganhe também com entregas locais em regiões habilitadas.',
+    cta: 'Em breve',
+  },
+  {
+    key: 'moto-passageiro',
+    image: KAVIAR_SOLUTION_IMAGES.rotas,
+    background: '#EEF7F2',
+    glow: '#D6EDDF',
+    accent: '#8A6D1A',
+    title: 'Moto Passageiro',
+    subtitle: 'Mais uma modalidade para motoristas aprovados.',
+    cta: 'Em breve',
+  },
+  {
+    key: 'women-drivers',
+    image: KAVIAR_SOLUTION_IMAGES.grupos,
+    background: '#F9F3FA',
+    glow: '#F0DEEE',
+    accent: '#8A6D1A',
+    title: 'Motoristas mulheres',
+    subtitle: 'Mais confiança para passageiras que preferem ser atendidas por mulheres.',
+    cta: 'Em breve',
+  },
   {
     key: 'fixed-routes',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.rotas,
-    fallbackIcon: 'repeat-outline' as const,
-    fallbackEmoji: '🚕',
-    fallbackDetailEmoji: '🛣️',
-    tint: '#EAF9F2',
+    background: '#EAF9F2',
+    glow: '#D2EDDD',
     accent: '#8A6D1A',
     title: 'Rotas Fixas',
-    description: 'Ganhe com passageiros recorrentes.',
+    subtitle: 'Viagens recorrentes e rotina previsível.',
     cta: 'Ver',
     route: '/(driver)/fixed-routes',
   },
   {
-    key: 'commercial',
-    image: KAVIAR_SOLUTION_IMAGES.comercial,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.comercial,
-    fallbackIcon: 'storefront-outline' as const,
-    fallbackEmoji: '🏬',
-    fallbackDetailEmoji: '🤝',
-    tint: '#EAF4FF',
-    accent: '#8A6D1A',
-    title: 'Comercial Local',
-    description: 'Parcerias e demandas do comercio da regiao.',
-    cta: 'Em breve',
-  },
-  {
-    key: 'pet',
-    image: KAVIAR_SOLUTION_IMAGES.pet,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.pet,
-    fallbackIcon: 'paw-outline' as const,
-    fallbackEmoji: '🐾',
-    fallbackDetailEmoji: '🐶',
-    tint: '#FFE8EF',
-    accent: '#8A6D1A',
-    title: 'KAVIAR Pet',
-    description: 'Viagens especiais com passageiros e pets.',
-    cta: 'Em breve',
-  },
-  {
-    key: 'groups',
+    key: 'region',
     image: KAVIAR_SOLUTION_IMAGES.regiao,
-    artworkReady: KAVIAR_SOLUTION_ARTWORK_READY.regiao,
-    fallbackIcon: 'people-outline' as const,
-    fallbackEmoji: '🧭',
-    fallbackDetailEmoji: '👥',
-    tint: '#F2EEFF',
+    background: '#F2EEFF',
+    glow: '#E1D8FF',
     accent: '#8A6D1A',
-    title: 'Grupos/Regiao',
-    description: 'Avisos e oportunidades locais.',
+    title: 'Sua região',
+    subtitle: 'Oportunidades próximas de você.',
     cta: 'Ver',
     route: '/(driver)/groups',
   },
@@ -686,20 +695,34 @@ export default function DriverOnline() {
         {!pendingOffer && (
           <View style={styles.ecosystemWrap}>
             <Text style={styles.ecosystemTitle}>Oportunidades KAVIAR</Text>
-            <Text style={styles.ecosystemSubtitle}>Solucoes para ampliar ganhos e presenca local.</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ecosystemScroll}>
-              {ECOSYSTEM_ITEMS.map((item) => (
-                <KaviarPremiumRailCard
+            <Text style={styles.ecosystemSubtitle}>Uma vitrine para ampliar ganhos e presença local.</Text>
+            <View style={styles.ecosystemStack}>
+              {DRIVER_SHOWCASE_ITEMS.map((item) => (
+                <TouchableOpacity
                   key={item.key}
-                  item={item}
-                  disabled={!item.route}
+                  style={[
+                    styles.ecosystemCard,
+                    item.featured ? styles.ecosystemCardFeatured : styles.ecosystemCardRegular,
+                    { backgroundColor: item.background },
+                  ]}
+                  activeOpacity={item.route ? 0.92 : 1}
                   onPress={() => {
                     if (!item.route) return;
                     router.push(item.route as any);
                   }}
-                />
+                >
+                  <View style={[styles.ecosystemGlow, { backgroundColor: item.glow }]} />
+                  <View style={styles.ecosystemTextCol}>
+                    <Text style={[styles.ecosystemCardTitle, item.featured && styles.ecosystemCardTitleFeatured]}>{item.title}</Text>
+                    <Text style={[styles.ecosystemCardText, item.featured && styles.ecosystemCardTextFeatured]} numberOfLines={2}>{item.subtitle}</Text>
+                    <View style={[styles.ecosystemCtaWrap, { borderColor: item.accent }]}>
+                      <Text style={[styles.ecosystemCta, { color: item.accent }]}>{item.cta}</Text>
+                    </View>
+                  </View>
+                  <Image source={item.image} style={[styles.ecosystemImage, item.featured && styles.ecosystemImageFeatured]} resizeMode="contain" />
+                </TouchableOpacity>
               ))}
-            </ScrollView>
+            </View>
           </View>
         )}
 
@@ -901,97 +924,104 @@ const styles = StyleSheet.create({
 
   ecosystemWrap: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#EAEDF2',
-    paddingVertical: 12,
-    marginBottom: 12,
+    padding: 12,
+    marginBottom: 14,
   },
   ecosystemTitle: {
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: '800',
     color: '#121316',
-    paddingHorizontal: 12,
   },
   ecosystemSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#5E6470',
     marginTop: 2,
-    marginBottom: 10,
-    paddingHorizontal: 12,
+    marginBottom: 12,
   },
-  ecosystemScroll: {
-    paddingHorizontal: 12,
-    gap: 8,
+  ecosystemStack: {
+    gap: 10,
   },
   ecosystemCard: {
-    width: 184,
-    borderRadius: 12,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#EAEDF2',
-    backgroundColor: '#FCFCFD',
-    padding: 12,
-  },
-  ecosystemScene: {
-    width: 50,
-    height: 50,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E8D9AA',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    borderColor: '#E7EAF0',
+    overflow: 'hidden',
+    paddingLeft: 16,
+    paddingTop: 14,
+    paddingBottom: 14,
+    shadowColor: '#121316',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 14,
+    elevation: 4,
+    position: 'relative',
   },
-  ecosystemHero: {
-    fontSize: 24,
+  ecosystemCardFeatured: {
+    minHeight: 238,
   },
-  ecosystemDetailBubble: {
+  ecosystemCardRegular: {
+    minHeight: 196,
+  },
+  ecosystemGlow: {
     position: 'absolute',
-    right: -5,
-    bottom: -5,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E7E9EE',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    right: -44,
+    top: -20,
+    opacity: 0.6,
   },
-  ecosystemDetail: {
-    fontSize: 10,
+  ecosystemTextCol: {
+    maxWidth: '55%',
+    justifyContent: 'space-between',
+    flex: 1,
   },
   ecosystemCardTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 21,
+    lineHeight: 25,
+    fontWeight: '800',
     color: '#121316',
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  ecosystemCardTitleFeatured: {
+    color: '#F5F7FA',
   },
   ecosystemCardText: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: '#5E6470',
-    minHeight: 48,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#4F5664',
+    marginBottom: 10,
+  },
+  ecosystemCardTextFeatured: {
+    color: '#DCE2EF',
+  },
+  ecosystemImage: {
+    position: 'absolute',
+    width: 188,
+    height: 166,
+    right: -8,
+    bottom: 2,
+  },
+  ecosystemImageFeatured: {
+    width: 212,
+    height: 192,
+    right: -10,
+    bottom: 6,
   },
   ecosystemCtaWrap: {
-    marginTop: 8,
     alignSelf: 'flex-start',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E8D9AA',
-    backgroundColor: '#FFFBF0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   ecosystemCta: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
-    color: '#8A6D1A',
   },
 
   contextCard: {
