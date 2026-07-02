@@ -68,6 +68,7 @@ import TerritorialPayoutsPage from "../../pages/admin/TerritorialPayoutsPage";
 import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
 import ComercialGestorPage from "../../pages/admin/ComercialGestorPage";
 import CrmPage from "../../pages/admin/CrmPage";
+import RegulatoryConsultationPage from "../../pages/admin/RegulatoryConsultationPage";
 import CommerceAccountsPage from "../../pages/admin/CommerceAccountsPage";
 import MyContractPage from "../../pages/admin/MyContractPage";
 import ManagerFinance from "../../pages/admin/ManagerFinance";
@@ -472,6 +473,7 @@ function AdminHome() {
               { Icon: Flight, title: 'Premium Tourism', desc: 'Pacotes e reservas turísticas', to: '/admin/premium-tourism/packages' },
               { Icon: Pets, title: 'KAVIAR Pet', desc: 'Central pet, homologações e operadores', to: '/admin/pet' },
               { Icon: Analytics, title: 'CRM KAVIAR', desc: 'Leads, prospecção e comércios locais', to: '/admin/crm' },
+              { Icon: Description, title: 'Consulta Regulatória Municipal', desc: 'Documento institucional + envio WhatsApp via template Twilio', to: '/admin/regulatory-consultation' },
               ...(isSuperAdmin ? [{ Icon: Storefront, title: 'Comércios — Admin', desc: 'Financeiro, portal e ativações avançadas', to: '/admin/commerce' }] : []),
             ]},
             { section: 'Financeiro', items: [
@@ -1040,6 +1042,7 @@ export default function AdminApp() {
           <Route path="/manager-referrals" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerReferrals /></ProtectedAdminRoute>} />
           <Route path="/comercial-gestor" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ComercialGestorPage /></ProtectedAdminRoute>} />
           <Route path="/crm" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><CrmPage /></ProtectedAdminRoute>} />
+          <Route path="/regulatory-consultation" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><RegulatoryConsultationPage /></ProtectedAdminRoute>} />
           <Route path="/commerce" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><CommerceAccountsPage /></ProtectedAdminRoute>} />
           <Route path="/manager-emergency-alerts" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerEmergencyAlerts /></ProtectedAdminRoute>} />
           <Route path="/investidores" element={<ProtectedAdminRoute requireSuperAdmin><InvestorsPage /></ProtectedAdminRoute>} />

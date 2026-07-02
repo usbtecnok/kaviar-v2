@@ -1319,6 +1319,39 @@ model whatsapp_invite_logs {
   @@index([territory_id, created_at])
 }
 
+model municipal_regulatory_consultation_logs {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin_id            String
+  admin_name          String?   @db.VarChar(255)
+  admin_email         String?   @db.VarChar(255)
+  admin_role          String    @db.VarChar(50)
+  territory_id        String?
+  destination_phone   String    @db.VarChar(20)
+  recipient_name      String?   @db.VarChar(255)
+  organization_name   String    @db.VarChar(255)
+  municipality_name   String?   @db.VarChar(120)
+  document_version    String    @default("v1.0") @db.VarChar(30)
+  protocol_code       String?   @db.VarChar(60)
+  observation         String?
+  template_key        String    @default("kaviar_regulatory_consultation_v1") @db.VarChar(80)
+  twilio_message_sid  String?   @unique @db.VarChar(80)
+  twilio_status       String?   @db.VarChar(30)
+  twilio_error_code   String?   @db.VarChar(30)
+  twilio_error_message String?
+  source_screen       String    @default("crm_regulatory_consultation") @db.VarChar(80)
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+  sent_at             DateTime?
+  delivered_at        DateTime?
+  read_at             DateTime?
+  failed_at           DateTime?
+
+  @@index([admin_id, created_at])
+  @@index([territory_id, created_at])
+  @@index([destination_phone, created_at])
+  @@index([protocol_code])
+}
+
 // ─── Emergency Vault (Cofre de Evidência V1) ────────────────────────────────
 
 model ride_emergency_events {

@@ -28,6 +28,7 @@ export const WHATSAPP_TEMPLATES = {
   kaviar_driver_reactivation_v1: env.WA_TPL_DRIVER_REACTIVATION || "",
   kaviar_pet_invite_v1: env.WA_TPL_PET_INVITE || "",
   kaviar_contract_available_v1: env.WA_TPL_CONTRACT_AVAILABLE || "",
+  kaviar_regulatory_consultation_v1: env.TWILIO_KAVIAR_REGULATORY_TEMPLATE_SID || "",
 } as const;
 
 export type WhatsAppTemplateName = keyof typeof WHATSAPP_TEMPLATES;

@@ -257,6 +257,9 @@ export default function CrmPage() {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Button size="small" variant="outlined" onClick={() => { window.location.href = '/admin/regulatory-consultation'; }} sx={{ borderColor: '#2563EB', color: '#2563EB', textTransform: 'none' }}>
+            Consulta Regulatória
+          </Button>
           {isSuperAdmin && <Button size="small" startIcon={<Download />} onClick={handleExportCsv} sx={{ color: '#6B7280', textTransform: 'none' }}>CSV</Button>}
           <Button size="small" variant="outlined" startIcon={<Store />} onClick={() => openCreateWith({ lead_type: 'LOCAL_BUSINESS', source: 'LOCAL_BUSINESS_PROSPECTION', business_category: '' })} sx={{ borderColor: '#059669', color: '#059669', textTransform: 'none' }}>+ Comércio</Button>
           <Button size="small" variant="outlined" startIcon={<Apartment />} onClick={() => openCreateWith({ lead_type: 'ASSOCIATION', source: 'LOCAL_VISIT' })} sx={{ borderColor: '#7C3AED', color: '#7C3AED', textTransform: 'none' }}>+ Associação</Button>

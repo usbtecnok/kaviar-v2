@@ -635,18 +635,36 @@ twilioWhatsappStatusRouter.post('/twilio/whatsapp-status', async (req: Request, 
       return res.status(400).json({ success: false, error: 'MessageSid e MessageStatus são obrigatórios.' });
     }
 
-    const existing = await prisma.whatsapp_invite_logs.findUnique({ where: { twilio_message_sid: sid } });
-    if (!existing) return res.status(404).json({ success: false, error: 'Log não encontrado para MessageSid.' });
+    const inviteLog = await prisma.whatsapp_invite_logs.findUnique({ where: { twilio_message_sid: sid } });
+    const regulatoryLog = await prisma.municipal_regulatory_consultation_logs.findUnique({ where: { twilio_message_sid: sid } });
 
-    await prisma.whatsapp_invite_logs.update({
-      where: { id: existing.id },
-      data: {
-        twilio_status: status,
-        twilio_error_code: errorCode,
-        twilio_error_message: errorMessage,
-        ...statusTimestamp(status),
-      },
-    });
+    if (!inviteLog && !regulatoryLog) {
+      return res.status(404).json({ success: false, error: 'Log não encontrado para MessageSid.' });
+    }
+
+    if (inviteLog) {
+      await prisma.whatsapp_invite_logs.update({
+        where: { id: inviteLog.id },
+        data: {
+          twilio_status: status,
+          twilio_error_code: errorCode,
+          twilio_error_message: errorMessage,
+          ...statusTimestamp(status),
+        },
+      });
+    }
+
+    if (regulatoryLog) {
+      await prisma.municipal_regulatory_consultation_logs.update({
+        where: { id: regulatoryLog.id },
+        data: {
+          twilio_status: status,
+          twilio_error_code: errorCode,
+          twilio_error_message: errorMessage,
+          ...statusTimestamp(status),
+        },
+      });
+    }
 
     res.json({ success: true });
   } catch (err: any) {
