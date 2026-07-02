@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { authenticateAdmin, requireRole } from '../middlewares/auth';
 import { applyTerritoryScope } from '../middlewares/territory-scope';
 import { prisma } from '../lib/prisma';
@@ -14,6 +16,13 @@ const DEFAULT_DOC_VERSION = 'v1.0';
 const REGULATORY_TEMPLATE_KEY = 'kaviar_regulatory_consultation_v1';
 const TWILIO_CONTENT_SID_RE = /^HX[a-fA-F0-9]{32}$/;
 const INVALID_CONTENT_SID_MESSAGE = 'ContentSid do template Twilio não configurado ou inválido.';
+const PDF_HEADER_LINES = [
+  'KAVIAR',
+  'KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA',
+  'CNPJ: 67.783.601/0001-99',
+  'contato@kaviar.com.br | +55 21 96864-8777',
+  'https://kaviar.com.br',
+];
 
 function normalizeBrazilPhone(input: string): string {
   const digits = String(input || '').replace(/\D/g, '');
@@ -40,6 +49,29 @@ function protocolFromNow(): string {
   const ss = String(now.getSeconds()).padStart(2, '0');
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `KVR-RM-${yyyy}${mm}${dd}-${hh}${mi}${ss}-${rand}`;
+}
+
+function formatCnpj(input: string): string {
+  const digits = String(input || '').replace(/\D/g, '');
+  if (digits.length !== 14) return String(input || '').trim();
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12, 14)}`;
+}
+
+function resolveRegulatoryLogoPath(): string | null {
+  const candidates = [
+    path.resolve(__dirname, '../../assets/kaviar-logo.jpg'),
+    path.resolve(process.cwd(), 'assets/kaviar-logo.jpg'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch {
+      // Keep silent and try next candidate.
+    }
+  }
+
+  return null;
 }
 
 function statusTimestamp(status: string): Record<string, Date> {
@@ -101,7 +133,7 @@ function buildRegulatoryDocument(input: RegulatoryDocInput) {
   const organizationName = input.organizationName.trim();
   const municipalityName = input.municipalityName.trim();
   const recipientName = (input.recipientName || '').trim();
-  const cnpj = (input.cnpj || '').trim();
+  const cnpj = formatCnpj((input.cnpj || '').trim());
   const legalRepresentative = (input.legalRepresentative || '').trim();
   const observation = (input.observation || '').trim();
   const documentVersion = (input.documentVersion || DEFAULT_DOC_VERSION).trim() || DEFAULT_DOC_VERSION;
@@ -109,33 +141,50 @@ function buildRegulatoryDocument(input: RegulatoryDocInput) {
   const recipientLine = recipientName ? `A/C: ${recipientName}` : 'A/C: Setor responsável';
 
   const text = [
-    'CONSULTA REGULATORIA MUNICIPAL - KAVIAR',
-    `Versao do documento: ${documentVersion}`,
+    'CONSULTA REGULATÓRIA MUNICIPAL - KAVIAR',
+    `Versão do documento: ${documentVersion}`,
     `Protocolo interno: ${protocolCode}`,
     `Gerado em: ${formattedDate} ${formattedTime}`,
     '',
     `Empresa solicitante: ${COMPANY.legalName}`,
     `Nome fantasia: ${COMPANY.tradeName}`,
     `CNPJ da solicitante: ${COMPANY.cnpj}`,
-    `Endereco legal: ${COMPANY.legalAddress}`,
+    `Endereço legal: ${COMPANY.legalAddress}`,
     `Contato institucional: ${COMPANY.email} | ${COMPANY.phone}`,
     '',
-    `Organizacao consultada: ${organizationName}`,
+    `Organização consultada: ${organizationName}`,
     recipientLine,
-    `Municipio de referencia: ${municipalityName}`,
-    cnpj ? `CNPJ informado: ${cnpj}` : 'CNPJ informado: nao preenchido',
-    legalRepresentative ? `Representante legal informado: ${legalRepresentative}` : 'Representante legal informado: nao preenchido',
+    `Município de referência: ${municipalityName}`,
+    cnpj ? `CNPJ informado: ${cnpj}` : 'CNPJ informado: não informado',
+    legalRepresentative ? `Representante legal informado: ${legalRepresentative}` : 'Representante legal informado: não informado',
     '',
     'Objeto da consulta:',
-    'Solicitamos validacao e orientacao institucional sobre requisitos municipais para operacao da KAVIAR no territorio indicado, incluindo autorizacoes, credenciamentos e restricoes aplicaveis ao modelo de atendimento digital.',
+    'Solicitamos validação e orientação institucional sobre requisitos municipais para operação da KAVIAR no território indicado, incluindo autorizações, credenciamentos e restrições aplicáveis ao modelo de atendimento digital.',
     '',
-    'Declaracao institucional:',
-    'Esta comunicacao possui finalidade exclusivamente informativa e de diligencia regulatoria. Nao constitui inicio de operacao sem requisitos locais e nao substitui parecer juridico ou ato administrativo competente.',
+    'Declaração institucional:',
+    'Esta comunicação possui finalidade exclusivamente informativa e de diligência regulatória. Não constitui início de operação sem requisitos locais e não substitui parecer jurídico ou ato administrativo competente.',
+    'O gestor territorial atua apenas como representante operacional para protocolo e acompanhamento local da solicitação, não assumindo obrigações jurídicas, regulatórias, financeiras ou contratuais em nome da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA.',
     '',
-    observation ? `Observacao operacional: ${observation}` : 'Observacao operacional: sem observacoes adicionais.',
+    observation ? `Observação operacional: ${observation}` : 'Observação operacional: sem observações adicionais.',
     '',
-    'Assinatura digital institucional:',
-    `${COMPANY.tradeName} - ${COMPANY.publicLocation}`,
+    'Canal para resposta oficial',
+    '',
+    'Solicitamos que a resposta oficial, orientação, exigência documental, indicação de órgão competente ou qualquer manifestação administrativa relacionada a esta consulta seja enviada preferencialmente para:',
+    '',
+    'E-mail institucional: contato@kaviar.com.br',
+    '',
+    'Caso a Prefeitura ou o órgão municipal utilize sistema próprio de protocolo eletrônico, solicitamos a gentileza de informar o número do protocolo, o setor responsável e o canal oficial para acompanhamento da solicitação.',
+    '',
+    'Canal complementar para contato:',
+    'WhatsApp institucional: +55 21 96864-8777',
+    'Site: https://kaviar.com.br',
+    '',
+    'Aparecido de Góes',
+    'Representante institucional da KAVIAR',
+    '',
+    'KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA',
+    'CNPJ: 67.783.601/0001-99',
+    'Rio de Janeiro/RJ — Atendimento digital',
   ].join('\n');
 
   return {
@@ -214,9 +263,11 @@ router.post('/preview', authenticateAdmin, requireRole(ALLOWED_ROLES), applyTerr
       text: doc.text,
       company: {
         legalName: COMPANY.legalName,
+        tradeName: COMPANY.tradeName,
         cnpj: COMPANY.cnpj,
         email: COMPANY.email,
         phone: COMPANY.phone,
+        website: COMPANY.website,
       },
     },
   });
@@ -228,6 +279,7 @@ router.post('/pdf', authenticateAdmin, requireRole(ALLOWED_ROLES), applyTerritor
 
   const docData = buildRegulatoryDocument(parsed.payload);
   const safeProtocol = docData.protocolCode.replace(/[^A-Za-z0-9-]/g, '');
+  const logoPath = resolveRegulatoryLogoPath();
 
   const PDFDocument = require('pdfkit');
   const doc = new PDFDocument({ size: 'A4', margin: 48 });
@@ -236,22 +288,62 @@ router.post('/pdf', authenticateAdmin, requireRole(ALLOWED_ROLES), applyTerritor
   res.set('Content-Disposition', `attachment; filename=consulta-regulatoria-${safeProtocol}.pdf`);
   doc.pipe(res);
 
-  doc.font('Helvetica-Bold').fontSize(16).fillColor('#111111').text('Consulta Regulatoria Municipal - KAVIAR');
-  doc.moveDown(0.3);
-  doc.font('Helvetica').fontSize(10).fillColor('#444444').text(`Protocolo: ${docData.protocolCode}`);
-  doc.font('Helvetica').fontSize(10).fillColor('#444444').text(`Versao: ${docData.documentVersion}`);
-  doc.font('Helvetica').fontSize(10).fillColor('#444444').text(`Gerado em: ${docData.generatedAt.toLocaleString('pt-BR')}`);
+  const margin = 48;
+  const contentWidth = 499;
+
+  // Draw watermark first to keep the document text readable on top.
+  doc.save();
+  doc.fillColor('#D4D4D8').opacity(0.08).font('Helvetica-Bold').fontSize(92);
+  const centerX = doc.page.width / 2;
+  const centerY = doc.page.height / 2;
+  doc.rotate(-28, { origin: [centerX, centerY] });
+  doc.text('KAVIAR', centerX - 210, centerY - 30, { width: 420, align: 'center' });
+  doc.restore();
+  doc.opacity(1);
+
+  if (logoPath) {
+    try {
+      doc.image(logoPath, margin, margin - 6, { fit: [72, 72] });
+    } catch {
+      doc.font('Helvetica-Bold').fontSize(18).fillColor('#111111').text('KAVIAR', margin, margin + 8);
+    }
+  } else {
+    doc.font('Helvetica-Bold').fontSize(18).fillColor('#111111').text('KAVIAR', margin, margin + 8);
+  }
+
+  const headerX = margin + 84;
+  let headerY = margin - 2;
+  doc.font('Helvetica-Bold').fontSize(12).fillColor('#111111').text(PDF_HEADER_LINES[0], headerX, headerY, { width: 415 });
+  headerY += 16;
+  doc.font('Helvetica').fontSize(9).fillColor('#4B5563');
+  for (const line of PDF_HEADER_LINES.slice(1)) {
+    doc.text(line, headerX, headerY, { width: 415 });
+    headerY += 12;
+  }
+
+  doc.moveTo(margin, margin + 78).lineTo(547, margin + 78).stroke('#D1D5DB');
+  doc.y = margin + 90;
+
+  doc.font('Helvetica-Bold').fontSize(15).fillColor('#111111').text('Consulta Regulatória Municipal — KAVIAR', margin, doc.y, { width: contentWidth });
+  doc.moveDown(0.35);
+  doc.font('Helvetica').fontSize(10).fillColor('#374151').text(`Protocolo: ${docData.protocolCode}`);
+  doc.font('Helvetica').fontSize(10).fillColor('#374151').text(`Versão: ${docData.documentVersion}`);
+  doc.font('Helvetica').fontSize(10).fillColor('#374151').text(`Gerado em: ${docData.generatedAt.toLocaleString('pt-BR')}`);
   doc.moveDown(0.8);
-  doc.moveTo(48, doc.y).lineTo(547, doc.y).stroke('#D1D5DB');
-  doc.moveDown(1);
 
   doc.font('Helvetica').fontSize(10).fillColor('#1F2937').text(docData.text, {
     width: 499,
-    lineGap: 2,
+    lineGap: 3,
   });
 
-  doc.moveDown(1.5);
-  doc.font('Helvetica').fontSize(8).fillColor('#6B7280').text('Documento institucional informativo. Nao substitui parecer juridico ou ato administrativo competente.', {
+  const footerY = doc.page.height - 70;
+  doc.moveTo(margin, footerY - 10).lineTo(547, footerY - 10).stroke('#E5E7EB');
+  doc.font('Helvetica').fontSize(8).fillColor('#6B7280').text('Documento institucional informativo. Não substitui parecer jurídico ou ato administrativo competente.', margin, footerY, {
+    width: contentWidth,
+    align: 'center',
+  });
+  doc.font('Helvetica').fontSize(8).fillColor('#9CA3AF').text('KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA | CNPJ: 67.783.601/0001-99', margin, footerY + 12, {
+    width: contentWidth,
     align: 'center',
   });
 
