@@ -1,14 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 export type KaviarPremiumRailItem = {
   key: string;
   image: ImageSourcePropType;
   artworkReady: boolean;
-  fallbackIcon: keyof typeof Ionicons.glyphMap;
-  fallbackEmoji: string;
-  fallbackDetailEmoji: string;
   title: string;
   description: string;
   cta: string;
@@ -23,9 +19,6 @@ type KaviarPremiumRailCardProps = {
 };
 
 export function KaviarPremiumRailCard({ item, onPress, disabled = false }: KaviarPremiumRailCardProps) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const showArtwork = item.artworkReady && !imageFailed;
-
   return (
     <TouchableOpacity
       style={styles.card}
@@ -34,27 +27,16 @@ export function KaviarPremiumRailCard({ item, onPress, disabled = false }: Kavia
       onPress={onPress}
     >
       <View style={[styles.scene, { backgroundColor: item.tint }]}>
-        {showArtwork ? (
-          <Image
-            source={item.image}
-            style={styles.sticker}
-            resizeMode="contain"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <>
-            <Text style={styles.fallbackEmoji}>{item.fallbackEmoji}</Text>
-            <View style={styles.fallbackBubble}>
-              <Text style={styles.fallbackDetail}>{item.fallbackDetailEmoji}</Text>
-            </View>
-            <View style={styles.fallbackIconChip}>
-              <Ionicons name={item.fallbackIcon} size={11} color={item.accent} />
-            </View>
-          </>
-        )}
+        <View style={styles.artworkPlate}>
+        <Image
+          source={item.image}
+          style={[styles.sticker, !item.artworkReady && styles.stickerMuted]}
+          resizeMode="contain"
+        />
+        </View>
       </View>
       <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
+      <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
       <View style={[styles.ctaWrap, { borderColor: item.accent }]}>
         <Text style={[styles.cta, { color: item.accent }]}>{item.cta}</Text>
       </View>
@@ -64,85 +46,65 @@ export function KaviarPremiumRailCard({ item, onPress, disabled = false }: Kavia
 
 const styles = StyleSheet.create({
   card: {
-    width: 188,
-    borderRadius: 14,
+    width: '100%',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E8EBF0',
+    borderColor: '#E2E6ED',
     backgroundColor: '#FFFFFF',
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    padding: 10,
+    shadowColor: '#121316',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   scene: {
-    width: 58,
-    height: 52,
+    width: '100%',
+    aspectRatio: 1.80,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E8D9AA',
+    borderColor: '#E8EAF0',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 9,
-    position: 'relative',
+    marginBottom: 7,
+    overflow: 'hidden',
+  },
+  artworkPlate: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#F7F9FC',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sticker: {
-    width: 46,
-    height: 42,
+    width: '96%',
+    height: '96%',
   },
-  fallbackEmoji: {
-    fontSize: 24,
-  },
-  fallbackBubble: {
-    position: 'absolute',
-    right: -5,
-    bottom: -5,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E7E9EE',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fallbackDetail: {
-    fontSize: 10,
-  },
-  fallbackIconChip: {
-    position: 'absolute',
-    left: -5,
-    top: -5,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E7E9EE',
-    alignItems: 'center',
-    justifyContent: 'center',
+  stickerMuted: {
+    opacity: 0.85,
   },
   title: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
     color: '#121316',
-    marginBottom: 4,
+    marginBottom: 3,
+    minHeight: 34,
   },
   description: {
     fontSize: 11,
-    lineHeight: 16,
+    lineHeight: 15,
     color: '#5E6470',
-    minHeight: 48,
+    minHeight: 30,
   },
   ctaWrap: {
-    marginTop: 8,
+    marginTop: 6,
     alignSelf: 'flex-start',
     borderRadius: 999,
     borderWidth: 1,
-    backgroundColor: '#FFFBF0',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: '#FFFCF4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   cta: {
     fontSize: 10,

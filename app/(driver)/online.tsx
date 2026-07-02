@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView, AppState, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, Animated, ScrollView, AppState, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Location from 'expo-location';
@@ -8,6 +8,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
+import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
 import { driverApi } from '../../src/api/driver.api';
 import { apiClient } from '../../src/api/client';
 import { authStore } from '../../src/auth/auth.store';
@@ -53,70 +54,64 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'ganhos',
     image: KAVIAR_SOLUTION_IMAGES.ganhos,
-    useArtwork: false,
-    mediaTone: 'dark',
-    fallbackIcon: 'trending-up-outline' as const,
-    badge: 'Ganhos',
     title: 'Ganhos KAVIAR',
-    subtitle: 'Acompanhe oportunidades e crescimento.',
+    description: 'Acompanhe oportunidades e crescimento.',
     cta: 'Abrir resumo',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(driver)/summary',
   },
   {
     key: 'moto-entrega',
     image: KAVIAR_SOLUTION_IMAGES.motoEntrega,
-    useArtwork: true,
-    mediaTone: 'light',
-    fallbackIcon: 'cube-outline' as const,
-    badge: 'Entrega',
     title: 'Moto Entrega',
-    subtitle: 'Ganhe também com entregas locais em regiões habilitadas.',
+    description: 'Ganhe também com entregas locais em regiões habilitadas.',
     cta: 'Em breve',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
   },
   {
     key: 'moto-passageiro',
     image: KAVIAR_SOLUTION_IMAGES.moto,
-    useArtwork: true,
-    mediaTone: 'light',
-    fallbackIcon: 'bicycle-outline' as const,
-    badge: 'Modalidade',
     title: 'Moto Passageiro',
-    subtitle: 'Mais uma modalidade para motoristas aprovados.',
+    description: 'Mais uma modalidade para motoristas aprovados.',
     cta: 'Em breve',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
   },
   {
     key: 'women-drivers',
     image: KAVIAR_SOLUTION_IMAGES.mulheres,
-    useArtwork: false,
-    mediaTone: 'light',
-    fallbackIcon: 'female-outline' as const,
-    badge: 'Confianca',
     title: 'Motoristas mulheres',
-    subtitle: 'Mais confiança para passageiras que preferem ser atendidas por mulheres.',
+    description: 'Mais confiança para passageiras que preferem ser atendidas por mulheres.',
     cta: 'Em breve',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
   },
   {
     key: 'fixed-routes',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
-    useArtwork: false,
-    mediaTone: 'light',
-    fallbackIcon: 'repeat-outline' as const,
-    badge: 'Rotina',
     title: 'Rotas Fixas',
-    subtitle: 'Viagens recorrentes e rotina previsível.',
+    description: 'Viagens recorrentes e rotina previsível.',
     cta: 'Ver',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(driver)/fixed-routes',
   },
   {
     key: 'region',
     image: KAVIAR_SOLUTION_IMAGES.regiao,
-    useArtwork: false,
-    mediaTone: 'light',
-    fallbackIcon: 'location-outline' as const,
-    badge: 'Territorio',
     title: 'Sua região',
-    subtitle: 'Oportunidades próximas de você.',
+    description: 'Oportunidades próximas de você.',
     cta: 'Ver',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(driver)/groups',
   },
 ] as const;
@@ -667,8 +662,8 @@ export default function DriverOnline() {
         contentContainerStyle={[
           styles.center,
           pendingOffer
-            ? { paddingTop: 16, paddingBottom: 220 }
-            : { paddingBottom: 200 },
+            ? { paddingTop: 22, paddingBottom: 220 }
+            : { paddingTop: 18, paddingBottom: 200 },
         ]}
         keyboardShouldPersistTaps="handled"
       >
@@ -708,39 +703,14 @@ export default function DriverOnline() {
             <Text style={styles.ecosystemSubtitle}>Uma vitrine para ampliar ganhos e presença local.</Text>
             <View style={styles.ecosystemStack}>
               {DRIVER_SHOWCASE_ITEMS.map((item) => (
-                <TouchableOpacity
+                <KaviarPremiumRailCard
                   key={item.key}
-                  style={styles.ecosystemCard}
-                  activeOpacity={item.route ? 0.92 : 1}
                   onPress={() => {
                     if (!item.route) return;
                     router.push(item.route as any);
                   }}
-                >
-                  <View style={[styles.ecosystemMedia, item.mediaTone === 'dark' ? styles.ecosystemMediaDark : styles.ecosystemMediaLight]}>
-                    {item.useArtwork ? (
-                      <Image
-                        source={item.image}
-                        style={styles.ecosystemImage}
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <View style={styles.ecosystemFallbackWrap}>
-                        <View style={styles.ecosystemFallbackIconWrap}>
-                          <Ionicons name={item.fallbackIcon} size={28} color="#D6B15A" />
-                        </View>
-                        <Text style={styles.ecosystemFallbackBadge}>{item.badge}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.ecosystemBody}>
-                    <Text style={styles.ecosystemCardTitle}>{item.title}</Text>
-                    <Text style={styles.ecosystemCardText}>{item.subtitle}</Text>
-                    <View style={styles.ecosystemCtaWrap}>
-                      <Text style={styles.ecosystemCta}>{item.cta}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  item={item}
+                />
               ))}
             </View>
           </View>
@@ -886,7 +856,7 @@ const styles = StyleSheet.create({
   bellBadge: { position: 'absolute', top: -4, right: -5, backgroundColor: '#E53935', borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   bellBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' as const },
   userName: { fontSize: 13, color: '#5E6470', marginTop: 2 },
-  center: { paddingHorizontal: 24, paddingTop: 8 },
+  center: { paddingHorizontal: 24, paddingTop: 14 },
 
   // Banners
   banner: {
@@ -1011,28 +981,6 @@ const styles = StyleSheet.create({
     width: '88%',
     height: 124,
     opacity: 0.96,
-  },
-  ecosystemFallbackWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-  },
-  ecosystemFallbackIconWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#3B4454',
-    backgroundColor: '#1A2230',
-  },
-  ecosystemFallbackBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#CFB06A',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   ecosystemCtaWrap: {
     alignSelf: 'flex-start',

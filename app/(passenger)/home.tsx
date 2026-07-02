@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking,
   StatusBar, Platform, SafeAreaView,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -13,6 +13,7 @@ import { COLORS } from '../../src/config/colors';
 import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
 import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPreferenceInvite';
+import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
 import {
   computeRecentFixedRouteMessages,
   getFixedRouteLastSeenMap,
@@ -34,73 +35,67 @@ const PASSENGER_SHOWCASE_ITEMS = [
   {
     key: 'women-preference',
     image: KAVIAR_SOLUTION_IMAGES.mulheres,
-    useArtwork: false,
-    mediaTone: 'dark',
-    fallbackIcon: 'female-outline' as const,
-    badge: 'Preferencia',
     title: 'Preferência por motorista mulher',
-    subtitle: 'Mais conforto para passageiras que preferem viajar com mulheres.',
+    description: 'Mais conforto para passageiras que preferem viajar com mulheres.',
     cta: 'Ajustar preferência',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(passenger)/profile',
   },
   {
     key: 'moto',
     image: KAVIAR_SOLUTION_IMAGES.moto,
-    useArtwork: true,
-    mediaTone: 'light',
-    fallbackIcon: 'bicycle-outline' as const,
-    badge: 'Mobilidade',
     title: 'Moto em regiões habilitadas',
-    subtitle: 'Mais agilidade para trajetos curtos, quando disponível na sua região.',
+    description: 'Mais agilidade para trajetos curtos, quando disponível na sua região.',
     cta: 'Ver disponibilidade',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(passenger)/map',
   },
   {
     key: 'pet',
     image: KAVIAR_SOLUTION_IMAGES.pet,
-    useArtwork: false,
-    mediaTone: 'light',
-    fallbackIcon: 'paw-outline' as const,
-    badge: 'Conforto',
     title: 'KAVIAR Pet',
-    subtitle: 'Seu pet também viaja com cuidado.',
+    description: 'Seu pet também viaja com cuidado.',
     cta: 'Conhecer',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     externalUrl: 'https://kaviar.com.br/pet',
   },
   {
     key: 'rotas',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
-    useArtwork: false,
-    mediaTone: 'light',
-    fallbackIcon: 'repeat-outline' as const,
-    badge: 'Rotina',
     title: 'Rotas Fixas',
-    subtitle: 'Sua rotina com mais organização.',
+    description: 'Sua rotina com mais organização.',
     cta: 'Ver',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(passenger)/fixed-routes',
   },
   {
     key: 'comercial',
     image: KAVIAR_SOLUTION_IMAGES.comercial,
-    useArtwork: true,
-    mediaTone: 'light',
-    fallbackIcon: 'business-outline' as const,
-    badge: 'Empresas',
     title: 'KAVIAR Comercial',
-    subtitle: 'Soluções para empresas, hotéis e comércio local.',
+    description: 'Soluções para empresas, hotéis e comércio local.',
     cta: 'Abrir',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(passenger)/local',
   },
   {
     key: 'grupos',
     image: KAVIAR_SOLUTION_IMAGES.grupos,
-    useArtwork: false,
-    mediaTone: 'light',
-    fallbackIcon: 'people-outline' as const,
-    badge: 'Comunidade',
     title: 'Grupos KAVIAR',
-    subtitle: 'Comunidades, rotas e mobilidade local em um só lugar.',
+    description: 'Comunidades, rotas e mobilidade local em um só lugar.',
     cta: 'Ver',
+    artworkReady: true,
+    tint: '#F4F6F9',
+    accent: '#8A6D1A',
     route: '/(passenger)/groups',
   },
 ] as const;
@@ -323,10 +318,8 @@ export default function PassengerHome() {
             <Text style={s.showcaseSubtitle}>Experiências premium para mobilidade, rotina e conveniência.</Text>
             <View style={s.showcaseStack}>
               {PASSENGER_SHOWCASE_ITEMS.map((item) => (
-                <TouchableOpacity
+                <KaviarPremiumRailCard
                   key={item.key}
-                  style={s.showcaseCard}
-                  activeOpacity={0.92}
                   onPress={() => {
                     if (item.route) {
                       router.push(item.route as any);
@@ -338,31 +331,8 @@ export default function PassengerHome() {
                       });
                     }
                   }}
-                >
-                  <View style={[s.showcaseMedia, item.mediaTone === 'dark' ? s.showcaseMediaDark : s.showcaseMediaLight]}>
-                    {item.useArtwork ? (
-                      <Image
-                        source={item.image}
-                        style={s.showcaseImage}
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <View style={s.showcaseFallbackWrap}>
-                        <View style={s.showcaseFallbackIconWrap}>
-                          <Ionicons name={item.fallbackIcon} size={28} color="#D6B15A" />
-                        </View>
-                        <Text style={s.showcaseFallbackBadge}>{item.badge}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={s.showcaseBody}>
-                    <Text style={s.showcaseCardTitle}>{item.title}</Text>
-                    <Text style={s.showcaseCardSubtitle}>{item.subtitle}</Text>
-                    <View style={s.showcaseCtaWrap}>
-                      <Text style={s.showcaseCta}>{item.cta}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                  item={item}
+                />
               ))}
             </View>
           </View>
@@ -405,7 +375,7 @@ const STATUSBAR_H = Platform.OS === 'android' ? (StatusBar.currentHeight || 24) 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#F6F7F8' },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 104 },
+  scrollContent: { paddingBottom: 136 },
 
   header: {
     paddingTop: STATUSBAR_H + 10,
@@ -572,90 +542,6 @@ const s = StyleSheet.create({
   },
   showcaseStack: {
     gap: 12,
-  },
-  showcaseCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E2E6ED',
-    overflow: 'hidden',
-    backgroundColor: '#FCFDFE',
-    shadowColor: '#121316',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  showcaseMedia: {
-    height: 150,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8ECF2',
-  },
-  showcaseMediaDark: {
-    backgroundColor: '#131821',
-  },
-  showcaseMediaLight: {
-    backgroundColor: '#F2F4F8',
-  },
-  showcaseBody: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 14,
-  },
-  showcaseCardTitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '800',
-    color: '#121316',
-    marginBottom: 6,
-  },
-  showcaseCardSubtitle: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: '#4F5664',
-    marginBottom: 12,
-  },
-  showcaseImage: {
-    width: '88%',
-    height: 124,
-    opacity: 0.96,
-  },
-  showcaseFallbackWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-  },
-  showcaseFallbackIconWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#3B4454',
-    backgroundColor: '#1A2230',
-  },
-  showcaseFallbackBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#CFB06A',
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  showcaseCtaWrap: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: '#E2C47A',
-    backgroundColor: '#FFFCF4',
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-  },
-  showcaseCta: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#8A6D1A',
   },
   contextCard: {
     flexDirection: 'row',
