@@ -19,7 +19,7 @@ Criar/atualizar 12 admins no banco de produção com:
 **Resultado:**
 ```
 Upsert iniciado
-suporte@usbtecnok.com.br OK
+suporte@kaviar.com.br OK
 financeiro@kaviar.com.br OK
 angel1@kaviar.com OK
 angel2@kaviar.com OK
@@ -47,7 +47,7 @@ angel10@kaviar.com OK
 ```
 
 **Nota:** Total inclui admins antigos. Os 12 novos/atualizados:
-- 2 SUPER_ADMIN: suporte@usbtecnok.com.br, financeiro@kaviar.com.br
+- 2 SUPER_ADMIN: suporte@kaviar.com.br, financeiro@kaviar.com.br
 - 10 ANGEL_VIEWER: angel1-10@kaviar.com
 
 ---
@@ -63,7 +63,7 @@ angel10@kaviar.com OK
     "is_active": true
   },
   {
-    "email": "suporte@usbtecnok.com.br",
+    "email": "suporte@kaviar.com.br",
     "role": "SUPER_ADMIN",
     "must_change_password": true,
     "is_active": true
@@ -137,13 +137,13 @@ angel10@kaviar.com OK
 
 ## 4. Teste de Login
 
-### 4.1 SUPER_ADMIN (suporte@usbtecnok.com.br)
+### 4.1 SUPER_ADMIN (suporte@kaviar.com.br)
 
 **Request:**
 ```bash
 POST /api/admin/auth/login
 {
-  "email": "suporte@usbtecnok.com.br",
+  "email": "suporte@kaviar.com.br",
   "password": "[senha_temporaria]"
 }
 ```
@@ -156,8 +156,8 @@ POST /api/admin/auth/login
   "data": {
     "user": {
       "id": "aa7734f7-52e2-4e99-8f80-f5138226d053",
-      "email": "suporte@usbtecnok.com.br",
-      "name": "Suporte USB Tecnok",
+      "email": "suporte@kaviar.com.br",
+      "name": "Suporte KAVIAR",
       "role": "SUPER_ADMIN"
     },
     "mustChangePassword": true
@@ -236,7 +236,7 @@ Authorization: Bearer {ANGEL_TOKEN}
 **Nota:** Senhas temporárias não documentadas por segurança. Usuários devem trocar no primeiro login.
 
 ### SUPER_ADMIN (2)
-- suporte@usbtecnok.com.br | SUPER_ADMIN | must_change: true | active: true
+- suporte@kaviar.com.br | SUPER_ADMIN | must_change: true | active: true
 - financeiro@kaviar.com.br | SUPER_ADMIN | must_change: true | active: true
 
 ### ANGEL_VIEWER (10)

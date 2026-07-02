@@ -29,7 +29,7 @@ Você recebe uma **autorização operacional temporária** para atuar como parce
 | Base potencial de apuração ao gestor | 40% da taxa operacional da plataforma (18% do valor da corrida), conforme contrato, desempenho e validação da central |
 | Taxa operacional KAVIAR | 18% do valor da corrida (infraestrutura, tecnologia, suporte) |
 
-> Os percentuais apresentados não representam repasse automático nem garantia de ganho. Todo valor depende de apuração real, validação da central KAVIAR/USB TECNOK, conformidade operacional e contrato vigente.
+> Os percentuais apresentados não representam repasse automático nem garantia de ganho. Todo valor depende de apuração real, validação da central KAVIAR/KAVIAR, conformidade operacional e contrato vigente.
 
 ---
 
@@ -44,7 +44,7 @@ Você recebe uma **autorização operacional temporária** para atuar como parce
 
 ---
 
-## O que a KAVIAR/USB TECNOK faz
+## O que a KAVIAR/KAVIAR faz
 
 - Mantém toda a tecnologia (plataforma, app, servidores, APIs)
 - Processa pagamentos, recargas de saldo e movimentações financeiras da plataforma
@@ -72,7 +72,7 @@ Você recebe uma **autorização operacional temporária** para atuar como parce
 - A central KAVIAR apura mensalmente o resultado operacional do território
 - A Plataforma KAVIAR retém uma taxa operacional de 18% sobre o valor das corridas
 - Da taxa operacional apurada:
-  - 60% ficam com a matriz KAVIAR/USB TECNOK
+  - 60% ficam com a matriz KAVIAR/KAVIAR
   - 40% formam a base de apuração do gestor territorial
 - O repasse efetivo depende de contrato vigente, apuração, aprovação, deduções aplicáveis e cronograma da central
 - Não é automático nem garantido sem produção real
@@ -94,6 +94,6 @@ Fale conosco pelo WhatsApp: [número]
 
 ---
 
-*KAVIAR é produto e plataforma da USB TECNOK Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.*
+*KAVIAR é produto e plataforma da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99.*
 
 *Este documento é informativo e não constitui contrato. A formalização ocorre mediante aceite digital do Termo de Autorização Operacional Territorial.*

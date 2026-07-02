@@ -1,5 +1,5 @@
 # Pitch Deck - Kaviar (12 Slides)
-**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda  
+**Empresa:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA  
 **Produto:** Kaviar - Mobilidade para Comunidades  
 **Formato:** Texto slide a slide (converter para PowerPoint/Google Slides)
 
@@ -14,7 +14,7 @@
 KAVIAR
 Mobilidade Urbana para Comunidades
 
-USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 Fevereiro 2026
 
 [Seu Nome] - Fundador
@@ -298,4 +298,4 @@ Go-to-Market (30%): R$ 15.000
 **Duração:** 10 minutos + 5 min Q&A
 
 ---
-*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ: 67.783.601/0001-99.*

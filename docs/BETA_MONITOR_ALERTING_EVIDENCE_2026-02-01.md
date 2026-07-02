@@ -22,7 +22,7 @@ arn:aws:sns:us-east-1:847895361928:kaviar-beta-monitor-alerts
 
 **Subscription:**
 - Protocol: `email`
-- Endpoint: `suporte@usbtecnok.com.br`
+- Endpoint: `suporte@kaviar.com.br`
 - Status: `PendingConfirmation` ⏳
 
 **Ação Necessária:**
@@ -163,7 +163,7 @@ arn:aws:iam::847895361928:role/kaviar-ecs-task-role
    ```bash
    aws sns list-subscriptions-by-topic \
      --topic-arn arn:aws:sns:us-east-1:847895361928:kaviar-beta-monitor-alerts
-   # Output: Protocol=email, Endpoint=suporte@usbtecnok.com.br, Status=PendingConfirmation
+   # Output: Protocol=email, Endpoint=suporte@kaviar.com.br, Status=PendingConfirmation
    ```
 
 3. **IAM Policy Attached:**
@@ -189,7 +189,7 @@ arn:aws:iam::847895361928:role/kaviar-ecs-task-role
 ### ⏳ Pendente
 
 1. **Email Confirmation:**
-   - Verificar inbox: suporte@usbtecnok.com.br
+   - Verificar inbox: suporte@kaviar.com.br
    - Clicar em "Confirm subscription"
    - Verificar status muda para ARN válido
 
@@ -318,7 +318,7 @@ const prisma = new PrismaClient();
 
 ## Próximos Passos
 
-1. ⏳ **Confirmar subscription email** (verificar inbox suporte@usbtecnok.com.br)
+1. ⏳ **Confirmar subscription email** (verificar inbox suporte@kaviar.com.br)
    - Procurar: "AWS Notifications - Subscription Confirmation"
    - Clicar: "Confirm subscription"
    

@@ -5,7 +5,7 @@ import { COLORS } from '../../config/colors';
 
 const SLIDES = [
   { icon: '💬', title: 'Conheça o KAVIAR', text: 'Uma plataforma feita para aproximar passageiros e motoristas da própria comunidade, com mais confiança, privacidade e cuidado.' },
-  { icon: '🏢', title: 'USB Tecnok', text: 'KAVIAR é uma iniciativa da USB Tecnok Manutenção e Instalação de Computadores Ltda, conectando tecnologia e serviço local.' },
+  { icon: '🏢', title: 'KAVIAR', text: 'KAVIAR é uma iniciativa da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, conectando tecnologia e serviço local.' },
 ];
 
 const INTERVAL = 8000;

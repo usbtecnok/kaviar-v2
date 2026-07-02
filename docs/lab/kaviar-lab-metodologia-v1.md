@@ -97,7 +97,7 @@ O KAVIAR Lab não deve exibir dados pessoais ou individualizados, incluindo:
 
 ## 8. Regras de privacidade e segurança
 
-A frente deve respeitar LGPD, privacidade e segredo operacional da USB Tecnok.
+A frente deve respeitar LGPD, privacidade e segredo operacional da KAVIAR.
 
 As métricas devem ser agregadas. Nenhuma informação individual deve ser exposta.
 

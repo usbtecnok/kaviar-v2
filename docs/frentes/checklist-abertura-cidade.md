@@ -3,7 +3,7 @@
 **Versão:** v1.0
 **Data:** Maio/2026
 **Status:** Documento operacional interno
-**Empresa responsável:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Empresa responsável:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 
 ---
 
@@ -15,7 +15,7 @@ Orientar o processo de abertura de uma nova cidade ou território de operação 
 
 ## Regra Fundamental
 
-**Nenhuma operação pode ser iniciada em nova cidade/território sem validação e autorização explícita da matriz (USB Tecnok / SUPER_ADMIN).**
+**Nenhuma operação pode ser iniciada em nova cidade/território sem validação e autorização explícita da matriz (KAVIAR / SUPER_ADMIN).**
 
 ---
 
@@ -43,9 +43,9 @@ Orientar o processo de abertura de uma nova cidade ou território de operação 
 ### 3. Preparação Institucional
 
 - [ ] Preparar apresentação institucional do KAVIAR para a cidade.
-- [ ] Definir quem será o contato institucional da USB Tecnok para aquela cidade.
+- [ ] Definir quem será o contato institucional da KAVIAR para aquela cidade.
 - [ ] Verificar se há necessidade de representante legal local.
-- [ ] Preparar documentação da USB Tecnok (CNPJ, contrato social, certidões).
+- [ ] Preparar documentação da KAVIAR (CNPJ, contrato social, certidões).
 - [ ] Avaliar se há necessidade de inscrição municipal (ISS, alvará, etc.).
 
 ### 4. Operação Territorial
@@ -78,7 +78,7 @@ Orientar o processo de abertura de uma nova cidade ou território de operação 
 
 - **Não iniciar operação** sem autorização da matriz.
 - **Não prometer** liberação, autorização, isenção de taxa ou regularidade a terceiros.
-- **Não assinar** documento em nome da USB Tecnok sem procuração.
+- **Não assinar** documento em nome da KAVIAR sem procuração.
 - **Não se apresentar** como transporte público, concessão, cooperativa ou empregador.
 - **Não pagar** taxa ou tributo sem validação contábil/jurídica da matriz.
 
@@ -90,4 +90,4 @@ Este checklist é operacional e interno. Não substitui consultoria jurídica es
 
 ---
 
-*USB Tecnok / KAVIAR — Checklist Abertura de Cidade — v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Checklist Abertura de Cidade — v1.0 — Maio/2026*

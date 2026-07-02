@@ -74,7 +74,7 @@ Successfully deployed the Passenger Favorites Matching system with driver second
 ```
 
 ### Admin Users Created:
-- 2 SUPER_ADMIN accounts (suporte@usbtecnok.com.br, financeiro@kaviar.com.br)
+- 2 SUPER_ADMIN accounts (suporte@kaviar.com.br, financeiro@kaviar.com.br)
 - 10 ANGEL_VIEWER accounts (angel1-10@kaviar.com)
 - All with `must_change_password: true` and `is_active: true`
 

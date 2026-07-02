@@ -11,7 +11,7 @@ export function investorInviteText({ name, accessLink }: InvestorInviteParams): 
 
 O KAVIAR é um projeto brasileiro de mobilidade com proposta territorial, operação local e visão de escala.
 
-Ele foi desenvolvido a partir da base da USB Tecnok Manutenção e Instalação de Computadores Ltda, em um processo de reposicionamento estratégico voltado à criação de soluções mais aderentes aos desafios reais de mobilidade, segurança e confiança urbana.
+Ele foi desenvolvido pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, em um processo de reposicionamento estratégico voltado à criação de soluções mais aderentes aos desafios reais de mobilidade, segurança e confiança urbana.
 
 A inspiração inicial veio da realidade do Rio de Janeiro, onde esses desafios aparecem de forma mais aguda. Mas o KAVIAR não foi pensado como uma solução restrita ao Rio: sua lógica de operação foi estruturada para permitir crescimento e expansão territorial, com adaptação a diferentes cidades, regiões e contextos operacionais.
 
@@ -28,8 +28,8 @@ Se fizer sentido, teremos prazer em apresentar o projeto com mais profundidade, 
 Atenciosamente,
 Equipe KAVIAR
 
-Base institucional do projeto: USB Tecnok Manutenção e Instalação de Computadores Ltda
-CNPJ: 07.710.691/0001-66`;
+Base institucional do projeto: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
+Rio de Janeiro/RJ — Atendimento digital`;
 }
 
 export function investorInviteHtml({ name, accessLink }: InvestorInviteParams): string {
@@ -37,7 +37,7 @@ export function investorInviteHtml({ name, accessLink }: InvestorInviteParams): 
 
 <p>O KAVIAR é um projeto brasileiro de mobilidade com proposta territorial, operação local e visão de escala.</p>
 
-<p>Ele foi desenvolvido a partir da base da USB Tecnok Manutenção e Instalação de Computadores Ltda, em um processo de reposicionamento estratégico voltado à criação de soluções mais aderentes aos desafios reais de mobilidade, segurança e confiança urbana.</p>
+<p>Ele foi desenvolvido pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, em um processo de reposicionamento estratégico voltado à criação de soluções mais aderentes aos desafios reais de mobilidade, segurança e confiança urbana.</p>
 
 <p>A inspiração inicial veio da realidade do Rio de Janeiro, onde esses desafios aparecem de forma mais aguda. Mas o KAVIAR não foi pensado como uma solução restrita ao Rio: sua lógica de operação foi estruturada para permitir crescimento e expansão territorial, com adaptação a diferentes cidades, regiões e contextos operacionais.</p>
 
@@ -56,7 +56,7 @@ export function investorInviteHtml({ name, accessLink }: InvestorInviteParams): 
 <p>Atenciosamente,<br>Equipe KAVIAR</p>
 
 <hr style="border:none;border-top:1px solid #eee;margin:24px 0;">
-<p style="font-size:12px;color:#999;">Base institucional do projeto: USB Tecnok Manutenção e Instalação de Computadores Ltda<br>CNPJ: 07.710.691/0001-66</p>`;
+<p style="font-size:12px;color:#999;">Base institucional do projeto: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA<br>Rio de Janeiro/RJ — Atendimento digital</p>`;
 
   return body;
 }

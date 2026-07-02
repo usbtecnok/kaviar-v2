@@ -1,20 +1,20 @@
-# USB TECNOK
+# KAVIAR
 
 ## Contrato de Parceria Comercial Local — Plataforma KAVIAR
 
 ---
 
-**USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME**
-CNPJ: 07.710.691/0001-66
-Estrada das Furnas, nº 3001, Casa 06, Itanhangá, Rio de Janeiro/RJ, CEP 22641-681
-contato@usbtecnok.com.br | kaviar.com.br
+**KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
+CNPJ: 67.783.601/0001-99
+EST DAS FURNAS, Nº 03001, complemento ANTIGOS 2253 781, Itanhangá, Rio de Janeiro/RJ, CEP 22.641-681
+contato@kaviar.com.br | kaviar.com.br
 
 ---
 
 ## PARTES
 
 **PLATAFORMA:**
-USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 07.710.691/0001-66, com sede na Estrada das Furnas, nº 3001, Casa 06, Itanhangá, Rio de Janeiro/RJ, CEP 22641-681, doravante denominada simplesmente **USB TECNOK**.
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 67.783.601/0001-99, com sede na EST DAS FURNAS, Nº 03001, complemento ANTIGOS 2253 781, Itanhangá, Rio de Janeiro/RJ, CEP 22.641-681, doravante denominada simplesmente **KAVIAR**.
 
 **COMÉRCIO PARCEIRO:**
 Razão Social / Nome: [RAZÃO SOCIAL / NOME DO COMÉRCIO]
@@ -31,7 +31,7 @@ Doravante denominado simplesmente **COMÉRCIO PARCEIRO**.
 
 ## 1. DEFINIÇÕES
 
-**1.1. USB TECNOK:** Empresa proprietária e operadora da Plataforma KAVIAR.
+**1.1. KAVIAR:** Empresa proprietária e operadora da Plataforma KAVIAR.
 
 **1.2. Plataforma KAVIAR:** Produto de tecnologia e mobilidade urbana comunitária, composto por aplicativos, painéis administrativos e sistemas de suporte à operação de transporte local e serviços comunitários.
 
@@ -45,7 +45,7 @@ Doravante denominado simplesmente **COMÉRCIO PARCEIRO**.
 
 ## 2. OBJETO
 
-O presente Contrato tem por objeto estabelecer os termos da parceria comercial entre a USB TECNOK e o COMÉRCIO PARCEIRO para divulgação de ofertas, benefícios ou atendimento preferencial aos Usuários KAVIAR, com benefício mútuo de visibilidade e fluxo local.
+O presente Contrato tem por objeto estabelecer os termos da parceria comercial entre a KAVIAR e o COMÉRCIO PARCEIRO para divulgação de ofertas, benefícios ou atendimento preferencial aos Usuários KAVIAR, com benefício mútuo de visibilidade e fluxo local.
 
 ---
 
@@ -59,19 +59,19 @@ O COMÉRCIO PARCEIRO compromete-se a:
 
 3.3. Respeitar as condições publicadas na plataforma, não cobrando valores adicionais em razão do benefício;
 
-3.4. Manter cadastro atualizado junto à USB TECNOK;
+3.4. Manter cadastro atualizado junto à KAVIAR;
 
 3.5. Não utilizar a marca KAVIAR em materiais próprios sem autorização prévia;
 
-3.6. Comunicar à USB TECNOK qualquer problema, alteração de funcionamento ou encerramento de atividades;
+3.6. Comunicar à KAVIAR qualquer problema, alteração de funcionamento ou encerramento de atividades;
 
 3.7. Não coletar, armazenar ou compartilhar dados pessoais de Usuários KAVIAR além do estritamente necessário para o atendimento presencial.
 
 ---
 
-## 4. RESPONSABILIDADES DA USB TECNOK
+## 4. RESPONSABILIDADES DA KAVIAR
 
-A USB TECNOK compromete-se a:
+A KAVIAR compromete-se a:
 
 4.1. Disponibilizar acesso ao painel comercial da Plataforma KAVIAR, quando disponível;
 
@@ -87,9 +87,9 @@ A USB TECNOK compromete-se a:
 
 5.1. O COMÉRCIO PARCEIRO tem autonomia para definir o tipo, valor e condições das ofertas, desde que compatíveis com as regras da plataforma.
 
-5.2. A USB TECNOK poderá revisar, aprovar ou solicitar ajustes nas ofertas antes da publicação, visando qualidade, clareza e conformidade.
+5.2. A KAVIAR poderá revisar, aprovar ou solicitar ajustes nas ofertas antes da publicação, visando qualidade, clareza e conformidade.
 
-5.3. A USB TECNOK poderá remover ofertas que contenham informações enganosas, discriminatórias ou incompatíveis com os valores da plataforma.
+5.3. A KAVIAR poderá remover ofertas que contenham informações enganosas, discriminatórias ou incompatíveis com os valores da plataforma.
 
 5.4. A validade das ofertas deve ser claramente informada pelo Comércio Parceiro.
 
@@ -97,9 +97,9 @@ A USB TECNOK compromete-se a:
 
 ## 6. MARCA E COMUNICAÇÃO
 
-6.1. A marca KAVIAR é de propriedade exclusiva da USB TECNOK.
+6.1. A marca KAVIAR é de propriedade exclusiva da KAVIAR.
 
-6.2. O COMÉRCIO PARCEIRO poderá utilizar materiais fornecidos pela USB TECNOK para identificação como parceiro, desde que sem alterações.
+6.2. O COMÉRCIO PARCEIRO poderá utilizar materiais fornecidos pela KAVIAR para identificação como parceiro, desde que sem alterações.
 
 6.3. É vedado criar materiais, perfis em redes sociais, domínios ou comunicados utilizando a marca KAVIAR sem autorização prévia e expressa.
 
@@ -113,7 +113,7 @@ A USB TECNOK compromete-se a:
 
 7.2. O COMÉRCIO PARCEIRO pode participar de outros programas, plataformas ou redes de parceiros.
 
-7.3. A USB TECNOK pode incluir outros comércios parceiros na mesma região ou segmento.
+7.3. A KAVIAR pode incluir outros comércios parceiros na mesma região ou segmento.
 
 ---
 
@@ -127,7 +127,7 @@ A USB TECNOK compromete-se a:
 
 8.2. A modalidade aplicável será definida em proposta comercial, aditivo ou anexo específico.
 
-8.3. A USB TECNOK NÃO garante volume de clientes, faturamento mínimo ou receita ao Comércio Parceiro.
+8.3. A KAVIAR NÃO garante volume de clientes, faturamento mínimo ou receita ao Comércio Parceiro.
 
 8.4. A parceria se baseia em benefício mútuo: visibilidade e ferramentas para o comércio, e benefícios para os usuários.
 
@@ -137,7 +137,7 @@ A USB TECNOK compromete-se a:
 
 ## 9. CRM / PAINEL DO COMÉRCIO PARCEIRO
 
-9.1. A USB TECNOK poderá disponibilizar ao COMÉRCIO PARCEIRO acesso a um CRM/painel próprio da Plataforma KAVIAR, com login e senha, para controle de clientes, campanhas, pedidos, atendimentos, ofertas, cupons ou relacionamento local.
+9.1. A KAVIAR poderá disponibilizar ao COMÉRCIO PARCEIRO acesso a um CRM/painel próprio da Plataforma KAVIAR, com login e senha, para controle de clientes, campanhas, pedidos, atendimentos, ofertas, cupons ou relacionamento local.
 
 9.2. As credenciais de acesso (login e senha) são pessoais, intransferíveis e confidenciais. O COMÉRCIO PARCEIRO é responsável por manter sigilo absoluto sobre suas credenciais.
 
@@ -147,7 +147,7 @@ A USB TECNOK compromete-se a:
 
 9.5. É vedado utilizar o CRM para spam, fraude, assédio, contato não autorizado, coleta indevida de dados ou qualquer prática ilegal.
 
-9.6. A USB TECNOK poderá suspender ou revogar o acesso ao CRM em caso de uso indevido, inadimplência, inatividade prolongada ou descumprimento contratual.
+9.6. A KAVIAR poderá suspender ou revogar o acesso ao CRM em caso de uso indevido, inadimplência, inatividade prolongada ou descumprimento contratual.
 
 ---
 
@@ -155,15 +155,15 @@ A USB TECNOK compromete-se a:
 
 10.1. Os pagamentos de clientes por produtos ou serviços serão feitos diretamente para a chave Pix ou meio de pagamento indicado pelo COMÉRCIO PARCEIRO.
 
-10.2. A USB TECNOK NÃO será recebedora principal das vendas do comércio, salvo se houver modelo futuro específico formalizado em aditivo.
+10.2. A KAVIAR NÃO será recebedora principal das vendas do comércio, salvo se houver modelo futuro específico formalizado em aditivo.
 
 10.3. O COMÉRCIO PARCEIRO é responsável pela chave Pix informada, conferência de recebimentos e resolução de divergências.
 
-10.4. A USB TECNOK não se responsabiliza por erro, extravio ou falha decorrente de chave Pix incorreta fornecida pelo comércio.
+10.4. A KAVIAR não se responsabiliza por erro, extravio ou falha decorrente de chave Pix incorreta fornecida pelo comércio.
 
 10.5. O COMÉRCIO PARCEIRO é responsável por emissão de nota fiscal, entrega, atendimento, troca, qualidade do produto/serviço e todas as obrigações fiscais, tributárias e consumeristas.
 
-10.6. A USB TECNOK não responde pelo produto ou serviço vendido pelo COMÉRCIO PARCEIRO.
+10.6. A KAVIAR não responde pelo produto ou serviço vendido pelo COMÉRCIO PARCEIRO.
 
 ---
 
@@ -183,7 +183,7 @@ A USB TECNOK compromete-se a:
 
 12.2. É vedado ao Comércio Parceiro coletar, armazenar, compartilhar ou vender dados pessoais de usuários obtidos em razão desta parceria.
 
-12.3. Em caso de incidente de segurança, o Comércio Parceiro deverá comunicar imediatamente a USB TECNOK.
+12.3. Em caso de incidente de segurança, o Comércio Parceiro deverá comunicar imediatamente a KAVIAR.
 
 ---
 
@@ -200,7 +200,7 @@ A USB TECNOK compromete-se a:
 14.1. São vedados ao COMÉRCIO PARCEIRO:
 
 - Discriminação de qualquer natureza no atendimento;
-- Cobrança de valores em nome da USB TECNOK ou KAVIAR sem autorização;
+- Cobrança de valores em nome da KAVIAR ou KAVIAR sem autorização;
 - Divulgação de informações falsas sobre a plataforma;
 - Uso da parceria para práticas ilegais, antiéticas ou prejudiciais aos usuários.
 
@@ -214,7 +214,7 @@ A USB TECNOK compromete-se a:
 
 ## 16. SUSPENSÃO E RESCISÃO
 
-16.1. A USB TECNOK poderá suspender o COMÉRCIO PARCEIRO em caso de:
+16.1. A KAVIAR poderá suspender o COMÉRCIO PARCEIRO em caso de:
 
 - Denúncias de usuários sobre atendimento;
 - Inatividade prolongada (ofertas expiradas sem renovação);
@@ -240,10 +240,10 @@ Fica eleito o Foro da Comarca da Capital do Estado do Rio de Janeiro/RJ para dir
 
 ## ASSINATURAS
 
-**Pela USB TECNOK:**
+**Pela KAVIAR:**
 
-USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME
-CNPJ: 07.710.691/0001-66
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
+CNPJ: 67.783.601/0001-99
 
 Assinatura: ________________________________
 
@@ -261,5 +261,5 @@ Assinatura: ________________________________
 
 ---
 
-**USB TECNOK — Plataforma KAVIAR**
-contato@usbtecnok.com.br | kaviar.com.br
+**KAVIAR — Plataforma KAVIAR**
+contato@kaviar.com.br | kaviar.com.br

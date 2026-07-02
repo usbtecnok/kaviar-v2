@@ -3,13 +3,13 @@
 **Versão:** v1.0
 **Data:** Maio/2026
 **Status:** Planejamento interno
-**Empresa titular:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Empresa titular:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 
 ---
 
 ## 1. Objetivo
 
-Mapear e proteger os ativos intelectuais da plataforma KAVIAR, garantindo que marca, código, modelo de negócio, base de dados e know-how territorial permaneçam sob controle exclusivo da USB Tecnok.
+Mapear e proteger os ativos intelectuais da plataforma KAVIAR, garantindo que marca, código, modelo de negócio, base de dados e know-how territorial permaneçam sob controle exclusivo da KAVIAR.
 
 ---
 
@@ -21,10 +21,10 @@ Mapear e proteger os ativos intelectuais da plataforma KAVIAR, garantindo que ma
 - [ ] Definir classes de registro (tecnologia, transporte, aplicativos).
 
 ### Proteção
-- A marca KAVIAR é de uso exclusivo da USB Tecnok.
+- A marca KAVIAR é de uso exclusivo da KAVIAR.
 - Nenhum operador, parceiro ou terceiro pode registrar marca similar.
 - Uso da marca por terceiros requer autorização expressa da matriz.
-- Variações territoriais (KAVIAR SP, KAVIAR RJ, KAVIAR [cidade]) são de propriedade da USB Tecnok.
+- Variações territoriais (KAVIAR SP, KAVIAR RJ, KAVIAR [cidade]) são de propriedade da KAVIAR.
 
 ---
 
@@ -86,7 +86,7 @@ Mapear e proteger os ativos intelectuais da plataforma KAVIAR, garantindo que ma
 ## 6. Nomes Territoriais
 
 ### Regra
-- Nomes como "KAVIAR SP", "KAVIAR RJ", "KAVIAR Niterói", "KAVIAR [cidade]" são de uso exclusivo da USB Tecnok.
+- Nomes como "KAVIAR SP", "KAVIAR RJ", "KAVIAR Niterói", "KAVIAR [cidade]" são de uso exclusivo da KAVIAR.
 - Operadores territoriais não podem registrar domínios, marcas ou perfis com esses nomes sem autorização.
 - Perfis em redes sociais com a marca KAVIAR devem ser controlados pela matriz.
 
@@ -101,7 +101,7 @@ Mapear e proteger os ativos intelectuais da plataforma KAVIAR, garantindo que ma
 
 ### Já implementado
 - Termo do Operador Territorial: confidencialidade, proibição de uso indevido de dados, proibição de promessas.
-- Termos do Motorista: propriedade intelectual da USB Tecnok (seção 11).
+- Termos do Motorista: propriedade intelectual da KAVIAR (seção 11).
 - Política de Relacionamento: uso da marca controlado pela matriz.
 
 ### A implementar (futuro)
@@ -114,10 +114,10 @@ Mapear e proteger os ativos intelectuais da plataforma KAVIAR, garantindo que ma
 
 ## 8. Proteção de Base de Dados
 
-- A base de dados (motoristas, passageiros, corridas, parceiros) é propriedade da USB Tecnok.
+- A base de dados (motoristas, passageiros, corridas, parceiros) é propriedade da KAVIAR.
 - Nenhum operador, parceiro ou terceiro pode extrair, copiar ou exportar dados.
 - Dados mascarados em interfaces (CPF, Pix) — acesso completo apenas SUPER_ADMIN.
-- Backups e infraestrutura sob controle exclusivo da USB Tecnok (AWS).
+- Backups e infraestrutura sob controle exclusivo da KAVIAR (AWS).
 - Em caso de encerramento de parceria, o parceiro/operador perde acesso imediatamente.
 
 ---
@@ -151,4 +151,4 @@ Este documento é um plano operacional interno. Não constitui parecer jurídico
 
 ---
 
-*USB Tecnok / KAVIAR — Proteção de Propriedade Intelectual — v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Proteção de Propriedade Intelectual — v1.0 — Maio/2026*

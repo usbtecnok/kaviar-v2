@@ -1,6 +1,6 @@
 # Relatório Técnico - Plataforma Kaviar
 **Data:** 03 de Fevereiro de 2026  
-**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)  
+**Empresa:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)  
 **Produto:** Kaviar - Plataforma de Mobilidade Urbana para Comunidades
 
 ---
@@ -293,8 +293,8 @@ A plataforma Kaviar está **tecnicamente sólida** e pronta para escalar. O prin
 ---
 
 **Preparado por:** Kiro (AWS AI Assistant)  
-**Para:** USB Tecnok Manutenção e Instalação de Computadores Ltda - Captação de Investimento  
+**Para:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA - Captação de Investimento  
 **Confidencial:** Uso exclusivo para investidores qualificados
 
 ---
-*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ: 67.783.601/0001-99.*

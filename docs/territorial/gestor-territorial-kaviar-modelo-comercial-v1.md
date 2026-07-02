@@ -1,7 +1,7 @@
 # Gestor Territorial KAVIAR — Modelo Comercial v1
 
-**Documento conceitual/comercial — USB Tecnok Manutenção e Instalação de Computadores Ltda**
-**CNPJ: 07.710.691/0001-66**
+**Documento conceitual/comercial — KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
+**CNPJ: 67.783.601/0001-99**
 **Produto: KAVIAR — Plataforma de mobilidade urbana comunitária**
 
 > ⚠️ Este documento é base conceitual/comercial. Não constitui contrato jurídico final. Deve ser revisado por advogado antes de formalização com qualquer parceiro.
@@ -12,7 +12,7 @@
 
 O **Gestor Territorial KAVIAR** é um parceiro comercial autônomo que presta apoio operacional de captação, gestão local e acompanhamento territorial para a plataforma KAVIAR em uma área geográfica definida.
 
-A relação entre o Gestor Territorial e a USB Tecnok/KAVIAR é de **parceria comercial e prestação de apoio operacional**, sem constituir franquia, licença territorial definitiva, representação comercial exclusiva ou vínculo empregatício.
+A relação entre o Gestor Territorial e a KAVIAR/KAVIAR é de **parceria comercial e prestação de apoio operacional**, sem constituir franquia, licença territorial definitiva, representação comercial exclusiva ou vínculo empregatício.
 
 ---
 
@@ -41,7 +41,7 @@ O Gestor Territorial KAVIAR compromete-se a:
 4. **Apoiar treinamento operacional** de motoristas e captadores;
 5. **Acompanhar a operação local** (corridas, suporte, ocorrências);
 6. **Manter comunicação ativa** com a central KAVIAR;
-7. **Respeitar as regras da plataforma** e as diretrizes da USB Tecnok;
+7. **Respeitar as regras da plataforma** e as diretrizes da KAVIAR;
 8. **Emitir documentação fiscal** quando aplicável (NFS-e, RPA ou equivalente);
 9. **Manter sigilo** sobre informações e dados acessados no painel.
 
@@ -58,7 +58,7 @@ O Gestor Territorial **NÃO** tem poder para:
 - Alterar configurações técnicas (dispatch, push, geofence, feature flags);
 - Criar outros gestores territoriais;
 - Acessar dados de territórios que não sejam o(s) seu(s);
-- Tomar decisões que vinculem juridicamente a USB Tecnok perante terceiros;
+- Tomar decisões que vinculem juridicamente a KAVIAR perante terceiros;
 - Conceder exclusividade, descontos ou condições especiais sem aprovação da central.
 
 ---
@@ -93,7 +93,7 @@ O Gestor Territorial **NÃO** tem poder para:
 | Prometer aprovação, exclusividade ou benefícios não autorizados | ❌ |
 | Alterar comissão ou repasse | ❌ |
 | Acessar dados de outro território | ❌ |
-| Se apresentar como funcionário, sócio ou representante legal da USB Tecnok | ❌ |
+| Se apresentar como funcionário, sócio ou representante legal da KAVIAR | ❌ |
 | Subcontratar sem autorização | ❌ |
 | Criar material de marketing sem aprovação | ❌ |
 | Compartilhar dados pessoais de motoristas/passageiros com terceiros | ❌ |
@@ -107,7 +107,7 @@ O Gestor Territorial **NÃO** tem poder para:
 ```
 Motorista completa corrida
 → Passageiro paga (ou crédito é consumido)
-→ KAVIAR/USB Tecnok recebe/controla receita principal
+→ KAVIAR/KAVIAR recebe/controla receita principal
 → Sistema calcula taxa da plataforma (7-20% conforme território)
 → Sistema aplica split territorial:
     • KAVIAR (matriz): 60% da taxa
@@ -167,7 +167,7 @@ Exclusividade poderá ser avaliada caso o Gestor:
 - Mantenha performance consistente por período mínimo (ex: 6 meses);
 - Atinja metas operacionais definidas em contrato;
 - Não tenha ocorrências de descumprimento;
-- Seja aprovado pela diretoria da USB Tecnok.
+- Seja aprovado pela diretoria da KAVIAR.
 
 Mesmo com exclusividade, o KAVIAR mantém direito de operar diretamente e de rescindir a exclusividade por descumprimento.
 
@@ -175,7 +175,7 @@ Mesmo com exclusividade, o KAVIAR mantém direito de operar diretamente e de res
 
 ## K) Suspensão e cancelamento
 
-A USB Tecnok/KAVIAR pode suspender ou cancelar o acesso do Gestor Territorial em caso de:
+A KAVIAR/KAVIAR pode suspender ou cancelar o acesso do Gestor Territorial em caso de:
 
 - Fraude ou tentativa de fraude;
 - Cobrança indevida em nome do KAVIAR;
@@ -250,8 +250,8 @@ Para formalização da relação com qualquer Gestor Territorial, será necessá
 
 ```
 _________________________________
-USB Tecnok Manutenção e Instalação de Computadores Ltda
-CNPJ: 07.710.691/0001-66
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
+CNPJ: 67.783.601/0001-99
 Produto: KAVIAR
 
 _________________________________

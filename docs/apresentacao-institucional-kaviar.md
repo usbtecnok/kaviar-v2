@@ -8,7 +8,7 @@
 
 ## 1. O que é o KAVIAR
 
-O **KAVIAR** é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela **USB Tecnok Manutenção e Instalação de Computadores Ltda** (CNPJ: 07.710.691/0001-66).
+O **KAVIAR** é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela **KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA** (CNPJ: 67.783.601/0001-99).
 
 A plataforma conecta passageiros a motoristas parceiros independentes para realização de corridas privadas em territórios específicos, com foco em comunidades, bairros e regiões onde a mobilidade urbana é desafio cotidiano.
 
@@ -91,7 +91,7 @@ Todos os parceiros atuam sob termos e contratos específicos, sem vínculo empre
 
 ## 9. Compromisso Institucional
 
-A USB Tecnok / KAVIAR se compromete a:
+A KAVIAR / KAVIAR se compromete a:
 
 - Operar de forma transparente e em conformidade com a legislação vigente.
 - Manter diálogo aberto com autoridades municipais e órgãos reguladores.
@@ -104,7 +104,7 @@ A USB Tecnok / KAVIAR se compromete a:
 ## 10. Canais Oficiais
 
 - **WhatsApp oficial:** +55 21 96864-8777 (atendimento exclusivo por WhatsApp)
-- **E-mail:** suporte@usbtecnok.com.br
+- **E-mail:** suporte@kaviar.com.br
 - **Site:** https://kaviar.com.br
 - **Página para associações:** https://kaviar.com.br/associacoes
 
@@ -112,7 +112,7 @@ A USB Tecnok / KAVIAR se compromete a:
 
 ## 11. Documentação Disponível
 
-A USB Tecnok mantém pacote documental completo disponível para consulta:
+A KAVIAR mantém pacote documental completo disponível para consulta:
 
 - Termos de Uso (passageiro e motorista)
 - Política de Privacidade e Proteção de Dados
@@ -125,8 +125,8 @@ A USB Tecnok mantém pacote documental completo disponível para consulta:
 
 ## 12. Aviso
 
-Este documento é informativo e institucional. Não constitui parecer jurídico, proposta comercial vinculante ou compromisso de operação em localidade específica. Para questões regulatórias, a USB Tecnok recomenda consulta a advogado especializado em direito digital e mobilidade urbana.
+Este documento é informativo e institucional. Não constitui parecer jurídico, proposta comercial vinculante ou compromisso de operação em localidade específica. Para questões regulatórias, a KAVIAR recomenda consulta a advogado especializado em direito digital e mobilidade urbana.
 
 ---
 
-*USB Tecnok / KAVIAR — Apresentação Institucional — Versão v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Apresentação Institucional — Versão v1.0 — Maio/2026*

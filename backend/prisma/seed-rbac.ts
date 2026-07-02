@@ -38,12 +38,12 @@ async function main() {
   const superAdmins = [
     {
       id: 'admin-suporte',
-      name: 'Suporte USB Tecnok',
+      name: 'Suporte KAVIAR',
       email: 'suporte@usbtecnok.com.br',
     },
     {
       id: 'admin-financeiro',
-      name: 'Financeiro USB Tecnok',
+      name: 'Financeiro KAVIAR',
       email: 'financeiro@usbtecnok.com.br',
     },
   ];

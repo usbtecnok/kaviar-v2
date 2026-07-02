@@ -54,7 +54,7 @@
 - **Email:** `temp@kaviar.com`
 - **Senha:** `<ROTATED_SEE_SSM>`
 - **Role:** SUPER_ADMIN
-- **Outros admins:** admin@kaviar.com, suporte@usbtecnok.com.br (senhas originais do backup)
+- **Outros admins:** admin@kaviar.com, suporte@kaviar.com.br (senhas originais do backup)
 
 ---
 

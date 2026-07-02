@@ -109,7 +109,7 @@ Preparar o KAVIAR para abordagem institucional com prefeituras, secretarias muni
 - [x] Contrato de operador/parceiro implementado
 - [x] Tela de conformidade no admin
 - [ ] Revisão jurídica formal (recomendado)
-- [ ] CNPJ e documentação da USB Tecnok em dia
+- [ ] CNPJ e documentação da KAVIAR em dia
 - [ ] Contato institucional definido (quem fala pela empresa)
 - [ ] Material impresso ou PDF para entrega (opcional)
 
@@ -133,4 +133,4 @@ Este documento é um plano operacional interno. Não constitui parecer jurídico
 
 ---
 
-*USB Tecnok / KAVIAR — Conformidade Regulatória Municipal — v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Conformidade Regulatória Municipal — v1.0 — Maio/2026*

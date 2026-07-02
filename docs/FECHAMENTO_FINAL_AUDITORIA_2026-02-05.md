@@ -194,7 +194,7 @@ RESULTADO FINAL: PASS
 ```bash
 # 1. Executar validação
 cd /home/goes/kaviar
-export ADMIN_EMAIL="suporte@usbtecnok.com.br"
+export ADMIN_EMAIL="suporte@kaviar.com.br"
 export ADMIN_PASSWORD="<FROM_SSM>"
 ./scripts/validate_territory_real_data.sh
 

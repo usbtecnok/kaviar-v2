@@ -8,23 +8,23 @@
 
 ## 1. Objetivo
 
-Definir regras e limites para o relacionamento da USB Tecnok / KAVIAR com prefeituras, secretarias municipais, órgãos públicos, associações de moradores, lideranças comunitárias e parceiros institucionais.
+Definir regras e limites para o relacionamento da KAVIAR / KAVIAR com prefeituras, secretarias municipais, órgãos públicos, associações de moradores, lideranças comunitárias e parceiros institucionais.
 
 ---
 
-## 2. Quem Pode Falar Oficialmente pela USB Tecnok / KAVIAR
+## 2. Quem Pode Falar Oficialmente pela KAVIAR / KAVIAR
 
-- **Sócios/diretores** da USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66).
+- **Sócios/diretores** da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99).
 - **Pessoa expressamente autorizada** por procuração ou delegação formal da matriz.
 
-**Nenhum Operador Territorial, Admin Regional, Parceiro ou Consultor pode falar oficialmente em nome da USB Tecnok sem autorização expressa.**
+**Nenhum Operador Territorial, Admin Regional, Parceiro ou Consultor pode falar oficialmente em nome da KAVIAR sem autorização expressa.**
 
 ---
 
 ## 3. Canais Oficiais para Comunicação Institucional
 
 - **WhatsApp oficial:** +55 21 96864-8777
-- **E-mail:** suporte@usbtecnok.com.br
+- **E-mail:** suporte@kaviar.com.br
 - **Site:** https://kaviar.com.br
 
 Comunicações formais com prefeitura ou órgão público devem ser feitas exclusivamente pela matriz ou por pessoa autorizada, utilizando os canais oficiais.
@@ -42,7 +42,7 @@ O Operador Territorial **pode:**
 
 O Operador Territorial **NÃO pode:**
 
-- Assinar documentos em nome da USB Tecnok.
+- Assinar documentos em nome da KAVIAR.
 - Prometer liberação, autorização ou regularidade a terceiros.
 - Prometer isenção de taxa, tributo ou obrigação fiscal.
 - Negociar com prefeitura sem autorização da matriz.
@@ -83,7 +83,7 @@ O Operador Territorial, Admin Regional ou Parceiro deve comunicar **imediatament
 
 ## 7. Postura Anticorrupção
 
-A USB Tecnok / KAVIAR:
+A KAVIAR / KAVIAR:
 
 - Não oferece, promete ou paga vantagem indevida a agente público.
 - Não aceita solicitação de pagamento informal para "liberar" operação.
@@ -136,4 +136,4 @@ Este documento é operacional e interno. Não constitui parecer jurídico. Para 
 
 ---
 
-*USB Tecnok / KAVIAR — Política de Relacionamento Institucional — v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Política de Relacionamento Institucional — v1.0 — Maio/2026*

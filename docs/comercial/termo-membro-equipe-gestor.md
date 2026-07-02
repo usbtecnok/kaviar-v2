@@ -1,7 +1,7 @@
 # Termo de Participação — Membro da Equipe do Gestor Territorial KAVIAR
 
-**KAVIAR — Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda**
-**CNPJ: 07.710.691/0001-66**
+**KAVIAR — Produto da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
+**CNPJ: 67.783.601/0001-99**
 
 ---
 
@@ -11,7 +11,7 @@ Eu, __________________________ (nome completo), declaro que:
 
 ### 1. Vínculo
 
-Atuo como membro da equipe do Gestor Territorial __________________________ na plataforma KAVIAR. Minha atuação é vinculada ao Gestor Territorial e **não configura vínculo empregatício, societário ou contratual** com o KAVIAR ou com a USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ 07.710.691/0001-66).
+Atuo como membro da equipe do Gestor Territorial __________________________ na plataforma KAVIAR. Minha atuação é vinculada ao Gestor Territorial e **não configura vínculo empregatício, societário ou contratual** com o KAVIAR ou com a KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ 67.783.601/0001-99).
 
 ### 2. Remuneração
 
@@ -27,7 +27,7 @@ Comprometo-me a tratar dados pessoais de acordo com a Lei Geral de Proteção de
 
 ### 5. Uso da Marca
 
-O uso da marca KAVIAR somente será feito conforme orientação do Gestor Territorial ou da central KAVIAR/USB Tecnok.
+O uso da marca KAVIAR somente será feito conforme orientação do Gestor Territorial ou da central KAVIAR/KAVIAR.
 
 ### 6. Conduta
 
@@ -49,4 +49,4 @@ Estou ciente de que meu cadastro é controle interno do Gestor Territorial e pod
 
 ---
 
-**KAVIAR é um produto da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.**
+**KAVIAR é um produto da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99.**

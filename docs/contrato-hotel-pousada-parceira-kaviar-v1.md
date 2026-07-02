@@ -1,20 +1,20 @@
-# USB TECNOK
+# KAVIAR
 
 ## Contrato de Parceria Operacional e Comercial — Hotel/Pousada Parceira KAVIAR
 
 ---
 
-**USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME**
-CNPJ: 07.710.691/0001-66
-Estrada das Furnas, nº 3001, Casa 06, Itanhangá, Rio de Janeiro/RJ, CEP 22641-681
-contato@usbtecnok.com.br | kaviar.com.br
+**KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
+CNPJ: 67.783.601/0001-99
+EST DAS FURNAS, Nº 03001, complemento ANTIGOS 2253 781, Itanhangá, Rio de Janeiro/RJ, CEP 22.641-681
+contato@kaviar.com.br | kaviar.com.br
 
 ---
 
 ## PARTES
 
 **PLATAFORMA:**
-USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 07.710.691/0001-66, com sede na Estrada das Furnas, nº 3001, Casa 06, Itanhangá, Rio de Janeiro/RJ, CEP 22641-681, doravante denominada simplesmente **USB TECNOK**.
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 67.783.601/0001-99, com sede na EST DAS FURNAS, Nº 03001, complemento ANTIGOS 2253 781, Itanhangá, Rio de Janeiro/RJ, CEP 22.641-681, doravante denominada simplesmente **KAVIAR**.
 
 **HOTEL/POUSADA PARCEIRA:**
 Razão Social / Nome: [RAZÃO SOCIAL / NOME DO HOTEL OU POUSADA]
@@ -31,7 +31,7 @@ Doravante denominado simplesmente **HOTEL PARCEIRO**.
 
 ## 1. DEFINIÇÕES
 
-**1.1. USB TECNOK:** Empresa proprietária e operadora da Plataforma KAVIAR.
+**1.1. KAVIAR:** Empresa proprietária e operadora da Plataforma KAVIAR.
 
 **1.2. Plataforma KAVIAR:** Produto de tecnologia e mobilidade urbana comunitária, composto por aplicativos, painéis administrativos e sistemas de suporte à operação de transporte local e turismo.
 
@@ -53,7 +53,7 @@ Doravante denominado simplesmente **HOTEL PARCEIRO**.
 
 ## 2. OBJETO
 
-O presente Contrato tem por objeto estabelecer os termos da parceria operacional e comercial entre a USB TECNOK e o HOTEL PARCEIRO para:
+O presente Contrato tem por objeto estabelecer os termos da parceria operacional e comercial entre a KAVIAR e o HOTEL PARCEIRO para:
 
 - Atendimento de transporte a hóspedes (corridas locais);
 - Transfer aeroporto, rodoviária, porto ou terminal;
@@ -75,17 +75,17 @@ O HOTEL PARCEIRO compromete-se a:
 
 3.4. Não prometer ao hóspede disponibilidade absoluta de motoristas KAVIAR em qualquer horário;
 
-3.5. Não cobrar do hóspede valores em nome da USB TECNOK ou KAVIAR sem autorização;
+3.5. Não cobrar do hóspede valores em nome da KAVIAR ou KAVIAR sem autorização;
 
-3.6. Manter cadastro atualizado junto à USB TECNOK;
+3.6. Manter cadastro atualizado junto à KAVIAR;
 
 3.7. Respeitar a política de uso da marca KAVIAR.
 
 ---
 
-## 4. RESPONSABILIDADES DA USB TECNOK
+## 4. RESPONSABILIDADES DA KAVIAR
 
-A USB TECNOK compromete-se a:
+A KAVIAR compromete-se a:
 
 4.1. Conectar motoristas KAVIAR verificados para atendimento às solicitações do HOTEL PARCEIRO;
 
@@ -117,13 +117,13 @@ A USB TECNOK compromete-se a:
 
 ## 6. DISPONIBILIDADE E LIMITAÇÕES
 
-6.1. A USB TECNOK NÃO garante disponibilidade absoluta de motoristas em qualquer horário ou região.
+6.1. A KAVIAR NÃO garante disponibilidade absoluta de motoristas em qualquer horário ou região.
 
-6.2. A USB TECNOK compromete-se a melhor esforço para atender solicitações com antecedência razoável.
+6.2. A KAVIAR compromete-se a melhor esforço para atender solicitações com antecedência razoável.
 
 6.3. Solicitações de última hora (menos de 2 horas) ficam sujeitas à disponibilidade imediata.
 
-6.4. Em caso de indisponibilidade, a USB TECNOK comunicará o HOTEL PARCEIRO com a maior antecedência possível, sem custo para nenhuma das partes.
+6.4. Em caso de indisponibilidade, a KAVIAR comunicará o HOTEL PARCEIRO com a maior antecedência possível, sem custo para nenhuma das partes.
 
 ---
 
@@ -131,7 +131,7 @@ A USB TECNOK compromete-se a:
 
 7.1. Os preços de transfers, passeios e combos serão definidos em proposta comercial, tabela de preços ou anexo específico.
 
-7.2. A USB TECNOK poderá revisar preços mediante comunicação prévia de 15 (quinze) dias.
+7.2. A KAVIAR poderá revisar preços mediante comunicação prévia de 15 (quinze) dias.
 
 7.3. Combos com preço fechado devem ser previamente aprovados por ambas as partes antes da oferta ao hóspede.
 
@@ -150,7 +150,7 @@ A USB TECNOK compromete-se a:
 
 8.3. **Cancelamento por indisponibilidade de motorista:** Sem custo para o HOTEL PARCEIRO ou hóspede.
 
-8.4. A USB TECNOK comunicará cancelamentos por indisponibilidade com a maior antecedência possível.
+8.4. A KAVIAR comunicará cancelamentos por indisponibilidade com a maior antecedência possível.
 
 ---
 
@@ -165,7 +165,7 @@ A USB TECNOK compromete-se a:
 
 9.2. A modalidade aplicável, percentuais, valores e condições serão definidos em proposta comercial, aditivo ou anexo específico.
 
-9.3. A USB TECNOK NÃO garante volume de hóspedes, faturamento mínimo ou receita ao HOTEL PARCEIRO.
+9.3. A KAVIAR NÃO garante volume de hóspedes, faturamento mínimo ou receita ao HOTEL PARCEIRO.
 
 9.4. Eventuais alterações no modelo financeiro serão comunicadas com antecedência mínima de 30 dias.
 
@@ -183,7 +183,7 @@ A USB TECNOK compromete-se a:
 
 10.3. O HOTEL PARCEIRO é responsável pela chave Pix informada e conferência dos repasses.
 
-10.4. A USB TECNOK não se responsabiliza por erro em chave Pix fornecida pelo HOTEL PARCEIRO.
+10.4. A KAVIAR não se responsabiliza por erro em chave Pix fornecida pelo HOTEL PARCEIRO.
 
 ---
 
@@ -191,35 +191,35 @@ A USB TECNOK compromete-se a:
 
 11.1. Os motoristas KAVIAR são profissionais autônomos, verificados pela plataforma.
 
-11.2. Para serviços turísticos e transfers de hotel, a USB TECNOK poderá priorizar motoristas com perfil adequado ao atendimento hoteleiro.
+11.2. Para serviços turísticos e transfers de hotel, a KAVIAR poderá priorizar motoristas com perfil adequado ao atendimento hoteleiro.
 
 11.3. Motoristas Premium e KAVIAR Guia Turístico, quando disponíveis, oferecem veículos diferenciados, conhecimento local e padrão de atendimento superior.
 
 11.4. O HOTEL PARCEIRO poderá solicitar requisitos específicos (ex: veículo com ar-condicionado, motorista bilíngue), sujeitos a disponibilidade e possível acréscimo de tarifa.
 
-11.5. A USB TECNOK não garante que todos os motoristas atendam a requisitos específicos solicitados.
+11.5. A KAVIAR não garante que todos os motoristas atendam a requisitos específicos solicitados.
 
 ---
 
 ## 12. DADOS DE HÓSPEDES E LGPD
 
-12.1. O HOTEL PARCEIRO fornecerá à USB TECNOK apenas os dados mínimos necessários para realização do serviço: nome do hóspede, telefone de contato, horário, destino e número de passageiros.
+12.1. O HOTEL PARCEIRO fornecerá à KAVIAR apenas os dados mínimos necessários para realização do serviço: nome do hóspede, telefone de contato, horário, destino e número de passageiros.
 
-12.2. A USB TECNOK tratará os dados de hóspedes exclusivamente para a finalidade de conexão com motoristas e realização do serviço contratado, em conformidade com a LGPD.
+12.2. A KAVIAR tratará os dados de hóspedes exclusivamente para a finalidade de conexão com motoristas e realização do serviço contratado, em conformidade com a LGPD.
 
-12.3. A USB TECNOK NÃO utilizará dados de hóspedes para marketing, revenda ou compartilhamento com terceiros sem consentimento.
+12.3. A KAVIAR NÃO utilizará dados de hóspedes para marketing, revenda ou compartilhamento com terceiros sem consentimento.
 
 12.4. Em caso de incidente de segurança envolvendo dados de hóspedes, a parte que identificar o incidente deverá comunicar a outra imediatamente.
 
-12.5. O HOTEL PARCEIRO é responsável por obter consentimento do hóspede para compartilhamento dos dados mínimos com a USB TECNOK para fins de transporte.
+12.5. O HOTEL PARCEIRO é responsável por obter consentimento do hóspede para compartilhamento dos dados mínimos com a KAVIAR para fins de transporte.
 
 ---
 
 ## 13. MARCA E COMUNICAÇÃO
 
-13.1. A marca KAVIAR é de propriedade exclusiva da USB TECNOK.
+13.1. A marca KAVIAR é de propriedade exclusiva da KAVIAR.
 
-13.2. O HOTEL PARCEIRO poderá divulgar a parceria utilizando materiais fornecidos pela USB TECNOK (adesivos, QR codes, folders, placa de parceiro).
+13.2. O HOTEL PARCEIRO poderá divulgar a parceria utilizando materiais fornecidos pela KAVIAR (adesivos, QR codes, folders, placa de parceiro).
 
 13.3. É vedado criar materiais próprios, perfis em redes sociais ou comunicados utilizando a marca KAVIAR sem autorização prévia.
 
@@ -233,7 +233,7 @@ A USB TECNOK compromete-se a:
 
 14.2. O HOTEL PARCEIRO pode utilizar outros serviços de transporte simultaneamente.
 
-14.3. A USB TECNOK pode firmar parcerias com outros hotéis na mesma região.
+14.3. A KAVIAR pode firmar parcerias com outros hotéis na mesma região.
 
 ---
 
@@ -263,7 +263,7 @@ A USB TECNOK compromete-se a:
 
 ## 18. SUSPENSÃO E RESCISÃO
 
-18.1. A USB TECNOK poderá suspender o HOTEL PARCEIRO em caso de:
+18.1. A KAVIAR poderá suspender o HOTEL PARCEIRO em caso de:
 
 - Denúncias de hóspedes sobre atendimento ou informações incorretas;
 - Inatividade prolongada;
@@ -289,10 +289,10 @@ Fica eleito o Foro da Comarca da Capital do Estado do Rio de Janeiro/RJ para dir
 
 ## ASSINATURAS
 
-**Pela USB TECNOK:**
+**Pela KAVIAR:**
 
-USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME
-CNPJ: 07.710.691/0001-66
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
+CNPJ: 67.783.601/0001-99
 
 Assinatura: ________________________________
 
@@ -310,5 +310,5 @@ Assinatura: ________________________________
 
 ---
 
-**USB TECNOK — Plataforma KAVIAR**
-contato@usbtecnok.com.br | kaviar.com.br
+**KAVIAR — Plataforma KAVIAR**
+contato@kaviar.com.br | kaviar.com.br

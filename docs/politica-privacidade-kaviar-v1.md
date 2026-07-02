@@ -8,13 +8,13 @@
 
 ## 1. Controlador dos Dados
 
-**USB Tecnok Manutenção e Instalação de Computadores Ltda**
-CNPJ: 07.710.691/0001-66
+**KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
+CNPJ: 67.783.601/0001-99
 Responsável pela plataforma de mobilidade urbana local **KAVIAR**.
 
 **Canais para exercício de direitos:**
 - WhatsApp: +55 21 96864-8777
-- E-mail: suporte@usbtecnok.com.br
+- E-mail: suporte@kaviar.com.br
 
 ---
 
@@ -133,7 +133,7 @@ Para exercer esses direitos, entre em contato pelos canais oficiais.
 
 ## 12. Incidentes de Segurança
 
-- Em caso de incidente de segurança que possa causar risco aos titulares, a USB Tecnok comunicará a Autoridade Nacional de Proteção de Dados (ANPD) e os titulares afetados conforme prazos legais.
+- Em caso de incidente de segurança que possa causar risco aos titulares, a KAVIAR comunicará a Autoridade Nacional de Proteção de Dados (ANPD) e os titulares afetados conforme prazos legais.
 - Usuários devem reportar suspeitas de vazamento pelos canais oficiais.
 
 ---
@@ -148,8 +148,8 @@ Para exercer esses direitos, entre em contato pelos canais oficiais.
 
 ## 14. Aviso Legal
 
-Esta minuta é um documento operacional interno da USB Tecnok. Não substitui parecer jurídico formal sobre conformidade com a LGPD. Recomenda-se revisão por advogado especializado em proteção de dados antes de publicação definitiva.
+Esta minuta é um documento operacional interno da KAVIAR. Não substitui parecer jurídico formal sobre conformidade com a LGPD. Recomenda-se revisão por advogado especializado em proteção de dados antes de publicação definitiva.
 
 ---
 
-*USB Tecnok / KAVIAR — Versão v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Versão v1.0 — Maio/2026*

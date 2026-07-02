@@ -4,8 +4,8 @@
 **Versão 1.0 — Junho 2026**
 **Status: PRELIMINAR — Requer validação jurídica antes de ativação**
 
-*Controlador: USB Tecnok Manutenção e Instalação de Computadores Ltda*
-*CNPJ 07.710.691/0001-66*
+*Controlador: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA*
+*CNPJ 67.783.601/0001-99*
 
 ---
 
@@ -13,8 +13,8 @@
 
 | Campo | Valor |
 |---|---|
-| Razão social | USB Tecnok Manutenção e Instalação de Computadores Ltda |
-| CNPJ | 07.710.691/0001-66 |
+| Razão social | KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA |
+| CNPJ | 67.783.601/0001-99 |
 | Produto | KAVIAR |
 | Responsável | Administração KAVIAR |
 
@@ -136,4 +136,4 @@ WOMEN_DRIVER_PREFERENCE_ENABLED=false (env var ECS)
 
 ---
 
-*USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66*
+*KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99*

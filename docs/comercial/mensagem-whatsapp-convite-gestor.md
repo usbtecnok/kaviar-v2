@@ -86,4 +86,4 @@ Não é promessa de ganho; tudo depende de apuração, contrato e validação da
 
 ---
 
-*KAVIAR é produto da USB TECNOK Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66.*
+*KAVIAR é produto da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99.*

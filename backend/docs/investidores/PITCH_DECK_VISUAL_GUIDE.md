@@ -47,7 +47,7 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 │         [CONTEÚDO PRINCIPAL]            │ ← Body (85% altura)
 │                                         │
 ├─────────────────────────────────────────┤
-│ USB Tecnok Manutenção e Instalação de Computadores Ltda | Fev 2026               │ ← Footer (10% altura)
+│ KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA | Fev 2026                            │ ← Footer (10% altura)
 └─────────────────────────────────────────┘
 ```
 
@@ -69,7 +69,7 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 │                                         │
 │     [Foto: Comunidade do Rio]          │ ← 400x300px, centralizada
 │                                         │
-│         USB Tecnok Manutenção e Instalação de Computadores Ltda                  │ ← 20pt, #1E293B
+│         KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA                               │ ← 20pt, #1E293B
 │         Fevereiro 2026                  │ ← 18pt, #64748B
 │                                         │
 │    [Seu Nome] - Fundador                │ ← 18pt, #1E293B
@@ -595,4 +595,4 @@ Fundo Alternativo: #F8FAFC (cinza muito claro)
 **Ferramentas:** Google Slides (recomendado) ou PowerPoint
 
 ---
-*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ: 67.783.601/0001-99.*

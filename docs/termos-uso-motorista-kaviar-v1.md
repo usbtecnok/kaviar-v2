@@ -8,7 +8,7 @@
 
 ## 1. Sobre a Plataforma
 
-O KAVIAR é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela **USB Tecnok Manutenção e Instalação de Computadores Ltda** (CNPJ: 07.710.691/0001-66).
+O KAVIAR é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela **KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA** (CNPJ: 67.783.601/0001-99).
 
 O KAVIAR conecta motoristas parceiros independentes a passageiros para realização de corridas privadas em territórios específicos.
 
@@ -17,7 +17,7 @@ O KAVIAR conecta motoristas parceiros independentes a passageiros para realizaç
 ## 2. Natureza da Relação
 
 - O motorista parceiro é prestador de serviço de transporte privado individual.
-- **Não existe** vínculo empregatício, societário ou de franquia entre o motorista e a USB Tecnok/KAVIAR.
+- **Não existe** vínculo empregatício, societário ou de franquia entre o motorista e a KAVIAR/KAVIAR.
 - O motorista atua de forma autônoma, definindo seus próprios horários e disponibilidade.
 - O KAVIAR é intermediador tecnológico, não empregador.
 - O motorista não é obrigado a aceitar corridas.
@@ -117,7 +117,7 @@ A desativação não gera direito a indenização.
 
 ## 11. Propriedade Intelectual
 
-- A marca KAVIAR, logotipos, sistemas e interfaces são propriedade da USB Tecnok.
+- A marca KAVIAR, logotipos, sistemas e interfaces são propriedade da KAVIAR.
 - O motorista não pode utilizar a marca KAVIAR para fins não autorizados.
 - Materiais de divulgação devem ser aprovados pela matriz.
 
@@ -133,22 +133,22 @@ A desativação não gera direito a indenização.
 
 ## 13. Foro
 
-Fica eleito o foro da comarca de domicílio da USB Tecnok para dirimir quaisquer controvérsias decorrentes destes termos.
+Fica eleito o foro da comarca de domicílio da KAVIAR para dirimir quaisquer controvérsias decorrentes destes termos.
 
 ---
 
 ## 14. Canais Oficiais
 
 - **WhatsApp oficial:** +55 21 96864-8777 (atendimento exclusivo por WhatsApp)
-- **E-mail:** suporte@usbtecnok.com.br
+- **E-mail:** suporte@kaviar.com.br
 - **Site:** https://kaviar.com.br
 
 ---
 
 ## 15. Aviso Legal
 
-Esta minuta é um documento operacional interno da USB Tecnok. Não substitui contrato jurídico formal, orientação de advogado ou documento com validade legal plena. Recomenda-se revisão por profissional jurídico antes de uso definitivo.
+Esta minuta é um documento operacional interno da KAVIAR. Não substitui contrato jurídico formal, orientação de advogado ou documento com validade legal plena. Recomenda-se revisão por profissional jurídico antes de uso definitivo.
 
 ---
 
-*USB Tecnok / KAVIAR — Versão v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Versão v1.0 — Maio/2026*

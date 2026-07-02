@@ -375,7 +375,7 @@ aws ec2 revoke-security-group-ingress \
 #### 2. Executar validação:
 ```bash
 cd /home/goes/kaviar
-export ADMIN_EMAIL="suporte@usbtecnok.com.br"
+export ADMIN_EMAIL="suporte@kaviar.com.br"
 export ADMIN_PASSWORD="<FROM_SSM>"
 ./scripts/validate_territory_real_data.sh
 ```

@@ -8,7 +8,7 @@
 
 ## Declaração
 
-O **KAVIAR** é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela **USB Tecnok Manutenção e Instalação de Computadores Ltda** (CNPJ: 07.710.691/0001-66).
+O **KAVIAR** é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela **KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA** (CNPJ: 67.783.601/0001-99).
 
 ---
 
@@ -62,7 +62,7 @@ O **KAVIAR** é uma plataforma tecnológica de intermediação de mobilidade urb
 ## Regulamentação
 
 - O KAVIAR opera como plataforma tecnológica de intermediação, conforme legislação aplicável a plataformas digitais.
-- A USB Tecnok mantém-se disponível para diálogo com autoridades públicas sobre regulamentação de mobilidade local.
+- A KAVIAR mantém-se disponível para diálogo com autoridades públicas sobre regulamentação de mobilidade local.
 - Este aviso não constitui parecer jurídico sobre a legalidade da operação em jurisdições específicas.
 
 ---
@@ -74,14 +74,14 @@ Este aviso tem como objetivo:
 1. Esclarecer a natureza jurídica e operacional do KAVIAR.
 2. Prevenir interpretações equivocadas sobre a atividade da plataforma.
 3. Servir como referência em caso de questionamento por órgãos públicos, associações ou parceiros.
-4. Proteger a USB Tecnok, motoristas e passageiros contra alegações infundadas.
+4. Proteger a KAVIAR, motoristas e passageiros contra alegações infundadas.
 
 ---
 
 ## Canais Oficiais
 
 - **WhatsApp oficial:** +55 21 96864-8777
-- **E-mail:** suporte@usbtecnok.com.br
+- **E-mail:** suporte@kaviar.com.br
 - **Site:** https://kaviar.com.br
 
 ---
@@ -92,4 +92,4 @@ Este documento é operacional e informativo. Não substitui parecer jurídico fo
 
 ---
 
-*USB Tecnok / KAVIAR — Versão v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Versão v1.0 — Maio/2026*

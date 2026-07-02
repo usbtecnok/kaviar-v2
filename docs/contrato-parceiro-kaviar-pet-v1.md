@@ -1,20 +1,20 @@
-# USB TECNOK
+# KAVIAR
 
 ## Contrato de Parceria — Parceiro KAVIAR Pet
 
 ---
 
-**USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME**
-CNPJ: 07.710.691/0001-66
-Estrada das Furnas, nº 3001, Casa 06, Itanhangá, Rio de Janeiro/RJ, CEP 22641-681
-contato@usbtecnok.com.br | kaviar.com.br
+**KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
+CNPJ: 67.783.601/0001-99
+EST DAS FURNAS, Nº 03001, complemento ANTIGOS 2253 781, Itanhangá, Rio de Janeiro/RJ, CEP 22.641-681
+contato@kaviar.com.br | kaviar.com.br
 
 ---
 
 ## PARTES
 
 **PLATAFORMA:**
-USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 07.710.691/0001-66, com sede na Estrada das Furnas, nº 3001, Casa 06, Itanhangá, Rio de Janeiro/RJ, CEP 22641-681, doravante denominada simplesmente **USB TECNOK**.
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, pessoa jurídica de direito privado, inscrita no CNPJ sob o nº 67.783.601/0001-99, com sede na EST DAS FURNAS, Nº 03001, complemento ANTIGOS 2253 781, Itanhangá, Rio de Janeiro/RJ, CEP 22.641-681, doravante denominada simplesmente **KAVIAR**.
 
 **PARCEIRO KAVIAR PET:**
 Razão Social / Nome: [RAZÃO SOCIAL / NOME DO PARCEIRO PET]
@@ -31,7 +31,7 @@ Doravante denominado simplesmente **PARCEIRO PET**.
 
 ## 1. DEFINIÇÕES
 
-**1.1. USB TECNOK:** Empresa proprietária e operadora da Plataforma KAVIAR.
+**1.1. KAVIAR:** Empresa proprietária e operadora da Plataforma KAVIAR.
 
 **1.2. Plataforma KAVIAR:** Produto de tecnologia e mobilidade urbana comunitária, composto por aplicativos, painéis administrativos e sistemas de suporte à operação de transporte local e serviços comunitários.
 
@@ -49,7 +49,7 @@ Doravante denominado simplesmente **PARCEIRO PET**.
 
 ## 2. OBJETO
 
-O presente Contrato tem por objeto estabelecer os termos da parceria entre a USB TECNOK e o PARCEIRO PET para:
+O presente Contrato tem por objeto estabelecer os termos da parceria entre a KAVIAR e o PARCEIRO PET para:
 
 - Prestação e divulgação de serviços pet (banho/tosa, veterinário, hotel pet, cuidado, adestramento, transporte pet);
 - Divulgação do PARCEIRO PET no aplicativo KAVIAR/KAVIAR Pet;
@@ -69,7 +69,7 @@ O presente Contrato tem por objeto estabelecer os termos da parceria entre a USB
 - Cuidador / pet sitter;
 - Adestramento;
 - Transporte pet;
-- Outros serviços relacionados a animais de estimação, mediante aprovação da USB TECNOK.
+- Outros serviços relacionados a animais de estimação, mediante aprovação da KAVIAR.
 
 3.2. Os serviços são prestados exclusivamente pelo PARCEIRO PET, que é o único responsável pela qualidade, segurança e conformidade do atendimento.
 
@@ -91,7 +91,7 @@ O PARCEIRO PET compromete-se a:
 
 4.6. Comunicar imediatamente ao tutor qualquer emergência ou incidente envolvendo o animal;
 
-4.7. Manter cadastro atualizado junto à USB TECNOK;
+4.7. Manter cadastro atualizado junto à KAVIAR;
 
 4.8. Respeitar as regras de uso da marca KAVIAR Pet.
 
@@ -117,9 +117,9 @@ O Tutor compromete-se a:
 
 ---
 
-## 6. RESPONSABILIDADES DA USB TECNOK
+## 6. RESPONSABILIDADES DA KAVIAR
 
-A USB TECNOK compromete-se a:
+A KAVIAR compromete-se a:
 
 6.1. Conectar tutores e parceiros pet pela Plataforma KAVIAR;
 
@@ -127,7 +127,7 @@ A USB TECNOK compromete-se a:
 
 6.3. Disponibilizar CRM/painel quando contratado;
 
-6.4. A USB TECNOK NÃO presta os serviços pet diretamente e NÃO se responsabiliza pela qualidade, segurança ou resultado dos serviços prestados pelo PARCEIRO PET.
+6.4. A KAVIAR NÃO presta os serviços pet diretamente e NÃO se responsabiliza pela qualidade, segurança ou resultado dos serviços prestados pelo PARCEIRO PET.
 
 ---
 
@@ -190,9 +190,9 @@ A USB TECNOK compromete-se a:
 
 11.2. **Danos causados ao animal por negligência do parceiro:** O PARCEIRO PET é responsável por danos comprovadamente causados ao animal por negligência, imprudência ou imperícia durante a prestação do serviço.
 
-11.3. **Limites da USB TECNOK:** A USB TECNOK atua como intermediadora tecnológica. NÃO se responsabiliza por danos, perdas, lesões, fugas ou óbito do animal durante serviços prestados pelo PARCEIRO PET ou transporte realizado por motoristas autônomos.
+11.3. **Limites da KAVIAR:** A KAVIAR atua como intermediadora tecnológica. NÃO se responsabiliza por danos, perdas, lesões, fugas ou óbito do animal durante serviços prestados pelo PARCEIRO PET ou transporte realizado por motoristas autônomos.
 
-11.4. Disputas entre tutor e PARCEIRO PET devem ser resolvidas diretamente entre as partes, podendo a USB TECNOK auxiliar na mediação quando possível.
+11.4. Disputas entre tutor e PARCEIRO PET devem ser resolvidas diretamente entre as partes, podendo a KAVIAR auxiliar na mediação quando possível.
 
 ---
 
@@ -204,13 +204,13 @@ A USB TECNOK compromete-se a:
 
 12.3. Custos de emergência veterinária são de responsabilidade do tutor.
 
-12.4. O PARCEIRO PET deve registrar o ocorrido e comunicar à USB TECNOK para fins de auditoria.
+12.4. O PARCEIRO PET deve registrar o ocorrido e comunicar à KAVIAR para fins de auditoria.
 
 ---
 
 ## 13. CRM / PAINEL DO PARCEIRO KAVIAR PET
 
-13.1. A USB TECNOK poderá disponibilizar ao PARCEIRO PET acesso a um CRM/painel próprio da Plataforma KAVIAR, com login e senha, para gestão de clientes/tutores, agendamentos, campanhas, ofertas, cupons, pedidos e relacionamento local.
+13.1. A KAVIAR poderá disponibilizar ao PARCEIRO PET acesso a um CRM/painel próprio da Plataforma KAVIAR, com login e senha, para gestão de clientes/tutores, agendamentos, campanhas, ofertas, cupons, pedidos e relacionamento local.
 
 13.2. As credenciais de acesso (login e senha) são pessoais, intransferíveis e confidenciais. O PARCEIRO PET é responsável por manter sigilo absoluto sobre suas credenciais.
 
@@ -220,7 +220,7 @@ A USB TECNOK compromete-se a:
 
 13.5. É vedado utilizar o CRM para spam, fraude, assédio, contato não autorizado, coleta indevida de dados ou qualquer prática ilegal.
 
-13.6. A USB TECNOK poderá suspender ou revogar o acesso ao CRM em caso de uso indevido, inadimplência, inatividade prolongada ou descumprimento contratual.
+13.6. A KAVIAR poderá suspender ou revogar o acesso ao CRM em caso de uso indevido, inadimplência, inatividade prolongada ou descumprimento contratual.
 
 ---
 
@@ -228,13 +228,13 @@ A USB TECNOK compromete-se a:
 
 14.1. O PARCEIRO PET poderá aparecer no aplicativo KAVIAR/KAVIAR Pet para tutores e usuários da região.
 
-14.2. A divulgação depende de aprovação prévia da USB TECNOK e conformidade com as regras da plataforma.
+14.2. A divulgação depende de aprovação prévia da KAVIAR e conformidade com as regras da plataforma.
 
 14.3. Ofertas, cupons e campanhas publicadas devem ser verdadeiros, claros e cumprir o anunciado.
 
-14.4. A USB TECNOK NÃO garante volume de clientes, tutores, vendas ou agendamentos.
+14.4. A KAVIAR NÃO garante volume de clientes, tutores, vendas ou agendamentos.
 
-14.5. A USB TECNOK poderá remover ofertas ou divulgações que contenham informações enganosas ou incompatíveis com os valores da plataforma.
+14.5. A KAVIAR poderá remover ofertas ou divulgações que contenham informações enganosas ou incompatíveis com os valores da plataforma.
 
 ---
 
@@ -242,11 +242,11 @@ A USB TECNOK compromete-se a:
 
 15.1. Os pagamentos de tutores/clientes por serviços serão feitos diretamente para a chave Pix ou meio de pagamento indicado pelo PARCEIRO PET.
 
-15.2. A USB TECNOK NÃO será recebedora principal das vendas ou serviços do PARCEIRO PET, salvo se houver modelo futuro específico formalizado em aditivo.
+15.2. A KAVIAR NÃO será recebedora principal das vendas ou serviços do PARCEIRO PET, salvo se houver modelo futuro específico formalizado em aditivo.
 
 15.3. O PARCEIRO PET é responsável pela chave Pix informada, conferência de recebimentos e resolução de divergências.
 
-15.4. A USB TECNOK não se responsabiliza por erro, extravio ou falha decorrente de chave Pix incorreta fornecida pelo parceiro.
+15.4. A KAVIAR não se responsabiliza por erro, extravio ou falha decorrente de chave Pix incorreta fornecida pelo parceiro.
 
 15.5. O PARCEIRO PET é responsável por emissão de nota fiscal, atendimento, qualidade do serviço, entrega, agenda e todas as obrigações fiscais, tributárias e consumeristas.
 
@@ -264,7 +264,7 @@ A USB TECNOK compromete-se a:
 
 16.2. A modalidade aplicável, percentuais, valores e condições serão definidos em proposta comercial, aditivo ou anexo específico.
 
-16.3. A USB TECNOK NÃO garante volume de clientes, tutores, vendas, agendamentos ou faturamento mínimo ao PARCEIRO PET.
+16.3. A KAVIAR NÃO garante volume de clientes, tutores, vendas, agendamentos ou faturamento mínimo ao PARCEIRO PET.
 
 16.4. Eventuais alterações no modelo financeiro serão comunicadas com antecedência mínima de 30 dias.
 
@@ -278,15 +278,15 @@ A USB TECNOK compromete-se a:
 
 17.3. É vedado ao PARCEIRO PET compartilhar, vender ou utilizar dados de tutores para finalidades não autorizadas.
 
-17.4. Em caso de incidente de segurança, o PARCEIRO PET deverá comunicar a USB TECNOK imediatamente.
+17.4. Em caso de incidente de segurança, o PARCEIRO PET deverá comunicar a KAVIAR imediatamente.
 
 ---
 
 ## 18. MARCA KAVIAR PET
 
-18.1. A marca KAVIAR e KAVIAR Pet são de propriedade exclusiva da USB TECNOK.
+18.1. A marca KAVIAR e KAVIAR Pet são de propriedade exclusiva da KAVIAR.
 
-18.2. O PARCEIRO PET poderá utilizar materiais fornecidos pela USB TECNOK para identificação como parceiro.
+18.2. O PARCEIRO PET poderá utilizar materiais fornecidos pela KAVIAR para identificação como parceiro.
 
 18.3. É vedado criar materiais próprios, perfis em redes sociais ou comunicados utilizando a marca KAVIAR Pet sem autorização prévia.
 
@@ -300,7 +300,7 @@ A USB TECNOK compromete-se a:
 
 19.2. O PARCEIRO PET pode participar de outros programas e plataformas.
 
-19.3. A USB TECNOK pode incluir outros parceiros pet na mesma região.
+19.3. A KAVIAR pode incluir outros parceiros pet na mesma região.
 
 ---
 
@@ -330,7 +330,7 @@ A USB TECNOK compromete-se a:
 
 ## 23. SUSPENSÃO E RESCISÃO
 
-23.1. A USB TECNOK poderá suspender o PARCEIRO PET em caso de:
+23.1. A KAVIAR poderá suspender o PARCEIRO PET em caso de:
 
 - Denúncias de tutores sobre atendimento, higiene ou segurança;
 - Suspeita ou comprovação de maus-tratos a animais;
@@ -358,10 +358,10 @@ Fica eleito o Foro da Comarca da Capital do Estado do Rio de Janeiro/RJ para dir
 
 ## ASSINATURAS
 
-**Pela USB TECNOK:**
+**Pela KAVIAR:**
 
-USB TECNOK - MANUTENCAO E INSTALACAO DE COMPUTADORES LTDA - ME
-CNPJ: 07.710.691/0001-66
+KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
+CNPJ: 67.783.601/0001-99
 
 Assinatura: ________________________________
 
@@ -379,5 +379,5 @@ Assinatura: ________________________________
 
 ---
 
-**USB TECNOK — Plataforma KAVIAR**
-contato@usbtecnok.com.br | kaviar.com.br
+**KAVIAR — Plataforma KAVIAR**
+contato@kaviar.com.br | kaviar.com.br

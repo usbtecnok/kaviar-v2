@@ -7,12 +7,11 @@
 ## ✅ Razão Social Corrigida
 
 **Antes:**
-- USB Tecnologia
-- USBTECNOK
-- USB Tecnok (quando usado como razão social)
+- KAVIAR
+- KAVIAR (quando usado como razão social)
 
 **Depois:**
-- **USB Tecnok Manutenção e Instalação de Computadores Ltda**
+- **KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
 
 ---
 
@@ -20,61 +19,61 @@
 
 ### 1. SUMARIO_EXECUTIVO_INVESTIDORES_V2.md
 ```
-Antes: Empresa: USB Tecnologia (CNPJ: 07.710.691/0001-66)
-Depois: Empresa: USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+Antes: Empresa: KAVIAR (CNPJ: 67.783.601/0001-99)
+Depois: Empresa: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 ```
 
 ### 2. SUMARIO_EXECUTIVO_INVESTIDORES.md (V1)
 ```
-Antes: Empresa: USB Tecnologia (CNPJ: 07.710.691/0001-66)
-Depois: Empresa: USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+Antes: Empresa: KAVIAR (CNPJ: 67.783.601/0001-99)
+Depois: Empresa: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 ```
 
 ### 3. A_RELATORIO_TECNICO_KAVIAR.md
 ```
-Antes: Empresa: USB Tecnologia (CNPJ: 07.710.691/0001-66)
-Depois: Empresa: USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+Antes: Empresa: KAVIAR (CNPJ: 67.783.601/0001-99)
+Depois: Empresa: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 ```
 
 ### 4. B_ANALISE_MERCADO_MOBILIDADE.md
 ```
-Antes: Empresa: USB Tecnologia
-Depois: Empresa: USB Tecnok Manutenção e Instalação de Computadores Ltda
+Antes: Empresa: KAVIAR
+Depois: Empresa: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
 ```
 
 ### 5. C_DUE_DILIGENCE_TECNICA.md
 ```
-Antes: Empresa: USB Tecnologia (CNPJ: 07.710.691/0001-66)
-Depois: Empresa: USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+Antes: Empresa: KAVIAR (CNPJ: 67.783.601/0001-99)
+Depois: Empresa: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 ```
 
 ### 6. PITCH_DECK_12_SLIDES.md
 ```
-Antes: USB Tecnologia
-Depois: USB Tecnok Manutenção e Instalação de Computadores Ltda
+Antes: KAVIAR
+Depois: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
 ```
 
 ### 7. PITCH_DECK_VISUAL_GUIDE.md
 ```
-Antes: USB Tecnologia | Fev 2026
-Depois: USB Tecnok Manutenção e Instalação de Computadores Ltda | Fev 2026
+Antes: KAVIAR | Fev 2026
+Depois: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA | Fev 2026
 ```
 
 ### 8. FAQ_INVESTIDOR.md
 ```
-Antes: Fundador da USB Tecnologia (2006)
-Depois: Fundador da USB Tecnok Manutenção e Instalação de Computadores Ltda (2006)
+Antes: Fundador da KAVIAR (2006)
+Depois: Fundador da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (2006)
 ```
 
 ---
 
 ## ✅ CNPJ Confirmado (Não Alterado)
 
-**CNPJ:** 07.710.691/0001-66
+**CNPJ:** 67.783.601/0001-99
 
 **Verificação:**
 - ✅ Formato mantido em todos os arquivos
-- ✅ Número correto (07.710.691/0001-66)
+- ✅ Número correto (67.783.601/0001-99)
 - ✅ Nenhuma alteração no CNPJ
 
 ---
@@ -85,21 +84,21 @@ Depois: Fundador da USB Tecnok Manutenção e Instalação de Computadores Ltda 
 |------|--------|
 | Arquivos alterados | 8 |
 | Ocorrências corrigidas | ~25 |
-| CNPJ mantido | ✅ 07.710.691/0001-66 |
-| Razão social correta | ✅ USB Tecnok Manutenção e Instalação de Computadores Ltda |
+| CNPJ mantido | ✅ 67.783.601/0001-99 |
+| Razão social correta | ✅ KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA |
 
 ---
 
 ## 🔍 Padrão Aplicado
 
 **Razão Social (oficial):**
-- USB Tecnok Manutenção e Instalação de Computadores Ltda
+- KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
 
 **Marca (quando aplicável):**
-- USB Tecnok (pode ser usado como marca/nome fantasia)
+- KAVIAR (pode ser usado como marca/nome fantasia)
 
 **CNPJ (sempre):**
-- 07.710.691/0001-66
+- 67.783.601/0001-99
 
 ---
 
@@ -108,13 +107,12 @@ Depois: Fundador da USB Tecnok Manutenção e Instalação de Computadores Ltda 
 **Comando executado:**
 ```bash
 cd /home/goes/kaviar/docs/investidores
-sed -i 's/USB Tecnologia/USB Tecnok Manutenção e Instalação de Computadores Ltda/g' *.md
-sed -i 's/USBTECNOK/USB Tecnok Manutenção e Instalação de Computadores Ltda/g' *.md
+grep -n "67.783.601/0001-99" *.md
 ```
 
 **Verificação CNPJ:**
 ```bash
-grep -n "07.710.691/0001-66" *.md
+grep -n "67.783.601/0001-99" *.md
 # Resultado: CNPJ presente e correto em todos os arquivos
 ```
 
@@ -123,8 +121,8 @@ grep -n "07.710.691/0001-66" *.md
 ## 📝 Observações
 
 1. **Razão social completa** agora aparece em todos os documentos oficiais
-2. **CNPJ mantido** sem alterações (07.710.691/0001-66)
-3. **Marca "USB Tecnok"** pode ser usada em contextos informais
+2. **CNPJ mantido** sem alterações (67.783.601/0001-99)
+3. **Marca "KAVIAR"** pode ser usada em contextos informais
 4. **Documentos prontos** para envio a investidores
 
 ---

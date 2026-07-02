@@ -34,8 +34,8 @@ Receita potencial (18%): R$ 168-336M/ano
 
 **Adicionado:**
 ```
-Veículo jurídico atual: USB Tecnok Manutenção e Instalação 
-de Computadores Ltda (CNPJ 07.710.691/0001-66)
+Veículo jurídico atual: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA 
+(CNPJ 67.783.601/0001-99)
 
 Estrutura planejada: Criação de SPE/empresa dedicada ao 
 Kaviar após a rodada (definir com contador/advogado)

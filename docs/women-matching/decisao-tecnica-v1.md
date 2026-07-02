@@ -3,8 +3,8 @@
 **Versão 1.0 — Junho 2026**
 **Status: DOCUMENTAÇÃO — Não implementado**
 
-*KAVIAR — Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda*
-*CNPJ 07.710.691/0001-66*
+*KAVIAR — Produto da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA*
+*CNPJ 67.783.601/0001-99*
 
 ---
 
@@ -113,4 +113,4 @@ Campos de fallback (consentimento) serão definidos com a implementação real.
 
 ---
 
-*KAVIAR — USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ 07.710.691/0001-66*
+*KAVIAR — KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99*

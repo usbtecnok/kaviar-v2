@@ -2,14 +2,14 @@
 
 **Versão 1.0 — Junho 2026**
 
-*KAVIAR — Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda*
-*CNPJ 07.710.691/0001-66*
+*KAVIAR — Produto da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA*
+*CNPJ 67.783.601/0001-99*
 
 ---
 
 ## 1. Natureza
 
-O Retorno Familiar KAVIAR é um programa voluntário de reconhecimento, não vinculativo, promovido pela USB Tecnok Manutenção e Instalação de Computadores Ltda ("KAVIAR").
+O Retorno Familiar KAVIAR é um programa voluntário de reconhecimento, não vinculativo, promovido pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA ("KAVIAR").
 
 ## 2. Participação
 
@@ -132,8 +132,8 @@ Acesse para solicitar.
 Sujeito ao teto individual, fundo e aprovação.
 Não constitui obrigação automática.
 
-KAVIAR — USB Tecnok
-CNPJ 07.710.691/0001-66
+KAVIAR — KAVIAR
+CNPJ 67.783.601/0001-99
 ```
 
 ---
@@ -156,5 +156,5 @@ RETORNO FAMILIAR — OPERAÇÃO INTERNA
 
 ---
 
-*KAVIAR — Produto da USB Tecnok Manutenção e Instalação de Computadores Ltda*
-*CNPJ 07.710.691/0001-66*
+*KAVIAR — Produto da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA*
+*CNPJ 67.783.601/0001-99*

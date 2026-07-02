@@ -3,14 +3,14 @@
 **Versão:** v1.0
 **Data:** Maio/2026
 **Status:** Fase 1 concluída em produção
-**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Empresa:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 **Plataforma:** KAVIAR
 
 ---
 
 ## 1. Objetivo
 
-Recurso de atenção operacional da central KAVIAR/USB Tecnok para acompanhamento de corridas ativas que estejam demorando mais que o esperado ou que futuramente apresentem sinais de desvio de rota ou parada prolongada.
+Recurso de atenção operacional da central KAVIAR/KAVIAR para acompanhamento de corridas ativas que estejam demorando mais que o esperado ou que futuramente apresentem sinais de desvio de rota ou parada prolongada.
 
 O objetivo é permitir que a equipe operacional identifique situações que mereçam verificação, sem criar automações agressivas ou alarmes desnecessários.
 
@@ -44,7 +44,7 @@ O objetivo é permitir que a equipe operacional identifique situações que mere
 - **Não bloqueia** corridas automaticamente.
 - **Não gera** multa, penalidade ou suspensão automática.
 
-É uma ferramenta de atenção operacional interna para suporte da central KAVIAR/USB Tecnok.
+É uma ferramenta de atenção operacional interna para suporte da central KAVIAR/KAVIAR.
 
 ---
 
@@ -140,4 +140,4 @@ Este documento é operacional e interno. O recurso de atenção operacional não
 
 ---
 
-*USB Tecnok / KAVIAR — Segurança de Corrida Ativa — v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Segurança de Corrida Ativa — v1.0 — Maio/2026*

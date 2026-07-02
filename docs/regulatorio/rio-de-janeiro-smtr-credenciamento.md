@@ -3,8 +3,8 @@
 **Versão:** v1.0
 **Data:** Maio/2026
 **Status:** Diagnóstico regulatório — NÃO é parecer jurídico
-**Empresa responsável:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
-**Plataforma:** KAVIAR — produto/plataforma da USB Tecnok
+**Empresa responsável:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
+**Plataforma:** KAVIAR — produto/plataforma da KAVIAR
 
 ---
 
@@ -74,9 +74,9 @@ Conforme regulamentação municipal, motoristas podem precisar de:
 
 ---
 
-## 7. Checklist Documental da Empresa (USB Tecnok)
+## 7. Checklist Documental da Empresa (KAVIAR)
 
-Para credenciamento, a USB Tecnok pode precisar apresentar:
+Para credenciamento, a KAVIAR pode precisar apresentar:
 
 - [ ] CNPJ ativo e regular.
 - [ ] Contrato social ou documento constitutivo.
@@ -90,7 +90,7 @@ Para credenciamento, a USB Tecnok pode precisar apresentar:
 
 ---
 
-## 8. Pendências para a USB Tecnok / KAVIAR
+## 8. Pendências para a KAVIAR / KAVIAR
 
 | Item | Status | Observação |
 |------|--------|------------|
@@ -117,7 +117,7 @@ Para credenciamento, a USB Tecnok pode precisar apresentar:
 
 ## 10. Alerta Operacional
 
-**⚠️ A USB Tecnok / KAVIAR NÃO deve iniciar operação comercial aberta no município do Rio de Janeiro como "transporte por aplicativo" sem:**
+**⚠️ A KAVIAR / KAVIAR NÃO deve iniciar operação comercial aberta no município do Rio de Janeiro como "transporte por aplicativo" sem:**
 
 1. Validação jurídica completa sobre aplicabilidade do Decreto ao modelo KAVIAR.
 2. Validação contábil sobre obrigação do 1,5% e ISS.
@@ -125,7 +125,7 @@ Para credenciamento, a USB Tecnok pode precisar apresentar:
 4. Verificação se o modelo territorial/comunitário do KAVIAR se enquadra na mesma categoria regulada pelo Decreto.
 5. Consulta formal à SMTR sobre enquadramento.
 
-**Nota:** O KAVIAR é uma plataforma de intermediação de mobilidade local/comunitária, mantida pela USB Tecnok. Pode haver argumentos jurídicos sobre diferenciação do modelo em relação a plataformas de transporte por aplicativo tradicionais (Uber, 99, etc.). Essa análise deve ser feita por advogado especializado.
+**Nota:** O KAVIAR é uma plataforma de intermediação de mobilidade local/comunitária, mantida pela KAVIAR. Pode haver argumentos jurídicos sobre diferenciação do modelo em relação a plataformas de transporte por aplicativo tradicionais (Uber, 99, etc.). Essa análise deve ser feita por advogado especializado.
 
 ---
 
@@ -149,4 +149,4 @@ Este documento é um diagnóstico operacional interno. **Não constitui parecer 
 
 ---
 
-*USB Tecnok / KAVIAR — Diagnóstico SMTR Rio — v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Diagnóstico SMTR Rio — v1.0 — Maio/2026*

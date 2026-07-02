@@ -3,7 +3,7 @@
 **Versão:** v1.0  
 **Data:** Maio/2026  
 **Status:** Fase 0 — Planejamento  
-**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)  
+**Empresa:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)  
 **Plataforma:** KAVIAR
 
 ---
@@ -697,4 +697,4 @@ O KAVIAR Pet opera como um módulo fechado dentro da plataforma. Nenhum elemento
 
 ---
 
-*USB Tecnok / KAVIAR Pet — Documento Operacional v1.0 — Maio/2026*
+*KAVIAR / KAVIAR Pet — Documento Operacional v1.0 — Maio/2026*

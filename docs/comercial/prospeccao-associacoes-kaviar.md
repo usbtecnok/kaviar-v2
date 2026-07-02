@@ -3,7 +3,7 @@
 **Versão:** v2.0
 **Data:** Junho/2026
 **Status:** Documento comercial interno
-**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)
+**Empresa:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)
 **Plataforma:** KAVIAR — Mobilidade urbana comunitária
 
 ---
@@ -12,7 +12,7 @@
 
 A parceria com associações é **sem cobrança inicial**. Não há taxa de ativação, compra de sistema, franquia ou investimento obrigatório.
 
-A associação pode apoiar a divulgação, confiança local e organização da demanda. Eventuais benefícios, bonificações ou parcerias comerciais futuras dependem de contrato específico, apuração e validação da central KAVIAR/USB Tecnok.
+A associação pode apoiar a divulgação, confiança local e organização da demanda. Eventuais benefícios, bonificações ou parcerias comerciais futuras dependem de contrato específico, apuração e validação da central KAVIAR/KAVIAR.
 
 > Este modelo é diferente do Gestor Fundador de Bairro (que possui taxa de ativação e termo operacional próprio).
 
@@ -115,7 +115,7 @@ Eventuais benefícios, bonificações ou parcerias comerciais futuras dependem d
 - Motoristas da própria comunidade valorizados
 - Tecnologia pronta (app, painel, suporte)
 - Sem exposição de rotina em grupos abertos
-- Parceria com empresa formalizada (USB Tecnok, CNPJ ativo)
+- Parceria com empresa formalizada (KAVIAR, CNPJ ativo)
 - Modelo sem taxa de entrada para a associação
 - KAVIAR Pet assistido para corridas com animais
 
@@ -129,7 +129,7 @@ O KAVIAR Pet está em fase piloto. Tutores solicitam corrida com animal pelo for
 - Divulgar o formulário Pet na comunidade
 - Indicar motoristas interessados na modalidade Pet
 
-A homologação de motoristas Pet e a confirmação operacional são feitas pela central KAVIAR/USB Tecnok.
+A homologação de motoristas Pet e a confirmação operacional são feitas pela central KAVIAR/KAVIAR.
 
 ---
 
@@ -170,7 +170,7 @@ A associação pode divulgar o link de cadastro de motoristas e o app para passa
 
 Qualquer benefício, bonificação ou parceria comercial futura depende de:
 - Contrato específico firmado entre as partes
-- Apuração e validação pela central KAVIAR/USB Tecnok
+- Apuração e validação pela central KAVIAR/KAVIAR
 - Desempenho, atividade e cumprimento de regras
 
 ---
@@ -179,12 +179,12 @@ Qualquer benefício, bonificação ou parceria comercial futura depende de:
 
 Em toda comunicação comercial, manter claro:
 
-> KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.
+> KAVIAR é produto/plataforma da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ: 67.783.601/0001-99.
 
 Não apresentar KAVIAR como empresa independente, CNPJ próprio ou entidade separada.
 
-Este material é de uso interno da equipe comercial USB Tecnok/KAVIAR. Não constitui proposta comercial vinculante, contrato ou garantia de parceria. Condições reais dependem de avaliação, contrato e aprovação da central.
+Este material é de uso interno da equipe comercial KAVIAR/KAVIAR. Não constitui proposta comercial vinculante, contrato ou garantia de parceria. Condições reais dependem de avaliação, contrato e aprovação da central.
 
 ---
 
-*USB Tecnok / KAVIAR — Prospecção Associação Parceira — v2.0 — Junho/2026*
+*KAVIAR / KAVIAR — Prospecção Associação Parceira — v2.0 — Junho/2026*

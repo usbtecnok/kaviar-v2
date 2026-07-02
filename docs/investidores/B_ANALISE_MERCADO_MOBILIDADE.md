@@ -1,6 +1,6 @@
 # Análise de Mercado - Mobilidade Urbana em Comunidades
 **Data:** 03 de Fevereiro de 2026  
-**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda  
+**Empresa:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA  
 **Produto:** Kaviar
 
 ---
@@ -470,8 +470,8 @@ O mercado de mobilidade em comunidades é **grande, crescente e mal atendido**. 
 ---
 
 **Preparado por:** Kiro (AWS AI Assistant)  
-**Para:** USB Tecnok Manutenção e Instalação de Computadores Ltda - Captação de Investimento  
+**Para:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA - Captação de Investimento  
 **Fontes:** ABTM, IBGE, Pesquisas de mercado 2025-2026
 
 ---
-*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da USB Tecnok Manutenção e Instalação de Computadores Ltda — CNPJ: 07.710.691/0001-66.*
+*Este material é informativo e de uso interno. Não constitui oferta pública de investimento, prospecto regulado ou garantia de retorno. KAVIAR é produto/plataforma da KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ: 67.783.601/0001-99.*

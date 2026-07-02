@@ -5,16 +5,16 @@
  * Quando o CNPJ sair, atualizar apenas este arquivo.
  */
 export const COMPANY = {
-  legalName: 'KAVIAR TECNOLOGIA E SERVIÇOS DIGITAIS LTDA',
+  legalName: 'KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA',
   tradeName: 'KAVIAR',
-  cnpj: '[AGUARDANDO CNPJ]',
-  publicLocation: 'Rio de Janeiro/RJ',
+  cnpj: '67.783.601/0001-99',
+  publicLocation: 'Rio de Janeiro/RJ — Atendimento digital',
   serviceMode: 'Atendimento digital',
-  legalAddress: '[ENDEREÇO OFICIAL DA EMPRESA — CONFIRMAR COM CONTADOR]',
-  representative: '[CONFIRMAR COM CONTADOR]',
+  legalAddress: 'EST DAS FURNAS, Nº 03001, complemento ANTIGOS 2253 781, Itanhangá, Rio de Janeiro/RJ, CEP 22.641-681',
+  representative: 'Representante legal da KAVIAR',
   email: 'contato@kaviar.com.br',
-  phone: '[CONFIRMAR]',
+  phone: '+55 21 96864-8777',
   website: 'https://kaviar.com.br',
   // Nota institucional
-  originNote: 'Tecnologia originalmente desenvolvida pela USB Tecnok.',
+  originNote: 'Tecnologia e operação da KAVIAR.',
 };

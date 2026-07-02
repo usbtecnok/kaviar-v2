@@ -729,7 +729,7 @@ export default function Register() {
               Versão: 2026-01 | Última atualização: Janeiro de 2026
             </Text>
             <Text style={{ fontSize: 11, color: '#999', marginBottom: 20 }}>
-              KAVIAR é uma plataforma operada por USB Tecnok Manutenção e Instalação de Computadores Ltda.
+              KAVIAR é uma plataforma operada por KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA.
             </Text>
             <Text style={styles.termsText}>
               Ao prosseguir com o cadastro e utilizar a plataforma KAVIAR, o motorista declara que leu, compreendeu e concorda integralmente com os termos abaixo.

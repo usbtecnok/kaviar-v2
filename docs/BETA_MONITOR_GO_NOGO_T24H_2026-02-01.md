@@ -81,7 +81,7 @@ aws events put-targets \
 - **Topic ARN:** `arn:aws:sns:us-east-1:847895361928:kaviar-beta-monitor-alerts`
 - **Subscriptions:**
   - `aparecido.goes@gmail.com` - ✅ **Confirmed**
-  - `suporte@usbtecnok.com.br` - ⏳ Pending (não crítico)
+  - `suporte@kaviar.com.br` - ⏳ Pending (não crítico)
 
 ---
 

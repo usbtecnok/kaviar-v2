@@ -30,7 +30,7 @@ Taxa de ativação única de **R$ 497,00**. Essa taxa cobre o setup do territór
 
 A Plataforma KAVIAR retém uma taxa operacional de 18% sobre o valor da corrida realizada no território.
 
-Essa taxa cobre a infraestrutura tecnológica, servidores, APIs, WhatsApp, suporte central, compliance, manutenção da plataforma e operação administrativa da USB TECNOK/KAVIAR.
+Essa taxa cobre a infraestrutura tecnológica, servidores, APIs, WhatsApp, suporte central, compliance, manutenção da plataforma e operação administrativa da KAVIAR/KAVIAR.
 
 O motorista não paga mais uma cobrança fixa de 1 ou 2 créditos por corrida. O modelo passa a considerar uma taxa proporcional ao valor da corrida.
 
@@ -42,7 +42,7 @@ Do valor da taxa operacional da plataforma, o gestor territorial participa da ba
 
 A composição atual é:
 
-- 60% da taxa operacional fica com a matriz KAVIAR/USB TECNOK
+- 60% da taxa operacional fica com a matriz KAVIAR/KAVIAR
 - 40% da taxa operacional forma a base de apuração do gestor territorial
 
 **Exemplo:**
@@ -52,7 +52,7 @@ Taxa operacional KAVIAR de 18%: R$ 9,00
 
 Distribuição da taxa:
 
-- Matriz KAVIAR/USB TECNOK: R$ 5,40
+- Matriz KAVIAR/KAVIAR: R$ 5,40
 - Base do gestor territorial: R$ 3,60
 
 Os valores finais dependem de apuração mensal, contrato vigente, deduções aplicáveis, comissões de parceiros, custos documentados, validação da central e regras financeiras em vigor.
@@ -87,7 +87,7 @@ Não. A central KAVIAR apura o resultado mensalmente, revisa, aprova e efetua o 
 
 ## Como funciona o KAVIAR Pet?
 
-O KAVIAR Pet está em fase piloto assistida. Tutores solicitam corrida com animal pelo formulário público. Você, como gestor, apoia pedidos Pet assistidos no bairro, conforme orientação da central, enquanto a homologação de motoristas Pet e a confirmação operacional permanecem sob responsabilidade da KAVIAR/USB TECNOK.
+O KAVIAR Pet está em fase piloto assistida. Tutores solicitam corrida com animal pelo formulário público. Você, como gestor, apoia pedidos Pet assistidos no bairro, conforme orientação da central, enquanto a homologação de motoristas Pet e a confirmação operacional permanecem sob responsabilidade da KAVIAR/KAVIAR.
 
 ---
 
@@ -117,7 +117,7 @@ Você tem prioridade operacional na área vinculada durante o prazo do contrato.
 
 ## Quem é a KAVIAR?
 
-KAVIAR é produto e plataforma da **USB TECNOK Manutenção e Instalação de Computadores Ltda** — CNPJ 07.710.691/0001-66. Sediada no Rio de Janeiro.
+KAVIAR é produto e plataforma da **KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA** — CNPJ 67.783.601/0001-99. Rio de Janeiro/RJ — Atendimento digital.
 
 ---
 

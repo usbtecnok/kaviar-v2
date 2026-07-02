@@ -1,10 +1,10 @@
 # Sumário Executivo - Captação Investimento Anjo
-**Empresa:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ: 07.710.691/0001-66)  
+**Empresa:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ: 67.783.601/0001-99)  
 **Produto:** Kaviar - Mobilidade Urbana para Comunidades  
 **Estágio:** Pré-lançamento (produto funcional, validação técnica completa)  
 **Data:** 03 de Fevereiro de 2026
 
-**Veículo jurídico atual:** USB Tecnok Manutenção e Instalação de Computadores Ltda (CNPJ 07.710.691/0001-66)  
+**Veículo jurídico atual:** KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA (CNPJ 67.783.601/0001-99)  
 **Estrutura planejada:** Criação de SPE/empresa dedicada ao Kaviar após a rodada (definir com contador/advogado)
 
 ---

@@ -132,8 +132,8 @@ Opção 3:  KAVIAR | Pet        (separador vertical)
 │                                     │
 │         [SELO BADGE]                │
 │                                     │
-│  USB Tecnok / KAVIAR                │
-│  CNPJ: 07.710.691/0001-66          │
+│  KAVIAR / KAVIAR                │
+│  CNPJ: 67.783.601/0001-99          │
 └─────────────────────────────────────┘
 ```
 

@@ -14,8 +14,8 @@ Este documento consolida o estado atual de conformidade jurídica e operacional 
 
 ## 2. Empresa Responsável
 
-**USB Tecnok Manutenção e Instalação de Computadores Ltda**
-CNPJ: 07.710.691/0001-66
+**KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA**
+CNPJ: 67.783.601/0001-99
 Plataforma: KAVIAR — Mobilidade urbana comunitária local
 
 ---
@@ -87,7 +87,7 @@ Plataforma: KAVIAR — Mobilidade urbana comunitária local
 
 Em caso de questionamento por autoridade pública, associação ou parceiro, a posição oficial é:
 
-> "O KAVIAR é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela USB Tecnok Manutenção e Instalação de Computadores Ltda. Não constitui serviço de transporte coletivo, concessão pública, cooperativa ou empresa de transporte. Motoristas são parceiros independentes sem vínculo empregatício. A plataforma opera conforme legislação aplicável a plataformas digitais de intermediação."
+> "O KAVIAR é uma plataforma tecnológica de intermediação de mobilidade urbana local, operada pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA. Não constitui serviço de transporte coletivo, concessão pública, cooperativa ou empresa de transporte. Motoristas são parceiros independentes sem vínculo empregatício. A plataforma opera conforme legislação aplicável a plataformas digitais de intermediação."
 
 ---
 
@@ -101,8 +101,8 @@ Em caso de questionamento por autoridade pública, associação ou parceiro, a p
 
 ## 9. Aviso Legal
 
-Este documento é de uso interno da USB Tecnok. Não constitui parecer jurídico. Para questões regulatórias, tributárias ou trabalhistas, consulte profissional habilitado.
+Este documento é de uso interno da KAVIAR. Não constitui parecer jurídico. Para questões regulatórias, tributárias ou trabalhistas, consulte profissional habilitado.
 
 ---
 
-*USB Tecnok / KAVIAR — Versão v1.0 — Maio/2026*
+*KAVIAR / KAVIAR — Versão v1.0 — Maio/2026*
