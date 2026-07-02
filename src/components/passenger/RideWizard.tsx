@@ -12,6 +12,12 @@ interface Place { text: string; lat: number; lng: number; placeId: string }
 interface PostWaitDest { lat: number; lng: number; text: string }
 type ScheduleOption = 'now' | '15min' | '30min' | 'custom';
 
+// Maps service keys to friendly labels shown in the confirmation summary
+const SERVICE_LABELS: Record<string, string> = {
+  car: '🚗 Carro KAVIAR',
+  moto_passenger: '🏍 Moto Passageiro',
+};
+
 interface Props {
   origin: Place | null;
   destination: Place | null;
@@ -36,9 +42,11 @@ interface Props {
   onSubmit: () => void;
   onStepChange?: (step: number) => void;
   preferWomanDriver?: boolean;
+  /** Service selected in step 1 — shown as a summary row in step 2 */
+  selectedService?: string | null;
 }
 
-const STEPS = ['Destino', 'Confirmar'] as const;
+const STEPS = ['Destino', 'Serviço', 'Confirmar'] as const;
 
 export function RideWizard(props: Props & { step: number }) {
   const step = props.step;
@@ -51,12 +59,14 @@ export function RideWizard(props: Props & { step: number }) {
     setExpandedSection(prev => prev === key ? null : key);
   };
 
+  // Step 0 → 1 requires destination; step 1 → 2 is handled externally by ServiceSelector
   const canAdvance = () => step === 0 ? !!props.destination : true;
-  const next = () => { if (canAdvance() && step < 1) setStep(1); };
-  const back = () => { if (step > 0) setStep(0); };
+  const next = () => { if (canAdvance() && step < 2) setStep(step + 1); };
+  const back = () => { if (step > 0) setStep(step - 1); };
 
   const detailsSummary = `${props.passengerCount} passageiro${props.passengerCount > 1 ? 's' : ''}${props.hasLuggage ? ' · Bagagem' : ''}`;
   const waitSummary = props.waitEstimatedMin ? `${props.waitEstimatedMin} min${props.postWaitDest ? ' + destino' : ''}` : 'Sem espera';
+  const serviceLabel = props.selectedService ? (SERVICE_LABELS[props.selectedService] ?? props.selectedService) : null;
 
   return (
     <View style={s.container}>
@@ -104,8 +114,14 @@ export function RideWizard(props: Props & { step: number }) {
         </View>
       )}
 
-      {/* Step 1 — Summary + collapsible options */}
-      {step === 1 && (
+      {/* Step 1 — Service selector is rendered externally in map.tsx.
+          This step renders nothing inside the wizard itself; the wizard
+          is hidden while ServiceSelector is shown. Kept as a placeholder
+          so the progress indicator advances correctly. */}
+      {step === 1 && null}
+
+      {/* Step 2 — Summary + collapsible options */}
+      {step === 2 && (
         <ScrollView style={{ maxHeight: 340 }} showsVerticalScrollIndicator={false}>
           <Text style={s.stepTitle}>Confirme sua corrida</Text>
 
@@ -113,6 +129,9 @@ export function RideWizard(props: Props & { step: number }) {
           <View style={s.summaryBlock}>
             <SummaryRow icon="📍" label="Embarque" value={props.origin?.text || '—'} />
             <SummaryRow icon="🏁" label={props.waitEstimatedMin ? 'Parada' : 'Destino'} value={props.destination?.text || '—'} />
+            {serviceLabel && (
+              <SummaryRow icon="🛎️" label="Serviço" value={serviceLabel} />
+            )}
             {props.waitEstimatedMin != null && (
               <SummaryRow icon="⏳" label="Espera" value={`~${props.waitEstimatedMin} min`} />
             )}
@@ -244,37 +263,40 @@ export function RideWizard(props: Props & { step: number }) {
         </ScrollView>
       )}
 
-      {/* Navigation */}
-      <View style={s.nav}>
-        {step > 0 ? (
-          <TouchableOpacity style={s.navBack} onPress={back}>
-            <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
-            <Text style={s.navBackText}>Voltar</Text>
-          </TouchableOpacity>
-        ) : <View />}
-        {step === 0 ? (
-          <TouchableOpacity
-            style={[s.navNext, !canAdvance() && s.navNextDisabled]}
-            onPress={next}
-            disabled={!canAdvance()}
-            activeOpacity={0.7}
-          >
-            <Text style={s.navNextText}>Continuar</Text>
-            <Ionicons name="arrow-forward" size={18} color={COLORS.textDark} />
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={[s.navSubmit, props.loading && { opacity: 0.6 }]}
-            onPress={props.onSubmit}
-            disabled={props.loading || (props.scheduleOption === 'custom' && !props.customTime)}
-            activeOpacity={0.7}
-          >
-            <Text style={s.navSubmitText}>
-              {props.loading ? 'Solicitando...' : props.scheduleOption === 'now' ? 'Pedir KAVIAR' : `Agendar para ${props.scheduleLabel}`}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* Navigation — only shown on step 0 and step 2.
+          Step 1 (ServiceSelector) manages its own navigation via onSelect callbacks. */}
+      {step !== 1 && (
+        <View style={s.nav}>
+          {step > 0 ? (
+            <TouchableOpacity style={s.navBack} onPress={back}>
+              <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
+              <Text style={s.navBackText}>Voltar</Text>
+            </TouchableOpacity>
+          ) : <View />}
+          {step === 0 ? (
+            <TouchableOpacity
+              style={[s.navNext, !canAdvance() && s.navNextDisabled]}
+              onPress={next}
+              disabled={!canAdvance()}
+              activeOpacity={0.7}
+            >
+              <Text style={s.navNextText}>Continuar</Text>
+              <Ionicons name="arrow-forward" size={18} color={COLORS.textDark} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[s.navSubmit, props.loading && { opacity: 0.6 }]}
+              onPress={props.onSubmit}
+              disabled={props.loading || (props.scheduleOption === 'custom' && !props.customTime)}
+              activeOpacity={0.7}
+            >
+              <Text style={s.navSubmitText}>
+                {props.loading ? 'Solicitando...' : props.scheduleOption === 'now' ? 'Pedir KAVIAR' : `Agendar para ${props.scheduleLabel}`}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 }

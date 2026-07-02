@@ -23,9 +23,9 @@ import { ScheduleSelector } from '../../src/components/passenger/ScheduleSelecto
 import { RideCompletedModal } from '../../src/components/passenger/RideCompletedModal';
 import { RideWizard } from '../../src/components/passenger/RideWizard';
 import { RadarPulse } from '../../src/components/passenger/RadarPulse';
+import { ServiceSelector, SelectableService } from '../../src/components/passenger/ServiceSelector';
 import { AdjustmentModal } from '../../src/components/AdjustmentModal';
 import { KaviarHub } from '../../src/components/passenger/KaviarHub';
-import { MotoTypeSelector } from '../../src/components/moto/MotoTypeSelector';
 import { MotoAcceptModal } from '../../src/components/moto/MotoAcceptModal';
 import { MotoUnavailableModal } from '../../src/components/moto/MotoUnavailableModal';
 import { MOTO_FLAGS } from '../../src/config/moto.config';
@@ -186,15 +186,47 @@ export default function PassengerMap() {
   const [showMotoAccept, setShowMotoAccept] = useState(false);
   const [motoConsented, setMotoConsented] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<'car' | 'moto'>('car');
+  const [selectedService, setSelectedService] = useState<SelectableService>('car');
   const [showMotoUnavailable, setShowMotoUnavailable] = useState(false);
+  const motoServiceAvailable = MOTO_FLAGS.enabled && MOTO_FLAGS.motoPassageiroVisible;
+  const motoEstimatePrice: number | null = null;
+  const motoServiceSelectable = motoServiceAvailable && motoEstimatePrice !== null;
+  const motoUnavailableText = motoServiceAvailable && motoEstimatePrice === null
+    ? 'Preço da Moto Passageiro indisponível no momento.'
+    : undefined;
 
   // Se navegou da Home com vehicle=moto (já aceitou termos)
   useEffect(() => {
     if (params.vehicle === 'moto' && MOTO_FLAGS.enabled) {
       setSelectedVehicle('moto');
+      setSelectedService('moto_passenger');
       setMotoConsented(true);
     }
   }, []);
+
+  const handleSelectService = (service: SelectableService) => {
+    if (service === 'car') {
+      setSelectedService('car');
+      setSelectedVehicle('car');
+      setMotoConsented(false);
+      setWizardStep(2);
+      return;
+    }
+
+    if (!motoServiceSelectable) return;
+
+    setSelectedService('moto_passenger');
+    setSelectedVehicle('moto');
+    if (motoConsented) {
+      setWizardStep(2);
+      return;
+    }
+    setShowMotoAccept(true);
+  };
+
+  const handleSelectSharedRides = () => {
+    router.push('/(passenger)/fixed-routes');
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -632,7 +664,7 @@ export default function PassengerMap() {
       console.log('[checkReturnHome] ✅ card SHOWN');
     } catch (e) { console.warn('[checkReturnHome] EXCEPTION:', e); }
   };
-  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); persistPassengerRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); setSharingLocation(false); lastMessageAtRef.current = null; cancelAlertRideRef.current = null; checkReturnHome(rideDestination); };
+  const resetToIdle = (rideDestination?: { lat: number; lng: number } | null) => { stopAll(); setRide(null); persistPassengerRide(null); setScreen('idle'); setDestination(null); setEstimate(null); setPassengerCount(1); setHasLuggage(false); setWaitEstimatedMin(null); setPostWaitDest(null); setShowAdjustment(false); adjustmentShownForRef.current = null; setBoardingStatus(null); setScheduleOption('now'); setCustomTime(null); setShowRedispatch(false); setWizardStep(0); setSelectedService('car'); setSelectedVehicle('car'); setMotoConsented(false); setSharingLocation(false); lastMessageAtRef.current = null; cancelAlertRideRef.current = null; checkReturnHome(rideDestination); };
   const rideEndLocation = (r: Ride | null) => {
     if (!r) return null;
     const pwd = (r as any).trip_details?.post_wait_destination;
@@ -1007,43 +1039,47 @@ export default function PassengerMap() {
             />
           )}
 
-          {MOTO_FLAGS.enabled && (
-            <MotoTypeSelector
-              selectedType={selectedVehicle}
-              onSelect={(t) => {
-                setSelectedVehicle(t);
-                if (t === 'moto') setShowMotoAccept(true);
-                else setMotoConsented(false);
-              }}
+          {wizardStep === 1 ? (
+            <View style={s.serviceSelectorSheet}>
+              <ServiceSelector
+                estimatePrice={estimate?.price ?? null}
+                motoEstimatePrice={motoEstimatePrice}
+                motoAvailable={motoServiceSelectable}
+                motoUnavailableText={motoUnavailableText}
+                onSelect={handleSelectService}
+                onSelectSharedRides={handleSelectSharedRides}
+                selectedService={selectedService}
+              />
+            </View>
+          ) : (
+            <RideWizard
+              step={wizardStep}
+              origin={origin}
+              destination={destination}
+              onSearchOrigin={() => openSearch('origin')}
+              onSearchDestination={() => openSearch('destination')}
+              estimate={estimate}
+              estimateLoading={estimateLoading}
+              passengerCount={passengerCount}
+              onPassengerChange={setPassengerCount}
+              hasLuggage={hasLuggage}
+              onLuggageToggle={() => setHasLuggage(!hasLuggage)}
+              waitEstimatedMin={waitEstimatedMin}
+              onWaitChange={(min) => { setWaitEstimatedMin(min); if (min === null) setPostWaitDest(null); }}
+              postWaitDest={postWaitDest}
+              onPostWaitClear={() => setPostWaitDest(null)}
+              onPostWaitSearch={() => { setSearchingFor('destination'); setScreen('search'); setPostWaitSearchMode(true); }}
+              scheduleOption={scheduleOption}
+              onScheduleChange={(opt) => { setScheduleOption(opt); if (opt === 'custom') setShowTimePicker(true); }}
+              customTime={customTime}
+              scheduleLabel={getScheduleLabel()}
+              loading={loading}
+              onSubmit={handleRequest}
+              onStepChange={setWizardStep}
+              preferWomanDriver={preferWomanDriver}
+              selectedService={selectedService}
             />
           )}
-
-          <RideWizard
-            step={wizardStep}
-            origin={origin}
-            destination={destination}
-            onSearchOrigin={() => openSearch('origin')}
-            onSearchDestination={() => openSearch('destination')}
-            estimate={estimate}
-            estimateLoading={estimateLoading}
-            passengerCount={passengerCount}
-            onPassengerChange={setPassengerCount}
-            hasLuggage={hasLuggage}
-            onLuggageToggle={() => setHasLuggage(!hasLuggage)}
-            waitEstimatedMin={waitEstimatedMin}
-            onWaitChange={(min) => { setWaitEstimatedMin(min); if (min === null) setPostWaitDest(null); }}
-            postWaitDest={postWaitDest}
-            onPostWaitClear={() => setPostWaitDest(null)}
-            onPostWaitSearch={() => { setSearchingFor('destination'); setScreen('search'); setPostWaitSearchMode(true); }}
-            scheduleOption={scheduleOption}
-            onScheduleChange={(opt) => { setScheduleOption(opt); if (opt === 'custom') setShowTimePicker(true); }}
-            customTime={customTime}
-            scheduleLabel={getScheduleLabel()}
-            loading={loading}
-            onSubmit={handleRequest}
-            onStepChange={setWizardStep}
-            preferWomanDriver={preferWomanDriver}
-          />
         </>
       )}
 
@@ -1498,8 +1534,20 @@ export default function PassengerMap() {
       {MOTO_FLAGS.enabled && (
         <MotoAcceptModal
           visible={showMotoAccept}
-          onAccept={() => { setShowMotoAccept(false); setMotoConsented(true); }}
-          onClose={() => setShowMotoAccept(false)}
+          onAccept={() => {
+            setShowMotoAccept(false);
+            setMotoConsented(true);
+            setSelectedService('moto_passenger');
+            setSelectedVehicle('moto');
+            if (wizardStep === 1) setWizardStep(2);
+          }}
+          onClose={() => {
+            setShowMotoAccept(false);
+            if (wizardStep === 1 && !motoConsented) {
+              setSelectedService('car');
+              setSelectedVehicle('car');
+            }
+          }}
         />
       )}
 
@@ -1561,6 +1609,24 @@ const s = StyleSheet.create({
   returnBtnPrimaryText: { fontSize: 14, fontWeight: '700', color: COLORS.textDark },
   returnBtnSecondary: { flex: 1, borderRadius: 8, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   returnBtnSecondaryText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
+
+  serviceSelectorSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 10,
+  },
 
   // Bottom card (idle)
   bottomCard: {
