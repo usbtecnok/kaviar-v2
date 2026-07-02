@@ -1,15 +1,16 @@
 /**
  * ServiceCarousel3D
  *
- * Carrossel 3D orbital premium para a seção "Serviços" da Home do Passageiro.
+ * Carrossel 3D orbital premium — genérico para 3 ou 4 itens.
  *
- * - 3 cards: Corrida, Rotas, Grupos
  * - Card ativo centralizado e em destaque
- * - Cards laterais com profundidade (rotateY + scale + opacity)
+ * - Cards laterais imediatos com profundidade (scale + opacity + translateX)
+ * - Cards a 2+ posições de distância ficam ocultos (opacity 0)
  * - Toque no card lateral → avança para o centro
  * - Toque no card central → navega
- * - Swipe horizontal → troca de card
- * - Sem autoplay (comportamento discreto por padrão)
+ * - Swipe horizontal via PanResponder
+ * - Dots de paginação clicáveis
+ * - Sem autoplay
  * - Usa apenas react-native Animated (sem Reanimated / gesture-handler)
  * - useNativeDriver: true em todos os Animated
  */
@@ -22,7 +23,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  AccessibilityInfo,
   useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +37,7 @@ export type ServiceItem = {
 };
 
 type Props = {
-  items: ServiceItem[];           // deve ter exatamente 3 itens
+  items: ServiceItem[];           // 3 ou 4 itens
   onNavigate: (route: string) => void;
 };
 
@@ -45,32 +45,31 @@ type Props = {
 
 const CARD_WIDTH  = 108;
 const CARD_HEIGHT = 76;
-const LATERAL_OFFSET = 100;   // translateX dos cards laterais
+const LATERAL_OFFSET = 100;   // translateX dos cards vizinhos imediatos
 const SWIPE_THRESHOLD = 40;   // px mínimos para contar como swipe
 
-// Valores por posição relativa: -1 (esquerda), 0 (centro), +1 (direita)
-const CONFIG = {
-  scale:    { [-1]: 0.82, [0]: 1.00, [1]: 0.82 },
-  opacity:  { [-1]: 0.72, [0]: 1.00, [1]: 0.72 },
-  rotateY:  { [-1]: '-32deg', [0]: '0deg', [1]: '32deg' },
-  translateX: { [-1]: -LATERAL_OFFSET, [0]: 0, [1]: LATERAL_OFFSET },
-  zIndex:   { [-1]: 1, [0]: 10, [1]: 1 },
-} as const;
+// Retorna os valores de transformação para um offset relativo ao card ativo.
+// offset: -1 (vizinho esquerdo), 0 (ativo), +1 (vizinho direito), ±2 (oculto)
+function configForOffset(offset: number) {
+  if (offset === 0)  return { scale: 1.00, opacity: 1.00, translateX: 0,                 zIndex: 10 };
+  if (offset === -1) return { scale: 0.82, opacity: 0.72, translateX: -LATERAL_OFFSET,   zIndex: 2  };
+  if (offset === 1)  return { scale: 0.82, opacity: 0.72, translateX:  LATERAL_OFFSET,   zIndex: 2  };
+  // ±2 ou mais: oculto atrás do card lateral, não interfere visualmente
+  return            { scale: 0.70, opacity: 0.00, translateX: offset < 0 ? -LATERAL_OFFSET * 1.6 : LATERAL_OFFSET * 1.6, zIndex: 0 };
+}
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export function ServiceCarousel3D({ items, onNavigate }: Props) {
   const { width: screenWidth } = useWindowDimensions();
+  const count = items.length;
 
-  // índice do card ativo
   const [activeIndex, setActiveIndex] = useState(0);
   const activeIndexRef = useRef(0);
 
-  // Um único Animated.Value para a posição fracionária do carrossel
-  // 0 = primeiro card ativo, 1 = segundo, 2 = terceiro
+  // Posição fracionária do carrossel: 0 = primeiro card ativo, n-1 = último
   const position = useRef(new Animated.Value(0)).current;
 
-  // Avança o carrossel para o índice alvo com animação suave
   const animateTo = (index: number) => {
     activeIndexRef.current = index;
     setActiveIndex(index);
@@ -87,66 +86,47 @@ export function ServiceCarousel3D({ items, onNavigate }: Props) {
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, { dx, dy }) => {
-        // Captura apenas gestos predominantemente horizontais
-        return Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8;
-      },
+      onMoveShouldSetPanResponder: (_, { dx, dy }) =>
+        Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8,
       onPanResponderRelease: (_, { dx }) => {
         const current = activeIndexRef.current;
-        if (dx < -SWIPE_THRESHOLD && current < items.length - 1) {
-          animateTo(current + 1);
-        } else if (dx > SWIPE_THRESHOLD && current > 0) {
-          animateTo(current - 1);
-        }
+        if (dx < -SWIPE_THRESHOLD && current < count - 1) animateTo(current + 1);
+        else if (dx > SWIPE_THRESHOLD && current > 0)     animateTo(current - 1);
       },
     })
   ).current;
 
-  // ─── Renderização dos cards ───────────────────────────────────────────────
+  // ─── Renderização ─────────────────────────────────────────────────────────
 
   return (
     <View style={styles.wrapper} {...panResponder.panHandlers}>
-      {/* Container com perspective para o efeito 3D */}
       <View style={[styles.stage, { width: screenWidth - 40 }]}>
         {items.map((item, index) => {
-          // Offset relativo ao card ativo: -1, 0 ou +1
-          const relativeOffset = index - activeIndex;
-          const isActive = relativeOffset === 0;
-          const clampedOffset = Math.max(-1, Math.min(1, relativeOffset)) as -1 | 0 | 1;
+          const isActive = index === activeIndex;
 
-          // Interpola transform e opacity a partir da posição animada
-          const translateX = position.interpolate({
-            inputRange: [0, 1, 2],
-            outputRange: items.map((_, i) => CONFIG.translateX[(index - i) as -1 | 0 | 1] ?? 0),
-            extrapolate: 'clamp',
-          });
+          // Para cada posição alvo possível (0..count-1), calcula o offset relativo
+          const inputRange = Array.from({ length: count }, (_, i) => i);
 
-          const scale = position.interpolate({
-            inputRange: [0, 1, 2],
-            outputRange: items.map((_, i) => CONFIG.scale[(index - i) as -1 | 0 | 1] ?? 0.8),
-            extrapolate: 'clamp',
-          });
+          const translateXOutput = inputRange.map((activePos) =>
+            configForOffset(index - activePos).translateX
+          );
+          const scaleOutput = inputRange.map((activePos) =>
+            configForOffset(index - activePos).scale
+          );
+          const opacityOutput = inputRange.map((activePos) =>
+            configForOffset(index - activePos).opacity
+          );
+          const zIndexForPos = inputRange.map((activePos) =>
+            configForOffset(index - activePos).zIndex
+          );
 
-          const opacity = position.interpolate({
-            inputRange: [0, 1, 2],
-            outputRange: items.map((_, i) => CONFIG.opacity[(index - i) as -1 | 0 | 1] ?? 0.5),
-            extrapolate: 'clamp',
-          });
+          // zIndex não pode ser animado — usamos o valor discreto do estado atual
+          const offsetNow = index - activeIndex;
+          const currentZIndex = configForOffset(offsetNow).zIndex;
 
-          // rotateY não pode ser interpolado diretamente com useNativeDriver
-          // Usamos um Animated.Value derivado de scale para aproximar o efeito
-          // A perspectiva é aplicada no container pai
-          const rotateYDeg = position.interpolate({
-            inputRange: [0, 1, 2],
-            outputRange: items.map((_, i) => {
-              const off = index - i;
-              if (off === -1) return -32;
-              if (off === 0) return 0;
-              if (off === 1) return 32;
-              return off < -1 ? -32 : 32;
-            }),
-            extrapolate: 'clamp',
-          });
+          const translateX = position.interpolate({ inputRange, outputRange: translateXOutput, extrapolate: 'clamp' });
+          const scale      = position.interpolate({ inputRange, outputRange: scaleOutput,     extrapolate: 'clamp' });
+          const opacity    = position.interpolate({ inputRange, outputRange: opacityOutput,   extrapolate: 'clamp' });
 
           return (
             <Animated.View
@@ -154,27 +134,19 @@ export function ServiceCarousel3D({ items, onNavigate }: Props) {
               style={[
                 styles.cardWrapper,
                 {
-                  zIndex: CONFIG.zIndex[clampedOffset],
-                  transform: [
-                    { translateX },
-                    { scale },
-                  ],
+                  zIndex: currentZIndex,
+                  transform: [{ translateX }, { scale }],
                   opacity,
                 },
               ]}
             >
               <TouchableOpacity
-                style={[
-                  styles.card,
-                  isActive && styles.cardActive,
-                ]}
+                style={[styles.card, isActive && styles.cardActive]}
                 activeOpacity={isActive ? 0.82 : 1}
                 onPress={() => {
                   if (!isActive) {
-                    // Card lateral: traz para o centro
                     animateTo(index);
                   } else {
-                    // Card ativo: navega
                     onNavigate(item.route);
                   }
                 }}
@@ -191,16 +163,14 @@ export function ServiceCarousel3D({ items, onNavigate }: Props) {
                 <Text style={[styles.label, isActive && styles.labelActive]}>
                   {item.label}
                 </Text>
-                {isActive && (
-                  <View style={styles.activeDot} />
-                )}
+                {isActive && <View style={styles.activeDot} />}
               </TouchableOpacity>
             </Animated.View>
           );
         })}
       </View>
 
-      {/* Indicadores de paginação */}
+      {/* Dots de paginação */}
       <View style={styles.dots}>
         {items.map((item, index) => (
           <TouchableOpacity
@@ -211,10 +181,7 @@ export function ServiceCarousel3D({ items, onNavigate }: Props) {
             accessibilityLabel={`Ir para ${item.label}`}
           >
             <Animated.View
-              style={[
-                styles.dot,
-                index === activeIndex && styles.dotActive,
-              ]}
+              style={[styles.dot, index === activeIndex && styles.dotActive]}
             />
           </TouchableOpacity>
         ))}
@@ -231,13 +198,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
-  // Container com perspectiva 3D
   stage: {
     height: CARD_HEIGHT + 16,
     alignItems: 'center',
     justifyContent: 'center',
-    // perspective no React Native não é suportado via StyleSheet diretamente;
-    // o efeito de profundidade vem do scale + translateX combinados
   },
 
   cardWrapper: {

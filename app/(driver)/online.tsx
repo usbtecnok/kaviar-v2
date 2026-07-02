@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../src/components/Button';
 import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
+import { ServiceCarousel3D } from '../../src/components/ServiceCarousel3D';
 import { driverApi } from '../../src/api/driver.api';
 import { apiClient } from '../../src/api/client';
 import { authStore } from '../../src/auth/auth.store';
@@ -44,10 +45,10 @@ const fixedRouteNotificationState = (globalThis as any).__kaviarFixedRouteNotifi
 });
 
 const OPPORTUNITY_ITEMS = [
-  { key: 'rides', icon: 'car-sport-outline' as const, label: 'Corridas' },
-  { key: 'routes', icon: 'repeat-outline' as const, label: 'Rotas', route: '/(driver)/fixed-routes' },
-  { key: 'groups', icon: 'people-outline' as const, label: 'Grupos', route: '/(driver)/groups' },
-  { key: 'earnings', icon: 'wallet-outline' as const, label: 'Ganhos', route: '/(driver)/summary' },
+  { key: 'rides',    icon: 'car-sport-outline' as const, label: 'Corridas', route: '/(driver)/history'     },
+  { key: 'routes',   icon: 'repeat-outline'    as const, label: 'Rotas',    route: '/(driver)/fixed-routes' },
+  { key: 'groups',   icon: 'people-outline'    as const, label: 'Grupos',   route: '/(driver)/groups'       },
+  { key: 'earnings', icon: 'wallet-outline'    as const, label: 'Ganhos',   route: '/(driver)/summary'      },
 ] as const;
 
 const DRIVER_SHOWCASE_ITEMS = [
@@ -679,21 +680,26 @@ export default function DriverOnline() {
         </Text>
 
         {!pendingOffer && (
-          <View style={styles.opportunityBar}>
-            {OPPORTUNITY_ITEMS.map((item, index) => (
-              <TouchableOpacity
-                key={item.key}
-                style={[styles.opportunityItem, index === 0 && styles.opportunityItemActive]}
-                onPress={() => {
-                  if (!item.route) return;
-                  router.push(item.route as any);
-                }}
-                activeOpacity={0.86}
-              >
-                <Ionicons name={item.icon} size={17} color={index === 0 ? '#8A6D1A' : '#5E6470'} />
-                <Text style={[styles.opportunityLabel, index === 0 && styles.opportunityLabelActive]}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.carouselWrap}>
+            <Text style={styles.carouselTitle}>Atalhos</Text>
+            <ServiceCarousel3D
+              items={OPPORTUNITY_ITEMS.map((i) => ({ ...i, route: i.route }))}
+              onNavigate={(route) => router.push(route as any)}
+            />
+          </View>
+        )}
+
+        {/* Botão Ficar Online logo abaixo do carrossel — ação principal do motorista */}
+        {!pendingOffer && !isOnline && (
+          <View style={styles.goOnlineWrap}>
+            {noCredits ? (
+              <Button title="Adicionar saldo para começar" onPress={() => router.push('/(driver)/credits')} />
+            ) : (
+              <>
+                <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
+                {loading && <Text style={styles.connectingHint}>Ativando localização e escuta de corridas.</Text>}
+              </>
+            )}
           </View>
         )}
 
@@ -785,17 +791,8 @@ export default function DriverOnline() {
           </View>
         )}
 
-        {/* Actions */}
-        {!isOnline ? (
-          noCredits ? (
-            <Button title="Adicionar saldo para começar" onPress={() => router.push('/(driver)/credits')} />
-          ) : (
-            <>
-              <Button title={loading ? 'Conectando...' : 'Ficar Online'} onPress={handleGoOnline} loading={loading} />
-              {loading && (<Text style={styles.connectingHint}>Ativando localização e escuta de corridas.</Text>)}
-            </>
-          )
-        ) : !pendingOffer ? (
+        {/* Aguardando / Ficar Offline — apenas quando já está online */}
+        {!pendingOffer && isOnline && (
           <>
             <View style={styles.waitingBox}>
               <Ionicons name={isReconnecting ? 'cloud-offline-outline' : 'radio-outline'} size={20} color={isReconnecting ? COLORS.warning : COLORS.textMuted} />
@@ -806,7 +803,7 @@ export default function DriverOnline() {
             </View>
             <Button title={isReconnecting ? 'Reconectando...' : 'Ficar Offline'} variant="outline" onPress={handleGoOffline} loading={loading} disabled={isReconnecting} />
           </>
-        ) : null}
+        )}
 
       </ScrollView>
 
@@ -878,38 +875,24 @@ const styles = StyleSheet.create({
     textAlign: 'center', letterSpacing: 6, marginBottom: 8,
   },
 
-  opportunityBar: {
-    flexDirection: 'row',
+  carouselWrap: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#EAEDF2',
-    padding: 8,
-    gap: 8,
+    paddingTop: 12,
+    paddingBottom: 10,
     marginBottom: 12,
   },
-  opportunityItem: {
-    flex: 1,
-    minHeight: 54,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#EAEDF2',
-    backgroundColor: '#FCFCFD',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  opportunityItemActive: {
-    borderColor: '#E8D9AA',
-    backgroundColor: '#FFFBF0',
-  },
-  opportunityLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+  carouselTitle: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#5E6470',
+    marginBottom: 8,
+    paddingHorizontal: 12,
   },
-  opportunityLabelActive: {
-    color: '#121316',
+  goOnlineWrap: {
+    marginBottom: 14,
   },
 
   ecosystemWrap: {
