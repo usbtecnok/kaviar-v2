@@ -14,6 +14,7 @@ import { DrawerMenu, DrawerItem } from '../../src/components/DrawerMenu';
 import { HomeBottomBar } from '../../src/components/passenger/HomeBottomBar';
 import { WomenPreferenceInvite } from '../../src/components/passenger/WomenPreferenceInvite';
 import { KaviarPremiumRailCard } from '../../src/components/KaviarPremiumRailCard';
+import { ServiceCarousel3D } from '../../src/components/ServiceCarousel3D';
 import {
   computeRecentFixedRouteMessages,
   getFixedRouteLastSeenMap,
@@ -298,19 +299,20 @@ export default function PassengerHome() {
 
           <View style={s.servicesWrap}>
             <Text style={s.servicesTitle}>Serviços</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.servicesScroll}>
-              {SERVICE_ITEMS.map((item, index) => (
-                <TouchableOpacity
-                  key={item.key}
-                  style={[s.serviceItem, index === 0 && s.serviceItemActive]}
-                  onPress={() => router.push(item.route as any)}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name={item.icon} size={18} color={index === 0 ? '#8A6D1A' : '#5E6470'} />
-                  <Text style={[s.serviceLabel, index === 0 && s.serviceLabelActive]}>{item.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <ServiceCarousel3D
+              items={SERVICE_ITEMS.filter((i) => i.key !== 'help')}
+              onNavigate={(route) => router.push(route as any)}
+            />
+            <TouchableOpacity
+              style={s.helpRow}
+              onPress={() => router.push('/(passenger)/help' as any)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Ajuda"
+            >
+              <Ionicons name="help-circle-outline" size={14} color="#8A9BB0" />
+              <Text style={s.helpLabel}>Ajuda</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={s.showcaseWrap}>
@@ -482,43 +484,28 @@ const s = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#EAEDF2',
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
     marginBottom: 12,
   },
   servicesTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: '#5E6470',
-    marginBottom: 10,
+    marginBottom: 8,
     paddingHorizontal: 12,
   },
-  servicesScroll: {
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  serviceItem: {
-    minWidth: 88,
-    height: 58,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#EAEDF2',
-    backgroundColor: '#FCFCFD',
+  helpRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
+    gap: 5,
+    paddingVertical: 6,
   },
-  serviceItemActive: {
-    borderColor: '#E8D9AA',
-    backgroundColor: '#FFFBF0',
-  },
-  serviceLabel: {
+  helpLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#5E6470',
-  },
-  serviceLabelActive: {
-    color: '#121316',
+    color: '#8A9BB0',
   },
 
   showcaseWrap: {
