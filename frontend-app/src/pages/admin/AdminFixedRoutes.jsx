@@ -60,21 +60,21 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const CONFIRM_ACTIONS = {
   pause: {
-    title: 'Pausar rota fixa?',
-    message: 'Essa rota deixara de aceitar novas reservas ate ser reativada.',
-    confirmLabel: 'Pausar rota',
+    title: 'Pausar Corrida Compartilhada?',
+    message: 'Essa corrida deixara de aceitar novas reservas ate ser reativada.',
+    confirmLabel: 'Pausar corrida',
     successLabel: 'pausada',
   },
   reactivate: {
-    title: 'Reativar rota fixa?',
-    message: 'A rota voltara a aceitar reservas, se ainda houver vagas disponiveis.',
-    confirmLabel: 'Reativar rota',
+    title: 'Reativar Corrida Compartilhada?',
+    message: 'A corrida voltara a aceitar reservas, se ainda houver vagas disponiveis.',
+    confirmLabel: 'Reativar corrida',
     successLabel: 'reativada',
   },
   archive: {
-    title: 'Arquivar rota fixa?',
-    message: 'Essa rota ficara oculta da lista principal e nao aceitara novas reservas. Essa acao nao apaga o historico.',
-    confirmLabel: 'Arquivar rota',
+    title: 'Arquivar Corrida Compartilhada?',
+    message: 'Essa corrida ficara oculta da lista principal e nao aceitara novas reservas. Essa acao nao apaga o historico.',
+    confirmLabel: 'Arquivar corrida',
     successLabel: 'arquivada',
   },
 };
@@ -222,7 +222,7 @@ export default function AdminFixedRoutes() {
       setRows(response.data || []);
       setTotal(Number(response.pagination?.total || 0));
     } catch (err) {
-      setError(err?.response?.data?.error || err.message || 'Erro ao carregar Rotas Fixas');
+      setError(err?.response?.data?.error || err.message || 'Erro ao carregar Corridas Compartilhadas');
     } finally {
       setLoading(false);
     }
@@ -367,7 +367,7 @@ export default function AdminFixedRoutes() {
   return (
     <Box>
       <Typography variant="h5" sx={{ color: '#B8942E', fontWeight: 800, mb: 2 }}>
-        Rotas Fixas
+        Corridas Compartilhadas
       </Typography>
 
       {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
@@ -639,7 +639,7 @@ export default function AdminFixedRoutes() {
 
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Box sx={{ width: { xs: 360, md: 520 }, p: 2.5 }}>
-          <Typography variant="h6" sx={{ mb: 1.5 }}>Detalhe da Rota Fixa</Typography>
+          <Typography variant="h6" sx={{ mb: 1.5 }}>Detalhe da Corrida Compartilhada</Typography>
 
           {!detail ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress /></Box>

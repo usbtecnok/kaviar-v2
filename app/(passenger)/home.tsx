@@ -69,7 +69,7 @@ const PASSENGER_SHOWCASE_ITEMS = [
   {
     key: 'rotas',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
-    title: 'Rotas Fixas',
+    title: 'Corridas Compartilhadas',
     description: 'Sua rotina com mais organização.',
     cta: 'Ver',
     artworkReady: true,
@@ -119,9 +119,9 @@ export default function PassengerHome() {
   const highlight = hasFixedRouteHighlight
     ? {
       icon: 'repeat-outline' as const,
-      title: 'Você tem novidade em Rotas Fixas',
+      title: 'Você tem novidade em Corridas Compartilhadas',
       text: 'Abra suas rotas para acompanhar mensagens e próximos embarques.',
-      cta: 'Ver rotas',
+      cta: 'Ver corridas',
       onPress: () => router.push('/(passenger)/fixed-routes'),
     }
     : notifUnread > 0
@@ -134,7 +134,7 @@ export default function PassengerHome() {
       }
       : {
         icon: 'sparkles-outline' as const,
-        title: 'Conheça Rotas Fixas',
+        title: 'Conheça Corridas Compartilhadas',
         text: 'Crie viagens frequentes para agilizar sua rotina.',
         cta: 'Explorar',
         onPress: () => router.push('/(passenger)/fixed-routes'),
@@ -222,7 +222,7 @@ export default function PassengerHome() {
     { key: 'groups',    label: 'Meus Grupos KAVIAR', icon: 'people-outline',       onPress: () => router.push('/(passenger)/groups')       },
     {
       key: 'fixed-routes',
-      label: 'Minhas Rotas Fixas',
+      label: 'Minhas Corridas Compartilhadas',
       icon: 'repeat-outline',
       badge: (hasRecentFixedRouteMessages || fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
       onPress: () => router.push('/(passenger)/fixed-routes')

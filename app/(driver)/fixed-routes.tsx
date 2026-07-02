@@ -175,7 +175,7 @@ export default function DriverFixedRoutesScreen() {
       const data = await driverApi.getFixedRoutes();
       setRoutes(data);
     } catch (error: unknown) {
-      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel carregar suas Rotas Fixas.'));
+      Alert.alert('Erro', getErrorMessage(error, 'Nao foi possivel carregar suas Corridas Compartilhadas.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -368,7 +368,7 @@ export default function DriverFixedRoutesScreen() {
         Alert.alert('Rota criada', `Convite ${created.invite_code} criado. Envie este codigo para o passageiro reservar pelo KAVIAR.`);
       }
     } catch (error: unknown) {
-      Alert.alert(editingRouteId ? 'Erro ao atualizar' : 'Erro ao criar', getErrorMessage(error, 'Nao foi possivel salvar a Rota Fixa.'));
+      Alert.alert(editingRouteId ? 'Erro ao atualizar' : 'Erro ao criar', getErrorMessage(error, 'Nao foi possivel salvar a Corrida Compartilhada.'));
     } finally {
       setSaving(false);
     }
@@ -566,7 +566,7 @@ export default function DriverFixedRoutesScreen() {
 
   const renderForm = () => (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>{editingRouteId ? 'Editar Rota Fixa' : 'Nova Rota Fixa'}</Text>
+      <Text style={styles.cardTitle}>{editingRouteId ? 'Editar Corrida Compartilhada' : 'Nova Corrida Compartilhada'}</Text>
       <Text style={styles.helperText}>Crie uma rota para passageiros que fazem o mesmo caminho que voce. A vaga so fica reservada quando o passageiro confirma pelo KAVIAR.</Text>
 
       <Input label="Titulo da rota" value={form.title} onChangeText={(value) => updateForm('title', value)} placeholder="Ex: Barra - Centro de manha" />
@@ -622,7 +622,7 @@ export default function DriverFixedRoutesScreen() {
           <Text style={styles.secondaryButtonText}>Fechar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.primaryButton, saving && styles.disabledButton]} onPress={saveRoute} disabled={saving}>
-          {saving ? <ActivityIndicator color={COLORS.textDark} /> : <Text style={styles.primaryButtonText}>{editingRouteId ? 'Salvar rota' : 'Criar rota'}</Text>}
+          {saving ? <ActivityIndicator color={COLORS.textDark} /> : <Text style={styles.primaryButtonText}>{editingRouteId ? 'Salvar corrida' : 'Criar corrida'}</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -881,7 +881,7 @@ export default function DriverFixedRoutesScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Carregando Rotas Fixas...</Text>
+          <Text style={styles.loadingText}>Carregando Corridas Compartilhadas...</Text>
         </View>
       </SafeAreaView>
     );
@@ -893,7 +893,14 @@ export default function DriverFixedRoutesScreen() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Minhas Rotas Fixas</Text>
+        <Text
+          style={[styles.title, { flex: 1, textAlign: 'center' }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.82}
+        >
+          Minhas Corridas Compartilhadas
+        </Text>
         <TouchableOpacity onPress={() => showForm ? closeForm() : setShowForm(true)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <Ionicons name={showForm ? 'close-outline' : 'add-circle-outline'} size={26} color={COLORS.primary} />
         </TouchableOpacity>
@@ -905,7 +912,7 @@ export default function DriverFixedRoutesScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.heroBox}>
-          <Text style={styles.heroTitle}>KAVIAR Rotas Fixas</Text>
+          <Text style={styles.heroTitle}>KAVIAR Corridas Compartilhadas</Text>
           <Text style={styles.heroText}>Organize rotas com horario combinado, vaga reservada e valor por passageiro.</Text>
           {archivedRouteNotice ? <Text style={styles.heroClosedText}>{archivedRouteNotice}</Text> : null}
           {(fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? (
@@ -916,14 +923,14 @@ export default function DriverFixedRoutesScreen() {
         {showForm ? renderForm() : (
           <TouchableOpacity style={styles.createButton} onPress={() => setShowForm(true)}>
             <Ionicons name="add-circle-outline" size={19} color={COLORS.textDark} />
-            <Text style={styles.createButtonText}>Criar Rota Fixa</Text>
+            <Text style={styles.createButtonText}>Criar Corrida Compartilhada</Text>
           </TouchableOpacity>
         )}
 
         {routes.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="repeat-outline" size={42} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>Nenhuma Rota Fixa criada</Text>
+            <Text style={styles.emptyTitle}>Nenhuma Corrida Compartilhada criada</Text>
             <Text style={styles.emptyText}>Crie uma rota para convidar passageiros que fazem o mesmo caminho que voce.</Text>
           </View>
         ) : routes.map(renderRoute)}

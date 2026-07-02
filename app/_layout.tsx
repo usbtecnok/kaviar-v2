@@ -181,7 +181,7 @@ export default function RootLayout() {
         }
 
         if (!isFixedRouteScreen && fixedRouteEvent?.type === 'fixed_route_message') {
-          Alert.alert('Mensagens da Rota Fixa', 'Voce recebeu uma nova mensagem em sua Rota Fixa.');
+          Alert.alert('Mensagens da Corrida Compartilhada', 'Voce recebeu uma nova mensagem em sua Corrida Compartilhada.');
         }
       });
 

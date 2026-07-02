@@ -248,7 +248,7 @@ export default function PassengerMap() {
     { key: 'groups', label: 'Meus Grupos KAVIAR', icon: 'people-outline', onPress: () => router.push('/(passenger)/groups') },
     {
       key: 'fixed-routes',
-      label: 'Minhas Rotas Fixas',
+      label: 'Minhas Corridas Compartilhadas',
       icon: 'repeat-outline',
       badge: (hasRecentFixedRouteMessages || fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
       onPress: () => router.push('/(passenger)/fixed-routes')

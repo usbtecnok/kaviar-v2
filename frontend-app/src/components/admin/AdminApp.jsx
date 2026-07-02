@@ -450,7 +450,7 @@ function AdminHome() {
             ]},
             { section: 'Pessoas e Território', items: [
               { Icon: Group, title: 'Grupos KAVIAR', desc: 'Criar grupos, convites e acompanhar membros', to: '/admin/groups' },
-              { Icon: DirectionsCar, title: 'Rotas Fixas', desc: 'Visão operacional, reservas e ciclo de vida', to: '/admin/fixed-routes' },
+              { Icon: DirectionsCar, title: 'Corridas Compartilhadas', desc: 'Visão operacional, reservas e ciclo de vida', to: '/admin/fixed-routes' },
               { Icon: DriveEta, title: 'Motoristas', desc: 'Gerenciar motoristas', to: '/admin/drivers' },
               { Icon: People, title: 'Passageiros', desc: 'Gerenciar passageiros', to: '/admin/passengers' },
               { Icon: Explore, title: 'Guias Turísticos', desc: 'Gerenciar guias', to: '/admin/guides' },

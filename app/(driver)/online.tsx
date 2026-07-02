@@ -96,7 +96,7 @@ const DRIVER_SHOWCASE_ITEMS = [
   {
     key: 'fixed-routes',
     image: KAVIAR_SOLUTION_IMAGES.rotas,
-    title: 'Rotas Fixas',
+    title: 'Corridas Compartilhadas',
     description: 'Viagens recorrentes e rotina previsível.',
     cta: 'Ver',
     artworkReady: true,
@@ -162,7 +162,7 @@ export default function DriverOnline() {
     { key: 'groups', label: 'Grupos KAVIAR', icon: 'people-outline', onPress: () => router.push('/(driver)/groups') },
     {
       key: 'fixed-routes',
-      label: 'Minhas Rotas Fixas',
+      label: 'Minhas Corridas Compartilhadas',
       icon: 'repeat-outline',
       badge: (fixedRouteNotificationState.recentRouteIds.size > 0 || fixedRouteNotificationState.recentReservationIds.size > 0) ? '•' : undefined,
       onPress: () => router.push('/(driver)/fixed-routes'),
@@ -566,14 +566,14 @@ export default function DriverOnline() {
     ? {
       icon: 'repeat-outline' as const,
       title: 'Você tem mensagens de rota',
-      text: 'Confira suas Rotas Fixas para responder passageiros e organizar horários.',
-      cta: 'Ver rotas',
+      text: 'Confira suas Corridas Compartilhadas para responder passageiros e organizar horários.',
+      cta: 'Ver corridas',
       onPress: () => router.push('/(driver)/fixed-routes'),
     }
     : !isOnline
       ? {
         icon: 'sparkles-outline' as const,
-        title: 'Crie uma rota fixa',
+        title: 'Crie uma Corrida Compartilhada',
         text: 'Ganhe previsibilidade com passageiros recorrentes da sua região.',
         cta: 'Criar agora',
         onPress: () => router.push('/(driver)/fixed-routes'),

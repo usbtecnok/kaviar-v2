@@ -161,7 +161,7 @@ export default function PassengerFixedRoutesScreen() {
       setReservations(data);
       await refreshRecentMessages(data);
     } catch (error: unknown) {
-      Alert.alert('Erro', getErrorMessage(error, 'Não foi possível carregar suas Rotas Fixas.'));
+      Alert.alert('Erro', getErrorMessage(error, 'Não foi possível carregar suas Corridas Compartilhadas.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -232,7 +232,7 @@ export default function PassengerFixedRoutesScreen() {
   const checkInvite = async (explicitCode?: string) => {
     const normalized = normalizeFixedRouteInviteCode(explicitCode || code);
     if (!normalized) {
-      Alert.alert('Código obrigatório', 'Digite um código KFR de Rota Fixa.');
+      Alert.alert('Código obrigatório', 'Digite um código KFR de Corrida Compartilhada.');
       return;
     }
     if (!normalized.startsWith('KFR-')) {
@@ -247,7 +247,7 @@ export default function PassengerFixedRoutesScreen() {
       setCode(normalized);
     } catch (error: unknown) {
       setPreview(null);
-      Alert.alert('Convite', getErrorMessage(error, 'Convite de Rota Fixa não encontrado.'));
+      Alert.alert('Convite', getErrorMessage(error, 'Convite de Corrida Compartilhada não encontrado.'));
     } finally {
       setChecking(false);
     }
@@ -272,7 +272,7 @@ export default function PassengerFixedRoutesScreen() {
   };
 
   const cancelReservation = (reservation: FixedRouteReservation) => {
-    Alert.alert('Cancelar reserva', 'Deseja cancelar sua vaga reservada nesta Rota Fixa?', [
+    Alert.alert('Cancelar reserva', 'Deseja cancelar sua vaga reservada nesta Corrida Compartilhada?', [
       { text: 'Voltar', style: 'cancel' },
       {
         text: 'Cancelar reserva',
@@ -345,7 +345,7 @@ export default function PassengerFixedRoutesScreen() {
 
     return (
       <View style={styles.previewBox}>
-        <Text style={styles.previewEyebrow}>Rota Fixa KAVIAR</Text>
+        <Text style={styles.previewEyebrow}>Corrida Compartilhada KAVIAR</Text>
         <Text style={styles.previewTitle}>{preview.title || 'Rota com horário combinado'}</Text>
         <Text style={styles.previewText}>Você foi convidado para reservar uma vaga em uma rota com horário combinado.</Text>
         <Text style={styles.previewText}>A vaga só fica reservada quando você confirma pelo KAVIAR.</Text>
@@ -484,7 +484,7 @@ export default function PassengerFixedRoutesScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Carregando Rotas Fixas...</Text>
+          <Text style={styles.loadingText}>Carregando Corridas Compartilhadas...</Text>
         </View>
       </SafeAreaView>
     );
@@ -496,7 +496,14 @@ export default function PassengerFixedRoutesScreen() {
         <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Minhas Rotas Fixas</Text>
+        <Text
+          style={[styles.title, { flex: 1, textAlign: 'center' }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.82}
+        >
+          Minhas Corridas Compartilhadas
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -506,7 +513,7 @@ export default function PassengerFixedRoutesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
       >
         <View style={styles.inviteBox}>
-          <Text style={styles.sectionTitle}>Rota Fixa KAVIAR</Text>
+          <Text style={styles.sectionTitle}>Corrida Compartilhada KAVIAR</Text>
           <Text style={styles.helperText}>Você foi convidado para reservar uma vaga em uma rota com horário combinado.</Text>
           <View style={styles.inputRow}>
             <TextInput
@@ -531,7 +538,7 @@ export default function PassengerFixedRoutesScreen() {
         {activeReservations.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="repeat-outline" size={42} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>Nenhuma Rota Fixa ativa</Text>
+            <Text style={styles.emptyTitle}>Nenhuma Corrida Compartilhada ativa</Text>
             <Text style={styles.emptyText}>Cole um codigo KFR para ver horario, valor e vagas antes de confirmar.</Text>
           </View>
         ) : activeReservations.map(renderReservation)}

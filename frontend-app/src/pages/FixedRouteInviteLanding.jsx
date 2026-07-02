@@ -170,7 +170,7 @@ export default function FixedRouteInviteLanding() {
   async function copyInviteText() {
     const inviteCode = invite?.code || normalizedCode;
     const text = [
-      `Tenho uma Rota Fixa no KAVIAR. ${tripTypeLead(invite?.trip_type || 'round_trip')}`,
+      `Tenho uma Corrida Compartilhada no KAVIAR. ${tripTypeLead(invite?.trip_type || 'round_trip')}`,
       'Para reservar sua vaga, baixe o app Passageiro e use o código:',
       inviteCode,
       'Link:',
@@ -193,7 +193,7 @@ export default function FixedRouteInviteLanding() {
     window.location.href = deepLink();
   }
 
-  const routeTitle = invite?.title || 'Rota Fixa KAVIAR';
+  const routeTitle = invite?.title || 'Corrida Compartilhada KAVIAR';
   const driverName = invite?.driver?.first_name || invite?.driver?.name || '';
   const tripType = invite?.trip_type || 'round_trip';
 
@@ -219,10 +219,10 @@ export default function FixedRouteInviteLanding() {
         >
           <CardContent sx={{ p: { xs: 3, md: 4 } }}>
             <Typography sx={{ color: '#C8A84E', fontWeight: 800, fontSize: 12, letterSpacing: 1.1, mb: 1 }}>
-              ROTAS FIXAS KAVIAR
+              CORRIDAS COMPARTILHADAS KAVIAR
             </Typography>
             <Typography variant="h4" sx={{ color: '#F8FAFC', fontWeight: 900, lineHeight: 1.15, mb: 1 }}>
-              Você foi convidado para uma Rota Fixa KAVIAR.
+              Você foi convidado para uma Corrida Compartilhada KAVIAR.
             </Typography>
             <Typography sx={{ color: '#CBD5E1', mb: 0.5, fontWeight: 600 }}>
               Reserve sua vaga com horário combinado.
@@ -413,7 +413,7 @@ export default function FixedRouteInviteLanding() {
                 </Stack>
 
                 <Typography sx={{ color: '#8D9BB3', fontSize: 12, mt: 1.8, textAlign: 'center' }}>
-                  Se o app não abrir, use o código no app Passageiro em Minhas Rotas Fixas.
+                  Se o app não abrir, use o código no app Passageiro em Minhas Corridas Compartilhadas.
                 </Typography>
 
                 <Typography sx={{ color: '#7183A3', fontSize: 11, mt: 0.8, textAlign: 'center' }}>
