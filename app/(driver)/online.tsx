@@ -68,7 +68,7 @@ const DRIVER_SHOWCASE_ITEMS = [
     image: KAVIAR_SOLUTION_IMAGES.motoEntrega,
     title: 'Moto Entrega',
     description: 'Ganhe também com entregas locais em regiões habilitadas.',
-    cta: 'Em breve',
+    cta: 'Disponível por região',
     artworkReady: true,
     tint: '#F4F6F9',
     accent: '#8A6D1A',
@@ -77,8 +77,8 @@ const DRIVER_SHOWCASE_ITEMS = [
     key: 'moto-passageiro',
     image: KAVIAR_SOLUTION_IMAGES.moto,
     title: 'Moto Passageiro',
-    description: 'Mais uma modalidade para motoristas aprovados.',
-    cta: 'Em breve',
+    description: 'Modalidade disponível conforme habilitação da sua cidade.',
+    cta: 'Disponível por região',
     artworkReady: true,
     tint: '#F4F6F9',
     accent: '#8A6D1A',
@@ -87,8 +87,8 @@ const DRIVER_SHOWCASE_ITEMS = [
     key: 'women-drivers',
     image: KAVIAR_SOLUTION_IMAGES.mulheres,
     title: 'Motoristas mulheres',
-    description: 'Mais confiança para passageiras que preferem ser atendidas por mulheres.',
-    cta: 'Em breve',
+    description: 'Atendimento especial disponível conforme regras e disponibilidade local.',
+    cta: 'Disponível por região',
     artworkReady: true,
     tint: '#F4F6F9',
     accent: '#8A6D1A',
@@ -723,15 +723,32 @@ export default function DriverOnline() {
         )}
 
         {!pendingOffer && (
-          <TouchableOpacity style={styles.contextCard} onPress={opportunityContext.onPress} activeOpacity={0.9}>
-            <View style={styles.contextIcon}>
-              <Ionicons name={opportunityContext.icon} size={18} color="#8A6D1A" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.contextTitle}>{opportunityContext.title}</Text>
-              <Text style={styles.contextText}>{opportunityContext.text}</Text>
-            </View>
-            <Text style={styles.contextCta}>{opportunityContext.cta}</Text>
+          <View style={styles.waitingChip}>
+            <Ionicons
+              name={isReconnecting ? 'cloud-offline-outline' : 'radio-outline'}
+              size={13}
+              color={isReconnecting ? COLORS.warning : '#8A9BB0'}
+            />
+            <Text style={[styles.waitingChipText, isReconnecting && { color: COLORS.warning }]}>
+              {isReconnecting ? 'Reconectando...' : isOnline ? 'Aguardando corridas' : ''}
+            </Text>
+          </View>
+        )}
+
+        {/* Ficar Offline — discreto, secundário */}
+        {!pendingOffer && isOnline && (
+          <TouchableOpacity
+            style={[styles.offlineBtn, isReconnecting && styles.offlineBtnDisabled]}
+            onPress={handleGoOffline}
+            disabled={loading || isReconnecting}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Ficar Offline"
+          >
+            <Ionicons name="power-outline" size={14} color={isReconnecting ? '#8A9BB0' : '#5E6470'} />
+            <Text style={[styles.offlineBtnText, isReconnecting && { color: '#8A9BB0' }]}>
+              {loading ? 'Aguarde...' : isReconnecting ? 'Reconectando...' : 'Ficar Offline'}
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -789,20 +806,6 @@ export default function DriverOnline() {
               </View>
             )}
           </View>
-        )}
-
-        {/* Aguardando / Ficar Offline — apenas quando já está online */}
-        {!pendingOffer && isOnline && (
-          <>
-            <View style={styles.waitingBox}>
-              <Ionicons name={isReconnecting ? 'cloud-offline-outline' : 'radio-outline'} size={20} color={isReconnecting ? COLORS.warning : COLORS.textMuted} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.waitingText}>{isReconnecting ? 'Sem internet. Reconectando para receber corridas...' : 'Aguardando corridas...'}</Text>
-                {!isReconnecting && <Text style={styles.waitingSubText}>Mantenha o app aberto e a localização ativa.</Text>}
-              </View>
-            </View>
-            <Button title={isReconnecting ? 'Reconectando...' : 'Ficar Offline'} variant="outline" onPress={handleGoOffline} loading={loading} disabled={isReconnecting} />
-          </>
         )}
 
       </ScrollView>
@@ -1054,12 +1057,48 @@ const styles = StyleSheet.create({
   },
   muteBtnText: { fontSize: 13, color: COLORS.textMuted },
 
-  // Waiting
-  waitingBox: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24, gap: 8,
+  // Waiting / offline controls
+  waitingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#F2F4F7',
+    borderWidth: 1,
+    borderColor: '#E2E6ED',
+    marginBottom: 12,
   },
-  waitingText: { fontSize: 15, color: '#5E6470', textAlign: 'center' },
-  waitingSubText: { fontSize: 12, color: '#5E6470', marginTop: 4, textAlign: 'center' },
+  waitingChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#8A9BB0',
+  },
+  offlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#D0D5DE',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+  },
+  offlineBtnDisabled: {
+    borderColor: '#E8EAF0',
+    backgroundColor: '#F8F9FB',
+  },
+  offlineBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#5E6470',
+  },
   connectingHint: { fontSize: 12, color: '#5E6470', textAlign: 'center', marginTop: 10, marginBottom: 8 },
 
   // Credits
