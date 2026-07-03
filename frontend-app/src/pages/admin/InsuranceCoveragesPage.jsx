@@ -24,6 +24,64 @@ import {
 import { Add, Refresh } from '@mui/icons-material';
 import { API_BASE_URL } from '../../config/api';
 
+const IZA_STATUS_ITEMS = [
+  'Propostas comerciais recebidas.',
+  'Análise interna aprovada para seguir com a IZA.',
+  'Contratação ainda pendente.',
+  'Apólice ainda não emitida.',
+  'Cobertura ainda não ativa.',
+  'Uso no sistema apenas como referência interna.',
+];
+
+const IZA_PLANS = [
+  {
+    title: 'Mensal Motoristas e Passageiros — Plano 2',
+    use: 'Carro Passageiro e Moto Passageiro, se aprovado em contrato, apólice e permitido pelo município.',
+    model: 'Mensal, sem API obrigatória no início.',
+    referenceCost: 'R$ 39,18 por vida/mês.',
+    minimumLives: '20 vidas.',
+    estimatedMinimumCost: 'R$ 783,60/mês + IOF.',
+    coverages: [
+      'Motorista: morte acidental R$ 20.000, invalidez R$ 20.000, DMHO até R$ 5.000, DIT até R$ 80 por até 30 dias e auxílio funeral R$ 5.000.',
+      'Passageiro: morte acidental R$ 20.000, invalidez até R$ 20.000 e auxílio funeral R$ 5.000.',
+    ],
+    pending: [
+      'contrato assinado;',
+      'apólice emitida;',
+      'vigência definida;',
+      'confirmação formal para 2 rodas e 4 rodas;',
+      'confirmação formal para Moto Passageiro / mototáxi;',
+      'confirmação de uso do log/percurso da corrida KAVIAR em caso de sinistro;',
+      'confirmação de que atende ao seguro APP/acidentes pessoais exigido para transporte por aplicativo;',
+      'regras de cancelamento/multa da vigência de 12 meses.',
+    ],
+  },
+  {
+    title: 'Mensal Entregas — Plano 3',
+    use: 'Moto Entrega / Moto Express.',
+    model: 'Mensal, sem API obrigatória no início.',
+    referenceCost: 'R$ 23,93 por vida/mês.',
+    minimumLives: '20 vidas.',
+    estimatedMinimumCost: 'R$ 478,60/mês + IOF.',
+    coverages: [
+      'morte acidental R$ 20.000;',
+      'invalidez R$ 20.000;',
+      'DMHO até R$ 3.000;',
+      'DIT até R$ 80 por até 20 dias;',
+      'auxílio funeral R$ 5.000.',
+    ],
+    pending: [
+      'contrato assinado;',
+      'apólice emitida;',
+      'vigência definida;',
+      'confirmação de CNH/documentos exigidos;',
+      'confirmação de cobertura 24h para prestador/motoboy;',
+      'regras de inclusão/exclusão no Portal IZA;',
+      'regras de cancelamento/multa da vigência de 12 meses.',
+    ],
+  },
+];
+
 const MODALITIES = [
   { value: 'CAR_PASSENGER', label: 'Carro Passageiro' },
   { value: 'MOTO_PASSENGER', label: 'Moto Passageiro' },
@@ -246,6 +304,131 @@ export default function InsuranceCoveragesPage() {
           {feedback.message}
         </Alert>
       )}
+
+      <Card
+        sx={{
+          mb: 2,
+          border: '1px solid #E8E5DE',
+          borderTop: '3px solid #B8942E',
+          background: 'linear-gradient(135deg, #FFFDF7 0%, #F7F2E7 100%)',
+          boxShadow: '0 8px 24px rgba(184,148,46,0.08)',
+        }}
+      >
+        <CardContent>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mb: 1.5, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Fornecedor preferencial', color: '#8A6A11', bg: '#F6E7B8', border: '#E2C15B' },
+              { label: 'Em negociação', color: '#8C5A12', bg: '#F7E2C2', border: '#E5B97A' },
+              { label: 'DRAFT', color: '#5B6472', bg: '#ECEFF3', border: '#C9D1DB' },
+              { label: 'Aguardando contrato', color: '#7C4A03', bg: '#F3E5D1', border: '#D9B68C' },
+            ].map((chip) => (
+              <Chip
+                key={chip.label}
+                size="small"
+                label={chip.label}
+                sx={{
+                  bgcolor: chip.bg,
+                  color: chip.color,
+                  border: `1px solid ${chip.border}`,
+                  fontWeight: 700,
+                }}
+              />
+            ))}
+          </Stack>
+
+          <Typography variant="h6" sx={{ color: '#5E4610', fontWeight: 800, mb: 0.5 }}>
+            IZA — Seguradora preferencial em negociação
+          </Typography>
+          <Typography sx={{ color: '#6B7280', fontSize: 14, mb: 2 }}>
+            Fornecedor escolhido para avançar na negociação de Seguro APP e Acidentes Pessoais da KAVIAR. Ainda sem contrato assinado, apólice emitida ou cobertura ativa.
+          </Typography>
+
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            <Grid item xs={12} md={4}>
+              <Card sx={{ height: '100%', border: '1px solid #E8E5DE', bgcolor: 'rgba(255,255,255,0.65)' }}>
+                <CardContent>
+                  <Typography sx={{ color: '#8A6A11', fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 1 }}>
+                    Status atual
+                  </Typography>
+                  <Stack spacing={0.8}>
+                    {IZA_STATUS_ITEMS.map((item) => (
+                      <Typography key={item} sx={{ color: '#4B5563', fontSize: 13, lineHeight: 1.45 }}>
+                        • {item}
+                      </Typography>
+                    ))}
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {IZA_PLANS.map((plan) => (
+              <Grid item xs={12} md={4} key={plan.title}>
+                <Card sx={{ height: '100%', border: '1px solid #E8E5DE', bgcolor: 'rgba(255,255,255,0.72)' }}>
+                  <CardContent>
+                    <Typography sx={{ color: '#1F2937', fontWeight: 800, fontSize: 15, mb: 1.2 }}>
+                      {plan.title}
+                    </Typography>
+
+                    <Stack spacing={1}>
+                      <Box>
+                        <Typography sx={{ color: '#8A6A11', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Uso previsto</Typography>
+                        <Typography sx={{ color: '#4B5563', fontSize: 13 }}>{plan.use}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ color: '#8A6A11', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Modelo</Typography>
+                        <Typography sx={{ color: '#4B5563', fontSize: 13 }}>{plan.model}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ color: '#8A6A11', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Custo de referência</Typography>
+                        <Typography sx={{ color: '#4B5563', fontSize: 13 }}>{plan.referenceCost}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ color: '#8A6A11', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Mínimo informado</Typography>
+                        <Typography sx={{ color: '#4B5563', fontSize: 13 }}>{plan.minimumLives}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ color: '#8A6A11', fontSize: 12, fontWeight: 700, textTransform: 'uppercase' }}>Custo mínimo estimado</Typography>
+                        <Typography sx={{ color: '#4B5563', fontSize: 13 }}>{plan.estimatedMinimumCost}</Typography>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ color: '#8A6A11', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', mb: 0.4 }}>Coberturas informadas</Typography>
+                        <Stack spacing={0.6}>
+                          {plan.coverages.map((item) => (
+                            <Typography key={item} sx={{ color: '#4B5563', fontSize: 13, lineHeight: 1.45 }}>
+                              • {item}
+                            </Typography>
+                          ))}
+                        </Stack>
+                      </Box>
+                      <Box>
+                        <Typography sx={{ color: '#8A6A11', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', mb: 0.4 }}>Pendências antes de ativar</Typography>
+                        <Stack spacing={0.6}>
+                          {plan.pending.map((item) => (
+                            <Typography key={item} sx={{ color: '#4B5563', fontSize: 13, lineHeight: 1.45 }}>
+                              • {item}
+                            </Typography>
+                          ))}
+                        </Stack>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+
+          <Alert
+            severity="warning"
+            sx={{
+              border: '1px solid #E6C27A',
+              bgcolor: '#FFF7E8',
+              '& .MuiAlert-icon': { color: '#9A6700' },
+            }}
+          >
+            Importante: a IZA foi escolhida para negociação futura, mas a KAVIAR ainda não possui cobertura ativa. Não comunicar viagens seguradas e não liberar operação real com base nesta cotação. Só marcar como ACTIVE após contrato, apólice, vigência, documentos e validação operacional.
+          </Alert>
+        </CardContent>
+      </Card>
 
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} md={3}>
