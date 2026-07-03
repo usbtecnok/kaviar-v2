@@ -38,6 +38,8 @@ model admins {
   contract_submissions_sent   contract_submissions[]          @relation("cs_submitter")
   contract_submissions_reviewed contract_submissions[]        @relation("cs_reviewer")
   kaviar_group_posts_author   kaviar_group_posts[]            @relation("kaviar_group_posts_author_admin")
+  insurance_coverages_created operational_insurance_coverages[] @relation("insurance_coverages_created_by")
+  insurance_coverages_updated operational_insurance_coverages[] @relation("insurance_coverages_updated_by")
 }
 
 model communities {
@@ -1881,11 +1883,43 @@ model operational_territories {
   manager_assignments  territory_manager_assignments[]
   shadow_results       wallet_shadow_results[]
   moto_compliance      moto_passenger_compliance?
+  insurance_coverages  operational_insurance_coverages[]
 
   @@unique([name, level, parent_id])
   @@index([level])
   @@index([status])
   @@index([parent_id])
+}
+
+model operational_insurance_coverages {
+  id                      String   @id @default(uuid())
+  territory_id            String?
+  modality                String   @db.VarChar(30) // CAR_PASSENGER | MOTO_PASSENGER | MOTO_DELIVERY
+  provider_name           String   @db.VarChar(200)
+  policy_number           String   @db.VarChar(120)
+  coverage_type           String   @db.VarChar(30) // APP | RC_F | PERSONAL_ACCIDENT | CARGO | OTHER
+  coverage_description    String?
+  coverage_amount_death   Decimal? @db.Decimal(12, 2)
+  coverage_amount_disability Decimal? @db.Decimal(12, 2)
+  coverage_amount_medical Decimal? @db.Decimal(12, 2)
+  valid_from              DateTime @db.Date
+  valid_until             DateTime @db.Date
+  status                  String   @default("DRAFT") @db.VarChar(20) // DRAFT | ACTIVE | EXPIRED | SUSPENDED
+  document_url            String?
+  notes                   String?
+  created_by_admin_id     String?
+  updated_by_admin_id     String?
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  territory               operational_territories? @relation(fields: [territory_id], references: [id], onDelete: SetNull)
+  created_by_admin        admins? @relation("insurance_coverages_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull)
+  updated_by_admin        admins? @relation("insurance_coverages_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull)
+
+  @@index([territory_id])
+  @@index([modality])
+  @@index([status])
+  @@index([valid_until])
 }
 
 model moto_passenger_compliance {
