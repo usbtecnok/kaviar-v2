@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Image, Alert, Clipboard, RefreshControl, Linking } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Image, Alert, Clipboard, RefreshControl, Linking, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ export default function DriverCredits() {
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [buying, setBuying] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
 
   // Pix payment state
   const [pixData, setPixData] = useState<{ rechargeId: string; qrCode: string; copyPaste: string; amount: number; expiresAt: string } | null>(null);
@@ -97,13 +98,23 @@ export default function DriverCredits() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleBuy = async (pkg: Package) => {
+  const openPaymentMethodSelector = (pkg: Package) => {
     if (buying) return;
+    setSelectedPackage(pkg);
+  };
+
+  const closePaymentMethodSelector = () => {
+    setSelectedPackage(null);
+  };
+
+  const handleBuy = async (provider: 'sumup' | 'asaas') => {
+    if (buying || !selectedPackage) return;
     setBuying(true);
     try {
-      const result = await driverApi.createWalletRecharge(pkg.id, 'sumup');
+      const result = await driverApi.createWalletRecharge(selectedPackage.id, provider);
 
       if (result.payment_provider === 'sumup' && result.checkout?.url) {
+        closePaymentMethodSelector();
         await Linking.openURL(result.checkout.url);
         setSumupData({
           rechargeId: result.rechargeId,
@@ -114,6 +125,7 @@ export default function DriverCredits() {
       }
 
       if (result.payment_provider === 'asaas') {
+        closePaymentMethodSelector();
         setPixData({
           rechargeId: result.rechargeId,
           qrCode: result.pix?.qrCode || '',
@@ -124,8 +136,10 @@ export default function DriverCredits() {
         return;
       }
 
+      closePaymentMethodSelector();
       Alert.alert('Erro', 'Não foi possível iniciar o pagamento.');
     } catch (e: any) {
+      closePaymentMethodSelector();
       if (e.response?.status === 403) {
         Alert.alert('Saldo KAVIAR em preparação', 'A recarga por Pix estará disponível em breve.');
       } else {
@@ -205,14 +219,15 @@ export default function DriverCredits() {
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => setSumupData(null)}><Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} /></TouchableOpacity>
-        <Text style={s.title}>Pagamento SumUp</Text>
+        <Text style={s.title}>Cartão, Google Pay ou Apple Pay</Text>
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={s.pixContainer}>
         <View style={s.pixCard}>
           <Ionicons name="open-outline" size={32} color={COLORS.primary} />
           <Text style={s.pixTitle}>Pagamento SumUp aberto</Text>
-          <Text style={s.pixSub}>Valor R$ {sumupData.amount.toFixed(2)}</Text>
+          <Text style={s.pixSub}>Pagamento seguro pela SumUp</Text>
+          <Text style={[s.pixSub, { marginTop: 0, marginBottom: 20 }]}>Valor R$ {sumupData.amount.toFixed(2)}</Text>
 
           <Text style={s.pixInstructions}>Finalize o pagamento no checkout hospedado da SumUp. Após a confirmação, seu saldo será creditado automaticamente.</Text>
 
@@ -239,14 +254,15 @@ export default function DriverCredits() {
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <TouchableOpacity onPress={handlePixDone}><Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} /></TouchableOpacity>
-        <Text style={s.title}>Pagamento Pix</Text>
+        <Text style={s.title}>Pix</Text>
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={s.pixContainer}>
         <View style={s.pixCard}>
           <Ionicons name="checkmark-circle-outline" size={32} color={COLORS.primary} />
-          <Text style={s.pixTitle}>Cobrança criada</Text>
-          <Text style={s.pixSub}>Saldo R$ {pixData.amount.toFixed(2)}</Text>
+          <Text style={s.pixTitle}>Pix</Text>
+          <Text style={s.pixSub}>Código Pix para pagar pelo app do banco</Text>
+          <Text style={[s.pixSub, { marginTop: 0, marginBottom: 20 }]}>Saldo R$ {pixData.amount.toFixed(2)}</Text>
 
           {pixData.qrCode ? (
             <Image source={{ uri: `data:image/png;base64,${pixData.qrCode}` }} style={s.qrImage} resizeMode="contain" />
@@ -324,13 +340,13 @@ export default function DriverCredits() {
         )}
 
         {packages.map(pkg => (
-          <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => handleBuy(pkg)} disabled={buying}>
+          <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => openPaymentMethodSelector(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
               <Text style={s.packageCredits}>{pkg.label}</Text>
-              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? `Acumule R$ ${(pkg.family_return_cents / 100).toFixed(0)} no Retorno Familiar` : 'Via Pix'}</Text>
+              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? `Acumule R$ ${(pkg.family_return_cents / 100).toFixed(0)} no Retorno Familiar` : 'Pix ou Cartão'}</Text>
             </View>
             <View style={s.buyBtn}>
-              {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Pix</Text>}
+              {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Escolher</Text>}
             </View>
           </TouchableOpacity>
         ))}
@@ -361,6 +377,35 @@ export default function DriverCredits() {
           </>
         )}
       </ScrollView>
+
+      <Modal transparent animationType="fade" visible={!!selectedPackage} onRequestClose={closePaymentMethodSelector}>
+        <Pressable style={s.methodModalOverlay} onPress={closePaymentMethodSelector}>
+          <Pressable style={s.methodModalCard} onPress={(e) => e.stopPropagation()}>
+            <Text style={s.methodModalTitle}>Como deseja recarregar?</Text>
+            <Text style={s.methodModalSubtitle}>{selectedPackage?.label ?? ''}</Text>
+
+            <TouchableOpacity style={s.methodOption} onPress={() => handleBuy('asaas')} disabled={buying}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.methodOptionTitle}>Pix</Text>
+                <Text style={s.methodOptionSub}>Código Pix para pagar pelo app do banco</Text>
+              </View>
+              {buying ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Ionicons name="qr-code-outline" size={20} color={COLORS.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.methodOption} onPress={() => handleBuy('sumup')} disabled={buying}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.methodOptionTitle}>Cartão / Google Pay / Apple Pay</Text>
+                <Text style={s.methodOptionSub}>Pagamento seguro pela SumUp</Text>
+              </View>
+              {buying ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Ionicons name="card-outline" size={20} color={COLORS.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.methodCancelBtn} onPress={closePaymentMethodSelector} disabled={buying}>
+              <Text style={s.methodCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -407,4 +452,13 @@ const s = StyleSheet.create({
   pixInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#f0f7ff', borderRadius: 12, padding: 14, marginTop: 16, width: '100%', borderWidth: 1, borderColor: '#d6e8f7' },
   pixInfoMain: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, lineHeight: 18 },
   pixInfoSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3, lineHeight: 17 },
+  methodModalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.68)', justifyContent: 'center', padding: 20 },
+  methodModalCard: { backgroundColor: COLORS.surface, borderRadius: 20, borderWidth: 1, borderColor: COLORS.primary, padding: 20, shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  methodModalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },
+  methodModalSubtitle: { marginTop: 6, marginBottom: 16, fontSize: 13, color: COLORS.textMuted },
+  methodOption: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: COLORS.border, borderRadius: 14, padding: 14, backgroundColor: COLORS.background, marginBottom: 10 },
+  methodOptionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.textPrimary },
+  methodOptionSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  methodCancelBtn: { marginTop: 4, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, paddingVertical: 12, alignItems: 'center' },
+  methodCancelText: { fontSize: 14, fontWeight: '700', color: COLORS.textSecondary },
 });
