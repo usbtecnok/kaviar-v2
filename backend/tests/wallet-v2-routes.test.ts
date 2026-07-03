@@ -59,6 +59,7 @@ app.use('/api/v2/drivers/me/wallet', driverWalletV2Routes);
 
 beforeEach(() => {
   mockQuery.mockReset();
+  mockQuery.mockResolvedValue({ rows: [] });
   mockEnsureCustomer.mockClear();
   mockCreatePix.mockClear();
   mockCreateSumUpCheckout.mockClear();
@@ -173,6 +174,7 @@ describe('Wallet V2 Read Endpoints', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] }) // package
       .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
       .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
       .mockResolvedValueOnce({}) // INSERT wallet_recharges
       .mockResolvedValueOnce({}); // UPDATE with pix data
@@ -199,6 +201,7 @@ describe('Wallet V2 Read Endpoints', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] })
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] })
       .mockResolvedValueOnce({ rows: [] }) // no recent pending with external_id
+      .mockResolvedValueOnce({}) // expire sumup antigos
       .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // count=0 (expired not counted)
       .mockResolvedValueOnce({}) // INSERT
       .mockResolvedValueOnce({}); // UPDATE
@@ -211,6 +214,7 @@ describe('Wallet V2 Read Endpoints', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] })
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-100', amount_cents: '10000', label: 'R$ 100' }] })
       .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({})
       .mockResolvedValueOnce({ rows: [{ c: '0' }] })
       .mockResolvedValueOnce({}) // INSERT pending
       .mockResolvedValueOnce({}); // UPDATE expired
@@ -227,6 +231,7 @@ describe('Wallet V2 Read Endpoints', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] }) // package
       .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
       .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
       .mockResolvedValueOnce({}) // INSERT wallet_recharges
       .mockResolvedValueOnce({}); // UPDATE external_id
@@ -250,6 +255,7 @@ describe('Wallet V2 Read Endpoints', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] }) // package
       .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
       .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
       .mockResolvedValueOnce({}) // INSERT wallet_recharges
       .mockResolvedValueOnce({}); // UPDATE expired
@@ -269,6 +275,7 @@ describe('Wallet V2 Read Endpoints', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-5', amount_cents: '500', label: 'R$ 5' }] }) // package
       .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
       .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
       .mockResolvedValueOnce({}) // INSERT wallet_recharges
       .mockResolvedValueOnce({}); // UPDATE external_id
@@ -292,6 +299,7 @@ describe('Wallet V2 Read Endpoints', () => {
     mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] }) // package
       .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
       .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
       .mockResolvedValueOnce({}) // INSERT wallet_recharges
       .mockResolvedValueOnce({}); // UPDATE pix
@@ -346,6 +354,70 @@ describe('Wallet V2 Read Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.status).toBe('expired');
     expect(mockResolveOnRecharge).not.toHaveBeenCalled();
+  });
+
+  it('POST /recharge expira SumUp pending antigo e não bloqueia nova recarga', async () => {
+    mockIsSumUpEnabled.mockReturnValue(true);
+    mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] }) // package
+      .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
+      .mockResolvedValueOnce({}) // INSERT wallet_recharges
+      .mockResolvedValueOnce({}); // UPDATE external_id
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-50', payment_provider: 'sumup' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.payment_provider).toBe('sumup');
+
+    const expireSql = mockQuery.mock.calls.find((c: any[]) => typeof c[0] === 'string' && c[0].includes("UPDATE wallet_recharges SET status='expired'") && c[0].includes("payment_provider='sumup'") && c[0].includes("INTERVAL '20 minutes'"));
+    expect(expireSql).toBeTruthy();
+  });
+
+  it('POST /recharge com SumUp pending recente continua contando no limite', async () => {
+    mockIsSumUpEnabled.mockReturnValue(true);
+    mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] }) // package
+      .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
+      .mockResolvedValueOnce({ rows: [{ c: '3' }] }); // anti-spam count
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-50', payment_provider: 'sumup' });
+
+    expect(res.status).toBe(429);
+    expect(res.body.error).toBe('Aguarde recargas pendentes expirarem');
+    expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
+
+    const countSql = mockQuery.mock.calls.find((c: any[]) => typeof c[0] === 'string' && c[0].includes('SELECT COUNT(*) as c FROM wallet_recharges'));
+    expect(countSql?.[0]).toContain("payment_provider = 'sumup' AND created_at > NOW() - INTERVAL '20 minutes'");
+  });
+
+  it('POST /recharge mantém regra Asaas por pix_expires_at no anti-spam', async () => {
+    mockIsSumUpEnabled.mockReturnValue(false);
+    mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] }) // package
+      .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({}) // expire sumup antigos
+      .mockResolvedValueOnce({ rows: [{ c: '3' }] }); // anti-spam count
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'asaas' });
+
+    expect(res.status).toBe(429);
+    expect(res.body.error).toBe('Aguarde recargas pendentes expirarem');
+    expect(mockCreatePix).not.toHaveBeenCalled();
+
+    const countSql = mockQuery.mock.calls.find((c: any[]) => typeof c[0] === 'string' && c[0].includes('SELECT COUNT(*) as c FROM wallet_recharges'));
+    expect(countSql?.[0]).toContain("payment_provider = 'asaas' AND pix_expires_at > NOW()");
   });
 
   // --- Webhook simulation tests ---

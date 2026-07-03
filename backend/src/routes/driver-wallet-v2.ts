@@ -223,9 +223,14 @@ router.post('/recharge', async (req: Request, res: Response) => {
       return res.json({ success: true, data: { rechargeId: r.id, amount_cents: Number(r.amount_cents), payment_provider: r.payment_provider || 'asaas', pix: { qrCode: r.pix_qr_code, copyPaste: r.pix_copy_paste, expiresAt: r.pix_expires_at } } });
     }
 
+    await pool.query(
+      "UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE driver_id=$1 AND payment_provider='sumup' AND status='pending' AND created_at < NOW() - INTERVAL '20 minutes'",
+      [driverId]
+    );
+
     // Anti-spam: max 3 pending válidas
     const countRes = await pool.query(
-      "SELECT COUNT(*) as c FROM wallet_recharges WHERE driver_id=$1 AND status='pending' AND external_id IS NOT NULL AND (payment_provider = 'sumup' OR pix_expires_at > NOW())",
+      "SELECT COUNT(*) as c FROM wallet_recharges WHERE driver_id=$1 AND status='pending' AND external_id IS NOT NULL AND ((payment_provider = 'sumup' AND created_at > NOW() - INTERVAL '20 minutes') OR (payment_provider = 'asaas' AND pix_expires_at > NOW()))",
       [driverId]
     );
     if (Number(countRes.rows[0].c) >= 3) {
