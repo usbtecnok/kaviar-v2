@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Image, Alert, Clipboard, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Image, Alert, Clipboard, RefreshControl, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,7 @@ export default function DriverCredits() {
 
   // Pix payment state
   const [pixData, setPixData] = useState<{ rechargeId: string; qrCode: string; copyPaste: string; amount: number; expiresAt: string } | null>(null);
+  const [sumupData, setSumupData] = useState<{ rechargeId: string; checkoutUrl: string; amount: number } | null>(null);
 
   // Auto-poll wallet while Pix screen is open
   useEffect(() => {
@@ -46,6 +47,34 @@ export default function DriverCredits() {
     }, 5000);
     return () => clearInterval(id);
   }, [!!pixData]);
+
+  useEffect(() => {
+    if (!sumupData) return;
+    let cancelled = false;
+    const id = setInterval(async () => {
+      if (cancelled) return;
+      try {
+        const recharge = await driverApi.getWalletRecharge(sumupData.rechargeId);
+        if (recharge.status === 'confirmed') {
+          cancelled = true;
+          clearInterval(id);
+          setSumupData(null);
+          await load();
+          Alert.alert('Pagamento confirmado', 'Saldo adicionado à sua conta.');
+          return;
+        }
+        if (recharge.status === 'expired') {
+          cancelled = true;
+          clearInterval(id);
+          Alert.alert('Pagamento expirado', 'O checkout expirou. Gere uma nova recarga.');
+        }
+      } catch {}
+    }, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [sumupData, load]);
 
   const load = useCallback(async () => {
     try {
@@ -72,14 +101,30 @@ export default function DriverCredits() {
     if (buying) return;
     setBuying(true);
     try {
-      const result = await driverApi.createWalletRecharge(pkg.id);
-      setPixData({
-        rechargeId: result.rechargeId,
-        qrCode: result.pix?.qrCode || '',
-        copyPaste: result.pix?.copyPaste || '',
-        amount: result.amount_cents / 100,
-        expiresAt: result.pix?.expiresAt || '',
-      });
+      const result = await driverApi.createWalletRecharge(pkg.id, 'sumup');
+
+      if (result.payment_provider === 'sumup' && result.checkout?.url) {
+        await Linking.openURL(result.checkout.url);
+        setSumupData({
+          rechargeId: result.rechargeId,
+          checkoutUrl: result.checkout.url,
+          amount: result.amount_cents / 100,
+        });
+        return;
+      }
+
+      if (result.payment_provider === 'asaas') {
+        setPixData({
+          rechargeId: result.rechargeId,
+          qrCode: result.pix?.qrCode || '',
+          copyPaste: result.pix?.copyPaste || '',
+          amount: result.amount_cents / 100,
+          expiresAt: result.pix?.expiresAt || '',
+        });
+        return;
+      }
+
+      Alert.alert('Erro', 'Não foi possível iniciar o pagamento.');
     } catch (e: any) {
       if (e.response?.status === 403) {
         Alert.alert('Saldo KAVIAR em preparação', 'A recarga por Pix estará disponível em breve.');
@@ -99,6 +144,36 @@ export default function DriverCredits() {
   const handlePixDone = () => {
     setPixData(null);
     load();
+  };
+
+  const handleOpenSumUpAgain = async () => {
+    if (!sumupData?.checkoutUrl) return;
+    try {
+      await Linking.openURL(sumupData.checkoutUrl);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o checkout.');
+    }
+  };
+
+  const handleSumUpPaid = async () => {
+    if (!sumupData) return;
+    try {
+      const recharge = await driverApi.getWalletRecharge(sumupData.rechargeId);
+      if (recharge.status === 'confirmed') {
+        setSumupData(null);
+        await load();
+        Alert.alert('Pagamento confirmado', 'Saldo adicionado à sua conta.');
+        return;
+      }
+      if (recharge.status === 'expired') {
+        Alert.alert('Pagamento expirado', 'O checkout expirou. Gere uma nova recarga.');
+        setSumupData(null);
+        return;
+      }
+      Alert.alert('Pagamento pendente', 'Ainda estamos aguardando a confirmação do pagamento.');
+    } catch {
+      Alert.alert('Erro', 'Não foi possível verificar o pagamento agora.');
+    }
   };
 
   if (loading) return (
@@ -123,6 +198,39 @@ export default function DriverCredits() {
           <Text style={{ fontWeight: '700', color: '#000', fontSize: 14 }}>Tentar novamente</Text>
         </TouchableOpacity>
       </View>
+    </SafeAreaView>
+  );
+
+  if (sumupData) return (
+    <SafeAreaView style={s.container}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => setSumupData(null)}><Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} /></TouchableOpacity>
+        <Text style={s.title}>Pagamento SumUp</Text>
+        <View style={{ width: 24 }} />
+      </View>
+      <ScrollView contentContainerStyle={s.pixContainer}>
+        <View style={s.pixCard}>
+          <Ionicons name="open-outline" size={32} color={COLORS.primary} />
+          <Text style={s.pixTitle}>Pagamento SumUp aberto</Text>
+          <Text style={s.pixSub}>Valor R$ {sumupData.amount.toFixed(2)}</Text>
+
+          <Text style={s.pixInstructions}>Finalize o pagamento no checkout hospedado da SumUp. Após a confirmação, seu saldo será creditado automaticamente.</Text>
+
+          <TouchableOpacity style={s.doneBtn} onPress={handleOpenSumUpAgain}>
+            <Text style={s.doneBtnText}>Abrir pagamento novamente</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[s.doneBtn, { marginTop: 10 }]} onPress={handleSumUpPaid}>
+            <Text style={s.doneBtnText}>Já paguei</Text>
+          </TouchableOpacity>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 8 }}>
+            <ActivityIndicator size="small" color={COLORS.primary} />
+            <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>Aguardando confirmação do pagamento...</Text>
+          </View>
+          <Text style={s.pixNote}>Esta tela verifica automaticamente o status a cada 5 segundos.</Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 

@@ -18,7 +18,7 @@ describe('sumup-service', () => {
       ok: true,
       status: 200,
       headers: { get: () => 'application/json' },
-      json: async () => ({ id: 'chk_123', checkout_reference: 'wallet_v2:r1', checkout_url: 'https://pay.sumup.com/b2c/chk_123' }),
+      json: async () => ({ id: 'chk_123', checkout_reference: 'wallet_v2:r1', checkout_url: 'https://pay.sumup.com/b2c/chk_123', hosted_checkout_url: 'https://checkout.sumup.com/hc/chk_123' }),
       text: async () => '',
     });
 
@@ -31,12 +31,34 @@ describe('sumup-service', () => {
     });
 
     expect(checkout.id).toBe('chk_123');
+    expect(checkout.hosted_checkout_url).toBe('https://checkout.sumup.com/hc/chk_123');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [_url, options] = fetchMock.mock.calls[0];
     expect(options.headers.Authorization).toBe('Bearer sumup_secret_test');
     const body = JSON.parse(options.body as string);
     expect(body.merchant_code).toBe('MDATH499');
     expect(body.currency).toBe('BRL');
+    expect(body.hosted_checkout.enabled).toBe(true);
+  });
+
+  it('getSumUpCheckout usa GET corretamente', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ id: 'chk_abc', status: 'PAID' }),
+      text: async () => '',
+    });
+
+    const { getSumUpCheckout } = await import('../src/services/sumup-service');
+    const checkout = await getSumUpCheckout('chk_abc');
+
+    expect(checkout.id).toBe('chk_abc');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.sumup.com/v0.1/checkouts/chk_abc');
+    expect(options.method).toBe('GET');
+    expect(options.headers.Authorization).toBe('Bearer sumup_secret_test');
   });
 
   it('createSumUpCheckout falha com erro seguro quando SUMUP_MERCHANT_CODE ausente', async () => {

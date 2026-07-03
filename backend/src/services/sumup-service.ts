@@ -21,6 +21,9 @@ export interface SumUpCheckoutCreateRequest {
   description: string;
   merchant_code?: string;
   return_url?: string;
+  hosted_checkout?: {
+    enabled: boolean;
+  };
 }
 
 export interface SumUpCheckoutCreateResponse {
@@ -33,6 +36,7 @@ export interface SumUpCheckoutCreateResponse {
   merchant_code?: string;
   status?: string;
   checkout_url?: string;
+  hosted_checkout_url?: string;
   [key: string]: unknown;
 }
 
@@ -60,18 +64,18 @@ function mapStatusToSafeMessage(status: number): string {
   }
 }
 
-async function sumupRequest(path: string, body: unknown): Promise<SumUpCheckoutCreateResponse> {
+async function sumupRequest<T>(path: string, method: 'GET' | 'POST', body?: unknown): Promise<T> {
   if (!SUMUP_API_KEY) {
     throw new SumUpError(500, 'Configuração de pagamento indisponível.');
   }
 
   const res = await fetch(`${SUMUP_BASE_URL}${path}`, {
-    method: 'POST',
+    method,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${SUMUP_API_KEY}`,
     },
-    body: JSON.stringify(body),
+    ...(body ? { body: JSON.stringify(body) } : {}),
   });
 
   const contentType = res.headers.get('content-type') || '';
@@ -90,7 +94,7 @@ async function sumupRequest(path: string, body: unknown): Promise<SumUpCheckoutC
     throw new SumUpError(res.status, safeMessage);
   }
 
-  return data as SumUpCheckoutCreateResponse;
+  return data as T;
 }
 
 export async function createSumUpCheckout(input: SumUpCheckoutCreateRequest): Promise<SumUpCheckoutCreateResponse> {
@@ -106,9 +110,21 @@ export async function createSumUpCheckout(input: SumUpCheckoutCreateRequest): Pr
     description: input.description,
     merchant_code: merchantCode,
     ...(input.return_url ? { return_url: input.return_url } : {}),
+    hosted_checkout: { enabled: input.hosted_checkout?.enabled ?? true },
   };
 
-  const checkout = await sumupRequest('/v0.1/checkouts', payload);
+  const checkout = await sumupRequest<SumUpCheckoutCreateResponse>('/v0.1/checkouts', 'POST', payload);
+  if (!checkout?.id) {
+    throw new SumUpError(502, 'Resposta inválida do provedor de pagamento.');
+  }
+  return checkout;
+}
+
+export async function getSumUpCheckout(checkoutId: string): Promise<SumUpCheckoutCreateResponse> {
+  if (!checkoutId) {
+    throw new SumUpError(400, 'Checkout inválido para consulta.');
+  }
+  const checkout = await sumupRequest<SumUpCheckoutCreateResponse>(`/v0.1/checkouts/${encodeURIComponent(checkoutId)}`, 'GET');
   if (!checkout?.id) {
     throw new SumUpError(502, 'Resposta inválida do provedor de pagamento.');
   }

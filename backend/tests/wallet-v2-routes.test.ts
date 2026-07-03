@@ -19,10 +19,12 @@ vi.mock('../src/middlewares/auth', () => ({
 const mockEnsureCustomer = vi.fn().mockResolvedValue('cus_123');
 const mockCreatePix = vi.fn().mockResolvedValue({ paymentId: 'pay_abc', qrCode: 'QR', copyPaste: 'PIX_CODE', expirationDate: '2026-06-12T00:00:00Z' });
 vi.mock('../src/services/asaas.service', () => ({ ensureAsaasCustomer: (...args: any[]) => mockEnsureCustomer(...args), createPixPayment: (...args: any[]) => mockCreatePix(...args) }));
-const mockCreateSumUpCheckout = vi.fn().mockResolvedValue({ id: 'sumup_checkout_1', checkout_reference: 'wallet_v2:test', checkout_url: 'https://pay.sumup.com/b2c/Q1', status: 'PENDING' });
+const mockCreateSumUpCheckout = vi.fn().mockResolvedValue({ id: 'sumup_checkout_1', checkout_reference: 'wallet_v2:test', hosted_checkout_url: 'https://checkout.sumup.com/hc/Q1', status: 'PENDING' });
+const mockGetSumUpCheckout = vi.fn().mockResolvedValue({ id: 'sumup_checkout_1', status: 'PENDING' });
 const mockIsSumUpEnabled = vi.fn(() => false);
 vi.mock('../src/services/sumup-service', () => ({
   createSumUpCheckout: (...args: any[]) => mockCreateSumUpCheckout(...args),
+  getSumUpCheckout: (...args: any[]) => mockGetSumUpCheckout(...args),
   isSumUpEnabled: () => mockIsSumUpEnabled(),
   SumUpError: class extends Error {
     statusCode: number;
@@ -33,6 +35,20 @@ vi.mock('../src/services/sumup-service', () => ({
       this.safeMessage = safeMessage;
     }
   },
+}));
+const mockResolveOnRecharge = vi.fn().mockResolvedValue(0);
+vi.mock('../src/services/wallet-v2/pending-debit.service', () => ({
+  PendingDebitService: class {
+    resolveOnRecharge(...args: any[]) {
+      return mockResolveOnRecharge(...args);
+    }
+  },
+}));
+vi.mock('../src/services/wallet-v2/fee-split.service', () => ({
+  FeeSplitService: class {},
+}));
+vi.mock('../src/services/wallet-v2/territory-ledger.service', () => ({
+  TerritoryLedgerService: class {},
 }));
 
 const { default: driverWalletV2Routes, _resetWalletV2Cache } = await import('../src/routes/driver-wallet-v2');
@@ -46,8 +62,11 @@ beforeEach(() => {
   mockEnsureCustomer.mockClear();
   mockCreatePix.mockClear();
   mockCreateSumUpCheckout.mockClear();
+  mockGetSumUpCheckout.mockClear();
+  mockResolveOnRecharge.mockClear();
   mockCreatePix.mockResolvedValue({ paymentId: 'pay_abc', qrCode: 'QR', copyPaste: 'PIX_CODE', expirationDate: '2026-06-12T00:00:00Z' });
-  mockCreateSumUpCheckout.mockResolvedValue({ id: 'sumup_checkout_1', checkout_reference: 'wallet_v2:test', checkout_url: 'https://pay.sumup.com/b2c/Q1', status: 'PENDING' });
+  mockCreateSumUpCheckout.mockResolvedValue({ id: 'sumup_checkout_1', checkout_reference: 'wallet_v2:test', hosted_checkout_url: 'https://checkout.sumup.com/hc/Q1', status: 'PENDING' });
+  mockGetSumUpCheckout.mockResolvedValue({ id: 'sumup_checkout_1', status: 'PENDING' });
   mockIsSumUpEnabled.mockReturnValue(false);
   _resetWalletV2Cache();
 });
@@ -220,7 +239,28 @@ describe('Wallet V2 Read Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.payment_provider).toBe('sumup');
     expect(res.body.data.checkout.id).toBe('sumup_checkout_1');
+    expect(res.body.data.checkout.url).toBe('https://checkout.sumup.com/hc/Q1');
     expect(mockCreateSumUpCheckout).toHaveBeenCalled();
+    expect(mockCreatePix).not.toHaveBeenCalled();
+  });
+
+  it('POST /recharge com SumUp sem URL expira recarga e retorna erro seguro', async () => {
+    mockIsSumUpEnabled.mockReturnValue(true);
+    mockCreateSumUpCheckout.mockResolvedValueOnce({ id: 'sumup_checkout_2', checkout_reference: 'wallet_v2:test2', status: 'PENDING' });
+    mockQuery.mockResolvedValueOnce({ rows: [{ enabled: true }] }) // flag
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] }) // package
+      .mockResolvedValueOnce({ rows: [] }) // anti-spam recent
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] }) // anti-spam count
+      .mockResolvedValueOnce({}) // INSERT wallet_recharges
+      .mockResolvedValueOnce({}); // UPDATE expired
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-50', payment_provider: 'sumup' });
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).toContain('Checkout');
     expect(mockCreatePix).not.toHaveBeenCalled();
   });
 
@@ -265,6 +305,47 @@ describe('Wallet V2 Read Endpoints', () => {
     expect(res.body.data.payment_provider).toBe('asaas');
     expect(mockCreatePix).toHaveBeenCalled();
     expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
+  });
+
+  it('GET /wallet/recharges/:id SumUp PAID confirma e credita uma única vez', async () => {
+    mockGetSumUpCheckout.mockResolvedValueOnce({ id: 'sumup_checkout_1', status: 'PAID' });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ id: 'wr-1', driver_id: 'test-driver-1', amount_cents: '5000', status: 'pending', payment_provider: 'sumup', external_id: 'sumup_checkout_1', created_at: '2026-01-01', confirmed_at: null }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'wr-1', driver_id: 'test-driver-1', amount_cents: '5000' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ balance_cents: '0', reserved_cents: '0' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ id: '1' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ enabled: false }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'wr-1', amount_cents: '5000', status: 'confirmed', payment_provider: 'sumup', created_at: '2026-01-01', confirmed_at: '2026-01-01' }] });
+
+    const res = await request(app)
+      .get('/api/v2/drivers/me/wallet/recharges/wr-1')
+      .set(auth);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('confirmed');
+    expect(mockGetSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1');
+    expect(mockResolveOnRecharge).toHaveBeenCalledTimes(1);
+  });
+
+  it('GET /wallet/recharges/:id SumUp FAILED expira sem creditar', async () => {
+    mockGetSumUpCheckout.mockResolvedValueOnce({ id: 'sumup_checkout_1', status: 'FAILED' });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ id: 'wr-2', driver_id: 'test-driver-1', amount_cents: '5000', status: 'pending', payment_provider: 'sumup', external_id: 'sumup_checkout_1', created_at: '2026-01-01', confirmed_at: null }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ id: 'wr-2', amount_cents: '5000', status: 'expired', payment_provider: 'sumup', created_at: '2026-01-01', confirmed_at: null }] });
+
+    const res = await request(app)
+      .get('/api/v2/drivers/me/wallet/recharges/wr-2')
+      .set(auth);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('expired');
+    expect(mockResolveOnRecharge).not.toHaveBeenCalled();
   });
 
   // --- Webhook simulation tests ---
