@@ -26,7 +26,7 @@ export default function DriverCredits() {
   const [buying, setBuying] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
 
-  const [sumupData, setSumupData] = useState<{ rechargeId: string; checkoutUrl: string; amount: number } | null>(null);
+  const [sumupData, setSumupData] = useState<{ rechargeId: string; checkoutUrl: string; amount: number; method: 'pix' | 'card' } | null>(null);
 
   useEffect(() => {
     if (!sumupData) return;
@@ -86,11 +86,11 @@ export default function DriverCredits() {
     setSelectedPackage(null);
   };
 
-  const handleBuy = async (provider: 'sumup') => {
+  const handleBuy = async (provider: 'sumup', method: 'pix' | 'card') => {
     if (buying || !selectedPackage) return;
     setBuying(true);
     try {
-      const result = await driverApi.createWalletRecharge(selectedPackage.id, provider);
+      const result = await driverApi.createWalletRecharge(selectedPackage.id, provider, method);
 
       if (result.payment_provider === 'sumup' && result.checkout?.url) {
         closePaymentMethodSelector();
@@ -99,6 +99,7 @@ export default function DriverCredits() {
           rechargeId: result.rechargeId,
           checkoutUrl: result.checkout.url,
           amount: result.amount_cents / 100,
+          method,
         });
         return;
       }
@@ -107,8 +108,12 @@ export default function DriverCredits() {
       Alert.alert('Erro', 'Não foi possível iniciar o pagamento.');
     } catch (e: any) {
       closePaymentMethodSelector();
-      if (e.response?.status === 410) {
-        Alert.alert('Pix indisponível', 'Pix indisponível no momento. Use cartão, Google Pay ou Apple Pay.');
+      if (e.response?.status === 410 || e.response?.status === 503) {
+        if (method === 'pix') {
+          Alert.alert('Pix indisponível', 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.');
+        } else {
+          Alert.alert('Pagamento indisponível', 'Pagamento por cartão indisponível no momento. Tente novamente em instantes.');
+        }
       } else {
         Alert.alert('Erro', e.response?.data?.error || 'Não foi possível criar a cobrança.');
       }
@@ -174,14 +179,14 @@ export default function DriverCredits() {
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <TouchableOpacity onPress={() => setSumupData(null)}><Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} /></TouchableOpacity>
-        <Text style={s.title}>Cartão, Google Pay ou Apple Pay</Text>
+        <Text style={s.title}>{sumupData.method === 'pix' ? 'Pix' : 'Cartão, Google Pay ou Apple Pay'}</Text>
         <View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={s.pixContainer}>
         <View style={s.pixCard}>
           <Ionicons name="open-outline" size={32} color={COLORS.primary} />
           <Text style={s.pixTitle}>Pagamento SumUp aberto</Text>
-          <Text style={s.pixSub}>Pagamento seguro pela SumUp</Text>
+          <Text style={s.pixSub}>{sumupData.method === 'pix' ? 'QR Code Pix pela SumUp' : 'Pagamento seguro pela SumUp'}</Text>
           <Text style={[s.pixSub, { marginTop: 0, marginBottom: 20 }]}>Valor R$ {sumupData.amount.toFixed(2)}</Text>
 
           <Text style={s.pixInstructions}>Finalize o pagamento no checkout hospedado da SumUp. Após a confirmação, seu saldo será creditado automaticamente.</Text>
@@ -249,7 +254,7 @@ export default function DriverCredits() {
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => openPaymentMethodSelector(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
               <Text style={s.packageCredits}>{pkg.label}</Text>
-              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? 'Benefício anual elegível de 10% conforme regras vigentes' : 'Cartão, Google Pay ou Apple Pay'}</Text>
+              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? 'Benefício anual elegível de 10% conforme regras vigentes' : 'Pix ou Cartão, Google Pay ou Apple Pay'}</Text>
             </View>
             <View style={s.buyBtn}>
               {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Escolher</Text>}
@@ -290,7 +295,15 @@ export default function DriverCredits() {
             <Text style={s.methodModalTitle}>Como deseja recarregar?</Text>
             <Text style={s.methodModalSubtitle}>{selectedPackage?.label ?? ''}</Text>
 
-            <TouchableOpacity style={s.methodOption} onPress={() => handleBuy('sumup')} disabled={buying}>
+            <TouchableOpacity style={s.methodOption} onPress={() => handleBuy('sumup', 'pix')} disabled={buying}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.methodOptionTitle}>Pix</Text>
+                <Text style={s.methodOptionSub}>QR Code Pix pela SumUp</Text>
+              </View>
+              {buying ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Ionicons name="qr-code-outline" size={20} color={COLORS.primary} />}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={s.methodOption} onPress={() => handleBuy('sumup', 'card')} disabled={buying}>
               <View style={{ flex: 1 }}>
                 <Text style={s.methodOptionTitle}>Cartão / Google Pay / Apple Pay</Text>
                 <Text style={s.methodOptionSub}>Pagamento seguro pela SumUp</Text>

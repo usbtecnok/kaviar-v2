@@ -3,7 +3,7 @@ import { authenticateDriver } from '../middlewares/auth';
 import { pool } from '../db';
 import { WalletService } from '../services/wallet-v2/wallet.service';
 import crypto from 'crypto';
-import { createSumUpCheckout, isSumUpEnabled, SumUpError } from '../services/sumup-service';
+import { createSumUpCheckout, getSumUpMerchantPaymentMethods, hasSumUpPixPaymentMethod, isSumUpEnabled, SumUpError } from '../services/sumup-service';
 import { reconcileSumUpRechargeById } from '../services/wallet-v2/sumup-recharge.service';
 
 const router = Router();
@@ -140,6 +140,12 @@ router.post('/recharge', async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     const requestedProvider = String(req.body?.payment_provider || 'sumup').toLowerCase();
+    const rawPaymentMethod = String(req.body?.payment_method || '').toLowerCase();
+
+    const requestedPaymentMethod: 'pix' | 'card' =
+      rawPaymentMethod === 'pix' || rawPaymentMethod === 'sumup_pix'
+        ? 'pix'
+        : 'card';
 
     if (requestedProvider === 'asaas') {
       return res.status(410).json({
@@ -151,8 +157,34 @@ router.post('/recharge', async (req: Request, res: Response) => {
     if (!isSumUpEnabled()) {
       return res.status(503).json({
         success: false,
-        error: 'Pagamento por cartão indisponível no momento. Tente novamente em instantes.',
+        error: requestedPaymentMethod === 'pix'
+          ? 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.'
+          : 'Pagamento por cartão indisponível no momento. Tente novamente em instantes.',
       });
+    }
+
+    if (requestedPaymentMethod === 'pix') {
+      try {
+        const methods = await getSumUpMerchantPaymentMethods();
+        if (!hasSumUpPixPaymentMethod(methods)) {
+          return res.status(503).json({
+            success: false,
+            error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+          });
+        }
+      } catch (methodErr) {
+        if (methodErr instanceof SumUpError) {
+          return res.status(503).json({
+            success: false,
+            error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+          });
+        }
+        console.error(`[WALLET_RECHARGE_SUMUP_METHODS_FAIL] driver=${driverId}`);
+        return res.status(503).json({
+          success: false,
+          error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+        });
+      }
     }
 
     const provider = 'sumup';
@@ -216,6 +248,7 @@ router.post('/recharge', async (req: Request, res: Response) => {
           rechargeId,
           amount_cents: amountCents,
           payment_provider: 'sumup',
+          payment_method: requestedPaymentMethod,
           checkout: {
             id: checkout.id,
             checkout_reference: checkout.checkout_reference || null,

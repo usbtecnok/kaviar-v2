@@ -40,6 +40,14 @@ export interface SumUpCheckoutCreateResponse {
   [key: string]: unknown;
 }
 
+export interface SumUpMerchantPaymentMethod {
+  id?: string;
+  type?: string;
+  code?: string;
+  method?: string;
+  [key: string]: unknown;
+}
+
 function mapStatusToSafeMessage(status: number): string {
   switch (status) {
     case 400:
@@ -129,6 +137,37 @@ export async function getSumUpCheckout(checkoutId: string): Promise<SumUpCheckou
     throw new SumUpError(502, 'Resposta inválida do provedor de pagamento.');
   }
   return checkout;
+}
+
+export async function getSumUpMerchantPaymentMethods(merchantCode?: string): Promise<SumUpMerchantPaymentMethod[]> {
+  const resolvedMerchantCode = merchantCode || SUMUP_MERCHANT_CODE;
+  if (!resolvedMerchantCode) {
+    throw new SumUpError(500, 'Configuração de merchant SumUp indisponível.');
+  }
+
+  const response = await sumupRequest<
+    SumUpMerchantPaymentMethod[] | {
+      payment_methods?: SumUpMerchantPaymentMethod[];
+      available_payment_methods?: SumUpMerchantPaymentMethod[];
+    }
+  >(
+    `/v0.1/merchants/${encodeURIComponent(resolvedMerchantCode)}/payment-methods`,
+    'GET'
+  );
+
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.available_payment_methods)) return response.available_payment_methods;
+  if (Array.isArray(response?.payment_methods)) return response.payment_methods;
+  return [];
+}
+
+export function hasSumUpPixPaymentMethod(methods: SumUpMerchantPaymentMethod[]): boolean {
+  return methods.some((method) => {
+    const candidates = [method.id, method.type, method.code, method.method]
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase());
+    return candidates.some((candidate) => candidate.includes('qr_code_pix') || candidate === 'pix');
+  });
 }
 
 export function isSumUpEnabled(): boolean {

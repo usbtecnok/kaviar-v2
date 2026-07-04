@@ -15,6 +15,7 @@ export type AppNotification = {
 };
 
 type WalletRechargeProvider = 'sumup' | 'asaas';
+type WalletRechargeMethod = 'pix' | 'card';
 
 type WalletRechargeAsaasResponse = {
   rechargeId: string;
@@ -31,6 +32,7 @@ type WalletRechargeSumUpResponse = {
   rechargeId: string;
   amount_cents: number;
   payment_provider: 'sumup';
+  payment_method?: WalletRechargeMethod;
   checkout: {
     id: string;
     checkout_reference?: string | null;
@@ -280,9 +282,10 @@ export const driverApi = {
     return data.data;
   },
 
-  createWalletRecharge: async (packageId: string, provider?: WalletRechargeProvider): Promise<WalletRechargeResponse> => {
-    const body: { package_id: string; payment_provider?: WalletRechargeProvider } = { package_id: packageId };
+  createWalletRecharge: async (packageId: string, provider?: WalletRechargeProvider, method?: WalletRechargeMethod): Promise<WalletRechargeResponse> => {
+    const body: { package_id: string; payment_provider?: WalletRechargeProvider; payment_method?: WalletRechargeMethod } = { package_id: packageId };
     if (provider) body.payment_provider = provider;
+    if (method) body.payment_method = method;
     const { data } = await apiClient.post('/api/v2/drivers/me/wallet/recharge', body);
     return data.data;
   },
