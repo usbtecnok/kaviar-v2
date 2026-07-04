@@ -536,9 +536,9 @@ export default function Register() {
             </View>
 
             <View style={styles.bonusSection}>
-              <Text style={styles.bonusTitle}>Programa KAVIAR</Text>
+              <Text style={styles.bonusTitle}>Bônus Anual KAVIAR</Text>
               <Text style={styles.bonusDescription}>
-                Desejo receber informações sobre programas futuros de reconhecimento KAVIAR, sujeitos a regras, disponibilidade e aprovação.
+                Motoristas parceiros podem acompanhar campanhas e benefícios vigentes pelo app. O modelo atual prevê bônus anual de 10% conforme regras do período de apuração e elegibilidade.
               </Text>
               
               <TouchableOpacity
@@ -549,7 +549,7 @@ export default function Register() {
                   {familyBonusAccepted && <Ionicons name="checkmark" size={18} color="#FFF" />}
                 </View>
                 <Text style={styles.checkboxLabel}>
-                  Quero participar de programas futuros de reconhecimento
+                  Quero receber comunicações sobre campanhas e benefícios KAVIAR.
                 </Text>
               </TouchableOpacity>
             </View>
