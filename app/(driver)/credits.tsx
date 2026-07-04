@@ -284,7 +284,7 @@ export default function DriverCredits() {
             <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
             <View style={{ flex: 1 }}>
               <Text style={s.pixInfoMain}>O saldo entra automaticamente após a confirmação do pagamento.</Text>
-              <Text style={s.pixInfoSub}>{familyReturn ? 'Retorno Familiar acumulado após confirmação do Pix.' : 'Após o Pix ser confirmado, seu saldo será atualizado no app.'}</Text>
+              <Text style={s.pixInfoSub}>{familyReturn ? 'Benefícios sazonais são apurados após confirmação do Pix.' : 'Após o Pix ser confirmado, seu saldo será atualizado no app.'}</Text>
             </View>
           </View>
 
@@ -329,13 +329,12 @@ export default function DriverCredits() {
         {/* Packages */}
         <Text style={s.sectionTitle}>Adicionar saldo</Text>
 
-        {/* Retorno Familiar KAVIAR */}
+        {/* Bônus Anual KAVIAR */}
         {familyReturnData?.enabled && (
           <View style={[s.infoCard, { marginBottom: 16, borderLeftWidth: 3, borderLeftColor: COLORS.success }]}>
-            <Text style={[s.infoTitle, { color: COLORS.success }]}>Retorno Familiar KAVIAR</Text>
-            <Text style={s.infoText}>Acumulado: R$ {((familyReturnData.accrued_cents || 0) / 100).toFixed(2).replace('.', ',')}</Text>
-            <Text style={[s.infoText, { fontSize: 11, marginTop: 4 }]}>Disponível para solicitação entre outubro e dezembro.</Text>
-            <Text style={[s.infoText, { fontSize: 10, color: COLORS.textMuted, marginTop: 2 }]}>Este valor não é saldo de corrida.</Text>
+            <Text style={[s.infoTitle, { color: COLORS.success }]}>Bônus Anual KAVIAR</Text>
+            <Text style={s.infoText}>O modelo atual de benefícios prevê bônus anual de 10%, conforme regras de elegibilidade e período de apuração.</Text>
+            <Text style={[s.infoText, { fontSize: 11, marginTop: 4 }]}>Acompanhe campanhas e avisos pelo app.</Text>
           </View>
         )}
 
@@ -343,7 +342,7 @@ export default function DriverCredits() {
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => openPaymentMethodSelector(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
               <Text style={s.packageCredits}>{pkg.label}</Text>
-              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? `Acumule R$ ${(pkg.family_return_cents / 100).toFixed(0)} no Retorno Familiar` : 'Pix ou Cartão'}</Text>
+              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? 'Benefício anual elegível de 10% conforme regras vigentes' : 'Pix ou Cartão'}</Text>
             </View>
             <View style={s.buyBtn}>
               {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Escolher</Text>}
@@ -354,7 +353,7 @@ export default function DriverCredits() {
         {/* How it works */}
         <View style={s.infoCard}>
           <Text style={s.infoTitle}>Como funciona</Text>
-          {familyReturn && <Text style={[s.infoText, { color: COLORS.success, fontWeight: '600' }]}>🎁 Retorno Familiar: recargas Pix acumulam {familyReturn.percent}% para resgate entre outubro e dezembro.</Text>}
+          {familyReturn && <Text style={[s.infoText, { color: COLORS.success, fontWeight: '600' }]}>🎁 Bônus Anual KAVIAR: o modelo atual prevê bônus anual de 10%, conforme regras vigentes de elegibilidade e apuração.</Text>}
           <Text style={s.infoText}>Você recebe do passageiro. A taxa KAVIAR é debitada do saldo apenas após corrida concluída.</Text>
           <Text style={s.infoText}>Mantenha saldo disponível para continuar recebendo corridas pelo app.</Text>
           <Text style={[s.infoText, { marginTop: 10, fontWeight: '600', color: COLORS.textPrimary }]}>Exemplo: corrida de R$ 30,00</Text>

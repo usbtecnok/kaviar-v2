@@ -11,7 +11,6 @@ import PricingProfiles from "../../pages/admin/PricingProfiles";
 import TerritoryPriceFloors from "../../pages/admin/TerritoryPriceFloors";
 import ManagerPriceFloors from "../../pages/admin/ManagerPriceFloors";
 import CreditPackagesAdmin from "../../pages/admin/CreditPackagesAdmin";
-import RetornoFamiliarAdmin from "../../pages/admin/RetornoFamiliarAdmin";
 import WomenPreferenceAudit from "../../pages/admin/WomenPreferenceAudit";
 import RideSimulator from "../../pages/admin/RideSimulator";
 // import BetaMonitor from "../../pages/admin/BetaMonitor"; // HIBERNADO — reaproveitável
@@ -484,7 +483,6 @@ function AdminHome() {
                 { Icon: Paid, title: 'Tabela Territorial', desc: 'Pisos mínimos por rota e território', to: '/admin/territory-floors' },
                 { Icon: Paid, title: 'Pacotes de Saldo', desc: 'Gerenciar pacotes de recarga do motorista', to: '/admin/credit-packages' },
                 { Icon: Paid, title: 'Repasses Territoriais', desc: 'Operadores e repasses manuais', to: '/admin/territorial-payouts' },
-                { Icon: Paid, title: 'Retorno Familiar', desc: 'Programa de reconhecimento anual', to: '/admin/retorno-familiar' },
               ] : []),
             ]},
             { section: 'Governança e Estratégia', items: [
@@ -795,15 +793,6 @@ export default function AdminApp() {
               <Container maxWidth="lg" sx={{ mt: 2 }}>
                 <AdminHeader />
                 <CreditPackagesAdmin />
-              </Container>
-            </ProtectedAdminRoute>
-          } />
-
-          <Route path="/retorno-familiar" element={
-            <ProtectedAdminRoute requireSuperAdmin>
-              <Container maxWidth="lg" sx={{ mt: 2 }}>
-                <AdminHeader />
-                <RetornoFamiliarAdmin />
               </Container>
             </ProtectedAdminRoute>
           } />

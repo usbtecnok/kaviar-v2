@@ -14,7 +14,6 @@ import WarningAmber from '@mui/icons-material/WarningAmber';
 import CheckCircle from '@mui/icons-material/CheckCircle';
 import HourglassEmpty from '@mui/icons-material/HourglassEmpty';
 import { Link } from 'react-router-dom';
-import FamilyBonusCard from '../../components/driver/FamilyBonusCard';
 
 export default function DriverStatus() {
   const [driverStatus, setDriverStatus] = useState('pending');
@@ -143,9 +142,6 @@ export default function DriverStatus() {
       )}
 
       {renderStatusContent()}
-
-      {/* Retorno Familiar KAVIAR — visível apenas para motoristas aprovados/ativos */}
-      {['approved', 'active'].includes(driverStatus) && <FamilyBonusCard />}
 
       {/* Informações adicionais */}
       <Paper sx={{ p: 3 }}>
