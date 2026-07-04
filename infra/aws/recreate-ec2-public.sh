@@ -1,4 +1,10 @@
 #!/bin/bash
+# AVISO OPERACIONAL CRITICO:
+# - Exige revisao humana antes de executar.
+# - Nao executar em producao sem confirmacao explicita.
+# - Preferir dry-run e validar impacto em recursos dependentes.
+# - Validar AWS account, region e IDs de recursos antes de prosseguir.
+# - Script com potencial destrutivo (terminate/recreate).
 # Recriar EC2 em subnet PÚBLICA (mais rápido para setup)
 set -euo pipefail
 

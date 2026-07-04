@@ -34,7 +34,8 @@ Nunca gerar APK do Passageiro sem estas variáveis preenchidas:
 - `GOOGLE_MAPS_API_KEY`
 - `EXPO_PUBLIC_PLACES_KEY`
 
-Ambas devem usar a key Android correta do Google Maps/Places, atualmente terminada em **FRwOag**.
+ Ambas devem usar a key Android correta do Google Maps/Places.
+ Nunca registrar valor real de key em documentação versionada.
 
 ### Resolução
 
@@ -46,16 +47,16 @@ O APK v1.12.11-map-env-fix resolveu o problema porque voltou a preencher `EXPO_P
 
 ```bash
 APP_VARIANT=passenger
-GOOGLE_MAPS_API_KEY=AIzaSyCEuu5sAF1i2e0x5PkyfOiP-bFWjFRwOag
-EXPO_PUBLIC_PLACES_KEY=AIzaSyCEuu5sAF1i2e0x5PkyfOiP-bFWjFRwOag
+GOOGLE_MAPS_API_KEY=<GOOGLE_MAPS_API_KEY>
+EXPO_PUBLIC_PLACES_KEY=<EXPO_PUBLIC_PLACES_KEY>
 ```
 
 ## Comando de prebuild
 
 ```bash
 APP_VARIANT=passenger \
-GOOGLE_MAPS_API_KEY="AIzaSyCEuu5sAF1i2e0x5PkyfOiP-bFWjFRwOag" \
-EXPO_PUBLIC_PLACES_KEY="AIzaSyCEuu5sAF1i2e0x5PkyfOiP-bFWjFRwOag" \
+GOOGLE_MAPS_API_KEY="<GOOGLE_MAPS_API_KEY>" \
+EXPO_PUBLIC_PLACES_KEY="<EXPO_PUBLIC_PLACES_KEY>" \
 npx expo prebuild --platform android --clean
 ```
 
@@ -67,9 +68,9 @@ No `android/app/build.gradle`, o release DEVE usar:
 signingConfigs {
     release {
         storeFile file('../../credentials/android/eas-keystore.jks')
-        storePassword '8a3e446a30c109c823c87d661c329266'
-        keyAlias 'ee1a7d6ae6721a3434fa436ed27c4907'
-        keyPassword '3baac42a23f7f7d6ff33a5a767d9f92a'
+    storePassword '<EAS_STORE_PASSWORD>'
+    keyAlias '<EAS_KEY_ALIAS>'
+    keyPassword '<EAS_KEY_PASSWORD>'
     }
 }
 ```
@@ -129,7 +130,7 @@ print(d['extra']['APP_VARIANT'])
 ### 2. Confirmar no APK final
 
 - [ ] AndroidManifest contém `com.google.android.geo.API_KEY`
-- [ ] Key termina em `FRwOag`
+- [ ] Valor da key não está exposto em docs/versionamento
 - [ ] Bundle JS contém `EXPO_PUBLIC_PLACES_KEY` preenchida
 - [ ] `versionCode` correto
 

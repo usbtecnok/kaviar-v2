@@ -1,4 +1,10 @@
 #!/bin/bash
+# AVISO OPERACIONAL CRITICO:
+# - Exige revisao humana antes de executar.
+# - Nao executar em producao sem confirmacao explicita.
+# - Preferir dry-run e verificacao manual de recursos afetados.
+# - Validar AWS account e region ativas antes de prosseguir.
+# - Script com potencial destrutivo (delete/terminate).
 # ============================================================
 # KAVIAR AWS CLEANUP - Aprovado em 2026-03-30
 # Executar com usuário admin/root

@@ -1,4 +1,10 @@
 #!/bin/bash
+# AVISO OPERACIONAL CRITICO:
+# - Exige revisao humana antes de executar.
+# - Nao executar em producao sem confirmacao explicita.
+# - Preferir dry-run e validar plano de rollback.
+# - Validar AWS account, region, host alvo e credenciais antes de prosseguir.
+# - Script com potencial destrutivo (provisionamento/migracao/terminacao).
 
 # ============================================
 # MIGRAÇÃO REMOTA: Neon → RDS (FRANKENSTEIN)
