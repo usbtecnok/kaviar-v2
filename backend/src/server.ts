@@ -4,6 +4,7 @@ import { prisma } from './lib/prisma';
 import { startOfferTimeoutJob } from './jobs/offer-timeout.job';
 import { startStaleDriverCleanupJob } from './jobs/stale-driver-cleanup.job';
 import { startScheduledDispatchJob } from './jobs/scheduled-dispatch.job';
+import { startSumUpRechargeReconcileScheduler } from './services/wallet-v2/sumup-recharge-reconcile-scheduler';
 
 async function startServer() {
   try {
@@ -18,6 +19,9 @@ async function startServer() {
     startOfferTimeoutJob();
     startStaleDriverCleanupJob();
     startScheduledDispatchJob();
+    if (process.env.SUMUP_RECONCILE_SCHEDULER_ENABLED === 'true') {
+      startSumUpRechargeReconcileScheduler();
+    }
 
     // Test database connection (non-blocking startup)
     try {

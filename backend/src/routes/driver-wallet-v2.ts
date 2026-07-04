@@ -2,18 +2,13 @@ import { Router, Request, Response } from 'express';
 import { authenticateDriver } from '../middlewares/auth';
 import { pool } from '../db';
 import { WalletService } from '../services/wallet-v2/wallet.service';
-import { FeeSplitService } from '../services/wallet-v2/fee-split.service';
-import { TerritoryLedgerService } from '../services/wallet-v2/territory-ledger.service';
-import { PendingDebitService } from '../services/wallet-v2/pending-debit.service';
 import crypto from 'crypto';
 import { ensureAsaasCustomer, createPixPayment } from '../services/asaas.service';
 import { createSumUpCheckout, getSumUpCheckout, isSumUpEnabled, SumUpError } from '../services/sumup-service';
+import { reconcileSumUpRechargeById } from '../services/wallet-v2/sumup-recharge.service';
 
 const router = Router();
 const walletService = new WalletService(pool);
-const feeSplitService = new FeeSplitService(pool);
-const territoryLedgerService = new TerritoryLedgerService(pool);
-const pendingDebitService = new PendingDebitService(pool);
 
 let cachedWalletV2Flag: { value: boolean; at: number } | null = null;
 export async function isWalletV2Enabled(): Promise<boolean> {
@@ -122,72 +117,17 @@ router.get('/ledger', async (req: Request, res: Response) => {
 router.get('/recharges/:id', async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
-    const r = await pool.query(
-      'SELECT id, driver_id, amount_cents, status, payment_provider, external_id, created_at, confirmed_at FROM wallet_recharges WHERE id = $1 AND driver_id = $2',
+    const reconcileResult = await reconcileSumUpRechargeById(req.params.id, driverId);
+    if (reconcileResult.final_status === 'not_found') {
+      return res.status(404).json({ success: false, error: 'Recarga não encontrada' });
+    }
+
+    const refreshed = await pool.query(
+      'SELECT id, amount_cents, status, payment_provider, created_at, confirmed_at FROM wallet_recharges WHERE id = $1 AND driver_id = $2',
       [req.params.id, driverId]
     );
-    if (!r.rows[0]) return res.status(404).json({ success: false, error: 'Recarga não encontrada' });
-    let row = r.rows[0];
-
-    if (row.payment_provider === 'sumup' && row.status === 'pending' && row.external_id) {
-      try {
-        const checkout = await getSumUpCheckout(row.external_id);
-        const status = String(checkout.status || '').toUpperCase();
-
-        if (status === 'PAID') {
-          const confirmed = await pool.query(
-            "UPDATE wallet_recharges SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW() WHERE id = $1 AND status = 'pending' RETURNING id, driver_id, amount_cents",
-            [row.id]
-          );
-
-          if (confirmed.rows[0]) {
-            const wr = confirmed.rows[0];
-            await walletService.ensureWallet(wr.driver_id);
-            await walletService.creditRecharge(wr.driver_id, BigInt(wr.amount_cents), wr.id);
-
-            try {
-              const frPercent = parseInt(process.env.FAMILY_RETURN_PERCENT || '0');
-              const frFlag = await pool.query("SELECT enabled FROM feature_flags WHERE key = 'FAMILY_RETURN_ENABLED' LIMIT 1");
-              if (frFlag.rows[0]?.enabled === true && frPercent > 0) {
-                const idemKey = `family_return_accrual:${wr.id}`;
-                const exists = await pool.query('SELECT id FROM family_return_accruals WHERE idempotency_key = $1', [idemKey]);
-                if (!exists.rows[0]) {
-                  const accrued = Math.floor(Number(wr.amount_cents) * frPercent / 100);
-                  await pool.query(
-                    `INSERT INTO family_return_accruals (driver_id, recharge_id, source_amount_cents, accrued_amount_cents, percent, status, idempotency_key) VALUES ($1, $2::uuid, $3, $4, $5, 'accrued', $6)`,
-                    [wr.driver_id, wr.id, wr.amount_cents, accrued, frPercent, idemKey]
-                  );
-                }
-              }
-            } catch (frErr: any) {
-              console.error(`[WALLET_V2_SUMUP] Family return error:`, frErr.message);
-            }
-
-            try {
-              await pendingDebitService.resolveOnRecharge(wr.driver_id, walletService, feeSplitService, territoryLedgerService);
-            } catch (pendErr: any) {
-              console.error(`[WALLET_V2_SUMUP] resolveOnRecharge error:`, pendErr.message);
-            }
-          }
-        } else if (status === 'FAILED' || status === 'EXPIRED') {
-          await pool.query(
-            "UPDATE wallet_recharges SET status = 'expired', updated_at = NOW() WHERE id = $1 AND status = 'pending'",
-            [row.id]
-          );
-        }
-
-        const refreshed = await pool.query(
-          'SELECT id, amount_cents, status, payment_provider, created_at, confirmed_at FROM wallet_recharges WHERE id = $1 AND driver_id = $2',
-          [req.params.id, driverId]
-        );
-        row = refreshed.rows[0] || row;
-      } catch (sumupErr) {
-        if (sumupErr instanceof SumUpError) {
-          return res.status(502).json({ success: false, error: 'Não foi possível verificar pagamento no momento.' });
-        }
-        throw sumupErr;
-      }
-    }
+    const row = refreshed.rows[0];
+    if (!row) return res.status(404).json({ success: false, error: 'Recarga não encontrada' });
 
     res.json({ success: true, data: { ...row, amount_cents: Number(row.amount_cents) } });
   } catch (err) {

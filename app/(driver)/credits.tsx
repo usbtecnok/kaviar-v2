@@ -11,6 +11,8 @@ type FamilyReturn = { percent: number; message: string } | null;
 type FamilyReturnData = { enabled: boolean; percent?: number; accrued_cents: number; available_for_request?: boolean; message?: string } | null;
 type LedgerEntry = { id: string; entry_type: string; balance_delta_cents: number; balance_after_cents: number; reason: string; created_at: string };
 
+const formatCentsToBRL = (cents: number): string => `R$ ${(Math.max(0, cents) / 100).toFixed(2).replace('.', ',')}`;
+
 export default function DriverCredits() {
   const router = useRouter();
   const [balance, setBalance] = useState<{ balance_cents: number; reserved_cents: number; available_cents: number; balance_display: string } | null>(null);
@@ -333,8 +335,12 @@ export default function DriverCredits() {
         {familyReturnData?.enabled && (
           <View style={[s.infoCard, { marginBottom: 16, borderLeftWidth: 3, borderLeftColor: COLORS.success }]}>
             <Text style={[s.infoTitle, { color: COLORS.success }]}>Bônus Anual KAVIAR</Text>
-            <Text style={s.infoText}>O modelo atual de benefícios prevê bônus anual de 10%, conforme regras de elegibilidade e período de apuração.</Text>
-            <Text style={[s.infoText, { fontSize: 11, marginTop: 4 }]}>Acompanhe campanhas e avisos pelo app.</Text>
+            <Text style={[s.infoText, { marginTop: 0 }]}>Bônus anual acumulado</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', color: COLORS.success, marginTop: 4 }}>
+              {formatCentsToBRL(familyReturnData.accrued_cents || 0)}
+            </Text>
+            <Text style={[s.infoText, { marginTop: 8 }]}>Disponível para solicitação entre outubro e dezembro, conforme regras vigentes.</Text>
+            <Text style={[s.infoText, { fontSize: 11, marginTop: 6 }]}>O valor é apurado somente para recargas confirmadas.</Text>
           </View>
         )}
 

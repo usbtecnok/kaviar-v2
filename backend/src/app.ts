@@ -448,6 +448,8 @@ import driverCreditsPurchaseRoutes from './routes/driver-credits-purchase';
 app.use('/api/v2/drivers', driverCreditsPurchaseRoutes);
 import webhooksAsaasRoutes from './routes/webhooks-asaas';
 app.use('/api/webhooks', webhooksAsaasRoutes);
+import webhooksSumUpRoutes from './routes/webhooks-sumup';
+app.use('/api/webhooks', webhooksSumUpRoutes);
 import geoProxyRoutes from './routes/geo-proxy';
 app.use('/api/geo-proxy', geoProxyRoutes);
 app.use('/api/realtime', realtimeRoutes);
