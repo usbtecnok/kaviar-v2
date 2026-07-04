@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Image, Alert, Clipboard, RefreshControl, Linking, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Alert, RefreshControl, Linking, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,30 +26,7 @@ export default function DriverCredits() {
   const [buying, setBuying] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
 
-  // Pix payment state
-  const [pixData, setPixData] = useState<{ rechargeId: string; qrCode: string; copyPaste: string; amount: number; expiresAt: string } | null>(null);
   const [sumupData, setSumupData] = useState<{ rechargeId: string; checkoutUrl: string; amount: number } | null>(null);
-
-  // Auto-poll wallet while Pix screen is open
-  useEffect(() => {
-    if (!pixData) return;
-    const initialBalance = balance?.balance_cents ?? 0;
-    let attempts = 0;
-    const id = setInterval(async () => {
-      if (++attempts > 120) { clearInterval(id); return; }
-      try {
-        const w = await driverApi.getWallet();
-        if (w.balance_cents > initialBalance) {
-          clearInterval(id);
-          setBalance(w);
-          setPixData(null);
-          load();
-          Alert.alert('✅ Pagamento confirmado!', 'Saldo adicionado à sua conta.');
-        }
-      } catch {}
-    }, 5000);
-    return () => clearInterval(id);
-  }, [!!pixData]);
 
   useEffect(() => {
     if (!sumupData) return;
@@ -109,7 +86,7 @@ export default function DriverCredits() {
     setSelectedPackage(null);
   };
 
-  const handleBuy = async (provider: 'sumup' | 'asaas') => {
+  const handleBuy = async (provider: 'sumup') => {
     if (buying || !selectedPackage) return;
     setBuying(true);
     try {
@@ -126,40 +103,16 @@ export default function DriverCredits() {
         return;
       }
 
-      if (result.payment_provider === 'asaas') {
-        closePaymentMethodSelector();
-        setPixData({
-          rechargeId: result.rechargeId,
-          qrCode: result.pix?.qrCode || '',
-          copyPaste: result.pix?.copyPaste || '',
-          amount: result.amount_cents / 100,
-          expiresAt: result.pix?.expiresAt || '',
-        });
-        return;
-      }
-
       closePaymentMethodSelector();
       Alert.alert('Erro', 'Não foi possível iniciar o pagamento.');
     } catch (e: any) {
       closePaymentMethodSelector();
-      if (e.response?.status === 403) {
-        Alert.alert('Saldo KAVIAR em preparação', 'A recarga por Pix estará disponível em breve.');
+      if (e.response?.status === 410) {
+        Alert.alert('Pix indisponível', 'Pix indisponível no momento. Use cartão, Google Pay ou Apple Pay.');
       } else {
         Alert.alert('Erro', e.response?.data?.error || 'Não foi possível criar a cobrança.');
       }
     } finally { setBuying(false); }
-  };
-
-  const handleCopyPix = () => {
-    if (pixData?.copyPaste) {
-      Clipboard.setString(pixData.copyPaste);
-      Alert.alert('Copiado!', 'Código Pix copiado. Cole no app do seu banco.');
-    }
-  };
-
-  const handlePixDone = () => {
-    setPixData(null);
-    load();
   };
 
   const handleOpenSumUpAgain = async () => {
@@ -251,58 +204,6 @@ export default function DriverCredits() {
     </SafeAreaView>
   );
 
-  // Pix payment screen
-  if (pixData) return (
-    <SafeAreaView style={s.container}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={handlePixDone}><Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} /></TouchableOpacity>
-        <Text style={s.title}>Pix</Text>
-        <View style={{ width: 24 }} />
-      </View>
-      <ScrollView contentContainerStyle={s.pixContainer}>
-        <View style={s.pixCard}>
-          <Ionicons name="checkmark-circle-outline" size={32} color={COLORS.primary} />
-          <Text style={s.pixTitle}>Pix</Text>
-          <Text style={s.pixSub}>Código Pix para pagar pelo app do banco</Text>
-          <Text style={[s.pixSub, { marginTop: 0, marginBottom: 20 }]}>Saldo R$ {pixData.amount.toFixed(2)}</Text>
-
-          {pixData.qrCode ? (
-            <Image source={{ uri: `data:image/png;base64,${pixData.qrCode}` }} style={s.qrImage} resizeMode="contain" />
-          ) : null}
-
-          {pixData.copyPaste ? (
-            <>
-              <Text style={s.pixLabel}>Código Pix copia e cola:</Text>
-              <TouchableOpacity style={s.copyBox} onPress={handleCopyPix}>
-                <Text style={s.copyText} numberOfLines={2}>{pixData.copyPaste}</Text>
-                <Ionicons name="copy-outline" size={18} color={COLORS.primary} />
-              </TouchableOpacity>
-            </>
-          ) : null}
-
-          <Text style={s.pixInstructions}>Abra o app do seu banco, escolha Pix e cole o código ou escaneie o QR Code acima.</Text>
-
-          <View style={s.pixInfoBox}>
-            <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.pixInfoMain}>O saldo entra automaticamente após a confirmação do pagamento.</Text>
-              <Text style={s.pixInfoSub}>{familyReturn ? 'Benefícios sazonais são apurados após confirmação do Pix.' : 'Após o Pix ser confirmado, seu saldo será atualizado no app.'}</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={s.doneBtn} onPress={handlePixDone}>
-            <Text style={s.doneBtnText}>Já paguei</Text>
-          </TouchableOpacity>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14, gap: 8 }}>
-            <ActivityIndicator size="small" color={COLORS.primary} />
-            <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>Aguardando confirmação do pagamento...</Text>
-          </View>
-          <Text style={s.pixNote}>Seu saldo será atualizado automaticamente após a confirmação.</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-
   // Main screen
   return (
     <SafeAreaView style={s.container}>
@@ -348,7 +249,7 @@ export default function DriverCredits() {
           <TouchableOpacity key={pkg.id} style={s.packageCard} onPress={() => openPaymentMethodSelector(pkg)} disabled={buying}>
             <View style={{ flex: 1 }}>
               <Text style={s.packageCredits}>{pkg.label}</Text>
-              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? 'Benefício anual elegível de 10% conforme regras vigentes' : 'Pix ou Cartão'}</Text>
+              <Text style={s.packagePrice}>{pkg.family_return_cents > 0 ? 'Benefício anual elegível de 10% conforme regras vigentes' : 'Cartão, Google Pay ou Apple Pay'}</Text>
             </View>
             <View style={s.buyBtn}>
               {buying ? <ActivityIndicator size="small" color="#000" /> : <Text style={s.buyBtnText}>Escolher</Text>}
@@ -388,14 +289,6 @@ export default function DriverCredits() {
           <Pressable style={s.methodModalCard} onPress={(e) => e.stopPropagation()}>
             <Text style={s.methodModalTitle}>Como deseja recarregar?</Text>
             <Text style={s.methodModalSubtitle}>{selectedPackage?.label ?? ''}</Text>
-
-            <TouchableOpacity style={s.methodOption} onPress={() => handleBuy('asaas')} disabled={buying}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.methodOptionTitle}>Pix</Text>
-                <Text style={s.methodOptionSub}>Código Pix para pagar pelo app do banco</Text>
-              </View>
-              {buying ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Ionicons name="qr-code-outline" size={20} color={COLORS.primary} />}
-            </TouchableOpacity>
 
             <TouchableOpacity style={s.methodOption} onPress={() => handleBuy('sumup')} disabled={buying}>
               <View style={{ flex: 1 }}>
@@ -441,22 +334,14 @@ const s = StyleSheet.create({
   historyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   historyText: { flex: 1, fontSize: 14, color: COLORS.textPrimary },
   historyStatus: { fontSize: 12, color: COLORS.textMuted },
-  // Pix screen
   pixContainer: { padding: 20, alignItems: 'center' },
   pixCard: { backgroundColor: COLORS.surface, borderRadius: 20, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border, width: '100%' },
   pixTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginTop: 12 },
   pixSub: { fontSize: 15, color: COLORS.textSecondary, marginTop: 4, marginBottom: 20 },
-  qrImage: { width: 220, height: 220, marginBottom: 16 },
-  pixLabel: { fontSize: 12, color: COLORS.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8, alignSelf: 'flex-start' },
-  copyBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 12, padding: 14, gap: 10, width: '100%', borderWidth: 1, borderColor: COLORS.border },
-  copyText: { flex: 1, fontSize: 12, color: COLORS.textSecondary, fontFamily: 'monospace' },
   pixInstructions: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginTop: 16, lineHeight: 19 },
   doneBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, marginTop: 20 },
   doneBtnText: { fontSize: 16, fontWeight: '700', color: '#000' },
   pixNote: { fontSize: 11, color: COLORS.textMuted, textAlign: 'center', marginTop: 12 },
-  pixInfoBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: '#f0f7ff', borderRadius: 12, padding: 14, marginTop: 16, width: '100%', borderWidth: 1, borderColor: '#d6e8f7' },
-  pixInfoMain: { fontSize: 13, fontWeight: '600', color: COLORS.textPrimary, lineHeight: 18 },
-  pixInfoSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3, lineHeight: 17 },
   methodModalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.68)', justifyContent: 'center', padding: 20 },
   methodModalCard: { backgroundColor: COLORS.surface, borderRadius: 20, borderWidth: 1, borderColor: COLORS.primary, padding: 20, shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   methodModalTitle: { fontSize: 20, fontWeight: '800', color: COLORS.textPrimary },

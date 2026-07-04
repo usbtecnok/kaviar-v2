@@ -3,8 +3,7 @@ import { authenticateDriver } from '../middlewares/auth';
 import { pool } from '../db';
 import { WalletService } from '../services/wallet-v2/wallet.service';
 import crypto from 'crypto';
-import { ensureAsaasCustomer, createPixPayment } from '../services/asaas.service';
-import { createSumUpCheckout, getSumUpCheckout, isSumUpEnabled, SumUpError } from '../services/sumup-service';
+import { createSumUpCheckout, isSumUpEnabled, SumUpError } from '../services/sumup-service';
 import { reconcileSumUpRechargeById } from '../services/wallet-v2/sumup-recharge.service';
 
 const router = Router();
@@ -140,8 +139,23 @@ router.get('/recharges/:id', async (req: Request, res: Response) => {
 router.post('/recharge', async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
-    const requestedProvider = req.body?.payment_provider === 'asaas' ? 'asaas' : 'sumup';
-    const provider = isSumUpEnabled() && requestedProvider !== 'asaas' ? 'sumup' : 'asaas';
+    const requestedProvider = String(req.body?.payment_provider || 'sumup').toLowerCase();
+
+    if (requestedProvider === 'asaas') {
+      return res.status(410).json({
+        success: false,
+        error: 'Pix indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+      });
+    }
+
+    if (!isSumUpEnabled()) {
+      return res.status(503).json({
+        success: false,
+        error: 'Pagamento por cartão indisponível no momento. Tente novamente em instantes.',
+      });
+    }
+
+    const provider = 'sumup';
 
     if (!(await isWalletV2Enabled())) {
       return res.status(403).json({ success: false, error: 'Recarga V2 não disponível' });
@@ -153,24 +167,14 @@ router.post('/recharge', async (req: Request, res: Response) => {
     const pkg = await pool.query('SELECT id, amount_cents, label FROM recharge_packages WHERE id = $1 AND is_active = true', [package_id]);
     if (!pkg.rows[0]) return res.status(400).json({ success: false, error: 'Pacote inválido ou inativo' });
 
-    // Anti-spam: retornar existente se pending recente do mesmo pacote
-    const recent = await pool.query(
-      "SELECT id, amount_cents, pix_qr_code, pix_copy_paste, pix_expires_at, payment_provider FROM wallet_recharges WHERE driver_id=$1 AND package_id=$2 AND status='pending' AND external_id IS NOT NULL AND created_at > NOW() - INTERVAL '10 minutes' LIMIT 1",
-      [driverId, package_id]
-    );
-    if (recent.rows[0] && provider === 'asaas') {
-      const r = recent.rows[0];
-      return res.json({ success: true, data: { rechargeId: r.id, amount_cents: Number(r.amount_cents), payment_provider: r.payment_provider || 'asaas', pix: { qrCode: r.pix_qr_code, copyPaste: r.pix_copy_paste, expiresAt: r.pix_expires_at } } });
-    }
-
     await pool.query(
       "UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE driver_id=$1 AND payment_provider='sumup' AND status='pending' AND created_at < NOW() - INTERVAL '20 minutes'",
       [driverId]
     );
 
-    // Anti-spam: max 3 pending válidas
+    // Anti-spam: max 3 pending válidas do provedor ativo (SumUp)
     const countRes = await pool.query(
-      "SELECT COUNT(*) as c FROM wallet_recharges WHERE driver_id=$1 AND status='pending' AND external_id IS NOT NULL AND ((payment_provider = 'sumup' AND created_at > NOW() - INTERVAL '20 minutes') OR (payment_provider = 'asaas' AND pix_expires_at > NOW()))",
+      "SELECT COUNT(*) as c FROM wallet_recharges WHERE driver_id=$1 AND status='pending' AND payment_provider='sumup' AND external_id IS NOT NULL AND created_at > NOW() - INTERVAL '20 minutes'",
       [driverId]
     );
     if (Number(countRes.rows[0].c) >= 3) {
@@ -186,68 +190,50 @@ router.post('/recharge', async (req: Request, res: Response) => {
       [rechargeId, driverId, package_id, amountCents, provider]
     );
 
-    if (provider === 'sumup') {
-      try {
-        const checkout = await createSumUpCheckout({
-          checkout_reference: `wallet_v2:${rechargeId}`,
-          amount: Math.round((amountCents / 100) * 100) / 100,
-          currency: 'BRL',
-          description: `KAVIAR: Recarga saldo ${pkg.rows[0].label}`,
-          hosted_checkout: { enabled: true },
-        });
-
-        const checkoutUrl = checkout.hosted_checkout_url || checkout.checkout_url;
-        if (!checkoutUrl) {
-          await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
-          return res.status(502).json({ success: false, error: 'Checkout indisponível no momento. Tente novamente.' });
-        }
-
-        await pool.query(
-          "UPDATE wallet_recharges SET external_id=$2, updated_at=NOW() WHERE id=$1",
-          [rechargeId, checkout.id]
-        );
-
-        return res.json({
-          success: true,
-          data: {
-            rechargeId,
-            amount_cents: amountCents,
-            payment_provider: 'sumup',
-            checkout: {
-              id: checkout.id,
-              checkout_reference: checkout.checkout_reference || null,
-              url: checkoutUrl,
-              status: checkout.status || null,
-            },
-          },
-        });
-      } catch (sumupErr) {
-        await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
-        if (sumupErr instanceof SumUpError) {
-          const status = sumupErr.statusCode === 429 ? 429 : (sumupErr.statusCode >= 500 ? 502 : 400);
-          return res.status(status).json({ success: false, error: sumupErr.safeMessage });
-        }
-        console.error(`[WALLET_RECHARGE_SUMUP_FAIL] driver=${driverId} recharge=${rechargeId}`);
-        return res.status(502).json({ success: false, error: 'Erro ao criar checkout de pagamento. Tente novamente.' });
-      }
-    }
-
-    // Provider padrão: Asaas
     try {
-      const customerId = await ensureAsaasCustomer(driverId);
-      const pix = await createPixPayment(customerId, amountCents, `wallet_v2:${rechargeId}`, `KAVIAR: Recarga saldo ${pkg.rows[0].label}`);
+      const checkout = await createSumUpCheckout({
+        checkout_reference: `wallet_v2:${rechargeId}`,
+        amount: Math.round((amountCents / 100) * 100) / 100,
+        currency: 'BRL',
+        description: `KAVIAR: Recarga saldo ${pkg.rows[0].label}`,
+        hosted_checkout: { enabled: true },
+      });
+
+      const checkoutUrl = checkout.hosted_checkout_url || checkout.checkout_url;
+      if (!checkoutUrl) {
+        await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
+        return res.status(502).json({ success: false, error: 'Checkout indisponível no momento. Tente novamente.' });
+      }
 
       await pool.query(
-        "UPDATE wallet_recharges SET external_id=$2, pix_qr_code=$3, pix_copy_paste=$4, pix_expires_at=$5, updated_at=NOW() WHERE id=$1",
-        [rechargeId, pix.paymentId, pix.qrCode, pix.copyPaste, pix.expirationDate]
+        "UPDATE wallet_recharges SET external_id=$2, updated_at=NOW() WHERE id=$1",
+        [rechargeId, checkout.id]
       );
 
-      res.json({ success: true, data: { rechargeId, amount_cents: amountCents, payment_provider: 'asaas', pix: { qrCode: pix.qrCode, copyPaste: pix.copyPaste, expiresAt: pix.expirationDate } } });
-    } catch (asaasErr) {
+      return res.json({
+        success: true,
+        data: {
+          rechargeId,
+          amount_cents: amountCents,
+          payment_provider: 'sumup',
+          checkout: {
+            id: checkout.id,
+            checkout_reference: checkout.checkout_reference || null,
+            url: checkoutUrl,
+            status: checkout.status || null,
+          },
+        },
+      });
+    } catch (sumupErr) {
       await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
-      console.error(`[WALLET_RECHARGE_ASAAS_FAIL] driver=${driverId} recharge=${rechargeId}`, (asaasErr as Error).message?.slice(0, 100));
-      res.status(502).json({ success: false, error: 'Erro ao criar cobrança Pix. Tente novamente.' });
+      if (sumupErr instanceof SumUpError) {
+        const status = sumupErr.statusCode === 429 ? 429 : (sumupErr.statusCode >= 500 ? 502 : 400);
+        return res.status(status).json({ success: false, error: sumupErr.safeMessage });
+      }
+      console.error(`[WALLET_RECHARGE_SUMUP_FAIL] driver=${driverId} recharge=${rechargeId}`);
+      return res.status(502).json({ success: false, error: 'Erro ao criar checkout de pagamento. Tente novamente.' });
     }
+
   } catch (err) {
     console.error('[wallet-v2] POST /recharge error:', (err as Error).message);
     res.status(500).json({ success: false, error: 'Erro interno' });
