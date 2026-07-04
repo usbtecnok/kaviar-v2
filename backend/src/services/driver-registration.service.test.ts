@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { DriverRegistrationService } from './driver-registration.service';
 import { prisma } from '../lib/prisma';
 
@@ -32,6 +32,8 @@ describe('DriverRegistrationService', () => {
         document_cpf: '12345678901',
         vehicle_color: 'Branco',
         accepted_terms: true,
+          lat: -22.9068,
+          lng: -43.1729,
         neighborhoodId: 'test-neighborhood-id'
       });
       
@@ -51,6 +53,8 @@ describe('DriverRegistrationService', () => {
         document_cpf: '12345678901',
         vehicle_color: 'Branco',
         accepted_terms: true,
+          lat: -22.9068,
+          lng: -43.1729,
         neighborhoodId: 'test-neighborhood-id'
       });
       
@@ -68,6 +72,8 @@ describe('DriverRegistrationService', () => {
         document_cpf: '12345678901',
         vehicle_color: 'Branco',
         accepted_terms: true,
+          lat: -22.9068,
+          lng: -43.1729,
         neighborhoodId: 'test-neighborhood-id'
       });
       
@@ -91,6 +97,8 @@ describe('DriverRegistrationService', () => {
         document_cpf: '12345678901',
         vehicle_color: 'Branco',
         accepted_terms: true,
+          lat: -22.9068,
+          lng: -43.1729,
         neighborhoodId: 'test-neighborhood-id'
       });
       
@@ -115,6 +123,8 @@ describe('DriverRegistrationService', () => {
         document_cpf: '12345678901',
         vehicle_color: 'Branco',
         accepted_terms: true,
+          lat: -22.9068,
+          lng: -43.1729,
         neighborhoodId: 'test-neighborhood-id'
       });
       
@@ -126,6 +136,8 @@ describe('DriverRegistrationService', () => {
         document_cpf: '98765432100',
         vehicle_color: 'Preto',
         accepted_terms: true,
+          lat: -22.907,
+          lng: -43.173,
         neighborhoodId: 'test-neighborhood-id'
       });
       
@@ -148,6 +160,8 @@ describe('DriverRegistrationService', () => {
         document_cpf: '12345678901',
         vehicle_color: 'Branco',
         accepted_terms: true,
+          lat: -22.9068,
+          lng: -43.1729,
         neighborhoodId: 'test-neighborhood-id',
         verificationMethod: 'GPS_AUTO'
       });
