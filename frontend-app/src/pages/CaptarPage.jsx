@@ -77,7 +77,7 @@ export default function CaptarPage() {
         </Box>
 
         <Typography sx={{ color: '#555', fontSize: 10, textAlign: 'center', mt: 3 }}>
-          KAVIAR — USB Tecnok Manutenção e Instalação de Computadores Ltda
+          KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99
         </Typography>
       </Container>
     </Box>

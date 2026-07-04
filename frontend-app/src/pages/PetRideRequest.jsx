@@ -83,7 +83,7 @@ export default function PetRideRequest() {
         </Alert>
 
         <Typography sx={{ color: '#6B7280', fontSize: 10, mt: 2, textAlign: 'center' }}>
-          O envio da solicitação não garante confirmação automática da corrida. O atendimento depende de disponibilidade, análise operacional e confirmação da central KAVIAR/USB Tecnok.
+          O envio da solicitação não garante confirmação automática da corrida. O atendimento depende de disponibilidade, análise operacional e confirmação da central KAVIAR.
         </Typography>
       </Container>
     </Box>

@@ -897,7 +897,7 @@ export default function Turismo() {
             </Grid>
             <Grid item xs={12} md={8}>
               <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.4)', textAlign: { xs: 'center', md: 'right' } }}>
-                © {new Date().getFullYear()} KAVIAR — uma plataforma USB Tecnok Manutenção e Instalação de Computadores Ltda.
+                © {new Date().getFullYear()} KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99.
               </Typography>
             </Grid>
           </Grid>

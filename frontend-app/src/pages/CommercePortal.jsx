@@ -195,7 +195,7 @@ export default function CommercePortal() {
               <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => window.print()}>🖨️ Imprimir</Button>
               <Button size="small" sx={{ textTransform: 'none', color: '#6B7280' }} onClick={() => {
                 const code = `REL-KAV-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(new Date().getHours()).padStart(2,'0')}${String(new Date().getMinutes()).padStart(2,'0')}`;
-                const text = `📊 Relatório KAVIAR Comércio\n🏢 KAVIAR — USB Tecnok\nCNPJ: 07.710.691/0001-66\nCódigo: ${code}\n🏪 ${account?.name || ''}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n✅ Disponível: R$ ${((wallet?.available_balance_cents||0)/100).toFixed(2)}\n⏳ Pendente: R$ ${((wallet?.pending_balance_cents||0)/100).toFixed(2)}\n💰 Total recebido: R$ ${((wallet?.total_received_cents||0)/100).toFixed(2)}\n💸 Total sacado: R$ ${((wallet?.total_withdrawn_cents||0)/100).toFixed(2)}\n\nRelatório operacional KAVIAR/USB Tecnok.`;
+                const text = `📊 Relatório KAVIAR Comércio\n🏢 KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA\nCNPJ: 67.783.601/0001-99\nCódigo: ${code}\n🏪 ${account?.name || ''}\nEmitido: ${new Date().toLocaleString('pt-BR')}\n\n✅ Disponível: R$ ${((wallet?.available_balance_cents||0)/100).toFixed(2)}\n⏳ Pendente: R$ ${((wallet?.pending_balance_cents||0)/100).toFixed(2)}\n💰 Total recebido: R$ ${((wallet?.total_received_cents||0)/100).toFixed(2)}\n💸 Total sacado: R$ ${((wallet?.total_withdrawn_cents||0)/100).toFixed(2)}\n\nRelatório operacional KAVIAR.`;
                 navigator.clipboard.writeText(text); setSnack('Resumo copiado!');
               }}>📋 Copiar</Button>
             </Box>

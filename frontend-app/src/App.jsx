@@ -420,7 +420,7 @@ function Home() {
 
         <Box sx={{ mt: 8, pt: 4, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography variant="body2" color="text.secondary" sx={{ opacity: 0.7 }}>
-            © 2026 KAVIAR — uma plataforma USB Tecnok Manutenção e Instalação de Computadores Ltda.
+            © 2026 KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA — CNPJ 67.783.601/0001-99.
           </Typography>
         </Box>
       </Container>
