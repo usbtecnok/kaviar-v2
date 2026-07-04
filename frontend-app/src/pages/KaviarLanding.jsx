@@ -710,6 +710,10 @@ export default function KaviarLanding() {
                   ['Painéis KAVIAR', '#paineis'],
                   ['Segurança', '#seguranca'],
                   ['Baixar app', '#download'],
+                  ['Privacidade', '/privacidade'],
+                  ['Termos Passageiro', '/termos-passageiro'],
+                  ['Termos Motorista', '/termos-motorista'],
+                  ['Excluir Conta', '/excluir-conta'],
                 ].map((link) => (
                   <Box key={link[0]} component="a" href={link[1]} sx={{ color: 'rgba(255,255,255,0.66)', textDecoration: 'none', fontSize: 13, '&:hover': { color: '#fff' } }}>
                     {link[0]}

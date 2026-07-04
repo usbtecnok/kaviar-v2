@@ -41,6 +41,10 @@ import RegionPage from "./pages/RegionPage";
 import KaviarLanding from "./pages/KaviarLanding";
 import PetLanding from "./pages/PetLanding";
 import PetRideRequest from "./pages/PetRideRequest";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsPassengerPage from "./pages/TermsPassengerPage";
+import TermsDriverPage from "./pages/TermsDriverPage";
+import DeleteAccountPage from "./pages/DeleteAccountPage";
 import GroupInviteLanding from "./pages/GroupInviteLanding";
 import ResponsibleInviteLanding from "./pages/ResponsibleInviteLanding";
 import FixedRouteInviteLanding from "./pages/FixedRouteInviteLanding";
@@ -460,6 +464,10 @@ export default function App() {
           <Route path="/particular" element={<PrivateRideRequest />} />
           <Route path="/pet" element={<PetLanding />} />
           <Route path="/pet/solicitar" element={<PetRideRequest />} />
+          <Route path="/privacidade" element={<PrivacyPolicyPage />} />
+          <Route path="/termos-passageiro" element={<TermsPassengerPage />} />
+          <Route path="/termos-motorista" element={<TermsDriverPage />} />
+          <Route path="/excluir-conta" element={<DeleteAccountPage />} />
           <Route path="/regiao/:slug" element={<RegionPage />} />
           <Route path="/motorista" element={<MotoristaReferral />} />
           <Route path="/passageiro" element={<PassageiroReferral />} />
