@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Alert, RefreshControl, Linking, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Alert, RefreshControl, Linking, Modal, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +26,14 @@ export default function DriverCredits() {
   const [buying, setBuying] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
 
-  const [sumupData, setSumupData] = useState<{ rechargeId: string; checkoutUrl: string; amount: number; method: 'pix' | 'card' } | null>(null);
+  const [sumupData, setSumupData] = useState<{
+    rechargeId: string;
+    checkoutUrl: string | null;
+    amount: number;
+    method: 'pix' | 'card';
+    pixQrImageUrl?: string | null;
+    pixCopyPaste?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (!sumupData) return;
@@ -91,6 +98,19 @@ export default function DriverCredits() {
     setBuying(true);
     try {
       const result = await driverApi.createWalletRecharge(selectedPackage.id, provider, method);
+
+      if (result.payment_provider === 'sumup' && method === 'pix' && result.pix) {
+        closePaymentMethodSelector();
+        setSumupData({
+          rechargeId: result.rechargeId,
+          checkoutUrl: result.checkout?.url || null,
+          amount: result.amount_cents / 100,
+          method,
+          pixQrImageUrl: result.pix.qr_image_url,
+          pixCopyPaste: result.pix.copy_paste,
+        });
+        return;
+      }
 
       if (result.payment_provider === 'sumup' && result.checkout?.url) {
         closePaymentMethodSelector();
@@ -189,11 +209,31 @@ export default function DriverCredits() {
           <Text style={s.pixSub}>{sumupData.method === 'pix' ? 'QR Code Pix pela SumUp' : 'Pagamento seguro pela SumUp'}</Text>
           <Text style={[s.pixSub, { marginTop: 0, marginBottom: 20 }]}>Valor R$ {sumupData.amount.toFixed(2)}</Text>
 
-          <Text style={s.pixInstructions}>Finalize o pagamento no checkout hospedado da SumUp. Após a confirmação, seu saldo será creditado automaticamente.</Text>
-
-          <TouchableOpacity style={s.doneBtn} onPress={handleOpenSumUpAgain}>
-            <Text style={s.doneBtnText}>Abrir pagamento novamente</Text>
-          </TouchableOpacity>
+          {sumupData.method === 'pix' ? (
+            <>
+              {sumupData.pixQrImageUrl ? (
+                <Image source={{ uri: sumupData.pixQrImageUrl }} style={s.pixQrImage} resizeMode="contain" />
+              ) : null}
+              {sumupData.pixCopyPaste ? (
+                <View style={s.pixCodeBox}>
+                  <Text selectable style={s.pixCodeText}>{sumupData.pixCopyPaste}</Text>
+                </View>
+              ) : null}
+              <Text style={s.pixInstructions}>Escaneie o QR Code Pix no app do seu banco e finalize o pagamento. O saldo será creditado após confirmação.</Text>
+              {sumupData.pixQrImageUrl ? (
+                <TouchableOpacity style={s.doneBtn} onPress={() => Linking.openURL(sumupData.pixQrImageUrl as string)}>
+                  <Text style={s.doneBtnText}>Abrir QR em tela cheia</Text>
+                </TouchableOpacity>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Text style={s.pixInstructions}>Finalize o pagamento no checkout hospedado da SumUp. Após a confirmação, seu saldo será creditado automaticamente.</Text>
+              <TouchableOpacity style={s.doneBtn} onPress={handleOpenSumUpAgain}>
+                <Text style={s.doneBtnText}>Abrir pagamento novamente</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           <TouchableOpacity style={[s.doneBtn, { marginTop: 10 }]} onPress={handleSumUpPaid}>
             <Text style={s.doneBtnText}>Já paguei</Text>
@@ -351,6 +391,9 @@ const s = StyleSheet.create({
   pixCard: { backgroundColor: COLORS.surface, borderRadius: 20, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border, width: '100%' },
   pixTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textPrimary, marginTop: 12 },
   pixSub: { fontSize: 15, color: COLORS.textSecondary, marginTop: 4, marginBottom: 20 },
+  pixQrImage: { width: 220, height: 220, borderRadius: 12, backgroundColor: '#fff', marginBottom: 12 },
+  pixCodeBox: { width: '100%', borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background, borderRadius: 10, padding: 10, marginBottom: 6 },
+  pixCodeText: { fontSize: 11, color: COLORS.textSecondary },
   pixInstructions: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginTop: 16, lineHeight: 19 },
   doneBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, marginTop: 20 },
   doneBtnText: { fontSize: 16, fontWeight: '700', color: '#000' },

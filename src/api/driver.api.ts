@@ -39,6 +39,11 @@ type WalletRechargeSumUpResponse = {
     url?: string | null;
     status?: string | null;
   };
+  pix?: {
+    payment_type: 'qr_code_pix' | 'pix' | string;
+    qr_image_url: string | null;
+    copy_paste: string | null;
+  };
 };
 
 export type WalletRechargeResponse = WalletRechargeAsaasResponse | WalletRechargeSumUpResponse;

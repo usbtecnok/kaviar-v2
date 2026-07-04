@@ -3,13 +3,44 @@ import { authenticateDriver } from '../middlewares/auth';
 import { pool } from '../db';
 import { WalletService } from '../services/wallet-v2/wallet.service';
 import crypto from 'crypto';
-import { createSumUpCheckout, getSumUpMerchantPaymentMethods, hasSumUpPixPaymentMethod, isSumUpEnabled, SumUpError } from '../services/sumup-service';
+import {
+  createSumUpCheckout,
+  getSumUpCheckoutPaymentMethods,
+  getSumUpMerchantPaymentMethods,
+  hasSumUpPixPaymentMethod,
+  isSumUpEnabled,
+  processSumUpCheckout,
+  SumUpError,
+} from '../services/sumup-service';
 import { reconcileSumUpRechargeById } from '../services/wallet-v2/sumup-recharge.service';
 
 const router = Router();
 const walletService = new WalletService(pool);
 
 let cachedWalletV2Flag: { value: boolean; at: number } | null = null;
+
+function extractPixPayload(checkout: Record<string, any>, paymentType: 'qr_code_pix' | 'pix') {
+  const rawPayload = checkout?.[paymentType];
+  const artifacts = Array.isArray(rawPayload?.artefacts)
+    ? rawPayload.artefacts
+    : (Array.isArray(rawPayload?.artifacts) ? rawPayload.artifacts : []);
+
+  const qrArtifact = artifacts.find((artifact: any) => {
+    const name = String(artifact?.name || '').toLowerCase();
+    return name === 'barcode' || name === 'qr_code' || name === 'qrcode';
+  });
+  const codeArtifact = artifacts.find((artifact: any) => String(artifact?.name || '').toLowerCase() === 'code');
+
+  const qrImageUrl = qrArtifact?.location ? String(qrArtifact.location) : null;
+  const copyPasteCode = codeArtifact?.content ? String(codeArtifact.content) : null;
+
+  return {
+    payment_type: paymentType,
+    qr_image_url: qrImageUrl,
+    copy_paste: copyPasteCode,
+  };
+}
+
 export async function isWalletV2Enabled(): Promise<boolean> {
   if (cachedWalletV2Flag && Date.now() - cachedWalletV2Flag.at < 60000) return cachedWalletV2Flag.value;
   let enabled = false;
@@ -231,16 +262,62 @@ router.post('/recharge', async (req: Request, res: Response) => {
         hosted_checkout: { enabled: true },
       });
 
+      await pool.query(
+        "UPDATE wallet_recharges SET external_id=$2, updated_at=NOW() WHERE id=$1",
+        [rechargeId, checkout.id]
+      );
+
+      if (requestedPaymentMethod === 'pix') {
+        const checkoutMethods = await getSumUpCheckoutPaymentMethods(checkout.id);
+        const checkoutMethodsLower = checkoutMethods
+          .flatMap((method) => [method.id, method.type, method.code, method.method])
+          .filter(Boolean)
+          .map((value) => String(value).toLowerCase());
+
+        const supportsQrCodePix = checkoutMethodsLower.includes('qr_code_pix');
+        const supportsPix = checkoutMethodsLower.includes('pix');
+        if (!supportsQrCodePix && !supportsPix) {
+          await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
+          return res.status(503).json({
+            success: false,
+            error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+          });
+        }
+
+        const pixPaymentType: 'qr_code_pix' | 'pix' = supportsQrCodePix ? 'qr_code_pix' : 'pix';
+        const processedCheckout = await processSumUpCheckout(checkout.id, { payment_type: pixPaymentType });
+        const pixPayload = extractPixPayload(processedCheckout as Record<string, any>, pixPaymentType);
+        if (!pixPayload.qr_image_url && !pixPayload.copy_paste) {
+          await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
+          return res.status(502).json({
+            success: false,
+            error: 'QR Code Pix indisponível no momento. Tente novamente.',
+          });
+        }
+
+        return res.json({
+          success: true,
+          data: {
+            rechargeId,
+            amount_cents: amountCents,
+            payment_provider: 'sumup',
+            payment_method: requestedPaymentMethod,
+            checkout: {
+              id: checkout.id,
+              checkout_reference: checkout.checkout_reference || null,
+              url: null,
+              status: processedCheckout.status || checkout.status || null,
+            },
+            pix: pixPayload,
+          },
+        });
+      }
+
       const checkoutUrl = checkout.hosted_checkout_url || checkout.checkout_url;
       if (!checkoutUrl) {
         await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
         return res.status(502).json({ success: false, error: 'Checkout indisponível no momento. Tente novamente.' });
       }
-
-      await pool.query(
-        "UPDATE wallet_recharges SET external_id=$2, updated_at=NOW() WHERE id=$1",
-        [rechargeId, checkout.id]
-      );
 
       return res.json({
         success: true,

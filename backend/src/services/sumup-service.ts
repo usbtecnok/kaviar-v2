@@ -26,6 +26,11 @@ export interface SumUpCheckoutCreateRequest {
   };
 }
 
+export interface SumUpCheckoutProcessRequest {
+  payment_type: 'card' | 'pix' | 'qr_code_pix' | string;
+  [key: string]: unknown;
+}
+
 export interface SumUpCheckoutCreateResponse {
   id: string;
   checkout_reference?: string;
@@ -37,6 +42,15 @@ export interface SumUpCheckoutCreateResponse {
   status?: string;
   checkout_url?: string;
   hosted_checkout_url?: string;
+  [key: string]: unknown;
+}
+
+export interface SumUpCheckoutPaymentMethod {
+  id?: string;
+  name?: string;
+  type?: string;
+  code?: string;
+  method?: string;
   [key: string]: unknown;
 }
 
@@ -72,7 +86,7 @@ function mapStatusToSafeMessage(status: number): string {
   }
 }
 
-async function sumupRequest<T>(path: string, method: 'GET' | 'POST', body?: unknown): Promise<T> {
+async function sumupRequest<T>(path: string, method: 'GET' | 'POST' | 'PUT', body?: unknown): Promise<T> {
   if (!SUMUP_API_KEY) {
     throw new SumUpError(500, 'Configuração de pagamento indisponível.');
   }
@@ -137,6 +151,48 @@ export async function getSumUpCheckout(checkoutId: string): Promise<SumUpCheckou
     throw new SumUpError(502, 'Resposta inválida do provedor de pagamento.');
   }
   return checkout;
+}
+
+export async function processSumUpCheckout(checkoutId: string, input: SumUpCheckoutProcessRequest): Promise<SumUpCheckoutCreateResponse> {
+  if (!checkoutId) {
+    throw new SumUpError(400, 'Checkout inválido para processamento.');
+  }
+  if (!input?.payment_type) {
+    throw new SumUpError(400, 'payment_type obrigatório para processamento.');
+  }
+
+  const checkout = await sumupRequest<SumUpCheckoutCreateResponse>(
+    `/v0.1/checkouts/${encodeURIComponent(checkoutId)}`,
+    'PUT',
+    input
+  );
+  if (!checkout?.id) {
+    throw new SumUpError(502, 'Resposta inválida do provedor de pagamento.');
+  }
+  return checkout;
+}
+
+export async function getSumUpCheckoutPaymentMethods(checkoutId: string): Promise<SumUpCheckoutPaymentMethod[]> {
+  if (!checkoutId) {
+    throw new SumUpError(400, 'Checkout inválido para consulta de métodos.');
+  }
+
+  const response = await sumupRequest<
+    SumUpCheckoutPaymentMethod[] | {
+      items?: SumUpCheckoutPaymentMethod[];
+      available_payment_methods?: SumUpCheckoutPaymentMethod[];
+      payment_methods?: SumUpCheckoutPaymentMethod[];
+    }
+  >(
+    `/v0.1/checkouts/${encodeURIComponent(checkoutId)}/payment-methods`,
+    'GET'
+  );
+
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.items)) return response.items;
+  if (Array.isArray(response?.available_payment_methods)) return response.available_payment_methods;
+  if (Array.isArray(response?.payment_methods)) return response.payment_methods;
+  return [];
 }
 
 export async function getSumUpMerchantPaymentMethods(merchantCode?: string): Promise<SumUpMerchantPaymentMethod[]> {

@@ -61,6 +61,55 @@ describe('sumup-service', () => {
     expect(options.headers.Authorization).toBe('Bearer sumup_secret_test');
   });
 
+  it('processSumUpCheckout usa PUT com payment_type qr_code_pix', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({
+        id: 'chk_pix_1',
+        status: 'PENDING',
+        qr_code_pix: {
+          artefacts: [
+            { name: 'barcode', location: 'https://api.sumup.com/v0.1/artefacts/a/content' },
+            { name: 'code', content: '000201...' },
+          ],
+        },
+      }),
+      text: async () => '',
+    });
+
+    const { processSumUpCheckout } = await import('../src/services/sumup-service');
+    const checkout = await processSumUpCheckout('chk_pix_1', { payment_type: 'qr_code_pix' });
+
+    expect(checkout.id).toBe('chk_pix_1');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.sumup.com/v0.1/checkouts/chk_pix_1');
+    expect(options.method).toBe('PUT');
+    const body = JSON.parse(options.body as string);
+    expect(body.payment_type).toBe('qr_code_pix');
+  });
+
+  it('getSumUpCheckoutPaymentMethods usa endpoint por checkout', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({ items: [{ id: 'card' }, { id: 'qr_code_pix' }] }),
+      text: async () => '',
+    });
+
+    const { getSumUpCheckoutPaymentMethods } = await import('../src/services/sumup-service');
+    const methods = await getSumUpCheckoutPaymentMethods('chk_777');
+
+    expect(methods).toHaveLength(2);
+    expect(methods[1].id).toBe('qr_code_pix');
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.sumup.com/v0.1/checkouts/chk_777/payment-methods');
+    expect(options.method).toBe('GET');
+  });
+
   it('createSumUpCheckout falha com erro seguro quando SUMUP_MERCHANT_CODE ausente', async () => {
     process.env.SUMUP_MERCHANT_CODE = '';
     const { createSumUpCheckout } = await import('../src/services/sumup-service');
