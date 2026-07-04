@@ -212,21 +212,20 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     expect(res.body.data.pix.qr_image_url).toContain('/artefacts/qr/content');
     expect(res.body.data.pix.copy_paste).toBe('000201PIX');
     expect(mockGetSumUpMerchantPaymentMethods).toHaveBeenCalledTimes(1);
-    expect(mockHasSumUpPixPaymentMethod).toHaveBeenCalledTimes(1);
     expect(mockCreateSumUpCheckout).toHaveBeenCalledTimes(1);
     expect(mockGetSumUpCheckoutPaymentMethods).toHaveBeenCalledTimes(1);
     expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'qr_code_pix' });
   });
 
-  it('POST /recharge com payment_method=pix usa pix quando qr_code_pix não existir no checkout', async () => {
-    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
+  it('POST /recharge com payment_method=pix não bloqueia quando checkout methods retorna só card', async () => {
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
     mockProcessSumUpCheckout.mockResolvedValue({
       id: 'sumup_checkout_1',
       status: 'PENDING',
-      pix: {
+      qr_code_pix: {
         artefacts: [
-          { name: 'barcode', location: 'https://api.sumup.com/v0.1/artefacts/pix/content' },
-          { name: 'code', content: '000201PIXFALLBACK' },
+          { name: 'barcode', location: 'https://api.sumup.com/v0.1/artefacts/qr/content2' },
+          { name: 'code', content: '000201PIXOK' },
         ],
       },
     });
@@ -244,15 +243,12 @@ describe('Wallet V2 Routes (sumup-only)', () => {
       .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
 
     expect(res.status).toBe(200);
-    expect(res.body.data.pix.payment_type).toBe('pix');
-    expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'pix' });
+    expect(res.body.data.pix.payment_type).toBe('qr_code_pix');
+    expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'qr_code_pix' });
   });
 
-  it('POST /recharge com payment_method=pix sem qr_code_pix retorna 503 sem fallback Asaas', async () => {
-    mockHasSumUpPixPaymentMethod.mockReturnValue(false);
-    mockQuery
-      .mockResolvedValueOnce({ rows: [{ enabled: true }] })
-      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] });
+  it('POST /recharge com payment_method=pix sem qr_code_pix no merchant retorna 503 sem fallback Asaas', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'card' }]);
 
     const res = await request(app)
       .post('/api/v2/drivers/me/wallet/recharge')
@@ -267,6 +263,36 @@ describe('Wallet V2 Routes (sumup-only)', () => {
       typeof call[0] === 'string' && call[0].includes('INSERT INTO wallet_recharges')
     );
     expect(insertCall).toBeFalsy();
+  });
+
+  it('POST /recharge com payment_method=pix e falha no PUT expira recarga e retorna 503', async () => {
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
+    mockProcessSumUpCheckout.mockRejectedValue(new TestSumUpError(422, 'Checkout não pôde ser processado pelo provedor.'));
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ enabled: true }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.');
+
+    const insertCall = mockQuery.mock.calls.find((call: any[]) =>
+      typeof call[0] === 'string' && call[0].includes('INSERT INTO wallet_recharges')
+    );
+    expect(insertCall).toBeTruthy();
+
+    const expireCall = mockQuery.mock.calls.find((call: any[]) =>
+      typeof call[0] === 'string' && call[0].includes("UPDATE wallet_recharges SET status='expired'")
+    );
+    expect(expireCall).toBeTruthy();
   });
 
   it('POST /recharge com SumUp desabilitado retorna 503 sem fallback Asaas', async () => {

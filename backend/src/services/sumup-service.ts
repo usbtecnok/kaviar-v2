@@ -5,12 +5,26 @@ const SUMUP_MERCHANT_CODE = process.env.SUMUP_MERCHANT_CODE || '';
 export class SumUpError extends Error {
   readonly statusCode: number;
   readonly safeMessage: string;
+  readonly method?: 'GET' | 'POST' | 'PUT';
+  readonly endpoint?: string;
+  readonly responseKeys?: string[];
 
-  constructor(statusCode: number, safeMessage: string) {
+  constructor(
+    statusCode: number,
+    safeMessage: string,
+    context?: {
+      method?: 'GET' | 'POST' | 'PUT';
+      endpoint?: string;
+      responseKeys?: string[];
+    }
+  ) {
     super(safeMessage);
     this.name = 'SumUpError';
     this.statusCode = statusCode;
     this.safeMessage = safeMessage;
+    this.method = context?.method;
+    this.endpoint = context?.endpoint;
+    this.responseKeys = context?.responseKeys;
   }
 }
 
@@ -111,9 +125,16 @@ async function sumupRequest<T>(path: string, method: 'GET' | 'POST' | 'PUT', bod
 
   if (!res.ok) {
     const safeMessage = mapStatusToSafeMessage(res.status);
+    const responseKeys = data && typeof data === 'object' ? Object.keys(data).slice(0, 20) : [];
     // Não registrar payload sensível nem token da requisição
-    console.error(`[SUMUP] checkout request failed status=${res.status}`);
-    throw new SumUpError(res.status, safeMessage);
+    console.error(
+      `[SUMUP_HTTP_ERROR] method=${method} endpoint=${path} status=${res.status} response_keys=${responseKeys.join(',') || 'none'}`
+    );
+    throw new SumUpError(res.status, safeMessage, {
+      method,
+      endpoint: path,
+      responseKeys,
+    });
   }
 
   return data as T;
