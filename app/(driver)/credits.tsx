@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Alert, RefreshControl, Linking, Modal, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, ScrollView, Alert, RefreshControl, Linking, Modal, Pressable, Image, Clipboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -165,6 +165,12 @@ export default function DriverCredits() {
     }
   };
 
+  const handleCopyPixCode = () => {
+    if (!sumupData?.pixCopyPaste) return;
+    Clipboard.setString(sumupData.pixCopyPaste);
+    Alert.alert('Código Pix copiado');
+  };
+
   if (loading) return (
     <SafeAreaView style={s.container}>
       <View style={s.center}>
@@ -214,6 +220,11 @@ export default function DriverCredits() {
             <View style={s.pixCodeBox}>
               <Text selectable style={s.pixCodeText}>{sumupData.pixCopyPaste}</Text>
             </View>
+          ) : null}
+          {sumupData.pixCopyPaste ? (
+            <TouchableOpacity style={s.copyPixBtn} onPress={handleCopyPixCode}>
+              <Text style={s.copyPixBtnText}>Copiar código Pix</Text>
+            </TouchableOpacity>
           ) : null}
           <Text style={s.pixInstructions}>Escaneie o QR Code Pix no app do seu banco e finalize o pagamento. O saldo será creditado após confirmação.</Text>
           {sumupData.pixQrImageUrl ? (
@@ -380,6 +391,8 @@ const s = StyleSheet.create({
   pixQrImage: { width: 220, height: 220, borderRadius: 12, backgroundColor: '#fff', marginBottom: 12 },
   pixCodeBox: { width: '100%', borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background, borderRadius: 10, padding: 10, marginBottom: 6 },
   pixCodeText: { fontSize: 11, color: COLORS.textSecondary },
+  copyPixBtn: { marginTop: 4, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: COLORS.background },
+  copyPixBtnText: { fontSize: 13, fontWeight: '700', color: COLORS.textPrimary },
   pixInstructions: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', marginTop: 16, lineHeight: 19 },
   doneBtn: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 32, marginTop: 20 },
   doneBtnText: { fontSize: 16, fontWeight: '700', color: '#000' },
