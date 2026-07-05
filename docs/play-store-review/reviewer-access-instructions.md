@@ -70,3 +70,11 @@ A localização em segundo plano não é usada para publicidade, venda de dados 
 As contas de teste devem estar válidas antes do envio para revisão.
 
 Se algum fluxo depender de corrida real, aprovação manual ou disponibilidade regional, informar ao revisor que a conta de teste já está preparada para acessar as telas principais sem bloqueio.
+
+## Checklist antes do envio
+
+- [ ] Criar ou validar conta passageiro.review@kaviar.com.br
+- [ ] Criar ou validar conta motorista.review@kaviar.com.br
+- [ ] Garantir que o motorista de teste esteja aprovado/ativo
+- [ ] Testar login das duas contas nos APKs finais
+- [ ] Inserir as credenciais no campo de instruções de acesso do Play Console
