@@ -90,7 +90,7 @@ android {
     namespace 'com.kaviar.passenger'
     defaultConfig {
         applicationId 'com.kaviar.passenger'
-        minSdkVersion rootProject.ext.minSdkVersion
+        minSdkVersion 29
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 13
         versionName "1.12.13-home-call-card"

@@ -96,6 +96,16 @@ export default {
     },
     plugins: [
       'expo-updates',
+      [
+        'expo-build-properties',
+        {
+          android: {
+            minSdkVersion: 29,
+            targetSdkVersion: 36,
+            compileSdkVersion: 36,
+          }
+        }
+      ],
       ['expo-notifications', { sounds: ['./assets/sounds/kaviar_ride.wav'] }],
       ['expo-av', { microphonePermission: false }],
       [
