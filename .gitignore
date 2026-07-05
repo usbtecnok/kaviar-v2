@@ -99,3 +99,6 @@ credentials/
 # Dados pessoais de gestores/gestoras (LGPD)
 scripts/utils/private/*.json
 docs/contratos/pdf/personalizados/
+
+# Local build artifacts
+artifacts/
