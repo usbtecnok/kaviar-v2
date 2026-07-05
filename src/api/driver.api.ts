@@ -14,25 +14,18 @@ export type AppNotification = {
   created_at: string;
 };
 
-type WalletRechargeProvider = 'sumup' | 'asaas';
-type WalletRechargeMethod = 'pix' | 'card';
-
-type WalletRechargeAsaasResponse = {
-  rechargeId: string;
-  amount_cents: number;
-  payment_provider: 'asaas';
-  pix: {
-    qrCode: string;
-    copyPaste: string;
-    expiresAt: string;
-  };
-};
+type WalletRechargeProvider = 'sumup';
+type WalletRechargeMethod = 'pix';
 
 type WalletRechargeSumUpResponse = {
   rechargeId: string;
   amount_cents: number;
+  charged_amount_cents?: number;
+  wallet_credit_cents?: number;
+  provider_fee_estimated_cents?: number;
+  fee_label?: string;
   payment_provider: 'sumup';
-  payment_method?: WalletRechargeMethod;
+  payment_method: WalletRechargeMethod;
   checkout: {
     id: string;
     checkout_reference?: string | null;
@@ -46,7 +39,7 @@ type WalletRechargeSumUpResponse = {
   };
 };
 
-export type WalletRechargeResponse = WalletRechargeAsaasResponse | WalletRechargeSumUpResponse;
+export type WalletRechargeResponse = WalletRechargeSumUpResponse;
 
 export type DriverFixedRoute = {
   id: string;
@@ -272,7 +265,20 @@ export const driverApi = {
     return data.data;
   },
 
-  getWalletPackages: async (): Promise<{ packages: { id: string; label: string; amount_cents: number; family_return_percent: number; family_return_cents: number }[]; family_return: { percent: number; message: string } | null }> => {
+  getWalletPackages: async (): Promise<{
+    packages: {
+      id: string;
+      label: string;
+      amount_cents: number;
+      wallet_credit_cents: number;
+      charged_amount_cents: number;
+      provider_fee_estimated_cents: number;
+      fee_label: string;
+      family_return_percent: number;
+      family_return_cents: number;
+    }[];
+    family_return: { percent: number; message: string } | null;
+  }> => {
     const { data } = await apiClient.get('/api/v2/drivers/me/wallet/packages');
     return { packages: data.data || [], family_return: data.family_return || null };
   },
@@ -282,15 +288,17 @@ export const driverApi = {
     return data.data;
   },
 
-  getWalletRecharge: async (id: string): Promise<{ id: string; amount_cents: number; status: string; payment_provider?: WalletRechargeProvider; created_at: string; confirmed_at: string | null }> => {
+  getWalletRecharge: async (id: string): Promise<{ id: string; amount_cents: number; charged_amount_cents?: number | null; wallet_credit_cents?: number | null; provider_fee_estimated_cents?: number | null; payment_method?: WalletRechargeMethod | null; status: string; payment_provider?: WalletRechargeProvider; created_at: string; confirmed_at: string | null }> => {
     const { data } = await apiClient.get(`/api/v2/drivers/me/wallet/recharges/${id}`);
     return data.data;
   },
 
-  createWalletRecharge: async (packageId: string, provider?: WalletRechargeProvider, method?: WalletRechargeMethod): Promise<WalletRechargeResponse> => {
-    const body: { package_id: string; payment_provider?: WalletRechargeProvider; payment_method?: WalletRechargeMethod } = { package_id: packageId };
-    if (provider) body.payment_provider = provider;
-    if (method) body.payment_method = method;
+  createWalletRecharge: async (packageId: string): Promise<WalletRechargeResponse> => {
+    const body: { package_id: string; payment_provider: WalletRechargeProvider; payment_method: WalletRechargeMethod } = {
+      package_id: packageId,
+      payment_provider: 'sumup',
+      payment_method: 'pix',
+    };
     const { data } = await apiClient.post('/api/v2/drivers/me/wallet/recharge', body);
     return data.data;
   },

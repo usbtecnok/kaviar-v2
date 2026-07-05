@@ -19,8 +19,9 @@ export type SumUpRechargeReconcileResult = {
 };
 
 async function applyRechargeConfirmation(recharge: { id: string; driver_id: string; amount_cents: number | string }): Promise<void> {
+  const amountCents = Number(recharge.amount_cents);
   await walletService.ensureWallet(recharge.driver_id);
-  await walletService.creditRecharge(recharge.driver_id, BigInt(recharge.amount_cents), recharge.id);
+  await walletService.creditRecharge(recharge.driver_id, BigInt(amountCents), recharge.id);
 
   try {
     const frPercent = parseInt(process.env.FAMILY_RETURN_PERCENT || '0', 10);
@@ -29,10 +30,10 @@ async function applyRechargeConfirmation(recharge: { id: string; driver_id: stri
       const idemKey = `family_return_accrual:${recharge.id}`;
       const exists = await pool.query('SELECT id FROM family_return_accruals WHERE idempotency_key = $1', [idemKey]);
       if (!exists.rows[0]) {
-        const accrued = Math.floor(Number(recharge.amount_cents) * frPercent / 100);
+        const accrued = Math.floor(amountCents * frPercent / 100);
         await pool.query(
           `INSERT INTO family_return_accruals (driver_id, recharge_id, source_amount_cents, accrued_amount_cents, percent, status, idempotency_key) VALUES ($1, $2::uuid, $3, $4, $5, 'accrued', $6)`,
-          [recharge.driver_id, recharge.id, recharge.amount_cents, accrued, frPercent, idemKey]
+          [recharge.driver_id, recharge.id, amountCents, accrued, frPercent, idemKey]
         );
       }
     }

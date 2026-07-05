@@ -142,7 +142,7 @@ describe('Wallet V2 Routes (sumup-only)', () => {
       .send({ package_id: 'saldo-50', payment_provider: 'asaas' });
 
     expect(res.status).toBe(410);
-    expect(res.body.error).toContain('Pix indisponível');
+    expect(res.body.error).toBe('Pix pelo Asaas indisponível. Use Pix pela SumUp.');
     expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
   });
 
@@ -152,7 +152,7 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     const res = await request(app)
       .post('/api/v2/drivers/me/wallet/recharge')
       .set(auth)
-      .send({ package_id: 'saldo-50', payment_provider: 'sumup', payment_method: 'card' });
+      .send({ package_id: 'saldo-50', payment_provider: 'sumup', payment_method: 'pix' });
 
     expect(res.status).toBe(403);
   });
@@ -165,30 +165,20 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     const res = await request(app)
       .post('/api/v2/drivers/me/wallet/recharge')
       .set(auth)
-      .send({ package_id: 'invalido', payment_provider: 'sumup', payment_method: 'card' });
+      .send({ package_id: 'invalido', payment_provider: 'sumup', payment_method: 'pix' });
 
     expect(res.status).toBe(400);
   });
 
-  it('POST /recharge com payment_method=card cria checkout SumUp', async () => {
-    mockQuery
-      .mockResolvedValueOnce({ rows: [{ enabled: true }] })
-      .mockResolvedValueOnce({ rows: [{ id: 'saldo-50', amount_cents: '5000', label: 'R$ 50' }] })
-      .mockResolvedValueOnce({})
-      .mockResolvedValueOnce({ rows: [{ c: '0' }] })
-      .mockResolvedValueOnce({})
-      .mockResolvedValueOnce({});
-
+  it('POST /recharge com payment_method=card retorna bloqueio explícito', async () => {
     const res = await request(app)
       .post('/api/v2/drivers/me/wallet/recharge')
       .set(auth)
       .send({ package_id: 'saldo-50', payment_provider: 'sumup', payment_method: 'card' });
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.payment_provider).toBe('sumup');
-    expect(res.body.data.payment_method).toBe('card');
-    expect(res.body.data.checkout.url).toBe('https://checkout.sumup.com/hc/Q1');
-    expect(mockCreateSumUpCheckout).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Recarga por cartão está temporariamente indisponível. Use Pix.');
+    expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
   });
 
   it('POST /recharge com payment_method=pix processa qr_code_pix e retorna artefatos', async () => {
@@ -208,6 +198,8 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.payment_provider).toBe('sumup');
     expect(res.body.data.payment_method).toBe('pix');
+    expect(res.body.data.wallet_credit_cents).toBe(2000);
+    expect(res.body.data.charged_amount_cents).toBe(2000);
     expect(res.body.data.pix.payment_type).toBe('qr_code_pix');
     expect(res.body.data.pix.qr_image_url).toContain('/artefacts/qr/content');
     expect(res.body.data.pix.copy_paste).toBe('000201PIX');
@@ -244,6 +236,8 @@ describe('Wallet V2 Routes (sumup-only)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.pix.payment_type).toBe('qr_code_pix');
+    expect(res.body.data.wallet_credit_cents).toBe(2000);
+    expect(res.body.data.charged_amount_cents).toBe(2000);
     expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'qr_code_pix' });
   });
 
@@ -256,7 +250,7 @@ describe('Wallet V2 Routes (sumup-only)', () => {
       .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
 
     expect(res.status).toBe(503);
-    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.');
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
     expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
 
     const insertCall = mockQuery.mock.calls.find((call: any[]) =>
@@ -282,7 +276,7 @@ describe('Wallet V2 Routes (sumup-only)', () => {
       .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
 
     expect(res.status).toBe(503);
-    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.');
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
 
     const insertCall = mockQuery.mock.calls.find((call: any[]) =>
       typeof call[0] === 'string' && call[0].includes('INSERT INTO wallet_recharges')
@@ -301,10 +295,10 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     const res = await request(app)
       .post('/api/v2/drivers/me/wallet/recharge')
       .set(auth)
-      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'card' });
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
 
     expect(res.status).toBe(503);
-    expect(res.body.error).toContain('cartão indisponível');
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
     expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
   });
 

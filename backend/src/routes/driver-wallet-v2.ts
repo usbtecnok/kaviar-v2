@@ -100,6 +100,10 @@ router.get('/packages', async (_req: Request, res: Response) => {
         id: p.id,
         label: p.label,
         amount_cents: Number(p.amount_cents),
+        wallet_credit_cents: Number(p.amount_cents),
+        charged_amount_cents: Number(p.amount_cents),
+        provider_fee_estimated_cents: 0,
+        fee_label: 'Pix sem taxa adicional',
         family_return_percent: familyReturnPercent,
         family_return_cents: familyReturnPercent > 0 ? Math.floor(Number(p.amount_cents) * familyReturnPercent / 100) : 0,
       })),
@@ -162,7 +166,17 @@ router.get('/recharges/:id', async (req: Request, res: Response) => {
     const row = refreshed.rows[0];
     if (!row) return res.status(404).json({ success: false, error: 'Recarga não encontrada' });
 
-    res.json({ success: true, data: { ...row, amount_cents: Number(row.amount_cents) } });
+    res.json({
+      success: true,
+      data: {
+        ...row,
+        amount_cents: Number(row.amount_cents),
+        payment_method: 'pix',
+        charged_amount_cents: Number(row.amount_cents),
+        wallet_credit_cents: Number(row.amount_cents),
+        provider_fee_estimated_cents: 0,
+      },
+    });
   } catch (err) {
     console.error('[wallet-v2] GET /recharges/:id error:', (err as Error).message);
     res.status(500).json({ success: false, error: 'Erro ao consultar recarga' });
@@ -177,61 +191,63 @@ router.post('/recharge', async (req: Request, res: Response) => {
     const requestedProvider = String(req.body?.payment_provider || 'sumup').toLowerCase();
     const rawPaymentMethod = String(req.body?.payment_method || '').toLowerCase();
 
-    const requestedPaymentMethod: 'pix' | 'card' =
-      rawPaymentMethod === 'pix' || rawPaymentMethod === 'sumup_pix'
-        ? 'pix'
-        : 'card';
+    const requestedPaymentMethod = rawPaymentMethod === '' || rawPaymentMethod === 'pix' || rawPaymentMethod === 'sumup_pix'
+      ? 'pix'
+      : rawPaymentMethod;
 
     if (requestedProvider === 'asaas') {
       return res.status(410).json({
         success: false,
-        error: 'Pix indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+        error: 'Pix pelo Asaas indisponível. Use Pix pela SumUp.',
+      });
+    }
+
+    if (requestedPaymentMethod !== 'pix') {
+      return res.status(503).json({
+        success: false,
+        error: 'Recarga por cartão está temporariamente indisponível. Use Pix.',
       });
     }
 
     if (!isSumUpEnabled()) {
       return res.status(503).json({
         success: false,
-        error: requestedPaymentMethod === 'pix'
-          ? 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.'
-          : 'Pagamento por cartão indisponível no momento. Tente novamente em instantes.',
+        error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
       });
     }
 
-    if (requestedPaymentMethod === 'pix') {
-      try {
-        sumupStage = 'merchant_payment_methods';
-        const methods = await getSumUpMerchantPaymentMethods();
-        const methodTags = methods
-          .flatMap((method) => [method.id, method.type, method.code, method.method])
-          .filter(Boolean)
-          .map((value) => String(value).toLowerCase());
-        const merchantHasQrCodePix = methodTags.includes('qr_code_pix');
-        if (!merchantHasQrCodePix) {
-          console.warn(
-            `[WALLET_PIX_SUMUP_STAGE] stage=merchant_payment_methods_no_pix driver=${driverId} tags=${methodTags.join(',') || 'none'}`
-          );
-          return res.status(503).json({
-            success: false,
-            error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
-          });
-        }
-      } catch (methodErr) {
-        if (methodErr instanceof SumUpError) {
-          console.error(
-            `[WALLET_PIX_SUMUP_STAGE] stage=${sumupStage} driver=${driverId} status=${methodErr.statusCode} method=${methodErr.method || 'unknown'} endpoint=${methodErr.endpoint || 'unknown'}`
-          );
-          return res.status(503).json({
-            success: false,
-            error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
-          });
-        }
-        console.error(`[WALLET_RECHARGE_SUMUP_METHODS_FAIL] stage=${sumupStage} driver=${driverId}`);
+    try {
+      sumupStage = 'merchant_payment_methods';
+      const methods = await getSumUpMerchantPaymentMethods();
+      const methodTags = methods
+        .flatMap((method) => [method.id, method.type, method.code, method.method])
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase());
+      const merchantHasQrCodePix = methodTags.includes('qr_code_pix');
+      if (!merchantHasQrCodePix) {
+        console.warn(
+          `[WALLET_PIX_SUMUP_STAGE] stage=merchant_payment_methods_no_pix driver=${driverId} tags=${methodTags.join(',') || 'none'}`
+        );
         return res.status(503).json({
           success: false,
-          error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+          error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
         });
       }
+    } catch (methodErr) {
+      if (methodErr instanceof SumUpError) {
+        console.error(
+          `[WALLET_PIX_SUMUP_STAGE] stage=${sumupStage} driver=${driverId} status=${methodErr.statusCode} method=${methodErr.method || 'unknown'} endpoint=${methodErr.endpoint || 'unknown'}`
+        );
+        return res.status(503).json({
+          success: false,
+          error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
+        });
+      }
+      console.error(`[WALLET_RECHARGE_SUMUP_METHODS_FAIL] stage=${sumupStage} driver=${driverId}`);
+      return res.status(503).json({
+        success: false,
+        error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
+      });
     }
 
     const provider = 'sumup';
@@ -266,14 +282,20 @@ router.post('/recharge', async (req: Request, res: Response) => {
     // Insert pending (antes de chamar provider)
     await pool.query(
       "INSERT INTO wallet_recharges (id, driver_id, package_id, amount_cents, status, payment_provider, external_id, created_at, updated_at) VALUES ($1,$2,$3,$4,'pending',$5,NULL,NOW(),NOW())",
-      [rechargeId, driverId, package_id, amountCents, provider]
+      [
+        rechargeId,
+        driverId,
+        package_id,
+        amountCents,
+        provider,
+      ]
     );
 
     try {
       sumupStage = 'create_checkout';
       const checkout = await createSumUpCheckout({
         checkout_reference: `wallet_v2:${rechargeId}`,
-        amount: Math.round((amountCents / 100) * 100) / 100,
+        amount: amountCents / 100,
         currency: 'BRL',
         description: `KAVIAR: Recarga saldo ${pkg.rows[0].label}`,
         hosted_checkout: { enabled: true },
@@ -284,67 +306,42 @@ router.post('/recharge', async (req: Request, res: Response) => {
         [rechargeId, checkout.id]
       );
 
-      if (requestedPaymentMethod === 'pix') {
-        sumupStage = 'checkout_payment_methods_telemetry';
-        try {
-          const checkoutMethods = await getSumUpCheckoutPaymentMethods(checkout.id);
-          const checkoutMethodsLower = checkoutMethods
-            .flatMap((method) => [method.id, method.type, method.code, method.method])
-            .filter(Boolean)
-            .map((value) => String(value).toLowerCase());
-          console.info(
-            `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} tags=${checkoutMethodsLower.join(',') || 'none'}`
-          );
-        } catch (checkoutMethodsErr) {
-          if (checkoutMethodsErr instanceof SumUpError) {
-            console.warn(
-              `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods_error driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} sumup_status=${checkoutMethodsErr.statusCode} method=${checkoutMethodsErr.method || 'unknown'} endpoint=${checkoutMethodsErr.endpoint || 'unknown'}`
-            );
-          } else {
-            console.warn(
-              `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods_error driver=${driverId} recharge=${rechargeId} checkout=${checkout.id}`
-            );
-          }
-        }
-
-        const pixPaymentType: 'qr_code_pix' = 'qr_code_pix';
-        sumupStage = 'process_checkout_qr_code_pix';
-        const processedCheckout = await processSumUpCheckout(checkout.id, { payment_type: pixPaymentType });
-        sumupStage = 'extract_pix_payload';
-        const pixPayload = extractPixPayload(processedCheckout as Record<string, any>, pixPaymentType);
+      sumupStage = 'checkout_payment_methods_telemetry';
+      try {
+        const checkoutMethods = await getSumUpCheckoutPaymentMethods(checkout.id);
+        const checkoutMethodsLower = checkoutMethods
+          .flatMap((method) => [method.id, method.type, method.code, method.method])
+          .filter(Boolean)
+          .map((value) => String(value).toLowerCase());
         console.info(
-          `[WALLET_PIX_SUMUP_STAGE] stage=extract_pix_payload driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} payment_type=${pixPaymentType} has_qr_image=${Boolean(pixPayload.qr_image_url)} has_copy_paste=${Boolean(pixPayload.copy_paste)}`
+          `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} tags=${checkoutMethodsLower.join(',') || 'none'}`
         );
-        if (!pixPayload.qr_image_url && !pixPayload.copy_paste) {
-          await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
-          return res.status(502).json({
-            success: false,
-            error: 'QR Code Pix indisponível no momento. Tente novamente.',
-          });
+      } catch (checkoutMethodsErr) {
+        if (checkoutMethodsErr instanceof SumUpError) {
+          console.warn(
+            `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods_error driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} sumup_status=${checkoutMethodsErr.statusCode} method=${checkoutMethodsErr.method || 'unknown'} endpoint=${checkoutMethodsErr.endpoint || 'unknown'}`
+          );
+        } else {
+          console.warn(
+            `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods_error driver=${driverId} recharge=${rechargeId} checkout=${checkout.id}`
+          );
         }
-
-        return res.json({
-          success: true,
-          data: {
-            rechargeId,
-            amount_cents: amountCents,
-            payment_provider: 'sumup',
-            payment_method: requestedPaymentMethod,
-            checkout: {
-              id: checkout.id,
-              checkout_reference: checkout.checkout_reference || null,
-              url: null,
-              status: processedCheckout.status || checkout.status || null,
-            },
-            pix: pixPayload,
-          },
-        });
       }
 
-      const checkoutUrl = checkout.hosted_checkout_url || checkout.checkout_url;
-      if (!checkoutUrl) {
+      const pixPaymentType: 'qr_code_pix' = 'qr_code_pix';
+      sumupStage = 'process_checkout_qr_code_pix';
+      const processedCheckout = await processSumUpCheckout(checkout.id, { payment_type: pixPaymentType });
+      sumupStage = 'extract_pix_payload';
+      const pixPayload = extractPixPayload(processedCheckout as Record<string, any>, pixPaymentType);
+      console.info(
+        `[WALLET_PIX_SUMUP_STAGE] stage=extract_pix_payload driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} payment_type=${pixPaymentType} has_qr_image=${Boolean(pixPayload.qr_image_url)} has_copy_paste=${Boolean(pixPayload.copy_paste)}`
+      );
+      if (!pixPayload.qr_image_url && !pixPayload.copy_paste) {
         await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
-        return res.status(502).json({ success: false, error: 'Checkout indisponível no momento. Tente novamente.' });
+        return res.status(502).json({
+          success: false,
+          error: 'QR Code Pix indisponível no momento. Tente novamente.',
+        });
       }
 
       return res.json({
@@ -352,14 +349,19 @@ router.post('/recharge', async (req: Request, res: Response) => {
         data: {
           rechargeId,
           amount_cents: amountCents,
+          wallet_credit_cents: amountCents,
+          charged_amount_cents: amountCents,
+          provider_fee_estimated_cents: 0,
+          fee_label: 'Pix sem taxa adicional',
           payment_provider: 'sumup',
-          payment_method: requestedPaymentMethod,
+          payment_method: 'pix',
           checkout: {
             id: checkout.id,
             checkout_reference: checkout.checkout_reference || null,
-            url: checkoutUrl,
-            status: checkout.status || null,
+            url: null,
+            status: processedCheckout.status || checkout.status || null,
           },
+          pix: pixPayload,
         },
       });
     } catch (sumupErr) {
@@ -368,10 +370,10 @@ router.post('/recharge', async (req: Request, res: Response) => {
         console.error(
           `[WALLET_RECHARGE_SUMUP_FAIL] stage=${sumupStage} driver=${driverId} recharge=${rechargeId} sumup_status=${sumupErr.statusCode} method=${sumupErr.method || 'unknown'} endpoint=${sumupErr.endpoint || 'unknown'} response_keys=${sumupErr.responseKeys?.join(',') || 'none'}`
         );
-        if (requestedPaymentMethod === 'pix' && sumupStage.startsWith('process_checkout_')) {
+        if (sumupStage.startsWith('process_checkout_')) {
           return res.status(503).json({
             success: false,
-            error: 'Pix pela SumUp indisponível no momento. Use cartão, Google Pay ou Apple Pay.',
+            error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
           });
         }
         const status = sumupErr.statusCode === 429 ? 429 : (sumupErr.statusCode >= 500 ? 502 : 400);
