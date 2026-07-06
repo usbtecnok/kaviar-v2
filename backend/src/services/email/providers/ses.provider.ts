@@ -5,6 +5,8 @@ interface SendEmailParams {
   subject: string;
   html: string;
   text: string;
+  from?: string;
+  replyTo?: string[];
 }
 
 export class SESProvider {
@@ -18,10 +20,11 @@ export class SESProvider {
 
   async send(params: SendEmailParams): Promise<void> {
     const command = new SendEmailCommand({
-      Source: this.fromEmail,
+      Source: params.from || this.fromEmail,
       Destination: {
         ToAddresses: [params.to],
       },
+      ReplyToAddresses: params.replyTo,
       Message: {
         Subject: {
           Data: params.subject,

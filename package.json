@@ -8,6 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "setup:email": "node scripts/setup-kaviar-email.mjs",
     "lint": "eslint backend/src app src --max-warnings=9999",
     "lint:backend": "eslint backend/src --max-warnings=9999",
     "lint:app": "eslint app src --max-warnings=9999",

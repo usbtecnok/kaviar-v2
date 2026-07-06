@@ -328,7 +328,7 @@ router.post('/recharge', async (req: Request, res: Response) => {
         }
       }
 
-      const pixPaymentType: 'qr_code_pix' = 'qr_code_pix';
+      const pixPaymentType = 'qr_code_pix' as const;
       sumupStage = 'process_checkout_qr_code_pix';
       const processedCheckout = await processSumUpCheckout(checkout.id, { payment_type: pixPaymentType });
       sumupStage = 'extract_pix_payload';

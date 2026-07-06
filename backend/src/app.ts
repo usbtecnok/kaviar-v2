@@ -13,6 +13,7 @@ import { structuredLogger } from './middlewares/structured-logger';
 // Core routes (always enabled)
 import { authRoutes } from './routes/auth';
 import { passwordResetRoutes } from './routes/password-reset';
+import adminEmailRoutes from './routes/admin-email';
 import { phoneAuthRoutes } from './routes/phone-auth';
 import { adminRoutes } from './routes/admin';
 import complianceRoutes from './routes/compliance';
@@ -252,6 +253,7 @@ app.get('/api/health/ready', async (req, res) => {
 // Core routes (always enabled)
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin/auth', passwordResetRoutes);
+app.use('/api/admin/email', adminEmailRoutes);
 
 // Investor invites (SUPER_ADMIN only, before investorView middleware)
 import investorInvitesRoutes from './routes/investor-invites-v2';

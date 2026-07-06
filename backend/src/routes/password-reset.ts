@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma';
 import { config } from '../config';
 import { passwordResetRateLimit } from '../middlewares/auth-rate-limit';
 import { emailService } from '../services/email/email.service';
+import { buildPasswordResetTemplate } from '../services/email/templates/kaviar-defaults';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -105,19 +106,17 @@ router.post('/forgot-password', passwordResetRateLimit, async (req, res) => {
 
     const resetToken = generateResetToken(user.id, userType);
     const resetUrl = `${config.frontendUrl}/admin/reset-password?token=${resetToken}`;
+    const template = buildPasswordResetTemplate({
+      name: user.name,
+      resetUrl,
+    });
 
     await emailService.sendMail({
       to: user.email,
-      subject: 'KAVIAR - Redefinição de Senha',
-      html: `
-        <h2>Redefinição de Senha</h2>
-        <p>Olá ${user.name},</p>
-        <p>Você solicitou a redefinição de senha. Clique no link abaixo para continuar:</p>
-        <p><a href="${resetUrl}">${resetUrl}</a></p>
-        <p>Este link expira em 15 minutos.</p>
-        <p>Se você não solicitou esta redefinição, ignore este email.</p>
-      `,
-      text: `Olá ${user.name},\n\nVocê solicitou a redefinição de senha.\n\nAcesse: ${resetUrl}\n\nEste link expira em 15 minutos.\n\nSe você não solicitou esta redefinição, ignore este email.`
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      from: 'KAVIAR <no-reply@kaviar.com.br>',
     });
 
     res.json(successResponse);
