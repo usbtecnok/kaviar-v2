@@ -169,6 +169,7 @@ export default function DriverOnline() {
     },
     { key: 'credits', label: 'Saldo', icon: 'wallet-outline', onPress: () => router.push('/(driver)/credits') },
     { key: 'documents', label: 'Documentos', icon: 'document-text-outline', onPress: () => router.push('/(driver)/documents') },
+    { key: 'municipal', label: 'Regularização Municipal', icon: 'business-outline', onPress: () => router.push('/(driver)/municipal-regularization') },
     { key: 'refer', label: 'Indique um motorista', icon: 'people-outline', onPress: () => router.push('/(driver)/refer-driver') },
     { key: 'help', label: 'Ajuda', icon: 'help-circle-outline', onPress: () => router.push('/(driver)/help') },
     { key: 'logout', label: 'Sair', icon: 'log-out-outline', danger: true, onPress: () => handleLogout() },
@@ -491,6 +492,28 @@ export default function DriverOnline() {
       await startLocationTracking();
       startPolling();
     } catch (e: any) {
+      if (e?.response?.status === 403 && e?.response?.data?.error === 'MUNICIPAL_LOCATION_REQUIRED') {
+        Alert.alert(
+          'Localização necessária',
+          'Não foi possível confirmar sua cidade para validar a autorização municipal. Atualize sua localização ou procure o suporte KAVIAR.'
+        );
+        return;
+      }
+
+      if (e?.response?.status === 403 && e?.response?.data?.error === 'MUNICIPAL_AUTH_REQUIRED') {
+        Alert.alert(
+          'Autorização municipal pendente',
+          'Sua cidade exige autorização municipal. Aguarde a aprovação da Prefeitura para operar.',
+          [
+            {
+              text: 'Ver regularização',
+              onPress: () => router.push('/(driver)/municipal-regularization'),
+            },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        return;
+      }
       Alert.alert('Erro', friendlyError(e, 'Erro ao ficar online'));
     } finally { setLoading(false); }
   };

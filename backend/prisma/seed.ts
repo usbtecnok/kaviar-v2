@@ -153,6 +153,92 @@ async function main() {
   });
   console.log('✅ Território: RJ (state) → Rio de Janeiro (city)');
 
+  // Regras municipais iniciais: Santa Rita do Passa Quatro/SP
+  const santaRitaCar = await prisma.municipal_regulations.upsert({
+    where: {
+      id: 'municipal-reg-santa-rita-sp-car',
+    },
+    update: {
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requires_protocol: true,
+      max_vehicle_age_years: 12,
+      responsible_agency: 'Departamento de Serviços Municipais',
+      notes: 'regulamentação municipal para transporte remunerado privado individual de passageiros por aplicativo.',
+      is_active: true,
+    },
+    create: {
+      id: 'municipal-reg-santa-rita-sp-car',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requires_protocol: true,
+      max_vehicle_age_years: 12,
+      responsible_agency: 'Departamento de Serviços Municipais',
+      notes: 'regulamentação municipal para transporte remunerado privado individual de passageiros por aplicativo.',
+      is_active: true,
+    },
+  });
+
+  await prisma.municipal_regulation_requirements.deleteMany({
+    where: { regulation_id: santaRitaCar.id },
+  });
+
+  await prisma.municipal_regulation_requirements.createMany({
+    data: [
+      { regulation_id: santaRitaCar.id, requirement_key: 'CNH_B_EAR', label: 'CNH categoria B ou superior com EAR', document_type: 'CNH', is_required: true, sort_order: 1 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'BACKGROUND_CHECK', label: 'Certidão negativa de antecedentes criminais', document_type: 'BACKGROUND_CHECK', is_required: true, sort_order: 2 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'INSS_MEI', label: 'INSS contribuinte individual ou MEI', document_type: 'INSS_OR_MEI_PROOF', is_required: true, sort_order: 3 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'SEGURO_APP', label: 'Seguro APP', document_type: 'APP_INSURANCE', is_required: true, sort_order: 4 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'DPVAT', label: 'DPVAT/seguro obrigatório, conforme exigência vigente', document_type: 'MANDATORY_INSURANCE', is_required: true, sort_order: 5 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'CRLV', label: 'CRLV regular', document_type: 'CRLV', is_required: true, sort_order: 6 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'VEHICLE_AUTHORIZATION', label: 'Contrato de arrendamento/locação/comodato se veículo não estiver no nome do condutor', document_type: 'VEHICLE_AUTHORIZATION_CONTRACT', is_required: true, sort_order: 7 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'PROOF_OF_ADDRESS_90_DAYS', label: 'Comprovante de residência expedido nos últimos 90 dias', document_type: 'PROOF_OF_ADDRESS', is_required: true, sort_order: 8 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'PHOTO_3X4', label: '2 fotos 3x4 ou foto padrão documento', document_type: 'PROFILE_PHOTO', is_required: true, sort_order: 9 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'MUNICIPAL_REGISTRATION', label: 'Inscrição junto à Divisão de Arrecadação Municipal', document_type: 'MUNICIPAL_REGISTRATION', is_required: true, sort_order: 10 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'MUNICIPAL_DEBT_CLEARANCE', label: 'Certidão negativa de débitos municipais', document_type: 'MUNICIPAL_DEBT_CLEARANCE', is_required: true, sort_order: 11 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'MUNICIPAL_TAX_PAYMENT', label: 'Comprovante de recolhimento de tributos municipais, quando aplicável', document_type: 'MUNICIPAL_TAX_PAYMENT_PROOF', is_required: false, sort_order: 12 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'VEHICLE_GOOD_CONDITION_DECLARATION', label: 'Declaração de veículo em bom estado de conservação, funcionamento, segurança, higiene e limpeza', document_type: 'VEHICLE_CONDITION_DECLARATION', is_required: true, sort_order: 13 },
+      { regulation_id: santaRitaCar.id, requirement_key: 'MAX_VEHICLE_AGE_12', label: 'Validação de veículo com no máximo 12 anos de fabricação', document_type: 'VEHICLE_YEAR_VALIDATION', is_required: true, sort_order: 14 },
+    ],
+  });
+
+  await prisma.municipal_regulations.upsert({
+    where: {
+      id: 'municipal-reg-santa-rita-sp-moto-passenger',
+    },
+    update: {
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'MOTO_PASSENGER',
+      regulation_status: 'REQUIRES_CONFIRMATION',
+      requires_city_approval: true,
+      requires_protocol: true,
+      responsible_agency: 'Departamento de Serviços Municipais',
+      notes: 'Modalidade de moto passageiro requer confirmação formal da Prefeitura antes de habilitar operação.',
+      is_active: true,
+    },
+    create: {
+      id: 'municipal-reg-santa-rita-sp-moto-passenger',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'MOTO_PASSENGER',
+      regulation_status: 'REQUIRES_CONFIRMATION',
+      requires_city_approval: true,
+      requires_protocol: true,
+      responsible_agency: 'Departamento de Serviços Municipais',
+      notes: 'Modalidade de moto passageiro requer confirmação formal da Prefeitura antes de habilitar operação.',
+      is_active: true,
+    },
+  });
+
+  console.log('✅ Regras municipais: Santa Rita do Passa Quatro/SP (CAR regulado + MOTO_PASSENGER requer confirmação)');
+
   console.log('\n🎉 Seed completo!');
 }
 

@@ -3,6 +3,8 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { rankDriversByFavorites } from './favorites-matching.service';
 import { getCreditBalance } from './credit.service';
 import { isFlatFeeEnabled } from './pricing-engine';
+import { canDriverOperateInMunicipality, mapServiceCategoryToMunicipalModality } from './municipal-regulation.service';
+import { resolveTerritory } from './territory-resolver.service';
 
 interface DriverCandidate {
   driver_id: string;
@@ -21,6 +23,80 @@ export class DispatcherService {
   private readonly OFFER_TIMEOUT_SECONDS = 45;
   private readonly MAX_DISTANCE_KM = 12;
   private readonly LOCATION_FRESHNESS_SECONDS = process.env.NODE_ENV === 'production' ? 60 : 3600; // DEV: 1h
+
+  private async getCityStateFromNeighborhood(neighborhoodId: string) {
+    const neighborhood = await prisma.neighborhoods.findUnique({
+      where: { id: neighborhoodId },
+      select: {
+        city: true,
+        territory: {
+          select: { uf: true },
+        },
+      },
+    });
+
+    return {
+      city: neighborhood?.city || null,
+      state: neighborhood?.territory?.uf || null,
+    };
+  }
+
+  private async resolveRideMunicipality(ride: any) {
+    if (ride.origin_neighborhood_id) {
+      const fromOriginNeighborhood = await this.getCityStateFromNeighborhood(ride.origin_neighborhood_id);
+      if (fromOriginNeighborhood.city && fromOriginNeighborhood.state) {
+        return {
+          city: fromOriginNeighborhood.city,
+          state: fromOriginNeighborhood.state,
+          source: 'origin_neighborhood',
+        };
+      }
+    }
+
+    if (ride.dest_neighborhood_id) {
+      const fromDestNeighborhood = await this.getCityStateFromNeighborhood(ride.dest_neighborhood_id);
+      if (fromDestNeighborhood.city && fromDestNeighborhood.state) {
+        return {
+          city: fromDestNeighborhood.city,
+          state: fromDestNeighborhood.state,
+          source: 'dest_neighborhood',
+        };
+      }
+    }
+
+    if (ride.passenger?.neighborhood_id) {
+      const fromPassengerNeighborhood = await this.getCityStateFromNeighborhood(ride.passenger.neighborhood_id);
+      if (fromPassengerNeighborhood.city && fromPassengerNeighborhood.state) {
+        return {
+          city: fromPassengerNeighborhood.city,
+          state: fromPassengerNeighborhood.state,
+          source: 'passenger_neighborhood',
+        };
+      }
+    }
+
+    const originLat = Number(ride.origin_lat);
+    const originLng = Number(ride.origin_lng);
+    if (!Number.isNaN(originLat) && !Number.isNaN(originLng)) {
+      const territory = await resolveTerritory(originLng, originLat);
+      if (territory?.neighborhood?.id) {
+        const fromOriginCoords = await this.getCityStateFromNeighborhood(territory.neighborhood.id);
+        if (fromOriginCoords.city && fromOriginCoords.state) {
+          return {
+            city: fromOriginCoords.city,
+            state: fromOriginCoords.state,
+            source: 'origin_coordinates',
+          };
+        }
+      }
+    }
+
+    return {
+      city: null,
+      state: null,
+      source: 'unresolved',
+    };
+  }
 
   async dispatchRide(rideId: string): Promise<void> {
     const ride = await prisma.rides_v2.findUnique({
@@ -186,6 +262,16 @@ export class DispatcherService {
 
   private async findCandidates(ride: any): Promise<DriverCandidate[]> {
     const cutoffTime = new Date(Date.now() - this.LOCATION_FRESHNESS_SECONDS * 1000);
+    const requiredMunicipalModality = mapServiceCategoryToMunicipalModality(ride.service_category);
+
+    const municipalityResolution = await this.resolveRideMunicipality(ride);
+    const municipalityCity = municipalityResolution.city;
+    const municipalityState = municipalityResolution.state;
+
+    if (!municipalityCity || !municipalityState) {
+      console.warn(`[DISPATCHER_MUNICIPAL_UNRESOLVED] ride_id=${ride.id} source=${municipalityResolution.source} action=fail_closed`);
+      return [];
+    }
 
     // Buscar motoristas online com localização recente
     const onlineDrivers = await prisma.driver_status.findMany({
@@ -223,7 +309,8 @@ export class DispatcherService {
       stale_location: 0,
       too_far: 0,
       no_credits: 0,
-      wrong_vehicle: 0
+      wrong_vehicle: 0,
+      municipal_block: 0,
     };
 
     const candidates: DriverCandidate[] = [];
@@ -281,6 +368,18 @@ export class DispatcherService {
         } catch {
           // If credit check fails, allow driver through (fail-open)
         }
+      }
+
+      const municipalGate = await canDriverOperateInMunicipality(
+        ds.driver_id,
+        municipalityCity,
+        municipalityState,
+        requiredMunicipalModality,
+      );
+
+      if (!municipalGate.allowed) {
+        droppedReasons.municipal_block++;
+        continue;
       }
 
       // Referência territorial: residência do passageiro (homebound) ou origem da corrida

@@ -343,18 +343,21 @@ export default function Register() {
         });
       } catch {}
 
-      // Mensagem de sucesso
-      const territoryMsg = selectedNeighborhood
-        ? `Seu território: ${selectedNeighborhood.name}`
-        : 'Território pode ser definido depois';
-
       Alert.alert(
-        'Dados Salvos!',
-        'Agora envie seus documentos obrigatórios para completar o cadastro.',
+        'Cadastro KAVIAR concluído!',
+        'Antes de enviar seus documentos, vamos conferir sua regularização municipal da cidade onde você deseja atuar.',
         [
           {
-            text: 'Enviar Documentos',
-            onPress: () => router.replace('/(driver)/documents')
+            text: 'Continuar',
+            onPress: () =>
+              router.replace({
+                pathname: '/(driver)/municipal-regularization',
+                params: {
+                  modality,
+                  lat: String(location!.lat),
+                  lng: String(location!.lng),
+                },
+              })
           }
         ],
         { cancelable: false }

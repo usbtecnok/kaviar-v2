@@ -208,6 +208,14 @@ export default function PendingApproval() {
 
         {/* Refresh */}
         <TouchableOpacity
+          style={[styles.refreshBtn, { marginBottom: 10, backgroundColor: '#FFF', borderWidth: 1, borderColor: '#D1D5DB' }]}
+          onPress={() => router.push('/(driver)/municipal-regularization')}
+        >
+          <Ionicons name="business-outline" size={18} color={COLORS.textDark} />
+          <Text style={[styles.refreshBtnText, { color: COLORS.textDark }]}>Acompanhar regularização municipal</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={styles.refreshBtn}
           onPress={async () => { setRefreshing(true); await checkStatus(); setRefreshing(false); }}
           disabled={refreshing}

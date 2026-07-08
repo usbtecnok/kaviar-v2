@@ -27,6 +27,7 @@ import { DriverCreditsCard } from '../../components/admin/DriverCreditsCard';
 import { DriverReputationCard } from '../../components/admin/DriverReputationCard';
 import { DriverFinancialCard } from '../../components/admin/DriverFinancialCard';
 import { DriverEditCard } from '../../components/admin/DriverEditCard';
+import { DriverMunicipalRegularizationCard } from '../../components/admin/DriverMunicipalRegularizationCard';
 import { formatDate } from '../../utils/formatDate';
 
 
@@ -432,6 +433,10 @@ export default function AdminDriverDetail() {
                 Nenhum documento enviado
               </Typography>
             )}
+          </Grid>
+
+          <Grid item xs={12}>
+            <DriverMunicipalRegularizationCard driverId={id} documents={documents} />
           </Grid>
 
           {/* Legacy certidão: only show if no BACKGROUND_CHECK in new document system */}

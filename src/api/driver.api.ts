@@ -101,6 +101,21 @@ export type FixedRouteMessage = {
   metadata?: Record<string, any> | null;
 };
 
+type MunicipalQuery = {
+  city?: string;
+  state?: string;
+  modality?: string;
+};
+
+function toMunicipalQueryString(query: MunicipalQuery) {
+  const search = new URLSearchParams();
+  if (query.city) search.set('city', query.city);
+  if (query.state) search.set('state', query.state);
+  if (query.modality) search.set('modality', query.modality);
+  const str = search.toString();
+  return str ? `?${str}` : '';
+}
+
 export const driverApi = {
   getMyGroups: async () => {
     const { data } = await apiClient.get('/api/drivers/me/groups');
@@ -214,6 +229,18 @@ export const driverApi = {
   getCurrentRide: async (): Promise<Ride | null> => {
     const { data } = await apiClient.get('/api/v2/drivers/me/current-ride');
     return data.data || null;
+  },
+
+  getMunicipalRequirements: async (query: MunicipalQuery = {}) => {
+    const qs = toMunicipalQueryString(query);
+    const { data } = await apiClient.get(`/api/v2/driver/municipal-requirements${qs}`);
+    return data.data;
+  },
+
+  getMunicipalStatus: async (query: MunicipalQuery = {}) => {
+    const qs = toMunicipalQueryString(query);
+    const { data } = await apiClient.get(`/api/v2/driver/municipal-status${qs}`);
+    return data.data;
   },
 
   // v2: Lifecycle da corrida

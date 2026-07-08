@@ -7,12 +7,75 @@ import { getDriverFinancialSummary } from '../services/financial-summary.service
 import { Decimal } from '@prisma/client/runtime/library';
 import { authenticateDriver } from '../middlewares/auth';
 import { createHash } from 'crypto';
+import { canDriverOperateInMunicipality, mapServiceCategoryToMunicipalModality } from '../services/municipal-regulation.service';
+import { resolveTerritory } from '../services/territory-resolver.service';
 
 const router = Router();
 
 function tokenHash(token?: string | null): string {
   if (!token) return 'none';
   return createHash('sha256').update(token).digest('hex').slice(0, 12);
+}
+
+async function resolveMunicipalityForDriver(driverId: string) {
+  const driver = await prisma.drivers.findUnique({
+    where: { id: driverId },
+    select: {
+      vehicle_type: true,
+      neighborhoods: {
+        select: {
+          city: true,
+          territory: {
+            select: { uf: true },
+          },
+        },
+      },
+      driver_location: {
+        select: {
+          lat: true,
+          lng: true,
+          updated_at: true,
+        },
+      },
+    },
+  });
+
+  let city = driver?.neighborhoods?.city || null;
+  let state = driver?.neighborhoods?.territory?.uf || null;
+  let resolutionSource: 'driver_neighborhood' | 'driver_last_location' | 'unresolved' = 'unresolved';
+
+  if (city && state) {
+    resolutionSource = 'driver_neighborhood';
+  } else if (driver?.driver_location) {
+    const lat = Number(driver.driver_location.lat);
+    const lng = Number(driver.driver_location.lng);
+
+    const territory = await resolveTerritory(lng, lat);
+    if (territory?.neighborhood?.id) {
+      const neighborhood = await prisma.neighborhoods.findUnique({
+        where: { id: territory.neighborhood.id },
+        select: {
+          city: true,
+          territory: {
+            select: { uf: true },
+          },
+        },
+      });
+
+      if (neighborhood?.city && neighborhood?.territory?.uf) {
+        city = neighborhood.city;
+        state = neighborhood.territory.uf;
+        resolutionSource = 'driver_last_location';
+      }
+    }
+  }
+
+  return {
+    vehicleType: driver?.vehicle_type || null,
+    city,
+    state,
+    resolutionSource,
+  };
 }
 
 // 5.3 Driver online/offline
@@ -23,6 +86,41 @@ router.post('/me/availability', authenticateDriver, async (req: Request, res: Re
 
     if (!['offline', 'online', 'busy'].includes(availability)) {
       return res.status(400).json({ error: 'Status de disponibilidade inválido' });
+    }
+
+    if (availability === 'online') {
+      const resolvedMunicipality = await resolveMunicipalityForDriver(driverId);
+      const city = resolvedMunicipality.city;
+      const state = resolvedMunicipality.state;
+      const modality = mapServiceCategoryToMunicipalModality(
+        resolvedMunicipality.vehicleType === 'MOTORCYCLE' ? 'MOTO_PASSENGER' : 'CAR_NORMAL',
+      );
+
+      if (!city || !state) {
+        console.warn('[MUNICIPAL_LOCATION_REQUIRED]', {
+          driverId,
+          resolutionSource: resolvedMunicipality.resolutionSource,
+        });
+
+        return res.status(403).json({
+          success: false,
+          error: 'MUNICIPAL_LOCATION_REQUIRED',
+          message: 'Não foi possível confirmar sua cidade para validar a autorização municipal. Atualize sua localização ou procure o suporte KAVIAR.',
+        });
+      }
+
+      const operationGate = await canDriverOperateInMunicipality(driverId, city, state, modality);
+      if (!operationGate.allowed) {
+        return res.status(403).json({
+          success: false,
+          error: 'MUNICIPAL_AUTH_REQUIRED',
+          message: operationGate.reason || 'Regularização municipal pendente para operar nesta cidade.',
+          city,
+          state,
+          modality,
+          municipal: operationGate.municipal || null,
+        });
+      }
     }
 
     await prisma.driver_status.upsert({
