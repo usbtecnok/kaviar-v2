@@ -20,6 +20,7 @@ const { prismaMock } = vi.hoisted(() => {
 
 const canDriverOperateInMunicipalityMock = vi.hoisted(() => vi.fn());
 const resolveTerritoryMock = vi.hoisted(() => vi.fn());
+const municipalGateEnabled = vi.hoisted(() => ({ value: true }));
 
 vi.mock('../src/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('../src/middlewares/auth', () => ({
@@ -50,6 +51,15 @@ vi.mock('../src/services/credit.service', () => ({
 vi.mock('../src/services/financial-summary.service', () => ({
   getDriverFinancialSummary: vi.fn(),
 }));
+vi.mock('../src/config', () => ({
+  config: {
+    driverEnforcement: {
+      get municipalRegulatoryGateEnabled() {
+        return municipalGateEnabled.value;
+      },
+    },
+  },
+}));
 
 const { default: driversV2Routes } = await import('../src/routes/drivers-v2');
 
@@ -60,6 +70,7 @@ app.use('/api/v2/drivers', driversV2Routes);
 describe('drivers-v2 municipal gate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    municipalGateEnabled.value = true;
 
     prismaMock.driver_status.upsert.mockResolvedValue({});
     prismaMock.neighborhoods.findUnique.mockResolvedValue(null);
@@ -139,5 +150,23 @@ describe('drivers-v2 municipal gate', () => {
     expect(res.body.error).toBe('MUNICIPAL_AUTH_REQUIRED');
     expect(res.body.city).toBe('Santa Rita do Passa Quatro');
     expect(res.body.state).toBe('SP');
+  });
+
+  it('com gate desligado não bloqueia online mesmo sem cidade/UF resolvidas', async () => {
+    municipalGateEnabled.value = false;
+
+    prismaMock.drivers.findUnique.mockResolvedValue({
+      vehicle_type: 'CAR',
+      neighborhoods: null,
+      driver_location: null,
+    });
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/availability')
+      .send({ availability: 'online' });
+
+    expect(res.status).toBe(200);
+    expect(canDriverOperateInMunicipalityMock).not.toHaveBeenCalled();
+    expect(prismaMock.driver_status.upsert).toHaveBeenCalled();
   });
 });

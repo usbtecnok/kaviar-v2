@@ -15,6 +15,7 @@ const { prismaMock } = vi.hoisted(() => {
 
 const canDriverOperateInMunicipalityMock = vi.hoisted(() => vi.fn());
 const resolveTerritoryMock = vi.hoisted(() => vi.fn());
+const municipalGateEnabled = vi.hoisted(() => ({ value: true }));
 
 vi.mock('../src/lib/prisma', () => ({ prisma: prismaMock }));
 vi.mock('../src/services/favorites-matching.service', () => ({
@@ -33,12 +34,22 @@ vi.mock('../src/services/municipal-regulation.service', () => ({
 vi.mock('../src/services/territory-resolver.service', () => ({
   resolveTerritory: resolveTerritoryMock,
 }));
+vi.mock('../src/config', () => ({
+  config: {
+    driverEnforcement: {
+      get municipalRegulatoryGateEnabled() {
+        return municipalGateEnabled.value;
+      },
+    },
+  },
+}));
 
 import { DispatcherService } from '../src/services/dispatcher.service';
 
 describe('dispatcher municipal fallback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    municipalGateEnabled.value = true;
     prismaMock.driver_status.findMany.mockResolvedValue([]);
     prismaMock.neighborhoods.findUnique.mockResolvedValue(null);
     resolveTerritoryMock.mockResolvedValue({ resolved: false, neighborhood: null });
@@ -126,5 +137,53 @@ describe('dispatcher municipal fallback', () => {
       'SP',
       'CAR',
     );
+  });
+
+  it('com gate desligado não filtra candidatos por autorização municipal', async () => {
+    municipalGateEnabled.value = false;
+
+    prismaMock.driver_status.findMany.mockResolvedValue([
+      {
+        driver_id: 'driver-1',
+        availability: 'online',
+        driver: {
+          vehicle_type: 'CAR',
+          neighborhood_id: 'nb-1',
+          community_id: null,
+          women_preference_eligible: false,
+          women_matching_opt_in: false,
+          driver_location: {
+            lat: -21.0001,
+            lng: -47.0001,
+            updated_at: new Date(),
+          },
+        },
+      },
+    ]);
+
+    canDriverOperateInMunicipalityMock.mockResolvedValue({
+      allowed: false,
+      reason: 'Aguardando autorização municipal aprovada e válida.',
+      municipal: { hasRegulation: true, municipalStatus: 'DOCUMENTS_PENDING' },
+    });
+
+    const dispatcher = new DispatcherService();
+
+    const ride: any = {
+      id: 'ride-3',
+      origin_lat: -21.0,
+      origin_lng: -47.0,
+      service_category: 'CAR_NORMAL',
+      origin_neighborhood_id: null,
+      dest_neighborhood_id: null,
+      origin_community_id: null,
+      is_homebound: false,
+      passenger: { neighborhood_id: null, community_id: null },
+    };
+
+    const result = await (dispatcher as any).findCandidates(ride);
+
+    expect(result).toHaveLength(1);
+    expect(canDriverOperateInMunicipalityMock).not.toHaveBeenCalled();
   });
 });

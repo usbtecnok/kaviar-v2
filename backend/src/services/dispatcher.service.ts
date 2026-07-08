@@ -5,6 +5,7 @@ import { getCreditBalance } from './credit.service';
 import { isFlatFeeEnabled } from './pricing-engine';
 import { canDriverOperateInMunicipality, mapServiceCategoryToMunicipalModality } from './municipal-regulation.service';
 import { resolveTerritory } from './territory-resolver.service';
+import { config } from '../config';
 
 interface DriverCandidate {
   driver_id: string;
@@ -262,15 +263,21 @@ export class DispatcherService {
 
   private async findCandidates(ride: any): Promise<DriverCandidate[]> {
     const cutoffTime = new Date(Date.now() - this.LOCATION_FRESHNESS_SECONDS * 1000);
+    const municipalGateEnabled = config.driverEnforcement.municipalRegulatoryGateEnabled;
     const requiredMunicipalModality = mapServiceCategoryToMunicipalModality(ride.service_category);
 
-    const municipalityResolution = await this.resolveRideMunicipality(ride);
-    const municipalityCity = municipalityResolution.city;
-    const municipalityState = municipalityResolution.state;
+    let municipalityCity: string | null = null;
+    let municipalityState: string | null = null;
 
-    if (!municipalityCity || !municipalityState) {
-      console.warn(`[DISPATCHER_MUNICIPAL_UNRESOLVED] ride_id=${ride.id} source=${municipalityResolution.source} action=fail_closed`);
-      return [];
+    if (municipalGateEnabled) {
+      const municipalityResolution = await this.resolveRideMunicipality(ride);
+      municipalityCity = municipalityResolution.city;
+      municipalityState = municipalityResolution.state;
+
+      if (!municipalityCity || !municipalityState) {
+        console.warn(`[DISPATCHER_MUNICIPAL_UNRESOLVED] ride_id=${ride.id} source=${municipalityResolution.source} action=fail_closed`);
+        return [];
+      }
     }
 
     // Buscar motoristas online com localização recente
@@ -370,16 +377,18 @@ export class DispatcherService {
         }
       }
 
-      const municipalGate = await canDriverOperateInMunicipality(
-        ds.driver_id,
-        municipalityCity,
-        municipalityState,
-        requiredMunicipalModality,
-      );
+      if (municipalGateEnabled) {
+        const municipalGate = await canDriverOperateInMunicipality(
+          ds.driver_id,
+          municipalityCity!,
+          municipalityState!,
+          requiredMunicipalModality,
+        );
 
-      if (!municipalGate.allowed) {
-        droppedReasons.municipal_block++;
-        continue;
+        if (!municipalGate.allowed) {
+          droppedReasons.municipal_block++;
+          continue;
+        }
       }
 
       // Referência territorial: residência do passageiro (homebound) ou origem da corrida

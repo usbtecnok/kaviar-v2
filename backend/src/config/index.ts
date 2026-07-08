@@ -42,6 +42,7 @@ export const config = {
 
   driverEnforcement: {
     enableEnforcementGates: process.env.ENABLE_DRIVER_ENFORCEMENT_GATES === 'true',
+    municipalRegulatoryGateEnabled: process.env.ENABLE_MUNICIPAL_REGULATORY_GATE === 'true',
   },
 
   diamond: {

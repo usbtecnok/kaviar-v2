@@ -9,6 +9,7 @@ import { authenticateDriver } from '../middlewares/auth';
 import { createHash } from 'crypto';
 import { canDriverOperateInMunicipality, mapServiceCategoryToMunicipalModality } from '../services/municipal-regulation.service';
 import { resolveTerritory } from '../services/territory-resolver.service';
+import { config } from '../config';
 
 const router = Router();
 
@@ -88,7 +89,7 @@ router.post('/me/availability', authenticateDriver, async (req: Request, res: Re
       return res.status(400).json({ error: 'Status de disponibilidade inválido' });
     }
 
-    if (availability === 'online') {
+    if (availability === 'online' && config.driverEnforcement.municipalRegulatoryGateEnabled) {
       const resolvedMunicipality = await resolveMunicipalityForDriver(driverId);
       const city = resolvedMunicipality.city;
       const state = resolvedMunicipality.state;
