@@ -56,9 +56,15 @@ const STATUS_OPTIONS_SUPER_ADMIN = [
 ];
 
 const STATUS_OPTIONS_MANAGER = [
-  'SUBMITTED_TO_CITY_HALL',
   'WAITING_CITY_HALL_REVIEW',
   'NEEDS_COMPLEMENT',
+  'EXPIRED',
+];
+
+const INITIAL_STATUS_OPTIONS = [
+  'DOCUMENTS_PENDING',
+  'IN_REVIEW_BY_KAVIAR',
+  'READY_FOR_CITY_HALL',
 ];
 
 function getAdminRole() {
@@ -218,6 +224,11 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
       return;
     }
 
+    if (!INITIAL_STATUS_OPTIONS.includes(createForm.status)) {
+      setError('Status inicial inválido para criação de autorização municipal.');
+      return;
+    }
+
     await withClearFeedback(async () => {
       await api.post(`/api/admin/drivers/${driverId}/municipal-authorizations`, {
         regulation_id: createForm.regulation_id || undefined,
@@ -232,6 +243,17 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
   const patchAuthorization = async (authorizationId) => {
     const form = statusForms[authorizationId];
     if (!form) return;
+
+    const authorization = authorizations.find((item) => item.id === authorizationId);
+    const wantsSubmitted = form.status === 'SUBMITTED_TO_CITY_HALL';
+    const hasPackageOrProtocol = Boolean(
+      authorization?.municipal_package_url || authorization?.protocol_number || authorization?.protocol_receipt_url,
+    );
+
+    if (wantsSubmitted && !hasPackageOrProtocol) {
+      setError('Gere o Pacote Prefeitura ou registre o protocolo antes de marcar como enviado.');
+      return;
+    }
 
     await withClearFeedback(async () => {
       await api.patch(`/api/admin/drivers/${driverId}/municipal-authorizations/${authorizationId}`, {
@@ -370,7 +392,7 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
                     value={createForm.status}
                     onChange={(e) => setCreateForm((prev) => ({ ...prev, status: e.target.value }))}
                   >
-                    {STATUS_OPTIONS_SUPER_ADMIN.map((status) => (
+                    {INITIAL_STATUS_OPTIONS.map((status) => (
                       <MenuItem key={status} value={status}>{STATUS_LABELS[status]}</MenuItem>
                     ))}
                   </TextField>

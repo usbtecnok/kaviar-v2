@@ -288,10 +288,30 @@ const createAuthorizationSchema = z.object({
     .default('DOCUMENTS_PENDING'),
 });
 
+const SAFE_INITIAL_AUTHORIZATION_STATUSES = [
+  'DOCUMENTS_PENDING',
+  'IN_REVIEW_BY_KAVIAR',
+  'READY_FOR_CITY_HALL',
+] as const;
+
+const PATCH_ALLOWED_STATUS_VALUES = [
+  'DOCUMENTS_PENDING',
+  'IN_REVIEW_BY_KAVIAR',
+  'READY_FOR_CITY_HALL',
+  'SUBMITTED_TO_CITY_HALL',
+] as const;
+
 // POST /api/admin/drivers/:id/municipal-authorizations
 router.post('/drivers/:id/municipal-authorizations', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const payload = createAuthorizationSchema.parse(req.body);
+
+    if (!SAFE_INITIAL_AUTHORIZATION_STATUSES.includes(payload.status as any)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Status inicial inválido para criação de autorização municipal.',
+      });
+    }
 
     const regulation = payload.regulation_id
       ? await prisma.municipal_regulations.findUnique({ where: { id: payload.regulation_id } })
@@ -372,6 +392,22 @@ router.patch('/drivers/:id/municipal-authorizations/:authorizationId', requireSu
     });
 
     if (!current) return res.status(404).json({ success: false, error: 'Autorização municipal não encontrada.' });
+
+    if (payload.status !== undefined) {
+      if (!PATCH_ALLOWED_STATUS_VALUES.includes(payload.status as any)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Use a ação de decisão da Prefeitura para atualizar este status municipal.',
+        });
+      }
+
+      if (payload.status === 'SUBMITTED_TO_CITY_HALL' && !current.municipal_package_url && !current.protocol_number && !current.protocol_receipt_url) {
+        return res.status(409).json({
+          success: false,
+          error: 'Gere o Pacote Prefeitura ou registre o protocolo antes de marcar como enviado.',
+        });
+      }
+    }
 
     const data: any = {};
     if (payload.status !== undefined) data.status = payload.status;
@@ -563,6 +599,26 @@ router.patch('/drivers/:id/municipal-authorizations/:authorizationId/city-hall-d
       return res.status(403).json({
         success: false,
         error: errorMessage,
+      });
+    }
+
+    if (
+      payload.decision === 'WAITING_CITY_HALL_REVIEW' &&
+      authorization.status !== 'SUBMITTED_TO_CITY_HALL'
+    ) {
+      return res.status(409).json({
+        success: false,
+        error: 'Status aguardando análise só pode ser definido após envio à Prefeitura.',
+      });
+    }
+
+    if (
+      payload.decision === 'NEEDS_COMPLEMENT' &&
+      !['SUBMITTED_TO_CITY_HALL', 'WAITING_CITY_HALL_REVIEW'].includes(authorization.status)
+    ) {
+      return res.status(409).json({
+        success: false,
+        error: 'Complemento só pode ser registrado após protocolo/análise da Prefeitura.',
       });
     }
 
