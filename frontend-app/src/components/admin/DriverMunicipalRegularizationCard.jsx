@@ -103,6 +103,21 @@ function getRequirementsPending(authorization, documents) {
   });
 }
 
+function getConditionalRequirements(authorization) {
+  const requirements = authorization?.regulation?.requirements || [];
+  return requirements.filter((req) => !req.is_required);
+}
+
+function formatDateOnly(value) {
+  if (!value) return '—';
+  const raw = String(value).slice(0, 10);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+  return formatDate(value);
+}
+
 export function DriverMunicipalRegularizationCard({ driverId, documents }) {
   const role = getAdminRole();
   const isSuperAdmin = role === 'SUPER_ADMIN';
@@ -412,6 +427,7 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
             authorizations.map((authorization) => {
               const style = getStatusStyle(authorization.status);
               const pendingRequirements = getRequirementsPending(authorization, documents);
+              const conditionalRequirements = getConditionalRequirements(authorization);
               const protocolForm = protocolForms[authorization.id] || {};
               const statusForm = statusForms[authorization.id] || {};
               const decisionForm = decisionForms[authorization.id] || {};
@@ -475,7 +491,7 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
                     </Grid>
                     <Grid item xs={12} md={3}>
                       <Typography variant="caption" color="text.secondary">Data de protocolo</Typography>
-                      <Typography variant="body2">{authorization.protocol_date ? formatDate(authorization.protocol_date) : '—'}</Typography>
+                      <Typography variant="body2">{formatDateOnly(authorization.protocol_date)}</Typography>
                     </Grid>
                     <Grid item xs={12} md={3}>
                       <Typography variant="caption" color="text.secondary">Responsável/Atendente</Typography>
@@ -522,6 +538,19 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
                       </Stack>
                     ) : (
                       <Typography variant="body2">Nenhum requisito documental pendente (com base nos documentos vinculados).</Typography>
+                    )}
+                  </Box>
+
+                  <Box sx={{ mt: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary">Requisitos condicionais / quando aplicável</Typography>
+                    {conditionalRequirements.length > 0 ? (
+                      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5, gap: 0.5 }}>
+                        {conditionalRequirements.map((item) => (
+                          <Chip key={item.id} label={item.label} size="small" color="default" variant="outlined" />
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2">Nenhum requisito condicional mapeado para esta regra.</Typography>
                     )}
                   </Box>
 
