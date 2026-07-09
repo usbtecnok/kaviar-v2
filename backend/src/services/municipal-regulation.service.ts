@@ -133,15 +133,15 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
     !!authorization.approved_by_admin_id &&
     (!authorization.authorization_valid_until || authorization.authorization_valid_until >= now);
 
-  const canOperateMunicipally =
-    missingDocumentTypes.length === 0 &&
-    (!regulation.requires_city_approval || hasValidAuthorization);
+  const canOperateMunicipally = regulation.requires_city_approval
+    ? hasValidAuthorization
+    : missingDocumentTypes.length === 0;
 
   let reason: string | null = null;
-  if (missingDocumentTypes.length > 0) {
-    reason = 'Documentos municipais pendentes.';
-  } else if (regulation.requires_city_approval && !hasValidAuthorization) {
+  if (regulation.requires_city_approval && !hasValidAuthorization) {
     reason = 'Aguardando autorização municipal aprovada e válida.';
+  } else if (missingDocumentTypes.length > 0) {
+    reason = 'Documentos municipais pendentes.';
   }
 
   return {

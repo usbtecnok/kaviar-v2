@@ -102,7 +102,7 @@ describe('municipal regulation service', () => {
     expect(result.reason).toMatch(/autorização municipal/i);
   });
 
-  it('canDriverOperateInMunicipality só libera quando aprovação final foi confirmada por Admin', async () => {
+  it('canDriverOperateInMunicipality libera mesmo com documentos municipais pendentes quando aprovação final foi confirmada por Admin', async () => {
     mockFindDriver.mockResolvedValue({ id: 'driver-1', status: 'approved' });
     mockFindRegulation.mockResolvedValue({
       id: 'reg-1',
@@ -111,7 +111,28 @@ describe('municipal regulation service', () => {
       service_modality: 'CAR',
       regulation_status: 'REGULATED',
       requires_city_approval: true,
-      requirements: [],
+      requirements: [
+        {
+          id: 'req-1',
+          requirement_key: 'CNH_B_EAR',
+          label: 'CNH categoria B ou superior com EAR',
+          description: null,
+          document_type: 'CNH',
+          is_required: true,
+          applies_when: null,
+          sort_order: 1,
+        },
+        {
+          id: 'req-2',
+          requirement_key: 'PROFILE_PHOTO',
+          label: '2 fotos 3x4 ou foto padrão documento',
+          description: null,
+          document_type: 'PROFILE_PHOTO',
+          is_required: true,
+          applies_when: null,
+          sort_order: 2,
+        },
+      ],
     });
     mockFindDocuments.mockResolvedValue([]);
 
@@ -131,6 +152,7 @@ describe('municipal regulation service', () => {
 
     expect(result.allowed).toBe(true);
     expect(result.reason).toBeNull();
+    expect(result.municipal?.missingDocumentTypes).toEqual(['CNH', 'PROFILE_PHOTO']);
   });
 
   it('canDriverOperateInMunicipality não libera aprovação sem confirmação do Admin', async () => {
