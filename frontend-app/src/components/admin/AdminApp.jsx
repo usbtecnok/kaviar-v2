@@ -440,6 +440,9 @@ function AdminHome() {
               { Icon: DirectionsCar, title: 'Corridas', desc: 'Gestão operacional de corridas', to: '/admin/rides' },
               { Icon: CreditCard, title: 'Histórico de Recargas', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
               { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp' },
+              ...(isSuperAdmin ? [
+                { Icon: Email, title: 'E-mails KAVIAR', desc: 'Testar envio pelos aliases oficiais', to: '/admin/email' },
+              ] : []),
               ...(canAccessOperations ? [
                 { Icon: BarChart, title: 'Cockpit Operacional', desc: 'Acompanhe corridas, motoristas, territórios e histórico do dia em tempo real.', to: '/admin/operations', actionLabel: 'Abrir cockpit' },
               ] : []),
@@ -488,7 +491,6 @@ function AdminHome() {
             ]},
             { section: 'Governança e Estratégia', items: [
               ...(isSuperAdmin ? [
-                { Icon: Email, title: 'E-mails KAVIAR', desc: 'Teste o envio oficial pelos aliases do backend', to: '/admin/email' },
                 { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
                 { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
                 { Icon: Science, title: 'KAVIAR Lab', desc: 'Inteligência territorial · Score de Maturidade', to: '/admin/lab' },
