@@ -76,3 +76,7 @@ Na leitura disponivel da pagina oficial, aparece tambem a referencia ao Decreto 
 ## Observacao operacional
 
 Este documento e somente um relatorio de pesquisa. Nenhuma regra foi aplicada no sistema, nenhum cadastro foi alterado e nenhum bloqueio foi ativado.
+
+## Documento complementar
+
+- Ver analise institucional da plataforma em `docs/regulatory/rio-de-janeiro-platform-compliance.md`.
