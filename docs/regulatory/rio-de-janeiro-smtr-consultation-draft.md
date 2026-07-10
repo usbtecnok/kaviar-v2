@@ -4,6 +4,12 @@
 
 - Razao social: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
 - CNPJ: 67.783.601/0001-99
+- Representante legal: Aparecido de Goes
+- Cargo: Socio-administrador
+- CPF: [preencher apenas na versao protocolada]
+- RG: [preencher apenas na versao protocolada]
+- Telefone: [preencher apenas na versao protocolada]
+- Endereco residencial: [preencher apenas na versao protocolada, se exigido]
 - Assunto: consulta formal sobre credenciamento de plataforma de transporte remunerado privado individual de passageiros por aplicativo no Municipio do Rio de Janeiro
 
 ## Representacao legal da KAVIAR
@@ -44,14 +50,19 @@ Permanecemos a disposicao para envio imediato da documentacao societaria e tecni
 Atenciosamente,
 
 KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
-Representante legal (socio-administrador) ou procurador: [preencher]
+Representante legal: Aparecido de Goes
+Cargo: Socio-administrador
+CPF: [preencher apenas na versao protocolada]
+RG: [preencher apenas na versao protocolada]
 E-mail para retorno: [preencher]
-Telefone para contato: [preencher]
+Telefone: [preencher apenas na versao protocolada]
+Endereco residencial: [preencher apenas na versao protocolada, se exigido]
 Data: [preencher]
 
 ## Observacoes internas de uso
 
 - Documento preparatorio para protocolo institucional.
+- Por seguranca e LGPD, dados pessoais do representante legal devem ser preenchidos somente na versao final enviada/protocolada perante o orgao publico, nao nesta minuta versionada no repositorio.
 - Nao aplicar regra no sistema com base apenas nesta minuta.
 - Nao bloquear motoristas com base apenas nesta minuta.
 - Nao alterar backend, app, CRM, seed, banco ou flags nesta frente.
