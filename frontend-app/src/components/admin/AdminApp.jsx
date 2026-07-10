@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab, TextField } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public, Pets, Science, Description } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public, Pets, Science, Description, Email } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -78,6 +78,7 @@ import ManagerReferrals from "../../pages/admin/ManagerReferrals";
 import ManagerEmergencyAlerts from "../../pages/admin/ManagerEmergencyAlerts";
 import ManagerWomenCoverage from "../../pages/admin/ManagerWomenCoverage";
 import InvestorsPage from "../../pages/admin/InvestorsPage";
+import EmailTestingPage from "../../pages/admin/EmailTestingPage";
 import GroupsManagement from "../../pages/admin/GroupsManagement";
 import AdminFixedRoutes from "../../pages/admin/AdminFixedRoutes";
 import PetCentral from "../../pages/admin/PetCentral";
@@ -487,6 +488,7 @@ function AdminHome() {
             ]},
             { section: 'Governança e Estratégia', items: [
               ...(isSuperAdmin ? [
+                { Icon: Email, title: 'E-mails KAVIAR', desc: 'Teste o envio oficial pelos aliases do backend', to: '/admin/email' },
                 { Icon: Lock, title: 'Auditoria', desc: 'Logs e ações administrativas', to: '/admin/audit' },
                 { Icon: Shield, title: 'Conformidade', desc: 'Documentos jurídicos e operacionais', to: '/admin/legal-compliance' },
                 { Icon: Science, title: 'KAVIAR Lab', desc: 'Inteligência territorial · Score de Maturidade', to: '/admin/lab' },
@@ -678,6 +680,14 @@ export default function AdminApp() {
             <ProtectedAdminRoute requireSuperAdmin>
               <AdminHeader />
               <AuditLogs />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/email" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <Container maxWidth="md" sx={{ mt: 2, mb: 4 }}>
+                <AdminHeader />
+                <EmailTestingPage />
+              </Container>
             </ProtectedAdminRoute>
           } />
           <Route path="/referrals" element={
