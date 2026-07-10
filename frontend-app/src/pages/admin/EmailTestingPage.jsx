@@ -6,21 +6,33 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from '@mui/material';
 import api from '../../api';
 
-const SENDER_OPTIONS = [
+const TEST_SENDER_OPTIONS = [
   { label: 'KAVIAR <contato@kaviar.com.br>', value: 'KAVIAR <contato@kaviar.com.br>' },
-  { label: 'KAVIAR Suporte <suporte@kaviar.com.br>', value: 'KAVIAR <suporte@kaviar.com.br>' },
-  { label: 'KAVIAR Financeiro <financeiro@kaviar.com.br>', value: 'KAVIAR <financeiro@kaviar.com.br>' },
-  { label: 'KAVIAR Notificacoes <no-reply@kaviar.com.br>', value: 'KAVIAR <no-reply@kaviar.com.br>' },
+  { label: 'KAVIAR Suporte <suporte@kaviar.com.br>', value: 'KAVIAR Suporte <suporte@kaviar.com.br>' },
+  { label: 'KAVIAR Financeiro <financeiro@kaviar.com.br>', value: 'KAVIAR Financeiro <financeiro@kaviar.com.br>' },
+  { label: 'KAVIAR Notificações <no-reply@kaviar.com.br>', value: 'KAVIAR Notificações <no-reply@kaviar.com.br>' },
+];
+
+const OFFICIAL_SENDER_OPTIONS = [
+  { label: 'KAVIAR <contato@kaviar.com.br>', value: 'KAVIAR <contato@kaviar.com.br>' },
+  { label: 'KAVIAR Suporte <suporte@kaviar.com.br>', value: 'KAVIAR Suporte <suporte@kaviar.com.br>' },
+  { label: 'KAVIAR Financeiro <financeiro@kaviar.com.br>', value: 'KAVIAR Financeiro <financeiro@kaviar.com.br>' },
 ];
 
 const TEMPLATE_OPTIONS = [
@@ -89,19 +101,28 @@ function buildFriendlyError(error) {
 }
 
 export default function EmailTestingPage() {
-  const [from, setFrom] = useState(SENDER_OPTIONS[0].value);
+  const [mode, setMode] = useState('test');
+
+  const [from, setFrom] = useState(TEST_SENDER_OPTIONS[0].value);
   const [to, setTo] = useState('');
   const [templateKey, setTemplateKey] = useState(TEMPLATE_OPTIONS[0].value);
+
+  const [officialFrom, setOfficialFrom] = useState(OFFICIAL_SENDER_OPTIONS[0].value);
+  const [officialTo, setOfficialTo] = useState('');
+  const [officialSubject, setOfficialSubject] = useState('');
+  const [officialMessage, setOfficialMessage] = useState('');
+
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [result, setResult] = useState(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const selectedTemplate = useMemo(
     () => TEMPLATE_OPTIONS.find((option) => option.value === templateKey) || TEMPLATE_OPTIONS[0],
     [templateKey]
   );
 
-  const handleSubmit = async (event) => {
+  const handleSendTest = async (event) => {
     event.preventDefault();
     setSending(true);
     setErrorMessage('');
@@ -124,6 +145,48 @@ export default function EmailTestingPage() {
     }
   };
 
+  const handleOfficialSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    setResult(null);
+
+    if (!officialTo.trim() || !officialSubject.trim() || !officialMessage.trim()) {
+      setErrorMessage('Preencha destinatario, assunto e mensagem para envio real.');
+      return;
+    }
+
+    setConfirmOpen(true);
+  };
+
+  const confirmOfficialSend = async () => {
+    setConfirmOpen(false);
+    setSending(true);
+    setErrorMessage('');
+    setResult(null);
+
+    try {
+      const payload = {
+        to: officialTo.trim(),
+        from: officialFrom,
+        subject: officialSubject.trim(),
+        message: officialMessage.trim(),
+      };
+
+      const response = await api.post('/api/admin/email/send', payload);
+      setResult(response.data?.data || null);
+    } catch (error) {
+      setErrorMessage(buildFriendlyError(error));
+      setResult(error?.response?.data?.data ? { ...error.response.data.data, failed: true } : null);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const resetFeedback = () => {
+    setErrorMessage('');
+    setResult(null);
+  };
+
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={3} maxWidth={860}>
@@ -132,80 +195,149 @@ export default function EmailTestingPage() {
             E-mails KAVIAR
           </Typography>
           <Typography sx={{ color: '#6B7280', maxWidth: 720 }}>
-            Esta tela chama somente o backend KAVIAR em <strong>/api/admin/email/test</strong>. Nenhum token Cloudflare vai para o navegador.
+            Esta tela chama somente o backend KAVIAR. Nenhum token Cloudflare vai para o navegador.
           </Typography>
         </Box>
 
-        <Alert severity="info">
-          O backend exige perfil SUPER_ADMIN e destinatario presente na allowlist configurada em producao.
-        </Alert>
+        <Tabs
+          value={mode}
+          onChange={(_, value) => {
+            setMode(value);
+            resetFeedback();
+          }}
+          sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 700 } }}
+        >
+          <Tab value="test" label="Teste interno" />
+          <Tab value="official" label="Envio real" />
+        </Tabs>
 
         <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 18px rgba(0,0,0,0.04)' }}>
           <CardContent>
-            <Box component="form" onSubmit={handleSubmit}>
-              <Stack spacing={2.5}>
-                <FormControl fullWidth>
-                  <InputLabel id="email-from-label">Remetente</InputLabel>
-                  <Select
-                    labelId="email-from-label"
-                    label="Remetente"
-                    value={from}
-                    onChange={(event) => setFrom(event.target.value)}
-                  >
-                    {SENDER_OPTIONS.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+            {mode === 'test' ? (
+              <Box component="form" onSubmit={handleSendTest}>
+                <Stack spacing={2.5}>
+                  <Alert severity="info">
+                    Modo interno usa <strong>/api/admin/email/test</strong> com validacao por allowlist EMAIL_TEST_ALLOWED_TO.
+                  </Alert>
 
-                <TextField
-                  fullWidth
-                  label="Destinatario"
-                  type="email"
-                  placeholder="contato@kaviar.com.br"
-                  value={to}
-                  onChange={(event) => setTo(event.target.value)}
-                  required
-                />
+                  <FormControl fullWidth>
+                    <InputLabel id="email-from-label">Remetente</InputLabel>
+                    <Select
+                      labelId="email-from-label"
+                      label="Remetente"
+                      value={from}
+                      onChange={(event) => setFrom(event.target.value)}
+                    >
+                      {TEST_SENDER_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-                <FormControl fullWidth>
-                  <InputLabel id="email-template-label">Template</InputLabel>
-                  <Select
-                    labelId="email-template-label"
-                    label="Template"
-                    value={templateKey}
-                    onChange={(event) => setTemplateKey(event.target.value)}
-                  >
-                    {TEMPLATE_OPTIONS.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                  <TextField
+                    fullWidth
+                    label="Destinatario"
+                    type="email"
+                    placeholder="contato@kaviar.com.br"
+                    value={to}
+                    onChange={(event) => setTo(event.target.value)}
+                    required
+                  />
 
-                <Alert severity="warning" sx={{ '& .MuiAlert-message': { width: '100%' } }}>
-                  <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Contrato atual do backend</Typography>
-                  <Typography variant="body2">
-                    O endpoint aceita apenas os templates reais <strong>test</strong> e <strong>operational</strong>. Os presets suporte, financeiro e notificacao sao enviados como <strong>operational</strong> com titulo e mensagem padrao.
-                  </Typography>
-                </Alert>
+                  <FormControl fullWidth>
+                    <InputLabel id="email-template-label">Template</InputLabel>
+                    <Select
+                      labelId="email-template-label"
+                      label="Template"
+                      value={templateKey}
+                      onChange={(event) => setTemplateKey(event.target.value)}
+                    >
+                      {TEMPLATE_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-                <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#FAFAF8', border: '1px solid #EEE8D9' }}>
-                  <Typography sx={{ fontWeight: 700, color: '#1A1A1A', mb: 0.5 }}>Resumo do envio</Typography>
-                  <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                    Template backend: {selectedTemplate.payload.template}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                    {selectedTemplate.description}
-                  </Typography>
-                </Box>
+                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#FAFAF8', border: '1px solid #EEE8D9' }}>
+                    <Typography sx={{ fontWeight: 700, color: '#1A1A1A', mb: 0.5 }}>Resumo do envio interno</Typography>
+                    <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                      Template backend: {selectedTemplate.payload.template}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                      {selectedTemplate.description}
+                    </Typography>
+                  </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <Button type="submit" variant="contained" disabled={sending || !to.trim()} sx={{ minWidth: 180, textTransform: 'none', fontWeight: 700 }}>
-                    {sending ? <CircularProgress size={22} color="inherit" /> : 'Enviar teste'}
-                  </Button>
-                </Box>
-              </Stack>
-            </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <Button type="submit" variant="contained" disabled={sending || !to.trim()} sx={{ minWidth: 180, textTransform: 'none', fontWeight: 700 }}>
+                      {sending ? <CircularProgress size={22} color="inherit" /> : 'Enviar teste'}
+                    </Button>
+                  </Box>
+                </Stack>
+              </Box>
+            ) : (
+              <Box component="form" onSubmit={handleOfficialSubmit}>
+                <Stack spacing={2.5}>
+                  <Alert severity="warning">
+                    Este envio sera entregue a destinatario externo em nome da KAVIAR.
+                  </Alert>
+
+                  <FormControl fullWidth>
+                    <InputLabel id="official-from-label">Remetente oficial</InputLabel>
+                    <Select
+                      labelId="official-from-label"
+                      label="Remetente oficial"
+                      value={officialFrom}
+                      onChange={(event) => setOfficialFrom(event.target.value)}
+                    >
+                      {OFFICIAL_SENDER_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <TextField
+                    fullWidth
+                    label="Destinatario externo"
+                    type="email"
+                    placeholder="contato@prefeitura.gov.br"
+                    value={officialTo}
+                    onChange={(event) => setOfficialTo(event.target.value)}
+                    required
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Assunto"
+                    value={officialSubject}
+                    onChange={(event) => setOfficialSubject(event.target.value)}
+                    required
+                  />
+
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={6}
+                    label="Mensagem"
+                    value={officialMessage}
+                    onChange={(event) => setOfficialMessage(event.target.value)}
+                    required
+                  />
+
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="warning"
+                      disabled={sending || !officialTo.trim() || !officialSubject.trim() || !officialMessage.trim()}
+                      sx={{ minWidth: 180, textTransform: 'none', fontWeight: 700 }}
+                    >
+                      {sending ? <CircularProgress size={22} color="inherit" /> : 'Enviar email real'}
+                    </Button>
+                  </Box>
+                </Stack>
+              </Box>
+            )}
           </CardContent>
         </Card>
 
@@ -222,15 +354,34 @@ export default function EmailTestingPage() {
                 <Typography><strong>Status:</strong> {result.failed ? 'falha' : 'sucesso'}</Typography>
                 <Typography><strong>Provider usado:</strong> {result.provider || 'nao informado'}</Typography>
                 <Typography><strong>Provider padrao:</strong> {result.providerDefault || 'nao informado'}</Typography>
-                <Typography><strong>From usado:</strong> {result.from || from}</Typography>
-                <Typography><strong>Destinatario:</strong> {result.to || to.trim()}</Typography>
-                <Typography><strong>Template:</strong> {result.template || selectedTemplate.payload.template}</Typography>
+                <Typography><strong>From usado:</strong> {result.from || (mode === 'test' ? from : officialFrom)}</Typography>
+                <Typography><strong>Destinatario:</strong> {result.to || (mode === 'test' ? to.trim() : officialTo.trim())}</Typography>
+                {result.template && <Typography><strong>Template:</strong> {result.template}</Typography>}
+                {result.subject && <Typography><strong>Assunto:</strong> {result.subject}</Typography>}
                 {result.messageId && <Typography><strong>Message ID:</strong> {result.messageId}</Typography>}
               </Stack>
             </CardContent>
           </Card>
         )}
       </Stack>
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Confirmar envio real</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.2} sx={{ mt: 0.5 }}>
+            <Typography><strong>Remetente:</strong> {officialFrom}</Typography>
+            <Typography><strong>Destinatario:</strong> {officialTo.trim()}</Typography>
+            <Typography><strong>Assunto:</strong> {officialSubject.trim()}</Typography>
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              Este envio sera entregue a destinatario externo em nome da KAVIAR.
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)} color="inherit">Cancelar</Button>
+          <Button onClick={confirmOfficialSend} variant="contained" color="warning">Confirmar envio</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
