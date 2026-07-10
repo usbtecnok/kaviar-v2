@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -138,6 +138,7 @@ export default function EmailTestingPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [result, setResult] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const officialAttachmentsInputRef = useRef(null);
 
   const selectedTemplate = useMemo(
     () => TEMPLATE_OPTIONS.find((option) => option.value === templateKey) || TEMPLATE_OPTIONS[0],
@@ -232,6 +233,16 @@ export default function EmailTestingPage() {
       }
 
       setResult(response.data?.data || null);
+
+      // Evita reenvio acidental: limpa formulario real apos sucesso.
+      setOfficialTo('');
+      setOfficialSubject('');
+      setOfficialMessage('');
+      setOfficialAttachments([]);
+      if (officialAttachmentsInputRef.current) {
+        officialAttachmentsInputRef.current.value = '';
+      }
+      setConfirmOpen(false);
     } catch (error) {
       setErrorMessage(buildFriendlyError(error));
       setResult(error?.response?.data?.data ? { ...error.response.data.data, failed: true } : null);
@@ -276,6 +287,11 @@ export default function EmailTestingPage() {
 
   const removeAttachment = (indexToRemove) => {
     setOfficialAttachments((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleNewSend = () => {
+    setResult(null);
+    setErrorMessage('');
   };
 
   return (
@@ -428,6 +444,7 @@ export default function EmailTestingPage() {
                     <Box>
                       <input
                         id="official-attachments-input"
+                        ref={officialAttachmentsInputRef}
                         type="file"
                         multiple
                         accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
@@ -437,7 +454,7 @@ export default function EmailTestingPage() {
                       <Button
                         type="button"
                         variant="outlined"
-                        onClick={() => document.getElementById('official-attachments-input')?.click()}
+                        onClick={() => officialAttachmentsInputRef.current?.click()}
                         disabled={sending || officialAttachments.length >= MAX_ATTACHMENTS}
                         sx={{ textTransform: 'none', fontWeight: 700 }}
                       >
@@ -504,9 +521,14 @@ export default function EmailTestingPage() {
         {result && (
           <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 18px rgba(0,0,0,0.04)' }}>
             <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Resultado do envio
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Resultado do envio
+                </Typography>
+                <Button type="button" variant="text" size="small" onClick={handleNewSend} sx={{ textTransform: 'none' }}>
+                  Novo envio
+                </Button>
+              </Box>
 
               <Stack spacing={1}>
                 <Typography><strong>Status:</strong> {result.failed ? 'falha' : 'sucesso'}</Typography>
