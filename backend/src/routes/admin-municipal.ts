@@ -446,7 +446,7 @@ router.patch('/drivers/:id/municipal-authorizations/:authorizationId', requireSu
 });
 
 // POST /api/admin/drivers/:id/municipal-authorizations/:authorizationId/generate-package
-router.post('/drivers/:id/municipal-authorizations/:authorizationId/generate-package', requireSuperAdmin, async (req: Request, res: Response) => {
+router.post('/drivers/:id/municipal-authorizations/:authorizationId/generate-package', MUNICIPAL_PROTOCOL_ROLE, async (req: Request, res: Response) => {
   try {
     const authorization = await prisma.municipal_authorizations.findFirst({
       where: {
@@ -458,6 +458,12 @@ router.post('/drivers/:id/municipal-authorizations/:authorizationId/generate-pac
 
     if (!authorization) return res.status(404).json({ success: false, error: 'Autorização municipal não encontrada.' });
 
+    if (!(await adminCanAccessMunicipality(req, authorization.city, authorization.state))) {
+      return res.status(403).json({ success: false, error: 'Sem acesso ao município desta autorização.' });
+    }
+
+    const admin = (req as any).admin;
+
     const packageUrl = authorization.municipal_package_url || `municipal-packages/${authorization.id}.json`;
 
     const updated = await prisma.municipal_authorizations.update({
@@ -465,7 +471,8 @@ router.post('/drivers/:id/municipal-authorizations/:authorizationId/generate-pac
       data: {
         municipal_package_url: packageUrl,
         status: authorization.status === 'NOT_STARTED' ? 'READY_FOR_CITY_HALL' : authorization.status,
-        submitted_by_admin_id: (req as any).admin.id,
+        submitted_by_admin_id: admin.role === 'SUPER_ADMIN' ? admin.id : authorization.submitted_by_admin_id,
+        submitted_by_manager_id: admin.role === 'TERRITORIAL_MANAGER' ? admin.id : authorization.submitted_by_manager_id,
       },
     });
 
@@ -474,7 +481,7 @@ router.post('/drivers/:id/municipal-authorizations/:authorizationId/generate-pac
         driver_id: req.params.id,
         authorization_id: authorization.id,
         action: 'GENERATED',
-        actor_admin_id: (req as any).admin.id,
+        actor_admin_id: admin.id,
         metadata: { packageUrl, stub: true },
       },
     });
@@ -513,7 +520,7 @@ router.patch('/drivers/:id/municipal-authorizations/:authorizationId/protocol', 
     }
 
     if (!authorization.municipal_package_url) {
-      return res.status(409).json({ success: false, error: 'Pacote Prefeitura ainda não foi gerado pelo Admin.' });
+      return res.status(409).json({ success: false, error: 'Pacote Prefeitura ainda não foi gerado.' });
     }
 
     const admin = (req as any).admin;

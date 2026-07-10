@@ -147,4 +147,19 @@ describe('admin municipal permissions', () => {
     const updateCall = prismaMock.municipal_authorizations.update.mock.calls[0][0];
     expect(updateCall.data.status).toBe('NEEDS_COMPLEMENT');
   });
+
+  it('TERRITORIAL_MANAGER pode gerar pacote para prefeitura', async () => {
+    authState.admin = { id: 'manager-1', email: 'manager@test.local', role: 'TERRITORIAL_MANAGER' };
+    authState.scope = { territoryIds: ['territory-sp'], neighborhoodIds: [], accessLevel: 'full' };
+
+    const res = await request(app)
+      .post('/api/admin/drivers/driver-1/municipal-authorizations/auth-1/generate-package')
+      .send({});
+
+    expect(res.status).toBe(201);
+    expect(prismaMock.municipal_authorizations.update).toHaveBeenCalled();
+
+    const updateCall = prismaMock.municipal_authorizations.update.mock.calls[0][0];
+    expect(updateCall.data.submitted_by_manager_id).toBe('manager-1');
+  });
 });

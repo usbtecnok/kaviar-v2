@@ -77,6 +77,7 @@ export default function DriverMunicipalRegularization() {
 
   const statusKey = (statusData?.municipalStatus || 'NOT_STARTED') as string;
   const statusMeta = STATUS_META[statusKey] || { label: statusKey, color: '#1F2937', bg: '#F3F4F6' };
+  const requiresCityApproval = Boolean(statusData?.requiresCityApproval ?? requirementsData?.regulation?.requires_city_approval);
 
   const requiredChecklist = useMemo(() => {
     const reqs = requirementsData?.requirements || [];
@@ -315,11 +316,22 @@ export default function DriverMunicipalRegularization() {
             ) : (
               <>
                 {!requirementsData?.hasRegulation && (
-                  <Text style={styles.phaseText}>Nenhuma exigencia municipal adicional cadastrada para esta cidade no momento.</Text>
+                  <>
+                    <View style={styles.requirementSummaryRow}>
+                      <Text style={styles.requirementSummaryTitle}>Sua cidade nao exige autorizacao municipal</Text>
+                    </View>
+                    <Text style={styles.phaseText}>Nenhuma exigencia municipal adicional cadastrada para esta cidade no momento.</Text>
+                  </>
                 )}
 
                 {requirementsData?.hasRegulation && (
                   <>
+                    <View style={styles.requirementSummaryRow}>
+                      <Text style={styles.requirementSummaryTitle}>
+                        {requiresCityApproval ? 'Sua cidade exige autorizacao municipal: Sim' : 'Sua cidade nao exige autorizacao municipal'}
+                      </Text>
+                    </View>
+
                     <View style={[styles.statusPill, { backgroundColor: statusMeta.bg }]}> 
                       <Text style={[styles.statusPillText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
                     </View>
@@ -328,9 +340,17 @@ export default function DriverMunicipalRegularization() {
                       <Text style={styles.warningText}>{requiresConfirmationMessage}</Text>
                     ) : null}
 
-                    <Text style={styles.helperText}>
-                      A KAVIAR ira conferir seus documentos e, quando necessario, encaminhar o pacote para analise da Prefeitura. A liberacao para operar nesta cidade depende da aprovacao municipal quando exigida.
-                    </Text>
+                    <View style={styles.infoBox}>
+                      <Text style={styles.infoTitle}>Analise do Cadastro KAVIAR (interna)</Text>
+                      <Text style={styles.helperText}>A KAVIAR confere cadastro e documentos da plataforma antes de qualquer envio externo.</Text>
+                    </View>
+
+                    <View style={styles.infoBox}>
+                      <Text style={styles.infoTitle}>Regularizacao Municipal (Prefeitura/Orgao municipal)</Text>
+                      <Text style={styles.helperText}>
+                        Quando exigida, a liberacao para operar nesta cidade depende de protocolo e aprovacao municipal.
+                      </Text>
+                    </View>
 
                     <View style={styles.progressBox}>
                       <Text style={styles.progressLabel}>Checklist municipal</Text>
@@ -458,4 +478,23 @@ const styles = StyleSheet.create({
   requirementPendingText: { fontSize: 12, color: '#9A3412', marginTop: 2 },
   helperText: { fontSize: 13, color: '#374151', lineHeight: 18, marginBottom: 8 },
   warningText: { fontSize: 13, color: '#92400E', lineHeight: 18, marginBottom: 8, fontWeight: '600' },
+  requirementSummaryRow: {
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  requirementSummaryTitle: { fontSize: 13, fontWeight: '800', color: '#111827' },
+  infoBox: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+  },
+  infoTitle: { fontSize: 12, fontWeight: '800', color: '#111827', marginBottom: 4 },
 });

@@ -146,6 +146,14 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, requireTerritorySco
             select: {
               name: true
             }
+          },
+          municipal_authorizations: {
+            select: {
+              status: true,
+              updated_at: true,
+            },
+            orderBy: { updated_at: 'desc' },
+            take: 1,
           }
         },
         orderBy: { created_at: 'desc' },
@@ -171,8 +179,17 @@ router.get('/drivers', allowReadAccess, applyTerritoryScope, requireTerritorySco
         vehicleColor: d.vehicle_color,
         vehicleModel: d.vehicle_model,
         vehiclePlate: d.vehicle_plate,
-        neighborhoods: d.neighborhoods
+        neighborhoods: d.neighborhoods,
       };
+
+      const latestMunicipal = d.municipal_authorizations?.[0] || null;
+      if (latestMunicipal) {
+        base.municipalSummary = {
+          status: latestMunicipal.status,
+          updatedAt: latestMunicipal.updated_at?.toISOString?.() || null,
+        };
+      }
+
       if (!isTerritorial) {
         base.certidaoNadaConstaUrl = d.certidao_nada_consta_url;
         base.pixKey = d.pix_key;

@@ -92,20 +92,49 @@ function getStatusStyle(status) {
   return { color: '#92400e', backgroundColor: '#fef3c7', borderColor: '#fcd34d' };
 }
 
-function getRequirementsPending(authorization, documents) {
+function normalizeDocStatus(status) {
+  return String(status || '').toUpperCase();
+}
+
+function splitRequirementsByDocumentStatus(authorization, documents) {
   const requirements = authorization?.regulation?.requirements || [];
   const docsByType = new Map((documents || []).map((doc) => [doc.type, doc]));
 
-  return requirements.filter((req) => {
-    if (!req.is_required || !req.document_type) return false;
-    const doc = docsByType.get(req.document_type);
-    return !doc || !['SUBMITTED', 'VERIFIED'].includes(doc.status);
-  });
-}
+  const grouped = {
+    pending: [],
+    submitted: [],
+    verified: [],
+    conditional: [],
+  };
 
-function getConditionalRequirements(authorization) {
-  const requirements = authorization?.regulation?.requirements || [];
-  return requirements.filter((req) => !req.is_required);
+  requirements.forEach((req) => {
+    if (!req.is_required) {
+      grouped.conditional.push(req);
+      return;
+    }
+
+    if (!req.document_type) {
+      grouped.pending.push(req);
+      return;
+    }
+
+    const doc = docsByType.get(req.document_type);
+    const normalizedStatus = normalizeDocStatus(doc?.status);
+
+    if (normalizedStatus === 'VERIFIED') {
+      grouped.verified.push(req);
+      return;
+    }
+
+    if (normalizedStatus === 'SUBMITTED') {
+      grouped.submitted.push(req);
+      return;
+    }
+
+    grouped.pending.push(req);
+  });
+
+  return grouped;
 }
 
 function formatDateOnly(value) {
@@ -426,8 +455,7 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
           ) : (
             authorizations.map((authorization) => {
               const style = getStatusStyle(authorization.status);
-              const pendingRequirements = getRequirementsPending(authorization, documents);
-              const conditionalRequirements = getConditionalRequirements(authorization);
+              const groupedRequirements = splitRequirementsByDocumentStatus(authorization, documents);
               const protocolForm = protocolForms[authorization.id] || {};
               const statusForm = statusForms[authorization.id] || {};
               const decisionForm = decisionForms[authorization.id] || {};
@@ -435,6 +463,7 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
               const canDoFinalDecision = isSuperAdmin;
               const canManageProtocol = isSuperAdmin || isTerritorialManager;
               const canManageStatus = isSuperAdmin;
+              const canGeneratePackage = isSuperAdmin || isTerritorialManager;
               const canDecisionProgress = isSuperAdmin || isTerritorialManager;
               const canSeeSensitiveLinks = isSuperAdmin;
 
@@ -482,7 +511,7 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
                     </Grid>
                     <Grid item xs={12} md={4}>
                       <Typography variant="caption" color="text.secondary">Validade autorização</Typography>
-                      <Typography variant="body2">{authorization.authorization_valid_until ? formatDate(authorization.authorization_valid_until) : '—'}</Typography>
+                      <Typography variant="body2">{formatDateOnly(authorization.authorization_valid_until)}</Typography>
                     </Grid>
 
                     <Grid item xs={12} md={3}>
@@ -529,29 +558,67 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
                   </Grid>
 
                   <Box sx={{ mt: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary">Requisitos pendentes</Typography>
-                    {pendingRequirements.length > 0 ? (
-                      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5, gap: 0.5 }}>
-                        {pendingRequirements.map((item) => (
-                          <Chip key={item.id} label={item.label} size="small" color="warning" variant="outlined" />
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Typography variant="body2">Nenhum requisito documental pendente (com base nos documentos vinculados).</Typography>
-                    )}
+                    <Typography variant="caption" color="text.secondary">Visão completa dos requisitos municipais</Typography>
+                    {(() => {
+                      const allRequirements = authorization?.regulation?.requirements || [];
+
+                      if (allRequirements.length === 0) {
+                        return <Typography variant="body2">Esta regra municipal não possui requisitos cadastrados.</Typography>;
+                      }
+
+                      const getBucketMeta = (req) => {
+                        if (!req.is_required) return { label: 'Condicional', color: 'default' };
+
+                        if (!req.document_type) return { label: 'Pendente', color: 'warning' };
+
+                        const doc = (documents || []).find((item) => item.type === req.document_type);
+                        const normalizedStatus = normalizeDocStatus(doc?.status);
+
+                        if (normalizedStatus === 'VERIFIED') return { label: 'Verificado', color: 'success' };
+                        if (normalizedStatus === 'SUBMITTED') return { label: 'Enviado', color: 'info' };
+                        return { label: 'Pendente', color: 'warning' };
+                      };
+
+                      return (
+                        <Box sx={{ mt: 1, border: '1px solid #E5E7EB', borderRadius: 1, overflow: 'hidden' }}>
+                          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', p: 1, bgcolor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>Requisito</Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>Situação</Typography>
+                          </Box>
+                          {allRequirements.map((req) => {
+                            const bucket = getBucketMeta(req);
+                            return (
+                              <Box key={req.id} sx={{ display: 'grid', gridTemplateColumns: '1fr auto', p: 1, borderBottom: '1px solid #F3F4F6' }}>
+                                <Box>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{req.label}</Typography>
+                                  {req.document_type && (
+                                    <Typography variant="caption" color="text.secondary">Documento: {req.document_type}</Typography>
+                                  )}
+                                </Box>
+                                <Chip label={bucket.label} size="small" color={bucket.color} variant="outlined" />
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      );
+                    })()}
                   </Box>
 
                   <Box sx={{ mt: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary">Requisitos condicionais / quando aplicável</Typography>
-                    {conditionalRequirements.length > 0 ? (
-                      <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 0.5, gap: 0.5 }}>
-                        {conditionalRequirements.map((item) => (
-                          <Chip key={item.id} label={item.label} size="small" color="default" variant="outlined" />
-                        ))}
-                      </Stack>
-                    ) : (
-                      <Typography variant="body2">Nenhum requisito condicional mapeado para esta regra.</Typography>
-                    )}
+                    <Grid container spacing={1}>
+                      <Grid item xs={12} md={3}>
+                        <Chip label={`Pendentes: ${groupedRequirements.pending.length}`} size="small" color="warning" variant="outlined" />
+                      </Grid>
+                      <Grid item xs={12} md={3}>
+                        <Chip label={`Enviados: ${groupedRequirements.submitted.length}`} size="small" color="info" variant="outlined" />
+                      </Grid>
+                      <Grid item xs={12} md={3}>
+                        <Chip label={`Verificados: ${groupedRequirements.verified.length}`} size="small" color="success" variant="outlined" />
+                      </Grid>
+                      <Grid item xs={12} md={3}>
+                        <Chip label={`Condicionais: ${groupedRequirements.conditional.length}`} size="small" color="default" variant="outlined" />
+                      </Grid>
+                    </Grid>
                   </Box>
 
                   <Divider sx={{ my: 2 }} />
@@ -635,6 +702,14 @@ export function DriverMunicipalRegularizationCard({ driverId, documents }) {
                             Salvar status/anexo
                           </Button>
                         </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+
+                  {canGeneratePackage && (
+                    <Box sx={{ mb: 2, p: 1.5, bgcolor: 'grey.50', borderRadius: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Organizar pacote para Prefeitura</Typography>
+                      <Grid container spacing={1.5}>
                         <Grid item xs={12} md={4}>
                           <Button fullWidth variant="outlined" onClick={() => generatePackage(authorization.id)} disabled={saving}>
                             Gerar Pacote Prefeitura

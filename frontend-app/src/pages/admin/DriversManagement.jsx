@@ -179,6 +179,21 @@ export default function DriversManagement() {
     }
   };
 
+  const getMunicipalBadge = (municipalSummary) => {
+    const status = municipalSummary?.status;
+    if (!status) return null;
+
+    if (status === 'APPROVED_BY_CITY_HALL') {
+      return { label: 'Autorizado', color: 'success' };
+    }
+
+    if (status === 'WAITING_CITY_HALL_REVIEW' || status === 'SUBMITTED_TO_CITY_HALL') {
+      return { label: 'Aguardando Prefeitura', color: 'warning' };
+    }
+
+    return { label: 'Regularização municipal pendente', color: 'default' };
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: '#f0f4f8' }}>
@@ -258,6 +273,7 @@ export default function DriversManagement() {
               <TableCell>Email</TableCell>
               <TableCell>Bairro</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Regularização Municipal</TableCell>
               <TableCell>Premium Turismo</TableCell>
               <TableCell>Cadastro</TableCell>
               <TableCell>Ações</TableCell>
@@ -275,6 +291,13 @@ export default function DriversManagement() {
                     color={getStatusColor(driver.status)}
                     size="small"
                   />
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const badge = getMunicipalBadge(driver.municipalSummary);
+                    if (!badge) return '—';
+                    return <Chip label={badge.label} color={badge.color} size="small" variant="outlined" />;
+                  })()}
                 </TableCell>
                 <TableCell>
                   {driver.premium_tourism_status === 'active' ? (
