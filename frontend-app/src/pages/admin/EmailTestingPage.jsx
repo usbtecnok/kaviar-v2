@@ -22,6 +22,11 @@ import {
 } from '@mui/material';
 import api from '../../api';
 
+const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const ALLOWED_ATTACHMENT_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+
 const TEST_SENDER_OPTIONS = [
   { label: 'KAVIAR <contato@kaviar.com.br>', value: 'KAVIAR <contato@kaviar.com.br>' },
   { label: 'KAVIAR Suporte <suporte@kaviar.com.br>', value: 'KAVIAR Suporte <suporte@kaviar.com.br>' },
@@ -100,6 +105,22 @@ function buildFriendlyError(error) {
   return apiMessage || 'Nao foi possivel enviar o email de teste agora. Tente novamente.';
 }
 
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes)) return '-';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function isAllowedAttachment(file) {
+  const mime = (file.type || '').toLowerCase();
+  const lowerName = (file.name || '').toLowerCase();
+  const ext = lowerName.includes('.') ? lowerName.slice(lowerName.lastIndexOf('.')) : '';
+  const mimeAllowed = ALLOWED_ATTACHMENT_MIME_TYPES.includes(mime);
+  const extAllowed = ALLOWED_ATTACHMENT_EXTENSIONS.includes(ext);
+  return mimeAllowed && extAllowed;
+}
+
 export default function EmailTestingPage() {
   const [mode, setMode] = useState('test');
 
@@ -111,6 +132,7 @@ export default function EmailTestingPage() {
   const [officialTo, setOfficialTo] = useState('');
   const [officialSubject, setOfficialSubject] = useState('');
   const [officialMessage, setOfficialMessage] = useState('');
+  const [officialAttachments, setOfficialAttachments] = useState([]);
 
   const [sending, setSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -155,6 +177,22 @@ export default function EmailTestingPage() {
       return;
     }
 
+    if (officialAttachments.length > MAX_ATTACHMENTS) {
+      setErrorMessage('Voce pode enviar no maximo 3 anexos por email.');
+      return;
+    }
+
+    for (const file of officialAttachments) {
+      if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+        setErrorMessage(`O arquivo ${file.name} excede 5 MB.`);
+        return;
+      }
+      if (!isAllowedAttachment(file)) {
+        setErrorMessage(`Tipo nao permitido para ${file.name}. Use apenas PDF, JPG, JPEG ou PNG.`);
+        return;
+      }
+    }
+
     setConfirmOpen(true);
   };
 
@@ -165,14 +203,34 @@ export default function EmailTestingPage() {
     setResult(null);
 
     try {
-      const payload = {
-        to: officialTo.trim(),
-        from: officialFrom,
-        subject: officialSubject.trim(),
-        message: officialMessage.trim(),
-      };
+      const hasAttachments = officialAttachments.length > 0;
+      let response;
 
-      const response = await api.post('/api/admin/email/send', payload);
+      if (hasAttachments) {
+        const formData = new FormData();
+        formData.append('to', officialTo.trim());
+        formData.append('from', officialFrom);
+        formData.append('subject', officialSubject.trim());
+        formData.append('message', officialMessage.trim());
+        officialAttachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
+
+        response = await api.post('/api/admin/email/send', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        const payload = {
+          to: officialTo.trim(),
+          from: officialFrom,
+          subject: officialSubject.trim(),
+          message: officialMessage.trim(),
+        };
+        response = await api.post('/api/admin/email/send', payload);
+      }
+
       setResult(response.data?.data || null);
     } catch (error) {
       setErrorMessage(buildFriendlyError(error));
@@ -185,6 +243,39 @@ export default function EmailTestingPage() {
   const resetFeedback = () => {
     setErrorMessage('');
     setResult(null);
+  };
+
+  const handleAttachmentChange = (event) => {
+    const incomingFiles = Array.from(event.target.files || []);
+    if (!incomingFiles.length) return;
+
+    const next = [...officialAttachments, ...incomingFiles];
+    if (next.length > MAX_ATTACHMENTS) {
+      setErrorMessage('Voce pode enviar no maximo 3 anexos por email.');
+      event.target.value = '';
+      return;
+    }
+
+    for (const file of incomingFiles) {
+      if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+        setErrorMessage(`O arquivo ${file.name} excede 5 MB.`);
+        event.target.value = '';
+        return;
+      }
+      if (!isAllowedAttachment(file)) {
+        setErrorMessage(`Tipo nao permitido para ${file.name}. Use apenas PDF, JPG, JPEG ou PNG.`);
+        event.target.value = '';
+        return;
+      }
+    }
+
+    setOfficialAttachments(next);
+    setErrorMessage('');
+    event.target.value = '';
+  };
+
+  const removeAttachment = (indexToRemove) => {
+    setOfficialAttachments((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
 
   return (
@@ -282,6 +373,10 @@ export default function EmailTestingPage() {
                     Este envio sera entregue a destinatario externo em nome da KAVIAR.
                   </Alert>
 
+                  <Alert severity="info">
+                    Os anexos serao enviados ao destinatario externo em nome da KAVIAR.
+                  </Alert>
+
                   <FormControl fullWidth>
                     <InputLabel id="official-from-label">Remetente oficial</InputLabel>
                     <Select
@@ -324,6 +419,69 @@ export default function EmailTestingPage() {
                     required
                   />
 
+                  <Stack spacing={1.2}>
+                    <Typography sx={{ fontWeight: 700, color: '#1A1A1A' }}>Anexos</Typography>
+                    <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                      Permitido: PDF, JPG, JPEG, PNG. Maximo de 3 arquivos, ate 5 MB cada.
+                    </Typography>
+
+                    <Box>
+                      <input
+                        id="official-attachments-input"
+                        type="file"
+                        multiple
+                        accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+                        onChange={handleAttachmentChange}
+                        style={{ display: 'none' }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outlined"
+                        onClick={() => document.getElementById('official-attachments-input')?.click()}
+                        disabled={sending || officialAttachments.length >= MAX_ATTACHMENTS}
+                        sx={{ textTransform: 'none', fontWeight: 700 }}
+                      >
+                        Selecionar anexos
+                      </Button>
+                    </Box>
+
+                    {officialAttachments.length > 0 && (
+                      <Stack spacing={1}>
+                        {officialAttachments.map((file, index) => (
+                          <Box
+                            key={`${file.name}-${file.size}-${index}`}
+                            sx={{
+                              p: 1.2,
+                              borderRadius: 1.5,
+                              border: '1px solid #E5E7EB',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 1,
+                            }}
+                          >
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{file.name}</Typography>
+                              <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                                {(file.type || 'tipo nao informado')} • {formatFileSize(file.size)}
+                              </Typography>
+                            </Box>
+                            <Button
+                              type="button"
+                              size="small"
+                              color="error"
+                              variant="text"
+                              onClick={() => removeAttachment(index)}
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Remover
+                            </Button>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </Stack>
+
                   <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
                     <Button
                       type="submit"
@@ -358,6 +516,16 @@ export default function EmailTestingPage() {
                 <Typography><strong>Destinatario:</strong> {result.to || (mode === 'test' ? to.trim() : officialTo.trim())}</Typography>
                 {result.template && <Typography><strong>Template:</strong> {result.template}</Typography>}
                 {result.subject && <Typography><strong>Assunto:</strong> {result.subject}</Typography>}
+                {Array.isArray(result.attachments) && result.attachments.length > 0 && (
+                  <Box>
+                    <Typography><strong>Anexos enviados:</strong></Typography>
+                    {result.attachments.map((attachment, index) => (
+                      <Typography key={`${attachment.filename || 'anexo'}-${index}`} variant="body2" sx={{ color: '#4B5563' }}>
+                        {attachment.filename || 'arquivo'} • {attachment.contentType || '-'} • {formatFileSize(attachment.size || 0)}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
                 {result.messageId && <Typography><strong>Message ID:</strong> {result.messageId}</Typography>}
               </Stack>
             </CardContent>
@@ -372,6 +540,14 @@ export default function EmailTestingPage() {
             <Typography><strong>Remetente:</strong> {officialFrom}</Typography>
             <Typography><strong>Destinatario:</strong> {officialTo.trim()}</Typography>
             <Typography><strong>Assunto:</strong> {officialSubject.trim()}</Typography>
+            <Box>
+              <Typography><strong>Anexos:</strong> {officialAttachments.length ? `${officialAttachments.length} arquivo(s)` : 'sem anexos'}</Typography>
+              {officialAttachments.map((file, index) => (
+                <Typography key={`${file.name}-${index}`} variant="body2" sx={{ color: '#4B5563' }}>
+                  {file.name} • {(file.type || 'tipo nao informado')} • {formatFileSize(file.size)}
+                </Typography>
+              ))}
+            </Box>
             <Alert severity="warning" sx={{ mt: 1 }}>
               Este envio sera entregue a destinatario externo em nome da KAVIAR.
             </Alert>
