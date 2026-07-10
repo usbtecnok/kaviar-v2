@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -15,8 +15,6 @@ import {
   MenuItem,
   Select,
   Stack,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from '@mui/material';
@@ -27,56 +25,10 @@ const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_ATTACHMENT_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
 
-const TEST_SENDER_OPTIONS = [
-  { label: 'KAVIAR <contato@kaviar.com.br>', value: 'KAVIAR <contato@kaviar.com.br>' },
-  { label: 'KAVIAR Suporte <suporte@kaviar.com.br>', value: 'KAVIAR Suporte <suporte@kaviar.com.br>' },
-  { label: 'KAVIAR Financeiro <financeiro@kaviar.com.br>', value: 'KAVIAR Financeiro <financeiro@kaviar.com.br>' },
-  { label: 'KAVIAR Notificações <no-reply@kaviar.com.br>', value: 'KAVIAR Notificações <no-reply@kaviar.com.br>' },
-];
-
 const OFFICIAL_SENDER_OPTIONS = [
   { label: 'KAVIAR <contato@kaviar.com.br>', value: 'KAVIAR <contato@kaviar.com.br>' },
   { label: 'KAVIAR Suporte <suporte@kaviar.com.br>', value: 'KAVIAR Suporte <suporte@kaviar.com.br>' },
   { label: 'KAVIAR Financeiro <financeiro@kaviar.com.br>', value: 'KAVIAR Financeiro <financeiro@kaviar.com.br>' },
-];
-
-const TEMPLATE_OPTIONS = [
-  {
-    value: 'test',
-    label: 'test',
-    payload: { template: 'test' },
-    description: 'Template padrao de validacao do backend.',
-  },
-  {
-    value: 'suporte',
-    label: 'suporte',
-    payload: {
-      template: 'operational',
-      title: 'Suporte KAVIAR',
-      message: 'Mensagem operacional de teste enviada pelo alias de suporte da KAVIAR.',
-    },
-    description: 'Usa template operational com texto padrao de suporte.',
-  },
-  {
-    value: 'financeiro',
-    label: 'financeiro',
-    payload: {
-      template: 'operational',
-      title: 'Financeiro KAVIAR',
-      message: 'Mensagem operacional de teste enviada pelo alias financeiro da KAVIAR.',
-    },
-    description: 'Usa template operational com texto padrao de financeiro.',
-  },
-  {
-    value: 'notificacao',
-    label: 'notificacao',
-    payload: {
-      template: 'operational',
-      title: 'Notificacao KAVIAR',
-      message: 'Mensagem operacional de teste enviada pelo alias no-reply da KAVIAR.',
-    },
-    description: 'Usa template operational com texto padrao de notificacao.',
-  },
 ];
 
 function buildFriendlyError(error) {
@@ -88,9 +40,6 @@ function buildFriendlyError(error) {
   }
 
   if (status === 403) {
-    if (apiMessage?.toLowerCase().includes('destinatario')) {
-      return 'Destinatario nao permitido para teste. Use um email da allowlist configurada no backend.';
-    }
     return 'Voce nao tem permissao para acessar esta funcionalidade.';
   }
 
@@ -102,7 +51,7 @@ function buildFriendlyError(error) {
     return apiMessage || 'O backend nao conseguiu enviar o email no provider configurado.';
   }
 
-  return apiMessage || 'Nao foi possivel enviar o email de teste agora. Tente novamente.';
+  return apiMessage || 'Nao foi possivel enviar o email agora. Tente novamente.';
 }
 
 function formatFileSize(bytes) {
@@ -122,12 +71,6 @@ function isAllowedAttachment(file) {
 }
 
 export default function EmailTestingPage() {
-  const [mode, setMode] = useState('test');
-
-  const [from, setFrom] = useState(TEST_SENDER_OPTIONS[0].value);
-  const [to, setTo] = useState('');
-  const [templateKey, setTemplateKey] = useState(TEMPLATE_OPTIONS[0].value);
-
   const [officialFrom, setOfficialFrom] = useState(OFFICIAL_SENDER_OPTIONS[0].value);
   const [officialTo, setOfficialTo] = useState('');
   const [officialSubject, setOfficialSubject] = useState('');
@@ -139,34 +82,6 @@ export default function EmailTestingPage() {
   const [result, setResult] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const officialAttachmentsInputRef = useRef(null);
-
-  const selectedTemplate = useMemo(
-    () => TEMPLATE_OPTIONS.find((option) => option.value === templateKey) || TEMPLATE_OPTIONS[0],
-    [templateKey]
-  );
-
-  const handleSendTest = async (event) => {
-    event.preventDefault();
-    setSending(true);
-    setErrorMessage('');
-    setResult(null);
-
-    try {
-      const payload = {
-        to: to.trim(),
-        from,
-        ...selectedTemplate.payload,
-      };
-
-      const response = await api.post('/api/admin/email/test', payload);
-      setResult(response.data?.data || null);
-    } catch (error) {
-      setErrorMessage(buildFriendlyError(error));
-      setResult(error?.response?.data?.data ? { ...error.response.data.data, failed: true } : null);
-    } finally {
-      setSending(false);
-    }
-  };
 
   const handleOfficialSubmit = async (event) => {
     event.preventDefault();
@@ -251,11 +166,6 @@ export default function EmailTestingPage() {
     }
   };
 
-  const resetFeedback = () => {
-    setErrorMessage('');
-    setResult(null);
-  };
-
   const handleAttachmentChange = (event) => {
     const incomingFiles = Array.from(event.target.files || []);
     if (!incomingFiles.length) return;
@@ -302,217 +212,141 @@ export default function EmailTestingPage() {
             E-mails KAVIAR
           </Typography>
           <Typography sx={{ color: '#6B7280', maxWidth: 720 }}>
-            Esta tela chama somente o backend KAVIAR. Nenhum token Cloudflare vai para o navegador.
+            Envio real de comunicacoes oficiais para destinatarios externos.
           </Typography>
         </Box>
 
-        <Tabs
-          value={mode}
-          onChange={(_, value) => {
-            setMode(value);
-            resetFeedback();
-          }}
-          sx={{ '& .MuiTab-root': { textTransform: 'none', fontWeight: 700 } }}
-        >
-          <Tab value="test" label="Teste interno" />
-          <Tab value="official" label="Envio real" />
-        </Tabs>
-
         <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 18px rgba(0,0,0,0.04)' }}>
           <CardContent>
-            {mode === 'test' ? (
-              <Box component="form" onSubmit={handleSendTest}>
-                <Stack spacing={2.5}>
-                  <Alert severity="info">
-                    Modo interno usa <strong>/api/admin/email/test</strong> com validacao por allowlist EMAIL_TEST_ALLOWED_TO.
-                  </Alert>
+            <Box component="form" onSubmit={handleOfficialSubmit}>
+              <Stack spacing={2.5}>
+                <Alert severity="warning">
+                  Este envio sera entregue a destinatario externo em nome da KAVIAR.
+                </Alert>
 
-                  <FormControl fullWidth>
-                    <InputLabel id="email-from-label">Remetente</InputLabel>
-                    <Select
-                      labelId="email-from-label"
-                      label="Remetente"
-                      value={from}
-                      onChange={(event) => setFrom(event.target.value)}
-                    >
-                      {TEST_SENDER_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                <Alert severity="info">
+                  Os anexos serao enviados ao destinatario externo em nome da KAVIAR.
+                </Alert>
 
-                  <TextField
-                    fullWidth
-                    label="Destinatario"
-                    type="email"
-                    placeholder="contato@kaviar.com.br"
-                    value={to}
-                    onChange={(event) => setTo(event.target.value)}
-                    required
-                  />
+                <FormControl fullWidth>
+                  <InputLabel id="official-from-label">Remetente oficial</InputLabel>
+                  <Select
+                    labelId="official-from-label"
+                    label="Remetente oficial"
+                    value={officialFrom}
+                    onChange={(event) => setOfficialFrom(event.target.value)}
+                  >
+                    {OFFICIAL_SENDER_OPTIONS.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-                  <FormControl fullWidth>
-                    <InputLabel id="email-template-label">Template</InputLabel>
-                    <Select
-                      labelId="email-template-label"
-                      label="Template"
-                      value={templateKey}
-                      onChange={(event) => setTemplateKey(event.target.value)}
-                    >
-                      {TEMPLATE_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                <TextField
+                  fullWidth
+                  label="Destinatario externo"
+                  type="email"
+                  placeholder="contato@prefeitura.gov.br"
+                  value={officialTo}
+                  onChange={(event) => setOfficialTo(event.target.value)}
+                  required
+                />
 
-                  <Box sx={{ p: 2, borderRadius: 2, bgcolor: '#FAFAF8', border: '1px solid #EEE8D9' }}>
-                    <Typography sx={{ fontWeight: 700, color: '#1A1A1A', mb: 0.5 }}>Resumo do envio interno</Typography>
-                    <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                      Template backend: {selectedTemplate.payload.template}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                      {selectedTemplate.description}
-                    </Typography>
-                  </Box>
+                <TextField
+                  fullWidth
+                  label="Assunto"
+                  value={officialSubject}
+                  onChange={(event) => setOfficialSubject(event.target.value)}
+                  required
+                />
 
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
-                    <Button type="submit" variant="contained" disabled={sending || !to.trim()} sx={{ minWidth: 180, textTransform: 'none', fontWeight: 700 }}>
-                      {sending ? <CircularProgress size={22} color="inherit" /> : 'Enviar teste'}
-                    </Button>
-                  </Box>
-                </Stack>
-              </Box>
-            ) : (
-              <Box component="form" onSubmit={handleOfficialSubmit}>
-                <Stack spacing={2.5}>
-                  <Alert severity="warning">
-                    Este envio sera entregue a destinatario externo em nome da KAVIAR.
-                  </Alert>
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={6}
+                  label="Mensagem"
+                  value={officialMessage}
+                  onChange={(event) => setOfficialMessage(event.target.value)}
+                  required
+                />
 
-                  <Alert severity="info">
-                    Os anexos serao enviados ao destinatario externo em nome da KAVIAR.
-                  </Alert>
+                <Stack spacing={1.2}>
+                  <Typography sx={{ fontWeight: 700, color: '#1A1A1A' }}>Anexos</Typography>
+                  <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                    Permitido: PDF, JPG, JPEG, PNG. Maximo de 3 arquivos, ate 5 MB cada.
+                  </Typography>
 
-                  <FormControl fullWidth>
-                    <InputLabel id="official-from-label">Remetente oficial</InputLabel>
-                    <Select
-                      labelId="official-from-label"
-                      label="Remetente oficial"
-                      value={officialFrom}
-                      onChange={(event) => setOfficialFrom(event.target.value)}
-                    >
-                      {OFFICIAL_SENDER_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    fullWidth
-                    label="Destinatario externo"
-                    type="email"
-                    placeholder="contato@prefeitura.gov.br"
-                    value={officialTo}
-                    onChange={(event) => setOfficialTo(event.target.value)}
-                    required
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Assunto"
-                    value={officialSubject}
-                    onChange={(event) => setOfficialSubject(event.target.value)}
-                    required
-                  />
-
-                  <TextField
-                    fullWidth
-                    multiline
-                    minRows={6}
-                    label="Mensagem"
-                    value={officialMessage}
-                    onChange={(event) => setOfficialMessage(event.target.value)}
-                    required
-                  />
-
-                  <Stack spacing={1.2}>
-                    <Typography sx={{ fontWeight: 700, color: '#1A1A1A' }}>Anexos</Typography>
-                    <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                      Permitido: PDF, JPG, JPEG, PNG. Maximo de 3 arquivos, ate 5 MB cada.
-                    </Typography>
-
-                    <Box>
-                      <input
-                        id="official-attachments-input"
-                        ref={officialAttachmentsInputRef}
-                        type="file"
-                        multiple
-                        accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
-                        onChange={handleAttachmentChange}
-                        style={{ display: 'none' }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outlined"
-                        onClick={() => officialAttachmentsInputRef.current?.click()}
-                        disabled={sending || officialAttachments.length >= MAX_ATTACHMENTS}
-                        sx={{ textTransform: 'none', fontWeight: 700 }}
-                      >
-                        Selecionar anexos
-                      </Button>
-                    </Box>
-
-                    {officialAttachments.length > 0 && (
-                      <Stack spacing={1}>
-                        {officialAttachments.map((file, index) => (
-                          <Box
-                            key={`${file.name}-${file.size}-${index}`}
-                            sx={{
-                              p: 1.2,
-                              borderRadius: 1.5,
-                              border: '1px solid #E5E7EB',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              gap: 1,
-                            }}
-                          >
-                            <Box sx={{ minWidth: 0 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{file.name}</Typography>
-                              <Typography variant="caption" sx={{ color: '#6B7280' }}>
-                                {(file.type || 'tipo nao informado')} • {formatFileSize(file.size)}
-                              </Typography>
-                            </Box>
-                            <Button
-                              type="button"
-                              size="small"
-                              color="error"
-                              variant="text"
-                              onClick={() => removeAttachment(index)}
-                              sx={{ textTransform: 'none' }}
-                            >
-                              Remover
-                            </Button>
-                          </Box>
-                        ))}
-                      </Stack>
-                    )}
-                  </Stack>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <Box>
+                    <input
+                      id="official-attachments-input"
+                      ref={officialAttachmentsInputRef}
+                      type="file"
+                      multiple
+                      accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+                      onChange={handleAttachmentChange}
+                      style={{ display: 'none' }}
+                    />
                     <Button
-                      type="submit"
-                      variant="contained"
-                      color="warning"
-                      disabled={sending || !officialTo.trim() || !officialSubject.trim() || !officialMessage.trim()}
-                      sx={{ minWidth: 180, textTransform: 'none', fontWeight: 700 }}
+                      type="button"
+                      variant="outlined"
+                      onClick={() => officialAttachmentsInputRef.current?.click()}
+                      disabled={sending || officialAttachments.length >= MAX_ATTACHMENTS}
+                      sx={{ textTransform: 'none', fontWeight: 700 }}
                     >
-                      {sending ? <CircularProgress size={22} color="inherit" /> : 'Enviar email real'}
+                      Selecionar anexos
                     </Button>
                   </Box>
+
+                  {officialAttachments.length > 0 && (
+                    <Stack spacing={1}>
+                      {officialAttachments.map((file, index) => (
+                        <Box
+                          key={`${file.name}-${file.size}-${index}`}
+                          sx={{
+                            p: 1.2,
+                            borderRadius: 1.5,
+                            border: '1px solid #E5E7EB',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1,
+                          }}
+                        >
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }} noWrap>{file.name}</Typography>
+                            <Typography variant="caption" sx={{ color: '#6B7280' }}>
+                              {(file.type || 'tipo nao informado')} • {formatFileSize(file.size)}
+                            </Typography>
+                          </Box>
+                          <Button
+                            type="button"
+                            size="small"
+                            color="error"
+                            variant="text"
+                            onClick={() => removeAttachment(index)}
+                            sx={{ textTransform: 'none' }}
+                          >
+                            Remover
+                          </Button>
+                        </Box>
+                      ))}
+                    </Stack>
+                  )}
                 </Stack>
-              </Box>
-            )}
+
+                <Box sx={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    color="warning"
+                    disabled={sending || !officialTo.trim() || !officialSubject.trim() || !officialMessage.trim()}
+                    sx={{ minWidth: 180, textTransform: 'none', fontWeight: 700 }}
+                  >
+                    {sending ? <CircularProgress size={22} color="inherit" /> : 'Enviar email real'}
+                  </Button>
+                </Box>
+              </Stack>
+            </Box>
           </CardContent>
         </Card>
 
@@ -534,8 +368,8 @@ export default function EmailTestingPage() {
                 <Typography><strong>Status:</strong> {result.failed ? 'falha' : 'sucesso'}</Typography>
                 <Typography><strong>Provider usado:</strong> {result.provider || 'nao informado'}</Typography>
                 <Typography><strong>Provider padrao:</strong> {result.providerDefault || 'nao informado'}</Typography>
-                <Typography><strong>From usado:</strong> {result.from || (mode === 'test' ? from : officialFrom)}</Typography>
-                <Typography><strong>Destinatario:</strong> {result.to || (mode === 'test' ? to.trim() : officialTo.trim())}</Typography>
+                <Typography><strong>From usado:</strong> {result.from || officialFrom}</Typography>
+                <Typography><strong>Destinatario:</strong> {result.to || officialTo.trim()}</Typography>
                 {result.template && <Typography><strong>Template:</strong> {result.template}</Typography>}
                 {result.subject && <Typography><strong>Assunto:</strong> {result.subject}</Typography>}
                 {Array.isArray(result.attachments) && result.attachments.length > 0 && (
