@@ -89,6 +89,30 @@ router.post('/me/availability', authenticateDriver, async (req: Request, res: Re
       return res.status(400).json({ error: 'Status de disponibilidade inválido' });
     }
 
+    if (availability === 'online') {
+      const driver = await prisma.drivers.findUnique({
+        where: { id: driverId },
+        select: { status: true },
+      });
+
+      if (!driver) {
+        return res.status(404).json({
+          success: false,
+          error: 'DRIVER_NOT_FOUND',
+          message: 'Motorista não encontrado.',
+        });
+      }
+
+      const normalizedDriverStatus = String(driver.status || '').toLowerCase();
+      if (!['approved', 'active'].includes(normalizedDriverStatus)) {
+        return res.status(403).json({
+          success: false,
+          error: 'DRIVER_NOT_APPROVED',
+          message: 'Seu cadastro ainda precisa ser aprovado pela KAVIAR antes de ficar online.',
+        });
+      }
+    }
+
     if (availability === 'online' && config.driverEnforcement.municipalRegulatoryGateEnabled) {
       const resolvedMunicipality = await resolveMunicipalityForDriver(driverId);
       const city = resolvedMunicipality.city;

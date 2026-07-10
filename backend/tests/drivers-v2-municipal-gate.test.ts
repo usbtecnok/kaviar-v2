@@ -83,8 +83,25 @@ describe('drivers-v2 municipal gate', () => {
     });
   });
 
-  it('bloqueia ficar online quando cidade/UF não podem ser resolvidas', async () => {
+  it('A) não aprovado KAVIAR bloqueia com DRIVER_NOT_APPROVED antes do gate municipal', async () => {
     prismaMock.drivers.findUnique.mockResolvedValue({
+      status: 'pending',
+    });
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/availability')
+      .send({ availability: 'online' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('DRIVER_NOT_APPROVED');
+    expect(res.body.message).toBe('Seu cadastro ainda precisa ser aprovado pela KAVIAR antes de ficar online.');
+    expect(canDriverOperateInMunicipalityMock).not.toHaveBeenCalled();
+    expect(prismaMock.driver_status.upsert).not.toHaveBeenCalled();
+  });
+
+  it('bloqueia ficar online quando cidade/UF não podem ser resolvidas (após aprovação KAVIAR)', async () => {
+    prismaMock.drivers.findUnique.mockResolvedValue({
+      status: 'approved',
       vehicle_type: 'CAR',
       neighborhoods: null,
       driver_location: null,
@@ -101,15 +118,18 @@ describe('drivers-v2 municipal gate', () => {
     expect(prismaMock.driver_status.upsert).not.toHaveBeenCalled();
   });
 
-  it('cidade resolvida sem regra municipal continua permitindo ficar online', async () => {
-    prismaMock.drivers.findUnique.mockResolvedValue({
-      vehicle_type: 'CAR',
-      neighborhoods: {
-        city: 'Cidade Livre',
-        territory: { uf: 'SP' },
-      },
-      driver_location: null,
-    });
+  it('D) aprovado KAVIAR + cidade sem regra municipal permite ficar online', async () => {
+    prismaMock.drivers.findUnique
+      .mockResolvedValueOnce({ status: 'approved' })
+      .mockResolvedValueOnce({
+        status: 'approved',
+        vehicle_type: 'CAR',
+        neighborhoods: {
+          city: 'Cidade Livre',
+          territory: { uf: 'SP' },
+        },
+        driver_location: null,
+      });
 
     canDriverOperateInMunicipalityMock.mockResolvedValue({
       allowed: true,
@@ -126,15 +146,18 @@ describe('drivers-v2 municipal gate', () => {
     expect(prismaMock.driver_status.upsert).toHaveBeenCalled();
   });
 
-  it('cidade regulada continua bloqueando quando autorização municipal não está aprovada', async () => {
-    prismaMock.drivers.findUnique.mockResolvedValue({
-      vehicle_type: 'CAR',
-      neighborhoods: {
-        city: 'Santa Rita do Passa Quatro',
-        territory: { uf: 'SP' },
-      },
-      driver_location: null,
-    });
+  it('B) aprovado KAVIAR + cidade regulada sem autorização bloqueia com MUNICIPAL_AUTH_REQUIRED', async () => {
+    prismaMock.drivers.findUnique
+      .mockResolvedValueOnce({ status: 'approved' })
+      .mockResolvedValueOnce({
+        status: 'approved',
+        vehicle_type: 'CAR',
+        neighborhoods: {
+          city: 'Santa Rita do Passa Quatro',
+          territory: { uf: 'SP' },
+        },
+        driver_location: null,
+      });
 
     canDriverOperateInMunicipalityMock.mockResolvedValue({
       allowed: false,
@@ -148,14 +171,44 @@ describe('drivers-v2 municipal gate', () => {
 
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('MUNICIPAL_AUTH_REQUIRED');
+    expect(res.body.error).not.toBe('MUNICIPAL_LOCATION_REQUIRED');
+    expect(res.body.error).not.toBe('DRIVER_NOT_APPROVED');
     expect(res.body.city).toBe('Santa Rita do Passa Quatro');
     expect(res.body.state).toBe('SP');
+  });
+
+  it('C) aprovado KAVIAR + cidade regulada autorizada libera online', async () => {
+    prismaMock.drivers.findUnique
+      .mockResolvedValueOnce({ status: 'approved' })
+      .mockResolvedValueOnce({
+        status: 'approved',
+        vehicle_type: 'CAR',
+        neighborhoods: {
+          city: 'Santa Rita do Passa Quatro',
+          territory: { uf: 'SP' },
+        },
+        driver_location: null,
+      });
+
+    canDriverOperateInMunicipalityMock.mockResolvedValue({
+      allowed: true,
+      reason: null,
+      municipal: { hasRegulation: true, municipalStatus: 'APPROVED_BY_CITY_HALL' },
+    });
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/availability')
+      .send({ availability: 'online' });
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.driver_status.upsert).toHaveBeenCalled();
   });
 
   it('com gate desligado não bloqueia online mesmo sem cidade/UF resolvidas', async () => {
     municipalGateEnabled.value = false;
 
     prismaMock.drivers.findUnique.mockResolvedValue({
+      status: 'approved',
       vehicle_type: 'CAR',
       neighborhoods: null,
       driver_location: null,

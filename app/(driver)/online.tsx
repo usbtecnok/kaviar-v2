@@ -492,9 +492,24 @@ export default function DriverOnline() {
       await startLocationTracking();
       startPolling();
     } catch (e: any) {
+      if (e?.response?.status === 403 && e?.response?.data?.error === 'DRIVER_NOT_APPROVED') {
+        Alert.alert(
+          'Cadastro em análise',
+          'Seu cadastro ainda precisa ser aprovado pela KAVIAR antes de você ficar online.',
+          [
+            {
+              text: 'Ver pendências',
+              onPress: () => router.push('/(driver)/pending-approval'),
+            },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        return;
+      }
+
       if (e?.response?.status === 403 && e?.response?.data?.error === 'MUNICIPAL_LOCATION_REQUIRED') {
         Alert.alert(
-          'Localização necessária',
+          'Não conseguimos confirmar sua cidade',
           'Não foi possível confirmar sua cidade para validar a autorização municipal. Atualize sua localização ou procure o suporte KAVIAR.'
         );
         return;
@@ -502,7 +517,7 @@ export default function DriverOnline() {
 
       if (e?.response?.status === 403 && e?.response?.data?.error === 'MUNICIPAL_AUTH_REQUIRED') {
         Alert.alert(
-          'Autorização municipal pendente',
+          'Regularização municipal necessária',
           'Sua cidade exige autorização municipal. Aguarde a aprovação da Prefeitura para operar.',
           [
             {
