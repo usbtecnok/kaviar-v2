@@ -7,6 +7,12 @@ interface SendEmailParams {
   text: string;
   from: string;
   replyTo?: string[];
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType: string;
+    size: number;
+  }>;
 }
 
 interface CloudflareSMTPConfig {
@@ -44,6 +50,11 @@ export class CloudflareSMTPProvider {
       html: params.html,
       text: params.text,
       replyTo: params.replyTo?.length ? params.replyTo.join(',') : undefined,
+      attachments: params.attachments?.map((attachment) => ({
+        filename: attachment.filename,
+        content: attachment.content,
+        contentType: attachment.contentType,
+      })),
     });
   }
 }

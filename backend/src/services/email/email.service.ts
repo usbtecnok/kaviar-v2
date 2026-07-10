@@ -8,6 +8,12 @@ interface EmailParams {
   text: string;
   from?: string;
   replyTo?: string[];
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType: string;
+    size: number;
+  }>;
 }
 
 interface EmailConfig {
@@ -165,10 +171,20 @@ class EmailService {
     const maskedEmail = this.maskEmail(params.to);
     const fromResolved = this.resolveFromEmail(params.from);
     const replyToResolved = this.resolveReplyTo(params.replyTo);
+    const hasAttachments = !!params.attachments?.length;
 
     if (this.config.provider === 'disabled') {
       console.log(`[EMAIL_DISABLED] provider=disabled to=${maskedEmail} subject="${params.subject}"`);
       return { ok: true, provider: 'disabled', from: fromResolved };
+    }
+
+    if (this.config.provider !== 'cloudflare' && hasAttachments) {
+      return {
+        ok: false,
+        provider: this.config.provider,
+        from: fromResolved,
+        error: 'Anexos disponiveis apenas com provider cloudflare SMTP.',
+      };
     }
 
     try {

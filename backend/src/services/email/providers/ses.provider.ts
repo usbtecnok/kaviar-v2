@@ -7,6 +7,12 @@ interface SendEmailParams {
   text: string;
   from?: string;
   replyTo?: string[];
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType: string;
+    size: number;
+  }>;
 }
 
 export class SESProvider {

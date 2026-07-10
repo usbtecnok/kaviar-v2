@@ -1,4 +1,6 @@
-import { Router, Request, Response } from 'express';
+import path from 'path';
+import multer from 'multer';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import { emailService } from '../services/email/email.service';
@@ -6,6 +8,58 @@ import { buildKaviarTestEmailTemplate, buildOperationalNoticeTemplate } from '..
 import { audit, auditCtx } from '../utils/audit';
 
 const router = Router();
+
+const MAX_ATTACHMENTS = 3;
+const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+]);
+const ALLOWED_ATTACHMENT_EXTENSIONS_BY_MIME: Record<string, string[]> = {
+  'application/pdf': ['.pdf'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+};
+const BLOCKED_EXTENSIONS = new Set([
+  '.exe',
+  '.zip',
+  '.js',
+  '.html',
+  '.htm',
+  '.docm',
+  '.bat',
+  '.cmd',
+  '.com',
+  '.msi',
+  '.scr',
+  '.ps1',
+  '.vbs',
+  '.jar',
+  '.sh',
+]);
+
+const uploadOfficialAttachments = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_ATTACHMENT_SIZE_BYTES,
+    files: MAX_ATTACHMENTS,
+  },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (BLOCKED_EXTENSIONS.has(ext)) {
+      cb(new Error(`Tipo de arquivo bloqueado: ${ext}`));
+      return;
+    }
+
+    if (!ALLOWED_ATTACHMENT_MIME_TYPES.has(file.mimetype)) {
+      cb(new Error('Tipo de arquivo nao permitido. Use apenas PDF, JPG ou PNG.'));
+      return;
+    }
+
+    cb(null, true);
+  },
+});
 
 const sendTestEmailSchema = z.object({
   to: z.string().email('Email de destino invalido'),
@@ -73,6 +127,98 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function sanitizeAttachmentFilename(originalName: string, mimeType: string, index: number): string {
+  const baseName = path.basename(originalName || `anexo-${index + 1}`);
+  const originalExt = path.extname(baseName).toLowerCase();
+  const allowedExts = ALLOWED_ATTACHMENT_EXTENSIONS_BY_MIME[mimeType] || [];
+  const selectedExt = allowedExts.includes(originalExt) ? originalExt : (allowedExts[0] || '');
+
+  const rawWithoutExt = originalExt ? baseName.slice(0, -originalExt.length) : baseName;
+  const asciiOnly = rawWithoutExt
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9_\- ]+/g, ' ')
+    .replace(/\s+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  const safeBase = (asciiOnly || `anexo-${index + 1}`).slice(0, 80);
+  return `${safeBase}${selectedExt}`;
+}
+
+function mapAttachments(files: Express.Multer.File[]) {
+  return files.map((file, index) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const allowedExts = ALLOWED_ATTACHMENT_EXTENSIONS_BY_MIME[file.mimetype] || [];
+
+    if (BLOCKED_EXTENSIONS.has(ext)) {
+      throw new Error(`Tipo de arquivo bloqueado: ${ext}`);
+    }
+
+    if (!ALLOWED_ATTACHMENT_MIME_TYPES.has(file.mimetype)) {
+      throw new Error('Tipo de arquivo nao permitido. Use apenas PDF, JPG ou PNG.');
+    }
+
+    if (!allowedExts.includes(ext)) {
+      throw new Error(`Extensao nao permitida para ${file.mimetype}.`);
+    }
+
+    return {
+      filename: sanitizeAttachmentFilename(file.originalname, file.mimetype, index),
+      content: file.buffer,
+      contentType: file.mimetype,
+      size: file.size,
+    };
+  });
+}
+
+function parseOfficialRequestBody(req: Request) {
+  const body = req.body || {};
+  return sendOfficialEmailSchema.parse({
+    to: body.to,
+    from: body.from,
+    subject: body.subject,
+    message: body.message,
+  });
+}
+
+function handleOfficialAttachmentsUpload(req: Request, res: Response, next: NextFunction): void {
+  uploadOfficialAttachments.array('attachments', MAX_ATTACHMENTS)(req, res, (err: any) => {
+    if (!err) {
+      next();
+      return;
+    }
+
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        res.status(400).json({
+          success: false,
+          error: 'Cada anexo pode ter no maximo 5 MB.',
+        });
+        return;
+      }
+
+      if (err.code === 'LIMIT_FILE_COUNT') {
+        res.status(400).json({
+          success: false,
+          error: 'Voce pode enviar no maximo 3 anexos por email.',
+        });
+        return;
+      }
+
+      res.status(400).json({
+        success: false,
+        error: 'Falha ao processar anexos. Revise os arquivos e tente novamente.',
+      });
+      return;
+    }
+
+    res.status(400).json({
+      success: false,
+      error: err?.message || 'Arquivo invalido. Use somente PDF, JPG ou PNG.',
+    });
+  });
+}
+
 router.use(authenticateAdmin);
 router.use(requireSuperAdmin);
 
@@ -137,12 +283,27 @@ router.post('/test', async (req: Request, res: Response) => {
 });
 
 // POST /api/admin/email/send
-router.post('/send', async (req: Request, res: Response) => {
+router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: Response) => {
   const ctx = auditCtx(req as any);
   const auditEntityId = `admin-email-${Date.now()}`;
 
   try {
-    const parsed = sendOfficialEmailSchema.parse(req.body);
+    const parsed = parseOfficialRequestBody(req);
+    const files = ((req.files as Express.Multer.File[]) || []);
+
+    if (files.length > MAX_ATTACHMENTS) {
+      return res.status(400).json({
+        success: false,
+        error: 'Voce pode enviar no maximo 3 anexos por email.',
+      });
+    }
+
+    const attachments = mapAttachments(files);
+    const attachmentMetadata = attachments.map((attachment) => ({
+      filename: attachment.filename,
+      size: attachment.size,
+      contentType: attachment.contentType,
+    }));
 
     const normalizedTo = parsed.to.trim().toLowerCase();
     const normalizedSubject = parsed.subject.trim();
@@ -156,6 +317,7 @@ router.post('/send', async (req: Request, res: Response) => {
       text: normalizedMessage,
       html,
       from: parsed.from,
+      attachments,
     });
 
     if (!result.ok) {
@@ -170,6 +332,7 @@ router.post('/send', async (req: Request, res: Response) => {
           to: normalizedTo,
           subject: normalizedSubject,
           provider: result.provider,
+          attachments: attachmentMetadata,
           status: 'error',
           error: result.error || 'send_failed',
         },
@@ -185,6 +348,7 @@ router.post('/send', async (req: Request, res: Response) => {
           from: result.from,
           to: normalizedTo,
           subject: normalizedSubject,
+          attachments: attachmentMetadata,
         },
       });
     }
@@ -200,6 +364,7 @@ router.post('/send', async (req: Request, res: Response) => {
         to: normalizedTo,
         subject: normalizedSubject,
         provider: result.provider,
+        attachments: attachmentMetadata,
         status: 'success',
       },
       ipAddress: ctx.ip,
@@ -215,6 +380,7 @@ router.post('/send', async (req: Request, res: Response) => {
         from: result.from,
         to: normalizedTo,
         subject: normalizedSubject,
+        attachments: attachmentMetadata,
       },
     });
   } catch (error) {
