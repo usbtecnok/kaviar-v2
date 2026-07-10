@@ -14,6 +14,10 @@ const sendTestEmailSchema = z.object({
     'KAVIAR <contato@kaviar.com.br>',
     'KAVIAR <suporte@kaviar.com.br>',
     'KAVIAR <financeiro@kaviar.com.br>',
+    'no-reply@kaviar.com.br',
+    'contato@kaviar.com.br',
+    'suporte@kaviar.com.br',
+    'financeiro@kaviar.com.br',
   ]).optional(),
   title: z.string().min(3).max(120).optional(),
   message: z.string().min(3).max(4000).optional(),
@@ -67,7 +71,7 @@ router.post('/test', async (req: Request, res: Response) => {
         })
       : buildKaviarTestEmailTemplate();
 
-    await emailService.sendMail({
+    const result = await emailService.sendMail({
       to: parsed.to,
       subject: template.subject,
       html: template.html,
@@ -75,13 +79,28 @@ router.post('/test', async (req: Request, res: Response) => {
       from: parsed.from || 'KAVIAR <no-reply@kaviar.com.br>',
     });
 
+    if (!result.ok) {
+      return res.status(502).json({
+        success: false,
+        error: 'Falha no envio SMTP. Verifique configuracao do provider e conectividade.',
+        data: {
+          provider: result.provider,
+          from: result.from,
+        },
+      });
+    }
+
+    const runtime = emailService.getRuntimeInfo();
+
     return res.json({
       success: true,
       message: 'Solicitacao de envio processada.',
       data: {
         to: parsed.to,
         template: parsed.template,
-        from: parsed.from || 'KAVIAR <no-reply@kaviar.com.br>',
+        from: result.from,
+        provider: result.provider,
+        providerDefault: runtime.provider,
       },
     });
   } catch (error) {

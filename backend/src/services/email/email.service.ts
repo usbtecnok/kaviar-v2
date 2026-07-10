@@ -1,3 +1,4 @@
+import { CloudflareSMTPProvider } from './providers/cloudflare-smtp.provider';
 import { SESProvider } from './providers/ses.provider';
 
 interface EmailParams {
@@ -10,15 +11,31 @@ interface EmailParams {
 }
 
 interface EmailConfig {
-  provider: 'ses' | 'disabled';
+  provider: 'cloudflare' | 'ses' | 'disabled';
   region?: string;
-  fromEmail?: string;
+  fromEmail: string;
+  replyTo: string[];
   allowedFromEmails: Set<string>;
+  cloudflareSMTP: {
+    host: string;
+    port: number;
+    secure: boolean;
+    user: string;
+    token?: string;
+  };
+}
+
+export interface EmailSendResult {
+  ok: boolean;
+  provider: 'cloudflare' | 'ses' | 'disabled';
+  from: string;
+  error?: string;
 }
 
 class EmailService {
   private config: EmailConfig;
   private sesProvider?: SESProvider;
+  private cloudflareProvider?: CloudflareSMTPProvider;
 
   private readonly officialAliases = [
     'contato@kaviar.com.br',
@@ -28,26 +45,74 @@ class EmailService {
   ];
 
   constructor() {
-    const fromEmail = process.env.MAIL_FROM_EMAIL || process.env.SES_FROM_EMAIL || 'KAVIAR <no-reply@kaviar.com.br>';
-    const extraAllowedFrom = (process.env.EMAIL_ALLOWED_FROM || '')
+    const fromEmail = process.env.EMAIL_FROM_DEFAULT || 'KAVIAR <no-reply@kaviar.com.br>';
+
+    const configuredAllowedFrom = (process.env.EMAIL_ALLOWED_FROM || '')
+      .split(',')
+      .map((value) => this.extractEmailAddress(value))
+      .filter((value): value is string => !!value && this.officialAliases.includes(value));
+
+    const allowedFromValues = configuredAllowedFrom.length ? configuredAllowedFrom : [...this.officialAliases];
+    if (!allowedFromValues.includes('no-reply@kaviar.com.br')) {
+      allowedFromValues.push('no-reply@kaviar.com.br');
+    }
+    const allowedFromEmails = new Set(allowedFromValues);
+
+    const replyTo = (process.env.EMAIL_REPLY_TO || 'contato@kaviar.com.br')
       .split(',')
       .map((value) => this.extractEmailAddress(value))
       .filter(Boolean) as string[];
 
+    const providerEnv = (process.env.EMAIL_PROVIDER || 'cloudflare').toLowerCase();
+    const provider = providerEnv === 'ses' || providerEnv === 'disabled' ? providerEnv : 'cloudflare';
+
+    const requestedFromAddress = this.extractEmailAddress(fromEmail);
+    const defaultFromAddress = requestedFromAddress && allowedFromEmails.has(requestedFromAddress)
+      ? requestedFromAddress
+      : this.officialAliases[3];
+    const resolvedDefaultFrom = `KAVIAR <${defaultFromAddress}>`;
+
     this.config = {
-      provider: (process.env.EMAIL_PROVIDER as 'ses' | 'disabled') || 'disabled',
+      provider,
       region: process.env.AWS_REGION || 'us-east-2',
-      fromEmail,
-      allowedFromEmails: new Set([
-        ...this.officialAliases,
-        ...extraAllowedFrom,
-        this.extractEmailAddress(fromEmail),
-      ].filter(Boolean) as string[]),
+      fromEmail: resolvedDefaultFrom,
+      replyTo: replyTo.length ? replyTo : ['contato@kaviar.com.br'],
+      allowedFromEmails,
+      cloudflareSMTP: {
+        host: process.env.CLOUDFLARE_SMTP_HOST || 'smtp.mx.cloudflare.net',
+        port: Number(process.env.CLOUDFLARE_SMTP_PORT || 465),
+        secure: this.parseBoolean(process.env.CLOUDFLARE_SMTP_SECURE, true),
+        user: process.env.CLOUDFLARE_SMTP_USER || 'api_token',
+        token: process.env.CLOUDFLARE_SMTP_TOKEN,
+      },
     };
+
+    if (this.config.provider === 'cloudflare') {
+      if (this.config.cloudflareSMTP.token) {
+        this.cloudflareProvider = new CloudflareSMTPProvider({
+          host: this.config.cloudflareSMTP.host,
+          port: this.config.cloudflareSMTP.port,
+          secure: this.config.cloudflareSMTP.secure,
+          user: this.config.cloudflareSMTP.user,
+          token: this.config.cloudflareSMTP.token,
+        });
+      } else {
+        console.warn('[EMAIL_CONFIG] provider=cloudflare sem CLOUDFLARE_SMTP_TOKEN. Envio sera marcado como falha ate configurar o secret.');
+      }
+    }
 
     if (this.config.provider === 'ses') {
       this.sesProvider = new SESProvider(this.config.region!, this.config.fromEmail!);
     }
+  }
+
+  private parseBoolean(value: string | undefined, fallback: boolean): boolean {
+    if (value === undefined) return fallback;
+    return ['true', '1', 'yes', 'y', 'on'].includes(value.trim().toLowerCase());
+  }
+
+  private isKaviarDomain(email: string): boolean {
+    return email.toLowerCase().endsWith('@kaviar.com.br');
   }
 
   private extractEmailAddress(input?: string): string | null {
@@ -62,15 +127,23 @@ class EmailService {
   }
 
   private resolveFromEmail(candidate?: string): string {
-    if (!candidate) return this.config.fromEmail!;
+    if (!candidate) return this.config.fromEmail;
 
     const address = this.extractEmailAddress(candidate);
-    if (!address || !this.config.allowedFromEmails.has(address)) {
+    if (!address || !this.isKaviarDomain(address) || !this.config.allowedFromEmails.has(address)) {
       console.warn('[EMAIL_FROM_FALLBACK] Invalid or non-allowed from address requested. Falling back to default sender.');
-      return this.config.fromEmail!;
+      return this.config.fromEmail;
     }
 
     return candidate;
+  }
+
+  private resolveReplyTo(candidate?: string[]): string[] {
+    const values = (candidate && candidate.length ? candidate : this.config.replyTo)
+      .map((value) => this.extractEmailAddress(value))
+      .filter((value): value is string => !!value && this.isKaviarDomain(value));
+
+    return values.length ? values : this.config.replyTo;
   }
 
   private maskEmail(email: string): string {
@@ -80,23 +153,53 @@ class EmailService {
     return `${masked}@${domain}`;
   }
 
-  async sendMail(params: EmailParams): Promise<void> {
+  getRuntimeInfo() {
+    return {
+      provider: this.config.provider,
+      fromDefault: this.config.fromEmail,
+      replyToDefault: this.config.replyTo,
+    };
+  }
+
+  async sendMail(params: EmailParams): Promise<EmailSendResult> {
     const maskedEmail = this.maskEmail(params.to);
+    const fromResolved = this.resolveFromEmail(params.from);
+    const replyToResolved = this.resolveReplyTo(params.replyTo);
 
     if (this.config.provider === 'disabled') {
-      console.log(`[EMAIL_DISABLED] to=${maskedEmail} subject="${params.subject}"`);
-      return;
+      console.log(`[EMAIL_DISABLED] provider=disabled to=${maskedEmail} subject="${params.subject}"`);
+      return { ok: true, provider: 'disabled', from: fromResolved };
     }
 
     try {
-      await this.sesProvider!.send({
-        ...params,
-        from: this.resolveFromEmail(params.from),
-      });
-      console.log(`[EMAIL_SENT] provider=ses to=${maskedEmail} subject="${params.subject}"`);
+      if (this.config.provider === 'cloudflare') {
+        if (!this.cloudflareProvider) {
+          return {
+            ok: false,
+            provider: 'cloudflare',
+            from: fromResolved,
+            error: 'Cloudflare SMTP nao configurado (token ausente).',
+          };
+        }
+        await this.cloudflareProvider!.send({
+          ...params,
+          from: fromResolved,
+          replyTo: replyToResolved,
+        });
+      } else {
+        await this.sesProvider!.send({
+          ...params,
+          from: fromResolved,
+          replyTo: replyToResolved,
+        });
+      }
+
+      console.log(`[EMAIL_SENT] provider=${this.config.provider} to=${maskedEmail} subject="${params.subject}"`);
+      return { ok: true, provider: this.config.provider, from: fromResolved };
     } catch (error) {
-      console.error(`[EMAIL_SEND_FAILED] provider=ses to=${maskedEmail} error=${(error as Error).message}`);
-      // Não propagar erro - fluxo continua
+      const message = (error as Error).message;
+      console.error(`[EMAIL_SEND_FAILED] provider=${this.config.provider} to=${maskedEmail} subject="${params.subject}" error=${message}`);
+      return { ok: false, provider: this.config.provider, from: fromResolved, error: message };
     }
   }
 }

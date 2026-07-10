@@ -6,7 +6,7 @@ export function buildKaviarTestEmailTemplate() {
     html: `
       <div style="font-family: Arial, Helvetica, sans-serif; color: #111; line-height: 1.5;">
         <h2 style="margin: 0 0 16px 0;">Teste de Email KAVIAR</h2>
-        <p>Este email confirma que o envio transacional via Amazon SES esta ativo.</p>
+        <p>Este email confirma que o envio transacional via Cloudflare SMTP esta ativo.</p>
         <p><strong>Status:</strong> operacional</p>
         <p>Se voce recebeu esta mensagem, a configuracao principal esta funcionando.</p>
       </div>
@@ -14,7 +14,7 @@ export function buildKaviarTestEmailTemplate() {
     text: [
       'Teste de Email KAVIAR',
       '',
-      'Este email confirma que o envio transacional via Amazon SES esta ativo.',
+      'Este email confirma que o envio transacional via Cloudflare SMTP esta ativo.',
       'Status: operacional',
       '',
       'Se voce recebeu esta mensagem, a configuracao principal esta funcionando.',

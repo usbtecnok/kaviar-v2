@@ -1,0 +1,49 @@
+import nodemailer from 'nodemailer';
+
+interface SendEmailParams {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  from: string;
+  replyTo?: string[];
+}
+
+interface CloudflareSMTPConfig {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  token: string;
+}
+
+export class CloudflareSMTPProvider {
+  private readonly transporter;
+
+  constructor(config: CloudflareSMTPConfig) {
+    if (!config.token) {
+      throw new Error('CLOUDFLARE_SMTP_TOKEN nao configurado para envio SMTP.');
+    }
+
+    this.transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.token,
+      },
+    });
+  }
+
+  async send(params: SendEmailParams): Promise<void> {
+    await this.transporter.sendMail({
+      from: params.from,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+      text: params.text,
+      replyTo: params.replyTo?.length ? params.replyTo.join(',') : undefined,
+    });
+  }
+}

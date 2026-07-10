@@ -1,7 +1,7 @@
-# Email Transacional KAVIAR (Amazon SES + Cloudflare)
+# Email Transacional KAVIAR (Cloudflare SMTP + Cloudflare Email Routing)
 
 ## Objetivo
-Configurar envio transacional oficial do dominio kaviar.com.br via Amazon SES (regiao us-east-2), com DNS no Cloudflare (SPF, DKIM, DMARC), aliases oficiais e opcional de recebimento por Cloudflare Email Routing.
+Configurar envio transacional oficial do dominio kaviar.com.br via Cloudflare Email Sending (SMTP) e manter recebimento via Cloudflare Email Routing, sem dependencia operacional de Amazon SES no caminho padrao.
 
 ## Enderecos oficiais
 - contato@kaviar.com.br
@@ -9,22 +9,22 @@ Configurar envio transacional oficial do dominio kaviar.com.br via Amazon SES (r
 - suporte@kaviar.com.br
 - financeiro@kaviar.com.br
 
-## Estado atual (2026-07-06)
-- SES identity: verified (kaviar.com.br)
-- DKIM: 3 registros existentes e validos
-- SPF: already_ok, contendo include:amazonses.com
-- DMARC: already_ok em _dmarc.kaviar.com.br
-- Email Routing: pendente manual por erro de autenticacao/permissao
-- Teste real de envio SES: sucesso (entregue no Gmail)
-- MessageId de validacao: 010f019f3794fd25-ae8fa357-7ea4-4bde-9de0-c6a5038193de-000000
+## Estado atual
+- Provider padrao de envio no backend: Cloudflare SMTP.
+- Email Routing do dominio: mantido no Cloudflare (nao remover DNS de roteamento).
+- SES: legado opcional, nao deve ser caminho padrao de producao.
 
 Nota operacional:
 - Neste momento, nao tentar nova automacao de Email Routing.
 - Manter Email Routing como pendencia manual ate ajuste de permissao na API da Cloudflare.
 
-## Envio (SES)
-- Provedor: Amazon SES
-- Regiao padrao: us-east-2
+## Envio (Cloudflare SMTP)
+- Provedor: Cloudflare Email Sending via SMTP
+- Host: smtp.mx.cloudflare.net
+- Porta: 465
+- Secure: true
+- Auth user: api_token
+- Auth pass: CLOUDFLARE_SMTP_TOKEN
 - Remetente padrao backend: KAVIAR <no-reply@kaviar.com.br>
 - Aliases permitidos para remetente no backend:
   - KAVIAR <contato@kaviar.com.br>
@@ -32,32 +32,21 @@ Nota operacional:
   - KAVIAR <financeiro@kaviar.com.br>
   - KAVIAR <no-reply@kaviar.com.br>
 
-## Variaveis de ambiente esperadas
-- AWS_REGION=us-east-2
-- CLOUDFLARE_API_TOKEN
-- CLOUDFLARE_ZONE_ID
-- CLOUDFLARE_ACCOUNT_ID
-- FORWARD_TO_EMAIL
-- NO_REPLY_ROUTE_MODE=forward
+## Variaveis de ambiente esperadas (backend)
+- EMAIL_PROVIDER=cloudflare
+- EMAIL_FROM_DEFAULT="KAVIAR <no-reply@kaviar.com.br>"
+- EMAIL_REPLY_TO=contato@kaviar.com.br
+- CLOUDFLARE_SMTP_HOST=smtp.mx.cloudflare.net
+- CLOUDFLARE_SMTP_PORT=465
+- CLOUDFLARE_SMTP_SECURE=true
+- CLOUDFLARE_SMTP_USER=api_token
+- CLOUDFLARE_SMTP_TOKEN=<token_cloudflare_email_sending>
+- EMAIL_ALLOWED_FROM=contato@kaviar.com.br,suporte@kaviar.com.br,financeiro@kaviar.com.br,no-reply@kaviar.com.br
+- EMAIL_TEST_ALLOWED_TO=contato@kaviar.com.br
 
-## Script de setup automatizado
-Arquivo:
-- scripts/setup-kaviar-email.mjs
-
-### O que o script faz
-1. Valida variaveis obrigatorias.
-2. Consulta identidade SES do dominio kaviar.com.br na regiao configurada.
-3. Cria identidade do dominio se nao existir.
-4. Le tokens DKIM da identidade e garante CNAMEs DKIM na Cloudflare.
-5. Garante SPF sem duplicar registro:
-   - se nao existir SPF, cria `v=spf1 include:amazonses.com ~all`.
-   - se existir 1 SPF, mescla `include:amazonses.com` sem perder mecanismos atuais.
-   - se existirem multiplos SPF, marca pendencia manual.
-6. Garante DMARC inicial em monitoramento:
-   - `v=DMARC1; p=none; rua=mailto:contato@kaviar.com.br; adkim=s; aspf=s`
-7. Tenta configurar Cloudflare Email Routing (habilitar, destino e regras).
-8. Gera relatorio em:
-   - artifacts/email-ses-cloudflare-report.json
+## DNS e Email Routing
+- Nao remover regras de Cloudflare Email Routing.
+- Recebimento continua no Cloudflare independentemente do provider SMTP de envio.
 
 ### Execucao
 ```bash
@@ -75,14 +64,10 @@ node scripts/setup-kaviar-email.mjs --dry-run
 Arquivo principal:
 - backend/src/services/email/email.service.ts
 
-Variaveis backend relevantes:
-- EMAIL_PROVIDER=ses
-- AWS_REGION=us-east-2
-- MAIL_FROM_EMAIL="KAVIAR <no-reply@kaviar.com.br>"
-- SES_FROM_EMAIL="KAVIAR <no-reply@kaviar.com.br>" (compatibilidade)
-- EMAIL_ALLOWED_FROM=contato@kaviar.com.br,suporte@kaviar.com.br,financeiro@kaviar.com.br,no-reply@kaviar.com.br
-- EMAIL_TEST_ALLOWED_TO=contato@kaviar.com.br,aparecido.goes@gmail.com
-- FORWARD_TO_EMAIL=destino-operacional@dominio.com (fallback quando EMAIL_TEST_ALLOWED_TO nao estiver definido)
+Comportamento:
+- Quando EMAIL_PROVIDER=cloudflare, usa Cloudflare SMTP.
+- Quando EMAIL_PROVIDER nao estiver definido, default = cloudflare.
+- SES pode permanecer como legado isolado (EMAIL_PROVIDER=ses), mas nao como padrao de producao.
 
 ## Endpoint protegido para teste de envio
 Rota:
@@ -118,44 +103,43 @@ Template operacional:
 }
 ```
 
-## Como validar SES
-1. Verificar identidade:
-```bash
-aws sesv2 get-email-identity --email-identity kaviar.com.br --region us-east-2
-```
-2. Confirmar no resultado:
-- VerifiedForSendingStatus=true (ou pending enquanto DNS propaga)
-- DkimAttributes.Status=SUCCESS (apos propagacao)
-
-## Como pedir saida do SES Sandbox
-1. Abrir console SES em us-east-2.
-2. Account dashboard.
-3. Request production access.
-4. Informar uso transacional (reset de senha, avisos operacionais), volume esperado e processo de tratamento de bounce/complaint.
-
-## Como testar envio
-1. Garantir variaveis de email no backend.
+## Como validar Cloudflare SMTP
+1. Garantir variaveis SMTP configuradas no backend.
 2. Subir backend.
-3. Chamar POST /api/admin/email/test com token de SUPER_ADMIN.
-4. Verificar logs do backend e caixa de destino.
+3. Chamar POST /api/admin/email/test com token SUPER_ADMIN e destinatario permitido.
+4. Confirmar retorno com provider=cloudflare e from efetivo.
+5. Conferir logs sem exposicao de token.
 
-## Como testar recebimento (Email Routing)
-Status atual: pendente manual.
+## Observacao de seguranca
+- Nunca registrar CLOUDFLARE_SMTP_TOKEN em logs.
+- Nunca commitar token em arquivos versionados.
 
-1. Definir FORWARD_TO_EMAIL e NO_REPLY_ROUTE_MODE.
-2. Executar script de setup.
-3. Se automacao de routing falhar por permissao, seguir pendencias do relatorio.
-4. Enviar email para:
-   - contato@kaviar.com.br
-   - suporte@kaviar.com.br
-   - financeiro@kaviar.com.br
-   - no-reply@kaviar.com.br (forward ou drop conforme modo)
+## Caminho de configuracao em producao (AWS ECS)
+- As variaveis do backend ficam na task definition do servico ECS (container kaviar-backend).
+- Fluxo operacional: describe-task-definition -> editar environment/secrets -> register-task-definition -> update-service --force-new-deployment.
+- Referencia de script de atualizacao de env na task definition: scripts/deploy/deploy-asaas-production.sh (mesmo padrao de atualizacao via jq).
 
-## Cuidados SPF/DKIM/DMARC
-- Nunca manter dois registros SPF `v=spf1` no mesmo host.
-- DKIM deve usar CNAME (proxied=false) para os 3 seletores do SES.
-- DMARC inicial em `p=none` ate estabilizar monitoramento.
-- Depois de estabilizar, evoluir gradualmente para `p=quarantine` e `p=reject`.
+## Variaveis para adicionar/remover no ECS (env do backend)
+Adicionar/garantir:
+- EMAIL_PROVIDER=cloudflare
+- EMAIL_FROM_DEFAULT=KAVIAR <no-reply@kaviar.com.br>
+- EMAIL_REPLY_TO=contato@kaviar.com.br
+- CLOUDFLARE_SMTP_HOST=smtp.mx.cloudflare.net
+- CLOUDFLARE_SMTP_PORT=465
+- CLOUDFLARE_SMTP_SECURE=true
+- CLOUDFLARE_SMTP_USER=api_token
+- CLOUDFLARE_SMTP_TOKEN=<secret em SSM/Secrets Manager>
 
-## IAM recomendado no ECS
-Usar IAM Role da task (sem chaves estaticas) com permissao minima para envio SES da identidade do dominio em us-east-2.
+Remover como padrao operacional:
+- EMAIL_PROVIDER=ses
+- Dependencia de SES_FROM_EMAIL para fluxo principal
+
+Podem ser removidas/ignoradas para o fluxo de envio de email (se nao usadas por outro servico):
+- SES_FROM_EMAIL
+- SES_REGION
+- AWS_SES_REGION
+- AWS_ACCESS_KEY_ID (somente para email)
+- AWS_SECRET_ACCESS_KEY (somente para email)
+
+Observacao:
+- AWS_REGION pode continuar necessario para S3/SNS e outros servicos AWS do backend.
