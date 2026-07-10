@@ -4,6 +4,15 @@
 
 Organizar o pacote documental para protocolo/confirmacao de credenciamento da KAVIAR como plataforma no municipio do Rio de Janeiro.
 
+## Representacao legal da KAVIAR
+
+O credenciamento institucional da plataforma no municipio do Rio de Janeiro deve ser realizado pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA por meio de seu socio-administrador ou por procurador formalmente autorizado. Gestores territoriais nao devem ser tratados como representantes legais da empresa para fins de protocolo, assinatura, credenciamento, obrigacao fiscal ou envio institucional de dados, salvo se houver procuracao especifica.
+
+- O credenciamento da plataforma e unico para o municipio do Rio de Janeiro.
+- O credenciamento da plataforma nao deve ser repetido por cada gestor territorial.
+- O cadastro individual de motoristas e obrigacao separada do credenciamento institucional da plataforma.
+- A atuacao de gestores territoriais no CRM e operacional e nao societaria/juridica.
+
 ## Classificacao dos itens
 
 - [Confirmado] item citado em fonte oficial ou exigencia societaria padrao para protocolo.
@@ -15,8 +24,9 @@ Organizar o pacote documental para protocolo/confirmacao de credenciamento da KA
 - [Confirmado] Cartao CNPJ atualizado.
 - [Confirmado] Contrato social.
 - [Confirmado] Alteracoes contratuais consolidadas, se houver.
-- [Confirmado] Documento de identificacao do representante legal.
+- [Confirmado] Documento de identificacao do socio-administrador signatario.
 - [Pendente] Procuracao e documento do procurador, se aplicavel.
+- [Confirmado] Evidencia de poderes de representacao para assinatura perante Prefeitura/SMTR (contrato social, ato societario ou procuracao especifica).
 - [Pendente] Comprovante de endereco da empresa.
 - [Pendente] Inscricao municipal/alvara, se aplicavel ao rito exigido.
 

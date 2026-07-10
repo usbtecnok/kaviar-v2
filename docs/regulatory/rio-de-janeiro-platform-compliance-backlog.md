@@ -11,10 +11,20 @@ Registrar backlog de trabalho para compliance institucional da KAVIAR no municip
 - Nenhum bloqueio municipal em producao.
 - Nenhum deploy/OTA.
 
+## Representacao legal da KAVIAR
+
+O credenciamento institucional da plataforma no municipio do Rio de Janeiro deve ser realizado pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA por meio de seu socio-administrador ou por procurador formalmente autorizado. Gestores territoriais nao devem ser tratados como representantes legais da empresa para fins de protocolo, assinatura, credenciamento, obrigacao fiscal ou envio institucional de dados, salvo se houver procuracao especifica.
+
+- O credenciamento da plataforma e unico para o municipio do Rio de Janeiro.
+- O credenciamento da plataforma nao deve ser repetido por cada gestor territorial.
+- O cadastro individual de motoristas e obrigacao separada do credenciamento institucional da plataforma.
+- A atuacao de gestores territoriais no CRM e operacional e nao societaria/juridica.
+
 ## Prioridade P0 (obrigatorio antes de qualquer mudanca sistemica)
 
 - Confirmar canal oficial e rito de credenciamento da plataforma com SMTR.
 - Confirmar lista oficial de documentos exigidos para pessoa juridica.
+- Confirmar e documentar internamente o signatario legal (socio-administrador) ou procurador com poderes especificos.
 - Confirmar procedimento oficial de recolhimento da taxa de 1,5% (DARM).
 - Confirmar formato/canal/prazo do envio mensal de dados.
 - Obter numero de protocolo/processo e registrar rastreabilidade.

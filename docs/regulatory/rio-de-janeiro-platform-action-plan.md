@@ -10,6 +10,15 @@ Preparar a KAVIAR para protocolar e confirmar o credenciamento institucional com
 - Decisao operacional vigente: nao bloquear motoristas do Rio ainda.
 - Escopo desta frente: somente documentacao e preparacao institucional.
 
+## Representacao legal da KAVIAR
+
+O credenciamento institucional da plataforma no municipio do Rio de Janeiro deve ser realizado pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA por meio de seu socio-administrador ou por procurador formalmente autorizado. Gestores territoriais nao devem ser tratados como representantes legais da empresa para fins de protocolo, assinatura, credenciamento, obrigacao fiscal ou envio institucional de dados, salvo se houver procuracao especifica.
+
+- O credenciamento da plataforma e unico para o municipio do Rio de Janeiro.
+- O credenciamento da plataforma nao deve ser repetido por cada gestor territorial.
+- O cadastro individual de motoristas e obrigacao separada do credenciamento institucional da plataforma.
+- A atuacao de gestores territoriais no CRM e operacional e nao societaria/juridica.
+
 ## Fontes oficiais de referencia
 
 - https://prefeitura.rio/fazenda/prefeitura-publica-decreto-para-regulamentar-transporte-por-aplicativo/
@@ -70,6 +79,7 @@ Preparar a KAVIAR para protocolar e confirmar o credenciamento institucional com
 - Abrir protocolo no canal oficial indicado.
 - Registrar numero de processo/protocolo, data, orgao e anexos enviados.
 - Definir responsavel de acompanhamento semanal ate resposta conclusiva.
+- Garantir que signatario e socio-administrador da empresa ou procurador formalmente constituido.
 
 ## Etapa 4 - Rotina fiscal e de dados
 
