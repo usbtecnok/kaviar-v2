@@ -342,11 +342,36 @@ export default function EmailTestingPage() {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={3} maxWidth={860}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#F8FAFC', mb: 1 }}>
-            E-mails KAVIAR
+        <Box
+          sx={{
+            '& .admin-page-title': {
+              color: '#F8FAFC !important',
+              fontWeight: 800,
+            },
+            '& .admin-page-title:hover': {
+              color: '#F8FAFC !important',
+            },
+            '& .admin-page-title *': {
+              color: 'inherit !important',
+            },
+            '& .admin-page-subtitle': {
+              color: '#CBD5E1 !important',
+            },
+            '& .admin-page-subtitle:hover': {
+              color: '#CBD5E1 !important',
+            },
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            className="admin-page-title"
+            sx={{ fontWeight: 800, color: '#F8FAFC !important', mb: 1 }}
+            style={{ color: '#F8FAFC' }}
+          >
+            <span style={{ color: 'inherit' }}>E-mails KAVIAR</span>
           </Typography>
-          <Typography sx={{ color: '#CBD5E1', maxWidth: 720 }}>
+          <Typography className="admin-page-subtitle" sx={{ color: '#CBD5E1 !important', maxWidth: 720 }} style={{ color: '#CBD5E1' }}>
             Envio real de comunicacoes oficiais para destinatarios externos.
           </Typography>
         </Box>

@@ -220,11 +220,36 @@ export default function InstitutionalInboxPage() {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={2.5} maxWidth={1100}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#F8FAFC', mb: 0.5 }}>
-            Caixa de Entrada Institucional
+        <Box
+          sx={{
+            '& .admin-page-title': {
+              color: '#F8FAFC !important',
+              fontWeight: 800,
+            },
+            '& .admin-page-title:hover': {
+              color: '#F8FAFC !important',
+            },
+            '& .admin-page-title *': {
+              color: 'inherit !important',
+            },
+            '& .admin-page-subtitle': {
+              color: '#CBD5E1 !important',
+            },
+            '& .admin-page-subtitle:hover': {
+              color: '#CBD5E1 !important',
+            },
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            className="admin-page-title"
+            sx={{ fontWeight: 800, color: '#F8FAFC !important', mb: 0.5 }}
+            style={{ color: '#F8FAFC' }}
+          >
+            <span style={{ color: 'inherit' }}>Caixa de Entrada Institucional</span>
           </Typography>
-          <Typography sx={{ color: '#CBD5E1' }}>
+          <Typography className="admin-page-subtitle" sx={{ color: '#CBD5E1 !important' }} style={{ color: '#CBD5E1' }}>
             Visualizacao somente leitura de respostas recebidas pelos aliases oficiais da KAVIAR.
           </Typography>
         </Box>
