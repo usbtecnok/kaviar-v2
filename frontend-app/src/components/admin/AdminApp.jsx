@@ -79,6 +79,7 @@ import ManagerEmergencyAlerts from "../../pages/admin/ManagerEmergencyAlerts";
 import ManagerWomenCoverage from "../../pages/admin/ManagerWomenCoverage";
 import InvestorsPage from "../../pages/admin/InvestorsPage";
 import EmailTestingPage from "../../pages/admin/EmailTestingPage";
+import InstitutionalInboxPage from "../../pages/admin/InstitutionalInboxPage";
 import GroupsManagement from "../../pages/admin/GroupsManagement";
 import AdminFixedRoutes from "../../pages/admin/AdminFixedRoutes";
 import PetCentral from "../../pages/admin/PetCentral";
@@ -442,6 +443,7 @@ function AdminHome() {
               { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp' },
               ...(isSuperAdmin ? [
                 { Icon: Email, title: 'E-mails KAVIAR', desc: 'Testar envio pelos aliases oficiais', to: '/admin/email' },
+                { Icon: Email, title: 'Caixa de Entrada Institucional', desc: 'Respostas recebidas dos aliases oficiais', to: '/admin/inbox' },
               ] : []),
               ...(canAccessOperations ? [
                 { Icon: BarChart, title: 'Cockpit Operacional', desc: 'Acompanhe corridas, motoristas, territórios e histórico do dia em tempo real.', to: '/admin/operations', actionLabel: 'Abrir cockpit' },
@@ -689,6 +691,14 @@ export default function AdminApp() {
               <Container maxWidth="md" sx={{ mt: 2, mb: 4 }}>
                 <AdminHeader />
                 <EmailTestingPage />
+              </Container>
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/inbox" element={
+            <ProtectedAdminRoute requireSuperAdmin>
+              <Container maxWidth="lg" sx={{ mt: 2, mb: 4 }}>
+                <AdminHeader />
+                <InstitutionalInboxPage />
               </Container>
             </ProtectedAdminRoute>
           } />

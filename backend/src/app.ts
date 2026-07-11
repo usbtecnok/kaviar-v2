@@ -14,6 +14,8 @@ import { structuredLogger } from './middlewares/structured-logger';
 import { authRoutes } from './routes/auth';
 import { passwordResetRoutes } from './routes/password-reset';
 import adminEmailRoutes from './routes/admin-email';
+import inboundEmailRoutes from './routes/inbound-email';
+import adminInboundEmailsRoutes from './routes/admin-inbound-emails';
 import { phoneAuthRoutes } from './routes/phone-auth';
 import { adminRoutes } from './routes/admin';
 import complianceRoutes from './routes/compliance';
@@ -172,6 +174,14 @@ app.use((req, res, next) => {
 });
 
 // Body parsing middleware
+app.use('/api/inbound/email/cloudflare', express.json({ limit: '2mb' }));
+app.use('/api/inbound/email/cloudflare', (err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, error: 'Payload inbound excede o limite de 2 MB.' });
+  }
+  return next(err);
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -256,6 +266,8 @@ app.get('/api/health/ready', async (req, res) => {
 app.use('/api/admin/auth', authRoutes);
 app.use('/api/admin/auth', passwordResetRoutes);
 app.use('/api/admin/email', adminEmailRoutes);
+app.use('/api/inbound/email', inboundEmailRoutes);
+app.use('/api/admin/inbound-emails', adminInboundEmailsRoutes);
 
 // Investor invites (SUPER_ADMIN only, before investorView middleware)
 import investorInvitesRoutes from './routes/investor-invites-v2';

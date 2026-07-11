@@ -1,0 +1,10 @@
+name = "kaviar-email-inbound-worker"
+main = "src/index.js"
+compatibility_date = "2026-07-11"
+
+[vars]
+INBOUND_WEBHOOK_URL = "https://api.kaviar.com.br/api/inbound/email/cloudflare"
+GMAIL_FORWARD_TO = "seu-gmail-atual@gmail.com"
+
+# Definir como secret no Cloudflare (nao salvar valor real no repositório):
+# wrangler secret put INBOUND_EMAIL_WEBHOOK_SECRET
