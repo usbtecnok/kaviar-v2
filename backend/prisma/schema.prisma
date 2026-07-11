@@ -1424,6 +1424,34 @@ model email_send_logs {
   @@index([admin_id, created_at])
 }
 
+model inbound_email_messages {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  received_at          DateTime @default(now())
+  from_email           String   @db.VarChar(255)
+  from_name            String?  @db.VarChar(255)
+  to_email             String   @db.VarChar(255)
+  subject              String?  @db.VarChar(255)
+  text_body            String?
+  html_body            String?
+  normalized_body      String?
+  message_id           String?  @unique @db.VarChar(255)
+  in_reply_to          String?  @db.VarChar(255)
+  references_header    String?
+  provider             String   @default("CLOUDFLARE_EMAIL_WORKER") @db.VarChar(64)
+  status               String   @default("NEW") @db.VarChar(20)
+  has_attachments      Boolean  @default(false)
+  attachment_count     Int      @default(0)
+  attachments_metadata Json?    @db.JsonB
+  raw_headers          Json?    @db.JsonB
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@index([received_at])
+  @@index([status, received_at])
+  @@index([to_email, received_at])
+  @@index([from_email, received_at])
+}
+
 model municipal_regulations {
   id                              String                      @id @default(uuid())
   city                            String
