@@ -25,6 +25,7 @@ apks/
 # === Expo / Wrangler / Android cache ===
 .expo/
 .wrangler/
+cloudflare/email-inbound-worker/wrangler.toml
 android/.kotlin/
 android/app/debug.keystore
 
