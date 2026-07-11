@@ -24,7 +24,7 @@ export class SESProvider {
     this.fromEmail = fromEmail;
   }
 
-  async send(params: SendEmailParams): Promise<void> {
+  async send(params: SendEmailParams): Promise<{ messageId?: string }> {
     const command = new SendEmailCommand({
       Source: params.from || this.fromEmail,
       Destination: {
@@ -49,6 +49,7 @@ export class SESProvider {
       },
     });
 
-    await this.client.send(command);
+    const result = await this.client.send(command);
+    return { messageId: result?.MessageId };
   }
 }

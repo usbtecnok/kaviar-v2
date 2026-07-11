@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -81,7 +81,33 @@ export default function EmailTestingPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [result, setResult] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
   const officialAttachmentsInputRef = useRef(null);
+
+  const loadOfficialHistory = async () => {
+    setHistoryLoading(true);
+    setHistoryError('');
+
+    try {
+      const response = await api.get('/api/admin/email/logs', {
+        params: {
+          limit: 50,
+        },
+      });
+
+      setHistoryItems(Array.isArray(response.data?.data) ? response.data.data : []);
+    } catch (error) {
+      setHistoryError(buildFriendlyError(error));
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOfficialHistory();
+  }, []);
 
   const handleOfficialSubmit = async (event) => {
     event.preventDefault();
@@ -202,6 +228,33 @@ export default function EmailTestingPage() {
   const handleNewSend = () => {
     setResult(null);
     setErrorMessage('');
+  };
+
+  const formatDateTime = (value) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleString('pt-BR');
+  };
+
+  const renderStatus = (status) => {
+    const isSent = status === 'SENT';
+
+    return (
+      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.8 }}>
+        <Box
+          sx={{
+            width: 10,
+            height: 10,
+            borderRadius: '999px',
+            backgroundColor: isSent ? '#16A34A' : '#DC2626',
+          }}
+        />
+        <Typography variant="body2" sx={{ fontWeight: 700, color: isSent ? '#166534' : '#991B1B' }}>
+          {isSent ? 'Enviado' : 'Erro'}
+        </Typography>
+      </Box>
+    );
   };
 
   return (
@@ -387,6 +440,75 @@ export default function EmailTestingPage() {
             </CardContent>
           </Card>
         )}
+
+        <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 18px rgba(0,0,0,0.04)' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Historico de envios oficiais
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#6B7280' }}>
+                  Ultimos envios realizados pela tela de e-mail oficial.
+                </Typography>
+              </Box>
+              <Button
+                type="button"
+                variant="outlined"
+                onClick={loadOfficialHistory}
+                disabled={historyLoading}
+                sx={{ textTransform: 'none', fontWeight: 700 }}
+              >
+                {historyLoading ? <CircularProgress size={18} color="inherit" /> : 'Atualizar historico'}
+              </Button>
+            </Box>
+
+            {historyError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {historyError}
+              </Alert>
+            )}
+
+            {!historyLoading && !historyItems.length && !historyError && (
+              <Alert severity="info">Nenhum envio oficial registrado ainda.</Alert>
+            )}
+
+            <Stack spacing={1.2}>
+              {historyItems.map((item) => (
+                <Box
+                  key={item.id}
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 1.5,
+                    border: '1px solid #E5E7EB',
+                    backgroundColor: '#FFFFFF',
+                  }}
+                >
+                  <Stack spacing={0.7}>
+                    <Typography variant="body2" sx={{ color: '#374151', fontWeight: 700 }}>
+                      Data/hora: {formatDateTime(item.created_at)}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Remetente:</strong> {item.from_name ? `${item.from_name} <${item.from_email}>` : item.from_email || '-'}
+                    </Typography>
+                    <Typography variant="body2"><strong>Destinatario:</strong> {item.to_email || '-'}</Typography>
+                    <Typography variant="body2"><strong>Assunto:</strong> {item.subject || '-'}</Typography>
+                    <Typography variant="body2"><strong>Quantidade de anexos:</strong> {item.attachment_count || 0}</Typography>
+                    <Typography variant="body2"><strong>Enviado por:</strong> {item.admin_email || '-'}</Typography>
+                    <Box sx={{ pt: 0.2 }}>
+                      {renderStatus(item.status)}
+                    </Box>
+                    {item.status === 'ERROR' && item.error_message && (
+                      <Typography variant="caption" sx={{ color: '#B91C1C' }}>
+                        Erro: {item.error_message}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              ))}
+            </Stack>
+          </CardContent>
+        </Card>
       </Stack>
 
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="sm" fullWidth>

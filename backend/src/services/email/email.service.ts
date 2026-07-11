@@ -35,6 +35,7 @@ export interface EmailSendResult {
   ok: boolean;
   provider: 'cloudflare' | 'ses' | 'disabled';
   from: string;
+  messageId?: string;
   error?: string;
 }
 
@@ -188,6 +189,8 @@ class EmailService {
     }
 
     try {
+      let providerMessageId: string | undefined;
+
       if (this.config.provider === 'cloudflare') {
         if (!this.cloudflareProvider) {
           return {
@@ -197,21 +200,23 @@ class EmailService {
             error: 'Cloudflare SMTP nao configurado (token ausente).',
           };
         }
-        await this.cloudflareProvider!.send({
+        const sendResult = await this.cloudflareProvider!.send({
           ...params,
           from: fromResolved,
           replyTo: replyToResolved,
         });
+        providerMessageId = sendResult?.messageId;
       } else {
-        await this.sesProvider!.send({
+        const sendResult = await this.sesProvider!.send({
           ...params,
           from: fromResolved,
           replyTo: replyToResolved,
         });
+        providerMessageId = sendResult?.messageId;
       }
 
       console.log(`[EMAIL_SENT] provider=${this.config.provider} to=${maskedEmail} subject="${params.subject}"`);
-      return { ok: true, provider: this.config.provider, from: fromResolved };
+      return { ok: true, provider: this.config.provider, from: fromResolved, messageId: providerMessageId };
     } catch (error) {
       const message = (error as Error).message;
       console.error(`[EMAIL_SEND_FAILED] provider=${this.config.provider} to=${maskedEmail} subject="${params.subject}" error=${message}`);

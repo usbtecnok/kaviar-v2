@@ -42,8 +42,8 @@ export class CloudflareSMTPProvider {
     });
   }
 
-  async send(params: SendEmailParams): Promise<void> {
-    await this.transporter.sendMail({
+  async send(params: SendEmailParams): Promise<{ messageId?: string }> {
+    const info = await this.transporter.sendMail({
       from: params.from,
       to: params.to,
       subject: params.subject,
@@ -56,5 +56,7 @@ export class CloudflareSMTPProvider {
         contentType: attachment.contentType,
       })),
     });
+
+    return { messageId: info?.messageId };
   }
 }

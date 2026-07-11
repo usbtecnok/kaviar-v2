@@ -3,6 +3,7 @@ import multer from 'multer';
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
+import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email/email.service';
 import { buildKaviarTestEmailTemplate, buildOperationalNoticeTemplate } from '../services/email/templates/kaviar-defaults';
 import { audit, auditCtx } from '../utils/audit';
@@ -11,6 +12,11 @@ const router = Router();
 
 const MAX_ATTACHMENTS = 3;
 const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_LOG_LIMIT = 50;
+const EMAIL_LOG_STATUS = {
+  SENT: 'SENT',
+  ERROR: 'ERROR',
+} as const;
 const ALLOWED_ATTACHMENT_MIME_TYPES = new Set([
   'application/pdf',
   'image/jpeg',
@@ -181,6 +187,112 @@ function parseOfficialRequestBody(req: Request) {
   });
 }
 
+function parseSender(value: string): { fromEmail: string; fromName: string | null } {
+  const trimmed = (value || '').trim();
+  const matched = trimmed.match(/^(.*)<([^>]+)>$/);
+  if (matched) {
+    const fromName = matched[1].trim().replace(/^"|"$/g, '');
+    const fromEmail = matched[2].trim().toLowerCase();
+    return {
+      fromEmail,
+      fromName: fromName || null,
+    };
+  }
+
+  return {
+    fromEmail: trimmed.toLowerCase(),
+    fromName: null,
+  };
+}
+
+function normalizeLogStatus(raw: unknown): typeof EMAIL_LOG_STATUS[keyof typeof EMAIL_LOG_STATUS] | null {
+  if (typeof raw !== 'string') return null;
+  const value = raw.trim().toUpperCase();
+  if (value === EMAIL_LOG_STATUS.SENT || value === EMAIL_LOG_STATUS.ERROR) {
+    return value;
+  }
+  return null;
+}
+
+type EmailAttachmentMetadata = {
+  filename: string;
+  contentType: string;
+  size: number;
+};
+
+async function writeEmailSendLog(params: {
+  adminId: string;
+  adminEmail: string | null;
+  fromEmail: string;
+  fromName: string | null;
+  toEmail: string;
+  ccEmail?: string | null;
+  subject: string;
+  provider: string;
+  status: typeof EMAIL_LOG_STATUS[keyof typeof EMAIL_LOG_STATUS];
+  errorMessage?: string | null;
+  attachmentMetadata: EmailAttachmentMetadata[];
+  providerMessageId?: string | null;
+}) {
+  try {
+    await prisma.email_send_logs.create({
+      data: {
+        admin_id: params.adminId,
+        admin_email: params.adminEmail,
+        from_email: params.fromEmail,
+        from_name: params.fromName,
+        to_email: params.toEmail,
+        cc_email: params.ccEmail || null,
+        subject: params.subject,
+        provider: params.provider,
+        status: params.status,
+        error_message: params.errorMessage || null,
+        attachment_count: params.attachmentMetadata.length,
+        attachments_metadata: params.attachmentMetadata.length ? params.attachmentMetadata : undefined,
+        provider_message_id: params.providerMessageId || null,
+      },
+    });
+  } catch (logError) {
+    console.error('[ADMIN_EMAIL_LOG_WRITE_FAILED]', logError);
+  }
+}
+
+async function writeAuditSafely(payload: Parameters<typeof audit>[0]) {
+  try {
+    await audit(payload);
+  } catch (auditError) {
+    console.error('[ADMIN_EMAIL_AUDIT_WRITE_FAILED]', auditError);
+  }
+}
+
+function isEmailSendLogsTableMissing(error: unknown): boolean {
+  const code = (error as any)?.code;
+  if (code === 'P2021') return true;
+
+  const message = String((error as any)?.message || '').toLowerCase();
+  return message.includes('email_send_logs') && (message.includes('does not exist') || message.includes('relation') || message.includes('table'));
+}
+
+function serializeEmailSendLog(log: any) {
+  return {
+    id: log.id,
+    created_at: log.created_at,
+    admin_id: log.admin_id,
+    admin_email: log.admin_email,
+    from_email: log.from_email,
+    from_name: log.from_name,
+    to_email: log.to_email,
+    cc_email: log.cc_email,
+    subject: log.subject,
+    provider: log.provider,
+    status: log.status,
+    error_message: log.error_message,
+    attachment_count: log.attachment_count,
+    attachments_metadata: Array.isArray(log.attachments_metadata) ? log.attachments_metadata : null,
+    provider_message_id: log.provider_message_id,
+  };
+}
+
 function handleOfficialAttachmentsUpload(req: Request, res: Response, next: NextFunction): void {
   uploadOfficialAttachments.array('attachments', MAX_ATTACHMENTS)(req, res, (err: any) => {
     if (!err) {
@@ -286,6 +398,9 @@ router.post('/test', async (req: Request, res: Response) => {
 router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: Response) => {
   const ctx = auditCtx(req as any);
   const auditEntityId = `admin-email-${Date.now()}`;
+  const admin = (req as any).admin;
+  const adminId = String(admin?.id || ctx.adminId || '');
+  const adminEmail = (admin?.email || ctx.adminEmail || null) as string | null;
 
   try {
     const parsed = parseOfficialRequestBody(req);
@@ -308,6 +423,7 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
     const normalizedTo = parsed.to.trim().toLowerCase();
     const normalizedSubject = parsed.subject.trim();
     const normalizedMessage = parsed.message.trim();
+    const sender = parseSender(parsed.from);
 
     const html = `<div style="font-family: Arial, Helvetica, sans-serif; color: #111; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(normalizedMessage).replace(/\n/g, '<br/>')}</div>`;
 
@@ -321,7 +437,21 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
     });
 
     if (!result.ok) {
-      await audit({
+      await writeEmailSendLog({
+        adminId,
+        adminEmail,
+        fromEmail: sender.fromEmail,
+        fromName: sender.fromName,
+        toEmail: normalizedTo,
+        subject: normalizedSubject,
+        provider: result.provider,
+        status: EMAIL_LOG_STATUS.ERROR,
+        errorMessage: result.error || 'send_failed',
+        attachmentMetadata,
+        providerMessageId: result.messageId || null,
+      });
+
+      await writeAuditSafely({
         adminId: ctx.adminId,
         adminEmail: ctx.adminEmail,
         action: 'admin_email_send_failed',
@@ -353,7 +483,20 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
       });
     }
 
-    await audit({
+    await writeEmailSendLog({
+      adminId,
+      adminEmail,
+      fromEmail: sender.fromEmail,
+      fromName: sender.fromName,
+      toEmail: normalizedTo,
+      subject: normalizedSubject,
+      provider: result.provider,
+      status: EMAIL_LOG_STATUS.SENT,
+      attachmentMetadata,
+      providerMessageId: result.messageId || null,
+    });
+
+    await writeAuditSafely({
       adminId: ctx.adminId,
       adminEmail: ctx.adminEmail,
       action: 'admin_email_send_success',
@@ -366,6 +509,7 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
         provider: result.provider,
         attachments: attachmentMetadata,
         status: 'success',
+        providerMessageId: result.messageId || null,
       },
       ipAddress: ctx.ip,
       userAgent: ctx.ua,
@@ -381,14 +525,33 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
         to: normalizedTo,
         subject: normalizedSubject,
         attachments: attachmentMetadata,
+        messageId: result.messageId || null,
       },
     });
   } catch (error) {
+    const body = req.body || {};
+    const sender = typeof body.from === 'string' ? parseSender(body.from) : { fromEmail: 'unknown@kaviar.com.br', fromName: null };
+
+    if (adminId) {
+      await writeEmailSendLog({
+        adminId,
+        adminEmail,
+        fromEmail: sender.fromEmail,
+        fromName: sender.fromName,
+        toEmail: typeof body.to === 'string' ? body.to.trim().toLowerCase() : 'invalid_to',
+        subject: typeof body.subject === 'string' ? body.subject.trim().slice(0, 180) : 'invalid_subject',
+        provider: emailService.getRuntimeInfo().provider,
+        status: EMAIL_LOG_STATUS.ERROR,
+        errorMessage: (error as Error)?.message || 'unknown_error',
+        attachmentMetadata: [],
+      });
+    }
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({ success: false, error: error.errors[0].message });
     }
 
-    await audit({
+    await writeAuditSafely({
       adminId: ctx.adminId,
       adminEmail: ctx.adminEmail,
       action: 'admin_email_send_exception',
@@ -403,6 +566,88 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
     });
 
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+// GET /api/admin/email/logs
+router.get('/logs', async (req: Request, res: Response) => {
+  try {
+    const page = Math.max(parseInt(String(req.query.page || '1'), 10) || 1, 1);
+    const requestedLimit = parseInt(String(req.query.limit || String(MAX_LOG_LIMIT)), 10) || MAX_LOG_LIMIT;
+    const limit = Math.min(Math.max(requestedLimit, 1), MAX_LOG_LIMIT);
+    const where: any = {};
+
+    if (req.query.to) {
+      where.to_email = { contains: String(req.query.to).trim().toLowerCase(), mode: 'insensitive' };
+    }
+
+    if (req.query.from) {
+      where.from_email = { contains: String(req.query.from).trim().toLowerCase(), mode: 'insensitive' };
+    }
+
+    if (req.query.status) {
+      const status = normalizeLogStatus(req.query.status);
+      if (!status) {
+        return res.status(400).json({ success: false, error: 'Filtro status invalido. Use SENT ou ERROR.' });
+      }
+      where.status = status;
+    }
+
+    const dateFromRaw = req.query.date_from ? new Date(String(req.query.date_from)) : null;
+    const dateToRaw = req.query.date_to ? new Date(String(req.query.date_to)) : null;
+
+    if (dateFromRaw && Number.isNaN(dateFromRaw.getTime())) {
+      return res.status(400).json({ success: false, error: 'date_from invalido.' });
+    }
+
+    if (dateToRaw && Number.isNaN(dateToRaw.getTime())) {
+      return res.status(400).json({ success: false, error: 'date_to invalido.' });
+    }
+
+    if (dateFromRaw || dateToRaw) {
+      where.created_at = {};
+      if (dateFromRaw) where.created_at.gte = dateFromRaw;
+      if (dateToRaw) where.created_at.lte = dateToRaw;
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.email_send_logs.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.email_send_logs.count({ where }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: logs.map(serializeEmailSendLog),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(Math.ceil(total / limit), 1),
+      },
+    });
+  } catch (error) {
+    if (isEmailSendLogsTableMissing(error)) {
+      console.warn('[ADMIN_EMAIL_LOGS_TABLE_MISSING] migration pendente para email_send_logs');
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 50,
+          total: 0,
+          totalPages: 1,
+        },
+        warning: 'Historico temporariamente indisponivel. Execute a migration pendente para habilitar os logs.',
+      });
+    }
+
+    console.error('[ADMIN_EMAIL_LOGS_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao carregar historico de envios oficiais.' });
   }
 });
 
