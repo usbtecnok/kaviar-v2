@@ -22,6 +22,7 @@ import api from '../../api';
 
 const MAX_ATTACHMENTS = 3;
 const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
+const HISTORY_PAGE_SIZE = 10;
 const ALLOWED_ATTACHMENT_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_ATTACHMENT_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
 
@@ -84,22 +85,73 @@ export default function EmailTestingPage() {
   const [historyItems, setHistoryItems] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [expandedHistoryId, setExpandedHistoryId] = useState(null);
+  const [historyFilters, setHistoryFilters] = useState({
+    to: '',
+    status: 'ALL',
+    dateFrom: '',
+    dateTo: '',
+  });
   const officialAttachmentsInputRef = useRef(null);
 
-  const loadOfficialHistory = async () => {
+  const buildHistoryParams = (targetPage) => {
+    const params = {
+      page: targetPage,
+      limit: HISTORY_PAGE_SIZE,
+    };
+
+    if (historyFilters.to.trim()) {
+      params.to = historyFilters.to.trim();
+    }
+
+    if (historyFilters.status !== 'ALL') {
+      params.status = historyFilters.status;
+    }
+
+    if (historyFilters.dateFrom) {
+      params.date_from = historyFilters.dateFrom;
+    }
+
+    if (historyFilters.dateTo) {
+      params.date_to = historyFilters.dateTo;
+    }
+
+    return params;
+  };
+
+  const loadOfficialHistory = async ({ page = 1, append = false } = {}) => {
     setHistoryLoading(true);
     setHistoryError('');
 
     try {
       const response = await api.get('/api/admin/email/logs', {
-        params: {
-          limit: 50,
-        },
+        params: buildHistoryParams(page),
       });
 
-      setHistoryItems(Array.isArray(response.data?.data) ? response.data.data : []);
+      const incoming = Array.isArray(response.data?.data) ? response.data.data : [];
+      const apiPage = Number(response.data?.pagination?.page || page);
+      const totalPages = Number(response.data?.pagination?.totalPages || 0);
+
+      setHistoryItems((prev) => (append ? [...prev, ...incoming] : incoming));
+      setHistoryPage(apiPage);
+
+      if (totalPages > 0) {
+        setHistoryHasMore(apiPage < totalPages);
+      } else {
+        setHistoryHasMore(incoming.length >= HISTORY_PAGE_SIZE);
+      }
+
+      if (!append) {
+        setExpandedHistoryId(null);
+      }
     } catch (error) {
       setHistoryError(buildFriendlyError(error));
+      if (!append) {
+        setHistoryItems([]);
+      }
+      setHistoryHasMore(false);
     } finally {
       setHistoryLoading(false);
     }
@@ -108,6 +160,31 @@ export default function EmailTestingPage() {
   useEffect(() => {
     loadOfficialHistory();
   }, []);
+
+  const handleHistoryFilterChange = (field, value) => {
+    setHistoryFilters((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyHistoryFilters = () => {
+    loadOfficialHistory({ page: 1, append: false });
+  };
+
+  const clearHistoryFilters = () => {
+    setHistoryFilters({
+      to: '',
+      status: 'ALL',
+      dateFrom: '',
+      dateTo: '',
+    });
+    setTimeout(() => {
+      loadOfficialHistory({ page: 1, append: false });
+    }, 0);
+  };
+
+  const loadMoreHistory = () => {
+    if (historyLoading || !historyHasMore) return;
+    loadOfficialHistory({ page: historyPage + 1, append: true });
+  };
 
   const handleOfficialSubmit = async (event) => {
     event.preventDefault();
@@ -255,6 +332,11 @@ export default function EmailTestingPage() {
         </Typography>
       </Box>
     );
+  };
+
+  const renderAttachmentSummary = (count) => {
+    if (!count) return 'Anexos: sem anexos';
+    return `Anexos: ${count}`;
   };
 
   return (
@@ -446,21 +528,90 @@ export default function EmailTestingPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Historico de envios oficiais
+                  Histórico de envios oficiais
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#6B7280' }}>
-                  Ultimos envios realizados pela tela de e-mail oficial.
+                  Últimos envios realizados pela tela de e-mail oficial.
                 </Typography>
               </Box>
               <Button
                 type="button"
                 variant="outlined"
-                onClick={loadOfficialHistory}
+                onClick={() => loadOfficialHistory({ page: 1, append: false })}
                 disabled={historyLoading}
                 sx={{ textTransform: 'none', fontWeight: 700 }}
               >
-                {historyLoading ? <CircularProgress size={18} color="inherit" /> : 'Atualizar historico'}
+                {historyLoading ? <CircularProgress size={18} color="inherit" /> : 'Atualizar histórico'}
               </Button>
+            </Box>
+
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 1.5,
+                border: '1px solid #E5E7EB',
+                backgroundColor: '#FAFAF9',
+                mb: 2,
+              }}
+            >
+              <Stack spacing={1.2}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: '2fr 1fr 1fr 1fr auto' },
+                    gap: 1,
+                  }}
+                >
+                  <TextField
+                    size="small"
+                    label="Destinatário"
+                    value={historyFilters.to}
+                    onChange={(event) => handleHistoryFilterChange('to', event.target.value)}
+                    placeholder="email@destino.com"
+                  />
+
+                  <FormControl size="small">
+                    <InputLabel id="history-status-label">Status</InputLabel>
+                    <Select
+                      labelId="history-status-label"
+                      label="Status"
+                      value={historyFilters.status}
+                      onChange={(event) => handleHistoryFilterChange('status', event.target.value)}
+                    >
+                      <MenuItem value="ALL">Todos</MenuItem>
+                      <MenuItem value="SENT">Enviado</MenuItem>
+                      <MenuItem value="ERROR">Erro</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <TextField
+                    size="small"
+                    type="date"
+                    label="Data inicial"
+                    InputLabelProps={{ shrink: true }}
+                    value={historyFilters.dateFrom}
+                    onChange={(event) => handleHistoryFilterChange('dateFrom', event.target.value)}
+                  />
+
+                  <TextField
+                    size="small"
+                    type="date"
+                    label="Data final"
+                    InputLabelProps={{ shrink: true }}
+                    value={historyFilters.dateTo}
+                    onChange={(event) => handleHistoryFilterChange('dateTo', event.target.value)}
+                  />
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Button type="button" variant="contained" size="small" onClick={applyHistoryFilters} sx={{ textTransform: 'none' }}>
+                      Filtrar
+                    </Button>
+                    <Button type="button" variant="text" size="small" onClick={clearHistoryFilters} sx={{ textTransform: 'none' }}>
+                      Limpar
+                    </Button>
+                  </Box>
+                </Box>
+              </Stack>
             </Box>
 
             {historyError && (
@@ -473,40 +624,113 @@ export default function EmailTestingPage() {
               <Alert severity="info">Nenhum envio oficial registrado ainda.</Alert>
             )}
 
-            <Stack spacing={1.2}>
-              {historyItems.map((item) => (
+            {!!historyItems.length && (
+              <Box sx={{ border: '1px solid #E5E7EB', borderRadius: 1.5, overflow: 'hidden' }}>
                 <Box
-                  key={item.id}
                   sx={{
-                    p: 1.5,
-                    borderRadius: 1.5,
-                    border: '1px solid #E5E7EB',
-                    backgroundColor: '#FFFFFF',
+                    display: { xs: 'none', md: 'grid' },
+                    gridTemplateColumns: '1.4fr 1.2fr 1.8fr 0.9fr 0.9fr 1.2fr auto',
+                    gap: 1,
+                    px: 1.5,
+                    py: 1,
+                    backgroundColor: '#F9FAFB',
+                    borderBottom: '1px solid #E5E7EB',
                   }}
                 >
-                  <Stack spacing={0.7}>
-                    <Typography variant="body2" sx={{ color: '#374151', fontWeight: 700 }}>
-                      Data/hora: {formatDateTime(item.created_at)}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Remetente:</strong> {item.from_name ? `${item.from_name} <${item.from_email}>` : item.from_email || '-'}
-                    </Typography>
-                    <Typography variant="body2"><strong>Destinatario:</strong> {item.to_email || '-'}</Typography>
-                    <Typography variant="body2"><strong>Assunto:</strong> {item.subject || '-'}</Typography>
-                    <Typography variant="body2"><strong>Quantidade de anexos:</strong> {item.attachment_count || 0}</Typography>
-                    <Typography variant="body2"><strong>Enviado por:</strong> {item.admin_email || '-'}</Typography>
-                    <Box sx={{ pt: 0.2 }}>
-                      {renderStatus(item.status)}
-                    </Box>
-                    {item.status === 'ERROR' && item.error_message && (
-                      <Typography variant="caption" sx={{ color: '#B91C1C' }}>
-                        Erro: {item.error_message}
-                      </Typography>
-                    )}
-                  </Stack>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280' }}>Data/hora</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280' }}>Destinatário</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280' }}>Assunto</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280' }}>Anexos</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280' }}>Status</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280' }}>Usuário admin</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: '#6B7280' }}>Ações</Typography>
                 </Box>
-              ))}
-            </Stack>
+
+                {historyItems.map((item) => {
+                  const isExpanded = expandedHistoryId === item.id;
+
+                  return (
+                    <Box key={item.id} sx={{ borderBottom: '1px solid #E5E7EB' }}>
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', md: '1.4fr 1.2fr 1.8fr 0.9fr 0.9fr 1.2fr auto' },
+                          gap: 1,
+                          px: 1.5,
+                          py: 1.2,
+                          alignItems: 'center',
+                          backgroundColor: '#FFFFFF',
+                        }}
+                      >
+                        <Typography variant="body2">{formatDateTime(item.created_at)}</Typography>
+                        <Typography variant="body2" noWrap>{item.to_email || '-'}</Typography>
+                        <Typography variant="body2" noWrap title={item.subject || '-'}>{item.subject || '-'}</Typography>
+                        <Typography variant="body2">{item.attachment_count ? item.attachment_count : 'sem anexos'}</Typography>
+                        <Box>{renderStatus(item.status)}</Box>
+                        <Typography variant="body2" noWrap>{item.admin_email || '-'}</Typography>
+                        <Box>
+                          <Button
+                            type="button"
+                            size="small"
+                            variant="text"
+                            sx={{ textTransform: 'none' }}
+                            onClick={() => setExpandedHistoryId(isExpanded ? null : item.id)}
+                          >
+                            {isExpanded ? 'Ocultar' : 'Detalhes'}
+                          </Button>
+                        </Box>
+                      </Box>
+
+                      {isExpanded && (
+                        <Box sx={{ px: 1.5, py: 1.2, backgroundColor: '#FAFAFA' }}>
+                          <Stack spacing={0.6}>
+                            <Typography variant="body2">
+                              <strong>Remetente completo:</strong> {item.from_name ? `${item.from_name} <${item.from_email}>` : item.from_email || '-'}
+                            </Typography>
+                            <Typography variant="body2"><strong>Destinatário:</strong> {item.to_email || '-'}</Typography>
+                            <Typography variant="body2"><strong>Assunto completo:</strong> {item.subject || '-'}</Typography>
+                            <Typography variant="body2"><strong>Provider:</strong> {item.provider || '-'}</Typography>
+                            <Typography variant="body2"><strong>Message ID:</strong> {item.provider_message_id || '-'}</Typography>
+                            <Typography variant="body2"><strong>{renderAttachmentSummary(item.attachment_count || 0)}</strong></Typography>
+
+                            {Array.isArray(item.attachments_metadata) && item.attachments_metadata.length > 0 && (
+                              <Box>
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>Metadados dos anexos:</Typography>
+                                {item.attachments_metadata.map((attachment, index) => (
+                                  <Typography key={`${attachment.filename || 'anexo'}-${index}`} variant="caption" sx={{ display: 'block', color: '#4B5563' }}>
+                                    {attachment.filename || 'arquivo'} • {attachment.contentType || '-'} • {formatFileSize(attachment.size || 0)}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            )}
+
+                            {item.error_message && (
+                              <Typography variant="body2" sx={{ color: '#B91C1C' }}>
+                                <strong>Mensagem de erro:</strong> {item.error_message}
+                              </Typography>
+                            )}
+                          </Stack>
+                        </Box>
+                      )}
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
+
+            {historyHasMore && (
+              <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'center' }}>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={loadMoreHistory}
+                  disabled={historyLoading}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  {historyLoading ? <CircularProgress size={18} color="inherit" /> : 'Carregar mais'}
+                </Button>
+              </Box>
+            )}
           </CardContent>
         </Card>
       </Stack>
