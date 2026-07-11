@@ -221,10 +221,10 @@ export default function InstitutionalInboxPage() {
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={2.5} maxWidth={1100}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#111827', mb: 0.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#F8FAFC', mb: 0.5 }}>
             Caixa de Entrada Institucional
           </Typography>
-          <Typography sx={{ color: '#6B7280' }}>
+          <Typography sx={{ color: '#CBD5E1' }}>
             Visualizacao somente leitura de respostas recebidas pelos aliases oficiais da KAVIAR.
           </Typography>
         </Box>

@@ -1,7 +1,7 @@
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { API_BASE_URL } from '../../config/api';
 import { Container, Typography, Box, Card, CardContent, Button, Grid, Chip, Alert, CircularProgress, ToggleButton, ToggleButtonGroup, Table, TableBody, TableCell, TableHead, TableRow, Tabs, Tab, TextField } from "@mui/material";
-import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public, Pets, Science, Description, Email } from "@mui/icons-material";
+import { AdminPanelSettings, Dashboard, Group, Analytics, DirectionsCar, Security, PersonAdd, Tour, People, LocationCity, Elderly, PendingActions, CheckCircle, Map, Shield, CreditCard, ChatBubble, Apartment, GridOn, DriveEta, Person, Explore, Lock, Flight, Star, Storefront, BarChart, Handshake, CardGiftcard, Paid, SupportAgent, Public, Pets, Science, Description, Email, MarkEmailRead } from "@mui/icons-material";
 import { ProtectedAdminRoute } from "./ProtectedAdminRoute";
 import AdminLogin from "./AdminLogin";
 import AdminErrorBoundary from "./AdminErrorBoundary";
@@ -442,8 +442,8 @@ function AdminHome() {
               { Icon: CreditCard, title: 'Histórico de Recargas', desc: 'Purchases, webhooks e saldos', to: '/admin/credit-purchases' },
               { Icon: ChatBubble, title: 'Central WhatsApp', desc: 'Atendimento, contexto e operação', to: '/admin/whatsapp' },
               ...(isSuperAdmin ? [
-                { Icon: Email, title: 'E-mails KAVIAR', desc: 'Testar envio pelos aliases oficiais', to: '/admin/email' },
-                { Icon: Email, title: 'Caixa de Entrada Institucional', desc: 'Respostas recebidas dos aliases oficiais', to: '/admin/inbox' },
+                { Icon: Email, title: 'E-mails KAVIAR', desc: 'Enviar comunicações oficiais para destinatários externos.', to: '/admin/email', actionLabel: 'Enviar e-mail' },
+                { Icon: MarkEmailRead, title: 'Caixa de Entrada Institucional', desc: 'Visualizar respostas recebidas nos e-mails oficiais da KAVIAR.', to: '/admin/inbox', actionLabel: 'Abrir caixa de entrada' },
               ] : []),
               ...(canAccessOperations ? [
                 { Icon: BarChart, title: 'Cockpit Operacional', desc: 'Acompanhe corridas, motoristas, territórios e histórico do dia em tempo real.', to: '/admin/operations', actionLabel: 'Abrir cockpit' },

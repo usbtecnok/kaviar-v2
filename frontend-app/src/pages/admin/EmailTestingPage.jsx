@@ -343,10 +343,10 @@ export default function EmailTestingPage() {
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={3} maxWidth={860}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#1A1A1A', mb: 1 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#F8FAFC', mb: 1 }}>
             E-mails KAVIAR
           </Typography>
-          <Typography sx={{ color: '#6B7280', maxWidth: 720 }}>
+          <Typography sx={{ color: '#CBD5E1', maxWidth: 720 }}>
             Envio real de comunicacoes oficiais para destinatarios externos.
           </Typography>
         </Box>
