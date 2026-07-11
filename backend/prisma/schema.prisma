@@ -44,6 +44,7 @@ model admins {
   municipal_authorizations_submitted_manager municipal_authorizations[] @relation("municipal_authorizations_submitted_by_manager")
   municipal_authorizations_approved municipal_authorizations[] @relation("municipal_authorizations_approved_by_admin")
   municipal_package_audit_logs municipal_package_audit_logs[] @relation("municipal_package_audit_actor")
+  email_send_logs             email_send_logs[]
 }
 
 model communities {
@@ -1394,6 +1395,33 @@ model municipal_regulatory_consultation_logs {
   @@index([territory_id, created_at])
   @@index([destination_phone, created_at])
   @@index([protocol_code])
+}
+
+model email_send_logs {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at           DateTime @default(now())
+  admin_id             String
+  admin_email          String?  @db.VarChar(255)
+  from_email           String   @db.VarChar(255)
+  from_name            String?  @db.VarChar(255)
+  to_email             String   @db.VarChar(255)
+  cc_email             String?  @db.VarChar(255)
+  subject              String   @db.VarChar(180)
+  provider             String   @db.VarChar(40)
+  status               String   @db.VarChar(20)
+  error_message        String?
+  attachment_count     Int      @default(0)
+  attachments_metadata Json?    @db.JsonB
+  provider_message_id  String?  @db.VarChar(255)
+  updated_at           DateTime @updatedAt
+
+  admin                admins   @relation(fields: [admin_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([created_at])
+  @@index([status, created_at])
+  @@index([to_email, created_at])
+  @@index([from_email, created_at])
+  @@index([admin_id, created_at])
 }
 
 model municipal_regulations {
