@@ -136,7 +136,7 @@ const updateDriverProtocolSchema = z.object({
 });
 
 const driverCandidatesQuerySchema = z.object({
-  q: z.string().trim().min(1).max(120).optional(),
+  q: z.string().trim().max(120).optional(),
   status: z.string().trim().min(1).max(32).optional(),
   modality: z.string().trim().min(1).max(30).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(25),
@@ -151,6 +151,7 @@ const createDriverProtocolFromDriverSchema = z.object({
 });
 
 const TEST_CANDIDATE_TERMS = ['test', 'teste'] as const;
+const OPERATIONAL_DRIVER_STATUSES = ['approved', 'active'] as const;
 
 const SANTA_RITA_TRANSPORT_TEMPLATE = [
   {
@@ -796,6 +797,7 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
 router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res: Response) => {
   try {
     const parsed = driverCandidatesQuerySchema.parse(req.query);
+    const normalizedQuery = (parsed.q || '').trim();
 
     const city = await prisma.municipal_regulatory_cases.findUnique({
       where: { id: req.params.id },
@@ -804,6 +806,21 @@ router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res:
 
     if (!city) {
       return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    if (normalizedQuery.length < 3) {
+      return res.json({
+        success: true,
+        data: {
+          city,
+          items: [],
+          meta: {
+            minQueryLength: 3,
+            queryRequired: true,
+            documentSummary: 'not_available_phase_5b',
+          },
+        },
+      });
     }
 
     const linked = await prisma.municipal_regulatory_driver_protocols.findMany({
@@ -818,6 +835,23 @@ router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res:
 
     const where: any = {
       deleted_at: null,
+      OR: OPERATIONAL_DRIVER_STATUSES.map((status) => ({
+        status: { equals: status, mode: 'insensitive' },
+      })),
+      AND: [
+        {
+          OR: [
+            { driver_modalities: { none: {} } },
+            {
+              driver_modalities: {
+                some: {
+                  status: { equals: 'APPROVED', mode: 'insensitive' },
+                },
+              },
+            },
+          ],
+        },
+      ],
       NOT: {
         OR: TEST_CANDIDATE_TERMS.flatMap((term) => [
           { name: { contains: term, mode: 'insensitive' } },
@@ -834,17 +868,18 @@ router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res:
       where.driver_modalities = {
         some: {
           modality: { equals: parsed.modality, mode: 'insensitive' },
+          status: { equals: 'APPROVED', mode: 'insensitive' },
         },
       };
     }
 
-    if (parsed.q) {
-      where.OR = [
-        { name: { contains: parsed.q, mode: 'insensitive' } },
-        { phone: { contains: parsed.q, mode: 'insensitive' } },
-        { vehicle_plate: { contains: parsed.q, mode: 'insensitive' } },
-      ];
-    }
+    where.AND.push({
+      OR: [
+        { name: { contains: normalizedQuery, mode: 'insensitive' } },
+        { phone: { contains: normalizedQuery, mode: 'insensitive' } },
+        { vehicle_plate: { contains: normalizedQuery, mode: 'insensitive' } },
+      ],
+    });
 
     const drivers = await prisma.drivers.findMany({
       where,

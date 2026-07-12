@@ -889,14 +889,17 @@ export default function RegulatoryCitiesPage() {
   const toggleDriverCandidatesPanel = async (cityId) => {
     const isOpen = Boolean(candidatePanelByCity[cityId]);
     setCandidatePanelByCity((prev) => ({ ...prev, [cityId]: !isOpen }));
-
-    if (!isOpen && !candidateLoadedByCity[cityId]) {
-      await loadDriverCandidates(cityId, candidateQueryByCity[cityId] || '');
-    }
   };
 
   const searchDriverCandidates = async (cityId) => {
-    await loadDriverCandidates(cityId, candidateQueryByCity[cityId] || '');
+    const query = (candidateQueryByCity[cityId] || '').trim();
+    if (query.length < 3) {
+      setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: 'Digite pelo menos 3 caracteres para buscar.' }));
+      setCandidateLoadedByCity((prev) => ({ ...prev, [cityId]: false }));
+      return;
+    }
+
+    await loadDriverCandidates(cityId, query);
   };
 
   const createProtocolFromDriver = async (cityId, driverId) => {
@@ -1645,6 +1648,12 @@ export default function RegulatoryCitiesPage() {
                                 </Button>
                               </Stack>
 
+                              {!candidateLoadedByCity[item.id] && !candidateLoadingByCity[item.id] && (
+                                <Typography sx={{ color: '#94A3B8', fontSize: 12.2, mb: 1 }}>
+                                  Digite nome, telefone ou placa para buscar motoristas aprovados.
+                                </Typography>
+                              )}
+
                               {candidateLoadingByCity[item.id] && !candidateLoadedByCity[item.id] && (
                                 <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1 }}>
                                   <CircularProgress size={18} sx={{ color: '#B8942E' }} />
@@ -1659,10 +1668,10 @@ export default function RegulatoryCitiesPage() {
                                   {(candidateByCity[item.id]?.items || []).length === 0 ? (
                                     <Stack spacing={0.35}>
                                       <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
-                                        Nenhum motorista real encontrado para importar.
+                                        Nenhum motorista real aprovado encontrado para importar.
                                       </Typography>
                                       <Typography sx={{ color: '#94A3B8', fontSize: 11.8 }}>
-                                        Cadastre ou aprove um motorista no KAVIAR antes de criar protocolo automático.
+                                        Cadastre e aprove um motorista no KAVIAR antes de criar protocolo automático.
                                       </Typography>
                                     </Stack>
                                   ) : (
