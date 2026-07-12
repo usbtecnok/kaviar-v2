@@ -83,7 +83,7 @@ jobs:
           if [ "${BACKEND_DEPLOY_STALE}" != "true" ] && [ "${CURRENT_SHA}" != "${ORIGIN_MAIN_SHA}" ]; then
             if git merge-base --is-ancestor "${CURRENT_SHA}" "${ORIGIN_MAIN_SHA}"; then
               if LATER_FILES=$(git diff --name-only "${CURRENT_SHA}..${ORIGIN_MAIN_SHA}"); then
-                RELEVANT_LATER_FILES="$(printf '%s\n' "${LATER_FILES}" | rg '^(backend/|\.github/workflows/deploy-backend\.yml|\.github/workflows/deploy-prisma-migrations\.yml)$' || true)"
+                RELEVANT_LATER_FILES="$(printf '%s\n' "${LATER_FILES}" | rg '^(backend/.*|\.github/workflows/deploy-backend\.yml|\.github/workflows/deploy-prisma-migrations\.yml)$' || true)"
                 if [ -n "${RELEVANT_LATER_FILES}" ]; then
                   BACKEND_DEPLOY_STALE="true"
                   STALE_REASON="newer_relevant_backend_changes_on_main"
