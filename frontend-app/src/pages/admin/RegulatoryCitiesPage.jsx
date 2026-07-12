@@ -38,7 +38,7 @@ const STATUS_OPTIONS = [
 ];
 
 const STATUS_LABELS = {
-  NOT_STARTED: 'Nao iniciado',
+  NOT_STARTED: 'Não iniciado',
   CONTACTED: 'Contatado',
   WAITING_RESPONSE: 'Aguardando resposta',
   RESPONSE_RECEIVED: 'Resposta recebida',
@@ -173,7 +173,7 @@ export default function RegulatoryCitiesPage() {
       setTotalPages(Math.max(1, pages));
       setPage(current);
     } catch (error) {
-      const message = error?.response?.data?.error || 'Nao foi possivel carregar os casos regulatorios.';
+      const message = error?.response?.data?.error || 'Não foi possível carregar os casos regulatórios.';
       setErrorMessage(message);
       setItems([]);
       setTotalPages(1);
@@ -245,7 +245,7 @@ export default function RegulatoryCitiesPage() {
       setDialogOpen(false);
       await loadCases(page);
     } catch (error) {
-      const message = error?.response?.data?.error || 'Nao foi possivel salvar o caso regulatorio.';
+      const message = error?.response?.data?.error || 'Não foi possível salvar o caso regulatório.';
       setErrorMessage(message);
     } finally {
       setSaving(false);
@@ -253,26 +253,51 @@ export default function RegulatoryCitiesPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      <Stack spacing={2.5} maxWidth={1200}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800, color: '#F8FAFC', mb: 0.5 }}>
-            Regulatorio por Cidade
+    <Box sx={{ px: { xs: 2, md: 3 }, py: { xs: 2, md: 3 } }}>
+      <Stack spacing={2.5} maxWidth={1100} sx={{ mx: 'auto' }}>
+        <Box
+          sx={{
+            '& .admin-page-title': {
+              color: '#F8FAFC !important',
+              fontWeight: 800,
+            },
+            '& .admin-page-title:hover': {
+              color: '#F8FAFC !important',
+            },
+            '& .admin-page-title *': {
+              color: 'inherit !important',
+            },
+            '& .admin-page-subtitle': {
+              color: '#CBD5E1 !important',
+            },
+            '& .admin-page-subtitle:hover': {
+              color: '#CBD5E1 !important',
+            },
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            className="admin-page-title"
+            sx={{ fontWeight: 800, color: '#F8FAFC !important', mb: 0.5 }}
+            style={{ color: '#F8FAFC' }}
+          >
+            <span style={{ color: 'inherit' }}>Regulatório por Cidade</span>
           </Typography>
-          <Typography sx={{ color: '#CBD5E1' }}>
-            Acompanhar cadastro, protocolo e autorizacoes municipais da KAVIAR.
+          <Typography className="admin-page-subtitle" sx={{ color: '#CBD5E1 !important' }} style={{ color: '#CBD5E1' }}>
+            Acompanhar cadastro, protocolo e autorizações municipais da KAVIAR.
           </Typography>
         </Box>
 
         {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
-        <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE' }}>
-          <CardContent>
+        <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+          <CardContent sx={{ p: { xs: 2, md: 2.5 } }}>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} alignItems={{ xs: 'stretch', md: 'center' }}>
               <TextField
                 size="small"
                 label="Busca"
-                placeholder="Cidade, setor, e-mail, observacao"
+                placeholder="Cidade, setor, e-mail, observação"
                 value={filters.q}
                 onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
               />
@@ -326,11 +351,11 @@ export default function RegulatoryCitiesPage() {
             <CircularProgress sx={{ color: '#B8942E' }} />
           </Box>
         ) : (
-          <Grid container spacing={1.5}>
+          <Grid container spacing={2}>
             {items.map((item) => (
               <Grid item xs={12} md={6} key={item.id}>
-                <Card sx={{ borderRadius: 2, border: '1px solid #E8E5DE', height: '100%' }}>
-                  <CardContent>
+                <Card sx={{ borderRadius: 2.5, border: '1px solid #E8E5DE', height: '100%', boxShadow: '0 6px 18px rgba(15,23,42,0.06)' }}>
+                  <CardContent sx={{ p: 2.25 }}>
                     <Stack spacing={1.2}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
                         <Typography sx={{ fontWeight: 800, color: '#1A1A1A', fontSize: 17 }}>
@@ -346,16 +371,16 @@ export default function RegulatoryCitiesPage() {
                         <strong>E-mail de contato:</strong> {item.contact_email || '-'}
                       </Typography>
                       <Typography sx={{ color: '#4B5563', fontSize: 13 }}>
-                        <strong>Ultimo envio:</strong> {formatDateTime(item.last_sent_at)}
+                        <strong>Último envio:</strong> {formatDateTime(item.last_sent_at)}
                       </Typography>
                       <Typography sx={{ color: '#4B5563', fontSize: 13 }}>
-                        <strong>Ultima resposta:</strong> {formatDateTime(item.last_response_at)}
+                        <strong>Última resposta:</strong> {formatDateTime(item.last_response_at)}
                       </Typography>
                       <Typography sx={{ color: '#4B5563', fontSize: 13 }}>
-                        <strong>Proxima acao:</strong> {item.next_action || '-'}
+                        <strong>Próxima ação:</strong> {item.next_action || '-'}
                       </Typography>
                       <Typography sx={{ color: '#4B5563', fontSize: 13 }}>
-                        <strong>Proximo acompanhamento:</strong> {formatDateTime(item.next_follow_up_at)}
+                        <strong>Próximo acompanhamento:</strong> {formatDateTime(item.next_follow_up_at)}
                       </Typography>
 
                       <Stack direction="row" spacing={1} sx={{ pt: 0.6, flexWrap: 'wrap' }}>
@@ -402,7 +427,7 @@ export default function RegulatoryCitiesPage() {
 
         <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
           <Typography sx={{ color: '#9CA3AF', fontSize: 12 }}>
-            Pagina {page} de {totalPages}
+            Página {page} de {totalPages}
           </Typography>
           <Button
             variant="outlined"
@@ -418,7 +443,7 @@ export default function RegulatoryCitiesPage() {
             disabled={page >= totalPages || loading}
             onClick={() => loadCases(page + 1)}
           >
-            Proxima
+            Próxima
           </Button>
         </Stack>
       </Stack>
@@ -499,7 +524,7 @@ export default function RegulatoryCitiesPage() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Ultimo envio"
+                label="Último envio"
                 type="datetime-local"
                 InputLabelProps={{ shrink: true }}
                 value={form.last_sent_at}
@@ -510,7 +535,7 @@ export default function RegulatoryCitiesPage() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Ultima resposta"
+                label="Última resposta"
                 type="datetime-local"
                 InputLabelProps={{ shrink: true }}
                 value={form.last_response_at}
@@ -520,7 +545,7 @@ export default function RegulatoryCitiesPage() {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Data de proximo acompanhamento"
+                label="Data de próximo acompanhamento"
                 type="datetime-local"
                 InputLabelProps={{ shrink: true }}
                 value={form.next_follow_up_at}
@@ -531,7 +556,7 @@ export default function RegulatoryCitiesPage() {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Proxima acao"
+                label="Próxima ação"
                 value={form.next_action}
                 onChange={(event) => setForm((prev) => ({ ...prev, next_action: event.target.value }))}
               />
@@ -542,7 +567,7 @@ export default function RegulatoryCitiesPage() {
                 fullWidth
                 multiline
                 minRows={4}
-                label="Observacoes"
+                label="Observações"
                 value={form.notes}
                 onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
               />
@@ -552,7 +577,7 @@ export default function RegulatoryCitiesPage() {
         <DialogActions>
           <Button onClick={closeDialog} disabled={saving}>Cancelar</Button>
           <Button onClick={submitForm} variant="contained" disabled={saving} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>
-            {saving ? 'Salvando...' : editingId ? 'Salvar alteracoes' : 'Criar cidade'}
+            {saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Criar cidade'}
           </Button>
         </DialogActions>
       </Dialog>
