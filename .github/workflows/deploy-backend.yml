@@ -33,12 +33,52 @@ jobs:
         run: |
           set -euo pipefail
 
+          detect_prisma_changed() {
+            local changed_files="$1"
+
+            if ! command -v rg >/dev/null 2>&1; then
+              echo "Prisma detection tool error: rg not found" >&2
+              return 2
+            fi
+
+            if rg -q '^(backend/prisma/schema\.prisma|backend/prisma/migrations/)' <<< "${changed_files}"; then
+              return 0
+            fi
+
+            return 1
+          }
+
+          run_prisma_detection_case() {
+            local label="$1"
+            local expected="$2"
+            local payload="$3"
+            local got=""
+
+            if detect_prisma_changed "${payload}"; then
+              got="true"
+            else
+              local rc=$?
+              if [ "$rc" -eq 1 ]; then
+                got="false"
+              else
+                got="error"
+              fi
+            fi
+
+            echo "prisma_detection_case label=${label} expected=${expected} got=${got}"
+
+            if [ "${got}" != "${expected}" ]; then
+              DETECTION_SELFTEST_FAILED="true"
+            fi
+          }
+
           CURRENT_SHA="${GITHUB_SHA}"
           BASE_SHA="${{ github.event.before }}"
           BACKEND_DEPLOY_STALE="false"
           STALE_REASON="none"
           ORIGIN_MAIN_SHA=""
           RELEVANT_LATER_FILES=""
+          DETECTION_SELFTEST_FAILED="false"
 
           if [ "${GITHUB_EVENT_NAME}" != "push" ] || [ -z "${BASE_SHA}" ] || [[ "${BASE_SHA}" =~ ^0+$ ]]; then
             if git rev-parse "${GITHUB_SHA}^" >/dev/null 2>&1; then
@@ -56,15 +96,34 @@ jobs:
 
           echo "Current SHA: ${CURRENT_SHA}"
           echo "Base SHA: ${BASE_SHA}"
+          echo "GITHUB_EVENT_NAME: ${GITHUB_EVENT_NAME}"
           echo "Changed files:"
           printf '%s\n' "${CHANGED_FILES}"
 
           if [ -z "${PRISMA_CHANGED:-}" ]; then
-            if printf '%s\n' "${CHANGED_FILES}" | rg -q '^(backend/prisma/schema\.prisma|backend/prisma/migrations/)'; then
+            if detect_prisma_changed "${CHANGED_FILES}"; then
               PRISMA_CHANGED="true"
             else
-              PRISMA_CHANGED="false"
+              DETECTION_RC=$?
+              if [ "${DETECTION_RC}" -eq 1 ]; then
+                PRISMA_CHANGED="false"
+              else
+                echo "Failed to evaluate Prisma changed files (rc=${DETECTION_RC}). Falling back to prisma_changed=true for safety." >&2
+                PRISMA_CHANGED="true"
+              fi
             fi
+          fi
+
+          run_prisma_detection_case "schema.prisma" "true" $'backend/prisma/schema.prisma'
+          run_prisma_detection_case "migration.sql" "true" $'backend/prisma/migrations/abc/migration.sql'
+          run_prisma_detection_case "backend-source" "false" $'backend/src/routes/foo.ts'
+          run_prisma_detection_case "frontend" "false" $'frontend-app/src/App.jsx'
+          run_prisma_detection_case "docs" "false" $'docs/readme.md'
+          run_prisma_detection_case "mixed-5e-shape" "true" $'backend/prisma/migrations/abc/migration.sql\nbackend/src/routes/foo.ts\nfrontend-app/src/App.jsx\nbackend/tests/foo.test.ts'
+
+          if [ "${DETECTION_SELFTEST_FAILED}" = "true" ]; then
+            echo "Prisma detection self-test failed. Falling back to prisma_changed=true for safety." >&2
+            PRISMA_CHANGED="true"
           fi
 
           if ! git fetch --no-tags --prune origin main; then
