@@ -109,6 +109,28 @@ const DRIVER_PROTOCOL_STATUS_COLORS = {
   NEEDS_COMPLEMENT: { bg: '#FCE7F3', color: '#9D174D' },
 };
 
+const MUNICIPAL_MODALITY_OPTIONS = ['CAR', 'MOTO_PASSENGER', 'MOTO_DELIVERY', 'TAXI', 'VAN'];
+
+const MUNICIPAL_MODALITY_LABELS = {
+  CAR: 'CAR',
+  MOTO_PASSENGER: 'MOTO_PASSENGER',
+  MOTO_DELIVERY: 'MOTO_DELIVERY',
+  TAXI: 'TAXI',
+  VAN: 'VAN',
+};
+
+const AUTHORIZATION_OPERATIONAL_LABELS = {
+  NOT_GENERATED: 'Autorização ainda não gerada',
+  ACTIVE: 'Autorização municipal ativa',
+  REVIEW_REQUIRED: 'Autorização exige revisão',
+};
+
+const AUTHORIZATION_OPERATIONAL_COLORS = {
+  NOT_GENERATED: { bg: 'rgba(148,163,184,0.2)', color: '#E2E8F0' },
+  ACTIVE: { bg: 'rgba(16,185,129,0.22)', color: '#A7F3D0' },
+  REVIEW_REQUIRED: { bg: 'rgba(245,158,11,0.25)', color: '#FDE68A' },
+};
+
 const COMPATIBILITY_LABELS = {
   COMPATIBLE: 'Compatível com esta cidade',
   INCOMPATIBLE: 'Incompatível',
@@ -158,6 +180,7 @@ const EMPTY_DRIVER_PROTOCOLS = {
 const EMPTY_DRIVER_PROTOCOL_FORM = {
   driver_name: '',
   cpf_last4: '',
+  service_modality: '',
   vehicle_plate: '',
   vehicle_type: '',
   protocol_number: '',
@@ -300,6 +323,25 @@ function CompatibilityTag({ status }) {
   );
 }
 
+function AuthorizationOperationalTag({ state }) {
+  const normalizedState = state || 'NOT_GENERATED';
+  const cfg = AUTHORIZATION_OPERATIONAL_COLORS[normalizedState] || AUTHORIZATION_OPERATIONAL_COLORS.NOT_GENERATED;
+
+  return (
+    <Chip
+      size="small"
+      label={AUTHORIZATION_OPERATIONAL_LABELS[normalizedState] || AUTHORIZATION_OPERATIONAL_LABELS.NOT_GENERATED}
+      sx={{
+        fontWeight: 700,
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        borderRadius: '8px',
+        width: 'fit-content',
+      }}
+    />
+  );
+}
+
 function formatCompatibilityReason(reason, documentSummary) {
   if (reason === 'Motorista possui documentos obrigatórios pendentes para esta cidade.') {
     const missing = Number(documentSummary?.missing || 0);
@@ -387,6 +429,8 @@ export default function RegulatoryCitiesPage() {
   const [candidateQueryByCity, setCandidateQueryByCity] = useState({});
   const [candidateActionByCity, setCandidateActionByCity] = useState({});
   const [candidateSuccessByCity, setCandidateSuccessByCity] = useState({});
+  const [candidateServiceModalityByDriver, setCandidateServiceModalityByDriver] = useState({});
+  const [protocolAuthorizationActionByItem, setProtocolAuthorizationActionByItem] = useState({});
 
   const params = useMemo(() => {
     const next = {
@@ -773,6 +817,7 @@ export default function RegulatoryCitiesPage() {
   const toDriverProtocolPayload = (source) => ({
     driver_name: source.driver_name.trim(),
     cpf_last4: normalizeCpfLast4(source.cpf_last4) || null,
+    service_modality: source.service_modality || null,
     vehicle_plate: source.vehicle_plate.trim() || null,
     vehicle_type: source.vehicle_type.trim() || null,
     protocol_number: source.protocol_number.trim() || null,
@@ -845,6 +890,7 @@ export default function RegulatoryCitiesPage() {
     setInlineProtocolForm({
       driver_name: protocolItem.driver_name || '',
       cpf_last4: protocolItem.cpf_last4 || '',
+      service_modality: protocolItem.service_modality || '',
       vehicle_plate: protocolItem.vehicle_plate || '',
       vehicle_type: protocolItem.vehicle_type || '',
       protocol_number: protocolItem.protocol_number || '',
@@ -943,14 +989,26 @@ export default function RegulatoryCitiesPage() {
     await loadDriverCandidates(cityId, query);
   };
 
-  const createProtocolFromDriver = async (cityId, driverId) => {
+  const createProtocolFromDriver = async (cityId, driverId, compatibleModalities = []) => {
     setCandidateActionByCity((prev) => ({ ...prev, [cityId]: driverId }));
     setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: '' }));
     setCandidateSuccessByCity((prev) => ({ ...prev, [cityId]: '' }));
 
     try {
+      const driverKey = `${cityId}:${driverId}`;
+      const selectedServiceModality = candidateServiceModalityByDriver[driverKey] || null;
+
+      if (compatibleModalities.length > 1 && !selectedServiceModality) {
+        setCandidateErrorsByCity((prev) => ({
+          ...prev,
+          [cityId]: 'Selecione a modalidade municipal para gerar o protocolo deste motorista.',
+        }));
+        return;
+      }
+
       await api.post(`/api/admin/regulatory/cities/${cityId}/driver-protocols/from-driver`, {
         driverId,
+        serviceModality: selectedServiceModality || undefined,
       });
 
       await Promise.all([
@@ -970,6 +1028,25 @@ export default function RegulatoryCitiesPage() {
       setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: message }));
     } finally {
       setCandidateActionByCity((prev) => ({ ...prev, [cityId]: null }));
+    }
+  };
+
+  const generateMunicipalAuthorization = async (cityId, protocolItem) => {
+    setProtocolAuthorizationActionByItem((prev) => ({ ...prev, [protocolItem.id]: true }));
+    setProtocolsErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      await api.post(`/api/admin/regulatory/cities/${cityId}/driver-protocols/${protocolItem.id}/generate-authorization`);
+      await loadDriverProtocols(cityId);
+      setCandidateSuccessByCity((prev) => ({
+        ...prev,
+        [cityId]: 'Autorização municipal gerada com sucesso para o protocolo aprovado.',
+      }));
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível gerar autorização municipal para este protocolo.';
+      setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setProtocolAuthorizationActionByItem((prev) => ({ ...prev, [protocolItem.id]: false }));
     }
   };
 
@@ -1729,7 +1806,14 @@ export default function RegulatoryCitiesPage() {
                                           missing: 0,
                                           missingDocumentTypes: [],
                                         };
-                                        const canCreateProtocol = compatibility.compatible === true && !candidate.alreadyLinked;
+                                        const compatibleModalities = Array.isArray(compatibility.compatibleModalities)
+                                          ? compatibility.compatibleModalities
+                                          : [];
+                                        const candidateServiceModalityKey = `${item.id}:${candidate.id}`;
+                                        const selectedCandidateServiceModality = candidateServiceModalityByDriver[candidateServiceModalityKey] || '';
+                                        const requiresModalitySelection = compatibleModalities.length > 1;
+                                        const hasSelectedModality = !requiresModalitySelection || Boolean(selectedCandidateServiceModality);
+                                        const canCreateProtocol = compatibility.compatible === true && !candidate.alreadyLinked && hasSelectedModality;
                                         const isActionLoading = candidateActionByCity[item.id] === candidate.id;
                                         const cityStatusLabel = compatibility.cityMatch === true
                                           ? 'compatível'
@@ -1791,6 +1875,30 @@ export default function RegulatoryCitiesPage() {
                                             Modalidades compatíveis: {(compatibility.compatibleModalities || []).join(', ') || '-'}
                                           </Typography>
 
+                                          {requiresModalitySelection && (
+                                            <FormControl size="small" sx={{ minWidth: 240 }}>
+                                              <InputLabel sx={{ color: '#CBD5E1' }}>Modalidade para protocolo</InputLabel>
+                                              <Select
+                                                value={selectedCandidateServiceModality}
+                                                label="Modalidade para protocolo"
+                                                onChange={(event) => {
+                                                  const nextValue = event.target.value;
+                                                  setCandidateServiceModalityByDriver((prev) => ({
+                                                    ...prev,
+                                                    [candidateServiceModalityKey]: nextValue,
+                                                  }));
+                                                }}
+                                                sx={{ color: '#F8FAFC', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148,163,184,0.3)' } }}
+                                              >
+                                                {compatibleModalities.map((modality) => (
+                                                  <MenuItem key={`${candidate.id}-${modality}`} value={modality}>
+                                                    {MUNICIPAL_MODALITY_LABELS[modality] || modality}
+                                                  </MenuItem>
+                                                ))}
+                                              </Select>
+                                            </FormControl>
+                                          )}
+
                                           <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
                                             Documentos: {Number(documentSummary.submitted || 0) + Number(documentSummary.verified || 0)} de {documentSummary.required || 0} disponíveis
                                           </Typography>
@@ -1832,7 +1940,7 @@ export default function RegulatoryCitiesPage() {
                                             <Button
                                               size="small"
                                               variant="contained"
-                                              onClick={() => createProtocolFromDriver(item.id, candidate.id)}
+                                              onClick={() => createProtocolFromDriver(item.id, candidate.id, compatibleModalities)}
                                               disabled={!canCreateProtocol || isActionLoading}
                                               sx={{ bgcolor: '#0F766E', '&:hover': { bgcolor: '#115E59' }, color: '#F8FAFC' }}
                                             >
@@ -1843,6 +1951,8 @@ export default function RegulatoryCitiesPage() {
                                               <Typography sx={{ color: '#94A3B8', fontSize: 11.2, mt: 0.6 }}>
                                                 {candidate.alreadyLinked
                                                   ? 'Já existe protocolo para este motorista nesta cidade.'
+                                                  : requiresModalitySelection && !selectedCandidateServiceModality
+                                                    ? 'Selecione a modalidade municipal para gerar este protocolo.'
                                                   : compatibility.status === 'REVIEW_REQUIRED'
                                                     ? 'Criação automática bloqueada: revisão manual necessária.'
                                                     : 'Criação automática bloqueada até resolver as pendências.'}
@@ -1903,6 +2013,23 @@ export default function RegulatoryCitiesPage() {
                                     }
                                     sx={INLINE_DARK_FIELD_SX}
                                   />
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                  <FormControl fullWidth size="small" sx={INLINE_DARK_FIELD_SX}>
+                                    <InputLabel id={`create-driver-modality-${item.id}`}>Modalidade municipal</InputLabel>
+                                    <Select
+                                      labelId={`create-driver-modality-${item.id}`}
+                                      label="Modalidade municipal"
+                                      value={protocolForm.service_modality}
+                                      onChange={(event) => setProtocolForm((prev) => ({ ...prev, service_modality: event.target.value }))}
+                                      sx={INLINE_DARK_FIELD_SX}
+                                    >
+                                      <MenuItem value="">Não definida</MenuItem>
+                                      {MUNICIPAL_MODALITY_OPTIONS.map((modality) => (
+                                        <MenuItem key={`create-${item.id}-${modality}`} value={modality}>{MUNICIPAL_MODALITY_LABELS[modality] || modality}</MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
                                 </Grid>
                                 <Grid item xs={12} md={3}>
                                   <TextField
@@ -2064,6 +2191,18 @@ export default function RegulatoryCitiesPage() {
                                           Tipo: {protocolItem.vehicle_type || '-'}
                                         </Typography>
 
+                                        <Typography sx={{ color: '#CBD5E1', fontSize: 11.5 }}>
+                                          Modalidade municipal: {protocolItem.service_modality ? (MUNICIPAL_MODALITY_LABELS[protocolItem.service_modality] || protocolItem.service_modality) : '-'}
+                                        </Typography>
+
+                                        <AuthorizationOperationalTag state={protocolItem.authorizationOperational?.state} />
+
+                                        {protocolItem.authorizationOperational?.reason && (
+                                          <Typography sx={{ color: '#94A3B8', fontSize: 11.5, lineHeight: 1.45 }}>
+                                            {protocolItem.authorizationOperational.reason}
+                                          </Typography>
+                                        )}
+
                                         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                                           {protocolItem.submitted_at && (
                                             <Chip size="small" label={`Protocolado: ${formatDate(protocolItem.submitted_at)}`} sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(45,212,191,0.2)' }} />
@@ -2089,6 +2228,20 @@ export default function RegulatoryCitiesPage() {
                                           <Typography sx={{ color: '#CBD5E1', fontSize: 11.5, lineHeight: 1.45 }}>
                                             <strong>Observação:</strong> {protocolItem.notes}
                                           </Typography>
+                                        )}
+
+                                        {protocolItem.status === 'APPROVED' && protocolItem.driverId && protocolItem.authorizationOperational?.state !== 'ACTIVE' && (
+                                          <Box>
+                                            <Button
+                                              size="small"
+                                              variant="contained"
+                                              onClick={() => generateMunicipalAuthorization(item.id, protocolItem)}
+                                              disabled={Boolean(protocolAuthorizationActionByItem[protocolItem.id]) || !protocolItem.authorizationOperational?.canGenerate}
+                                              sx={{ bgcolor: '#0F766E', '&:hover': { bgcolor: '#115E59' }, color: '#F8FAFC' }}
+                                            >
+                                              {protocolAuthorizationActionByItem[protocolItem.id] ? 'Gerando autorização...' : 'Gerar autorização municipal'}
+                                            </Button>
+                                          </Box>
                                         )}
 
                                         {protocolEditing?.cityId === item.id && protocolEditing?.itemId === protocolItem.id ? (
@@ -2124,6 +2277,23 @@ export default function RegulatoryCitiesPage() {
                                                   }
                                                   sx={INLINE_DARK_FIELD_SX}
                                                 />
+                                              </Grid>
+                                              <Grid item xs={12} md={3}>
+                                                <FormControl fullWidth size="small" sx={INLINE_DARK_FIELD_SX}>
+                                                  <InputLabel id={`inline-driver-modality-${protocolItem.id}`}>Modalidade municipal</InputLabel>
+                                                  <Select
+                                                    labelId={`inline-driver-modality-${protocolItem.id}`}
+                                                    label="Modalidade municipal"
+                                                    value={inlineProtocolForm.service_modality}
+                                                    onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, service_modality: event.target.value }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
+                                                  >
+                                                    <MenuItem value="">Não definida</MenuItem>
+                                                    {MUNICIPAL_MODALITY_OPTIONS.map((modality) => (
+                                                      <MenuItem key={`inline-${protocolItem.id}-${modality}`} value={modality}>{MUNICIPAL_MODALITY_LABELS[modality] || modality}</MenuItem>
+                                                    ))}
+                                                  </Select>
+                                                </FormControl>
                                               </Grid>
                                               <Grid item xs={12} md={3}>
                                                 <TextField

@@ -5,6 +5,8 @@ import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import {
   evaluateDriverRegulatoryCompatibility,
+  getMunicipalRegulation,
+  MUNICIPAL_MODALITIES,
   mapDriverModalityToMunicipalModality,
   MunicipalModality,
 } from '../services/municipal-regulation.service';
@@ -40,6 +42,8 @@ const DRIVER_PROTOCOL_STATUSES = [
   'REJECTED',
   'NEEDS_COMPLEMENT',
 ] as const;
+
+const MUNICIPAL_MODALITY_OPTIONS = [...MUNICIPAL_MODALITIES] as [MunicipalModality, ...MunicipalModality[]];
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -113,6 +117,7 @@ const cpfLast4Schema = z
 const createDriverProtocolSchema = z.object({
   driver_name: z.string().trim().min(1).max(255),
   cpf_last4: cpfLast4Schema,
+  service_modality: z.enum(MUNICIPAL_MODALITY_OPTIONS).optional().nullable(),
   vehicle_plate: z.string().trim().max(16).optional().nullable(),
   vehicle_type: z.string().trim().max(60).optional().nullable(),
   protocol_number: z.string().trim().max(120).optional().nullable(),
@@ -128,6 +133,7 @@ const createDriverProtocolSchema = z.object({
 const updateDriverProtocolSchema = z.object({
   driver_name: z.string().trim().min(1).max(255).optional(),
   cpf_last4: cpfLast4Schema,
+  service_modality: z.enum(MUNICIPAL_MODALITY_OPTIONS).optional().nullable(),
   vehicle_plate: z.string().trim().max(16).optional().nullable(),
   vehicle_type: z.string().trim().max(60).optional().nullable(),
   protocol_number: z.string().trim().max(120).optional().nullable(),
@@ -149,6 +155,7 @@ const driverCandidatesQuerySchema = z.object({
 
 const createDriverProtocolFromDriverSchema = z.object({
   driverId: z.string().trim().min(1),
+  serviceModality: z.enum(MUNICIPAL_MODALITY_OPTIONS).optional(),
   status: z.enum(DRIVER_PROTOCOL_STATUSES).optional(),
   nextAction: z.string().trim().max(2000).optional().nullable(),
   notes: z.string().trim().max(8000).optional().nullable(),
@@ -281,6 +288,127 @@ function maskPhone(value: string | null | undefined): string | null {
 function buildModalitySummary(modalities: Array<{ modality: string; status: string }>): string | null {
   if (!modalities.length) return null;
   return modalities.map((item) => `${item.modality}:${item.status}`).join(' | ');
+}
+
+function normalizeServiceModality(value: unknown): MunicipalModality | null {
+  if (!value || typeof value !== 'string') return null;
+  const normalized = value.trim().toUpperCase();
+  return (MUNICIPAL_MODALITIES as readonly string[]).includes(normalized)
+    ? (normalized as MunicipalModality)
+    : null;
+}
+
+function hasValidMunicipalAuthorization(authorization: {
+  status: string;
+  approved_by_admin_id: string | null;
+  authorization_valid_until: Date | null;
+}): boolean {
+  const now = new Date();
+  return (
+    authorization.status === 'APPROVED_BY_CITY_HALL'
+    && Boolean(authorization.approved_by_admin_id)
+    && (!authorization.authorization_valid_until || authorization.authorization_valid_until >= now)
+  );
+}
+
+type AuthorizationOperationalState = {
+  state: 'NOT_GENERATED' | 'ACTIVE' | 'REVIEW_REQUIRED';
+  label: 'Autorização ainda não gerada' | 'Autorização municipal ativa' | 'Autorização exige revisão';
+  canGenerate: boolean;
+  reason: string | null;
+  authorizationId: string | null;
+};
+
+function buildAuthorizationOperationalState(input: {
+  driverId: string | null;
+  protocolStatus: string;
+  protocolNumber: string | null;
+  serviceModality: MunicipalModality | null;
+  hasActiveRegulation: boolean;
+  authorization: {
+    id: string;
+    status: string;
+    approved_by_admin_id: string | null;
+    authorization_valid_until: Date | null;
+  } | null;
+}): AuthorizationOperationalState {
+  if (!input.driverId) {
+    return {
+      state: 'REVIEW_REQUIRED',
+      label: 'Autorização exige revisão',
+      canGenerate: false,
+      reason: 'Protocolo não está vinculado a um motorista real.',
+      authorizationId: null,
+    };
+  }
+
+  if (input.authorization && hasValidMunicipalAuthorization(input.authorization)) {
+    return {
+      state: 'ACTIVE',
+      label: 'Autorização municipal ativa',
+      canGenerate: false,
+      reason: null,
+      authorizationId: input.authorization.id,
+    };
+  }
+
+  if (input.authorization) {
+    return {
+      state: 'REVIEW_REQUIRED',
+      label: 'Autorização exige revisão',
+      canGenerate: false,
+      reason: 'Já existe uma autorização municipal para esta modalidade e cidade.',
+      authorizationId: input.authorization.id,
+    };
+  }
+
+  if (input.protocolStatus !== 'APPROVED') {
+    return {
+      state: 'NOT_GENERATED',
+      label: 'Autorização ainda não gerada',
+      canGenerate: false,
+      reason: 'A autorização só pode ser gerada para protocolo aprovado.',
+      authorizationId: null,
+    };
+  }
+
+  if (!input.protocolNumber) {
+    return {
+      state: 'NOT_GENERATED',
+      label: 'Autorização ainda não gerada',
+      canGenerate: false,
+      reason: 'Informe o número do protocolo municipal antes de gerar a autorização operacional.',
+      authorizationId: null,
+    };
+  }
+
+  if (!input.serviceModality) {
+    return {
+      state: 'NOT_GENERATED',
+      label: 'Autorização ainda não gerada',
+      canGenerate: false,
+      reason: 'Defina a modalidade municipal no protocolo antes de gerar autorização.',
+      authorizationId: null,
+    };
+  }
+
+  if (!input.hasActiveRegulation) {
+    return {
+      state: 'REVIEW_REQUIRED',
+      label: 'Autorização exige revisão',
+      canGenerate: false,
+      reason: 'Não existe regra municipal ativa para cidade/UF/modalidade deste protocolo.',
+      authorizationId: null,
+    };
+  }
+
+  return {
+    state: 'NOT_GENERATED',
+    label: 'Autorização ainda não gerada',
+    canGenerate: true,
+    reason: null,
+    authorizationId: null,
+  };
 }
 
 router.use(authenticateAdmin, requireSuperAdmin);
@@ -779,12 +907,87 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
       orderBy: [{ created_at: 'desc' }],
     });
 
-    const items = rawItems.map((item) => ({
-      ...item,
-      linkedDriver: Boolean(item.driver_id),
-      driverId: item.driver_id || null,
-      documentSummary: null,
-    }));
+    const linkedDriverIds = Array.from(
+      new Set(rawItems.map((item) => item.driver_id).filter((driverId): driverId is string => Boolean(driverId))),
+    );
+
+    const modalitiesInProtocols = Array.from(
+      new Set(
+        rawItems
+          .map((item) => normalizeServiceModality(item.service_modality))
+          .filter((modality): modality is MunicipalModality => Boolean(modality)),
+      ),
+    );
+
+    const regulations = modalitiesInProtocols.length > 0
+      ? await prisma.municipal_regulations.findMany({
+          where: {
+            city: { equals: city.city, mode: 'insensitive' },
+            state: { equals: city.state, mode: 'insensitive' },
+            service_modality: { in: modalitiesInProtocols },
+            is_active: true,
+          },
+          select: {
+            id: true,
+            service_modality: true,
+          },
+        })
+      : [];
+
+    const regulationByModality = new Map(
+      regulations.map((regulation) => [regulation.service_modality as MunicipalModality, regulation.id]),
+    );
+
+    const authorizations = linkedDriverIds.length > 0
+      ? await prisma.municipal_authorizations.findMany({
+          where: {
+            driver_id: { in: linkedDriverIds },
+            city: { equals: city.city, mode: 'insensitive' },
+            state: { equals: city.state, mode: 'insensitive' },
+          },
+          select: {
+            id: true,
+            driver_id: true,
+            service_modality: true,
+            status: true,
+            approved_by_admin_id: true,
+            authorization_valid_until: true,
+          },
+        })
+      : [];
+
+    const authorizationByDriverAndModality = new Map(
+      authorizations.map((authorization) => [
+        `${authorization.driver_id}:${authorization.service_modality}`,
+        authorization,
+      ]),
+    );
+
+    const items = rawItems.map((item) => {
+      const serviceModality = normalizeServiceModality(item.service_modality);
+      const regulationId = serviceModality ? regulationByModality.get(serviceModality) || null : null;
+      const authorization = item.driver_id && serviceModality
+        ? authorizationByDriverAndModality.get(`${item.driver_id}:${serviceModality}`) || null
+        : null;
+
+      const authorizationOperational = buildAuthorizationOperationalState({
+        driverId: item.driver_id || null,
+        protocolStatus: item.status,
+        protocolNumber: asNullable(item.protocol_number),
+        serviceModality,
+        hasActiveRegulation: Boolean(regulationId),
+        authorization,
+      });
+
+      return {
+        ...item,
+        linkedDriver: Boolean(item.driver_id),
+        driverId: item.driver_id || null,
+        service_modality: serviceModality,
+        authorizationOperational,
+        documentSummary: null,
+      };
+    });
 
     return res.json({
       success: true,
@@ -1133,6 +1336,40 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
       });
     }
 
+    const compatibleModalities = compatibility.compatibleModalities || [];
+    if (compatibleModalities.length === 0) {
+      return res.status(422).json({
+        success: false,
+        error: 'Motorista ainda não possui modalidade municipal compatível para protocolo automático.',
+        code: 'DRIVER_MODALITY_INCOMPATIBLE',
+      });
+    }
+
+    let protocolServiceModality: MunicipalModality | null = null;
+    if (compatibleModalities.length === 1) {
+      protocolServiceModality = compatibleModalities[0];
+    } else {
+      if (!payload.serviceModality) {
+        return res.status(422).json({
+          success: false,
+          error: 'Selecione a modalidade municipal para gerar o protocolo deste motorista.',
+          code: 'DRIVER_MODALITY_SELECTION_REQUIRED',
+          compatibleModalities,
+        });
+      }
+
+      if (!compatibleModalities.includes(payload.serviceModality)) {
+        return res.status(422).json({
+          success: false,
+          error: 'A modalidade selecionada não é compatível com este motorista nesta cidade.',
+          code: 'DRIVER_MODALITY_INVALID',
+          compatibleModalities,
+        });
+      }
+
+      protocolServiceModality = payload.serviceModality;
+    }
+
     const approvedModality = driver.driver_modalities.find((item) => item.status === 'APPROVED');
     const status = payload.status || 'PREPARING';
     let submittedAt: Date | null = null;
@@ -1155,6 +1392,7 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
       data: {
         case_id: city.id,
         driver_id: driver.id,
+        service_modality: protocolServiceModality,
         driver_name: driver.name,
         cpf_last4: deriveCpfLast4FromCpf(driver.document_cpf),
         vehicle_plate: driver.vehicle_plate || approvedModality?.vehicle_plate || null,
@@ -1199,6 +1437,210 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
   }
 });
 
+// POST /api/admin/regulatory/cities/:id/driver-protocols/:protocolId/generate-authorization
+router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-authorization', async (req: Request, res: Response) => {
+  try {
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, city: true, state: true, department_name: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const protocol = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: {
+        id: req.params.protocolId,
+        case_id: city.id,
+      },
+    });
+
+    if (!protocol) {
+      return res.status(404).json({ success: false, error: 'Protocolo de motorista não encontrado.' });
+    }
+
+    if (!protocol.driver_id) {
+      return res.status(409).json({
+        success: false,
+        error: 'Somente protocolos vinculados a motorista real podem gerar autorização municipal.',
+        code: 'PROTOCOL_DRIVER_REQUIRED',
+      });
+    }
+
+    if (protocol.status !== 'APPROVED') {
+      return res.status(409).json({
+        success: false,
+        error: 'A autorização municipal só pode ser gerada para protocolo aprovado.',
+        code: 'PROTOCOL_NOT_APPROVED',
+      });
+    }
+
+    if (!asNullable(protocol.protocol_number)) {
+      return res.status(409).json({
+        success: false,
+        error: 'Informe o número do protocolo municipal antes de gerar a autorização operacional.',
+        code: 'PROTOCOL_NUMBER_REQUIRED',
+      });
+    }
+
+    const serviceModality = normalizeServiceModality(protocol.service_modality);
+    if (!serviceModality) {
+      return res.status(409).json({
+        success: false,
+        error: 'Defina a modalidade municipal no protocolo antes de gerar autorização.',
+        code: 'PROTOCOL_MODALITY_REQUIRED',
+      });
+    }
+
+    const driver = await prisma.drivers.findUnique({
+      where: { id: protocol.driver_id },
+      select: { id: true },
+    });
+
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista do protocolo não encontrado.' });
+    }
+
+    const regulation = await getMunicipalRegulation(city.city, city.state, serviceModality);
+    if (!regulation) {
+      return res.status(409).json({
+        success: false,
+        error: 'Não existe regra municipal ativa para cidade/UF/modalidade deste protocolo.',
+        code: 'MUNICIPAL_REGULATION_NOT_FOUND',
+      });
+    }
+
+    const existingAuthorization = await prisma.municipal_authorizations.findFirst({
+      where: {
+        driver_id: driver.id,
+        city: { equals: city.city, mode: 'insensitive' },
+        state: { equals: city.state, mode: 'insensitive' },
+        service_modality: serviceModality,
+      },
+      select: {
+        id: true,
+        status: true,
+        approved_by_admin_id: true,
+        authorization_valid_until: true,
+      },
+    });
+
+    if (existingAuthorization) {
+      if (hasValidMunicipalAuthorization(existingAuthorization)) {
+        return res.json({
+          success: true,
+          data: {
+            authorizationId: existingAuthorization.id,
+            idempotent: true,
+            status: existingAuthorization.status,
+          },
+          message: 'Autorização municipal já estava ativa para este protocolo.',
+        });
+      }
+
+      return res.status(409).json({
+        success: false,
+        error: 'Já existe autorização municipal para este motorista e modalidade. Revise o registro atual antes de gerar outra.',
+        code: 'AUTHORIZATION_ALREADY_EXISTS_REVIEW_REQUIRED',
+      });
+    }
+
+    const admin = (req as any).admin;
+    let createdAuthorization: any;
+
+    try {
+      createdAuthorization = await prisma.municipal_authorizations.create({
+        data: {
+          driver_id: driver.id,
+          regulation_id: regulation.id,
+          city: city.city,
+          state: city.state,
+          service_modality: serviceModality,
+          status: 'APPROVED_BY_CITY_HALL',
+          protocol_number: protocol.protocol_number || null,
+          protocol_date: protocol.submitted_at || protocol.approved_at || new Date(),
+          protocol_agency: city.department_name || null,
+          city_hall_notes: 'Autorização gerada a partir de protocolo aprovado no CRM regulatório por cidade.',
+          submitted_by_admin_id: admin?.id || null,
+          approved_by_admin_id: admin?.id || null,
+        },
+        select: {
+          id: true,
+          status: true,
+          approved_by_admin_id: true,
+        },
+      });
+    } catch (error) {
+      const isConcurrentDuplicate =
+        (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+        || (typeof error === 'object' && error !== null && (error as any).code === 'P2002');
+
+      if (isConcurrentDuplicate) {
+        const concurrentAuthorization = await prisma.municipal_authorizations.findFirst({
+          where: {
+            driver_id: driver.id,
+            city: { equals: city.city, mode: 'insensitive' },
+            state: { equals: city.state, mode: 'insensitive' },
+            service_modality: serviceModality,
+          },
+          select: {
+            id: true,
+            status: true,
+            approved_by_admin_id: true,
+            authorization_valid_until: true,
+          },
+        });
+
+        if (concurrentAuthorization && hasValidMunicipalAuthorization(concurrentAuthorization)) {
+          return res.json({
+            success: true,
+            data: {
+              authorizationId: concurrentAuthorization.id,
+              idempotent: true,
+              status: concurrentAuthorization.status,
+            },
+            message: 'Autorização municipal já foi gerada por outra operação concorrente.',
+          });
+        }
+      }
+
+      throw error;
+    }
+
+    await prisma.municipal_package_audit_logs.create({
+      data: {
+        driver_id: driver.id,
+        authorization_id: createdAuthorization.id,
+        action: 'STATUS_CHANGED',
+        actor_admin_id: admin?.id || null,
+        metadata: {
+          source: 'regulatory_city_protocol_approved',
+          protocol_id: protocol.id,
+          case_id: city.id,
+          city: city.city,
+          state: city.state,
+          service_modality: serviceModality,
+          from_status: null,
+          to_status: 'APPROVED_BY_CITY_HALL',
+        },
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        authorizationId: createdAuthorization.id,
+        idempotent: false,
+        status: createdAuthorization.status,
+        approvedByAdminId: createdAuthorization.approved_by_admin_id,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Não foi possível gerar autorização municipal a partir do protocolo aprovado.' });
+  }
+});
+
 // POST /api/admin/regulatory/cities/:id/driver-protocols
 router.post('/regulatory/cities/:id/driver-protocols', async (req: Request, res: Response) => {
   try {
@@ -1240,6 +1682,7 @@ router.post('/regulatory/cities/:id/driver-protocols', async (req: Request, res:
     const created = await prisma.municipal_regulatory_driver_protocols.create({
       data: {
         case_id: city.id,
+        service_modality: payload.service_modality || null,
         driver_name: payload.driver_name,
         cpf_last4: normalizeCpfLast4(payload.cpf_last4),
         vehicle_plate: asNullable(payload.vehicle_plate),
@@ -1285,6 +1728,7 @@ router.patch('/regulatory/cities/:id/driver-protocols/:protocolId', async (req: 
 
     if (payload.driver_name !== undefined) data.driver_name = payload.driver_name;
     if (payload.cpf_last4 !== undefined) data.cpf_last4 = normalizeCpfLast4(payload.cpf_last4);
+    if (payload.service_modality !== undefined) data.service_modality = payload.service_modality || null;
     if (payload.vehicle_plate !== undefined) data.vehicle_plate = asNullable(payload.vehicle_plate);
     if (payload.vehicle_type !== undefined) data.vehicle_type = asNullable(payload.vehicle_type);
     if (payload.protocol_number !== undefined) data.protocol_number = asNullable(payload.protocol_number);

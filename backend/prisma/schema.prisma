@@ -1453,6 +1453,7 @@ model municipal_regulatory_driver_protocols {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   case_id           String    @db.Uuid
   driver_id         String?
+  service_modality  MunicipalServiceModality?
   driver_name       String
   cpf_last4         String?   @db.VarChar(4)
   vehicle_plate     String?   @db.VarChar(16)
@@ -1474,6 +1475,7 @@ model municipal_regulatory_driver_protocols {
   @@index([case_id, status])
   @@index([case_id, created_at])
   @@index([case_id, driver_id])
+  @@index([case_id, service_modality])
   @@index([next_follow_up_at])
   @@index([protocol_number])
   @@unique([case_id, driver_id])
