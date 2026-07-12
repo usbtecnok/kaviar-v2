@@ -25,6 +25,16 @@ const CHECKLIST_STATUSES = [
   'NOT_APPLICABLE',
 ] as const;
 
+const DRIVER_PROTOCOL_STATUSES = [
+  'PREPARING',
+  'READY_TO_SUBMIT',
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'REJECTED',
+  'NEEDS_COMPLEMENT',
+] as const;
+
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   page: z.coerce.number().int().min(1).default(1),
@@ -84,6 +94,44 @@ const updateChecklistItemSchema = z.object({
   sort_order: z.coerce.number().int().min(0).optional(),
   notes: z.string().trim().max(8000).optional().nullable(),
   due_date: z.coerce.date().optional().nullable(),
+});
+
+const cpfLast4Schema = z
+  .string()
+  .trim()
+  .max(4, 'CPF final deve ter no máximo 4 dígitos.')
+  .regex(/^\d{1,4}$/, 'CPF final deve conter apenas dígitos.')
+  .optional()
+  .nullable();
+
+const createDriverProtocolSchema = z.object({
+  driver_name: z.string().trim().min(1).max(255),
+  cpf_last4: cpfLast4Schema,
+  vehicle_plate: z.string().trim().max(16).optional().nullable(),
+  vehicle_type: z.string().trim().max(60).optional().nullable(),
+  protocol_number: z.string().trim().max(120).optional().nullable(),
+  status: z.enum(DRIVER_PROTOCOL_STATUSES).optional(),
+  next_action: z.string().trim().max(2000).optional().nullable(),
+  notes: z.string().trim().max(8000).optional().nullable(),
+  submitted_at: z.coerce.date().optional().nullable(),
+  approved_at: z.coerce.date().optional().nullable(),
+  rejected_at: z.coerce.date().optional().nullable(),
+  next_follow_up_at: z.coerce.date().optional().nullable(),
+});
+
+const updateDriverProtocolSchema = z.object({
+  driver_name: z.string().trim().min(1).max(255).optional(),
+  cpf_last4: cpfLast4Schema,
+  vehicle_plate: z.string().trim().max(16).optional().nullable(),
+  vehicle_type: z.string().trim().max(60).optional().nullable(),
+  protocol_number: z.string().trim().max(120).optional().nullable(),
+  status: z.enum(DRIVER_PROTOCOL_STATUSES).optional(),
+  next_action: z.string().trim().max(2000).optional().nullable(),
+  notes: z.string().trim().max(8000).optional().nullable(),
+  submitted_at: z.coerce.date().optional().nullable(),
+  approved_at: z.coerce.date().optional().nullable(),
+  rejected_at: z.coerce.date().optional().nullable(),
+  next_follow_up_at: z.coerce.date().optional().nullable(),
 });
 
 const SANTA_RITA_TRANSPORT_TEMPLATE = [
@@ -183,6 +231,12 @@ function buildSnippet(value: string | null | undefined, maxLength = 160): string
 
 function isChecklistDone(status: unknown): boolean {
   return status === 'DONE';
+}
+
+function normalizeCpfLast4(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 router.use(authenticateAdmin, requireSuperAdmin);
@@ -661,6 +715,198 @@ router.post('/regulatory/cities/:id/checklist/template/app-transport', async (re
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Erro ao aplicar modelo de checklist.' });
+  }
+});
+
+// GET /api/admin/regulatory/cities/:id/driver-protocols
+router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: Response) => {
+  try {
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, city: true, state: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const items = await prisma.municipal_regulatory_driver_protocols.findMany({
+      where: { case_id: city.id },
+      orderBy: [{ created_at: 'desc' }],
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        city,
+        items,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao listar protocolos por motorista.' });
+  }
+});
+
+// POST /api/admin/regulatory/cities/:id/driver-protocols
+router.post('/regulatory/cities/:id/driver-protocols', async (req: Request, res: Response) => {
+  try {
+    const payload = createDriverProtocolSchema.parse(req.body);
+
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const status = payload.status || 'PREPARING';
+    let submittedAt = payload.submitted_at ?? null;
+    let approvedAt = payload.approved_at ?? null;
+    let rejectedAt = payload.rejected_at ?? null;
+
+    if (status === 'SUBMITTED' && !submittedAt) {
+      submittedAt = new Date();
+    }
+
+    if (status === 'APPROVED') {
+      if (!approvedAt) approvedAt = new Date();
+      rejectedAt = null;
+    }
+
+    if (status === 'REJECTED') {
+      if (!rejectedAt) rejectedAt = new Date();
+      approvedAt = null;
+    }
+
+    if (status !== 'APPROVED' && status !== 'REJECTED') {
+      approvedAt = null;
+      rejectedAt = null;
+    }
+
+    const created = await prisma.municipal_regulatory_driver_protocols.create({
+      data: {
+        case_id: city.id,
+        driver_name: payload.driver_name,
+        cpf_last4: normalizeCpfLast4(payload.cpf_last4),
+        vehicle_plate: asNullable(payload.vehicle_plate),
+        vehicle_type: asNullable(payload.vehicle_type),
+        protocol_number: asNullable(payload.protocol_number),
+        status,
+        next_action: asNullable(payload.next_action),
+        notes: asNullable(payload.notes),
+        submitted_at: submittedAt,
+        approved_at: approvedAt,
+        rejected_at: rejectedAt,
+        next_follow_up_at: payload.next_follow_up_at ?? null,
+      },
+    });
+
+    return res.status(201).json({ success: true, data: created });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Payload inválido.' });
+    }
+
+    return res.status(500).json({ success: false, error: 'Erro ao criar protocolo de motorista.' });
+  }
+});
+
+// PATCH /api/admin/regulatory/cities/:id/driver-protocols/:protocolId
+router.patch('/regulatory/cities/:id/driver-protocols/:protocolId', async (req: Request, res: Response) => {
+  try {
+    const payload = updateDriverProtocolSchema.parse(req.body);
+
+    const existing = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: {
+        id: req.params.protocolId,
+        case_id: req.params.id,
+      },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Protocolo de motorista não encontrado.' });
+    }
+
+    const data: any = {};
+
+    if (payload.driver_name !== undefined) data.driver_name = payload.driver_name;
+    if (payload.cpf_last4 !== undefined) data.cpf_last4 = normalizeCpfLast4(payload.cpf_last4);
+    if (payload.vehicle_plate !== undefined) data.vehicle_plate = asNullable(payload.vehicle_plate);
+    if (payload.vehicle_type !== undefined) data.vehicle_type = asNullable(payload.vehicle_type);
+    if (payload.protocol_number !== undefined) data.protocol_number = asNullable(payload.protocol_number);
+    if (payload.status !== undefined) data.status = payload.status;
+    if (payload.next_action !== undefined) data.next_action = asNullable(payload.next_action);
+    if (payload.notes !== undefined) data.notes = asNullable(payload.notes);
+    if (payload.submitted_at !== undefined) data.submitted_at = payload.submitted_at;
+    if (payload.approved_at !== undefined) data.approved_at = payload.approved_at;
+    if (payload.rejected_at !== undefined) data.rejected_at = payload.rejected_at;
+    if (payload.next_follow_up_at !== undefined) data.next_follow_up_at = payload.next_follow_up_at;
+
+    const nextStatus = payload.status || existing.status;
+
+    if (nextStatus === 'SUBMITTED' && data.submitted_at === undefined && !existing.submitted_at) {
+      data.submitted_at = new Date();
+    }
+
+    if (nextStatus === 'APPROVED') {
+      if (data.approved_at === undefined && !existing.approved_at) {
+        data.approved_at = new Date();
+      }
+    } else if (payload.status !== undefined) {
+      data.approved_at = null;
+    }
+
+    if (nextStatus === 'REJECTED') {
+      if (data.rejected_at === undefined && !existing.rejected_at) {
+        data.rejected_at = new Date();
+      }
+    } else if (payload.status !== undefined) {
+      data.rejected_at = null;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhuma alteração enviada.' });
+    }
+
+    const updated = await prisma.municipal_regulatory_driver_protocols.update({
+      where: { id: existing.id },
+      data,
+    });
+
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Payload inválido.' });
+    }
+
+    return res.status(500).json({ success: false, error: 'Erro ao atualizar protocolo de motorista.' });
+  }
+});
+
+// DELETE /api/admin/regulatory/cities/:id/driver-protocols/:protocolId
+router.delete('/regulatory/cities/:id/driver-protocols/:protocolId', async (req: Request, res: Response) => {
+  try {
+    const existing = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: {
+        id: req.params.protocolId,
+        case_id: req.params.id,
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Protocolo de motorista não encontrado.' });
+    }
+
+    await prisma.municipal_regulatory_driver_protocols.delete({
+      where: { id: existing.id },
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao excluir protocolo de motorista.' });
   }
 });
 

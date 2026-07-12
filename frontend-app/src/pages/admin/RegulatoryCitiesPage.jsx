@@ -79,6 +79,36 @@ const CHECKLIST_STATUS_COLORS = {
   NOT_APPLICABLE: { bg: '#E5E7EB', color: '#374151' },
 };
 
+const DRIVER_PROTOCOL_STATUS_OPTIONS = [
+  'PREPARING',
+  'READY_TO_SUBMIT',
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'REJECTED',
+  'NEEDS_COMPLEMENT',
+];
+
+const DRIVER_PROTOCOL_STATUS_LABELS = {
+  PREPARING: 'Preparando documentação',
+  READY_TO_SUBMIT: 'Pronto para protocolar',
+  SUBMITTED: 'Protocolado',
+  UNDER_REVIEW: 'Em análise',
+  APPROVED: 'Aprovado',
+  REJECTED: 'Rejeitado',
+  NEEDS_COMPLEMENT: 'Exige complementação',
+};
+
+const DRIVER_PROTOCOL_STATUS_COLORS = {
+  PREPARING: { bg: '#E2E8F0', color: '#334155' },
+  READY_TO_SUBMIT: { bg: '#DBEAFE', color: '#1E40AF' },
+  SUBMITTED: { bg: '#CCFBF1', color: '#0F766E' },
+  UNDER_REVIEW: { bg: '#FEF3C7', color: '#92400E' },
+  APPROVED: { bg: '#DCFCE7', color: '#166534' },
+  REJECTED: { bg: '#FEE2E2', color: '#991B1B' },
+  NEEDS_COMPLEMENT: { bg: '#FCE7F3', color: '#9D174D' },
+};
+
 const PAGE_SIZE = 12;
 
 const EMPTY_FORM = {
@@ -106,6 +136,26 @@ const EMPTY_COMMUNICATIONS = {
 const EMPTY_CHECKLIST = {
   city: null,
   items: [],
+};
+
+const EMPTY_DRIVER_PROTOCOLS = {
+  city: null,
+  items: [],
+};
+
+const EMPTY_DRIVER_PROTOCOL_FORM = {
+  driver_name: '',
+  cpf_last4: '',
+  vehicle_plate: '',
+  vehicle_type: '',
+  protocol_number: '',
+  status: 'PREPARING',
+  next_action: '',
+  notes: '',
+  submitted_at: '',
+  approved_at: '',
+  rejected_at: '',
+  next_follow_up_at: '',
 };
 
 const INLINE_DARK_FIELD_SX = {
@@ -204,6 +254,22 @@ function StatusTag({ status }) {
   );
 }
 
+function DriverProtocolStatusTag({ status }) {
+  const cfg = DRIVER_PROTOCOL_STATUS_COLORS[status] || { bg: '#E2E8F0', color: '#334155' };
+  return (
+    <Chip
+      size="small"
+      label={DRIVER_PROTOCOL_STATUS_LABELS[status] || status}
+      sx={{
+        fontWeight: 700,
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        borderRadius: '8px',
+      }}
+    />
+  );
+}
+
 export default function RegulatoryCitiesPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -260,6 +326,18 @@ export default function RegulatoryCitiesPage() {
     due_date: '',
   });
   const [inlineChecklistSaving, setInlineChecklistSaving] = useState(false);
+  const [expandedProtocolsId, setExpandedProtocolsId] = useState(null);
+  const [protocolsByCity, setProtocolsByCity] = useState({});
+  const [protocolsLoadingByCity, setProtocolsLoadingByCity] = useState({});
+  const [protocolsLoadedByCity, setProtocolsLoadedByCity] = useState({});
+  const [protocolsErrors, setProtocolsErrors] = useState({});
+  const [protocolCreateCityId, setProtocolCreateCityId] = useState(null);
+  const [protocolForm, setProtocolForm] = useState(EMPTY_DRIVER_PROTOCOL_FORM);
+  const [protocolEditing, setProtocolEditing] = useState(null);
+  const [inlineProtocolForm, setInlineProtocolForm] = useState(EMPTY_DRIVER_PROTOCOL_FORM);
+  const [protocolSaving, setProtocolSaving] = useState(false);
+  const [protocolActionId, setProtocolActionId] = useState(null);
+  const [protocolSavedByItem, setProtocolSavedByItem] = useState({});
 
   const params = useMemo(() => {
     const next = {
@@ -610,6 +688,176 @@ export default function RegulatoryCitiesPage() {
     }
   };
 
+  const loadDriverProtocols = async (cityId) => {
+    setProtocolsLoadingByCity((prev) => ({ ...prev, [cityId]: true }));
+    setProtocolsErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      const response = await api.get(`/api/admin/regulatory/cities/${cityId}/driver-protocols`);
+      setProtocolsByCity((prev) => ({
+        ...prev,
+        [cityId]: response.data?.data || EMPTY_DRIVER_PROTOCOLS,
+      }));
+      setProtocolsLoadedByCity((prev) => ({ ...prev, [cityId]: true }));
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível carregar os protocolos por motorista.';
+      setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setProtocolsLoadingByCity((prev) => ({ ...prev, [cityId]: false }));
+    }
+  };
+
+  const toggleDriverProtocols = async (cityId) => {
+    if (expandedProtocolsId === cityId) {
+      setExpandedProtocolsId(null);
+      return;
+    }
+
+    setExpandedProtocolsId(cityId);
+    if (!protocolsByCity[cityId]) {
+      await loadDriverProtocols(cityId);
+    }
+  };
+
+  const normalizeCpfLast4 = (value) => value.replace(/\D/g, '').slice(0, 4);
+
+  const toDriverProtocolPayload = (source) => ({
+    driver_name: source.driver_name.trim(),
+    cpf_last4: normalizeCpfLast4(source.cpf_last4) || null,
+    vehicle_plate: source.vehicle_plate.trim() || null,
+    vehicle_type: source.vehicle_type.trim() || null,
+    protocol_number: source.protocol_number.trim() || null,
+    status: source.status,
+    next_action: source.next_action.trim() || null,
+    notes: source.notes.trim() || null,
+    submitted_at: toPayloadDatetime(source.submitted_at),
+    approved_at: toPayloadDatetime(source.approved_at),
+    rejected_at: toPayloadDatetime(source.rejected_at),
+    next_follow_up_at: toPayloadDatetime(source.next_follow_up_at),
+  });
+
+  const patchDriverProtocolLocally = (cityId, updatedItem) => {
+    setProtocolsByCity((prev) => {
+      const cityProtocols = prev[cityId];
+      if (!cityProtocols) return prev;
+
+      const nextItems = cityProtocols.items.map((currentItem) =>
+        currentItem.id === updatedItem.id ? updatedItem : currentItem,
+      );
+
+      return {
+        ...prev,
+        [cityId]: {
+          ...cityProtocols,
+          items: nextItems,
+        },
+      };
+    });
+  };
+
+  const markDriverProtocolSaved = (itemId) => {
+    setProtocolSavedByItem((prev) => ({ ...prev, [itemId]: true }));
+    setTimeout(() => {
+      setProtocolSavedByItem((prev) => ({ ...prev, [itemId]: false }));
+    }, 1800);
+  };
+
+  const openDriverProtocolCreate = (cityId) => {
+    setProtocolCreateCityId(cityId);
+    setProtocolForm(EMPTY_DRIVER_PROTOCOL_FORM);
+  };
+
+  const cancelDriverProtocolCreate = () => {
+    if (protocolSaving) return;
+    setProtocolCreateCityId(null);
+    setProtocolForm(EMPTY_DRIVER_PROTOCOL_FORM);
+  };
+
+  const submitDriverProtocolForm = async (cityId) => {
+    setProtocolSaving(true);
+    setProtocolsErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      const payload = toDriverProtocolPayload(protocolForm);
+      await api.post(`/api/admin/regulatory/cities/${cityId}/driver-protocols`, payload);
+      setProtocolCreateCityId(null);
+      setProtocolForm(EMPTY_DRIVER_PROTOCOL_FORM);
+      await loadDriverProtocols(cityId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível salvar o protocolo.';
+      setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setProtocolSaving(false);
+    }
+  };
+
+  const startInlineProtocolEdit = (cityId, protocolItem) => {
+    setProtocolEditing({ cityId, itemId: protocolItem.id });
+    setInlineProtocolForm({
+      driver_name: protocolItem.driver_name || '',
+      cpf_last4: protocolItem.cpf_last4 || '',
+      vehicle_plate: protocolItem.vehicle_plate || '',
+      vehicle_type: protocolItem.vehicle_type || '',
+      protocol_number: protocolItem.protocol_number || '',
+      status: protocolItem.status || 'PREPARING',
+      next_action: protocolItem.next_action || '',
+      notes: protocolItem.notes || '',
+      submitted_at: toDatetimeLocal(protocolItem.submitted_at),
+      approved_at: toDatetimeLocal(protocolItem.approved_at),
+      rejected_at: toDatetimeLocal(protocolItem.rejected_at),
+      next_follow_up_at: toDatetimeLocal(protocolItem.next_follow_up_at),
+    });
+  };
+
+  const cancelInlineProtocolEdit = () => {
+    if (protocolSaving) return;
+    setProtocolEditing(null);
+  };
+
+  const saveInlineDriverProtocol = async (cityId, itemId) => {
+    setProtocolSaving(true);
+    setProtocolActionId(itemId);
+    setProtocolsErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      const payload = toDriverProtocolPayload(inlineProtocolForm);
+      const response = await api.patch(`/api/admin/regulatory/cities/${cityId}/driver-protocols/${itemId}`, payload);
+      const updatedItem = response?.data?.data;
+
+      if (updatedItem?.id) {
+        patchDriverProtocolLocally(cityId, updatedItem);
+      } else {
+        await loadDriverProtocols(cityId);
+      }
+
+      setProtocolEditing(null);
+      markDriverProtocolSaved(itemId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível salvar o protocolo.';
+      setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setProtocolSaving(false);
+      setProtocolActionId(null);
+    }
+  };
+
+  const deleteDriverProtocol = async (cityId, protocolItem) => {
+    if (!window.confirm(`Excluir protocolo de ${protocolItem.driver_name}?`)) return;
+
+    setProtocolActionId(protocolItem.id);
+    setProtocolsErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      await api.delete(`/api/admin/regulatory/cities/${cityId}/driver-protocols/${protocolItem.id}`);
+      await loadDriverProtocols(cityId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível excluir protocolo de motorista.';
+      setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setProtocolActionId(null);
+    }
+  };
+
   const toggleCommunications = async (cityId) => {
     if (expandedCommunicationsId === cityId) {
       setExpandedCommunicationsId(null);
@@ -793,6 +1041,16 @@ export default function RegulatoryCitiesPage() {
                           sx={{ bgcolor: '#334155', color: '#F8FAFC', '&:hover': { bgcolor: '#1E293B' } }}
                         >
                           {checklistLoadingByCity[item.id] ? 'Carregando...' : 'Ver checklist'}
+                        </Button>
+
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => toggleDriverProtocols(item.id)}
+                          disabled={Boolean(protocolsLoadingByCity[item.id])}
+                          sx={{ bgcolor: '#0F766E', color: '#F8FAFC', '&:hover': { bgcolor: '#115E59' } }}
+                        >
+                          {protocolsLoadingByCity[item.id] ? 'Carregando...' : 'Ver protocolos / motoristas'}
                         </Button>
                       </Stack>
 
@@ -1212,6 +1470,473 @@ export default function RegulatoryCitiesPage() {
                                             </>
                                           )}
                                         </Stack>
+                                      </Stack>
+                                    </Box>
+                                  ))}
+                                </Stack>
+                              )}
+                            </Stack>
+                          )}
+                        </Box>
+                      )}
+
+                      {expandedProtocolsId === item.id && (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            borderRadius: 2,
+                            bgcolor: '#0B1324',
+                            color: '#E5E7EB',
+                            border: '1px solid rgba(148,163,184,0.18)',
+                            p: 1.5,
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center" sx={{ mb: 1.25, flexWrap: 'wrap', gap: 1 }}>
+                            <Box>
+                              <Typography sx={{ fontWeight: 800, color: '#F8FAFC', fontSize: 14 }}>
+                                Protocolos / Motoristas
+                              </Typography>
+                              <Typography sx={{ color: '#94A3B8', fontSize: 11.5 }}>
+                                Evite inserir CPF completo ou documentos sensíveis nesta etapa.
+                              </Typography>
+                            </Box>
+
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => openDriverProtocolCreate(item.id)}
+                              disabled={protocolCreateCityId === item.id}
+                              sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.25)' }}
+                            >
+                              Adicionar motorista
+                            </Button>
+                          </Stack>
+
+                          {protocolsErrors[item.id] && (
+                            <Alert severity="error" sx={{ mb: 1.25 }}>
+                              {protocolsErrors[item.id]}
+                            </Alert>
+                          )}
+
+                          {!protocolsErrors[item.id] && protocolsLoadingByCity[item.id] && !protocolsLoadedByCity[item.id] && (
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1.5 }}>
+                              <CircularProgress size={20} sx={{ color: '#B8942E' }} />
+                              <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                Carregando protocolos...
+                              </Typography>
+                            </Stack>
+                          )}
+
+                          {!protocolsErrors[item.id] && protocolCreateCityId === item.id && (
+                            <Box
+                              sx={{
+                                width: '100%',
+                                borderRadius: 1.25,
+                                border: '1px solid rgba(148,163,184,0.2)',
+                                bgcolor: 'rgba(15,23,42,0.55)',
+                                p: 0.95,
+                                mb: 1.25,
+                              }}
+                            >
+                              <Grid container spacing={0.9}>
+                                <Grid item xs={12} md={4}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Motorista"
+                                    value={protocolForm.driver_name}
+                                    onChange={(event) => setProtocolForm((prev) => ({ ...prev, driver_name: event.target.value }))}
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={2}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="CPF final"
+                                    inputProps={{ maxLength: 4 }}
+                                    value={protocolForm.cpf_last4}
+                                    onChange={(event) =>
+                                      setProtocolForm((prev) => ({ ...prev, cpf_last4: normalizeCpfLast4(event.target.value) }))
+                                    }
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Placa"
+                                    value={protocolForm.vehicle_plate}
+                                    onChange={(event) => setProtocolForm((prev) => ({ ...prev, vehicle_plate: event.target.value.toUpperCase() }))}
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={3}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Tipo de veículo"
+                                    value={protocolForm.vehicle_type}
+                                    onChange={(event) => setProtocolForm((prev) => ({ ...prev, vehicle_type: event.target.value }))}
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Número do protocolo"
+                                    value={protocolForm.protocol_number}
+                                    onChange={(event) => setProtocolForm((prev) => ({ ...prev, protocol_number: event.target.value }))}
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                  <FormControl fullWidth size="small" sx={INLINE_DARK_FIELD_SX}>
+                                    <InputLabel id={`create-driver-status-${item.id}`}>Status</InputLabel>
+                                    <Select
+                                      labelId={`create-driver-status-${item.id}`}
+                                      label="Status"
+                                      value={protocolForm.status}
+                                      onChange={(event) => setProtocolForm((prev) => ({ ...prev, status: event.target.value }))}
+                                      sx={INLINE_DARK_FIELD_SX}
+                                    >
+                                      {DRIVER_PROTOCOL_STATUS_OPTIONS.map((status) => (
+                                        <MenuItem key={status} value={status}>{DRIVER_PROTOCOL_STATUS_LABELS[status]}</MenuItem>
+                                      ))}
+                                    </Select>
+                                  </FormControl>
+                                </Grid>
+                                <Grid item xs={12} md={4}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    type="datetime-local"
+                                    label="Próximo acompanhamento"
+                                    InputLabelProps={{ shrink: true }}
+                                    value={protocolForm.next_follow_up_at}
+                                    onChange={(event) => setProtocolForm((prev) => ({ ...prev, next_follow_up_at: event.target.value }))}
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                                <Grid item xs={12}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    label="Próxima ação"
+                                    value={protocolForm.next_action}
+                                    onChange={(event) => setProtocolForm((prev) => ({ ...prev, next_action: event.target.value }))}
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                                <Grid item xs={12}>
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    multiline
+                                    minRows={2}
+                                    maxRows={4}
+                                    label="Observações"
+                                    value={protocolForm.notes}
+                                    onChange={(event) => setProtocolForm((prev) => ({ ...prev, notes: event.target.value }))}
+                                    sx={INLINE_DARK_FIELD_SX}
+                                  />
+                                </Grid>
+                              </Grid>
+
+                              <Stack direction="row" spacing={1} sx={{ mt: 0.9, flexWrap: 'wrap' }}>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => submitDriverProtocolForm(item.id)}
+                                  disabled={protocolSaving || !protocolForm.driver_name.trim()}
+                                  sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' }, color: '#111827' }}
+                                >
+                                  {protocolSaving ? 'Salvando...' : 'Salvar protocolo'}
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  onClick={cancelDriverProtocolCreate}
+                                  disabled={protocolSaving}
+                                  sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.22)' }}
+                                >
+                                  Cancelar
+                                </Button>
+                              </Stack>
+                            </Box>
+                          )}
+
+                          {!protocolsErrors[item.id] && protocolsLoadedByCity[item.id] && protocolsByCity[item.id] && (
+                            <Stack spacing={1.1}>
+                              {protocolsByCity[item.id].items.length === 0 ? (
+                                <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                  Nenhum protocolo de motorista cadastrado para esta cidade.
+                                </Typography>
+                              ) : (
+                                <Stack spacing={1}>
+                                  {protocolsByCity[item.id].items.map((protocolItem) => (
+                                    <Box
+                                      key={protocolItem.id}
+                                      sx={{
+                                        borderRadius: 1.5,
+                                        bgcolor: 'rgba(30,41,59,0.92)',
+                                        p: 1.1,
+                                        border: '1px solid rgba(148,163,184,0.1)',
+                                      }}
+                                    >
+                                      <Stack spacing={0.9}>
+                                        <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                                          <Box>
+                                            <Typography sx={{ color: '#F8FAFC', fontWeight: 700, fontSize: 12.8, lineHeight: 1.35 }}>
+                                              {protocolItem.driver_name}
+                                            </Typography>
+                                            <Typography sx={{ color: '#94A3B8', fontSize: 11.25, mt: 0.25 }}>
+                                              CPF final: {protocolItem.cpf_last4 || '-'}
+                                              {' · '}
+                                              Placa: {protocolItem.vehicle_plate || '-'}
+                                            </Typography>
+                                          </Box>
+
+                                          <DriverProtocolStatusTag status={protocolItem.status} />
+                                        </Stack>
+
+                                        <Typography sx={{ color: '#CBD5E1', fontSize: 11.5 }}>
+                                          Protocolo: {protocolItem.protocol_number || '-'}
+                                          {' · '}
+                                          Tipo: {protocolItem.vehicle_type || '-'}
+                                        </Typography>
+
+                                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                          {protocolItem.submitted_at && (
+                                            <Chip size="small" label={`Protocolado: ${formatDate(protocolItem.submitted_at)}`} sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(45,212,191,0.2)' }} />
+                                          )}
+                                          {protocolItem.approved_at && (
+                                            <Chip size="small" label={`Aprovado: ${formatDate(protocolItem.approved_at)}`} sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(16,185,129,0.2)' }} />
+                                          )}
+                                          {protocolItem.rejected_at && (
+                                            <Chip size="small" label={`Rejeitado: ${formatDate(protocolItem.rejected_at)}`} sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(239,68,68,0.2)' }} />
+                                          )}
+                                          {protocolItem.next_follow_up_at && (
+                                            <Chip size="small" label={`Follow-up: ${formatDate(protocolItem.next_follow_up_at)}`} sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(59,130,246,0.2)' }} />
+                                          )}
+                                        </Stack>
+
+                                        {protocolItem.next_action && (
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.5, lineHeight: 1.45 }}>
+                                            <strong>Próxima ação:</strong> {protocolItem.next_action}
+                                          </Typography>
+                                        )}
+
+                                        {protocolItem.notes && (
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.5, lineHeight: 1.45 }}>
+                                            <strong>Observação:</strong> {protocolItem.notes}
+                                          </Typography>
+                                        )}
+
+                                        {protocolEditing?.cityId === item.id && protocolEditing?.itemId === protocolItem.id ? (
+                                          <Box
+                                            sx={{
+                                              width: '100%',
+                                              borderRadius: 1.25,
+                                              border: '1px solid rgba(148,163,184,0.2)',
+                                              bgcolor: 'rgba(15,23,42,0.55)',
+                                              p: 0.95,
+                                            }}
+                                          >
+                                            <Grid container spacing={0.9}>
+                                              <Grid item xs={12} md={4}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  label="Motorista"
+                                                  value={inlineProtocolForm.driver_name}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, driver_name: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={2}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  label="CPF final"
+                                                  inputProps={{ maxLength: 4 }}
+                                                  value={inlineProtocolForm.cpf_last4}
+                                                  onChange={(event) =>
+                                                    setInlineProtocolForm((prev) => ({ ...prev, cpf_last4: normalizeCpfLast4(event.target.value) }))
+                                                  }
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={3}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  label="Placa"
+                                                  value={inlineProtocolForm.vehicle_plate}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, vehicle_plate: event.target.value.toUpperCase() }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={3}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  label="Tipo de veículo"
+                                                  value={inlineProtocolForm.vehicle_type}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, vehicle_type: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={4}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  label="Número do protocolo"
+                                                  value={inlineProtocolForm.protocol_number}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, protocol_number: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={4}>
+                                                <FormControl fullWidth size="small" sx={INLINE_DARK_FIELD_SX}>
+                                                  <InputLabel id={`inline-driver-status-${protocolItem.id}`}>Status</InputLabel>
+                                                  <Select
+                                                    labelId={`inline-driver-status-${protocolItem.id}`}
+                                                    label="Status"
+                                                    value={inlineProtocolForm.status}
+                                                    onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, status: event.target.value }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
+                                                  >
+                                                    {DRIVER_PROTOCOL_STATUS_OPTIONS.map((status) => (
+                                                      <MenuItem key={status} value={status}>{DRIVER_PROTOCOL_STATUS_LABELS[status]}</MenuItem>
+                                                    ))}
+                                                  </Select>
+                                                </FormControl>
+                                              </Grid>
+                                              <Grid item xs={12} md={4}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  type="datetime-local"
+                                                  label="Próximo acompanhamento"
+                                                  InputLabelProps={{ shrink: true }}
+                                                  value={inlineProtocolForm.next_follow_up_at}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, next_follow_up_at: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={4}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  type="datetime-local"
+                                                  label="Data protocolo"
+                                                  InputLabelProps={{ shrink: true }}
+                                                  value={inlineProtocolForm.submitted_at}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, submitted_at: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={4}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  type="datetime-local"
+                                                  label="Data aprovação"
+                                                  InputLabelProps={{ shrink: true }}
+                                                  value={inlineProtocolForm.approved_at}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, approved_at: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12} md={4}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  type="datetime-local"
+                                                  label="Data rejeição"
+                                                  InputLabelProps={{ shrink: true }}
+                                                  value={inlineProtocolForm.rejected_at}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, rejected_at: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  label="Próxima ação"
+                                                  value={inlineProtocolForm.next_action}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, next_action: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                              <Grid item xs={12}>
+                                                <TextField
+                                                  fullWidth
+                                                  size="small"
+                                                  multiline
+                                                  minRows={2}
+                                                  maxRows={4}
+                                                  label="Observações"
+                                                  value={inlineProtocolForm.notes}
+                                                  onChange={(event) => setInlineProtocolForm((prev) => ({ ...prev, notes: event.target.value }))}
+                                                  sx={INLINE_DARK_FIELD_SX}
+                                                />
+                                              </Grid>
+                                            </Grid>
+
+                                            <Stack direction="row" spacing={1} sx={{ mt: 0.9, flexWrap: 'wrap' }}>
+                                              <Button
+                                                size="small"
+                                                variant="contained"
+                                                onClick={() => saveInlineDriverProtocol(item.id, protocolItem.id)}
+                                                disabled={protocolSaving || !inlineProtocolForm.driver_name.trim()}
+                                                sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' }, color: '#111827' }}
+                                              >
+                                                {protocolSaving ? 'Salvando...' : 'Salvar alterações'}
+                                              </Button>
+                                              <Button
+                                                size="small"
+                                                variant="outlined"
+                                                onClick={cancelInlineProtocolEdit}
+                                                disabled={protocolSaving}
+                                                sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.22)' }}
+                                              >
+                                                Cancelar
+                                              </Button>
+                                            </Stack>
+                                          </Box>
+                                        ) : (
+                                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              startIcon={<Edit fontSize="small" />}
+                                              onClick={() => startInlineProtocolEdit(item.id, protocolItem)}
+                                              sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.22)' }}
+                                            >
+                                              Editar
+                                            </Button>
+
+                                            <Button
+                                              size="small"
+                                              variant="outlined"
+                                              color="error"
+                                              startIcon={<DeleteOutline fontSize="small" />}
+                                              onClick={() => deleteDriverProtocol(item.id, protocolItem)}
+                                              disabled={protocolActionId === protocolItem.id}
+                                            >
+                                              Excluir
+                                            </Button>
+
+                                            <Typography sx={{ color: '#94A3B8', fontSize: 11.5, alignSelf: 'center' }}>
+                                              {protocolActionId === protocolItem.id ? 'Salvando...' : protocolSavedByItem[protocolItem.id] ? 'Protocolo salvo.' : ''}
+                                            </Typography>
+                                          </Stack>
+                                        )}
                                       </Stack>
                                     </Box>
                                   ))}
