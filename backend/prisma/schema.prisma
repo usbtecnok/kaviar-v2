@@ -1416,6 +1416,7 @@ model municipal_regulatory_cases {
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
   checklist_items     municipal_regulatory_checklist_items[]
+  driver_protocols    municipal_regulatory_driver_protocols[]
 
   @@index([status, updated_at])
   @@index([state, city])
@@ -1445,6 +1446,33 @@ model municipal_regulatory_checklist_items {
   @@index([case_id, status])
   @@index([due_date])
   @@map("municipal_regulatory_checklist_items")
+}
+
+model municipal_regulatory_driver_protocols {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  case_id           String    @db.Uuid
+  driver_name       String
+  cpf_last4         String?   @db.VarChar(4)
+  vehicle_plate     String?   @db.VarChar(16)
+  vehicle_type      String?   @db.VarChar(60)
+  protocol_number   String?   @db.VarChar(120)
+  status            String    @default("PREPARING") @db.VarChar(32)
+  next_action       String?
+  notes             String?
+  submitted_at      DateTime?
+  approved_at       DateTime?
+  rejected_at       DateTime?
+  next_follow_up_at DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  case municipal_regulatory_cases @relation(fields: [case_id], references: [id], onDelete: Cascade)
+
+  @@index([case_id, status])
+  @@index([case_id, created_at])
+  @@index([next_follow_up_at])
+  @@index([protocol_number])
+  @@map("municipal_regulatory_driver_protocols")
 }
 
 model email_send_logs {
