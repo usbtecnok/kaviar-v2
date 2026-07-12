@@ -1397,6 +1397,32 @@ model municipal_regulatory_consultation_logs {
   @@index([protocol_code])
 }
 
+model municipal_regulatory_cases {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  city                String    @db.VarChar(120)
+  state               String    @db.VarChar(2)
+  status              String    @default("NOT_STARTED") @db.VarChar(32)
+  department_name     String?   @db.VarChar(255)
+  contact_name        String?   @db.VarChar(255)
+  contact_email       String?   @db.VarChar(255)
+  contact_phone       String?   @db.VarChar(40)
+  last_sent_at        DateTime?
+  last_response_at    DateTime?
+  next_follow_up_at   DateTime?
+  next_action         String?
+  notes               String?
+  created_by_admin_id String?   @db.Uuid
+  updated_by_admin_id String?   @db.Uuid
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  @@index([status, updated_at])
+  @@index([state, city])
+  @@index([next_follow_up_at])
+  @@index([created_at])
+  @@map("municipal_regulatory_cases")
+}
+
 model email_send_logs {
   id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   created_at           DateTime @default(now())
