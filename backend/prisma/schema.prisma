@@ -270,6 +270,7 @@ model drivers {
   fixed_routes                driver_fixed_routes[]
   municipal_authorizations    municipal_authorizations[]
   municipal_package_audit_logs municipal_package_audit_logs[]
+  municipal_regulatory_driver_protocols municipal_regulatory_driver_protocols[]
 
   // Women matching preference
   women_matching_opt_in              Boolean   @default(false)
@@ -1451,6 +1452,7 @@ model municipal_regulatory_checklist_items {
 model municipal_regulatory_driver_protocols {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   case_id           String    @db.Uuid
+  driver_id         String?
   driver_name       String
   cpf_last4         String?   @db.VarChar(4)
   vehicle_plate     String?   @db.VarChar(16)
@@ -1466,12 +1468,15 @@ model municipal_regulatory_driver_protocols {
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
-  case municipal_regulatory_cases @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  case   municipal_regulatory_cases @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  driver drivers?                   @relation(fields: [driver_id], references: [id], onDelete: SetNull)
 
   @@index([case_id, status])
   @@index([case_id, created_at])
+  @@index([case_id, driver_id])
   @@index([next_follow_up_at])
   @@index([protocol_number])
+  @@unique([case_id, driver_id])
   @@map("municipal_regulatory_driver_protocols")
 }
 
