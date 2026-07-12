@@ -12,7 +12,10 @@ vi.mock('../src/lib/prisma', () => ({
 
 import { prisma } from '../src/lib/prisma';
 import {
+  MUNICIPAL_AUTHORIZATION_EXPIRING_SOON_DAYS,
+  addCalendarMonthsUtc,
   canDriverOperateInMunicipality,
+  evaluateMunicipalAuthorizationValidity,
   evaluateDriverRegulatoryCompatibility,
   getDriverMunicipalStatus,
   getMunicipalRegulation,
@@ -33,6 +36,102 @@ beforeEach(() => {
 });
 
 describe('municipal regulation service', () => {
+  it('evaluateMunicipalAuthorizationValidity retorna ACTIVE quando aprovação não tem prazo final', () => {
+    const result = evaluateMunicipalAuthorizationValidity({
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: null,
+      now: new Date('2026-07-12T12:00:00.000Z'),
+    });
+
+    expect(result.state).toBe('ACTIVE');
+    expect(result.isOperationallyValid).toBe(true);
+    expect(result.daysUntilExpiry).toBeNull();
+    expect(result.validUntil).toBeNull();
+  });
+
+  it('evaluateMunicipalAuthorizationValidity retorna ACTIVE para prazo acima de 30 dias', () => {
+    const result = evaluateMunicipalAuthorizationValidity({
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: new Date('2026-09-30T00:00:00.000Z'),
+      now: new Date('2026-07-12T10:00:00.000Z'),
+    });
+
+    expect(result.state).toBe('ACTIVE');
+    expect(result.isOperationallyValid).toBe(true);
+    expect(result.daysUntilExpiry).toBeGreaterThan(MUNICIPAL_AUTHORIZATION_EXPIRING_SOON_DAYS);
+  });
+
+  it('evaluateMunicipalAuthorizationValidity retorna EXPIRING_SOON quando faltam exatamente 30 dias', () => {
+    const result = evaluateMunicipalAuthorizationValidity({
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: new Date('2026-08-11T00:00:00.000Z'),
+      now: new Date('2026-07-12T09:00:00.000Z'),
+    });
+
+    expect(result.state).toBe('EXPIRING_SOON');
+    expect(result.isOperationallyValid).toBe(true);
+    expect(result.daysUntilExpiry).toBe(30);
+  });
+
+  it('evaluateMunicipalAuthorizationValidity mantém validade operacional no mesmo dia (semântica date-only)', () => {
+    const result = evaluateMunicipalAuthorizationValidity({
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: new Date('2026-07-12T00:00:00.000Z'),
+      now: new Date('2026-07-12T23:30:00.000Z'),
+    });
+
+    expect(result.state).toBe('EXPIRING_SOON');
+    expect(result.isOperationallyValid).toBe(true);
+    expect(result.daysUntilExpiry).toBe(0);
+  });
+
+  it('evaluateMunicipalAuthorizationValidity retorna EXPIRED quando validade foi ontem', () => {
+    const result = evaluateMunicipalAuthorizationValidity({
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: new Date('2026-07-11T00:00:00.000Z'),
+      now: new Date('2026-07-12T08:00:00.000Z'),
+    });
+
+    expect(result.state).toBe('EXPIRED');
+    expect(result.isOperationallyValid).toBe(false);
+    expect(result.daysUntilExpiry).toBe(-1);
+  });
+
+  it('evaluateMunicipalAuthorizationValidity retorna INACTIVE para status diferente de APPROVED_BY_CITY_HALL', () => {
+    const result = evaluateMunicipalAuthorizationValidity({
+      status: 'DOCUMENTS_PENDING',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: null,
+      now: new Date('2026-07-12T08:00:00.000Z'),
+    });
+
+    expect(result.state).toBe('INACTIVE');
+    expect(result.isOperationallyValid).toBe(false);
+  });
+
+  it('evaluateMunicipalAuthorizationValidity retorna INACTIVE sem approved_by_admin_id', () => {
+    const result = evaluateMunicipalAuthorizationValidity({
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: null,
+      authorization_valid_until: null,
+      now: new Date('2026-07-12T08:00:00.000Z'),
+    });
+
+    expect(result.state).toBe('INACTIVE');
+    expect(result.isOperationallyValid).toBe(false);
+  });
+
+  it('addCalendarMonthsUtc aplica clamp para último dia do mês', () => {
+    expect(addCalendarMonthsUtc(new Date('2026-01-31T00:00:00.000Z'), 1).toISOString()).toBe('2026-02-28T00:00:00.000Z');
+    expect(addCalendarMonthsUtc(new Date('2024-01-31T00:00:00.000Z'), 1).toISOString()).toBe('2024-02-29T00:00:00.000Z');
+    expect(addCalendarMonthsUtc(new Date('2026-07-12T00:00:00.000Z'), 12).toISOString()).toBe('2027-07-12T00:00:00.000Z');
+  });
+
   it('getMunicipalRegulation retorna regra ativa da cidade/modalidade', async () => {
     mockFindRegulation.mockResolvedValue({ id: 'reg-1', city: 'Santa Rita do Passa Quatro', state: 'SP', service_modality: 'CAR', requirements: [] });
 
@@ -204,6 +303,97 @@ describe('municipal regulation service', () => {
     const resultActive = await canDriverOperateInMunicipality('driver-1', 'Cidade Livre', 'SP', 'CAR');
 
     expect(resultActive.allowed).toBe(true);
+  });
+
+  it('getDriverMunicipalStatus bloqueia autorização vencida com reason específico', async () => {
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindDocuments.mockResolvedValue([]);
+    mockFindAuthorization.mockResolvedValue({
+      id: 'auth-expired',
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+      regulation: {
+        id: 'reg-1',
+        requires_city_approval: true,
+        requirements: [],
+      },
+    });
+
+    const result = await getDriverMunicipalStatus('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.authorizationValidityState).toBe('EXPIRED');
+    expect(result.canOperateMunicipally).toBe(false);
+    expect(result.reason).toBe('Autorização municipal vencida.');
+  });
+
+  it('canDriverOperateInMunicipality bloqueia autorização vencida', async () => {
+    mockFindDriver.mockResolvedValue({ id: 'driver-1', status: 'approved' });
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindDocuments.mockResolvedValue([]);
+    mockFindAuthorization.mockResolvedValue({
+      id: 'auth-expired',
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+      regulation: {
+        id: 'reg-1',
+        requires_city_approval: true,
+        requirements: [],
+      },
+    });
+
+    const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('Autorização municipal vencida.');
+  });
+
+  it('canDriverOperateInMunicipality permite operação para autorização expiring soon', async () => {
+    mockFindDriver.mockResolvedValue({ id: 'driver-1', status: 'approved' });
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindDocuments.mockResolvedValue([]);
+    mockFindAuthorization.mockResolvedValue({
+      id: 'auth-expiring',
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: new Date('2999-12-31T00:00:00.000Z'),
+      regulation: {
+        id: 'reg-1',
+        requires_city_approval: true,
+        requirements: [],
+      },
+    });
+
+    const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBeNull();
+    expect(['ACTIVE', 'EXPIRING_SOON']).toContain(result.municipal?.authorizationValidityState);
   });
 
   it('avalia COMPATIBLE para motorista aprovado da mesma cidade com modalidade e documentos mínimos', async () => {

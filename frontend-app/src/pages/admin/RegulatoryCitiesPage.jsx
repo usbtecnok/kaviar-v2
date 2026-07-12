@@ -122,12 +122,16 @@ const MUNICIPAL_MODALITY_LABELS = {
 const AUTHORIZATION_OPERATIONAL_LABELS = {
   NOT_GENERATED: 'Autorização ainda não gerada',
   ACTIVE: 'Autorização municipal ativa',
+  EXPIRING_SOON: 'Autorização vence em breve',
+  EXPIRED: 'Autorização municipal vencida',
   REVIEW_REQUIRED: 'Autorização exige revisão',
 };
 
 const AUTHORIZATION_OPERATIONAL_COLORS = {
   NOT_GENERATED: { bg: 'rgba(148,163,184,0.2)', color: '#E2E8F0' },
   ACTIVE: { bg: 'rgba(16,185,129,0.22)', color: '#A7F3D0' },
+  EXPIRING_SOON: { bg: 'rgba(245,158,11,0.25)', color: '#FDE68A' },
+  EXPIRED: { bg: 'rgba(239,68,68,0.24)', color: '#FECACA' },
   REVIEW_REQUIRED: { bg: 'rgba(245,158,11,0.25)', color: '#FDE68A' },
 };
 
@@ -254,6 +258,18 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleDateString('pt-BR');
+}
+
+function formatDateOnly(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const year = date.getUTCFullYear();
+
+  return `${day}/${month}/${year}`;
 }
 
 function ChecklistStatusTag({ status }) {
@@ -2203,6 +2219,29 @@ export default function RegulatoryCitiesPage() {
                                           </Typography>
                                         )}
 
+                                        {(protocolItem.authorizationOperational?.state === 'ACTIVE' || protocolItem.authorizationOperational?.state === 'EXPIRING_SOON') && (
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.5, lineHeight: 1.45 }}>
+                                            <strong>Validade municipal:</strong>{' '}
+                                            {protocolItem.authorizationOperational?.validUntil
+                                              ? formatDateOnly(protocolItem.authorizationOperational.validUntil)
+                                              : 'sem prazo definido'}
+                                          </Typography>
+                                        )}
+
+                                        {protocolItem.authorizationOperational?.state === 'EXPIRING_SOON' && typeof protocolItem.authorizationOperational?.daysUntilExpiry === 'number' && (
+                                          <Typography sx={{ color: '#FDE68A', fontSize: 11.5, lineHeight: 1.45 }}>
+                                            {protocolItem.authorizationOperational.daysUntilExpiry === 0
+                                              ? 'Vence hoje'
+                                              : `Vence em ${protocolItem.authorizationOperational.daysUntilExpiry} dias`}
+                                          </Typography>
+                                        )}
+
+                                        {protocolItem.authorizationOperational?.state === 'EXPIRED' && (
+                                          <Typography sx={{ color: '#FECACA', fontSize: 11.5, lineHeight: 1.45 }}>
+                                            Operação municipal bloqueada até renovação.
+                                          </Typography>
+                                        )}
+
                                         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                                           {protocolItem.submitted_at && (
                                             <Chip size="small" label={`Protocolado: ${formatDate(protocolItem.submitted_at)}`} sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(45,212,191,0.2)' }} />
@@ -2230,13 +2269,13 @@ export default function RegulatoryCitiesPage() {
                                           </Typography>
                                         )}
 
-                                        {protocolItem.status === 'APPROVED' && protocolItem.driverId && protocolItem.authorizationOperational?.state !== 'ACTIVE' && (
+                                        {protocolItem.status === 'APPROVED' && protocolItem.driverId && protocolItem.authorizationOperational?.canGenerate && (
                                           <Box>
                                             <Button
                                               size="small"
                                               variant="contained"
                                               onClick={() => generateMunicipalAuthorization(item.id, protocolItem)}
-                                              disabled={Boolean(protocolAuthorizationActionByItem[protocolItem.id]) || !protocolItem.authorizationOperational?.canGenerate}
+                                              disabled={Boolean(protocolAuthorizationActionByItem[protocolItem.id])}
                                               sx={{ bgcolor: '#0F766E', '&:hover': { bgcolor: '#115E59' }, color: '#F8FAFC' }}
                                             >
                                               {protocolAuthorizationActionByItem[protocolItem.id] ? 'Gerando autorização...' : 'Gerar autorização municipal'}

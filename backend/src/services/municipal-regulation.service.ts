@@ -2,6 +2,17 @@ import { prisma } from '../lib/prisma';
 
 export const MUNICIPAL_MODALITIES = ['CAR', 'MOTO_PASSENGER', 'MOTO_DELIVERY', 'TAXI', 'VAN'] as const;
 export type MunicipalModality = (typeof MUNICIPAL_MODALITIES)[number];
+export const MUNICIPAL_AUTHORIZATION_EXPIRING_SOON_DAYS = 30;
+export const MUNICIPAL_OPERATION_TIME_ZONE = 'America/Sao_Paulo';
+export type MunicipalAuthorizationValidityState = 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'INACTIVE';
+export type CivilDateParts = { year: number; month: number; day: number };
+
+export type MunicipalAuthorizationValidityEvaluation = {
+  state: MunicipalAuthorizationValidityState;
+  validUntil: Date | null;
+  daysUntilExpiry: number | null;
+  isOperationallyValid: boolean;
+};
 export type DriverRegulatoryCompatibilityStatus = 'COMPATIBLE' | 'INCOMPATIBLE' | 'REVIEW_REQUIRED';
 
 export type DriverRegulatoryDocumentSummary = {
@@ -56,6 +67,143 @@ export function mapDriverModalityToMunicipalModality(modality: string | null | u
   if (normalized === 'VAN' || normalized.startsWith('VAN')) return 'VAN';
 
   return null;
+}
+
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
+
+function parseDateOnlyUtc(value: Date): Date {
+  return startOfUtcDay(value);
+}
+
+function diffDaysUtc(fromInclusive: Date, toInclusive: Date): number {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const from = startOfUtcDay(fromInclusive).getTime();
+  const to = startOfUtcDay(toInclusive).getTime();
+  return Math.floor((to - from) / dayMs);
+}
+
+function daysInMonthUtc(year: number, monthIndex: number): number {
+  return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+}
+
+function buildUtcDateFromCivilDateParts(parts: CivilDateParts): Date {
+  return new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+}
+
+export function getDatePartsInTimeZone(date: Date, timeZone = MUNICIPAL_OPERATION_TIME_ZONE): CivilDateParts {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+
+  const parts = formatter.formatToParts(date);
+  const mapped = new Map(parts.map((part) => [part.type, part.value]));
+
+  const year = Number(mapped.get('year'));
+  const month = Number(mapped.get('month'));
+  const day = Number(mapped.get('day'));
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    throw new Error(`Unable to extract civil date parts for timezone ${timeZone}`);
+  }
+
+  return { year, month, day };
+}
+
+export function addCalendarMonthsToCivilDate(parts: CivilDateParts, monthsToAdd: number): CivilDateParts {
+  const targetMonthTotal = (parts.month - 1) + monthsToAdd;
+  const targetYear = parts.year + Math.floor(targetMonthTotal / 12);
+  const targetMonthIndex = ((targetMonthTotal % 12) + 12) % 12;
+  const clampedDay = Math.min(parts.day, daysInMonthUtc(targetYear, targetMonthIndex));
+
+  return {
+    year: targetYear,
+    month: targetMonthIndex + 1,
+    day: clampedDay,
+  };
+}
+
+export function addCalendarMonthsUtc(date: Date, monthsToAdd: number): Date {
+  const sourceParts: CivilDateParts = {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+  };
+  const targetParts = addCalendarMonthsToCivilDate(sourceParts, monthsToAdd);
+
+  return buildUtcDateFromCivilDateParts(targetParts);
+}
+
+export function calculateMunicipalAuthorizationValidUntilFromApprovalInstant(
+  approvedAt: Date,
+  validityMonths: number,
+  timeZone = MUNICIPAL_OPERATION_TIME_ZONE,
+): Date {
+  const approvalCivilDate = getDatePartsInTimeZone(approvedAt, timeZone);
+  const validUntilCivilDate = addCalendarMonthsToCivilDate(approvalCivilDate, validityMonths);
+
+  return buildUtcDateFromCivilDateParts(validUntilCivilDate);
+}
+
+export function evaluateMunicipalAuthorizationValidity(input: {
+  status: string | null | undefined;
+  approved_by_admin_id: string | null | undefined;
+  authorization_valid_until: Date | null | undefined;
+  now?: Date;
+}): MunicipalAuthorizationValidityEvaluation {
+  const isApprovedByCityHall = input.status === 'APPROVED_BY_CITY_HALL';
+  const hasApprover = Boolean(input.approved_by_admin_id);
+
+  if (!isApprovedByCityHall || !hasApprover) {
+    return {
+      state: 'INACTIVE',
+      validUntil: input.authorization_valid_until || null,
+      daysUntilExpiry: null,
+      isOperationallyValid: false,
+    };
+  }
+
+  if (!input.authorization_valid_until) {
+    return {
+      state: 'ACTIVE',
+      validUntil: null,
+      daysUntilExpiry: null,
+      isOperationallyValid: true,
+    };
+  }
+
+  const todayUtc = startOfUtcDay(input.now || new Date());
+  const validUntilUtc = parseDateOnlyUtc(input.authorization_valid_until);
+  const daysUntilExpiry = diffDaysUtc(todayUtc, validUntilUtc);
+
+  if (daysUntilExpiry < 0) {
+    return {
+      state: 'EXPIRED',
+      validUntil: validUntilUtc,
+      daysUntilExpiry,
+      isOperationallyValid: false,
+    };
+  }
+
+  if (daysUntilExpiry <= MUNICIPAL_AUTHORIZATION_EXPIRING_SOON_DAYS) {
+    return {
+      state: 'EXPIRING_SOON',
+      validUntil: validUntilUtc,
+      daysUntilExpiry,
+      isOperationallyValid: true,
+    };
+  }
+
+  return {
+    state: 'ACTIVE',
+    validUntil: validUntilUtc,
+    daysUntilExpiry,
+    isOperationallyValid: true,
+  };
 }
 
 type RegulationWithRequirements = {
@@ -399,6 +547,9 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
       modality,
       requiresCityApproval: false,
       municipalStatus: 'NOT_REQUIRED',
+      authorizationValidityState: null as MunicipalAuthorizationValidityState | null,
+      authorizationValidUntil: null as Date | null,
+      authorizationDaysUntilExpiry: null as number | null,
       missingDocumentTypes: [] as string[],
       canOperateMunicipally: true,
       reason: null as string | null,
@@ -453,6 +604,9 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
       modality,
       requiresCityApproval: regulation.requires_city_approval,
       municipalStatus: 'REQUIRES_CONFIRMATION',
+      authorizationValidityState: null as MunicipalAuthorizationValidityState | null,
+      authorizationValidUntil: null as Date | null,
+      authorizationDaysUntilExpiry: null as number | null,
       missingDocumentTypes,
       canOperateMunicipally: false,
       reason: 'A modalidade nesta cidade exige confirmação formal da Prefeitura.',
@@ -469,6 +623,9 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
       modality,
       requiresCityApproval: regulation.requires_city_approval,
       municipalStatus: 'NOT_STARTED',
+      authorizationValidityState: null as MunicipalAuthorizationValidityState | null,
+      authorizationValidUntil: null as Date | null,
+      authorizationDaysUntilExpiry: null as number | null,
       missingDocumentTypes,
       canOperateMunicipally: false,
       reason: 'Regularização municipal ainda não iniciada.',
@@ -477,11 +634,20 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
     };
   }
 
-  const now = new Date();
-  const hasValidAuthorization =
-    authorization.status === 'APPROVED_BY_CITY_HALL' &&
-    !!authorization.approved_by_admin_id &&
-    (!authorization.authorization_valid_until || authorization.authorization_valid_until >= now);
+  const authorizationValidity = authorization
+    ? evaluateMunicipalAuthorizationValidity({
+        status: authorization.status,
+        approved_by_admin_id: authorization.approved_by_admin_id,
+        authorization_valid_until: authorization.authorization_valid_until,
+      })
+    : {
+        state: 'INACTIVE' as const,
+        validUntil: null,
+        daysUntilExpiry: null,
+        isOperationallyValid: false,
+      };
+
+  const hasValidAuthorization = authorizationValidity.isOperationallyValid;
 
   const canOperateMunicipally = regulation.requires_city_approval
     ? hasValidAuthorization
@@ -489,7 +655,9 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
 
   let reason: string | null = null;
   if (regulation.requires_city_approval && !hasValidAuthorization) {
-    reason = 'Aguardando autorização municipal aprovada e válida.';
+    reason = authorizationValidity.state === 'EXPIRED'
+      ? 'Autorização municipal vencida.'
+      : 'Aguardando autorização municipal aprovada e válida.';
   } else if (missingDocumentTypes.length > 0) {
     reason = 'Documentos municipais pendentes.';
   }
@@ -501,6 +669,9 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
     modality,
     requiresCityApproval: regulation.requires_city_approval,
     municipalStatus: authorization.status,
+    authorizationValidityState: authorizationValidity.state,
+    authorizationValidUntil: authorizationValidity.validUntil,
+    authorizationDaysUntilExpiry: authorizationValidity.daysUntilExpiry,
     missingDocumentTypes,
     canOperateMunicipally,
     reason,

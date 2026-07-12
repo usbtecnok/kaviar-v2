@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import {
+  calculateMunicipalAuthorizationValidUntilFromApprovalInstant,
+  evaluateMunicipalAuthorizationValidity,
   evaluateDriverRegulatoryCompatibility,
   getMunicipalRegulation,
   MUNICIPAL_MODALITIES,
@@ -386,20 +388,28 @@ function hasValidMunicipalAuthorization(authorization: {
   approved_by_admin_id: string | null;
   authorization_valid_until: Date | null;
 }): boolean {
-  const now = new Date();
-  return (
-    authorization.status === 'APPROVED_BY_CITY_HALL'
-    && Boolean(authorization.approved_by_admin_id)
-    && (!authorization.authorization_valid_until || authorization.authorization_valid_until >= now)
-  );
+  const validity = evaluateMunicipalAuthorizationValidity({
+    status: authorization.status,
+    approved_by_admin_id: authorization.approved_by_admin_id,
+    authorization_valid_until: authorization.authorization_valid_until,
+  });
+
+  return validity.isOperationallyValid;
 }
 
 type AuthorizationOperationalState = {
-  state: 'NOT_GENERATED' | 'ACTIVE' | 'REVIEW_REQUIRED';
-  label: 'Autorização ainda não gerada' | 'Autorização municipal ativa' | 'Autorização exige revisão';
+  state: 'NOT_GENERATED' | 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED' | 'REVIEW_REQUIRED';
+  label:
+    | 'Autorização ainda não gerada'
+    | 'Autorização municipal ativa'
+    | 'Autorização vence em breve'
+    | 'Autorização municipal vencida'
+    | 'Autorização exige revisão';
   canGenerate: boolean;
   reason: string | null;
   authorizationId: string | null;
+  validUntil: Date | null;
+  daysUntilExpiry: number | null;
 };
 
 function buildAuthorizationOperationalState(input: {
@@ -422,26 +432,62 @@ function buildAuthorizationOperationalState(input: {
       canGenerate: false,
       reason: 'Protocolo não está vinculado a um motorista real.',
       authorizationId: null,
-    };
-  }
-
-  if (input.authorization && hasValidMunicipalAuthorization(input.authorization)) {
-    return {
-      state: 'ACTIVE',
-      label: 'Autorização municipal ativa',
-      canGenerate: false,
-      reason: null,
-      authorizationId: input.authorization.id,
+      validUntil: null,
+      daysUntilExpiry: null,
     };
   }
 
   if (input.authorization) {
+    const validity = evaluateMunicipalAuthorizationValidity({
+      status: input.authorization.status,
+      approved_by_admin_id: input.authorization.approved_by_admin_id,
+      authorization_valid_until: input.authorization.authorization_valid_until,
+    });
+
+    if (validity.state === 'ACTIVE') {
+      return {
+        state: 'ACTIVE',
+        label: 'Autorização municipal ativa',
+        canGenerate: false,
+        reason: null,
+        authorizationId: input.authorization.id,
+        validUntil: validity.validUntil,
+        daysUntilExpiry: validity.daysUntilExpiry,
+      };
+    }
+
+    if (validity.state === 'EXPIRING_SOON') {
+      return {
+        state: 'EXPIRING_SOON',
+        label: 'Autorização vence em breve',
+        canGenerate: false,
+        reason: null,
+        authorizationId: input.authorization.id,
+        validUntil: validity.validUntil,
+        daysUntilExpiry: validity.daysUntilExpiry,
+      };
+    }
+
+    if (validity.state === 'EXPIRED') {
+      return {
+        state: 'EXPIRED',
+        label: 'Autorização municipal vencida',
+        canGenerate: false,
+        reason: 'Autorização municipal vencida. A renovação exige novo ciclo regulatório.',
+        authorizationId: input.authorization.id,
+        validUntil: validity.validUntil,
+        daysUntilExpiry: validity.daysUntilExpiry,
+      };
+    }
+
     return {
       state: 'REVIEW_REQUIRED',
       label: 'Autorização exige revisão',
       canGenerate: false,
       reason: 'Já existe uma autorização municipal para esta modalidade e cidade.',
       authorizationId: input.authorization.id,
+      validUntil: validity.validUntil,
+      daysUntilExpiry: validity.daysUntilExpiry,
     };
   }
 
@@ -452,6 +498,8 @@ function buildAuthorizationOperationalState(input: {
       canGenerate: false,
       reason: 'A autorização só pode ser gerada para protocolo aprovado.',
       authorizationId: null,
+      validUntil: null,
+      daysUntilExpiry: null,
     };
   }
 
@@ -462,6 +510,8 @@ function buildAuthorizationOperationalState(input: {
       canGenerate: false,
       reason: 'Informe o número do protocolo municipal antes de gerar a autorização operacional.',
       authorizationId: null,
+      validUntil: null,
+      daysUntilExpiry: null,
     };
   }
 
@@ -472,6 +522,8 @@ function buildAuthorizationOperationalState(input: {
       canGenerate: false,
       reason: 'Defina a modalidade municipal no protocolo antes de gerar autorização.',
       authorizationId: null,
+      validUntil: null,
+      daysUntilExpiry: null,
     };
   }
 
@@ -482,6 +534,8 @@ function buildAuthorizationOperationalState(input: {
       canGenerate: false,
       reason: 'Não existe regra municipal ativa para cidade/UF/modalidade deste protocolo.',
       authorizationId: null,
+      validUntil: null,
+      daysUntilExpiry: null,
     };
   }
 
@@ -491,6 +545,8 @@ function buildAuthorizationOperationalState(input: {
     canGenerate: true,
     reason: null,
     authorizationId: null,
+    validUntil: null,
+    daysUntilExpiry: null,
   };
 }
 
@@ -1591,7 +1647,13 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
     });
 
     if (existingAuthorization) {
-      if (hasValidMunicipalAuthorization(existingAuthorization)) {
+      const existingValidity = evaluateMunicipalAuthorizationValidity({
+        status: existingAuthorization.status,
+        approved_by_admin_id: existingAuthorization.approved_by_admin_id,
+        authorization_valid_until: existingAuthorization.authorization_valid_until,
+      });
+
+      if (existingValidity.isOperationallyValid) {
         return res.json({
           success: true,
           data: {
@@ -1628,6 +1690,32 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
       });
     }
 
+    let authorizationValidUntil: Date | null = null;
+    const configuredValidityMonths = regulation.authorization_validity_months;
+
+    if (configuredValidityMonths !== null && configuredValidityMonths !== undefined) {
+      if (configuredValidityMonths <= 0) {
+        return res.status(409).json({
+          success: false,
+          error: 'A validade configurada para esta regra municipal precisa ser maior que zero.',
+          code: 'MUNICIPAL_AUTHORIZATION_VALIDITY_INVALID',
+        });
+      }
+
+      if (!protocol.approved_at) {
+        return res.status(409).json({
+          success: false,
+          error: 'Informe a data de aprovação municipal do protocolo antes de gerar uma autorização com validade.',
+          code: 'PROTOCOL_APPROVAL_DATE_REQUIRED_FOR_VALIDITY',
+        });
+      }
+
+      authorizationValidUntil = calculateMunicipalAuthorizationValidUntilFromApprovalInstant(
+        protocol.approved_at,
+        configuredValidityMonths,
+      );
+    }
+
     const admin = (req as any).admin;
     let createdAuthorization: any;
 
@@ -1646,6 +1734,7 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
           city_hall_notes: 'Autorização gerada a partir de protocolo aprovado no CRM regulatório por cidade.',
           submitted_by_admin_id: admin?.id || null,
           approved_by_admin_id: admin?.id || null,
+          authorization_valid_until: authorizationValidUntil,
         },
         select: {
           id: true,
