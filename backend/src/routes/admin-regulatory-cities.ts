@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
@@ -134,6 +135,21 @@ const updateDriverProtocolSchema = z.object({
   next_follow_up_at: z.coerce.date().optional().nullable(),
 });
 
+const driverCandidatesQuerySchema = z.object({
+  q: z.string().trim().min(1).max(120).optional(),
+  status: z.string().trim().min(1).max(32).optional(),
+  modality: z.string().trim().min(1).max(30).optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(25),
+});
+
+const createDriverProtocolFromDriverSchema = z.object({
+  driverId: z.string().trim().min(1),
+  status: z.enum(DRIVER_PROTOCOL_STATUSES).optional(),
+  nextAction: z.string().trim().max(2000).optional().nullable(),
+  notes: z.string().trim().max(8000).optional().nullable(),
+  nextFollowUpAt: z.coerce.date().optional().nullable(),
+});
+
 const SANTA_RITA_TRANSPORT_TEMPLATE = [
   {
     title: 'CNH categoria B ou superior com EAR',
@@ -237,6 +253,26 @@ function normalizeCpfLast4(value: string | null | undefined): string | null {
   if (value === null || value === undefined) return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function deriveCpfLast4FromCpf(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return null;
+  return digits.slice(-4);
+}
+
+function maskPhone(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length < 4) return null;
+  const last4 = digits.slice(-4);
+  return `***-***-${last4}`;
+}
+
+function buildModalitySummary(modalities: Array<{ modality: string; status: string }>): string | null {
+  if (!modalities.length) return null;
+  return modalities.map((item) => `${item.modality}:${item.status}`).join(' | ');
 }
 
 router.use(authenticateAdmin, requireSuperAdmin);
@@ -730,10 +766,17 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
       return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
     }
 
-    const items = await prisma.municipal_regulatory_driver_protocols.findMany({
+    const rawItems = await prisma.municipal_regulatory_driver_protocols.findMany({
       where: { case_id: city.id },
       orderBy: [{ created_at: 'desc' }],
     });
+
+    const items = rawItems.map((item) => ({
+      ...item,
+      linkedDriver: Boolean(item.driver_id),
+      driverId: item.driver_id || null,
+      documentSummary: null,
+    }));
 
     return res.json({
       success: true,
@@ -744,6 +787,215 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Erro ao listar protocolos por motorista.' });
+  }
+});
+
+// GET /api/admin/regulatory/cities/:id/driver-candidates
+router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res: Response) => {
+  try {
+    const parsed = driverCandidatesQuerySchema.parse(req.query);
+
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, city: true, state: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const linked = await prisma.municipal_regulatory_driver_protocols.findMany({
+      where: {
+        case_id: city.id,
+        driver_id: { not: null },
+      },
+      select: { driver_id: true },
+    });
+
+    const linkedIds = new Set(linked.map((item) => item.driver_id).filter(Boolean));
+
+    const where: any = {
+      deleted_at: null,
+    };
+
+    if (parsed.status) {
+      where.status = parsed.status;
+    }
+
+    if (parsed.modality) {
+      where.driver_modalities = {
+        some: {
+          modality: { equals: parsed.modality, mode: 'insensitive' },
+        },
+      };
+    }
+
+    if (parsed.q) {
+      where.OR = [
+        { name: { contains: parsed.q, mode: 'insensitive' } },
+        { phone: { contains: parsed.q, mode: 'insensitive' } },
+        { vehicle_plate: { contains: parsed.q, mode: 'insensitive' } },
+      ];
+    }
+
+    const drivers = await prisma.drivers.findMany({
+      where,
+      orderBy: [{ updated_at: 'desc' }],
+      take: parsed.limit,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        status: true,
+        document_cpf: true,
+        vehicle_plate: true,
+        vehicle_type: true,
+        driver_modalities: {
+          select: {
+            modality: true,
+            status: true,
+          },
+          orderBy: [{ created_at: 'desc' }],
+        },
+      },
+    });
+
+    const items = drivers.map((driver) => ({
+      id: driver.id,
+      name: driver.name,
+      cpfLast4: deriveCpfLast4FromCpf(driver.document_cpf),
+      phoneMasked: maskPhone(driver.phone),
+      vehiclePlate: driver.vehicle_plate || null,
+      vehicleType: driver.vehicle_type || null,
+      approvalStatus: driver.status,
+      modalitySummary: buildModalitySummary(driver.driver_modalities),
+      documentSummary: null,
+      alreadyLinked: linkedIds.has(driver.id),
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        city,
+        items,
+        meta: {
+          documentSummary: 'not_available_phase_5b',
+        },
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Query inválida.' });
+    }
+
+    return res.status(500).json({ success: false, error: 'Erro ao listar candidatos de motoristas.' });
+  }
+});
+
+// POST /api/admin/regulatory/cities/:id/driver-protocols/from-driver
+router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: Request, res: Response) => {
+  try {
+    const payload = createDriverProtocolFromDriverSchema.parse(req.body);
+
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const driver = await prisma.drivers.findUnique({
+      where: { id: payload.driverId },
+      select: {
+        id: true,
+        name: true,
+        document_cpf: true,
+        vehicle_plate: true,
+        vehicle_type: true,
+        driver_modalities: {
+          select: {
+            status: true,
+            vehicle_plate: true,
+          },
+          orderBy: [{ created_at: 'desc' }],
+          take: 5,
+        },
+      },
+    });
+
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista não encontrado.' });
+    }
+
+    const existing = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: {
+        case_id: city.id,
+        driver_id: driver.id,
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return res.status(409).json({ success: false, error: 'Este motorista já possui protocolo nesta cidade.' });
+    }
+
+    const approvedModality = driver.driver_modalities.find((item) => item.status === 'APPROVED');
+    const status = payload.status || 'PREPARING';
+    let submittedAt: Date | null = null;
+    let approvedAt: Date | null = null;
+    let rejectedAt: Date | null = null;
+
+    if (status === 'SUBMITTED') {
+      submittedAt = new Date();
+    }
+
+    if (status === 'APPROVED') {
+      approvedAt = new Date();
+    }
+
+    if (status === 'REJECTED') {
+      rejectedAt = new Date();
+    }
+
+    const created = await prisma.municipal_regulatory_driver_protocols.create({
+      data: {
+        case_id: city.id,
+        driver_id: driver.id,
+        driver_name: driver.name,
+        cpf_last4: deriveCpfLast4FromCpf(driver.document_cpf),
+        vehicle_plate: driver.vehicle_plate || approvedModality?.vehicle_plate || null,
+        vehicle_type: driver.vehicle_type || null,
+        status,
+        next_action: asNullable(payload.nextAction) || 'Revisar documentos do motorista e preparar protocolo municipal.',
+        notes: asNullable(payload.notes),
+        submitted_at: submittedAt,
+        approved_at: approvedAt,
+        rejected_at: rejectedAt,
+        next_follow_up_at: payload.nextFollowUpAt ?? null,
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        ...created,
+        linkedDriver: true,
+        driverId: created.driver_id,
+        documentSummary: null,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return res.status(409).json({ success: false, error: 'Este motorista já possui protocolo nesta cidade.' });
+    }
+
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Payload inválido.' });
+    }
+
+    return res.status(500).json({ success: false, error: 'Não foi possível criar protocolo a partir do cadastro KAVIAR.' });
   }
 });
 

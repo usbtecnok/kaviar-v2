@@ -338,6 +338,14 @@ export default function RegulatoryCitiesPage() {
   const [protocolSaving, setProtocolSaving] = useState(false);
   const [protocolActionId, setProtocolActionId] = useState(null);
   const [protocolSavedByItem, setProtocolSavedByItem] = useState({});
+  const [candidatePanelByCity, setCandidatePanelByCity] = useState({});
+  const [candidateByCity, setCandidateByCity] = useState({});
+  const [candidateLoadingByCity, setCandidateLoadingByCity] = useState({});
+  const [candidateLoadedByCity, setCandidateLoadedByCity] = useState({});
+  const [candidateErrorsByCity, setCandidateErrorsByCity] = useState({});
+  const [candidateQueryByCity, setCandidateQueryByCity] = useState({});
+  const [candidateActionByCity, setCandidateActionByCity] = useState({});
+  const [candidateSuccessByCity, setCandidateSuccessByCity] = useState({});
 
   const params = useMemo(() => {
     const next = {
@@ -855,6 +863,66 @@ export default function RegulatoryCitiesPage() {
       setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
     } finally {
       setProtocolActionId(null);
+    }
+  };
+
+  const loadDriverCandidates = async (cityId, queryValue = '') => {
+    setCandidateLoadingByCity((prev) => ({ ...prev, [cityId]: true }));
+    setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      const params = { limit: 25 };
+      if (queryValue.trim()) params.q = queryValue.trim();
+
+      const response = await api.get(`/api/admin/regulatory/cities/${cityId}/driver-candidates`, { params });
+      const payload = response?.data?.data;
+      setCandidateByCity((prev) => ({ ...prev, [cityId]: payload || { items: [] } }));
+      setCandidateLoadedByCity((prev) => ({ ...prev, [cityId]: true }));
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível buscar motoristas do cadastro KAVIAR.';
+      setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setCandidateLoadingByCity((prev) => ({ ...prev, [cityId]: false }));
+    }
+  };
+
+  const toggleDriverCandidatesPanel = async (cityId) => {
+    const isOpen = Boolean(candidatePanelByCity[cityId]);
+    setCandidatePanelByCity((prev) => ({ ...prev, [cityId]: !isOpen }));
+
+    if (!isOpen && !candidateLoadedByCity[cityId]) {
+      await loadDriverCandidates(cityId, candidateQueryByCity[cityId] || '');
+    }
+  };
+
+  const searchDriverCandidates = async (cityId) => {
+    await loadDriverCandidates(cityId, candidateQueryByCity[cityId] || '');
+  };
+
+  const createProtocolFromDriver = async (cityId, driverId) => {
+    setCandidateActionByCity((prev) => ({ ...prev, [cityId]: driverId }));
+    setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: '' }));
+    setCandidateSuccessByCity((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      await api.post(`/api/admin/regulatory/cities/${cityId}/driver-protocols/from-driver`, {
+        driverId,
+      });
+
+      await Promise.all([
+        loadDriverProtocols(cityId),
+        loadDriverCandidates(cityId, candidateQueryByCity[cityId] || ''),
+      ]);
+
+      setCandidateSuccessByCity((prev) => ({
+        ...prev,
+        [cityId]: 'Protocolo criado a partir do cadastro KAVIAR.',
+      }));
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível criar o protocolo automaticamente.';
+      setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setCandidateActionByCity((prev) => ({ ...prev, [cityId]: null }));
     }
   };
 
@@ -1499,23 +1567,175 @@ export default function RegulatoryCitiesPage() {
                               <Typography sx={{ color: '#94A3B8', fontSize: 11.5 }}>
                                 Evite inserir CPF completo ou documentos sensíveis nesta etapa.
                               </Typography>
+                              <Typography sx={{ color: '#94A3B8', fontSize: 11.5 }}>
+                                Dados importados de forma limitada. Não exibimos CPF completo nem documentos sensíveis nesta tela.
+                              </Typography>
                             </Box>
 
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() => openDriverProtocolCreate(item.id)}
-                              disabled={protocolCreateCityId === item.id}
-                              sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.25)' }}
-                            >
-                              Adicionar motorista
-                            </Button>
+                            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => toggleDriverCandidatesPanel(item.id)}
+                                sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.25)' }}
+                              >
+                                Adicionar do cadastro KAVIAR
+                              </Button>
+
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => openDriverProtocolCreate(item.id)}
+                                disabled={protocolCreateCityId === item.id}
+                                sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.25)' }}
+                              >
+                                Adicionar motorista
+                              </Button>
+                            </Stack>
                           </Stack>
 
                           {protocolsErrors[item.id] && (
                             <Alert severity="error" sx={{ mb: 1.25 }}>
                               {protocolsErrors[item.id]}
                             </Alert>
+                          )}
+
+                          {candidateErrorsByCity[item.id] && (
+                            <Alert severity="error" sx={{ mb: 1.25 }}>
+                              {candidateErrorsByCity[item.id]}
+                            </Alert>
+                          )}
+
+                          {candidateSuccessByCity[item.id] && (
+                            <Alert severity="success" sx={{ mb: 1.25 }}>
+                              {candidateSuccessByCity[item.id]}
+                            </Alert>
+                          )}
+
+                          {candidatePanelByCity[item.id] && (
+                            <Box
+                              sx={{
+                                mb: 1.25,
+                                borderRadius: 1.25,
+                                border: '1px solid rgba(148,163,184,0.2)',
+                                bgcolor: 'rgba(15,23,42,0.55)',
+                                p: 1,
+                              }}
+                            >
+                              <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} sx={{ mb: 1 }}>
+                                <TextField
+                                  fullWidth
+                                  size="small"
+                                  label="Buscar motorista"
+                                  placeholder="Nome, telefone ou placa"
+                                  value={candidateQueryByCity[item.id] || ''}
+                                  onChange={(event) =>
+                                    setCandidateQueryByCity((prev) => ({ ...prev, [item.id]: event.target.value }))
+                                  }
+                                  sx={INLINE_DARK_FIELD_SX}
+                                />
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => searchDriverCandidates(item.id)}
+                                  disabled={Boolean(candidateLoadingByCity[item.id])}
+                                  sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' }, color: '#111827' }}
+                                >
+                                  {candidateLoadingByCity[item.id] ? 'Buscando motoristas...' : 'Buscar'}
+                                </Button>
+                              </Stack>
+
+                              {candidateLoadingByCity[item.id] && !candidateLoadedByCity[item.id] && (
+                                <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1 }}>
+                                  <CircularProgress size={18} sx={{ color: '#B8942E' }} />
+                                  <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                    Buscando motoristas...
+                                  </Typography>
+                                </Stack>
+                              )}
+
+                              {candidateLoadedByCity[item.id] && (
+                                <Stack spacing={1}>
+                                  {(candidateByCity[item.id]?.items || []).length === 0 ? (
+                                    <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                      Nenhum motorista encontrado para os filtros informados.
+                                    </Typography>
+                                  ) : (
+                                    (candidateByCity[item.id]?.items || []).map((candidate) => (
+                                      <Box
+                                        key={candidate.id}
+                                        sx={{
+                                          borderRadius: 1.25,
+                                          border: '1px solid rgba(148,163,184,0.2)',
+                                          bgcolor: 'rgba(30,41,59,0.75)',
+                                          p: 1,
+                                        }}
+                                      >
+                                        <Stack spacing={0.65}>
+                                          <Typography sx={{ color: '#F8FAFC', fontWeight: 700, fontSize: 12.8 }}>
+                                            {candidate.name}
+                                          </Typography>
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            CPF final: {candidate.cpfLast4 || '-'}
+                                            {' · '}
+                                            Telefone: {candidate.phoneMasked || '-'}
+                                          </Typography>
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            Placa: {candidate.vehiclePlate || '-'}
+                                            {' · '}
+                                            Tipo: {candidate.vehicleType || '-'}
+                                          </Typography>
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            Status do cadastro: {candidate.approvalStatus || '-'}
+                                          </Typography>
+
+                                          {candidate.modalitySummary && (
+                                            <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                              Modalidades: {candidate.modalitySummary}
+                                            </Typography>
+                                          )}
+
+                                          {candidate.documentSummary && (
+                                            <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                              Resumo documental: {JSON.stringify(candidate.documentSummary)}
+                                            </Typography>
+                                          )}
+
+                                          {!candidate.documentSummary && (
+                                            <Typography sx={{ color: '#94A3B8', fontSize: 11.4 }}>
+                                              Resumo documental ficará disponível na Fase 5B.
+                                            </Typography>
+                                          )}
+
+                                          {candidate.alreadyLinked && (
+                                            <Chip
+                                              size="small"
+                                              label="Já vinculado a esta cidade"
+                                              sx={{ width: 'fit-content', color: '#F8FAFC', bgcolor: 'rgba(184,148,46,0.28)' }}
+                                            />
+                                          )}
+
+                                          <Box>
+                                            <Button
+                                              size="small"
+                                              variant="contained"
+                                              onClick={() => createProtocolFromDriver(item.id, candidate.id)}
+                                              disabled={candidate.alreadyLinked || candidateActionByCity[item.id] === candidate.id}
+                                              sx={{ bgcolor: '#0F766E', '&:hover': { bgcolor: '#115E59' }, color: '#F8FAFC' }}
+                                            >
+                                              {candidateActionByCity[item.id] === candidate.id ? 'Criando...' : 'Criar protocolo'}
+                                            </Button>
+                                          </Box>
+                                        </Stack>
+                                      </Box>
+                                    ))
+                                  )}
+                                </Stack>
+                              )}
+                            </Box>
                           )}
 
                           {!protocolsErrors[item.id] && protocolsLoadingByCity[item.id] && !protocolsLoadedByCity[item.id] && (
