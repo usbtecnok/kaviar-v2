@@ -79,8 +79,6 @@ const CHECKLIST_STATUS_COLORS = {
   NOT_APPLICABLE: { bg: '#E5E7EB', color: '#374151' },
 };
 
-const CHECKLIST_TEMPLATE_ITEMS = 12;
-
 const PAGE_SIZE = 12;
 
 const EMPTY_FORM = {
@@ -218,6 +216,20 @@ export default function RegulatoryCitiesPage() {
   });
   const [checklistSaving, setChecklistSaving] = useState(false);
   const [checklistActionId, setChecklistActionId] = useState(null);
+  const [checklistStatusSavingId, setChecklistStatusSavingId] = useState(null);
+  const [checklistSavedByItem, setChecklistSavedByItem] = useState({});
+  const [inlineChecklistEditing, setInlineChecklistEditing] = useState(null);
+  const [inlineChecklistForm, setInlineChecklistForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    status: 'PENDING',
+    required: true,
+    sort_order: 0,
+    notes: '',
+    due_date: '',
+  });
+  const [inlineChecklistSaving, setInlineChecklistSaving] = useState(false);
 
   const params = useMemo(() => {
     const next = {
@@ -396,9 +408,9 @@ export default function RegulatoryCitiesPage() {
     setChecklistFormOpen(true);
   };
 
-  const openChecklistEdit = (cityId, item) => {
-    setChecklistEditing({ cityId, itemId: item.id });
-    setChecklistForm({
+  const startInlineChecklistEdit = (cityId, item) => {
+    setInlineChecklistEditing({ cityId, itemId: item.id });
+    setInlineChecklistForm({
       title: item.title || '',
       description: item.description || '',
       category: item.category || '',
@@ -408,7 +420,37 @@ export default function RegulatoryCitiesPage() {
       notes: item.notes || '',
       due_date: toDatetimeLocal(item.due_date),
     });
-    setChecklistFormOpen(true);
+  };
+
+  const cancelInlineChecklistEdit = () => {
+    if (inlineChecklistSaving) return;
+    setInlineChecklistEditing(null);
+  };
+
+  const markChecklistSaved = (itemId) => {
+    setChecklistSavedByItem((prev) => ({ ...prev, [itemId]: true }));
+    setTimeout(() => {
+      setChecklistSavedByItem((prev) => ({ ...prev, [itemId]: false }));
+    }, 1800);
+  };
+
+  const patchChecklistItemLocally = (cityId, updatedItem) => {
+    setChecklistByCity((prev) => {
+      const cityChecklist = prev[cityId];
+      if (!cityChecklist) return prev;
+
+      const nextItems = cityChecklist.items.map((currentItem) =>
+        currentItem.id === updatedItem.id ? updatedItem : currentItem,
+      );
+
+      return {
+        ...prev,
+        [cityId]: {
+          ...cityChecklist,
+          items: nextItems,
+        },
+      };
+    });
   };
 
   const closeChecklistForm = () => {
@@ -434,14 +476,7 @@ export default function RegulatoryCitiesPage() {
     };
 
     try {
-      if (checklistEditing.itemId) {
-        await api.patch(
-          `/api/admin/regulatory/cities/${checklistEditing.cityId}/checklist/${checklistEditing.itemId}`,
-          payload,
-        );
-      } else {
-        await api.post(`/api/admin/regulatory/cities/${checklistEditing.cityId}/checklist`, payload);
-      }
+      await api.post(`/api/admin/regulatory/cities/${checklistEditing.cityId}/checklist`, payload);
 
       setChecklistFormOpen(false);
       await loadChecklist(checklistEditing.cityId);
@@ -453,18 +488,63 @@ export default function RegulatoryCitiesPage() {
     }
   };
 
+  const saveInlineChecklistItem = async (cityId, itemId) => {
+    setInlineChecklistSaving(true);
+    setChecklistErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    const payload = {
+      title: inlineChecklistForm.title.trim(),
+      description: inlineChecklistForm.description || null,
+      category: inlineChecklistForm.category || null,
+      status: inlineChecklistForm.status,
+      required: inlineChecklistForm.required,
+      sort_order: Number(inlineChecklistForm.sort_order) || 0,
+      notes: inlineChecklistForm.notes || null,
+      due_date: toPayloadDatetime(inlineChecklistForm.due_date),
+    };
+
+    try {
+      const response = await api.patch(`/api/admin/regulatory/cities/${cityId}/checklist/${itemId}`, payload);
+      const updatedItem = response?.data?.data;
+
+      if (updatedItem?.id) {
+        patchChecklistItemLocally(cityId, updatedItem);
+      } else {
+        await loadChecklist(cityId);
+      }
+
+      setInlineChecklistEditing(null);
+      markChecklistSaved(itemId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível salvar o item.';
+      setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setInlineChecklistSaving(false);
+    }
+  };
+
   const updateChecklistStatus = async (cityId, item, status) => {
     setChecklistActionId(item.id);
+    setChecklistStatusSavingId(item.id);
     setChecklistErrors((prev) => ({ ...prev, [cityId]: '' }));
 
     try {
-      await api.patch(`/api/admin/regulatory/cities/${cityId}/checklist/${item.id}`, { status });
-      await loadChecklist(cityId);
+      const response = await api.patch(`/api/admin/regulatory/cities/${cityId}/checklist/${item.id}`, { status });
+      const updatedItem = response?.data?.data;
+
+      if (updatedItem?.id) {
+        patchChecklistItemLocally(cityId, updatedItem);
+      } else {
+        await loadChecklist(cityId);
+      }
+
+      markChecklistSaved(item.id);
     } catch (error) {
       const message = error?.response?.data?.error || 'Não foi possível atualizar o status.';
       setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
     } finally {
       setChecklistActionId(null);
+      setChecklistStatusSavingId((current) => (current === item.id ? null : current));
     }
   };
 
@@ -928,26 +1008,173 @@ export default function RegulatoryCitiesPage() {
                                             </Select>
                                           </FormControl>
 
-                                          <Button
-                                            size="small"
-                                            variant="outlined"
-                                            startIcon={<Edit fontSize="small" />}
-                                            onClick={() => openChecklistEdit(item.id, checklistItem)}
-                                            sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.22)' }}
-                                          >
-                                            Editar
-                                          </Button>
+                                          {inlineChecklistEditing?.cityId === item.id && inlineChecklistEditing?.itemId === checklistItem.id ? (
+                                            <Box
+                                              sx={{
+                                                width: '100%',
+                                                borderRadius: 1.25,
+                                                border: '1px solid rgba(148,163,184,0.2)',
+                                                bgcolor: 'rgba(15,23,42,0.55)',
+                                                p: 1.1,
+                                              }}
+                                            >
+                                              <Grid container spacing={1}>
+                                                <Grid item xs={12}>
+                                                  <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    label="Título"
+                                                    value={inlineChecklistForm.title}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, title: event.target.value }))}
+                                                  />
+                                                </Grid>
+                                                <Grid item xs={12} md={6}>
+                                                  <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    label="Categoria"
+                                                    value={inlineChecklistForm.category}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, category: event.target.value }))}
+                                                  />
+                                                </Grid>
+                                                <Grid item xs={12} md={3}>
+                                                  <FormControl fullWidth size="small">
+                                                    <InputLabel id={`inline-check-status-${checklistItem.id}`}>Status</InputLabel>
+                                                    <Select
+                                                      labelId={`inline-check-status-${checklistItem.id}`}
+                                                      label="Status"
+                                                      value={inlineChecklistForm.status}
+                                                      onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, status: event.target.value }))}
+                                                    >
+                                                      {CHECKLIST_STATUS_OPTIONS.map((status) => (
+                                                        <MenuItem key={status} value={status}>{CHECKLIST_STATUS_LABELS[status]}</MenuItem>
+                                                      ))}
+                                                    </Select>
+                                                  </FormControl>
+                                                </Grid>
+                                                <Grid item xs={12} md={3}>
+                                                  <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    label="Ordem"
+                                                    type="number"
+                                                    value={inlineChecklistForm.sort_order}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, sort_order: Number(event.target.value) || 0 }))}
+                                                  />
+                                                </Grid>
+                                                <Grid item xs={12}>
+                                                  <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    multiline
+                                                    minRows={2}
+                                                    label="Descrição"
+                                                    value={inlineChecklistForm.description}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, description: event.target.value }))}
+                                                  />
+                                                </Grid>
+                                                <Grid item xs={12} md={6}>
+                                                  <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    label="Data de vencimento"
+                                                    type="datetime-local"
+                                                    InputLabelProps={{ shrink: true }}
+                                                    value={inlineChecklistForm.due_date}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, due_date: event.target.value }))}
+                                                  />
+                                                </Grid>
+                                                <Grid item xs={12} md={6}>
+                                                  <FormControl fullWidth size="small">
+                                                    <InputLabel id={`inline-check-required-${checklistItem.id}`}>Obrigatoriedade</InputLabel>
+                                                    <Select
+                                                      labelId={`inline-check-required-${checklistItem.id}`}
+                                                      label="Obrigatoriedade"
+                                                      value={inlineChecklistForm.required ? 'true' : 'false'}
+                                                      onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, required: event.target.value === 'true' }))}
+                                                    >
+                                                      <MenuItem value="true">Obrigatório</MenuItem>
+                                                      <MenuItem value="false">Opcional</MenuItem>
+                                                    </Select>
+                                                  </FormControl>
+                                                </Grid>
+                                                <Grid item xs={12}>
+                                                  <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    multiline
+                                                    minRows={2}
+                                                    label="Observações"
+                                                    value={inlineChecklistForm.notes}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, notes: event.target.value }))}
+                                                  />
+                                                </Grid>
+                                              </Grid>
 
-                                          <Button
-                                            size="small"
-                                            variant="outlined"
-                                            color="error"
-                                            startIcon={<DeleteOutline fontSize="small" />}
-                                            onClick={() => deleteChecklistItem(item.id, checklistItem)}
-                                            disabled={checklistActionId === checklistItem.id}
-                                          >
-                                            Excluir
-                                          </Button>
+                                              <Stack direction="row" spacing={1} sx={{ mt: 1.1, flexWrap: 'wrap' }}>
+                                                <Button
+                                                  size="small"
+                                                  variant="contained"
+                                                  onClick={() => saveInlineChecklistItem(item.id, checklistItem.id)}
+                                                  disabled={inlineChecklistSaving}
+                                                  sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' }, color: '#111827' }}
+                                                >
+                                                  {inlineChecklistSaving ? 'Salvando...' : 'Salvar alterações'}
+                                                </Button>
+                                                <Button
+                                                  size="small"
+                                                  variant="outlined"
+                                                  onClick={cancelInlineChecklistEdit}
+                                                  disabled={inlineChecklistSaving}
+                                                  sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.22)' }}
+                                                >
+                                                  Cancelar
+                                                </Button>
+                                              </Stack>
+                                            </Box>
+                                          ) : (
+                                            <>
+                                              <FormControl size="small" sx={{ minWidth: 180 }}>
+                                                <InputLabel sx={{ color: '#CBD5E1' }}>Status</InputLabel>
+                                                <Select
+                                                  value={checklistItem.status}
+                                                  label="Status"
+                                                  onChange={(event) => updateChecklistStatus(item.id, checklistItem, event.target.value)}
+                                                  disabled={checklistStatusSavingId === checklistItem.id}
+                                                  sx={{ color: '#F8FAFC', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148,163,184,0.3)' } }}
+                                                >
+                                                  {CHECKLIST_STATUS_OPTIONS.map((status) => (
+                                                    <MenuItem key={status} value={status}>{CHECKLIST_STATUS_LABELS[status]}</MenuItem>
+                                                  ))}
+                                                </Select>
+                                              </FormControl>
+
+                                              <Button
+                                                size="small"
+                                                variant="outlined"
+                                                startIcon={<Edit fontSize="small" />}
+                                                onClick={() => startInlineChecklistEdit(item.id, checklistItem)}
+                                                sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.22)' }}
+                                              >
+                                                Editar
+                                              </Button>
+
+                                              <Button
+                                                size="small"
+                                                variant="outlined"
+                                                color="error"
+                                                startIcon={<DeleteOutline fontSize="small" />}
+                                                onClick={() => deleteChecklistItem(item.id, checklistItem)}
+                                                disabled={checklistActionId === checklistItem.id}
+                                              >
+                                                Excluir
+                                              </Button>
+
+                                              <Typography sx={{ color: '#94A3B8', fontSize: 11.5, alignSelf: 'center' }}>
+                                                {checklistStatusSavingId === checklistItem.id ? 'Salvando...' : checklistSavedByItem[checklistItem.id] ? 'Item salvo.' : ''}
+                                              </Typography>
+                                            </>
+                                          )}
                                         </Stack>
                                       </Stack>
                                     </Box>
@@ -1136,7 +1363,7 @@ export default function RegulatoryCitiesPage() {
       </Dialog>
 
       <Dialog open={checklistFormOpen} onClose={closeChecklistForm} fullWidth maxWidth="md">
-        <DialogTitle>{checklistEditing?.itemId ? 'Editar item do checklist' : 'Adicionar item ao checklist'}</DialogTitle>
+        <DialogTitle>Adicionar item ao checklist</DialogTitle>
         <DialogContent dividers>
           <Grid container spacing={1.5}>
             <Grid item xs={12}>
@@ -1235,7 +1462,7 @@ export default function RegulatoryCitiesPage() {
         <DialogActions>
           <Button onClick={closeChecklistForm} disabled={checklistSaving}>Cancelar</Button>
           <Button onClick={submitChecklistForm} variant="contained" disabled={checklistSaving} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>
-            {checklistSaving ? 'Salvando...' : checklistEditing?.itemId ? 'Salvar item' : 'Adicionar item'}
+            {checklistSaving ? 'Salvando...' : 'Adicionar item'}
           </Button>
         </DialogActions>
       </Dialog>
