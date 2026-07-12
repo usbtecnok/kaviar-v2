@@ -6,10 +6,142 @@ on:
     paths:
       - 'backend/**'
       - '.github/workflows/deploy-backend.yml'
+      - '.github/workflows/deploy-prisma-migrations.yml'
   workflow_dispatch:
 
+concurrency:
+  group: kaviar-prod-backend-db-deploy
+  cancel-in-progress: false
+  queue: max
+
 jobs:
+  resolve-deploy-state:
+    runs-on: ubuntu-latest
+    outputs:
+      prisma_changed: ${{ steps.detect.outputs.prisma_changed }}
+      base_sha: ${{ steps.detect.outputs.base_sha }}
+      backend_deploy_stale: ${{ steps.detect.outputs.backend_deploy_stale }}
+      origin_main_sha: ${{ steps.detect.outputs.origin_main_sha }}
+      stale_reason: ${{ steps.detect.outputs.stale_reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Prisma-related changes
+        id: detect
+        run: |
+          set -euo pipefail
+
+          CURRENT_SHA="${GITHUB_SHA}"
+          BASE_SHA="${{ github.event.before }}"
+          BACKEND_DEPLOY_STALE="false"
+          STALE_REASON="none"
+          ORIGIN_MAIN_SHA=""
+          RELEVANT_LATER_FILES=""
+
+          if [ "${GITHUB_EVENT_NAME}" != "push" ] || [ -z "${BASE_SHA}" ] || [[ "${BASE_SHA}" =~ ^0+$ ]]; then
+            if git rev-parse "${GITHUB_SHA}^" >/dev/null 2>&1; then
+              BASE_SHA="$(git rev-parse "${GITHUB_SHA}^")"
+            else
+              BASE_SHA="${GITHUB_SHA}"
+            fi
+          fi
+
+          if ! CHANGED_FILES=$(git diff --name-only "${BASE_SHA}" "${CURRENT_SHA}"); then
+            echo "Failed to diff ${BASE_SHA}..${CURRENT_SHA}. Falling back to prisma_changed=true for safety." >&2
+            PRISMA_CHANGED="true"
+            CHANGED_FILES=""
+          fi
+
+          echo "Current SHA: ${CURRENT_SHA}"
+          echo "Base SHA: ${BASE_SHA}"
+          echo "Changed files:"
+          printf '%s\n' "${CHANGED_FILES}"
+
+          if [ -z "${PRISMA_CHANGED:-}" ]; then
+            if printf '%s\n' "${CHANGED_FILES}" | rg -q '^(backend/prisma/schema\.prisma|backend/prisma/migrations/)'; then
+              PRISMA_CHANGED="true"
+            else
+              PRISMA_CHANGED="false"
+            fi
+          fi
+
+          if ! git fetch --no-tags --prune origin main; then
+            BACKEND_DEPLOY_STALE="true"
+            STALE_REASON="fetch_origin_main_failed"
+          fi
+
+          if [ "${BACKEND_DEPLOY_STALE}" != "true" ]; then
+            ORIGIN_MAIN_SHA="$(git rev-parse origin/main 2>/dev/null || true)"
+            if [ -z "${ORIGIN_MAIN_SHA}" ]; then
+              BACKEND_DEPLOY_STALE="true"
+              STALE_REASON="origin_main_unavailable"
+            fi
+          fi
+
+          if [ "${BACKEND_DEPLOY_STALE}" != "true" ] && [ "${CURRENT_SHA}" != "${ORIGIN_MAIN_SHA}" ]; then
+            if git merge-base --is-ancestor "${CURRENT_SHA}" "${ORIGIN_MAIN_SHA}"; then
+              if LATER_FILES=$(git diff --name-only "${CURRENT_SHA}..${ORIGIN_MAIN_SHA}"); then
+                RELEVANT_LATER_FILES="$(printf '%s\n' "${LATER_FILES}" | rg '^(backend/|\.github/workflows/deploy-backend\.yml|\.github/workflows/deploy-prisma-migrations\.yml)$' || true)"
+                if [ -n "${RELEVANT_LATER_FILES}" ]; then
+                  BACKEND_DEPLOY_STALE="true"
+                  STALE_REASON="newer_relevant_backend_changes_on_main"
+                fi
+              else
+                BACKEND_DEPLOY_STALE="true"
+                STALE_REASON="diff_origin_main_failed"
+              fi
+            else
+              BACKEND_DEPLOY_STALE="true"
+              STALE_REASON="current_sha_not_ancestor_of_origin_main"
+            fi
+          fi
+
+          echo "prisma_changed=${PRISMA_CHANGED}"
+          echo "origin/main SHA: ${ORIGIN_MAIN_SHA:-unknown}"
+          echo "Relevant newer backend files on origin/main:"
+          if [ -n "${RELEVANT_LATER_FILES}" ]; then
+            printf '%s\n' "${RELEVANT_LATER_FILES}"
+          else
+            echo "(none)"
+          fi
+          echo "backend_deploy_stale=${BACKEND_DEPLOY_STALE}"
+          echo "stale_reason=${STALE_REASON}"
+
+          echo "base_sha=${BASE_SHA}" >> "$GITHUB_OUTPUT"
+          echo "prisma_changed=${PRISMA_CHANGED}" >> "$GITHUB_OUTPUT"
+          echo "backend_deploy_stale=${BACKEND_DEPLOY_STALE}" >> "$GITHUB_OUTPUT"
+          echo "origin_main_sha=${ORIGIN_MAIN_SHA}" >> "$GITHUB_OUTPUT"
+          echo "stale_reason=${STALE_REASON}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish deploy-state summary
+        run: |
+          {
+            echo "### Backend deploy state"
+            echo "- GITHUB_SHA: ${{ github.sha }}"
+            echo "- Base SHA for prisma diff: ${{ steps.detect.outputs.base_sha }}"
+            echo "- origin/main SHA: ${{ steps.detect.outputs.origin_main_sha }}"
+            echo "- prisma_changed: ${{ steps.detect.outputs.prisma_changed }}"
+            echo "- backend_deploy_stale: ${{ steps.detect.outputs.backend_deploy_stale }}"
+            echo "- stale_reason: ${{ steps.detect.outputs.stale_reason }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  run-prisma-migrations:
+    needs: resolve-deploy-state
+    if: needs.resolve-deploy-state.outputs.backend_deploy_stale != 'true'
+    uses: ./.github/workflows/deploy-prisma-migrations.yml
+    with:
+      orchestrated_by_backend: true
+    secrets: inherit
+
   deploy:
+    needs:
+      - resolve-deploy-state
+      - run-prisma-migrations
+    if: |
+      needs.resolve-deploy-state.outputs.backend_deploy_stale != 'true' &&
+      needs.run-prisma-migrations.result == 'success'
     runs-on: ubuntu-latest
     
     steps:

@@ -1,11 +1,18 @@
 name: Deploy Prisma Migrations
 
 on:
+  workflow_call:
+    inputs:
+      orchestrated_by_backend:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
 
 concurrency:
-  group: kaviar-prisma-migrations
+  group: ${{ inputs.orchestrated_by_backend && format('kaviar-prisma-orchestrated-{0}', github.run_id) || 'kaviar-prod-backend-db-deploy' }}
   cancel-in-progress: false
+  queue: max
 
 env:
   AWS_REGION: us-east-2
