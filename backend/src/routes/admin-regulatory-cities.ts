@@ -63,6 +63,20 @@ function asNullable(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function normalizeEmail(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function buildSnippet(value: string | null | undefined, maxLength = 160): string | null {
+  if (typeof value !== 'string') return null;
+  const collapsed = value.replace(/\s+/g, ' ').trim();
+  if (!collapsed) return null;
+  if (collapsed.length <= maxLength) return collapsed;
+  return `${collapsed.slice(0, maxLength - 1)}…`;
+}
+
 router.use(authenticateAdmin, requireSuperAdmin);
 
 // GET /api/admin/regulatory/cities
@@ -168,6 +182,123 @@ router.get('/regulatory/cities/:id', async (req: Request, res: Response) => {
     return res.json({ success: true, data: item });
   } catch (error) {
     return res.status(500).json({ success: false, error: 'Erro ao buscar caso regulatório por cidade.' });
+  }
+});
+
+// GET /api/admin/regulatory/cities/:id/communications
+router.get('/regulatory/cities/:id/communications', async (req: Request, res: Response) => {
+  try {
+    const item = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        city: true,
+        state: true,
+        contact_email: true,
+      },
+    });
+
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const contactEmail = normalizeEmail(item.contact_email);
+    if (!contactEmail) {
+      return res.json({
+        success: true,
+        data: {
+          city: item,
+          contactEmail: null,
+          sent: [],
+          received: [],
+        },
+      });
+    }
+
+    const [sentLogs, receivedLogs] = await Promise.all([
+      prisma.email_send_logs.findMany({
+        where: {
+          OR: [
+            { to_email: { equals: contactEmail, mode: 'insensitive' } },
+            { cc_email: { equals: contactEmail, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { created_at: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          subject: true,
+          from_email: true,
+          to_email: true,
+          cc_email: true,
+          status: true,
+          created_at: true,
+          provider_message_id: true,
+          attachment_count: true,
+        },
+      }),
+      prisma.inbound_email_messages.findMany({
+        where: {
+          OR: [
+            { from_email: { equals: contactEmail, mode: 'insensitive' } },
+            { to_email: { equals: contactEmail, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { received_at: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          subject: true,
+          from_email: true,
+          to_email: true,
+          status: true,
+          received_at: true,
+          normalized_body: true,
+          text_body: true,
+          has_attachments: true,
+          attachment_count: true,
+          message_id: true,
+        },
+      }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: {
+        city: item,
+        contactEmail,
+        sent: sentLogs.map((log) => ({
+          id: log.id,
+          direction: 'sent',
+          subject: log.subject,
+          from: log.from_email,
+          to: log.to_email,
+          status: log.status,
+          createdAt: log.created_at,
+          sentAt: log.created_at,
+          snippet: null,
+          hasAttachments: (log.attachment_count || 0) > 0,
+          originalId: log.id,
+          providerMessageId: log.provider_message_id,
+        })),
+        received: receivedLogs.map((log) => ({
+          id: log.id,
+          direction: 'received',
+          subject: log.subject || '(sem assunto)',
+          from: log.from_email,
+          to: log.to_email,
+          status: log.status,
+          receivedAt: log.received_at,
+          createdAt: log.received_at,
+          snippet: buildSnippet(log.normalized_body || log.text_body),
+          hasAttachments: log.has_attachments || (log.attachment_count || 0) > 0,
+          originalId: log.id,
+          messageId: log.message_id,
+        })),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao buscar comunicações vinculadas.' });
   }
 });
 

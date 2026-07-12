@@ -80,6 +80,13 @@ const EMPTY_FORM = {
   notes: '',
 };
 
+const EMPTY_COMMUNICATIONS = {
+  city: null,
+  contactEmail: null,
+  sent: [],
+  received: [],
+};
+
 function toDatetimeLocal(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -101,6 +108,10 @@ function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleString('pt-BR');
+}
+
+function getCommunicationDate(item) {
+  return item?.receivedAt || item?.sentAt || item?.createdAt || null;
 }
 
 function StatusTag({ status }) {
@@ -138,6 +149,10 @@ export default function RegulatoryCitiesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [expandedCommunicationsId, setExpandedCommunicationsId] = useState(null);
+  const [communicationsByCity, setCommunicationsByCity] = useState({});
+  const [communicationsLoadingId, setCommunicationsLoadingId] = useState(null);
+  const [communicationsErrors, setCommunicationsErrors] = useState({});
 
   const params = useMemo(() => {
     const next = {
@@ -249,6 +264,36 @@ export default function RegulatoryCitiesPage() {
       setErrorMessage(message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const loadCommunications = async (cityId) => {
+    setCommunicationsLoadingId(cityId);
+    setCommunicationsErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      const response = await api.get(`/api/admin/regulatory/cities/${cityId}/communications`);
+      setCommunicationsByCity((prev) => ({
+        ...prev,
+        [cityId]: response.data?.data || EMPTY_COMMUNICATIONS,
+      }));
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível carregar as comunicações vinculadas.';
+      setCommunicationsErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setCommunicationsLoadingId((current) => (current === cityId ? null : current));
+    }
+  };
+
+  const toggleCommunications = async (cityId) => {
+    if (expandedCommunicationsId === cityId) {
+      setExpandedCommunicationsId(null);
+      return;
+    }
+
+    setExpandedCommunicationsId(cityId);
+    if (!communicationsByCity[cityId]) {
+      await loadCommunications(cityId);
     }
   };
 
@@ -404,7 +449,126 @@ export default function RegulatoryCitiesPage() {
                             Ver e-mails recebidos
                           </Button>
                         )}
+
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => toggleCommunications(item.id)}
+                          disabled={communicationsLoadingId === item.id}
+                          sx={{ bgcolor: '#111827', color: '#F8FAFC', '&:hover': { bgcolor: '#0F172A' } }}
+                        >
+                          {communicationsLoadingId === item.id ? 'Carregando...' : 'Ver comunicações'}
+                        </Button>
                       </Stack>
+
+                      {expandedCommunicationsId === item.id && (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            borderRadius: 2,
+                            bgcolor: '#0F172A',
+                            color: '#E5E7EB',
+                            border: '1px solid rgba(148,163,184,0.18)',
+                            p: 1.5,
+                          }}
+                        >
+                          <Typography sx={{ fontWeight: 800, color: '#F8FAFC', fontSize: 14, mb: 1.25 }}>
+                            Comunicações vinculadas
+                          </Typography>
+
+                          {communicationsErrors[item.id] && (
+                            <Alert severity="error" sx={{ mb: 1.25 }}>
+                              {communicationsErrors[item.id]}
+                            </Alert>
+                          )}
+
+                          {!communicationsErrors[item.id] && communicationsLoadingId === item.id && !communicationsByCity[item.id] && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                              <CircularProgress size={22} sx={{ color: '#B8942E' }} />
+                            </Box>
+                          )}
+
+                          {!communicationsErrors[item.id] && communicationsByCity[item.id] && (
+                            <Stack spacing={1.25}>
+                              {!communicationsByCity[item.id].contactEmail ? (
+                                <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                  Cadastre um e-mail de contato para vincular comunicações.
+                                </Typography>
+                              ) : (
+                                <>
+                                  <Typography sx={{ color: '#94A3B8', fontSize: 12 }}>
+                                    E-mail vinculado: {communicationsByCity[item.id].contactEmail}
+                                  </Typography>
+
+                                  {communicationsByCity[item.id].sent.length === 0 && communicationsByCity[item.id].received.length === 0 ? (
+                                    <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                      Nenhuma comunicação vinculada a este e-mail ainda.
+                                    </Typography>
+                                  ) : (
+                                    <Grid container spacing={1.25}>
+                                      {[
+                                        { title: 'Enviados', items: communicationsByCity[item.id].sent },
+                                        { title: 'Recebidos', items: communicationsByCity[item.id].received },
+                                      ].map((group) => (
+                                        <Grid item xs={12} md={6} key={group.title}>
+                                          <Box sx={{ borderRadius: 1.5, bgcolor: 'rgba(15,23,42,0.55)', border: '1px solid rgba(148,163,184,0.14)', p: 1.25, height: '100%' }}>
+                                            <Typography sx={{ color: '#F8FAFC', fontWeight: 700, fontSize: 13, mb: 1 }}>
+                                              {group.title}
+                                            </Typography>
+
+                                            {group.items.length === 0 ? (
+                                              <Typography sx={{ color: '#94A3B8', fontSize: 12 }}>
+                                                Nenhum {group.title === 'Enviados' ? 'envio' : 'recebimento'} vinculado.
+                                              </Typography>
+                                            ) : (
+                                              <Stack spacing={1}>
+                                                {group.items.map((comm) => (
+                                                  <Box key={comm.id} sx={{ borderRadius: 1.5, bgcolor: 'rgba(30,41,59,0.88)', p: 1.1, border: '1px solid rgba(148,163,184,0.1)' }}>
+                                                    <Typography sx={{ color: '#F8FAFC', fontWeight: 600, fontSize: 12.5, lineHeight: 1.35 }}>
+                                                      {comm.subject || '(sem assunto)'}
+                                                    </Typography>
+                                                    <Typography sx={{ color: '#94A3B8', fontSize: 11, mt: 0.35 }}>
+                                                      {group.title === 'Enviados' ? `Para: ${comm.to || '-'}` : `De: ${comm.from || '-'}`}
+                                                    </Typography>
+                                                    <Typography sx={{ color: '#94A3B8', fontSize: 11, mt: 0.15 }}>
+                                                      {formatDateTime(getCommunicationDate(comm))}
+                                                    </Typography>
+                                                    {comm.snippet && (
+                                                      <Typography sx={{ color: '#CBD5E1', fontSize: 11.5, mt: 0.65, lineHeight: 1.45 }}>
+                                                        {comm.snippet}
+                                                      </Typography>
+                                                    )}
+                                                    <Stack direction="row" spacing={0.75} sx={{ mt: 0.8, flexWrap: 'wrap' }}>
+                                                      {comm.status && (
+                                                        <Chip
+                                                          size="small"
+                                                          label={comm.status}
+                                                          sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(148,163,184,0.18)' }}
+                                                        />
+                                                      )}
+                                                      {comm.hasAttachments && (
+                                                        <Chip
+                                                          size="small"
+                                                          label="Anexos"
+                                                          sx={{ height: 22, fontSize: 10, color: '#F8FAFC', bgcolor: 'rgba(184,148,46,0.28)' }}
+                                                        />
+                                                      )}
+                                                    </Stack>
+                                                  </Box>
+                                                ))}
+                                              </Stack>
+                                            )}
+                                          </Box>
+                                        </Grid>
+                                      ))}
+                                    </Grid>
+                                  )}
+                                </>
+                              )}
+                            </Stack>
+                          )}
+                        </Box>
+                      )}
                     </Stack>
                   </CardContent>
                 </Card>
