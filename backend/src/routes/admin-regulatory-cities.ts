@@ -11,6 +11,7 @@ import {
   MUNICIPAL_MODALITIES,
   mapDriverModalityToMunicipalModality,
   MunicipalModality,
+  selectCurrentMunicipalAuthorization,
 } from '../services/municipal-regulation.service';
 
 const router = Router();
@@ -331,6 +332,8 @@ async function loadDriverProtocolsForCase(caseId: string) {
         id: true,
         case_id: true,
         driver_id: true,
+        cycle_number: true,
+        renewal_of_protocol_id: true,
         service_modality: true,
         driver_name: true,
         cpf_last4: true,
@@ -360,6 +363,8 @@ async function loadDriverProtocolsForCase(caseId: string) {
         case_id: true,
         driver_id: true,
         driver_name: true,
+        cycle_number: true,
+        renewal_of_protocol_id: true,
         cpf_last4: true,
         vehicle_plate: true,
         vehicle_type: true,
@@ -378,6 +383,8 @@ async function loadDriverProtocolsForCase(caseId: string) {
 
     return fallbackItems.map((item) => ({
       ...item,
+      cycle_number: item.cycle_number ?? 1,
+      renewal_of_protocol_id: item.renewal_of_protocol_id ?? null,
       service_modality: null,
     }));
   }
@@ -395,6 +402,139 @@ function hasValidMunicipalAuthorization(authorization: {
   });
 
   return validity.isOperationallyValid;
+}
+
+type ProtocolCycleRecord = {
+  id: string;
+  case_id: string;
+  driver_id: string | null;
+  service_modality: MunicipalModality | null;
+  cycle_number: number;
+  renewal_of_protocol_id: string | null;
+  status: string;
+  protocol_number: string | null;
+  driver_name: string;
+  cpf_last4: string | null;
+  vehicle_plate: string | null;
+  vehicle_type: string | null;
+  next_action: string | null;
+  notes: string | null;
+  submitted_at: Date | null;
+  approved_at: Date | null;
+  rejected_at: Date | null;
+  next_follow_up_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type MunicipalAuthorizationRecord = {
+  id: string;
+  driver_id: string;
+  service_modality: MunicipalModality;
+  source_driver_protocol_id: string | null;
+  status: string;
+  approved_by_admin_id: string | null;
+  authorization_valid_until: Date | null;
+  created_at: Date;
+};
+
+type AuthorizationCycleCandidate = {
+  id: string;
+  source_driver_protocol_id: string | null;
+  status: string;
+  approved_by_admin_id: string | null;
+  authorization_valid_until: Date | null;
+  created_at: Date;
+};
+
+function buildCycleTupleKey(caseId: string, driverId: string, serviceModality: MunicipalModality) {
+  return `${caseId}:${driverId}:${serviceModality}`;
+}
+
+function buildAuthorizationTupleKey(driverId: string, serviceModality: MunicipalModality) {
+  return `${driverId}:${serviceModality}`;
+}
+
+function evaluateSelectedAuthorization(authorization: MunicipalAuthorizationRecord | null) {
+  if (!authorization) return null;
+
+  return evaluateMunicipalAuthorizationValidity({
+    status: authorization.status,
+    approved_by_admin_id: authorization.approved_by_admin_id,
+    authorization_valid_until: authorization.authorization_valid_until,
+  });
+}
+
+function authorizationBelongsToProtocolCycle(
+  protocol: Pick<ProtocolCycleRecord, 'id' | 'cycle_number'>,
+  authorization: { source_driver_protocol_id?: string | null },
+): boolean {
+  const sourceProtocolId = authorization.source_driver_protocol_id ?? null;
+
+  if (sourceProtocolId === protocol.id) {
+    return true;
+  }
+
+  if (Number(protocol.cycle_number || 1) === 1 && sourceProtocolId === null) {
+    return true;
+  }
+
+  return false;
+}
+
+function resolveAuthorizationForProtocolCycle(
+  protocol: Pick<ProtocolCycleRecord, 'id' | 'cycle_number'>,
+  tupleAuthorizations: AuthorizationCycleCandidate[],
+) {
+  const matching = tupleAuthorizations.filter((authorization) => authorizationBelongsToProtocolCycle(protocol, authorization));
+  return selectCurrentMunicipalAuthorization(matching);
+}
+
+function buildRenewalOperationalState(input: {
+  protocol: ProtocolCycleRecord;
+  isLatestCycle: boolean;
+  protocolAuthorization: AuthorizationCycleCandidate | null;
+  protocolValidity: ReturnType<typeof evaluateMunicipalAuthorizationValidity> | null;
+  hasNextCycle: boolean;
+}) {
+  const { protocol, isLatestCycle, protocolAuthorization, protocolValidity, hasNextCycle } = input;
+
+  if (!protocol.driver_id) {
+    return { canStartRenewal: false, reason: 'Protocolo não está vinculado a um motorista real.' };
+  }
+
+  if (!protocol.service_modality) {
+    return { canStartRenewal: false, reason: 'Defina a modalidade municipal para habilitar renovação.' };
+  }
+
+  if (!isLatestCycle) {
+    return { canStartRenewal: false, reason: 'Somente o ciclo mais recente permite iniciar renovação.' };
+  }
+
+  if (hasNextCycle) {
+    return { canStartRenewal: false, reason: 'Já existe um ciclo de renovação iniciado para este protocolo.' };
+  }
+
+  if (!protocolAuthorization || !protocolValidity) {
+    return {
+      canStartRenewal: false,
+      reason: 'O ciclo regulatório atual ainda não possui uma autorização municipal concluída para renovação.',
+    };
+  }
+
+  if (protocolValidity.state === 'ACTIVE') {
+    return { canStartRenewal: false, reason: 'A autorização municipal ainda não está no período de renovação.' };
+  }
+
+  if (protocolValidity.state === 'INACTIVE') {
+    return { canStartRenewal: false, reason: 'A autorização municipal exige revisão antes da renovação.' };
+  }
+
+  if (protocolValidity.state === 'EXPIRING_SOON' || protocolValidity.state === 'EXPIRED') {
+    return { canStartRenewal: true, reason: null };
+  }
+
+  return { canStartRenewal: false, reason: 'A autorização municipal ainda não está no período de renovação.' };
 }
 
 type AuthorizationOperationalState = {
@@ -418,6 +558,7 @@ function buildAuthorizationOperationalState(input: {
   protocolNumber: string | null;
   serviceModality: MunicipalModality | null;
   hasActiveRegulation: boolean;
+  isLatestCycle: boolean;
   authorization: {
     id: string;
     status: string;
@@ -509,6 +650,18 @@ function buildAuthorizationOperationalState(input: {
       label: 'Autorização ainda não gerada',
       canGenerate: false,
       reason: 'Informe o número do protocolo municipal antes de gerar a autorização operacional.',
+      authorizationId: null,
+      validUntil: null,
+      daysUntilExpiry: null,
+    };
+  }
+
+  if (!input.isLatestCycle) {
+    return {
+      state: 'NOT_GENERATED',
+      label: 'Autorização ainda não gerada',
+      canGenerate: false,
+      reason: 'Ciclo histórico não permite gerar nova autorização.',
       authorizationId: null,
       validUntil: null,
       daysUntilExpiry: null,
@@ -1042,17 +1195,35 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
     }
 
     const rawItems = await loadDriverProtocolsForCase(city.id);
+    const protocolItems: ProtocolCycleRecord[] = rawItems.map((item) => ({
+      id: item.id,
+      case_id: item.case_id,
+      driver_id: item.driver_id || null,
+      service_modality: normalizeServiceModality(item.service_modality),
+      cycle_number: Number(item.cycle_number || 1),
+      renewal_of_protocol_id: item.renewal_of_protocol_id || null,
+      driver_name: item.driver_name,
+      cpf_last4: item.cpf_last4 || null,
+      vehicle_plate: item.vehicle_plate || null,
+      vehicle_type: item.vehicle_type || null,
+      protocol_number: item.protocol_number || null,
+      status: item.status,
+      next_action: item.next_action || null,
+      notes: item.notes || null,
+      submitted_at: item.submitted_at || null,
+      approved_at: item.approved_at || null,
+      rejected_at: item.rejected_at || null,
+      next_follow_up_at: item.next_follow_up_at || null,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+    }));
 
     const linkedDriverIds = Array.from(
-      new Set(rawItems.map((item) => item.driver_id).filter((driverId): driverId is string => Boolean(driverId))),
+      new Set(protocolItems.map((item) => item.driver_id).filter((driverId): driverId is string => Boolean(driverId))),
     );
 
     const modalitiesInProtocols = Array.from(
-      new Set(
-        rawItems
-          .map((item) => normalizeServiceModality(item.service_modality))
-          .filter((modality): modality is MunicipalModality => Boolean(modality)),
-      ),
+      new Set(protocolItems.map((item) => item.service_modality).filter((modality): modality is MunicipalModality => Boolean(modality))),
     );
 
     const regulations = modalitiesInProtocols.length > 0
@@ -1074,37 +1245,89 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
       regulations.map((regulation) => [regulation.service_modality as MunicipalModality, regulation.id]),
     );
 
-    const authorizations = linkedDriverIds.length > 0
+    const authorizations: MunicipalAuthorizationRecord[] = linkedDriverIds.length > 0
       ? await prisma.municipal_authorizations.findMany({
           where: {
             driver_id: { in: linkedDriverIds },
             city: { equals: city.city, mode: 'insensitive' },
             state: { equals: city.state, mode: 'insensitive' },
           },
+          orderBy: [{ created_at: 'desc' }],
           select: {
             id: true,
             driver_id: true,
             service_modality: true,
+            source_driver_protocol_id: true,
             status: true,
             approved_by_admin_id: true,
             authorization_valid_until: true,
+            created_at: true,
           },
         })
       : [];
 
-    const authorizationByDriverAndModality = new Map(
-      authorizations.map((authorization) => [
-        `${authorization.driver_id}:${authorization.service_modality}`,
-        authorization,
-      ]),
+    const authorizationsByTuple = new Map<string, MunicipalAuthorizationRecord[]>();
+
+    for (const authorization of authorizations) {
+      const tupleKey = buildAuthorizationTupleKey(authorization.driver_id, authorization.service_modality);
+      const current = authorizationsByTuple.get(tupleKey) || [];
+      current.push(authorization);
+      authorizationsByTuple.set(tupleKey, current);
+
+    }
+
+    const latestCycleByTuple = new Map<string, ProtocolCycleRecord>();
+    for (const protocol of protocolItems) {
+      if (!protocol.driver_id || !protocol.service_modality) continue;
+
+      const tupleKey = buildCycleTupleKey(protocol.case_id, protocol.driver_id, protocol.service_modality);
+      const current = latestCycleByTuple.get(tupleKey);
+      if (!current) {
+        latestCycleByTuple.set(tupleKey, protocol);
+        continue;
+      }
+
+      if (protocol.cycle_number > current.cycle_number) {
+        latestCycleByTuple.set(tupleKey, protocol);
+        continue;
+      }
+
+      if (protocol.cycle_number === current.cycle_number && protocol.created_at.getTime() > current.created_at.getTime()) {
+        latestCycleByTuple.set(tupleKey, protocol);
+      }
+    }
+
+    const nextCycleByParentProtocol = new Set(
+      protocolItems
+        .map((item) => item.renewal_of_protocol_id)
+        .filter((value): value is string => Boolean(value)),
     );
 
-    const items = rawItems.map((item) => {
-      const serviceModality = normalizeServiceModality(item.service_modality);
-      const regulationId = serviceModality ? regulationByModality.get(serviceModality) || null : null;
-      const authorization = item.driver_id && serviceModality
-        ? authorizationByDriverAndModality.get(`${item.driver_id}:${serviceModality}`) || null
+    const items = protocolItems.map((item) => {
+      const serviceModality = item.service_modality;
+      const tupleKey = item.driver_id && serviceModality
+        ? buildCycleTupleKey(item.case_id, item.driver_id, serviceModality)
         : null;
+      const authTupleKey = item.driver_id && serviceModality
+        ? buildAuthorizationTupleKey(item.driver_id, serviceModality)
+        : null;
+      const regulationId = serviceModality ? regulationByModality.get(serviceModality) || null : null;
+
+      const latestCycle = tupleKey ? latestCycleByTuple.get(tupleKey) || null : null;
+      const isLatestCycle = latestCycle ? latestCycle.id === item.id : true;
+
+      const tupleAuthorizations = authTupleKey ? (authorizationsByTuple.get(authTupleKey) || []) : [];
+      const selectedForProtocol = resolveAuthorizationForProtocolCycle(item, tupleAuthorizations);
+      const protocolAuthorization = selectedForProtocol.selected;
+      const protocolValidity = selectedForProtocol.validity;
+
+      const renewalOperational = buildRenewalOperationalState({
+        protocol: item,
+        isLatestCycle,
+        protocolAuthorization,
+        protocolValidity,
+        hasNextCycle: nextCycleByParentProtocol.has(item.id),
+      });
 
       const authorizationOperational = buildAuthorizationOperationalState({
         driverId: item.driver_id || null,
@@ -1112,7 +1335,8 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
         protocolNumber: asNullable(item.protocol_number),
         serviceModality,
         hasActiveRegulation: Boolean(regulationId),
-        authorization,
+        isLatestCycle,
+        authorization: protocolAuthorization,
       });
 
       return {
@@ -1120,6 +1344,11 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
         linkedDriver: Boolean(item.driver_id),
         driverId: item.driver_id || null,
         service_modality: serviceModality,
+        cycleNumber: item.cycle_number,
+        isRenewal: item.cycle_number > 1 || Boolean(item.renewal_of_protocol_id),
+        renewalOfProtocolId: item.renewal_of_protocol_id,
+        isLatestCycle,
+        renewalOperational,
         authorizationOperational,
         documentSummary: null,
       };
@@ -1530,6 +1759,8 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
         case_id: city.id,
         driver_id: driver.id,
         service_modality: protocolServiceModality,
+        cycle_number: 1,
+        renewal_of_protocol_id: null,
         driver_name: driver.name,
         cpf_last4: deriveCpfLast4FromCpf(driver.document_cpf),
         vehicle_plate: driver.vehicle_plate || approvedModality?.vehicle_plate || null,
@@ -1575,6 +1806,209 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
 });
 
 // POST /api/admin/regulatory/cities/:id/driver-protocols/:protocolId/generate-authorization
+router.post('/regulatory/cities/:id/driver-protocols/:protocolId/start-renewal', async (req: Request, res: Response) => {
+  try {
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, city: true, state: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const protocol = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: {
+        id: req.params.protocolId,
+        case_id: city.id,
+      },
+    });
+
+    if (!protocol) {
+      return res.status(404).json({ success: false, error: 'Protocolo de motorista não encontrado.' });
+    }
+
+    if (!protocol.driver_id) {
+      return res.status(409).json({
+        success: false,
+        error: 'Somente protocolos vinculados a motorista real podem iniciar renovação municipal.',
+        code: 'PROTOCOL_DRIVER_REQUIRED',
+      });
+    }
+
+    const serviceModality = normalizeServiceModality(protocol.service_modality);
+    if (!serviceModality) {
+      return res.status(409).json({
+        success: false,
+        error: 'Defina a modalidade municipal no protocolo antes de iniciar renovação.',
+        code: 'PROTOCOL_MODALITY_REQUIRED',
+      });
+    }
+
+    const driver = await prisma.drivers.findUnique({
+      where: { id: protocol.driver_id },
+      select: { id: true },
+    });
+
+    if (!driver) {
+      return res.status(404).json({ success: false, error: 'Motorista do protocolo não encontrado.' });
+    }
+
+    const latestProtocol = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: {
+        case_id: city.id,
+        driver_id: protocol.driver_id,
+        service_modality: serviceModality,
+      },
+      orderBy: [{ cycle_number: 'desc' }, { created_at: 'desc' }],
+    });
+
+    if (!latestProtocol || latestProtocol.id !== protocol.id) {
+      return res.status(409).json({
+        success: false,
+        error: 'Somente o ciclo mais recente pode iniciar renovação.',
+        code: 'PROTOCOL_NOT_LATEST_CYCLE',
+      });
+    }
+
+    const existingRenewal = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: { renewal_of_protocol_id: latestProtocol.id },
+      orderBy: [{ created_at: 'desc' }],
+    });
+
+    if (existingRenewal) {
+      return res.json({
+        success: true,
+        data: {
+          protocolId: existingRenewal.id,
+          cycleNumber: existingRenewal.cycle_number,
+          idempotent: true,
+        },
+      });
+    }
+
+    const tupleAuthorizations = await prisma.municipal_authorizations.findMany({
+      where: {
+        driver_id: protocol.driver_id,
+        city: { equals: city.city, mode: 'insensitive' },
+        state: { equals: city.state, mode: 'insensitive' },
+        service_modality: serviceModality,
+      },
+      orderBy: [{ created_at: 'desc' }],
+      select: {
+        id: true,
+        source_driver_protocol_id: true,
+        status: true,
+        approved_by_admin_id: true,
+        authorization_valid_until: true,
+        created_at: true,
+      },
+    });
+
+    const selectedForCycle = resolveAuthorizationForProtocolCycle(
+      {
+        id: latestProtocol.id,
+        cycle_number: Number(latestProtocol.cycle_number || 1),
+      },
+      tupleAuthorizations,
+    );
+    const currentValidity = selectedForCycle.validity;
+
+    if (!selectedForCycle.selected) {
+      return res.status(409).json({
+        success: false,
+        error: 'O ciclo regulatório atual ainda não possui uma autorização municipal concluída para renovação.',
+        code: 'MUNICIPAL_RENEWAL_CURRENT_CYCLE_NOT_AUTHORIZED',
+      });
+    }
+
+    if (!currentValidity || currentValidity.state === 'INACTIVE') {
+      return res.status(409).json({
+        success: false,
+        error: 'A autorização municipal atual exige revisão antes de iniciar renovação.',
+        code: 'MUNICIPAL_RENEWAL_REVIEW_REQUIRED',
+      });
+    }
+
+    if (currentValidity.state === 'ACTIVE') {
+      return res.status(409).json({
+        success: false,
+        error: 'A autorização municipal ainda não está no período de renovação.',
+        code: 'MUNICIPAL_RENEWAL_NOT_DUE',
+      });
+    }
+
+    if (currentValidity.state !== 'EXPIRING_SOON' && currentValidity.state !== 'EXPIRED') {
+      return res.status(409).json({
+        success: false,
+        error: 'A autorização municipal atual exige revisão antes de iniciar renovação.',
+        code: 'MUNICIPAL_RENEWAL_REVIEW_REQUIRED',
+      });
+    }
+
+    const nextCycle = Number(latestProtocol.cycle_number || 1) + 1;
+
+    try {
+      const created = await prisma.municipal_regulatory_driver_protocols.create({
+        data: {
+          case_id: latestProtocol.case_id,
+          driver_id: latestProtocol.driver_id,
+          service_modality: serviceModality,
+          cycle_number: nextCycle,
+          renewal_of_protocol_id: latestProtocol.id,
+          driver_name: latestProtocol.driver_name,
+          cpf_last4: latestProtocol.cpf_last4 || null,
+          vehicle_plate: latestProtocol.vehicle_plate || null,
+          vehicle_type: latestProtocol.vehicle_type || null,
+          protocol_number: null,
+          status: 'PREPARING',
+          next_action: 'Organizar documentação e protocolar a renovação municipal.',
+          notes: latestProtocol.notes || null,
+          submitted_at: null,
+          approved_at: null,
+          rejected_at: null,
+          next_follow_up_at: null,
+        },
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: {
+          protocolId: created.id,
+          cycleNumber: created.cycle_number,
+          idempotent: false,
+        },
+      });
+    } catch (error) {
+      const isConcurrentDuplicate =
+        (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
+        || (typeof error === 'object' && error !== null && (error as any).code === 'P2002');
+
+      if (isConcurrentDuplicate) {
+        const concurrent = await prisma.municipal_regulatory_driver_protocols.findFirst({
+          where: { renewal_of_protocol_id: latestProtocol.id },
+          orderBy: [{ created_at: 'desc' }],
+        });
+
+        if (concurrent) {
+          return res.json({
+            success: true,
+            data: {
+              protocolId: concurrent.id,
+              cycleNumber: concurrent.cycle_number,
+              idempotent: true,
+            },
+          });
+        }
+      }
+
+      throw error;
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Não foi possível iniciar o ciclo de renovação municipal.' });
+  }
+});
+
 router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-authorization', async (req: Request, res: Response) => {
   try {
     const city = await prisma.municipal_regulatory_cases.findUnique({
@@ -1622,6 +2056,26 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
       });
     }
 
+    const latestProtocol = await prisma.municipal_regulatory_driver_protocols.findFirst({
+      where: {
+        case_id: city.id,
+        driver_id: protocol.driver_id,
+        service_modality: serviceModality,
+      },
+      orderBy: [{ cycle_number: 'desc' }, { created_at: 'desc' }],
+      select: { id: true },
+    });
+
+    if (!latestProtocol || latestProtocol.id !== protocol.id) {
+      return res.status(409).json({
+        success: false,
+        error: 'Somente o ciclo mais recente pode gerar autorização municipal.',
+        code: 'PROTOCOL_NOT_LATEST_CYCLE',
+      });
+    }
+
+    const isRenewal = Number(protocol.cycle_number || 1) > 1 || Boolean(protocol.renewal_of_protocol_id);
+
     const driver = await prisma.drivers.findUnique({
       where: { id: protocol.driver_id },
       select: { id: true },
@@ -1631,35 +2085,40 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
       return res.status(404).json({ success: false, error: 'Motorista do protocolo não encontrado.' });
     }
 
-    const existingAuthorization = await prisma.municipal_authorizations.findFirst({
+    const tupleAuthorizations = await prisma.municipal_authorizations.findMany({
       where: {
         driver_id: driver.id,
         city: { equals: city.city, mode: 'insensitive' },
         state: { equals: city.state, mode: 'insensitive' },
         service_modality: serviceModality,
       },
+      orderBy: [{ created_at: 'desc' }],
       select: {
         id: true,
         status: true,
         approved_by_admin_id: true,
         authorization_valid_until: true,
+        source_driver_protocol_id: true,
+        created_at: true,
       },
     });
 
-    if (existingAuthorization) {
+    const authorizationFromCurrentProtocol = tupleAuthorizations.find((item) => item.source_driver_protocol_id === protocol.id) || null;
+
+    if (authorizationFromCurrentProtocol) {
       const existingValidity = evaluateMunicipalAuthorizationValidity({
-        status: existingAuthorization.status,
-        approved_by_admin_id: existingAuthorization.approved_by_admin_id,
-        authorization_valid_until: existingAuthorization.authorization_valid_until,
+        status: authorizationFromCurrentProtocol.status,
+        approved_by_admin_id: authorizationFromCurrentProtocol.approved_by_admin_id,
+        authorization_valid_until: authorizationFromCurrentProtocol.authorization_valid_until,
       });
 
       if (existingValidity.isOperationallyValid) {
         return res.json({
           success: true,
           data: {
-            authorizationId: existingAuthorization.id,
+            authorizationId: authorizationFromCurrentProtocol.id,
             idempotent: true,
-            status: existingAuthorization.status,
+            status: authorizationFromCurrentProtocol.status,
           },
           message: 'Autorização municipal já estava ativa para este protocolo.',
         });
@@ -1667,9 +2126,104 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
 
       return res.status(409).json({
         success: false,
-        error: 'Já existe autorização municipal para este motorista e modalidade. Revise o registro atual antes de gerar outra.',
+        error: 'Já existe autorização municipal para este ciclo, mas ela exige revisão antes de nova geração.',
         code: 'AUTHORIZATION_ALREADY_EXISTS_REVIEW_REQUIRED',
       });
+    }
+
+    let previousAuthorizationForRenewal: {
+      id: string;
+      authorization_valid_until: Date | null;
+      state: string;
+    } | null = null;
+
+    if (isRenewal) {
+      const previousCycleProtocolId = protocol.renewal_of_protocol_id;
+
+      if (!previousCycleProtocolId) {
+        return res.status(409).json({
+          success: false,
+          error: 'O ciclo de renovação não está vinculado ao ciclo anterior autorizado.',
+          code: 'MUNICIPAL_RENEWAL_PREVIOUS_CYCLE_REQUIRED',
+        });
+      }
+
+      const previousCycleNumber = Math.max(Number(protocol.cycle_number || 1) - 1, 1);
+      const selectedPreviousCycle = resolveAuthorizationForProtocolCycle(
+        {
+          id: previousCycleProtocolId,
+          cycle_number: previousCycleNumber,
+        },
+        tupleAuthorizations,
+      );
+      const currentValidity = selectedPreviousCycle.validity;
+
+      if (!selectedPreviousCycle.selected) {
+        return res.status(409).json({
+          success: false,
+          error: 'O ciclo anterior ainda não possui autorização municipal válida para renovação.',
+          code: 'MUNICIPAL_RENEWAL_CURRENT_CYCLE_NOT_AUTHORIZED',
+        });
+      }
+
+      if (!currentValidity || currentValidity.state === 'INACTIVE') {
+        return res.status(409).json({
+          success: false,
+          error: 'A autorização municipal atual exige revisão antes de gerar a renovação.',
+          code: 'MUNICIPAL_RENEWAL_REVIEW_REQUIRED',
+        });
+      }
+
+      previousAuthorizationForRenewal = {
+        id: selectedPreviousCycle.selected.id,
+        authorization_valid_until: selectedPreviousCycle.selected.authorization_valid_until,
+        state: currentValidity.state,
+      };
+
+      if (currentValidity.state === 'ACTIVE') {
+        return res.status(409).json({
+          success: false,
+          error: 'A autorização municipal ainda não está no período de renovação.',
+          code: 'MUNICIPAL_RENEWAL_NOT_DUE',
+        });
+      }
+
+      if (currentValidity.state !== 'EXPIRING_SOON' && currentValidity.state !== 'EXPIRED') {
+        return res.status(409).json({
+          success: false,
+          error: 'A autorização municipal atual exige revisão antes de gerar a renovação.',
+          code: 'MUNICIPAL_RENEWAL_REVIEW_REQUIRED',
+        });
+      }
+    } else {
+      const legacyAuthorizations = tupleAuthorizations.filter((item) => item.source_driver_protocol_id === null);
+      const existingLegacy = selectCurrentMunicipalAuthorization(legacyAuthorizations).selected;
+
+      if (existingLegacy) {
+        const existingValidity = evaluateMunicipalAuthorizationValidity({
+          status: existingLegacy.status,
+          approved_by_admin_id: existingLegacy.approved_by_admin_id,
+          authorization_valid_until: existingLegacy.authorization_valid_until,
+        });
+
+        if (existingValidity.isOperationallyValid) {
+          return res.json({
+            success: true,
+            data: {
+              authorizationId: existingLegacy.id,
+              idempotent: true,
+              status: existingLegacy.status,
+            },
+            message: 'Autorização municipal já estava ativa para este protocolo.',
+          });
+        }
+
+        return res.status(409).json({
+          success: false,
+          error: 'Já existe autorização municipal para este motorista e modalidade. Revise o registro atual antes de gerar outra.',
+          code: 'AUTHORIZATION_ALREADY_EXISTS_REVIEW_REQUIRED',
+        });
+      }
     }
 
     const protocolNumber = asNullable(protocol.protocol_number);
@@ -1724,6 +2278,7 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
         data: {
           driver_id: driver.id,
           regulation_id: regulation.id,
+          source_driver_protocol_id: isRenewal ? protocol.id : null,
           city: city.city,
           state: city.state,
           service_modality: serviceModality,
@@ -1749,17 +2304,21 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
 
       if (isConcurrentDuplicate) {
         const concurrentAuthorization = await prisma.municipal_authorizations.findFirst({
-          where: {
-            driver_id: driver.id,
-            city: { equals: city.city, mode: 'insensitive' },
-            state: { equals: city.state, mode: 'insensitive' },
-            service_modality: serviceModality,
-          },
+          where: isRenewal
+            ? { source_driver_protocol_id: protocol.id }
+            : {
+                driver_id: driver.id,
+                city: { equals: city.city, mode: 'insensitive' },
+                state: { equals: city.state, mode: 'insensitive' },
+                service_modality: serviceModality,
+              },
+          orderBy: [{ created_at: 'desc' }],
           select: {
             id: true,
             status: true,
             approved_by_admin_id: true,
             authorization_valid_until: true,
+            source_driver_protocol_id: true,
           },
         });
 
@@ -1771,7 +2330,17 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
               idempotent: true,
               status: concurrentAuthorization.status,
             },
-            message: 'Autorização municipal já foi gerada por outra operação concorrente.',
+            message: isRenewal
+              ? 'Autorização municipal de renovação já foi gerada por outra operação concorrente.'
+              : 'Autorização municipal já foi gerada por outra operação concorrente.',
+          });
+        }
+
+        if (concurrentAuthorization) {
+          return res.status(409).json({
+            success: false,
+            error: 'A autorização municipal deste ciclo já existe, mas exige revisão antes de nova geração.',
+            code: 'AUTHORIZATION_ALREADY_EXISTS_REVIEW_REQUIRED',
           });
         }
       }
@@ -1786,12 +2355,18 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
         action: 'STATUS_CHANGED',
         actor_admin_id: admin?.id || null,
         metadata: {
-          source: 'regulatory_city_protocol_approved',
+          source: isRenewal ? 'regulatory_renewal' : 'regulatory_city_protocol_approved',
           protocol_id: protocol.id,
           case_id: city.id,
           city: city.city,
           state: city.state,
           service_modality: serviceModality,
+          cycleNumber: Number(protocol.cycle_number || 1),
+          renewalOfProtocolId: protocol.renewal_of_protocol_id || null,
+          previousAuthorizationId: previousAuthorizationForRenewal?.id || null,
+          newAuthorizationId: createdAuthorization.id,
+          previousValidUntil: previousAuthorizationForRenewal?.authorization_valid_until || null,
+          newValidUntil: authorizationValidUntil,
           from_status: null,
           to_status: 'APPROVED_BY_CITY_HALL',
         },
@@ -1853,6 +2428,8 @@ router.post('/regulatory/cities/:id/driver-protocols', async (req: Request, res:
     const created = await prisma.municipal_regulatory_driver_protocols.create({
       data: {
         case_id: city.id,
+        cycle_number: 1,
+        renewal_of_protocol_id: null,
         service_modality: payload.service_modality || null,
         driver_name: payload.driver_name,
         cpf_last4: normalizeCpfLast4(payload.cpf_last4),

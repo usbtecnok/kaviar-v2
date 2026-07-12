@@ -13,6 +13,61 @@ export type MunicipalAuthorizationValidityEvaluation = {
   daysUntilExpiry: number | null;
   isOperationallyValid: boolean;
 };
+
+export type MunicipalAuthorizationCandidate = {
+  id: string;
+  status: string;
+  approved_by_admin_id: string | null;
+  authorization_valid_until: Date | null;
+  created_at: Date;
+};
+
+export function selectCurrentMunicipalAuthorization<T extends MunicipalAuthorizationCandidate>(
+  authorizations: T[],
+): {
+  selected: T | null;
+  validity: MunicipalAuthorizationValidityEvaluation | null;
+} {
+  if (!authorizations.length) {
+    return { selected: null, validity: null };
+  }
+
+  const byRecency = [...authorizations].sort((a, b) => {
+    const aTime = a.created_at instanceof Date ? a.created_at.getTime() : 0;
+    const bTime = b.created_at instanceof Date ? b.created_at.getTime() : 0;
+    return bTime - aTime;
+  });
+
+  const withValidity = byRecency.map((authorization) => ({
+    authorization,
+    validity: evaluateMunicipalAuthorizationValidity({
+      status: authorization.status,
+      approved_by_admin_id: authorization.approved_by_admin_id,
+      authorization_valid_until: authorization.authorization_valid_until,
+    }),
+  }));
+
+  const firstOperational = withValidity.find((item) => item.validity.isOperationallyValid);
+  if (firstOperational) {
+    return {
+      selected: firstOperational.authorization,
+      validity: firstOperational.validity,
+    };
+  }
+
+  const firstExpired = withValidity.find((item) => item.validity.state === 'EXPIRED');
+  if (firstExpired) {
+    return {
+      selected: firstExpired.authorization,
+      validity: firstExpired.validity,
+    };
+  }
+
+  return {
+    selected: withValidity[0].authorization,
+    validity: withValidity[0].validity,
+  };
+}
 export type DriverRegulatoryCompatibilityStatus = 'COMPATIBLE' | 'INCOMPATIBLE' | 'REVIEW_REQUIRED';
 
 export type DriverRegulatoryDocumentSummary = {
@@ -578,13 +633,14 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
     return status !== 'SUBMITTED' && status !== 'VERIFIED';
   });
 
-  const authorization = await prisma.municipal_authorizations.findFirst({
+  const authorizations = await prisma.municipal_authorizations.findMany({
     where: {
       driver_id: driverId,
       city: { equals: normalizeCity(city), mode: 'insensitive' },
       state: { equals: normalizeState(state), mode: 'insensitive' },
       service_modality: modality,
     },
+    orderBy: [{ created_at: 'desc' }],
     include: {
       regulation: {
         include: {
@@ -595,6 +651,18 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
       },
     },
   });
+
+  const selectedAuthorization = selectCurrentMunicipalAuthorization(authorizations.map((item) => ({
+    id: item.id,
+    status: item.status,
+    approved_by_admin_id: item.approved_by_admin_id,
+    authorization_valid_until: item.authorization_valid_until,
+    created_at: item.created_at,
+  })));
+
+  const authorization = selectedAuthorization.selected
+    ? authorizations.find((item) => item.id === selectedAuthorization.selected?.id) || null
+    : null;
 
   if (regulation.regulation_status === 'REQUIRES_CONFIRMATION') {
     return {
@@ -634,12 +702,8 @@ export async function getDriverMunicipalStatus(driverId: string, city: string, s
     };
   }
 
-  const authorizationValidity = authorization
-    ? evaluateMunicipalAuthorizationValidity({
-        status: authorization.status,
-        approved_by_admin_id: authorization.approved_by_admin_id,
-        authorization_valid_until: authorization.authorization_valid_until,
-      })
+  const authorizationValidity = selectedAuthorization.validity
+    ? selectedAuthorization.validity
     : {
         state: 'INACTIVE' as const,
         validUntil: null,

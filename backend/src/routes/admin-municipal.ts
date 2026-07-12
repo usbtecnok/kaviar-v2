@@ -294,6 +294,12 @@ const SAFE_INITIAL_AUTHORIZATION_STATUSES = [
   'READY_FOR_CITY_HALL',
 ] as const;
 
+const OPEN_MANUAL_DRAFT_STATUSES = [
+  'DOCUMENTS_PENDING',
+  'IN_REVIEW_BY_KAVIAR',
+  'READY_FOR_CITY_HALL',
+] as const;
+
 const PATCH_ALLOWED_STATUS_VALUES = [
   'DOCUMENTS_PENDING',
   'IN_REVIEW_BY_KAVIAR',
@@ -321,31 +327,110 @@ router.post('/drivers/:id/municipal-authorizations', requireSuperAdmin, async (r
       return res.status(404).json({ success: false, error: 'Regra municipal ativa não encontrada para cidade/modalidade.' });
     }
 
-    const authorization = await prisma.municipal_authorizations.upsert({
+    const normalizedCity = normalizeCity(payload.city);
+    const normalizedState = normalizeState(payload.state);
+
+    const openManualDraft = await prisma.municipal_authorizations.findFirst({
       where: {
-        driver_id_city_state_service_modality: {
-          driver_id: req.params.id,
-          city: normalizeCity(payload.city),
-          state: normalizeState(payload.state),
-          service_modality: payload.service_modality,
-        },
-      },
-      create: {
         driver_id: req.params.id,
-        regulation_id: regulation.id,
-        city: normalizeCity(payload.city),
-        state: normalizeState(payload.state),
+        city: normalizedCity,
+        state: normalizedState,
         service_modality: payload.service_modality,
-        status: payload.status,
+        source_driver_protocol_id: null,
+        status: { in: [...OPEN_MANUAL_DRAFT_STATUSES] },
       },
-      update: {
-        regulation_id: regulation.id,
-        status: payload.status,
-      },
+      orderBy: [{ created_at: 'desc' }],
       include: {
         regulation: true,
       },
     });
+
+    if (openManualDraft) {
+      const authorization = await prisma.municipal_authorizations.update({
+        where: { id: openManualDraft.id },
+        data: {
+          regulation_id: regulation.id,
+          status: payload.status,
+        },
+        include: {
+          regulation: true,
+        },
+      });
+
+      return res.status(201).json({ success: true, data: authorization });
+    }
+
+    const hasAnyHistory = await prisma.municipal_authorizations.findFirst({
+      where: {
+        driver_id: req.params.id,
+        city: normalizedCity,
+        state: normalizedState,
+        service_modality: payload.service_modality,
+      },
+      select: { id: true },
+    });
+
+    if (hasAnyHistory) {
+      return res.status(409).json({
+        success: false,
+        code: 'MUNICIPAL_AUTHORIZATION_HISTORY_EXISTS_USE_REGULATORY_FLOW',
+        error: 'Já existe histórico municipal para este motorista e modalidade. Use o fluxo regulatório por protocolo para novo ciclo ou renovação.',
+      });
+    }
+
+    let authorization;
+
+    try {
+      authorization = await prisma.municipal_authorizations.create({
+        data: {
+          driver_id: req.params.id,
+          regulation_id: regulation.id,
+          city: normalizedCity,
+          state: normalizedState,
+          service_modality: payload.service_modality,
+          source_driver_protocol_id: null,
+          status: payload.status,
+        },
+        include: {
+          regulation: true,
+        },
+      });
+    } catch (error) {
+      const isConcurrentDuplicate =
+        (typeof error === 'object' && error !== null && (error as any).code === 'P2002');
+
+      if (!isConcurrentDuplicate) {
+        throw error;
+      }
+
+      const concurrentDraft = await prisma.municipal_authorizations.findFirst({
+        where: {
+          driver_id: req.params.id,
+          city: normalizedCity,
+          state: normalizedState,
+          service_modality: payload.service_modality,
+          source_driver_protocol_id: null,
+          status: { in: [...OPEN_MANUAL_DRAFT_STATUSES] },
+        },
+        orderBy: [{ created_at: 'desc' }],
+        select: { id: true },
+      });
+
+      if (!concurrentDraft) {
+        throw error;
+      }
+
+      authorization = await prisma.municipal_authorizations.update({
+        where: { id: concurrentDraft.id },
+        data: {
+          regulation_id: regulation.id,
+          status: payload.status,
+        },
+        include: {
+          regulation: true,
+        },
+      });
+    }
 
     res.status(201).json({ success: true, data: authorization });
   } catch (error) {

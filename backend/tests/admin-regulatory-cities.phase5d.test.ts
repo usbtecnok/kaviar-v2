@@ -546,12 +546,18 @@ describe('admin regulatory cities - fase 5D', () => {
   });
 
   it('autorização existente vencida não é recriada pelo endpoint de geração', async () => {
-    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
-      id: 'auth-expired',
-      status: 'APPROVED_BY_CITY_HALL',
-      approved_by_admin_id: 'admin-1',
-      authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
-    });
+    prismaMock.municipal_authorizations.findMany.mockResolvedValue([
+      {
+        id: 'auth-expired',
+        driver_id: 'driver-1',
+        service_modality: 'CAR',
+        source_driver_protocol_id: null,
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+        created_at: new Date('2026-07-12T00:00:00.000Z'),
+      },
+    ]);
 
     const res = await request(app)
       .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-1/generate-authorization')

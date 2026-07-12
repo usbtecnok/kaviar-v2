@@ -1453,6 +1453,8 @@ model municipal_regulatory_driver_protocols {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   case_id           String    @db.Uuid
   driver_id         String?
+  cycle_number      Int       @default(1)
+  renewal_of_protocol_id String? @db.Uuid
   service_modality  MunicipalServiceModality?
   driver_name       String
   cpf_last4         String?   @db.VarChar(4)
@@ -1469,16 +1471,21 @@ model municipal_regulatory_driver_protocols {
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
-  case   municipal_regulatory_cases @relation(fields: [case_id], references: [id], onDelete: Cascade)
-  driver drivers?                   @relation(fields: [driver_id], references: [id], onDelete: SetNull)
+  case               municipal_regulatory_cases             @relation(fields: [case_id], references: [id], onDelete: Cascade)
+  driver             drivers?                               @relation(fields: [driver_id], references: [id], onDelete: SetNull)
+  renewal_of_protocol municipal_regulatory_driver_protocols? @relation("municipal_protocol_renewals", fields: [renewal_of_protocol_id], references: [id], onDelete: SetNull)
+  renewal_protocols  municipal_regulatory_driver_protocols[] @relation("municipal_protocol_renewals")
+  source_authorization municipal_authorizations?
 
   @@index([case_id, status])
   @@index([case_id, created_at])
   @@index([case_id, driver_id])
   @@index([case_id, service_modality])
+  @@index([renewal_of_protocol_id])
+  @@index([case_id, driver_id, service_modality])
   @@index([next_follow_up_at])
   @@index([protocol_number])
-  @@unique([case_id, driver_id])
+  @@unique([case_id, driver_id, service_modality, cycle_number])
   @@map("municipal_regulatory_driver_protocols")
 }
 
@@ -1587,6 +1594,7 @@ model municipal_authorizations {
   id                        String                             @id @default(uuid())
   driver_id                 String
   regulation_id             String
+  source_driver_protocol_id String?                            @unique @db.Uuid
   city                      String
   state                     String                             @db.VarChar(2)
   service_modality          MunicipalServiceModality
@@ -1609,13 +1617,14 @@ model municipal_authorizations {
 
   driver                    drivers                            @relation(fields: [driver_id], references: [id], onDelete: Cascade)
   regulation                municipal_regulations              @relation(fields: [regulation_id], references: [id], onDelete: Restrict)
+  source_driver_protocol    municipal_regulatory_driver_protocols? @relation(fields: [source_driver_protocol_id], references: [id], onDelete: SetNull)
   submitted_by_admin        admins?                            @relation("municipal_authorizations_submitted_by_admin", fields: [submitted_by_admin_id], references: [id], onDelete: SetNull)
   submitted_by_manager      admins?                            @relation("municipal_authorizations_submitted_by_manager", fields: [submitted_by_manager_id], references: [id], onDelete: SetNull)
   approved_by_admin         admins?                            @relation("municipal_authorizations_approved_by_admin", fields: [approved_by_admin_id], references: [id], onDelete: SetNull)
   audit_logs                municipal_package_audit_logs[]
 
-  @@unique([driver_id, city, state, service_modality])
   @@index([driver_id, status])
+  @@index([driver_id, city, state, service_modality])
   @@index([city, state, service_modality])
 }
 

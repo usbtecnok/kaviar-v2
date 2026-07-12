@@ -4,7 +4,7 @@ vi.mock('../src/lib/prisma', () => ({
   prisma: {
     municipal_regulations: { findFirst: vi.fn(), findMany: vi.fn() },
     driver_documents: { findMany: vi.fn() },
-    municipal_authorizations: { findFirst: vi.fn() },
+    municipal_authorizations: { findMany: vi.fn() },
     drivers: { findUnique: vi.fn() },
     municipal_regulatory_driver_protocols: { findFirst: vi.fn() },
   },
@@ -24,7 +24,7 @@ import {
 const mockFindRegulation = prisma.municipal_regulations.findFirst as ReturnType<typeof vi.fn>;
 const mockFindRegulations = prisma.municipal_regulations.findMany as ReturnType<typeof vi.fn>;
 const mockFindDocuments = prisma.driver_documents.findMany as ReturnType<typeof vi.fn>;
-const mockFindAuthorization = prisma.municipal_authorizations.findFirst as ReturnType<typeof vi.fn>;
+const mockFindAuthorization = prisma.municipal_authorizations.findMany as ReturnType<typeof vi.fn>;
 const mockFindDriver = prisma.drivers.findUnique as ReturnType<typeof vi.fn>;
 const mockFindExistingProtocol = prisma.municipal_regulatory_driver_protocols.findFirst as ReturnType<typeof vi.fn>;
 
@@ -32,6 +32,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockFindRegulations.mockResolvedValue([]);
   mockFindDocuments.mockResolvedValue([]);
+  mockFindAuthorization.mockResolvedValue([]);
   mockFindExistingProtocol.mockResolvedValue(null);
 });
 
@@ -161,7 +162,7 @@ describe('municipal regulation service', () => {
       requires_city_approval: true,
       requirements: [],
     });
-    mockFindAuthorization.mockResolvedValue(null);
+    mockFindAuthorization.mockResolvedValue([]);
 
     const result = await getDriverMunicipalStatus('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'MOTO_PASSENGER');
 
@@ -191,16 +192,18 @@ describe('municipal regulation service', () => {
       requirements: [],
     });
     mockFindDocuments.mockResolvedValue([]);
-    mockFindAuthorization.mockResolvedValue({
+    mockFindAuthorization.mockResolvedValue([{
       id: 'auth-1',
       status: 'DOCUMENTS_PENDING',
       authorization_valid_until: null,
+      approved_by_admin_id: null,
+      created_at: new Date('2026-07-12T10:00:00.000Z'),
       regulation: {
         id: 'reg-1',
         requires_city_approval: true,
         requirements: [],
       },
-    });
+    }]);
 
     const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
 
@@ -242,17 +245,18 @@ describe('municipal regulation service', () => {
     });
     mockFindDocuments.mockResolvedValue([]);
 
-    mockFindAuthorization.mockResolvedValue({
+    mockFindAuthorization.mockResolvedValue([{
       id: 'auth-2',
       status: 'APPROVED_BY_CITY_HALL',
       authorization_valid_until: null,
       approved_by_admin_id: 'admin-1',
+      created_at: new Date('2026-07-12T10:00:00.000Z'),
       regulation: {
         id: 'reg-1',
         requires_city_approval: true,
         requirements: [],
       },
-    });
+    }]);
 
     const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
 
@@ -273,17 +277,18 @@ describe('municipal regulation service', () => {
       requirements: [],
     });
     mockFindDocuments.mockResolvedValue([]);
-    mockFindAuthorization.mockResolvedValue({
+    mockFindAuthorization.mockResolvedValue([{
       id: 'auth-3',
       status: 'APPROVED_BY_CITY_HALL',
       authorization_valid_until: null,
       approved_by_admin_id: null,
+      created_at: new Date('2026-07-12T10:00:00.000Z'),
       regulation: {
         id: 'reg-1',
         requires_city_approval: true,
         requirements: [],
       },
-    });
+    }]);
 
     const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
 
@@ -316,17 +321,18 @@ describe('municipal regulation service', () => {
       requirements: [],
     });
     mockFindDocuments.mockResolvedValue([]);
-    mockFindAuthorization.mockResolvedValue({
+    mockFindAuthorization.mockResolvedValue([{
       id: 'auth-expired',
       status: 'APPROVED_BY_CITY_HALL',
       approved_by_admin_id: 'admin-1',
       authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+      created_at: new Date('2026-07-12T10:00:00.000Z'),
       regulation: {
         id: 'reg-1',
         requires_city_approval: true,
         requirements: [],
       },
-    });
+    }]);
 
     const result = await getDriverMunicipalStatus('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
 
@@ -347,17 +353,18 @@ describe('municipal regulation service', () => {
       requirements: [],
     });
     mockFindDocuments.mockResolvedValue([]);
-    mockFindAuthorization.mockResolvedValue({
+    mockFindAuthorization.mockResolvedValue([{
       id: 'auth-expired',
       status: 'APPROVED_BY_CITY_HALL',
       approved_by_admin_id: 'admin-1',
       authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+      created_at: new Date('2026-07-12T10:00:00.000Z'),
       regulation: {
         id: 'reg-1',
         requires_city_approval: true,
         requirements: [],
       },
-    });
+    }]);
 
     const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
 
@@ -377,23 +384,212 @@ describe('municipal regulation service', () => {
       requirements: [],
     });
     mockFindDocuments.mockResolvedValue([]);
-    mockFindAuthorization.mockResolvedValue({
+    mockFindAuthorization.mockResolvedValue([{
       id: 'auth-expiring',
       status: 'APPROVED_BY_CITY_HALL',
       approved_by_admin_id: 'admin-1',
       authorization_valid_until: new Date('2999-12-31T00:00:00.000Z'),
+      created_at: new Date('2026-07-12T10:00:00.000Z'),
       regulation: {
         id: 'reg-1',
         requires_city_approval: true,
         requirements: [],
       },
-    });
+    }]);
 
     const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
 
     expect(result.allowed).toBe(true);
     expect(result.reason).toBeNull();
     expect(['ACTIVE', 'EXPIRING_SOON']).toContain(result.municipal?.authorizationValidityState);
+  });
+
+  it('getDriverMunicipalStatus escolhe autorizacao valida mais recente', async () => {
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindAuthorization.mockResolvedValue([
+      {
+        id: 'auth-new',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2999-01-01T00:00:00.000Z'),
+        created_at: new Date('2026-07-12T12:00:00.000Z'),
+      },
+      {
+        id: 'auth-old',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: null,
+        created_at: new Date('2026-07-01T12:00:00.000Z'),
+      },
+    ]);
+
+    const result = await getDriverMunicipalStatus('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.authorization?.id).toBe('auth-new');
+    expect(result.canOperateMunicipally).toBe(true);
+  });
+
+  it('getDriverMunicipalStatus ignora expirada antiga quando existe nova ativa', async () => {
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindAuthorization.mockResolvedValue([
+      {
+        id: 'auth-active-new',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: null,
+        created_at: new Date('2026-07-12T12:00:00.000Z'),
+      },
+      {
+        id: 'auth-expired-old',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+        created_at: new Date('2026-06-01T12:00:00.000Z'),
+      },
+    ]);
+
+    const result = await getDriverMunicipalStatus('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.authorization?.id).toBe('auth-active-new');
+    expect(result.authorizationValidityState).toBe('ACTIVE');
+    expect(result.canOperateMunicipally).toBe(true);
+  });
+
+  it('getDriverMunicipalStatus escolhe EXPIRING_SOON mais recente', async () => {
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindAuthorization.mockResolvedValue([
+      {
+        id: 'auth-expiring-new',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2099-01-01T00:00:00.000Z'),
+        created_at: new Date('2026-07-12T12:00:00.000Z'),
+      },
+      {
+        id: 'auth-expired-old',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+        created_at: new Date('2026-06-01T12:00:00.000Z'),
+      },
+    ]);
+
+    const result = await getDriverMunicipalStatus('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.authorization?.id).toBe('auth-expiring-new');
+    expect(['ACTIVE', 'EXPIRING_SOON']).toContain(result.authorizationValidityState);
+    expect(result.canOperateMunicipally).toBe(true);
+  });
+
+  it('getDriverMunicipalStatus sem valida escolhe EXPIRED mais recente para estado', async () => {
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindAuthorization.mockResolvedValue([
+      {
+        id: 'auth-inactive-new',
+        status: 'DOCUMENTS_PENDING',
+        approved_by_admin_id: null,
+        authorization_valid_until: null,
+        created_at: new Date('2026-07-12T12:00:00.000Z'),
+      },
+      {
+        id: 'auth-expired-mid',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2020-01-05T00:00:00.000Z'),
+        created_at: new Date('2026-07-10T12:00:00.000Z'),
+      },
+      {
+        id: 'auth-expired-old',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+        created_at: new Date('2026-06-01T12:00:00.000Z'),
+      },
+    ]);
+
+    const result = await getDriverMunicipalStatus('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.authorization?.id).toBe('auth-expired-mid');
+    expect(result.authorizationValidityState).toBe('EXPIRED');
+    expect(result.canOperateMunicipally).toBe(false);
+  });
+
+  it('canDriverOperateInMunicipality usa autorizacao atual selecionada', async () => {
+    mockFindDriver.mockResolvedValue({ id: 'driver-1', status: 'approved' });
+    mockFindRegulation.mockResolvedValue({
+      id: 'reg-1',
+      city: 'Santa Rita do Passa Quatro',
+      state: 'SP',
+      service_modality: 'CAR',
+      regulation_status: 'REGULATED',
+      requires_city_approval: true,
+      requirements: [],
+    });
+    mockFindAuthorization.mockResolvedValue([
+      {
+        id: 'auth-current-expired',
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: new Date('2020-01-01T00:00:00.000Z'),
+        created_at: new Date('2026-07-12T12:00:00.000Z'),
+      },
+      {
+        id: 'auth-old-active',
+        status: 'DOCUMENTS_PENDING',
+        approved_by_admin_id: null,
+        authorization_valid_until: null,
+        created_at: new Date('2026-06-01T12:00:00.000Z'),
+      },
+    ]);
+
+    const result = await canDriverOperateInMunicipality('driver-1', 'Santa Rita do Passa Quatro', 'SP', 'CAR');
+
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('Autorização municipal vencida.');
+    expect(result.municipal?.authorization?.id).toBe('auth-current-expired');
+  });
+
+  it('canDriverOperateInMunicipality mantém cidade sem regra como permitida', async () => {
+    mockFindDriver.mockResolvedValue({ id: 'driver-1', status: 'approved' });
+    mockFindRegulation.mockResolvedValue(null);
+
+    const result = await canDriverOperateInMunicipality('driver-1', 'Cidade Livre', 'SP', 'CAR');
+
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBeNull();
+    expect(result.municipal?.municipalStatus).toBe('NOT_REQUIRED');
   });
 
   it('avalia COMPATIBLE para motorista aprovado da mesma cidade com modalidade e documentos mínimos', async () => {

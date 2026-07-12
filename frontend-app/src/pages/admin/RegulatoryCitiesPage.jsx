@@ -447,6 +447,7 @@ export default function RegulatoryCitiesPage() {
   const [candidateSuccessByCity, setCandidateSuccessByCity] = useState({});
   const [candidateServiceModalityByDriver, setCandidateServiceModalityByDriver] = useState({});
   const [protocolAuthorizationActionByItem, setProtocolAuthorizationActionByItem] = useState({});
+  const [protocolRenewalActionByItem, setProtocolRenewalActionByItem] = useState({});
 
   const params = useMemo(() => {
     const next = {
@@ -1063,6 +1064,25 @@ export default function RegulatoryCitiesPage() {
       setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
     } finally {
       setProtocolAuthorizationActionByItem((prev) => ({ ...prev, [protocolItem.id]: false }));
+    }
+  };
+
+  const startMunicipalRenewal = async (cityId, protocolItem) => {
+    setProtocolRenewalActionByItem((prev) => ({ ...prev, [protocolItem.id]: true }));
+    setProtocolsErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      await api.post(`/api/admin/regulatory/cities/${cityId}/driver-protocols/${protocolItem.id}/start-renewal`);
+      await loadDriverProtocols(cityId);
+      setCandidateSuccessByCity((prev) => ({
+        ...prev,
+        [cityId]: 'Ciclo de renovação iniciado com sucesso.',
+      }));
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível iniciar a renovação municipal para este protocolo.';
+      setProtocolsErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setProtocolRenewalActionByItem((prev) => ({ ...prev, [protocolItem.id]: false }));
     }
   };
 
@@ -2208,6 +2228,16 @@ export default function RegulatoryCitiesPage() {
                                         </Typography>
 
                                         <Typography sx={{ color: '#CBD5E1', fontSize: 11.5 }}>
+                                          {`Ciclo ${protocolItem.cycleNumber || 1} · ${protocolItem.isRenewal ? 'Renovação' : 'Inicial'}`}
+                                        </Typography>
+
+                                        {!protocolItem.isLatestCycle && (
+                                          <Typography sx={{ color: '#94A3B8', fontSize: 11.5 }}>
+                                            Ciclo histórico
+                                          </Typography>
+                                        )}
+
+                                        <Typography sx={{ color: '#CBD5E1', fontSize: 11.5 }}>
                                           Modalidade municipal: {protocolItem.service_modality ? (MUNICIPAL_MODALITY_LABELS[protocolItem.service_modality] || protocolItem.service_modality) : '-'}
                                         </Typography>
 
@@ -2279,6 +2309,20 @@ export default function RegulatoryCitiesPage() {
                                               sx={{ bgcolor: '#0F766E', '&:hover': { bgcolor: '#115E59' }, color: '#F8FAFC' }}
                                             >
                                               {protocolAuthorizationActionByItem[protocolItem.id] ? 'Gerando autorização...' : 'Gerar autorização municipal'}
+                                            </Button>
+                                          </Box>
+                                        )}
+
+                                        {protocolItem.renewalOperational?.canStartRenewal && (
+                                          <Box>
+                                            <Button
+                                              size="small"
+                                              variant="contained"
+                                              onClick={() => startMunicipalRenewal(item.id, protocolItem)}
+                                              disabled={Boolean(protocolRenewalActionByItem[protocolItem.id])}
+                                              sx={{ bgcolor: '#1D4ED8', '&:hover': { bgcolor: '#1E40AF' }, color: '#F8FAFC' }}
+                                            >
+                                              {protocolRenewalActionByItem[protocolItem.id] ? 'Iniciando renovação...' : 'Iniciar renovação'}
                                             </Button>
                                           </Box>
                                         )}

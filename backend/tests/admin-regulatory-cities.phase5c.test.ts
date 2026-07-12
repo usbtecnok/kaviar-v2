@@ -324,12 +324,18 @@ describe('admin regulatory cities - fase 5C', () => {
   });
 
   it('ação repetida é idempotente quando autorização equivalente já está ativa', async () => {
-    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
-      id: 'auth-existing',
-      status: 'APPROVED_BY_CITY_HALL',
-      approved_by_admin_id: 'admin-1',
-      authorization_valid_until: null,
-    });
+    prismaMock.municipal_authorizations.findMany.mockResolvedValue([
+      {
+        id: 'auth-existing',
+        driver_id: 'driver-1',
+        service_modality: 'CAR',
+        source_driver_protocol_id: null,
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: null,
+        created_at: new Date('2026-07-12T00:00:00.000Z'),
+      },
+    ]);
 
     const res = await request(app)
       .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-1/generate-authorization')
@@ -352,12 +358,18 @@ describe('admin regulatory cities - fase 5C', () => {
       approved_at: new Date('2026-07-12T01:00:00.000Z'),
     });
 
-    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
-      id: 'auth-existing',
-      status: 'APPROVED_BY_CITY_HALL',
-      approved_by_admin_id: 'admin-1',
-      authorization_valid_until: null,
-    });
+    prismaMock.municipal_authorizations.findMany.mockResolvedValue([
+      {
+        id: 'auth-existing',
+        driver_id: 'driver-1',
+        service_modality: 'CAR',
+        source_driver_protocol_id: null,
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: null,
+        created_at: new Date('2026-07-12T00:00:00.000Z'),
+      },
+    ]);
 
     const res = await request(app)
       .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-legacy/generate-authorization')
@@ -381,12 +393,18 @@ describe('admin regulatory cities - fase 5C', () => {
       approved_at: new Date('2026-07-12T01:00:00.000Z'),
     });
 
-    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
-      id: 'auth-review',
-      status: 'PENDING_CITY_HALL',
-      approved_by_admin_id: null,
-      authorization_valid_until: null,
-    });
+    prismaMock.municipal_authorizations.findMany.mockResolvedValue([
+      {
+        id: 'auth-review',
+        driver_id: 'driver-1',
+        service_modality: 'CAR',
+        source_driver_protocol_id: null,
+        status: 'PENDING_CITY_HALL',
+        approved_by_admin_id: null,
+        authorization_valid_until: null,
+        created_at: new Date('2026-07-12T00:00:00.000Z'),
+      },
+    ]);
 
     const res = await request(app)
       .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-legacy/generate-authorization')
@@ -409,12 +427,18 @@ describe('admin regulatory cities - fase 5C', () => {
       approved_at: new Date('2026-07-12T01:00:00.000Z'),
     });
 
-    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
-      id: 'auth-existing',
-      status: 'APPROVED_BY_CITY_HALL',
-      approved_by_admin_id: 'admin-1',
-      authorization_valid_until: null,
-    });
+    prismaMock.municipal_authorizations.findMany.mockResolvedValue([
+      {
+        id: 'auth-existing',
+        driver_id: 'driver-1',
+        service_modality: 'CAR',
+        source_driver_protocol_id: null,
+        status: 'APPROVED_BY_CITY_HALL',
+        approved_by_admin_id: 'admin-1',
+        authorization_valid_until: null,
+        created_at: new Date('2026-07-12T00:00:00.000Z'),
+      },
+    ]);
 
     prismaMock.municipal_regulations.findFirst.mockResolvedValue(null);
 
@@ -429,14 +453,14 @@ describe('admin regulatory cities - fase 5C', () => {
 
   it('concorrência não duplica autorização (P2002) e retorna resultado idempotente', async () => {
     prismaMock.municipal_authorizations.create.mockRejectedValueOnce({ code: 'P2002' });
-    prismaMock.municipal_authorizations.findFirst
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        id: 'auth-concurrent',
-        status: 'APPROVED_BY_CITY_HALL',
-        approved_by_admin_id: 'admin-1',
-        authorization_valid_until: null,
-      });
+    prismaMock.municipal_authorizations.findMany.mockResolvedValue([]);
+    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
+      id: 'auth-concurrent',
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: null,
+      source_driver_protocol_id: null,
+    });
 
     const res = await request(app)
       .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-1/generate-authorization')
