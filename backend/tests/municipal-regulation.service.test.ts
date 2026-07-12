@@ -2,27 +2,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/lib/prisma', () => ({
   prisma: {
-    municipal_regulations: { findFirst: vi.fn() },
+    municipal_regulations: { findFirst: vi.fn(), findMany: vi.fn() },
     driver_documents: { findMany: vi.fn() },
     municipal_authorizations: { findFirst: vi.fn() },
     drivers: { findUnique: vi.fn() },
+    municipal_regulatory_driver_protocols: { findFirst: vi.fn() },
   },
 }));
 
 import { prisma } from '../src/lib/prisma';
 import {
   canDriverOperateInMunicipality,
+  evaluateDriverRegulatoryCompatibility,
   getDriverMunicipalStatus,
   getMunicipalRegulation,
 } from '../src/services/municipal-regulation.service';
 
 const mockFindRegulation = prisma.municipal_regulations.findFirst as ReturnType<typeof vi.fn>;
+const mockFindRegulations = prisma.municipal_regulations.findMany as ReturnType<typeof vi.fn>;
 const mockFindDocuments = prisma.driver_documents.findMany as ReturnType<typeof vi.fn>;
 const mockFindAuthorization = prisma.municipal_authorizations.findFirst as ReturnType<typeof vi.fn>;
 const mockFindDriver = prisma.drivers.findUnique as ReturnType<typeof vi.fn>;
+const mockFindExistingProtocol = prisma.municipal_regulatory_driver_protocols.findFirst as ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockFindRegulations.mockResolvedValue([]);
+  mockFindDocuments.mockResolvedValue([]);
+  mockFindExistingProtocol.mockResolvedValue(null);
 });
 
 describe('municipal regulation service', () => {
@@ -197,5 +204,256 @@ describe('municipal regulation service', () => {
     const resultActive = await canDriverOperateInMunicipality('driver-1', 'Cidade Livre', 'SP', 'CAR');
 
     expect(resultActive.allowed).toBe(true);
+  });
+
+  it('avalia COMPATIBLE para motorista aprovado da mesma cidade com modalidade e documentos mínimos', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([
+      {
+        service_modality: 'CAR',
+        requirements: [
+          { is_required: true, document_type: 'CNH' },
+          { is_required: true, document_type: 'CRLV' },
+        ],
+      },
+    ]);
+    mockFindDocuments.mockResolvedValue([
+      { type: 'CNH', status: 'SUBMITTED' },
+      { type: 'CRLV', status: 'VERIFIED' },
+    ]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('COMPATIBLE');
+    expect(result.compatible).toBe(true);
+    expect(result.cityMatch).toBe(true);
+    expect(result.approvedModalities).toEqual(['CAR']);
+    expect(result.compatibleModalities).toEqual(['CAR']);
+    expect(result.documentSummary.required).toBe(2);
+    expect(result.documentSummary.submitted).toBe(1);
+    expect(result.documentSummary.verified).toBe(1);
+    expect(result.documentSummary.missing).toBe(0);
+  });
+
+  it('retorna INCOMPATIBLE quando motorista está vinculado a outra cidade', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Campinas',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([{ service_modality: 'CAR', requirements: [] }]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('INCOMPATIBLE');
+    expect(result.reasons).toContain('Motorista vinculado a outra cidade.');
+  });
+
+  it('retorna REVIEW_REQUIRED quando cidade/UF do motorista não podem ser resolvidas', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: null,
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([{ service_modality: 'CAR', requirements: [] }]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('REVIEW_REQUIRED');
+    expect(result.cityMatch).toBe(false);
+    expect(result.reasons).toContain('Cidade do motorista não pôde ser confirmada pelo cadastro KAVIAR.');
+  });
+
+  it('retorna INCOMPATIBLE quando não há modalidade aprovada', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [],
+    });
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('INCOMPATIBLE');
+    expect(result.reasons).toContain('Motorista não possui modalidade aprovada pela KAVIAR.');
+  });
+
+  it('não considera modalidade PENDING_REVIEW como aprovada', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'PENDING_REVIEW' }],
+    });
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.approvedModalities).toEqual([]);
+    expect(result.status).toBe('INCOMPATIBLE');
+  });
+
+  it('não considera modalidade REJECTED como aprovada', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'REJECTED' }],
+    });
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.approvedModalities).toEqual([]);
+    expect(result.status).toBe('INCOMPATIBLE');
+  });
+
+  it('conta documento SUBMITTED como disponível para criação inicial do protocolo', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([
+      {
+        service_modality: 'CAR',
+        requirements: [{ is_required: true, document_type: 'CNH' }],
+      },
+    ]);
+    mockFindDocuments.mockResolvedValue([{ type: 'CNH', status: 'SUBMITTED' }]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('COMPATIBLE');
+    expect(result.documentSummary.submitted).toBe(1);
+    expect(result.documentSummary.missing).toBe(0);
+  });
+
+  it('conta documento VERIFIED como disponível para criação inicial do protocolo', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([
+      {
+        service_modality: 'CAR',
+        requirements: [{ is_required: true, document_type: 'CNH' }],
+      },
+    ]);
+    mockFindDocuments.mockResolvedValue([{ type: 'CNH', status: 'VERIFIED' }]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('COMPATIBLE');
+    expect(result.documentSummary.verified).toBe(1);
+    expect(result.documentSummary.missing).toBe(0);
+  });
+
+  it('retorna INCOMPATIBLE quando há documento obrigatório ausente', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([
+      {
+        service_modality: 'CAR',
+        requirements: [
+          { is_required: true, document_type: 'CNH' },
+          { is_required: true, document_type: 'CRLV' },
+        ],
+      },
+    ]);
+    mockFindDocuments.mockResolvedValue([{ type: 'CNH', status: 'SUBMITTED' }]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('INCOMPATIBLE');
+    expect(result.reasons).toContain('Motorista possui documentos obrigatórios pendentes para esta cidade.');
+    expect(result.documentSummary.missing).toBe(1);
+    expect(result.documentSummary.missingDocumentTypes).toEqual(['CRLV']);
+  });
+
+  it('não bloqueia por requisito opcional', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([
+      {
+        service_modality: 'CAR',
+        requirements: [
+          { is_required: false, document_type: 'PHOTO' },
+          { is_required: true, document_type: 'CNH' },
+        ],
+      },
+    ]);
+    mockFindDocuments.mockResolvedValue([{ type: 'CNH', status: 'SUBMITTED' }]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('COMPATIBLE');
+    expect(result.documentSummary.required).toBe(1);
+  });
+
+  it('não inclui no resumo requisito obrigatório sem document_type', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([
+      {
+        service_modality: 'CAR',
+        requirements: [
+          { is_required: true, document_type: null },
+          { is_required: true, document_type: 'CNH' },
+        ],
+      },
+    ]);
+    mockFindDocuments.mockResolvedValue([{ type: 'CNH', status: 'SUBMITTED' }]);
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.documentSummary.required).toBe(1);
+    expect(result.documentSummary.missing).toBe(0);
+    expect(result.status).toBe('COMPATIBLE');
+  });
+
+  it('retorna INCOMPATIBLE quando protocolo já existe para case_id + driver_id', async () => {
+    mockFindDriver.mockResolvedValue({
+      neighborhoods: {
+        city: 'Santa Rita do Passa Quatro',
+        territory: { uf: 'SP' },
+      },
+      driver_modalities: [{ modality: 'CAR', status: 'APPROVED' }],
+    });
+    mockFindRegulations.mockResolvedValue([{ service_modality: 'CAR', requirements: [] }]);
+    mockFindExistingProtocol.mockResolvedValue({ id: 'protocol-1' });
+
+    const result = await evaluateDriverRegulatoryCompatibility('driver-1', 'Santa Rita do Passa Quatro', 'SP', { caseId: 'case-1' });
+
+    expect(result.status).toBe('INCOMPATIBLE');
+    expect(result.reasons).toContain('Este motorista já possui protocolo nesta cidade.');
   });
 });

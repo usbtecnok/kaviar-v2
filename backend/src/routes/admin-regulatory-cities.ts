@@ -3,6 +3,11 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
+import {
+  evaluateDriverRegulatoryCompatibility,
+  mapDriverModalityToMunicipalModality,
+  MunicipalModality,
+} from '../services/municipal-regulation.service';
 
 const router = Router();
 
@@ -817,7 +822,6 @@ router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res:
           meta: {
             minQueryLength: 3,
             queryRequired: true,
-            documentSummary: 'not_available_phase_5b',
           },
         },
       });
@@ -893,6 +897,16 @@ router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res:
         document_cpf: true,
         vehicle_plate: true,
         vehicle_type: true,
+        neighborhoods: {
+          select: {
+            city: true,
+            territory: {
+              select: {
+                uf: true,
+              },
+            },
+          },
+        },
         driver_modalities: {
           select: {
             modality: true,
@@ -903,27 +917,129 @@ router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res:
       },
     });
 
-    const items = drivers.map((driver) => ({
-      id: driver.id,
-      name: driver.name,
-      cpfLast4: deriveCpfLast4FromCpf(driver.document_cpf),
-      phoneMasked: maskPhone(driver.phone),
-      vehiclePlate: driver.vehicle_plate || null,
-      vehicleType: driver.vehicle_type || null,
-      approvalStatus: driver.status,
-      modalitySummary: buildModalitySummary(driver.driver_modalities),
-      documentSummary: null,
-      alreadyLinked: linkedIds.has(driver.id),
-    }));
+    const driverIds = drivers.map((driver) => driver.id);
+
+    const approvedModalitiesByDriver = new Map<string, MunicipalModality[]>();
+    const allApprovedModalities = new Set<MunicipalModality>();
+
+    for (const driver of drivers) {
+      const approvedModalities = Array.from(
+        new Set(
+          driver.driver_modalities
+            .filter((item) => String(item.status || '').trim().toUpperCase() === 'APPROVED')
+            .map((item) => mapDriverModalityToMunicipalModality(item.modality))
+            .filter((modality): modality is MunicipalModality => Boolean(modality)),
+        ),
+      );
+
+      approvedModalitiesByDriver.set(driver.id, approvedModalities);
+      for (const modality of approvedModalities) {
+        allApprovedModalities.add(modality);
+      }
+    }
+
+    const regulationsByModality = new Map<any, any>();
+    if (allApprovedModalities.size > 0) {
+      const regulations = await prisma.municipal_regulations.findMany({
+        where: {
+          city: { equals: city.city, mode: 'insensitive' },
+          state: { equals: city.state, mode: 'insensitive' },
+          service_modality: { in: Array.from(allApprovedModalities) },
+          is_active: true,
+        },
+        include: {
+          requirements: {
+            orderBy: [{ sort_order: 'asc' }, { label: 'asc' }],
+          },
+        },
+      });
+
+      for (const regulation of regulations) {
+        regulationsByModality.set(regulation.service_modality, regulation);
+      }
+    }
+
+    for (const modality of allApprovedModalities) {
+      if (!regulationsByModality.has(modality)) {
+        regulationsByModality.set(modality, null);
+      }
+    }
+
+    const requiredDocumentTypes = Array.from(
+      new Set(
+        Array.from(regulationsByModality.values())
+          .filter(Boolean)
+          .flatMap((regulation) => regulation.requirements || [])
+          .filter((requirement) => requirement.is_required && Boolean(requirement.document_type))
+          .map((requirement) => String(requirement.document_type).trim())
+          .filter(Boolean),
+      ),
+    );
+
+    const documentsByDriver = new Map<string, Array<{ type: string; status: string | null }>>();
+    if (driverIds.length > 0 && requiredDocumentTypes.length > 0) {
+      const docs = await prisma.driver_documents.findMany({
+        where: {
+          driver_id: { in: driverIds },
+          type: { in: requiredDocumentTypes },
+        },
+        select: {
+          driver_id: true,
+          type: true,
+          status: true,
+        },
+      });
+
+      for (const document of docs) {
+        const existing = documentsByDriver.get(document.driver_id) || [];
+        existing.push({ type: document.type, status: document.status });
+        documentsByDriver.set(document.driver_id, existing);
+      }
+    }
+
+    const items: any[] = [];
+    for (const driver of drivers) {
+      const approvedModalities = approvedModalitiesByDriver.get(driver.id) || [];
+      const compatibility = await evaluateDriverRegulatoryCompatibility(driver.id, city.city, city.state, {
+        caseId: city.id,
+        preloaded: {
+          driverCity: driver.neighborhoods?.city || null,
+          driverState: driver.neighborhoods?.territory?.uf || null,
+          approvedModalities,
+          regulationsByModality,
+          driverDocuments: documentsByDriver.get(driver.id) || [],
+          alreadyLinked: linkedIds.has(driver.id),
+        },
+      });
+
+      items.push({
+        id: driver.id,
+        name: driver.name,
+        cpfLast4: deriveCpfLast4FromCpf(driver.document_cpf),
+        phoneMasked: maskPhone(driver.phone),
+        vehiclePlate: driver.vehicle_plate || null,
+        vehicleType: driver.vehicle_type || null,
+        approvalStatus: driver.status,
+        modalitySummary: buildModalitySummary(driver.driver_modalities),
+        compatibility: {
+          compatible: compatibility.compatible,
+          status: compatibility.status,
+          reasons: compatibility.reasons,
+          cityMatch: compatibility.cityMatch,
+          approvedModalities: compatibility.approvedModalities,
+          compatibleModalities: compatibility.compatibleModalities,
+        },
+        documentSummary: compatibility.documentSummary,
+        alreadyLinked: linkedIds.has(driver.id),
+      });
+    }
 
     return res.json({
       success: true,
       data: {
         city,
         items,
-        meta: {
-          documentSummary: 'not_available_phase_5b',
-        },
+        meta: {},
       },
     });
   } catch (error) {
@@ -942,7 +1058,7 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
 
     const city = await prisma.municipal_regulatory_cases.findUnique({
       where: { id: req.params.id },
-      select: { id: true },
+      select: { id: true, city: true, state: true },
     });
 
     if (!city) {
@@ -957,8 +1073,19 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
         document_cpf: true,
         vehicle_plate: true,
         vehicle_type: true,
+        neighborhoods: {
+          select: {
+            city: true,
+            territory: {
+              select: {
+                uf: true,
+              },
+            },
+          },
+        },
         driver_modalities: {
           select: {
+            modality: true,
             status: true,
             vehicle_plate: true,
           },
@@ -972,16 +1099,38 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
       return res.status(404).json({ success: false, error: 'Motorista não encontrado.' });
     }
 
-    const existing = await prisma.municipal_regulatory_driver_protocols.findFirst({
-      where: {
-        case_id: city.id,
-        driver_id: driver.id,
+    const approvedModalities = Array.from(
+      new Set(
+        driver.driver_modalities
+          .filter((item) => String(item.status || '').trim().toUpperCase() === 'APPROVED')
+          .map((item) => mapDriverModalityToMunicipalModality(item.modality))
+          .filter((modality): modality is MunicipalModality => Boolean(modality)),
+      ),
+    );
+
+    const compatibility = await evaluateDriverRegulatoryCompatibility(driver.id, city.city, city.state, {
+      caseId: city.id,
+      preloaded: {
+        driverCity: driver.neighborhoods?.city || null,
+        driverState: driver.neighborhoods?.territory?.uf || null,
+        approvedModalities,
       },
-      select: { id: true },
     });
 
-    if (existing) {
-      return res.status(409).json({ success: false, error: 'Este motorista já possui protocolo nesta cidade.' });
+    if (!compatibility.compatible) {
+      const isReviewRequired = compatibility.status === 'REVIEW_REQUIRED';
+      const code = isReviewRequired ? 'DRIVER_CITY_REVIEW_REQUIRED' : 'DRIVER_CITY_INCOMPATIBLE';
+      const message = 'Motorista ainda não está compatível com esta cidade.';
+
+      return res.status(isReviewRequired ? 422 : 409).json({
+        success: false,
+        error: message,
+        code,
+        compatibility: {
+          status: compatibility.status,
+          reasons: compatibility.reasons,
+        },
+      });
     }
 
     const approvedModality = driver.driver_modalities.find((item) => item.status === 'APPROVED');
@@ -1026,7 +1175,15 @@ router.post('/regulatory/cities/:id/driver-protocols/from-driver', async (req: R
         ...created,
         linkedDriver: true,
         driverId: created.driver_id,
-        documentSummary: null,
+        compatibility: {
+          compatible: compatibility.compatible,
+          status: compatibility.status,
+          reasons: compatibility.reasons,
+          cityMatch: compatibility.cityMatch,
+          approvedModalities: compatibility.approvedModalities,
+          compatibleModalities: compatibility.compatibleModalities,
+        },
+        documentSummary: compatibility.documentSummary,
       },
     });
   } catch (error) {

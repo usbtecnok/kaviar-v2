@@ -109,6 +109,18 @@ const DRIVER_PROTOCOL_STATUS_COLORS = {
   NEEDS_COMPLEMENT: { bg: '#FCE7F3', color: '#9D174D' },
 };
 
+const COMPATIBILITY_LABELS = {
+  COMPATIBLE: 'Compatível com esta cidade',
+  INCOMPATIBLE: 'Incompatível',
+  REVIEW_REQUIRED: 'Revisão necessária',
+};
+
+const COMPATIBILITY_COLORS = {
+  COMPATIBLE: { bg: 'rgba(16,185,129,0.22)', color: '#A7F3D0' },
+  INCOMPATIBLE: { bg: 'rgba(239,68,68,0.24)', color: '#FECACA' },
+  REVIEW_REQUIRED: { bg: 'rgba(245,158,11,0.25)', color: '#FDE68A' },
+};
+
 const PAGE_SIZE = 12;
 
 const EMPTY_FORM = {
@@ -268,6 +280,35 @@ function DriverProtocolStatusTag({ status }) {
       }}
     />
   );
+}
+
+function CompatibilityTag({ status }) {
+  const normalizedStatus = status || 'REVIEW_REQUIRED';
+  const cfg = COMPATIBILITY_COLORS[normalizedStatus] || COMPATIBILITY_COLORS.REVIEW_REQUIRED;
+  return (
+    <Chip
+      size="small"
+      label={COMPATIBILITY_LABELS[normalizedStatus] || COMPATIBILITY_LABELS.REVIEW_REQUIRED}
+      sx={{
+        fontWeight: 700,
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        borderRadius: '8px',
+        width: 'fit-content',
+      }}
+    />
+  );
+}
+
+function formatCompatibilityReason(reason, documentSummary) {
+  if (reason === 'Motorista possui documentos obrigatórios pendentes para esta cidade.') {
+    const missing = Number(documentSummary?.missing || 0);
+    if (missing > 0) {
+      return `${missing} documento${missing > 1 ? 's' : ''} obrigatório${missing > 1 ? 's' : ''} ausente${missing > 1 ? 's' : ''}`;
+    }
+  }
+
+  return reason;
 }
 
 export default function RegulatoryCitiesPage() {
@@ -922,7 +963,10 @@ export default function RegulatoryCitiesPage() {
         [cityId]: 'Protocolo criado a partir do cadastro KAVIAR.',
       }));
     } catch (error) {
-      const message = error?.response?.data?.error || 'Não foi possível criar o protocolo automaticamente.';
+      const apiError = error?.response?.data;
+      const reasons = Array.isArray(apiError?.compatibility?.reasons) ? apiError.compatibility.reasons : [];
+      const reasonsSuffix = reasons.length > 0 ? ` ${reasons.join(' ')}` : '';
+      const message = (apiError?.error || 'Não foi possível criar o protocolo automaticamente.') + reasonsSuffix;
       setCandidateErrorsByCity((prev) => ({ ...prev, [cityId]: message }));
     } finally {
       setCandidateActionByCity((prev) => ({ ...prev, [cityId]: null }));
@@ -1676,6 +1720,27 @@ export default function RegulatoryCitiesPage() {
                                     </Stack>
                                   ) : (
                                     (candidateByCity[item.id]?.items || []).map((candidate) => (
+                                      (() => {
+                                        const compatibility = candidate.compatibility || {};
+                                        const documentSummary = candidate.documentSummary || {
+                                          required: 0,
+                                          submitted: 0,
+                                          verified: 0,
+                                          missing: 0,
+                                          missingDocumentTypes: [],
+                                        };
+                                        const canCreateProtocol = compatibility.compatible === true && !candidate.alreadyLinked;
+                                        const isActionLoading = candidateActionByCity[item.id] === candidate.id;
+                                        const cityStatusLabel = compatibility.cityMatch === true
+                                          ? 'compatível'
+                                          : compatibility.status === 'REVIEW_REQUIRED'
+                                            ? 'não confirmada'
+                                            : 'outra cidade';
+                                        const friendlyReasons = Array.isArray(compatibility.reasons)
+                                          ? compatibility.reasons.map((reason) => formatCompatibilityReason(reason, documentSummary))
+                                          : [];
+
+                                        return (
                                       <Box
                                         key={candidate.id}
                                         sx={{
@@ -1712,16 +1777,47 @@ export default function RegulatoryCitiesPage() {
                                             </Typography>
                                           )}
 
-                                          {candidate.documentSummary && (
-                                            <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
-                                              Resumo documental: {JSON.stringify(candidate.documentSummary)}
+                                          <CompatibilityTag status={compatibility.status} />
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            Cidade: {cityStatusLabel}
+                                          </Typography>
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            Modalidades aprovadas: {(compatibility.approvedModalities || []).join(', ') || '-'}
+                                          </Typography>
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            Modalidades compatíveis: {(compatibility.compatibleModalities || []).join(', ') || '-'}
+                                          </Typography>
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            Documentos: {Number(documentSummary.submitted || 0) + Number(documentSummary.verified || 0)} de {documentSummary.required || 0} disponíveis
+                                          </Typography>
+
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.8 }}>
+                                            Verificados: {documentSummary.verified || 0}
+                                            {' · '}
+                                            Pendentes/ausentes: {documentSummary.missing || 0}
+                                          </Typography>
+
+                                          {Array.isArray(documentSummary.missingDocumentTypes) && documentSummary.missingDocumentTypes.length > 0 && (
+                                            <Typography sx={{ color: '#94A3B8', fontSize: 11.4 }}>
+                                              Tipos ausentes: {documentSummary.missingDocumentTypes.join(', ')}
                                             </Typography>
                                           )}
 
-                                          {!candidate.documentSummary && (
-                                            <Typography sx={{ color: '#94A3B8', fontSize: 11.4 }}>
-                                              Resumo documental ficará disponível na Fase 5B.
-                                            </Typography>
+                                          {friendlyReasons.length > 0 && (
+                                            <Box sx={{ mt: 0.4 }}>
+                                              <Typography sx={{ color: '#FCA5A5', fontSize: 11.6, fontWeight: 700 }}>
+                                                Pendências para protocolo:
+                                              </Typography>
+                                              {friendlyReasons.slice(0, 3).map((reason) => (
+                                                <Typography key={`${candidate.id}-${reason}`} sx={{ color: '#FECACA', fontSize: 11.5, lineHeight: 1.45 }}>
+                                                  • {reason}
+                                                </Typography>
+                                              ))}
+                                            </Box>
                                           )}
 
                                           {candidate.alreadyLinked && (
@@ -1737,14 +1833,26 @@ export default function RegulatoryCitiesPage() {
                                               size="small"
                                               variant="contained"
                                               onClick={() => createProtocolFromDriver(item.id, candidate.id)}
-                                              disabled={candidate.alreadyLinked || candidateActionByCity[item.id] === candidate.id}
+                                              disabled={!canCreateProtocol || isActionLoading}
                                               sx={{ bgcolor: '#0F766E', '&:hover': { bgcolor: '#115E59' }, color: '#F8FAFC' }}
                                             >
-                                              {candidateActionByCity[item.id] === candidate.id ? 'Criando...' : 'Criar protocolo'}
+                                              {isActionLoading ? 'Criando...' : 'Criar protocolo'}
                                             </Button>
+
+                                            {!canCreateProtocol && (
+                                              <Typography sx={{ color: '#94A3B8', fontSize: 11.2, mt: 0.6 }}>
+                                                {candidate.alreadyLinked
+                                                  ? 'Já existe protocolo para este motorista nesta cidade.'
+                                                  : compatibility.status === 'REVIEW_REQUIRED'
+                                                    ? 'Criação automática bloqueada: revisão manual necessária.'
+                                                    : 'Criação automática bloqueada até resolver as pendências.'}
+                                              </Typography>
+                                            )}
                                           </Box>
                                         </Stack>
                                       </Box>
+                                        );
+                                      })()
                                     ))
                                   )}
                                 </Stack>
