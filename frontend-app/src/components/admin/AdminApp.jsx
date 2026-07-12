@@ -68,6 +68,7 @@ import LegalCompliancePage from "../../pages/admin/LegalCompliancePage";
 import ComercialGestorPage from "../../pages/admin/ComercialGestorPage";
 import CrmPage from "../../pages/admin/CrmPage";
 import RegulatoryConsultationPage from "../../pages/admin/RegulatoryConsultationPage";
+import RegulatoryCitiesPage from "../../pages/admin/RegulatoryCitiesPage";
 import InsuranceCoveragesPage from "../../pages/admin/InsuranceCoveragesPage";
 import CommerceAccountsPage from "../../pages/admin/CommerceAccountsPage";
 import MyContractPage from "../../pages/admin/MyContractPage";
@@ -444,6 +445,7 @@ function AdminHome() {
               ...(isSuperAdmin ? [
                 { Icon: Email, title: 'E-mails KAVIAR', desc: 'Enviar comunicações oficiais para destinatários externos.', to: '/admin/email', actionLabel: 'Enviar e-mail' },
                 { Icon: MarkEmailRead, title: 'Caixa de Entrada Institucional', desc: 'Visualizar respostas recebidas nos e-mails oficiais da KAVIAR.', to: '/admin/inbox', actionLabel: 'Abrir caixa de entrada' },
+                { Icon: LocationCity, title: 'Regulatório por Cidade', desc: 'Acompanhar cadastro, protocolo e autorizações municipais da KAVIAR.', to: '/admin/regulatorio', actionLabel: 'Abrir regulatório' },
               ] : []),
               ...(canAccessOperations ? [
                 { Icon: BarChart, title: 'Cockpit Operacional', desc: 'Acompanhe corridas, motoristas, territórios e histórico do dia em tempo real.', to: '/admin/operations', actionLabel: 'Abrir cockpit' },
@@ -1056,6 +1058,7 @@ export default function AdminApp() {
           <Route path="/comercial-gestor" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ComercialGestorPage /></ProtectedAdminRoute>} />
           <Route path="/crm" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><CrmPage /></ProtectedAdminRoute>} />
           <Route path="/regulatory-consultation" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><RegulatoryConsultationPage /></ProtectedAdminRoute>} />
+          <Route path="/regulatorio" element={<ProtectedAdminRoute requireSuperAdmin><RegulatoryCitiesPage /></ProtectedAdminRoute>} />
           <Route path="/insurance-coverages" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR']}><InsuranceCoveragesPage /></ProtectedAdminRoute>} />
           <Route path="/commerce" element={<ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'TERRITORIAL_MANAGER']}><CommerceAccountsPage /></ProtectedAdminRoute>} />
           <Route path="/manager-emergency-alerts" element={<ProtectedAdminRoute allowedRoles={['TERRITORIAL_MANAGER', 'SUPER_ADMIN']}><ManagerEmergencyAlerts /></ProtectedAdminRoute>} />
