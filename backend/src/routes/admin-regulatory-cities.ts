@@ -1557,14 +1557,6 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
       });
     }
 
-    if (!asNullable(protocol.protocol_number)) {
-      return res.status(409).json({
-        success: false,
-        error: 'Informe o número do protocolo municipal antes de gerar a autorização operacional.',
-        code: 'PROTOCOL_NUMBER_REQUIRED',
-      });
-    }
-
     const serviceModality = normalizeServiceModality(protocol.service_modality);
     if (!serviceModality) {
       return res.status(409).json({
@@ -1581,15 +1573,6 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
 
     if (!driver) {
       return res.status(404).json({ success: false, error: 'Motorista do protocolo não encontrado.' });
-    }
-
-    const regulation = await getMunicipalRegulation(city.city, city.state, serviceModality);
-    if (!regulation) {
-      return res.status(409).json({
-        success: false,
-        error: 'Não existe regra municipal ativa para cidade/UF/modalidade deste protocolo.',
-        code: 'MUNICIPAL_REGULATION_NOT_FOUND',
-      });
     }
 
     const existingAuthorization = await prisma.municipal_authorizations.findFirst({
@@ -1627,6 +1610,24 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
       });
     }
 
+    const protocolNumber = asNullable(protocol.protocol_number);
+    if (!protocolNumber) {
+      return res.status(409).json({
+        success: false,
+        error: 'Informe o número do protocolo municipal antes de gerar a autorização operacional.',
+        code: 'PROTOCOL_NUMBER_REQUIRED',
+      });
+    }
+
+    const regulation = await getMunicipalRegulation(city.city, city.state, serviceModality);
+    if (!regulation) {
+      return res.status(409).json({
+        success: false,
+        error: 'Não existe regra municipal ativa para cidade/UF/modalidade deste protocolo.',
+        code: 'MUNICIPAL_REGULATION_NOT_FOUND',
+      });
+    }
+
     const admin = (req as any).admin;
     let createdAuthorization: any;
 
@@ -1639,8 +1640,8 @@ router.post('/regulatory/cities/:id/driver-protocols/:protocolId/generate-author
           state: city.state,
           service_modality: serviceModality,
           status: 'APPROVED_BY_CITY_HALL',
-          protocol_number: protocol.protocol_number || null,
-          protocol_date: protocol.submitted_at || protocol.approved_at || new Date(),
+          protocol_number: protocolNumber,
+          protocol_date: protocol.submitted_at || protocol.approved_at || null,
           protocol_agency: city.department_name || null,
           city_hall_notes: 'Autorização gerada a partir de protocolo aprovado no CRM regulatório por cidade.',
           submitted_by_admin_id: admin?.id || null,

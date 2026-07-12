@@ -273,8 +273,54 @@ describe('admin regulatory cities - fase 5C', () => {
     expect(createCall.data.status).toBe('APPROVED_BY_CITY_HALL');
     expect(createCall.data.approved_by_admin_id).toBe('admin-1');
     expect(createCall.data.service_modality).toBe('CAR');
+    expect(createCall.data.protocol_number).toBe('PR-123');
+    expect(createCall.data.protocol_date).toEqual(new Date('2026-07-12T00:00:00.000Z'));
 
     expect(prismaMock.municipal_package_audit_logs.create).toHaveBeenCalled();
+  });
+
+  it('usa approved_at como fallback de protocol_date quando submitted_at está ausente', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findFirst.mockResolvedValue({
+      id: 'protocol-1',
+      case_id: 'case-1',
+      driver_id: 'driver-1',
+      service_modality: 'CAR',
+      status: 'APPROVED',
+      protocol_number: 'PR-123',
+      submitted_at: null,
+      approved_at: new Date('2026-07-12T03:00:00.000Z'),
+    });
+
+    const res = await request(app)
+      .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-1/generate-authorization')
+      .send({});
+
+    expect(res.status).toBe(201);
+
+    const createCall = prismaMock.municipal_authorizations.create.mock.calls[0][0];
+    expect(createCall.data.protocol_date).toEqual(new Date('2026-07-12T03:00:00.000Z'));
+  });
+
+  it('mantém protocol_date nulo quando submitted_at e approved_at estão ausentes', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findFirst.mockResolvedValue({
+      id: 'protocol-1',
+      case_id: 'case-1',
+      driver_id: 'driver-1',
+      service_modality: 'CAR',
+      status: 'APPROVED',
+      protocol_number: 'PR-123',
+      submitted_at: null,
+      approved_at: null,
+    });
+
+    const res = await request(app)
+      .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-1/generate-authorization')
+      .send({});
+
+    expect(res.status).toBe(201);
+
+    const createCall = prismaMock.municipal_authorizations.create.mock.calls[0][0];
+    expect(createCall.data.protocol_date).toBeNull();
   });
 
   it('ação repetida é idempotente quando autorização equivalente já está ativa', async () => {
@@ -287,6 +333,93 @@ describe('admin regulatory cities - fase 5C', () => {
 
     const res = await request(app)
       .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-1/generate-authorization')
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.idempotent).toBe(true);
+    expect(prismaMock.municipal_authorizations.create).not.toHaveBeenCalled();
+  });
+
+  it('retorna idempotente quando protocolo legado não possui número mas autorização equivalente já está ativa', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findFirst.mockResolvedValue({
+      id: 'protocol-legacy',
+      case_id: 'case-1',
+      driver_id: 'driver-1',
+      service_modality: 'CAR',
+      status: 'APPROVED',
+      protocol_number: null,
+      submitted_at: null,
+      approved_at: new Date('2026-07-12T01:00:00.000Z'),
+    });
+
+    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
+      id: 'auth-existing',
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: null,
+    });
+
+    const res = await request(app)
+      .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-legacy/generate-authorization')
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.idempotent).toBe(true);
+    expect(prismaMock.municipal_authorizations.create).not.toHaveBeenCalled();
+    expect(prismaMock.municipal_package_audit_logs.create).not.toHaveBeenCalled();
+  });
+
+  it('retorna revisão obrigatória quando já existe autorização equivalente não válida, mesmo sem protocol_number', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findFirst.mockResolvedValue({
+      id: 'protocol-legacy',
+      case_id: 'case-1',
+      driver_id: 'driver-1',
+      service_modality: 'CAR',
+      status: 'APPROVED',
+      protocol_number: null,
+      submitted_at: null,
+      approved_at: new Date('2026-07-12T01:00:00.000Z'),
+    });
+
+    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
+      id: 'auth-review',
+      status: 'PENDING_CITY_HALL',
+      approved_by_admin_id: null,
+      authorization_valid_until: null,
+    });
+
+    const res = await request(app)
+      .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-legacy/generate-authorization')
+      .send({});
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('AUTHORIZATION_ALREADY_EXISTS_REVIEW_REQUIRED');
+    expect(prismaMock.municipal_authorizations.create).not.toHaveBeenCalled();
+  });
+
+  it('mantém retorno idempotente para autorização já ativa mesmo sem regra municipal ativa atual', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findFirst.mockResolvedValue({
+      id: 'protocol-legacy',
+      case_id: 'case-1',
+      driver_id: 'driver-1',
+      service_modality: 'CAR',
+      status: 'APPROVED',
+      protocol_number: null,
+      submitted_at: null,
+      approved_at: new Date('2026-07-12T01:00:00.000Z'),
+    });
+
+    prismaMock.municipal_authorizations.findFirst.mockResolvedValue({
+      id: 'auth-existing',
+      status: 'APPROVED_BY_CITY_HALL',
+      approved_by_admin_id: 'admin-1',
+      authorization_valid_until: null,
+    });
+
+    prismaMock.municipal_regulations.findFirst.mockResolvedValue(null);
+
+    const res = await request(app)
+      .post('/api/admin/regulatory/cities/case-1/driver-protocols/protocol-legacy/generate-authorization')
       .send({});
 
     expect(res.status).toBe(200);
