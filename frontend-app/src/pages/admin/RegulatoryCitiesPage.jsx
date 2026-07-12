@@ -1657,9 +1657,14 @@ export default function RegulatoryCitiesPage() {
                               {candidateLoadedByCity[item.id] && (
                                 <Stack spacing={1}>
                                   {(candidateByCity[item.id]?.items || []).length === 0 ? (
-                                    <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
-                                      Nenhum motorista encontrado para os filtros informados.
-                                    </Typography>
+                                    <Stack spacing={0.35}>
+                                      <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                        Nenhum motorista real encontrado para importar.
+                                      </Typography>
+                                      <Typography sx={{ color: '#94A3B8', fontSize: 11.8 }}>
+                                        Cadastre ou aprove um motorista no KAVIAR antes de criar protocolo automático.
+                                      </Typography>
+                                    </Stack>
                                   ) : (
                                     (candidateByCity[item.id]?.items || []).map((candidate) => (
                                       <Box
@@ -1871,7 +1876,15 @@ export default function RegulatoryCitiesPage() {
                                   variant="contained"
                                   onClick={() => submitDriverProtocolForm(item.id)}
                                   disabled={protocolSaving || !protocolForm.driver_name.trim()}
-                                  sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' }, color: '#111827' }}
+                                  sx={{
+                                    bgcolor: '#B8942E',
+                                    '&:hover': { bgcolor: '#9A7B24' },
+                                    color: '#111827',
+                                    '&.Mui-disabled': {
+                                      bgcolor: 'rgba(184,148,46,0.42)',
+                                      color: 'rgba(17,24,39,0.72)',
+                                    },
+                                  }}
                                 >
                                   {protocolSaving ? 'Salvando...' : 'Salvar protocolo'}
                                 </Button>
@@ -1885,6 +1898,12 @@ export default function RegulatoryCitiesPage() {
                                   Cancelar
                                 </Button>
                               </Stack>
+
+                              {!protocolSaving && !protocolForm.driver_name.trim() && (
+                                <Typography sx={{ mt: 0.7, color: '#94A3B8', fontSize: 11.8 }}>
+                                  Informe o nome do motorista para salvar.
+                                </Typography>
+                              )}
                             </Box>
                           )}
 

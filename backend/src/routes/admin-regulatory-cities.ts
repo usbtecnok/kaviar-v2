@@ -150,6 +150,8 @@ const createDriverProtocolFromDriverSchema = z.object({
   nextFollowUpAt: z.coerce.date().optional().nullable(),
 });
 
+const TEST_CANDIDATE_TERMS = ['test', 'teste'] as const;
+
 const SANTA_RITA_TRANSPORT_TEMPLATE = [
   {
     title: 'CNH categoria B ou superior com EAR',
@@ -816,6 +818,12 @@ router.get('/regulatory/cities/:id/driver-candidates', async (req: Request, res:
 
     const where: any = {
       deleted_at: null,
+      NOT: {
+        OR: TEST_CANDIDATE_TERMS.flatMap((term) => [
+          { name: { contains: term, mode: 'insensitive' } },
+          { email: { contains: term, mode: 'insensitive' } },
+        ]),
+      },
     };
 
     if (parsed.status) {
