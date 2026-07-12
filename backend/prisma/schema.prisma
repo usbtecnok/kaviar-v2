@@ -1415,12 +1415,36 @@ model municipal_regulatory_cases {
   updated_by_admin_id String?   @db.Uuid
   created_at          DateTime  @default(now())
   updated_at          DateTime  @updatedAt
+  checklist_items     municipal_regulatory_checklist_items[]
 
   @@index([status, updated_at])
   @@index([state, city])
   @@index([next_follow_up_at])
   @@index([created_at])
   @@map("municipal_regulatory_cases")
+}
+
+model municipal_regulatory_checklist_items {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  case_id      String    @db.Uuid
+  title        String    @db.VarChar(255)
+  description  String?
+  category     String?   @db.VarChar(120)
+  status       String    @default("PENDING") @db.VarChar(32)
+  required     Boolean   @default(true)
+  sort_order   Int       @default(0)
+  notes        String?
+  due_date     DateTime?
+  completed_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  case municipal_regulatory_cases @relation(fields: [case_id], references: [id], onDelete: Cascade)
+
+  @@index([case_id, sort_order])
+  @@index([case_id, status])
+  @@index([due_date])
+  @@map("municipal_regulatory_checklist_items")
 }
 
 model email_send_logs {
