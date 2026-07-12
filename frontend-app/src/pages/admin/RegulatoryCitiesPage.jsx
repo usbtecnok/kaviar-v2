@@ -229,7 +229,8 @@ export default function RegulatoryCitiesPage() {
   const [communicationsErrors, setCommunicationsErrors] = useState({});
   const [expandedChecklistId, setExpandedChecklistId] = useState(null);
   const [checklistByCity, setChecklistByCity] = useState({});
-  const [checklistLoadingId, setChecklistLoadingId] = useState(null);
+  const [checklistLoadingByCity, setChecklistLoadingByCity] = useState({});
+  const [checklistLoadedByCity, setChecklistLoadedByCity] = useState({});
   const [checklistErrors, setChecklistErrors] = useState({});
   const [checklistFormOpen, setChecklistFormOpen] = useState(false);
   const [checklistEditing, setChecklistEditing] = useState(null);
@@ -392,7 +393,7 @@ export default function RegulatoryCitiesPage() {
   };
 
   const loadChecklist = async (cityId) => {
-    setChecklistLoadingId(cityId);
+    setChecklistLoadingByCity((prev) => ({ ...prev, [cityId]: true }));
     setChecklistErrors((prev) => ({ ...prev, [cityId]: '' }));
 
     try {
@@ -401,11 +402,12 @@ export default function RegulatoryCitiesPage() {
         ...prev,
         [cityId]: response.data?.data || EMPTY_CHECKLIST,
       }));
+      setChecklistLoadedByCity((prev) => ({ ...prev, [cityId]: true }));
     } catch (error) {
       const message = error?.response?.data?.error || 'Não foi possível carregar o checklist municipal.';
       setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
     } finally {
-      setChecklistLoadingId((current) => (current === cityId ? null : current));
+      setChecklistLoadingByCity((prev) => ({ ...prev, [cityId]: false }));
     }
   };
 
@@ -594,7 +596,7 @@ export default function RegulatoryCitiesPage() {
   };
 
   const applyChecklistTemplate = async (cityId) => {
-    setChecklistLoadingId(cityId);
+    setChecklistLoadingByCity((prev) => ({ ...prev, [cityId]: true }));
     setChecklistErrors((prev) => ({ ...prev, [cityId]: '' }));
 
     try {
@@ -604,7 +606,7 @@ export default function RegulatoryCitiesPage() {
       const message = error?.response?.data?.error || 'Não foi possível aplicar o modelo de checklist.';
       setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
     } finally {
-      setChecklistLoadingId((current) => (current === cityId ? null : current));
+      setChecklistLoadingByCity((prev) => ({ ...prev, [cityId]: false }));
     }
   };
 
@@ -787,10 +789,10 @@ export default function RegulatoryCitiesPage() {
                           size="small"
                           variant="contained"
                           onClick={() => toggleChecklist(item.id)}
-                          disabled={checklistLoadingId === item.id}
+                          disabled={Boolean(checklistLoadingByCity[item.id])}
                           sx={{ bgcolor: '#334155', color: '#F8FAFC', '&:hover': { bgcolor: '#1E293B' } }}
                         >
-                          {checklistLoadingId === item.id ? 'Carregando...' : 'Ver checklist'}
+                          {checklistLoadingByCity[item.id] ? 'Carregando...' : 'Ver checklist'}
                         </Button>
                       </Stack>
 
@@ -929,7 +931,9 @@ export default function RegulatoryCitiesPage() {
                                 Adicionar item
                               </Button>
 
-                              {(checklistByCity[item.id]?.items || []).length === 0 && (
+                              {Boolean(checklistLoadedByCity[item.id])
+                                && !checklistLoadingByCity[item.id]
+                                && (checklistByCity[item.id]?.items || []).length === 0 && (
                                 <Button
                                   size="small"
                                   variant="contained"
@@ -948,13 +952,16 @@ export default function RegulatoryCitiesPage() {
                             </Alert>
                           )}
 
-                          {!checklistErrors[item.id] && checklistLoadingId === item.id && !checklistByCity[item.id] && (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-                              <CircularProgress size={22} sx={{ color: '#B8942E' }} />
-                            </Box>
+                          {!checklistErrors[item.id] && checklistLoadingByCity[item.id] && !checklistLoadedByCity[item.id] && (
+                            <Stack direction="row" spacing={1} alignItems="center" sx={{ py: 1.5 }}>
+                              <CircularProgress size={20} sx={{ color: '#B8942E' }} />
+                              <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                Carregando checklist...
+                              </Typography>
+                            </Stack>
                           )}
 
-                          {!checklistErrors[item.id] && checklistByCity[item.id] && (
+                          {!checklistErrors[item.id] && checklistLoadedByCity[item.id] && checklistByCity[item.id] && (
                             <Stack spacing={1.1}>
                               {checklistByCity[item.id].items.length === 0 ? (
                                 <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
