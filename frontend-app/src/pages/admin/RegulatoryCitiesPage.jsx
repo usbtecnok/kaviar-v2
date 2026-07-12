@@ -20,7 +20,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Add, Edit, Email } from '@mui/icons-material';
+import { Add, CheckCircleOutline, DeleteOutline, Edit, Email, RadioButtonUnchecked } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import api from '../../api';
 
@@ -63,6 +63,24 @@ const STATUS_COLORS = {
   PAUSED: { bg: '#E5E7EB', color: '#374151' },
 };
 
+const CHECKLIST_STATUS_OPTIONS = ['PENDING', 'IN_PROGRESS', 'DONE', 'NOT_APPLICABLE'];
+
+const CHECKLIST_STATUS_LABELS = {
+  PENDING: 'Pendente',
+  IN_PROGRESS: 'Em andamento',
+  DONE: 'Concluído',
+  NOT_APPLICABLE: 'Não aplicável',
+};
+
+const CHECKLIST_STATUS_COLORS = {
+  PENDING: { bg: '#F3F4F6', color: '#374151' },
+  IN_PROGRESS: { bg: '#FEF3C7', color: '#92400E' },
+  DONE: { bg: '#DCFCE7', color: '#166534' },
+  NOT_APPLICABLE: { bg: '#E5E7EB', color: '#374151' },
+};
+
+const CHECKLIST_TEMPLATE_ITEMS = 12;
+
 const PAGE_SIZE = 12;
 
 const EMPTY_FORM = {
@@ -85,6 +103,11 @@ const EMPTY_COMMUNICATIONS = {
   contactEmail: null,
   sent: [],
   received: [],
+};
+
+const EMPTY_CHECKLIST = {
+  city: null,
+  items: [],
 };
 
 function toDatetimeLocal(value) {
@@ -112,6 +135,30 @@ function formatDateTime(value) {
 
 function getCommunicationDate(item) {
   return item?.receivedAt || item?.sentAt || item?.createdAt || null;
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('pt-BR');
+}
+
+function ChecklistStatusTag({ status }) {
+  const cfg = CHECKLIST_STATUS_COLORS[status] || { bg: '#F3F4F6', color: '#374151' };
+  return (
+    <Chip
+      size="small"
+      icon={status === 'DONE' ? <CheckCircleOutline fontSize="small" /> : <RadioButtonUnchecked fontSize="small" />}
+      label={CHECKLIST_STATUS_LABELS[status] || status}
+      sx={{
+        fontWeight: 700,
+        backgroundColor: cfg.bg,
+        color: cfg.color,
+        borderRadius: '8px',
+      }}
+    />
+  );
 }
 
 function StatusTag({ status }) {
@@ -153,6 +200,24 @@ export default function RegulatoryCitiesPage() {
   const [communicationsByCity, setCommunicationsByCity] = useState({});
   const [communicationsLoadingId, setCommunicationsLoadingId] = useState(null);
   const [communicationsErrors, setCommunicationsErrors] = useState({});
+  const [expandedChecklistId, setExpandedChecklistId] = useState(null);
+  const [checklistByCity, setChecklistByCity] = useState({});
+  const [checklistLoadingId, setChecklistLoadingId] = useState(null);
+  const [checklistErrors, setChecklistErrors] = useState({});
+  const [checklistFormOpen, setChecklistFormOpen] = useState(false);
+  const [checklistEditing, setChecklistEditing] = useState(null);
+  const [checklistForm, setChecklistForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    status: 'PENDING',
+    required: true,
+    sort_order: 0,
+    notes: '',
+    due_date: '',
+  });
+  const [checklistSaving, setChecklistSaving] = useState(false);
+  const [checklistActionId, setChecklistActionId] = useState(null);
 
   const params = useMemo(() => {
     const next = {
@@ -282,6 +347,155 @@ export default function RegulatoryCitiesPage() {
       setCommunicationsErrors((prev) => ({ ...prev, [cityId]: message }));
     } finally {
       setCommunicationsLoadingId((current) => (current === cityId ? null : current));
+    }
+  };
+
+  const loadChecklist = async (cityId) => {
+    setChecklistLoadingId(cityId);
+    setChecklistErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      const response = await api.get(`/api/admin/regulatory/cities/${cityId}/checklist`);
+      setChecklistByCity((prev) => ({
+        ...prev,
+        [cityId]: response.data?.data || EMPTY_CHECKLIST,
+      }));
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível carregar o checklist municipal.';
+      setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setChecklistLoadingId((current) => (current === cityId ? null : current));
+    }
+  };
+
+  const toggleChecklist = async (cityId) => {
+    if (expandedChecklistId === cityId) {
+      setExpandedChecklistId(null);
+      return;
+    }
+
+    setExpandedChecklistId(cityId);
+    if (!checklistByCity[cityId]) {
+      await loadChecklist(cityId);
+    }
+  };
+
+  const openChecklistCreate = (cityId, currentList = []) => {
+    const nextSortOrder = currentList.length ? Math.max(...currentList.map((item) => Number(item.sort_order || 0))) + 1 : 0;
+    setChecklistEditing({ cityId, itemId: null });
+    setChecklistForm({
+      title: '',
+      description: '',
+      category: '',
+      status: 'PENDING',
+      required: true,
+      sort_order: nextSortOrder,
+      notes: '',
+      due_date: '',
+    });
+    setChecklistFormOpen(true);
+  };
+
+  const openChecklistEdit = (cityId, item) => {
+    setChecklistEditing({ cityId, itemId: item.id });
+    setChecklistForm({
+      title: item.title || '',
+      description: item.description || '',
+      category: item.category || '',
+      status: item.status || 'PENDING',
+      required: item.required ?? true,
+      sort_order: Number(item.sort_order || 0),
+      notes: item.notes || '',
+      due_date: toDatetimeLocal(item.due_date),
+    });
+    setChecklistFormOpen(true);
+  };
+
+  const closeChecklistForm = () => {
+    if (checklistSaving) return;
+    setChecklistFormOpen(false);
+  };
+
+  const submitChecklistForm = async () => {
+    if (!checklistEditing?.cityId) return;
+
+    setChecklistSaving(true);
+    setErrorMessage('');
+
+    const payload = {
+      title: checklistForm.title.trim(),
+      description: checklistForm.description || null,
+      category: checklistForm.category || null,
+      status: checklistForm.status,
+      required: checklistForm.required,
+      sort_order: checklistForm.sort_order,
+      notes: checklistForm.notes || null,
+      due_date: toPayloadDatetime(checklistForm.due_date),
+    };
+
+    try {
+      if (checklistEditing.itemId) {
+        await api.patch(
+          `/api/admin/regulatory/cities/${checklistEditing.cityId}/checklist/${checklistEditing.itemId}`,
+          payload,
+        );
+      } else {
+        await api.post(`/api/admin/regulatory/cities/${checklistEditing.cityId}/checklist`, payload);
+      }
+
+      setChecklistFormOpen(false);
+      await loadChecklist(checklistEditing.cityId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível salvar o item do checklist.';
+      setErrorMessage(message);
+    } finally {
+      setChecklistSaving(false);
+    }
+  };
+
+  const updateChecklistStatus = async (cityId, item, status) => {
+    setChecklistActionId(item.id);
+    setChecklistErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      await api.patch(`/api/admin/regulatory/cities/${cityId}/checklist/${item.id}`, { status });
+      await loadChecklist(cityId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível atualizar o status.';
+      setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setChecklistActionId(null);
+    }
+  };
+
+  const deleteChecklistItem = async (cityId, item) => {
+    if (!window.confirm(`Excluir o item "${item.title}"?`)) return;
+
+    setChecklistActionId(item.id);
+
+    try {
+      await api.delete(`/api/admin/regulatory/cities/${cityId}/checklist/${item.id}`);
+      await loadChecklist(cityId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível excluir o item do checklist.';
+      setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setChecklistActionId(null);
+    }
+  };
+
+  const applyChecklistTemplate = async (cityId) => {
+    setChecklistLoadingId(cityId);
+    setChecklistErrors((prev) => ({ ...prev, [cityId]: '' }));
+
+    try {
+      await api.post(`/api/admin/regulatory/cities/${cityId}/checklist/template/app-transport`);
+      await loadChecklist(cityId);
+    } catch (error) {
+      const message = error?.response?.data?.error || 'Não foi possível aplicar o modelo de checklist.';
+      setChecklistErrors((prev) => ({ ...prev, [cityId]: message }));
+    } finally {
+      setChecklistLoadingId((current) => (current === cityId ? null : current));
     }
   };
 
@@ -459,6 +673,16 @@ export default function RegulatoryCitiesPage() {
                         >
                           {communicationsLoadingId === item.id ? 'Carregando...' : 'Ver comunicações'}
                         </Button>
+
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => toggleChecklist(item.id)}
+                          disabled={checklistLoadingId === item.id}
+                          sx={{ bgcolor: '#334155', color: '#F8FAFC', '&:hover': { bgcolor: '#1E293B' } }}
+                        >
+                          {checklistLoadingId === item.id ? 'Carregando...' : 'Ver checklist'}
+                        </Button>
                       </Stack>
 
                       {expandedCommunicationsId === item.id && (
@@ -564,6 +788,171 @@ export default function RegulatoryCitiesPage() {
                                     </Grid>
                                   )}
                                 </>
+                              )}
+                            </Stack>
+                          )}
+                        </Box>
+                      )}
+
+                      {expandedChecklistId === item.id && (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            borderRadius: 2,
+                            bgcolor: '#111827',
+                            color: '#E5E7EB',
+                            border: '1px solid rgba(148,163,184,0.18)',
+                            p: 1.5,
+                          }}
+                        >
+                          <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="center" sx={{ mb: 1.25, flexWrap: 'wrap', gap: 1 }}>
+                            <Typography sx={{ fontWeight: 800, color: '#F8FAFC', fontSize: 14 }}>
+                              Checklist municipal
+                            </Typography>
+
+                            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => openChecklistCreate(item.id, checklistByCity[item.id]?.items || [])}
+                                sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.25)' }}
+                              >
+                                Adicionar item
+                              </Button>
+
+                              {(checklistByCity[item.id]?.items || []).length === 0 && (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  onClick={() => applyChecklistTemplate(item.id)}
+                                  sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' }, color: '#111827' }}
+                                >
+                                  Aplicar modelo transporte por aplicativo
+                                </Button>
+                              )}
+                            </Stack>
+                          </Stack>
+
+                          {checklistErrors[item.id] && (
+                            <Alert severity="error" sx={{ mb: 1.25 }}>
+                              {checklistErrors[item.id]}
+                            </Alert>
+                          )}
+
+                          {!checklistErrors[item.id] && checklistLoadingId === item.id && !checklistByCity[item.id] && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                              <CircularProgress size={22} sx={{ color: '#B8942E' }} />
+                            </Box>
+                          )}
+
+                          {!checklistErrors[item.id] && checklistByCity[item.id] && (
+                            <Stack spacing={1.1}>
+                              {checklistByCity[item.id].items.length === 0 ? (
+                                <Typography sx={{ color: '#CBD5E1', fontSize: 13 }}>
+                                  Nenhum item cadastrado para esta cidade.
+                                </Typography>
+                              ) : (
+                                <Stack spacing={1}>
+                                  {checklistByCity[item.id].items.map((checklistItem) => (
+                                    <Box
+                                      key={checklistItem.id}
+                                      sx={{
+                                        borderRadius: 1.5,
+                                        bgcolor: 'rgba(30,41,59,0.92)',
+                                        p: 1.1,
+                                        border: '1px solid rgba(148,163,184,0.1)',
+                                      }}
+                                    >
+                                      <Stack spacing={0.9}>
+                                        <Stack direction="row" spacing={1} justifyContent="space-between" alignItems="flex-start" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                                          <Box>
+                                            <Typography sx={{ color: '#F8FAFC', fontWeight: 700, fontSize: 12.8, lineHeight: 1.35 }}>
+                                              {checklistItem.title}
+                                            </Typography>
+                                            <Typography sx={{ color: '#94A3B8', fontSize: 11.25, mt: 0.25 }}>
+                                              {checklistItem.category || 'Sem categoria'}
+                                              {' · '}
+                                              Ordem {checklistItem.sort_order ?? 0}
+                                            </Typography>
+                                          </Box>
+
+                                          <ChecklistStatusTag status={checklistItem.status} />
+                                        </Stack>
+
+                                        {checklistItem.description && (
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.6, lineHeight: 1.45 }}>
+                                            {checklistItem.description}
+                                          </Typography>
+                                        )}
+
+                                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                          <Chip
+                                            size="small"
+                                            label={checklistItem.required ? 'Obrigatório' : 'Opcional'}
+                                            sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(148,163,184,0.18)' }}
+                                          />
+                                          {checklistItem.due_date && (
+                                            <Chip
+                                              size="small"
+                                              label={`Prazo: ${formatDate(checklistItem.due_date)}`}
+                                              sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(59,130,246,0.18)' }}
+                                            />
+                                          )}
+                                          {checklistItem.completed_at && (
+                                            <Chip
+                                              size="small"
+                                              label={`Concluído em: ${formatDate(checklistItem.completed_at)}`}
+                                              sx={{ height: 22, fontSize: 10, color: '#E2E8F0', bgcolor: 'rgba(16,185,129,0.18)' }}
+                                            />
+                                          )}
+                                        </Stack>
+
+                                        {checklistItem.notes && (
+                                          <Typography sx={{ color: '#CBD5E1', fontSize: 11.5, lineHeight: 1.45 }}>
+                                            <strong>Observação:</strong> {checklistItem.notes}
+                                          </Typography>
+                                        )}
+
+                                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flexWrap: 'wrap' }}>
+                                          <FormControl size="small" sx={{ minWidth: 180 }}>
+                                            <InputLabel sx={{ color: '#CBD5E1' }}>Status</InputLabel>
+                                            <Select
+                                              value={checklistItem.status}
+                                              label="Status"
+                                              onChange={(event) => updateChecklistStatus(item.id, checklistItem, event.target.value)}
+                                              sx={{ color: '#F8FAFC', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148,163,184,0.3)' } }}
+                                            >
+                                              {CHECKLIST_STATUS_OPTIONS.map((status) => (
+                                                <MenuItem key={status} value={status}>{CHECKLIST_STATUS_LABELS[status]}</MenuItem>
+                                              ))}
+                                            </Select>
+                                          </FormControl>
+
+                                          <Button
+                                            size="small"
+                                            variant="outlined"
+                                            startIcon={<Edit fontSize="small" />}
+                                            onClick={() => openChecklistEdit(item.id, checklistItem)}
+                                            sx={{ color: '#E5E7EB', borderColor: 'rgba(226,232,240,0.22)' }}
+                                          >
+                                            Editar
+                                          </Button>
+
+                                          <Button
+                                            size="small"
+                                            variant="outlined"
+                                            color="error"
+                                            startIcon={<DeleteOutline fontSize="small" />}
+                                            onClick={() => deleteChecklistItem(item.id, checklistItem)}
+                                            disabled={checklistActionId === checklistItem.id}
+                                          >
+                                            Excluir
+                                          </Button>
+                                        </Stack>
+                                      </Stack>
+                                    </Box>
+                                  ))}
+                                </Stack>
                               )}
                             </Stack>
                           )}
@@ -742,6 +1131,111 @@ export default function RegulatoryCitiesPage() {
           <Button onClick={closeDialog} disabled={saving}>Cancelar</Button>
           <Button onClick={submitForm} variant="contained" disabled={saving} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>
             {saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Criar cidade'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={checklistFormOpen} onClose={closeChecklistForm} fullWidth maxWidth="md">
+        <DialogTitle>{checklistEditing?.itemId ? 'Editar item do checklist' : 'Adicionar item ao checklist'}</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={1.5}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Título"
+                value={checklistForm.title}
+                onChange={(event) => setChecklistForm((prev) => ({ ...prev, title: event.target.value }))}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Categoria"
+                value={checklistForm.category}
+                onChange={(event) => setChecklistForm((prev) => ({ ...prev, category: event.target.value }))}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel id="checklist-status">Status</InputLabel>
+                <Select
+                  labelId="checklist-status"
+                  label="Status"
+                  value={checklistForm.status}
+                  onChange={(event) => setChecklistForm((prev) => ({ ...prev, status: event.target.value }))}
+                >
+                  {CHECKLIST_STATUS_OPTIONS.map((status) => (
+                    <MenuItem key={status} value={status}>{CHECKLIST_STATUS_LABELS[status]}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                label="Ordem"
+                type="number"
+                value={checklistForm.sort_order}
+                onChange={(event) => setChecklistForm((prev) => ({ ...prev, sort_order: Number(event.target.value) || 0 }))}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Descrição"
+                multiline
+                minRows={3}
+                value={checklistForm.description}
+                onChange={(event) => setChecklistForm((prev) => ({ ...prev, description: event.target.value }))}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Data de vencimento"
+                type="datetime-local"
+                InputLabelProps={{ shrink: true }}
+                value={checklistForm.due_date}
+                onChange={(event) => setChecklistForm((prev) => ({ ...prev, due_date: event.target.value }))}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel id="checklist-required">Obrigatoriedade</InputLabel>
+                <Select
+                  labelId="checklist-required"
+                  label="Obrigatoriedade"
+                  value={checklistForm.required ? 'true' : 'false'}
+                  onChange={(event) => setChecklistForm((prev) => ({ ...prev, required: event.target.value === 'true' }))}
+                >
+                  <MenuItem value="true">Obrigatório</MenuItem>
+                  <MenuItem value="false">Opcional</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                minRows={4}
+                label="Observações"
+                value={checklistForm.notes}
+                onChange={(event) => setChecklistForm((prev) => ({ ...prev, notes: event.target.value }))}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeChecklistForm} disabled={checklistSaving}>Cancelar</Button>
+          <Button onClick={submitChecklistForm} variant="contained" disabled={checklistSaving} sx={{ bgcolor: '#B8942E', '&:hover': { bgcolor: '#9A7B24' } }}>
+            {checklistSaving ? 'Salvando...' : checklistEditing?.itemId ? 'Salvar item' : 'Adicionar item'}
           </Button>
         </DialogActions>
       </Dialog>

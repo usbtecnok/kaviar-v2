@@ -18,6 +18,13 @@ const REGULATORY_CITY_STATUSES = [
   'PAUSED',
 ] as const;
 
+const CHECKLIST_STATUSES = [
+  'PENDING',
+  'IN_PROGRESS',
+  'DONE',
+  'NOT_APPLICABLE',
+] as const;
+
 const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   page: z.coerce.number().int().min(1).default(1),
@@ -57,6 +64,103 @@ const updateCaseSchema = z.object({
   notes: z.string().trim().max(8000).optional().nullable(),
 });
 
+const createChecklistItemSchema = z.object({
+  title: z.string().trim().min(1).max(255),
+  description: z.string().trim().max(4000).optional().nullable(),
+  category: z.string().trim().max(120).optional().nullable(),
+  status: z.enum(CHECKLIST_STATUSES).optional(),
+  required: z.coerce.boolean().optional(),
+  sort_order: z.coerce.number().int().min(0).optional(),
+  notes: z.string().trim().max(8000).optional().nullable(),
+  due_date: z.coerce.date().optional().nullable(),
+});
+
+const updateChecklistItemSchema = z.object({
+  title: z.string().trim().min(1).max(255).optional(),
+  description: z.string().trim().max(4000).optional().nullable(),
+  category: z.string().trim().max(120).optional().nullable(),
+  status: z.enum(CHECKLIST_STATUSES).optional(),
+  required: z.coerce.boolean().optional(),
+  sort_order: z.coerce.number().int().min(0).optional(),
+  notes: z.string().trim().max(8000).optional().nullable(),
+  due_date: z.coerce.date().optional().nullable(),
+});
+
+const SANTA_RITA_TRANSPORT_TEMPLATE = [
+  {
+    title: 'CNH categoria B ou superior com EAR',
+    description: 'Confirmar habilitação compatível e observação de atividade remunerada.',
+    category: 'Condutor',
+    sort_order: 1,
+  },
+  {
+    title: 'Certidão negativa de antecedentes criminais',
+    description: 'Coletar documento vigente do condutor responsável.',
+    category: 'Condutor',
+    sort_order: 2,
+  },
+  {
+    title: 'Comprovante de inscrição como contribuinte individual do INSS ou MEI',
+    description: 'Validar enquadramento previdenciário ou empresarial do prestador.',
+    category: 'Cadastro',
+    sort_order: 3,
+  },
+  {
+    title: 'Seguro APP e seguro obrigatório quando aplicável',
+    description: 'Confirmar cobertura ativa para operação municipal.',
+    category: 'Veículo',
+    sort_order: 4,
+  },
+  {
+    title: 'CRLV regular e licenciado do veículo',
+    description: 'Exigir documento atualizado e sem pendências de licenciamento.',
+    category: 'Veículo',
+    sort_order: 5,
+  },
+  {
+    title: 'Comprovante de residência',
+    description: 'Validar endereço atualizado do condutor.',
+    category: 'Condutor',
+    sort_order: 6,
+  },
+  {
+    title: 'Duas fotos 3x4',
+    description: 'Separar imagens recentes para ficha municipal.',
+    category: 'Cadastro',
+    sort_order: 7,
+  },
+  {
+    title: 'Inscrição no Cadastro de Receitas Mobiliárias do Município',
+    description: 'Confirmar inscrição fiscal municipal ou etapa equivalente.',
+    category: 'Município',
+    sort_order: 8,
+  },
+  {
+    title: 'Certidão negativa de débitos municipais',
+    description: 'Checar eventuais restrições ou débitos com a prefeitura.',
+    category: 'Município',
+    sort_order: 9,
+  },
+  {
+    title: 'Alvará municipal específico',
+    description: 'Validar exigência e emissão do alvará aplicável.',
+    category: 'Município',
+    sort_order: 10,
+  },
+  {
+    title: 'Verificação de idade máxima do veículo',
+    description: 'Conferir limite de idade definido pelo município.',
+    category: 'Veículo',
+    sort_order: 11,
+  },
+  {
+    title: 'Protocolo junto ao setor municipal responsável',
+    description: 'Registrar o andamento formal do processo.',
+    category: 'Protocolo',
+    sort_order: 12,
+  },
+] as const;
+
 function asNullable(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -75,6 +179,10 @@ function buildSnippet(value: string | null | undefined, maxLength = 160): string
   if (!collapsed) return null;
   if (collapsed.length <= maxLength) return collapsed;
   return `${collapsed.slice(0, maxLength - 1)}…`;
+}
+
+function isChecklistDone(status: unknown): boolean {
+  return status === 'DONE';
 }
 
 router.use(authenticateAdmin, requireSuperAdmin);
@@ -349,6 +457,210 @@ router.patch('/regulatory/cities/:id', async (req: Request, res: Response) => {
     }
 
     return res.status(500).json({ success: false, error: 'Erro ao atualizar caso regulatório por cidade.' });
+  }
+});
+
+// GET /api/admin/regulatory/cities/:id/checklist
+router.get('/regulatory/cities/:id/checklist', async (req: Request, res: Response) => {
+  try {
+    const item = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: {
+        id: true,
+        city: true,
+        state: true,
+      },
+    });
+
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const checklistItems = await prisma.municipal_regulatory_checklist_items.findMany({
+      where: { case_id: item.id },
+      orderBy: [{ sort_order: 'asc' }, { created_at: 'asc' }],
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        city: item,
+        items: checklistItems,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao buscar checklist municipal.' });
+  }
+});
+
+// POST /api/admin/regulatory/cities/:id/checklist
+router.post('/regulatory/cities/:id/checklist', async (req: Request, res: Response) => {
+  try {
+    const payload = createChecklistItemSchema.parse(req.body);
+    const adminId = (req as any).admin?.id || null;
+
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const created = await prisma.municipal_regulatory_checklist_items.create({
+      data: {
+        case_id: city.id,
+        title: payload.title,
+        description: asNullable(payload.description),
+        category: asNullable(payload.category),
+        status: payload.status || 'PENDING',
+        required: payload.required ?? true,
+        sort_order: payload.sort_order ?? 0,
+        notes: asNullable(payload.notes),
+        due_date: payload.due_date ?? null,
+      },
+    });
+
+    return res.status(201).json({ success: true, data: created, meta: { created_by_admin_id: adminId } });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Payload inválido.' });
+    }
+
+    return res.status(500).json({ success: false, error: 'Erro ao criar item de checklist.' });
+  }
+});
+
+// PATCH /api/admin/regulatory/cities/:id/checklist/:itemId
+router.patch('/regulatory/cities/:id/checklist/:itemId', async (req: Request, res: Response) => {
+  try {
+    const payload = updateChecklistItemSchema.parse(req.body);
+
+    const existing = await prisma.municipal_regulatory_checklist_items.findFirst({
+      where: {
+        id: req.params.itemId,
+        case_id: req.params.id,
+      },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Item de checklist não encontrado.' });
+    }
+
+    const data: any = {};
+
+    if (payload.title !== undefined) data.title = payload.title;
+    if (payload.description !== undefined) data.description = asNullable(payload.description);
+    if (payload.category !== undefined) data.category = asNullable(payload.category);
+    if (payload.status !== undefined) data.status = payload.status;
+    if (payload.required !== undefined) data.required = payload.required;
+    if (payload.sort_order !== undefined) data.sort_order = payload.sort_order;
+    if (payload.notes !== undefined) data.notes = asNullable(payload.notes);
+    if (payload.due_date !== undefined) data.due_date = payload.due_date;
+
+    const nextStatus = payload.status || existing.status;
+    if (isChecklistDone(nextStatus)) {
+      if (!existing.completed_at) {
+        data.completed_at = new Date();
+      }
+    } else if (payload.status !== undefined) {
+      data.completed_at = null;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhuma alteração enviada.' });
+    }
+
+    const updated = await prisma.municipal_regulatory_checklist_items.update({
+      where: { id: existing.id },
+      data,
+    });
+
+    return res.json({ success: true, data: updated });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Payload inválido.' });
+    }
+
+    return res.status(500).json({ success: false, error: 'Erro ao atualizar item de checklist.' });
+  }
+});
+
+// DELETE /api/admin/regulatory/cities/:id/checklist/:itemId
+router.delete('/regulatory/cities/:id/checklist/:itemId', async (req: Request, res: Response) => {
+  try {
+    const existing = await prisma.municipal_regulatory_checklist_items.findFirst({
+      where: {
+        id: req.params.itemId,
+        case_id: req.params.id,
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Item de checklist não encontrado.' });
+    }
+
+    await prisma.municipal_regulatory_checklist_items.delete({
+      where: { id: existing.id },
+    });
+
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao excluir item de checklist.' });
+  }
+});
+
+// POST /api/admin/regulatory/cities/:id/checklist/template/app-transport
+router.post('/regulatory/cities/:id/checklist/template/app-transport', async (req: Request, res: Response) => {
+  try {
+    const city = await prisma.municipal_regulatory_cases.findUnique({
+      where: { id: req.params.id },
+      select: { id: true },
+    });
+
+    if (!city) {
+      return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
+    }
+
+    const existingCount = await prisma.municipal_regulatory_checklist_items.count({
+      where: { case_id: city.id },
+    });
+
+    if (existingCount > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Checklist já possui itens cadastrados para esta cidade.',
+      });
+    }
+
+    const created = await prisma.$transaction(
+      SANTA_RITA_TRANSPORT_TEMPLATE.map((item) =>
+        prisma.municipal_regulatory_checklist_items.create({
+          data: {
+            case_id: city.id,
+            title: item.title,
+            description: item.description,
+            category: item.category,
+            status: 'PENDING',
+            required: true,
+            sort_order: item.sort_order,
+          },
+        }),
+      ),
+    );
+
+    return res.status(201).json({
+      success: true,
+      data: created,
+      meta: {
+        template: 'app-transport',
+        created: created.length,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: 'Erro ao aplicar modelo de checklist.' });
   }
 });
 
