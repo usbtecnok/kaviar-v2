@@ -108,6 +108,35 @@ const EMPTY_CHECKLIST = {
   items: [],
 };
 
+const INLINE_DARK_FIELD_SX = {
+  '& .MuiInputBase-root': {
+    color: '#F8FAFC',
+    backgroundColor: 'rgba(15,23,42,0.9)',
+  },
+  '& .MuiInputLabel-root': {
+    color: '#CBD5E1',
+  },
+  '& .MuiInputLabel-root.Mui-focused': {
+    color: '#E2E8F0',
+  },
+  '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(148,163,184,0.35)',
+  },
+  '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(148,163,184,0.55)',
+  },
+  '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: '#B8942E',
+  },
+  '& .MuiInputBase-input::placeholder': {
+    color: 'rgba(203,213,225,0.72)',
+    opacity: 1,
+  },
+  '& .MuiSvgIcon-root': {
+    color: '#CBD5E1',
+  },
+};
+
 function toDatetimeLocal(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -994,20 +1023,6 @@ export default function RegulatoryCitiesPage() {
                                         )}
 
                                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ flexWrap: 'wrap' }}>
-                                          <FormControl size="small" sx={{ minWidth: 180 }}>
-                                            <InputLabel sx={{ color: '#CBD5E1' }}>Status</InputLabel>
-                                            <Select
-                                              value={checklistItem.status}
-                                              label="Status"
-                                              onChange={(event) => updateChecklistStatus(item.id, checklistItem, event.target.value)}
-                                              sx={{ color: '#F8FAFC', '.MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(148,163,184,0.3)' } }}
-                                            >
-                                              {CHECKLIST_STATUS_OPTIONS.map((status) => (
-                                                <MenuItem key={status} value={status}>{CHECKLIST_STATUS_LABELS[status]}</MenuItem>
-                                              ))}
-                                            </Select>
-                                          </FormControl>
-
                                           {inlineChecklistEditing?.cityId === item.id && inlineChecklistEditing?.itemId === checklistItem.id ? (
                                             <Box
                                               sx={{
@@ -1015,36 +1030,41 @@ export default function RegulatoryCitiesPage() {
                                                 borderRadius: 1.25,
                                                 border: '1px solid rgba(148,163,184,0.2)',
                                                 bgcolor: 'rgba(15,23,42,0.55)',
-                                                p: 1.1,
+                                                p: 0.95,
                                               }}
                                             >
-                                              <Grid container spacing={1}>
-                                                <Grid item xs={12}>
-                                                  <TextField
-                                                    fullWidth
-                                                    size="small"
-                                                    label="Título"
-                                                    value={inlineChecklistForm.title}
-                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, title: event.target.value }))}
-                                                  />
-                                                </Grid>
+                                              <Grid container spacing={0.9}>
                                                 <Grid item xs={12} md={6}>
                                                   <TextField
                                                     fullWidth
                                                     size="small"
-                                                    label="Categoria"
-                                                    value={inlineChecklistForm.category}
-                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, category: event.target.value }))}
+                                                    label="Título"
+                                                    placeholder="Ex.: Alvará emitido"
+                                                    value={inlineChecklistForm.title}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, title: event.target.value }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
                                                   />
                                                 </Grid>
                                                 <Grid item xs={12} md={3}>
-                                                  <FormControl fullWidth size="small">
+                                                  <TextField
+                                                    fullWidth
+                                                    size="small"
+                                                    label="Categoria"
+                                                    placeholder="Ex.: Município"
+                                                    value={inlineChecklistForm.category}
+                                                    onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, category: event.target.value }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
+                                                  />
+                                                </Grid>
+                                                <Grid item xs={12} md={3}>
+                                                  <FormControl fullWidth size="small" sx={INLINE_DARK_FIELD_SX}>
                                                     <InputLabel id={`inline-check-status-${checklistItem.id}`}>Status</InputLabel>
                                                     <Select
                                                       labelId={`inline-check-status-${checklistItem.id}`}
                                                       label="Status"
                                                       value={inlineChecklistForm.status}
                                                       onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, status: event.target.value }))}
+                                                      sx={INLINE_DARK_FIELD_SX}
                                                     >
                                                       {CHECKLIST_STATUS_OPTIONS.map((status) => (
                                                         <MenuItem key={status} value={status}>{CHECKLIST_STATUS_LABELS[status]}</MenuItem>
@@ -1060,20 +1080,24 @@ export default function RegulatoryCitiesPage() {
                                                     type="number"
                                                     value={inlineChecklistForm.sort_order}
                                                     onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, sort_order: Number(event.target.value) || 0 }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
                                                   />
                                                 </Grid>
-                                                <Grid item xs={12}>
+                                                <Grid item xs={12} md={5}>
                                                   <TextField
                                                     fullWidth
                                                     size="small"
                                                     multiline
-                                                    minRows={2}
+                                                    minRows={1}
+                                                    maxRows={3}
                                                     label="Descrição"
+                                                    placeholder="Detalhes curtos"
                                                     value={inlineChecklistForm.description}
                                                     onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, description: event.target.value }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
                                                   />
                                                 </Grid>
-                                                <Grid item xs={12} md={6}>
+                                                <Grid item xs={12} md={4}>
                                                   <TextField
                                                     fullWidth
                                                     size="small"
@@ -1082,16 +1106,18 @@ export default function RegulatoryCitiesPage() {
                                                     InputLabelProps={{ shrink: true }}
                                                     value={inlineChecklistForm.due_date}
                                                     onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, due_date: event.target.value }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
                                                   />
                                                 </Grid>
-                                                <Grid item xs={12} md={6}>
-                                                  <FormControl fullWidth size="small">
+                                                <Grid item xs={12} md={3}>
+                                                  <FormControl fullWidth size="small" sx={INLINE_DARK_FIELD_SX}>
                                                     <InputLabel id={`inline-check-required-${checklistItem.id}`}>Obrigatoriedade</InputLabel>
                                                     <Select
                                                       labelId={`inline-check-required-${checklistItem.id}`}
                                                       label="Obrigatoriedade"
                                                       value={inlineChecklistForm.required ? 'true' : 'false'}
                                                       onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, required: event.target.value === 'true' }))}
+                                                      sx={INLINE_DARK_FIELD_SX}
                                                     >
                                                       <MenuItem value="true">Obrigatório</MenuItem>
                                                       <MenuItem value="false">Opcional</MenuItem>
@@ -1103,15 +1129,18 @@ export default function RegulatoryCitiesPage() {
                                                     fullWidth
                                                     size="small"
                                                     multiline
-                                                    minRows={2}
+                                                    minRows={1}
+                                                    maxRows={3}
                                                     label="Observações"
+                                                    placeholder="Observação interna"
                                                     value={inlineChecklistForm.notes}
                                                     onChange={(event) => setInlineChecklistForm((prev) => ({ ...prev, notes: event.target.value }))}
+                                                    sx={INLINE_DARK_FIELD_SX}
                                                   />
                                                 </Grid>
                                               </Grid>
 
-                                              <Stack direction="row" spacing={1} sx={{ mt: 1.1, flexWrap: 'wrap' }}>
+                                              <Stack direction="row" spacing={1} sx={{ mt: 0.9, flexWrap: 'wrap' }}>
                                                 <Button
                                                   size="small"
                                                   variant="contained"
