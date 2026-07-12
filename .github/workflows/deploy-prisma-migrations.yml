@@ -12,6 +12,8 @@ env:
   CLUSTER: kaviar-cluster
   BACKEND_SERVICE: kaviar-backend-service
   BACKEND_CONTAINER_NAME: kaviar-backend
+  ECR_REGISTRY: 847895361928.dkr.ecr.us-east-2.amazonaws.com
+  ECR_REPOSITORY: kaviar-backend
   MIGRATION_FAMILY: kaviar-prisma-migration
   MIGRATION_DATABASE_URL_SSM_PARAMETER: /kaviar/prod/migration_database_url
 
@@ -28,6 +30,28 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        run: |
+          set -euo pipefail
+          aws ecr get-login-password --region "$AWS_REGION" | \
+          docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+      - name: Build and push migration image
+        id: migration-image
+        run: |
+          set -euo pipefail
+
+          MIGRATION_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:migration-${GITHUB_SHA}"
+
+          echo "Workflow SHA: ${GITHUB_SHA}"
+          echo "Migration image: ${MIGRATION_IMAGE}"
+
+          cd backend
+          docker build --build-arg GIT_COMMIT="${GITHUB_SHA}" -t "${MIGRATION_IMAGE}" .
+          docker push "${MIGRATION_IMAGE}"
+
+          echo "image=${MIGRATION_IMAGE}" >> "$GITHUB_OUTPUT"
 
       - name: Resolve backend ECS runtime config
         id: ecs
@@ -60,6 +84,11 @@ jobs:
           set -euo pipefail
 
           BACKEND_TASK_DEFINITION='${{ steps.ecs.outputs.task_definition }}'
+          MIGRATION_IMAGE='${{ steps.migration-image.outputs.image }}'
+
+          echo "Workflow SHA: ${GITHUB_SHA}"
+          echo "Migration image (expected): ${MIGRATION_IMAGE}"
+          echo "Base runtime task definition: ${BACKEND_TASK_DEFINITION}"
 
           MIGRATION_DATABASE_URL_ARN=$(aws ssm get-parameter \
             --name "$MIGRATION_DATABASE_URL_SSM_PARAMETER" \
@@ -88,10 +117,12 @@ jobs:
           NEW_TASK_DEF=$(echo "$TASK_DEF" | jq \
             --arg family "$MIGRATION_FAMILY" \
             --arg container "$BACKEND_CONTAINER_NAME" \
+            --arg migrationImage "$MIGRATION_IMAGE" \
             --arg migrationDatabaseUrlArn "$MIGRATION_DATABASE_URL_ARN" '
               .taskDefinition
               | .family = $family
               | .containerDefinitions[0].name = $container
+              | .containerDefinitions[0].image = $migrationImage
               | .containerDefinitions[0].command = ["sh", "-lc", "npx --yes prisma migrate deploy"]
               | .containerDefinitions[0].secrets = (
                   .containerDefinitions[0].secrets
@@ -115,12 +146,22 @@ jobs:
           fi
 
           echo "$NEW_TASK_DEF" > migration-task-def.json
+
+          MIGRATION_IMAGE_CONFIGURED=$(jq -r '.containerDefinitions[0].image' migration-task-def.json)
+          echo "Migration image (configured): ${MIGRATION_IMAGE_CONFIGURED}"
+
+          if [[ "$MIGRATION_IMAGE_CONFIGURED" != *"migration-${GITHUB_SHA}"* ]]; then
+            echo "ABORT: migration image does not match current workflow SHA" >&2
+            exit 1
+          fi
+
           MIGRATION_TASK_DEFINITION=$(aws ecs register-task-definition \
             --cli-input-json file://migration-task-def.json \
             --region "$AWS_REGION" \
             | jq -r '.taskDefinition.taskDefinitionArn')
 
           echo "migration_task_definition=$MIGRATION_TASK_DEFINITION" >> "$GITHUB_OUTPUT"
+          echo "migration_image=$MIGRATION_IMAGE_CONFIGURED" >> "$GITHUB_OUTPUT"
           echo "Registered migration task definition: $MIGRATION_TASK_DEFINITION"
 
       - name: Run Prisma migrate deploy in ECS
@@ -198,6 +239,10 @@ jobs:
         run: |
           {
             echo "### Prisma migration task"
+            echo "- Workflow SHA: ${{ github.sha }}"
+            echo "- Base runtime task definition: ${{ steps.ecs.outputs.task_definition }}"
+            echo "- Migration image: ${{ steps.migration-task.outputs.migration_image }}"
+            echo "- Migration task definition: ${{ steps.migration-task.outputs.migration_task_definition }}"
             echo "- Task ARN: ${{ steps.migrate.outputs.task_arn }}"
             echo "- Log stream: ${{ steps.migrate.outputs.log_stream }}"
             echo "- Exit code: ${{ steps.migrate.outputs.exit_code }}"

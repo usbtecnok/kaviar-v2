@@ -1,6 +1,7 @@
 import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Prisma } from '@prisma/client';
 
 const { prismaMock, authState } = vi.hoisted(() => {
   const prismaMock: any = {
@@ -61,6 +62,16 @@ const { default: adminRegulatoryCitiesRoutes } = await import('../src/routes/adm
 const app = express();
 app.use(express.json());
 app.use('/api/admin', adminRegulatoryCitiesRoutes);
+
+function makeKnownPrismaError(code: string, message: string, meta?: Record<string, unknown>) {
+  const error = Object.create(Prisma.PrismaClientKnownRequestError.prototype);
+  error.name = 'PrismaClientKnownRequestError';
+  error.code = code;
+  error.clientVersion = 'test';
+  error.message = message;
+  error.meta = meta || {};
+  return error;
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -362,5 +373,88 @@ describe('admin regulatory cities - fase 5C', () => {
     expect(item.authorization_document_url).toBeUndefined();
     expect(JSON.stringify(item)).not.toContain('https://private/secret.pdf');
     expect(JSON.stringify(item)).not.toContain('123.456.789-01');
+  });
+
+  it('GET driver-protocols mantém listagem quando coluna service_modality ainda não existe no banco (fallback de compatibilidade)', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findMany
+      .mockRejectedValueOnce(
+        makeKnownPrismaError(
+          'P2022',
+          'The column `municipal_regulatory_driver_protocols.service_modality` does not exist in the current database.',
+          { column: 'municipal_regulatory_driver_protocols.service_modality' },
+        ),
+      )
+      .mockResolvedValueOnce([
+        {
+          id: 'protocol-legacy-1',
+          case_id: 'case-1',
+          driver_id: 'driver-1',
+          driver_name: 'Joao da Silva',
+          cpf_last4: '8901',
+          vehicle_plate: 'ABC1234',
+          vehicle_type: 'CAR',
+          protocol_number: 'PR-LEGACY',
+          status: 'APPROVED',
+          next_action: null,
+          notes: null,
+          submitted_at: new Date('2026-07-12T00:00:00.000Z'),
+          approved_at: new Date('2026-07-12T01:00:00.000Z'),
+          rejected_at: null,
+          next_follow_up_at: null,
+          created_at: new Date('2026-07-12T00:00:00.000Z'),
+          updated_at: new Date('2026-07-12T00:00:00.000Z'),
+        },
+      ]);
+
+    prismaMock.municipal_authorizations.findMany.mockResolvedValue([]);
+
+    const res = await request(app)
+      .get('/api/admin/regulatory/cities/case-1/driver-protocols');
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.municipal_regulatory_driver_protocols.findMany).toHaveBeenCalledTimes(2);
+
+    const firstCall = prismaMock.municipal_regulatory_driver_protocols.findMany.mock.calls[0][0];
+    const secondCall = prismaMock.municipal_regulatory_driver_protocols.findMany.mock.calls[1][0];
+
+    expect(firstCall.select.service_modality).toBe(true);
+    expect(secondCall.select.service_modality).toBeUndefined();
+
+    const item = res.body?.data?.items?.[0];
+    expect(item.service_modality).toBeNull();
+    expect(item.authorizationOperational).toBeDefined();
+    expect(item.authorizationOperational.state).toBe('NOT_GENERATED');
+    expect(item.authorizationOperational.reason).toContain('Defina a modalidade municipal no protocolo');
+  });
+
+  it('GET driver-protocols não engole P2022 de coluna não relacionada', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findMany.mockRejectedValueOnce(
+      makeKnownPrismaError(
+        'P2022',
+        'The column `municipal_regulatory_driver_protocols.protocol_number` does not exist in the current database.',
+        { column: 'municipal_regulatory_driver_protocols.protocol_number' },
+      ),
+    );
+
+    const res = await request(app)
+      .get('/api/admin/regulatory/cities/case-1/driver-protocols');
+
+    expect(res.status).toBe(500);
+    expect(prismaMock.municipal_regulatory_driver_protocols.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('GET driver-protocols não engole erro Prisma não relacionado', async () => {
+    prismaMock.municipal_regulatory_driver_protocols.findMany.mockRejectedValueOnce(
+      makeKnownPrismaError(
+        'P1001',
+        'Can\'t reach database server',
+      ),
+    );
+
+    const res = await request(app)
+      .get('/api/admin/regulatory/cities/case-1/driver-protocols');
+
+    expect(res.status).toBe(500);
+    expect(prismaMock.municipal_regulatory_driver_protocols.findMany).toHaveBeenCalledTimes(1);
   });
 });

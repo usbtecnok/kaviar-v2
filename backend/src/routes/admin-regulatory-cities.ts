@@ -298,6 +298,89 @@ function normalizeServiceModality(value: unknown): MunicipalModality | null {
     : null;
 }
 
+function isMissingProtocolServiceModalityColumn(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) {
+    return false;
+  }
+
+  if (error.code !== 'P2022') {
+    return false;
+  }
+
+  const message = error.message || '';
+  const columnMeta = typeof (error.meta as any)?.column === 'string' ? (error.meta as any).column : '';
+  const causeMeta = typeof (error.meta as any)?.cause === 'string' ? (error.meta as any).cause : '';
+  const details = `${message} ${columnMeta} ${causeMeta}`;
+
+  return details.includes('municipal_regulatory_driver_protocols.service_modality')
+    || (details.includes('municipal_regulatory_driver_protocols') && details.includes('service_modality'));
+}
+
+async function loadDriverProtocolsForCase(caseId: string) {
+  const baseQuery = {
+    where: { case_id: caseId },
+    orderBy: [{ created_at: 'desc' as const }],
+  };
+
+  try {
+    return await prisma.municipal_regulatory_driver_protocols.findMany({
+      ...baseQuery,
+      select: {
+        id: true,
+        case_id: true,
+        driver_id: true,
+        service_modality: true,
+        driver_name: true,
+        cpf_last4: true,
+        vehicle_plate: true,
+        vehicle_type: true,
+        protocol_number: true,
+        status: true,
+        next_action: true,
+        notes: true,
+        submitted_at: true,
+        approved_at: true,
+        rejected_at: true,
+        next_follow_up_at: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+  } catch (error) {
+    if (!isMissingProtocolServiceModalityColumn(error)) {
+      throw error;
+    }
+
+    const fallbackItems = await prisma.municipal_regulatory_driver_protocols.findMany({
+      ...baseQuery,
+      select: {
+        id: true,
+        case_id: true,
+        driver_id: true,
+        driver_name: true,
+        cpf_last4: true,
+        vehicle_plate: true,
+        vehicle_type: true,
+        protocol_number: true,
+        status: true,
+        next_action: true,
+        notes: true,
+        submitted_at: true,
+        approved_at: true,
+        rejected_at: true,
+        next_follow_up_at: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    return fallbackItems.map((item) => ({
+      ...item,
+      service_modality: null,
+    }));
+  }
+}
+
 function hasValidMunicipalAuthorization(authorization: {
   status: string;
   approved_by_admin_id: string | null;
@@ -902,10 +985,7 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
       return res.status(404).json({ success: false, error: 'Caso regulatório não encontrado.' });
     }
 
-    const rawItems = await prisma.municipal_regulatory_driver_protocols.findMany({
-      where: { case_id: city.id },
-      orderBy: [{ created_at: 'desc' }],
-    });
+    const rawItems = await loadDriverProtocolsForCase(city.id);
 
     const linkedDriverIds = Array.from(
       new Set(rawItems.map((item) => item.driver_id).filter((driverId): driverId is string => Boolean(driverId))),
@@ -997,6 +1077,7 @@ router.get('/regulatory/cities/:id/driver-protocols', async (req: Request, res: 
       },
     });
   } catch (error) {
+    console.error('[REGULATORY_DRIVER_PROTOCOLS_LIST_ERROR]', error);
     return res.status(500).json({ success: false, error: 'Erro ao listar protocolos por motorista.' });
   }
 });
