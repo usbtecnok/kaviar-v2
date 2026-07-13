@@ -90,14 +90,15 @@ describe('Wallet V2 SumUp payment method flow', () => {
     mockHasSumUpPixPaymentMethod.mockReturnValue(true);
   });
 
-  it('bloqueia provider asaas com 410', async () => {
+  it('bloqueia provider legado com 410', async () => {
     const res = await request(app)
       .post('/api/v2/drivers/me/wallet/recharge')
       .set(auth)
       .send({ package_id: 'saldo-20', payment_provider: 'asaas' });
 
     expect(res.status).toBe(410);
-    expect(res.body.error).toBe('Pix pelo Asaas indisponível. Use Pix pela SumUp.');
+    expect(res.body.error).toBe('PROVIDER_UNAVAILABLE');
+    expect(res.body.message).toBe('Use a recarga de saldo KAVIAR.');
     expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
   });
 

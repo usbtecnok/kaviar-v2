@@ -59,7 +59,6 @@ import StaffManagement from "../../pages/admin/StaffManagement";
 import AuditLogs from "../../pages/admin/AuditLogs";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
 import FinancePayments from "../../pages/admin/FinancePayments";
-import CreditPurchases from "../../pages/admin/CreditPurchases";
 import TerritoriesPage from "../../pages/admin/TerritoriesPage";
 import TerritoryDetailPage from "../../pages/admin/TerritoryDetailPage";
 import RegionalAdminsPage from "../../pages/admin/RegionalAdminsPage";
@@ -612,11 +611,16 @@ function AdminCreditPurchasesWrapper() {
       <AdminHeader />
       <DomainHeader 
         domain="admin" 
-        title="Histórico de Recargas"
-        breadcrumbs={["Histórico de Recargas"]}
+        title="Pagamentos Legados"
+        breadcrumbs={["Pagamentos Legados"]}
         backUrl="/admin"
       />
-      <CreditPurchases />
+      <Card sx={{ bgcolor: '#111', border: '1px solid #333' }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ color: '#FFD700', mb: 1 }}>Histórico removido</Typography>
+          <Typography sx={{ color: '#ddd' }}>Os pagamentos legados foram removidos do painel.</Typography>
+        </CardContent>
+      </Card>
     </Container>
   );
 }

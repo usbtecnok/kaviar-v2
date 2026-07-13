@@ -1421,8 +1421,6 @@ CREATE TABLE "driver_credit_purchases" (
     "id" UUID NOT NULL,
     "driver_id" TEXT NOT NULL,
     "package_id" TEXT,
-    "asaas_customer_id" TEXT,
-    "asaas_payment_id" TEXT,
     "billing_type" TEXT DEFAULT 'PIX',
     "status" TEXT DEFAULT 'pending',
     "amount_cents" INTEGER NOT NULL,
@@ -1437,20 +1435,6 @@ CREATE TABLE "driver_credit_purchases" (
     "updated_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "driver_credit_purchases_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "asaas_webhook_events" (
-    "id" UUID NOT NULL,
-    "event_type" TEXT NOT NULL,
-    "asaas_payment_id" TEXT,
-    "payload" JSONB NOT NULL,
-    "status" TEXT DEFAULT 'received',
-    "processed_at" TIMESTAMPTZ,
-    "error" TEXT,
-    "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "asaas_webhook_events_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -1503,7 +1487,6 @@ CREATE TABLE "ride_compensations" (
     "credits_amount" INTEGER NOT NULL DEFAULT 1,
     "status" TEXT NOT NULL DEFAULT 'pending',
     "external_reference" TEXT,
-    "asaas_payment_id" TEXT,
     "pix_qr_code" TEXT,
     "pix_copy_paste" TEXT,
     "pix_expires_at" TIMESTAMP(3),
@@ -2216,7 +2199,6 @@ CREATE TABLE "commerce_orders" (
     "total_cents" INTEGER NOT NULL,
     "payment_method" VARCHAR(20),
     "payment_status" VARCHAR(20) NOT NULL DEFAULT 'pending',
-    "asaas_payment_id" TEXT,
     "pix_qr_code" TEXT,
     "pix_copy_paste" TEXT,
     "pix_expires_at" TIMESTAMP(3),
@@ -2472,7 +2454,7 @@ CREATE TABLE "wallet_recharges" (
     "package_id" TEXT,
     "amount_cents" BIGINT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'pending',
-    "payment_provider" TEXT NOT NULL DEFAULT 'asaas',
+    "payment_provider" TEXT NOT NULL DEFAULT 'sumup',
     "external_id" TEXT,
     "pix_qr_code" TEXT,
     "pix_copy_paste" TEXT,
@@ -3292,25 +3274,13 @@ CREATE UNIQUE INDEX "driver_credit_ledger_idempotency_key_key" ON "driver_credit
 CREATE INDEX "driver_credit_ledger_driver_id_created_at_idx" ON "driver_credit_ledger"("driver_id", "created_at" DESC);
 
 -- CreateIndex
-CREATE UNIQUE INDEX "driver_credit_purchases_asaas_payment_id_key" ON "driver_credit_purchases"("asaas_payment_id");
-
--- CreateIndex
 CREATE UNIQUE INDEX "driver_credit_purchases_external_reference_key" ON "driver_credit_purchases"("external_reference");
 
 -- CreateIndex
 CREATE INDEX "driver_credit_purchases_driver_id_idx" ON "driver_credit_purchases"("driver_id");
 
 -- CreateIndex
-CREATE INDEX "driver_credit_purchases_asaas_payment_id_idx" ON "driver_credit_purchases"("asaas_payment_id");
-
--- CreateIndex
 CREATE INDEX "driver_credit_purchases_status_idx" ON "driver_credit_purchases"("status");
-
--- CreateIndex
-CREATE INDEX "asaas_webhook_events_asaas_payment_id_idx" ON "asaas_webhook_events"("asaas_payment_id");
-
--- CreateIndex
-CREATE INDEX "asaas_webhook_events_status_idx" ON "asaas_webhook_events"("status");
 
 -- CreateIndex
 CREATE INDEX "showcase_items_is_active_community_id_idx" ON "showcase_items"("is_active", "community_id");
@@ -3332,9 +3302,6 @@ CREATE UNIQUE INDEX "ride_compensations_ride_id_key" ON "ride_compensations"("ri
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ride_compensations_external_reference_key" ON "ride_compensations"("external_reference");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ride_compensations_asaas_payment_id_key" ON "ride_compensations"("asaas_payment_id");
 
 -- CreateIndex
 CREATE INDEX "ride_compensations_status_idx" ON "ride_compensations"("status");

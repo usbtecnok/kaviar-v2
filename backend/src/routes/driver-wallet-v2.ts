@@ -195,10 +195,11 @@ router.post('/recharge', async (req: Request, res: Response) => {
       ? 'pix'
       : rawPaymentMethod;
 
-    if (requestedProvider === 'asaas') {
+    if (requestedProvider !== 'sumup') {
       return res.status(410).json({
         success: false,
-        error: 'Pix pelo Asaas indisponível. Use Pix pela SumUp.',
+        error: 'PROVIDER_UNAVAILABLE',
+        message: 'Use a recarga de saldo KAVIAR.',
       });
     }
 

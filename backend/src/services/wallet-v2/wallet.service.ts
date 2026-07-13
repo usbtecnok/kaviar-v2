@@ -53,7 +53,7 @@ export class WalletService {
         driverId, entryType: 'recharge', balanceDelta: amountCents, reservedDelta: BigInt(0),
         balanceAfter: newBalance, reservedAfter: wallet.reserved_cents,
         referenceType: 'recharge', referenceId: rechargeId,
-        actorType: 'webhook', actorId: 'asaas', reason: `recharge:${rechargeId}`, key,
+        actorType: 'webhook', actorId: 'legacy_payment', reason: `recharge:${rechargeId}`, key,
       });
     });
   }

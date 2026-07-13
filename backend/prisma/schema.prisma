@@ -1721,8 +1721,6 @@ model driver_credit_purchases {
   id                 String    @id @default(uuid()) @db.Uuid
   driver_id          String
   package_id         String?
-  asaas_customer_id  String?
-  asaas_payment_id   String?   @unique
   billing_type       String?   @default("PIX")
   status             String?   @default("pending")
   amount_cents       Int
@@ -1739,21 +1737,6 @@ model driver_credit_purchases {
   driver drivers @relation(fields: [driver_id], references: [id])
 
   @@index([driver_id])
-  @@index([asaas_payment_id])
-  @@index([status])
-}
-
-model asaas_webhook_events {
-  id               String    @id @default(uuid()) @db.Uuid
-  event_type       String
-  asaas_payment_id String?
-  payload          Json      @db.JsonB
-  status           String?   @default("received")
-  processed_at     DateTime? @db.Timestamptz
-  error            String?
-  created_at       DateTime? @default(now()) @db.Timestamptz
-
-  @@index([asaas_payment_id])
   @@index([status])
 }
 
@@ -1811,7 +1794,6 @@ model ride_compensations {
   credits_amount     Int       @default(1)
   status             String    @default("pending") // pending | paid | expired | waived
   external_reference String?   @unique
-  asaas_payment_id   String?   @unique
   pix_qr_code        String?
   pix_copy_paste     String?
   pix_expires_at     DateTime?
@@ -2677,7 +2659,6 @@ model commerce_orders {
   total_cents             Int
   payment_method          String?   @db.VarChar(20)
   payment_status          String    @default("pending") @db.VarChar(20)
-  asaas_payment_id        String?
   pix_qr_code             String?
   pix_copy_paste          String?
   pix_expires_at          DateTime?
@@ -2963,7 +2944,7 @@ model wallet_recharges {
   package_id       String?
   amount_cents     BigInt
   status           String    @default("pending")
-  payment_provider String    @default("asaas")
+  payment_provider String    @default("sumup")
   external_id      String?
   pix_qr_code      String?
   pix_copy_paste   String?

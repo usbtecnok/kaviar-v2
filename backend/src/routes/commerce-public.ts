@@ -107,30 +107,11 @@ router.post('/:slug/orders', async (req: Request, res: Response) => {
 
 // POST /api/public/commerce/orders/:id/pay — generate Pix for order
 router.post('/orders/:id/pay', async (req: Request, res: Response) => {
-  try {
-    const order = await prisma.commerce_orders.findFirst({
-      where: { id: req.params.id },
-      include: { account: { select: { name: true } } },
-    });
-    if (!order) return res.status(404).json({ success: false, error: 'Pedido não encontrado' });
-    if (order.payment_status === 'paid') return res.json({ success: true, data: { already_paid: true } });
-    if (order.pix_qr_code) return res.json({ success: true, data: { pix_qr_code: order.pix_qr_code, pix_copy_paste: order.pix_copy_paste, pix_expires_at: order.pix_expires_at, payment_status: order.payment_status } });
-
-    const { getCommerceCustomerId, createPixPayment } = require('../services/asaas.service');
-    const customerId = await getCommerceCustomerId();
-    const extRef = `co_order_${order.id}`;
-    const pix = await createPixPayment(customerId, order.total_cents, extRef, `Pedido ${order.account.name}`);
-
-    await prisma.commerce_orders.update({
-      where: { id: order.id },
-      data: { asaas_payment_id: pix.paymentId, pix_qr_code: pix.qrCode, pix_copy_paste: pix.copyPaste, pix_expires_at: pix.expirationDate ? new Date(pix.expirationDate) : null, payment_method: 'pix' },
-    });
-
-    res.json({ success: true, data: { pix_qr_code: pix.qrCode, pix_copy_paste: pix.copyPaste, pix_expires_at: pix.expirationDate, invoice_url: pix.invoiceUrl } });
-  } catch (error: any) {
-    console.error('[commerce-public] pay error:', error.message);
-    res.status(500).json({ success: false, error: 'Erro ao gerar Pix' });
-  }
+  return res.status(410).json({
+    success: false,
+    error: 'PAYMENT_FLOW_NOT_AVAILABLE',
+    message: 'Pagamento online temporariamente indisponível.',
+  });
 });
 
 // GET /api/public/commerce/orders/:code/status
