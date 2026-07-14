@@ -1563,6 +1563,7 @@ model inbound_email_attachments {
 
   @@index([inbound_email_id])
   @@index([inbound_email_id, status])
+  @@unique([inbound_email_id, sha256, filename], map: "inbound_email_attachments_inbound_sha256_filename_key")
 }
 
 model municipal_regulations {

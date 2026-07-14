@@ -47,6 +47,16 @@ export interface FinalizeInboundAttachmentUploadInput {
   attachmentId: string;
 }
 
+type ReserveUploadResult = {
+  attachmentId: string;
+  storageKey: string;
+  uploadUrl: string | null;
+  expiresIn: number | null;
+  status: string;
+  reused: boolean;
+  alreadyAvailable: boolean;
+};
+
 export interface InboundAttachmentStorageHeadResult {
   contentLength: number | null;
   contentType: string | null;
@@ -223,6 +233,46 @@ export class InboundEmailAttachmentsService {
     });
   }
 
+  private async buildReserveResponse(params: {
+    attachmentId: string;
+    storageKey: string;
+    contentType: string;
+    sizeBytes: number;
+    sha256: string;
+    status: string;
+    reused: boolean;
+    alreadyAvailable: boolean;
+  }): Promise<ReserveUploadResult> {
+    if (params.alreadyAvailable || params.status === STATUS_AVAILABLE) {
+      return {
+        attachmentId: params.attachmentId,
+        storageKey: params.storageKey,
+        uploadUrl: null,
+        expiresIn: null,
+        status: STATUS_AVAILABLE,
+        reused: params.reused,
+        alreadyAvailable: true,
+      };
+    }
+
+    const uploadUrl = await this.storage.createPresignedPut({
+      storageKey: params.storageKey,
+      contentType: params.contentType,
+      sizeBytes: params.sizeBytes,
+      sha256: params.sha256,
+    });
+
+    return {
+      attachmentId: params.attachmentId,
+      storageKey: params.storageKey,
+      uploadUrl,
+      expiresIn: DEFAULT_UPLOAD_EXPIRATION_SECONDS,
+      status: STATUS_PENDING,
+      reused: params.reused,
+      alreadyAvailable: false,
+    };
+  }
+
   async reserveUpload(input: ReserveInboundAttachmentUploadInput) {
     const inboundEmailId = input.inboundEmailId.trim();
     const { sanitizedFilename, extension } = assertAllowedFilename(input.filename);
@@ -239,6 +289,35 @@ export class InboundEmailAttachmentsService {
       throw new InboundAttachmentValidationError('Email inbound nao encontrado.', 404);
     }
 
+    const existing = await prisma.inbound_email_attachments.findFirst({
+      where: {
+        inbound_email_id: inboundEmailId,
+        sha256,
+        filename: sanitizedFilename,
+      },
+      select: {
+        id: true,
+        storage_key: true,
+        status: true,
+        content_type: true,
+        size_bytes: true,
+        sha256: true,
+      },
+    });
+
+    if (existing) {
+      return this.buildReserveResponse({
+        attachmentId: existing.id,
+        storageKey: existing.storage_key,
+        contentType: existing.content_type,
+        sizeBytes: existing.size_bytes,
+        sha256: existing.sha256,
+        status: existing.status,
+        reused: true,
+        alreadyAvailable: existing.status === STATUS_AVAILABLE,
+      });
+    }
+
     const aggregate = await prisma.inbound_email_attachments.aggregate({
       where: { inbound_email_id: inboundEmailId },
       _sum: { size_bytes: true },
@@ -251,36 +330,69 @@ export class InboundEmailAttachmentsService {
 
     const attachmentId = crypto.randomUUID();
     const storageKey = buildStorageKey(inboundEmailId, attachmentId, extension);
+    try {
+      await prisma.inbound_email_attachments.create({
+        data: {
+          id: attachmentId,
+          inbound_email_id: inboundEmailId,
+          filename: sanitizedFilename,
+          content_type: contentType,
+          size_bytes: sizeBytes,
+          storage_key: storageKey,
+          sha256,
+          status: STATUS_PENDING,
+        },
+      });
 
-    await prisma.inbound_email_attachments.create({
-      data: {
-        id: attachmentId,
-        inbound_email_id: inboundEmailId,
-        filename: sanitizedFilename,
-        content_type: contentType,
-        size_bytes: sizeBytes,
-        storage_key: storageKey,
+      await this.syncInboundEmailAttachmentState(inboundEmailId);
+
+      return this.buildReserveResponse({
+        attachmentId,
+        storageKey,
+        contentType,
+        sizeBytes,
         sha256,
         status: STATUS_PENDING,
-      },
-    });
+        reused: false,
+        alreadyAvailable: false,
+      });
+    } catch (error: any) {
+      const isUniqueViolation = error?.code === 'P2002';
+      if (!isUniqueViolation) {
+        throw error;
+      }
 
-    await this.syncInboundEmailAttachmentState(inboundEmailId);
+      const winner = await prisma.inbound_email_attachments.findFirst({
+        where: {
+          inbound_email_id: inboundEmailId,
+          sha256,
+          filename: sanitizedFilename,
+        },
+        select: {
+          id: true,
+          storage_key: true,
+          status: true,
+          content_type: true,
+          size_bytes: true,
+          sha256: true,
+        },
+      });
 
-    const uploadUrl = await this.storage.createPresignedPut({
-      storageKey,
-      contentType,
-      sizeBytes,
-      sha256,
-    });
+      if (!winner) {
+        throw new InboundAttachmentValidationError('Falha de concorrencia ao reservar anexo. Tente novamente.', 409);
+      }
 
-    return {
-      attachmentId,
-      storageKey,
-      uploadUrl,
-      expiresIn: DEFAULT_UPLOAD_EXPIRATION_SECONDS,
-      status: STATUS_PENDING,
-    };
+      return this.buildReserveResponse({
+        attachmentId: winner.id,
+        storageKey: winner.storage_key,
+        contentType: winner.content_type,
+        sizeBytes: winner.size_bytes,
+        sha256: winner.sha256,
+        status: winner.status,
+        reused: true,
+        alreadyAvailable: winner.status === STATUS_AVAILABLE,
+      });
+    }
   }
 
   async finalizeUpload(input: FinalizeInboundAttachmentUploadInput) {

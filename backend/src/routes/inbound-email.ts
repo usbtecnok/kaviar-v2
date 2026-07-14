@@ -215,6 +215,8 @@ router.post('/cloudflare/attachments/request-upload', async (req: Request, res: 
         upload_url: reserved.uploadUrl,
         expires_in: reserved.expiresIn,
         status: reserved.status,
+        reused: reserved.reused,
+        already_available: reserved.alreadyAvailable,
       },
     });
   } catch (error) {

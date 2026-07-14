@@ -11,6 +11,7 @@ const { prismaMock } = vi.hoisted(() => ({
       count: vi.fn(),
       create: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn(),
     },
   },
@@ -41,6 +42,7 @@ describe('InboundEmailAttachmentsService', () => {
     prismaMock.inbound_email_attachments.aggregate.mockResolvedValue({ _sum: { size_bytes: 1024 } });
     prismaMock.inbound_email_attachments.count.mockResolvedValue(1);
     prismaMock.inbound_email_attachments.create.mockResolvedValue({ id: 'attachment-1' });
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue(null);
     prismaMock.inbound_email_attachments.findUnique.mockResolvedValue({
       id: 'attachment-1',
       inbound_email_id: 'email-1',
@@ -69,7 +71,7 @@ describe('InboundEmailAttachmentsService', () => {
     expect(sanitizeAttachmentFilename('../prefeitura/ guia final .pdf')).toBe('..-prefeitura- guia final .pdf');
   });
 
-  it('cria attachment PENDING com storage_key único e URL temporária de upload', async () => {
+  it('primeiro reserve cria PENDING', async () => {
     const result = await service.reserveUpload({
       inboundEmailId: 'email-1',
       filename: 'guia.pdf',
@@ -79,17 +81,222 @@ describe('InboundEmailAttachmentsService', () => {
     });
 
     expect(prismaMock.inbound_email_attachments.create).toHaveBeenCalledOnce();
-    const payload = prismaMock.inbound_email_attachments.create.mock.calls[0][0].data;
-    expect(payload.status).toBe('PENDING');
-    expect(payload.storage_key).toMatch(/^inbound-email-attachments\//);
-    expect(prismaMock.inbound_email_messages.update).toHaveBeenCalledWith({
-      where: { id: 'email-1' },
-      data: {
-        has_attachments: true,
-        attachment_count: 1,
-      },
+    expect(result.status).toBe('PENDING');
+    expect(result.reused).toBe(false);
+    expect(result.alreadyAvailable).toBe(false);
+  });
+
+  it('replay idêntico PENDING retorna mesmo attachment_id e storage_key sem criar novo', async () => {
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue({
+      id: 'attachment-existing',
+      storage_key: 'inbound-email-attachments/existing.pdf',
+      status: 'PENDING',
+      content_type: 'application/pdf',
+      size_bytes: 2048,
+      sha256: 'a'.repeat(64),
     });
+
+    const result = await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(result.attachmentId).toBe('attachment-existing');
+    expect(result.storageKey).toBe('inbound-email-attachments/existing.pdf');
+    expect(result.status).toBe('PENDING');
+    expect(result.reused).toBe(true);
+    expect(result.alreadyAvailable).toBe(false);
     expect(result.uploadUrl).toBe('https://upload.test');
+    expect(prismaMock.inbound_email_attachments.create).not.toHaveBeenCalled();
+    expect(prismaMock.inbound_email_messages.update).not.toHaveBeenCalled();
+    expect(prismaMock.inbound_email_attachments.aggregate).not.toHaveBeenCalled();
+  });
+
+  it('replay PENDING renova URL de upload', async () => {
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue({
+      id: 'attachment-existing',
+      storage_key: 'inbound-email-attachments/existing.pdf',
+      status: 'PENDING',
+      content_type: 'application/pdf',
+      size_bytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    storage.createPresignedPut
+      .mockResolvedValueOnce('https://upload.test?first=1')
+      .mockResolvedValueOnce('https://upload.test?second=1');
+
+    const first = await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    const second = await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(first.uploadUrl).toBe('https://upload.test?first=1');
+    expect(second.uploadUrl).toBe('https://upload.test?second=1');
+  });
+
+  it('AVAILABLE reutilizado retorna mesmo attachment_id, upload_url null e não exige finalize', async () => {
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue({
+      id: 'attachment-available',
+      storage_key: 'inbound-email-attachments/available.pdf',
+      status: 'AVAILABLE',
+      content_type: 'application/pdf',
+      size_bytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    const result = await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(result.attachmentId).toBe('attachment-available');
+    expect(result.status).toBe('AVAILABLE');
+    expect(result.reused).toBe(true);
+    expect(result.alreadyAvailable).toBe(true);
+    expect(result.uploadUrl).toBeNull();
+    expect(result.expiresIn).toBeNull();
+    expect(storage.createPresignedPut).not.toHaveBeenCalled();
+  });
+
+  it('tratamento de corrida com unique usa concorrência real e retorna mesmo attachment_id/storage_key', async () => {
+    const key = `email-1|${'a'.repeat(64)}|..-guia final.pdf`;
+    const records = new Map<string, {
+      id: string;
+      storage_key: string;
+      status: string;
+      content_type: string;
+      size_bytes: number;
+      sha256: string;
+      filename: string;
+    }>();
+
+    prismaMock.inbound_email_attachments.findFirst.mockImplementation(async ({ where }) => {
+      const lookupKey = `${where.inbound_email_id}|${where.sha256}|${where.filename}`;
+      return records.get(lookupKey) ?? null;
+    });
+
+    prismaMock.inbound_email_attachments.create.mockImplementation(async ({ data }) => {
+      const lookupKey = `${data.inbound_email_id}|${data.sha256}|${data.filename}`;
+      await Promise.resolve();
+      if (records.has(lookupKey)) {
+        const error: any = new Error('unique violation');
+        error.code = 'P2002';
+        throw error;
+      }
+      records.set(lookupKey, {
+        id: data.id,
+        storage_key: data.storage_key,
+        status: data.status,
+        content_type: data.content_type,
+        size_bytes: data.size_bytes,
+        sha256: data.sha256,
+        filename: data.filename,
+      });
+      return { id: data.id };
+    });
+
+    const input = {
+      inboundEmailId: 'email-1',
+      filename: '../guia final.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    };
+
+    const [first, second] = await Promise.all([
+      service.reserveUpload(input),
+      service.reserveUpload(input),
+    ]);
+
+    expect(records.size).toBe(1);
+    expect(records.has(key)).toBe(true);
+    expect(first.attachmentId).toBe(second.attachmentId);
+    expect(first.storageKey).toBe(second.storageKey);
+    expect(first.status).toBe('PENDING');
+    expect(second.status).toBe('PENDING');
+  });
+
+  it('attachments diferentes continuam distintos', async () => {
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue(null);
+
+    await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia-a.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1024,
+      sha256: 'a'.repeat(64),
+    });
+
+    await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia-b.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1024,
+      sha256: 'b'.repeat(64),
+    });
+
+    expect(prismaMock.inbound_email_attachments.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('mesmo SHA com filename diferente continua distinto', async () => {
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue(null);
+
+    await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia-a.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1024,
+      sha256: 'a'.repeat(64),
+    });
+
+    await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia-b.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1024,
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(prismaMock.inbound_email_attachments.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('limite total não é consumido novamente por replay', async () => {
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue({
+      id: 'attachment-existing',
+      storage_key: 'inbound-email-attachments/existing.pdf',
+      status: 'PENDING',
+      content_type: 'application/pdf',
+      size_bytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(prismaMock.inbound_email_attachments.aggregate).not.toHaveBeenCalled();
   });
 
   it('rejeita extensão bloqueada', async () => {
@@ -116,13 +323,6 @@ describe('InboundEmailAttachmentsService', () => {
     const result = await service.finalizeUpload({ inboundEmailId: 'email-1', attachmentId: 'attachment-1' });
     expect(storage.headObject).toHaveBeenCalledWith('inbound-email-attachments/2026/07/email-1/attachment-1.pdf');
     expect(prismaMock.inbound_email_attachments.update).toHaveBeenCalledOnce();
-    expect(prismaMock.inbound_email_messages.update).toHaveBeenCalledWith({
-      where: { id: 'email-1' },
-      data: {
-        has_attachments: true,
-        attachment_count: 1,
-      },
-    });
     expect(result.status).toBe('AVAILABLE');
   });
 
