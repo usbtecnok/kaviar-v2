@@ -127,6 +127,37 @@ export async function fetchJsonOrThrow(url, options = {}) {
   return payload;
 }
 
+function extractXmlTag(xml, tagName) {
+  const safeName = String(tagName || '').replace(/[^a-zA-Z0-9]/g, '');
+  if (!safeName) return null;
+  const regex = new RegExp(`<${safeName}>([\\s\\S]*?)<\\/${safeName}>`, 'i');
+  const match = String(xml || '').match(regex);
+  if (!match || !match[1]) return null;
+  return match[1].trim() || null;
+}
+
+export async function buildSafeUploadErrorMessage(response) {
+  const status = Number(response?.status || 0);
+  let bodyText = '';
+
+  try {
+    bodyText = await response.text();
+  } catch {
+    bodyText = '';
+  }
+
+  const clipped = String(bodyText || '').slice(0, 1000);
+  const code = extractXmlTag(clipped, 'Code') || 'Unknown';
+  const message = extractXmlTag(clipped, 'Message') || null;
+
+  const pieces = [`upload_failed: status=${status || 'unknown'}`, `code=${code}`];
+  if (message) {
+    pieces.push(`msg=${message.replace(/\s+/g, ' ').slice(0, 180)}`);
+  }
+
+  return pieces.join(' ');
+}
+
 export async function parseInboundEmail(message) {
   const parsed = await PostalMime.parse(message.raw, {
     attachmentEncoding: 'arraybuffer',
@@ -237,7 +268,7 @@ export async function ingestInboundMessage(message, env) {
       });
 
       if (!putResponse.ok) {
-        throw new Error(`upload_failed: status ${putResponse.status}`);
+        throw new Error(await buildSafeUploadErrorMessage(putResponse));
       }
 
       const finalizeResponse = await fetchJsonOrThrow(`${env.INBOUND_WEBHOOK_URL}/attachments/${attachmentId}/finalize`, {

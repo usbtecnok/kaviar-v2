@@ -414,6 +414,65 @@ test('ingestInboundMessage isola falha de upload e continua próximo anexo', asy
   assert.equal(finalizeCount, 1);
 });
 
+test('worker.email gera diagnóstico seguro em PUT 403 SignatureDoesNotMatch sem vazar URL/segredo e continua próximo attachment', async () => {
+  let reserveAttempt = 0;
+  let finalizeCount = 0;
+  let forwarded = false;
+  const logs = [];
+  const originalConsoleLog = console.log;
+  console.log = (...args) => logs.push(args.map((v) => String(v)).join(' '));
+
+  try {
+    global.fetch = async (url) => {
+      if (String(url).endsWith('/cloudflare')) return jsonResponse({ data: { id: 'inbound-1' } });
+      if (String(url).endsWith('/request-upload')) {
+        reserveAttempt += 1;
+        return jsonResponse({
+          data: {
+            attachment_id: `att-${reserveAttempt}`,
+            upload_url: `https://upload.test/${reserveAttempt}?X-Amz-Signature=SENSITIVE123&X-Amz-Credential=FAKE`,
+            status: 'PENDING',
+          },
+        });
+      }
+      if (String(url).startsWith('https://upload.test/1')) {
+        return new Response('<Error><Code>SignatureDoesNotMatch</Code><Message>Signature mismatch for request</Message></Error>', {
+          status: 403,
+          headers: { 'Content-Type': 'application/xml' },
+        });
+      }
+      if (String(url).startsWith('https://upload.test/2')) {
+        return new Response('', { status: 200 });
+      }
+      if (String(url).includes('/finalize')) {
+        finalizeCount += 1;
+        return jsonResponse({ data: { status: 'AVAILABLE' } });
+      }
+      return jsonResponse({});
+    };
+
+    const message = createMessage({
+      raw: createMimeWithAttachments([
+        { filename: 'a.pdf', contentType: 'application/pdf', content: 'A' },
+        { filename: 'b.pdf', contentType: 'application/pdf', content: 'B' },
+      ]),
+      forwardImpl: async () => { forwarded = true; },
+    });
+
+    await worker.email(message, env);
+  } finally {
+    console.log = originalConsoleLog;
+  }
+
+  const combinedLogs = logs.join('\n');
+  assert.match(combinedLogs, /upload_failed: status=403 code=SignatureDoesNotMatch/);
+  assert.equal(combinedLogs.includes('https://upload.test/'), false);
+  assert.equal(combinedLogs.includes('X-Amz-Signature'), false);
+  assert.equal(combinedLogs.includes('secret-123'), false);
+  assert.equal(finalizeCount, 1);
+  assert.equal(forwarded, true);
+});
+
 test('ingestInboundMessage isola falha de finalize e continua próximo anexo', async () => {
   let finalizeCount = 0;
 

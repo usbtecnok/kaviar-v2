@@ -107,7 +107,6 @@ class S3InboundAttachmentStorage implements InboundAttachmentStorage {
       Bucket: this.bucket,
       Key: params.storageKey,
       ContentType: params.contentType,
-      ContentLength: params.sizeBytes,
       Metadata: {
         sha256: params.sha256,
       },
