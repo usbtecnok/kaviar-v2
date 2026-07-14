@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   prismaMock,
   putObjectInputState,
+  s3ClientCtorState,
   headObjectState,
   getSignedUrlMock,
 } = vi.hoisted(() => ({
@@ -21,6 +22,7 @@ const {
     },
   },
   putObjectInputState: { value: null as any },
+  s3ClientCtorState: { value: null as any },
   headObjectState: {
     value: {
       ContentLength: 2048,
@@ -57,6 +59,10 @@ vi.mock('@aws-sdk/client-s3', () => {
   }
 
   class S3Client {
+    constructor(input: any) {
+      s3ClientCtorState.value = input;
+    }
+
     async send(command: any) {
       if (command instanceof HeadObjectCommand) {
         return headObjectState.value;
@@ -83,6 +89,7 @@ describe('Inbound attachment presign contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     putObjectInputState.value = null;
+    s3ClientCtorState.value = null;
 
     service = new InboundEmailAttachmentsService();
 
@@ -113,7 +120,7 @@ describe('Inbound attachment presign contract', () => {
     };
   });
 
-  it('presign usa ContentType + Metadata.sha256 e não inclui ContentLength', async () => {
+  it('presign usa ContentType + Metadata.sha256 sem ContentLength/Body e cliente inbound usa WHEN_REQUIRED', async () => {
     await service.reserveUpload({
       inboundEmailId: 'email-1',
       filename: 'guia.pdf',
@@ -128,7 +135,12 @@ describe('Inbound attachment presign contract', () => {
       ContentType: 'application/pdf',
       Metadata: { sha256: 'a'.repeat(64) },
     });
+    expect(s3ClientCtorState.value).toMatchObject({
+      region: expect.any(String),
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+    });
     expect(putObjectInputState.value.ContentLength).toBeUndefined();
+    expect(putObjectInputState.value.Body).toBeUndefined();
     expect(getSignedUrlMock).toHaveBeenCalledOnce();
   });
 

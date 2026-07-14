@@ -94,7 +94,10 @@ class S3InboundAttachmentStorage implements InboundAttachmentStorage {
     private readonly uploadExpiresIn = DEFAULT_UPLOAD_EXPIRATION_SECONDS,
     private readonly downloadExpiresIn = DEFAULT_DOWNLOAD_EXPIRATION_SECONDS,
   ) {
-    this.client = new S3Client({ region: this.region });
+    this.client = new S3Client({
+      region: this.region,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+    });
   }
 
   async createPresignedPut(params: {
