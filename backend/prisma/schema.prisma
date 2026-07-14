@@ -1505,15 +1505,18 @@ model email_send_logs {
   attachment_count     Int      @default(0)
   attachments_metadata Json?    @db.JsonB
   provider_message_id  String?  @db.VarChar(255)
+  reply_to_inbound_email_id String? @db.Uuid
   updated_at           DateTime @updatedAt
 
   admin                admins   @relation(fields: [admin_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reply_to_inbound_email inbound_email_messages? @relation("email_send_logs_reply_to_inbound_email", fields: [reply_to_inbound_email_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([created_at])
   @@index([status, created_at])
   @@index([to_email, created_at])
   @@index([from_email, created_at])
   @@index([admin_id, created_at])
+  @@index([reply_to_inbound_email_id])
 }
 
 model inbound_email_messages {
@@ -1537,11 +1540,29 @@ model inbound_email_messages {
   raw_headers          Json?    @db.JsonB
   created_at           DateTime @default(now())
   updated_at           DateTime @updatedAt
+  attachments          inbound_email_attachments[]
+  replies              email_send_logs[]         @relation("email_send_logs_reply_to_inbound_email")
 
   @@index([received_at])
   @@index([status, received_at])
   @@index([to_email, received_at])
   @@index([from_email, received_at])
+}
+
+model inbound_email_attachments {
+  id               String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  inbound_email_id String                 @db.Uuid
+  filename         String                 @db.VarChar(255)
+  content_type     String                 @db.VarChar(255)
+  size_bytes       Int
+  storage_key      String                 @unique @db.VarChar(512)
+  sha256           String                 @db.VarChar(64)
+  status           String                 @default("PENDING") @db.VarChar(20)
+  created_at       DateTime               @default(now())
+  inbound_email    inbound_email_messages @relation(fields: [inbound_email_id], references: [id], onDelete: Cascade)
+
+  @@index([inbound_email_id])
+  @@index([inbound_email_id, status])
 }
 
 model municipal_regulations {

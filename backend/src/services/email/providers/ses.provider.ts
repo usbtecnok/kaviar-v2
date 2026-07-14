@@ -7,6 +7,8 @@ interface SendEmailParams {
   text: string;
   from?: string;
   replyTo?: string[];
+  inReplyTo?: string;
+  references?: string[];
   attachments?: Array<{
     filename: string;
     content: Buffer;

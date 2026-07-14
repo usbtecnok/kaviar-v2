@@ -1,71 +1,25 @@
-import path from 'path';
-import multer from 'multer';
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email/email.service';
 import { buildKaviarTestEmailTemplate, buildOperationalNoticeTemplate } from '../services/email/templates/kaviar-defaults';
+import {
+  EMAIL_LOG_STATUS,
+  MAX_ATTACHMENTS,
+  buildAttachmentMetadata,
+  escapeHtml,
+  handleOfficialAttachmentsUpload,
+  isEmailSendLogsTableMissing,
+  mapAttachments,
+  parseSender,
+  writeEmailSendLog,
+} from '../services/email/official-email-support';
 import { audit, auditCtx } from '../utils/audit';
 
 const router = Router();
 
-const MAX_ATTACHMENTS = 3;
-const MAX_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 const MAX_LOG_LIMIT = 50;
-const EMAIL_LOG_STATUS = {
-  SENT: 'SENT',
-  ERROR: 'ERROR',
-} as const;
-const ALLOWED_ATTACHMENT_MIME_TYPES = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-]);
-const ALLOWED_ATTACHMENT_EXTENSIONS_BY_MIME: Record<string, string[]> = {
-  'application/pdf': ['.pdf'],
-  'image/jpeg': ['.jpg', '.jpeg'],
-  'image/png': ['.png'],
-};
-const BLOCKED_EXTENSIONS = new Set([
-  '.exe',
-  '.zip',
-  '.js',
-  '.html',
-  '.htm',
-  '.docm',
-  '.bat',
-  '.cmd',
-  '.com',
-  '.msi',
-  '.scr',
-  '.ps1',
-  '.vbs',
-  '.jar',
-  '.sh',
-]);
-
-const uploadOfficialAttachments = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: MAX_ATTACHMENT_SIZE_BYTES,
-    files: MAX_ATTACHMENTS,
-  },
-  fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    if (BLOCKED_EXTENSIONS.has(ext)) {
-      cb(new Error(`Tipo de arquivo bloqueado: ${ext}`));
-      return;
-    }
-
-    if (!ALLOWED_ATTACHMENT_MIME_TYPES.has(file.mimetype)) {
-      cb(new Error('Tipo de arquivo nao permitido. Use apenas PDF, JPG ou PNG.'));
-      return;
-    }
-
-    cb(null, true);
-  },
-});
 
 const sendTestEmailSchema = z.object({
   to: z.string().email('Email de destino invalido'),
@@ -124,59 +78,6 @@ function isAllowedTestRecipient(email: string): boolean {
   return false;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function sanitizeAttachmentFilename(originalName: string, mimeType: string, index: number): string {
-  const baseName = path.basename(originalName || `anexo-${index + 1}`);
-  const originalExt = path.extname(baseName).toLowerCase();
-  const allowedExts = ALLOWED_ATTACHMENT_EXTENSIONS_BY_MIME[mimeType] || [];
-  const selectedExt = allowedExts.includes(originalExt) ? originalExt : (allowedExts[0] || '');
-
-  const rawWithoutExt = originalExt ? baseName.slice(0, -originalExt.length) : baseName;
-  const asciiOnly = rawWithoutExt
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-zA-Z0-9_\- ]+/g, ' ')
-    .replace(/\s+/g, '_')
-    .replace(/^_+|_+$/g, '');
-
-  const safeBase = (asciiOnly || `anexo-${index + 1}`).slice(0, 80);
-  return `${safeBase}${selectedExt}`;
-}
-
-function mapAttachments(files: Express.Multer.File[]) {
-  return files.map((file, index) => {
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const allowedExts = ALLOWED_ATTACHMENT_EXTENSIONS_BY_MIME[file.mimetype] || [];
-
-    if (BLOCKED_EXTENSIONS.has(ext)) {
-      throw new Error(`Tipo de arquivo bloqueado: ${ext}`);
-    }
-
-    if (!ALLOWED_ATTACHMENT_MIME_TYPES.has(file.mimetype)) {
-      throw new Error('Tipo de arquivo nao permitido. Use apenas PDF, JPG ou PNG.');
-    }
-
-    if (!allowedExts.includes(ext)) {
-      throw new Error(`Extensao nao permitida para ${file.mimetype}.`);
-    }
-
-    return {
-      filename: sanitizeAttachmentFilename(file.originalname, file.mimetype, index),
-      content: file.buffer,
-      contentType: file.mimetype,
-      size: file.size,
-    };
-  });
-}
-
 function parseOfficialRequestBody(req: Request) {
   const body = req.body || {};
   return sendOfficialEmailSchema.parse({
@@ -185,24 +86,6 @@ function parseOfficialRequestBody(req: Request) {
     subject: body.subject,
     message: body.message,
   });
-}
-
-function parseSender(value: string): { fromEmail: string; fromName: string | null } {
-  const trimmed = (value || '').trim();
-  const matched = trimmed.match(/^(.*)<([^>]+)>$/);
-  if (matched) {
-    const fromName = matched[1].trim().replace(/^"|"$/g, '');
-    const fromEmail = matched[2].trim().toLowerCase();
-    return {
-      fromEmail,
-      fromName: fromName || null,
-    };
-  }
-
-  return {
-    fromEmail: trimmed.toLowerCase(),
-    fromName: null,
-  };
 }
 
 function normalizeLogStatus(raw: unknown): typeof EMAIL_LOG_STATUS[keyof typeof EMAIL_LOG_STATUS] | null {
@@ -214,63 +97,12 @@ function normalizeLogStatus(raw: unknown): typeof EMAIL_LOG_STATUS[keyof typeof 
   return null;
 }
 
-type EmailAttachmentMetadata = {
-  filename: string;
-  contentType: string;
-  size: number;
-};
-
-async function writeEmailSendLog(params: {
-  adminId: string;
-  adminEmail: string | null;
-  fromEmail: string;
-  fromName: string | null;
-  toEmail: string;
-  ccEmail?: string | null;
-  subject: string;
-  provider: string;
-  status: typeof EMAIL_LOG_STATUS[keyof typeof EMAIL_LOG_STATUS];
-  errorMessage?: string | null;
-  attachmentMetadata: EmailAttachmentMetadata[];
-  providerMessageId?: string | null;
-}) {
-  try {
-    await prisma.email_send_logs.create({
-      data: {
-        admin_id: params.adminId,
-        admin_email: params.adminEmail,
-        from_email: params.fromEmail,
-        from_name: params.fromName,
-        to_email: params.toEmail,
-        cc_email: params.ccEmail || null,
-        subject: params.subject,
-        provider: params.provider,
-        status: params.status,
-        error_message: params.errorMessage || null,
-        attachment_count: params.attachmentMetadata.length,
-        attachments_metadata: params.attachmentMetadata.length ? params.attachmentMetadata : undefined,
-        provider_message_id: params.providerMessageId || null,
-      },
-    });
-  } catch (logError) {
-    console.error('[ADMIN_EMAIL_LOG_WRITE_FAILED]', logError);
-  }
-}
-
 async function writeAuditSafely(payload: Parameters<typeof audit>[0]) {
   try {
     await audit(payload);
   } catch (auditError) {
     console.error('[ADMIN_EMAIL_AUDIT_WRITE_FAILED]', auditError);
   }
-}
-
-function isEmailSendLogsTableMissing(error: unknown): boolean {
-  const code = (error as any)?.code;
-  if (code === 'P2021') return true;
-
-  const message = String((error as any)?.message || '').toLowerCase();
-  return message.includes('email_send_logs') && (message.includes('does not exist') || message.includes('relation') || message.includes('table'));
 }
 
 function serializeEmailSendLog(log: any) {
@@ -290,51 +122,13 @@ function serializeEmailSendLog(log: any) {
     attachment_count: log.attachment_count,
     attachments_metadata: Array.isArray(log.attachments_metadata) ? log.attachments_metadata : null,
     provider_message_id: log.provider_message_id,
+    reply_to_inbound_email_id: log.reply_to_inbound_email_id || null,
   };
-}
-
-function handleOfficialAttachmentsUpload(req: Request, res: Response, next: NextFunction): void {
-  uploadOfficialAttachments.array('attachments', MAX_ATTACHMENTS)(req, res, (err: any) => {
-    if (!err) {
-      next();
-      return;
-    }
-
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        res.status(400).json({
-          success: false,
-          error: 'Cada anexo pode ter no maximo 5 MB.',
-        });
-        return;
-      }
-
-      if (err.code === 'LIMIT_FILE_COUNT') {
-        res.status(400).json({
-          success: false,
-          error: 'Voce pode enviar no maximo 3 anexos por email.',
-        });
-        return;
-      }
-
-      res.status(400).json({
-        success: false,
-        error: 'Falha ao processar anexos. Revise os arquivos e tente novamente.',
-      });
-      return;
-    }
-
-    res.status(400).json({
-      success: false,
-      error: err?.message || 'Arquivo invalido. Use somente PDF, JPG ou PNG.',
-    });
-  });
 }
 
 router.use(authenticateAdmin);
 router.use(requireSuperAdmin);
 
-// POST /api/admin/email/test
 router.post('/test', async (req: Request, res: Response) => {
   try {
     const parsed = sendTestEmailSchema.parse(req.body);
@@ -394,7 +188,6 @@ router.post('/test', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin/email/send
 router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: Response) => {
   const ctx = auditCtx(req as any);
   const auditEntityId = `admin-email-${Date.now()}`;
@@ -414,11 +207,7 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
     }
 
     const attachments = mapAttachments(files);
-    const attachmentMetadata = attachments.map((attachment) => ({
-      filename: attachment.filename,
-      size: attachment.size,
-      contentType: attachment.contentType,
-    }));
+    const attachmentMetadata = buildAttachmentMetadata(attachments);
 
     const normalizedTo = parsed.to.trim().toLowerCase();
     const normalizedSubject = parsed.subject.trim();
@@ -569,7 +358,6 @@ router.post('/send', handleOfficialAttachmentsUpload, async (req: Request, res: 
   }
 });
 
-// GET /api/admin/email/logs
 router.get('/logs', async (req: Request, res: Response) => {
   try {
     const page = Math.max(parseInt(String(req.query.page || '1'), 10) || 1, 1);

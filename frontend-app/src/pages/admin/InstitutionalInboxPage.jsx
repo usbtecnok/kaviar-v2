@@ -23,6 +23,9 @@ import api from '../../api';
 
 const PAGE_SIZE = 15;
 const STATUS_OPTIONS = ['ALL', 'NEW', 'READ', 'ARCHIVED'];
+const MAX_REPLY_ATTACHMENTS = 3;
+const MAX_REPLY_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
+const REPLY_ATTACHMENT_ACCEPT = '.pdf,.jpg,.jpeg,.png';
 
 function buildFriendlyError(error, fallback) {
   const status = error?.response?.status;
@@ -47,6 +50,13 @@ function formatSubject(subject) {
   if (typeof subject !== 'string') return '(sem assunto)';
   const trimmed = subject.trim();
   return trimmed || '(sem assunto)';
+}
+
+function formatFileSize(size) {
+  if (!Number.isFinite(size)) return '-';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function StatusChip({ status }) {
@@ -119,6 +129,12 @@ export default function InstitutionalInboxPage() {
   const [detailsError, setDetailsError] = useState('');
 
   const [statusSaving, setStatusSaving] = useState(false);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [replyAttachments, setReplyAttachments] = useState([]);
+  const [replySending, setReplySending] = useState(false);
+  const [replyError, setReplyError] = useState('');
+  const [replySuccess, setReplySuccess] = useState('');
+  const [attachmentDownloadId, setAttachmentDownloadId] = useState(null);
 
   const listParams = useMemo(() => {
     const params = {
@@ -135,6 +151,32 @@ export default function InstitutionalInboxPage() {
 
     return params;
   }, [filters, page]);
+
+  const resetReplyState = () => {
+    setReplyMessage('');
+    setReplyAttachments([]);
+    setReplySending(false);
+    setReplyError('');
+    setReplySuccess('');
+  };
+
+  const handleDownloadAttachment = async (attachmentId) => {
+    setAttachmentDownloadId(attachmentId);
+    setDetailsError('');
+
+    try {
+      const response = await api.get(`/api/admin/inbound-email-attachments/${attachmentId}/download`);
+      const url = response?.data?.data?.url;
+      if (!url) {
+        throw new Error('URL temporaria indisponivel.');
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      setDetailsError(buildFriendlyError(error, 'Nao foi possivel gerar o download do anexo.'));
+    } finally {
+      setAttachmentDownloadId(null);
+    }
+  };
 
   const loadList = async (targetPage = 1, append = false) => {
     setLoading(true);
@@ -175,6 +217,7 @@ export default function InstitutionalInboxPage() {
     setDetailsLoading(true);
     setDetailsError('');
     setSelectedEmail(null);
+    resetReplyState();
 
     try {
       const response = await api.get(`/api/admin/inbound-emails/${id}`);
@@ -184,6 +227,14 @@ export default function InstitutionalInboxPage() {
     } finally {
       setDetailsLoading(false);
     }
+  };
+
+  const closeDetails = () => {
+    setDetailsOpen(false);
+    setSelectedEmail(null);
+    setDetailsError('');
+    resetReplyState();
+    setAttachmentDownloadId(null);
   };
 
   const applyStatus = async (status) => {
@@ -216,6 +267,72 @@ export default function InstitutionalInboxPage() {
       dateTo: '',
     });
   };
+
+  const handleReplyFiles = (event) => {
+    const nextFiles = Array.from(event.target.files || []);
+    event.target.value = '';
+    setReplyError('');
+    setReplySuccess('');
+
+    if (!nextFiles.length) return;
+
+    const combined = [...replyAttachments, ...nextFiles];
+    if (combined.length > MAX_REPLY_ATTACHMENTS) {
+      setReplyError('Voce pode enviar no maximo 3 anexos por reply.');
+      return;
+    }
+
+    const oversized = combined.find((file) => file.size > MAX_REPLY_ATTACHMENT_SIZE_BYTES);
+    if (oversized) {
+      setReplyError(`O arquivo ${oversized.name} excede o limite de 5 MB.`);
+      return;
+    }
+
+    setReplyAttachments(combined);
+  };
+
+  const removeReplyAttachment = (indexToRemove) => {
+    setReplyAttachments((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const submitReply = async () => {
+    if (!selectedEmail?.id) return;
+
+    const trimmedMessage = replyMessage.trim();
+    if (trimmedMessage.length < 3) {
+      setReplyError('Escreva uma mensagem com pelo menos 3 caracteres.');
+      return;
+    }
+
+    setReplySending(true);
+    setReplyError('');
+    setReplySuccess('');
+
+    try {
+      const formData = new FormData();
+      formData.append('message', trimmedMessage);
+      replyAttachments.forEach((file) => {
+        formData.append('attachments', file);
+      });
+
+      const response = await api.post(`/api/admin/inbound-emails/${selectedEmail.id}/reply`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setReplySuccess(response.data?.message || 'Resposta enviada com sucesso.');
+      setReplyMessage('');
+      setReplyAttachments([]);
+    } catch (error) {
+      setReplyError(buildFriendlyError(error, 'Nao foi possivel enviar a resposta.'));
+    } finally {
+      setReplySending(false);
+    }
+  };
+
+  const replyPreview = selectedEmail?.reply_preview || null;
+  const replyBlocked = replyPreview && !replyPreview.allowed;
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -250,7 +367,7 @@ export default function InstitutionalInboxPage() {
             <span style={{ color: 'inherit' }}>Caixa de Entrada Institucional</span>
           </Typography>
           <Typography className="admin-page-subtitle" sx={{ color: '#CBD5E1 !important' }} style={{ color: '#CBD5E1' }}>
-            Visualizacao somente leitura de respostas recebidas pelos aliases oficiais da KAVIAR.
+            Receba, consulte e responda mensagens dos aliases oficiais da KAVIAR.
           </Typography>
         </Box>
 
@@ -383,7 +500,7 @@ export default function InstitutionalInboxPage() {
         </Card>
       </Stack>
 
-      <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} fullWidth maxWidth="md">
+      <Dialog open={detailsOpen} onClose={closeDetails} fullWidth maxWidth="md">
         <DialogTitle>Detalhes do email recebido</DialogTitle>
         <DialogContent dividers>
           {detailsLoading ? (
@@ -404,28 +521,121 @@ export default function InstitutionalInboxPage() {
               <Typography><strong>References:</strong> {selectedEmail.references_header || '-'}</Typography>
               <Typography><strong>Provedor:</strong> {selectedEmail.provider || '-'}</Typography>
 
+              <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, border: '1px solid #E5E7EB', backgroundColor: '#FCFCFD' }}>
+                <Typography sx={{ fontWeight: 800, color: '#111827', mb: 1 }}>Responder por email</Typography>
+
+                {replyPreview ? (
+                  <Stack spacing={1.2}>
+                    <TextField label="Para" size="small" value={replyPreview.to || ''} InputProps={{ readOnly: true }} />
+                    <TextField label="De" size="small" value={replyPreview.from || '-'} InputProps={{ readOnly: true }} />
+                    <TextField label="Assunto" size="small" value={replyPreview.subject || ''} InputProps={{ readOnly: true }} />
+
+                    {replyBlocked ? (
+                      <Alert severity="warning">{replyPreview.blocked_reason || 'Este email nao pode ser respondido a partir da inbox institucional.'}</Alert>
+                    ) : null}
+
+                    {replyError ? <Alert severity="error">{replyError}</Alert> : null}
+                    {replySuccess ? <Alert severity="success">{replySuccess}</Alert> : null}
+
+                    <TextField
+                      label="Mensagem"
+                      multiline
+                      minRows={6}
+                      placeholder="Escreva a resposta que sera enviada na mesma thread do email original."
+                      value={replyMessage}
+                      onChange={(event) => setReplyMessage(event.target.value)}
+                      disabled={replySending || replyBlocked}
+                    />
+
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'stretch', md: 'center' }}>
+                      <Button component="label" variant="outlined" disabled={replySending || replyBlocked}>
+                        Adicionar anexos
+                        <input hidden multiple type="file" accept={REPLY_ATTACHMENT_ACCEPT} onChange={handleReplyFiles} />
+                      </Button>
+                      <Typography sx={{ fontSize: 12, color: '#6B7280' }}>
+                        Ate 3 arquivos, maximo de 5 MB cada. Formatos aceitos: PDF, JPG e PNG.
+                      </Typography>
+                    </Stack>
+
+                    {replyAttachments.length > 0 ? (
+                      <Stack spacing={0.8}>
+                        {replyAttachments.map((file, index) => (
+                          <Stack
+                            key={`${file.name}-${index}`}
+                            direction="row"
+                            spacing={1}
+                            justifyContent="space-between"
+                            alignItems="center"
+                            sx={{ p: 1, border: '1px solid #E5E7EB', borderRadius: 1.5, backgroundColor: '#FFFFFF' }}
+                          >
+                            <Typography sx={{ fontSize: 13, color: '#111827' }}>
+                              {file.name} ({formatFileSize(file.size)})
+                            </Typography>
+                            <Button size="small" color="inherit" onClick={() => removeReplyAttachment(index)} disabled={replySending}>
+                              Remover
+                            </Button>
+                          </Stack>
+                        ))}
+                      </Stack>
+                    ) : null}
+
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button variant="contained" onClick={submitReply} disabled={replySending || replyBlocked}>
+                        {replySending ? 'Enviando...' : 'Enviar resposta'}
+                      </Button>
+                    </Box>
+                  </Stack>
+                ) : (
+                  <Alert severity="info">Carregue os detalhes completos para visualizar a configuracao de reply.</Alert>
+                )}
+              </Box>
+
               <BodyBlock label="Corpo (texto)" value={selectedEmail.text_body} />
               <BodyBlock label="Corpo normalizado" value={selectedEmail.normalized_body} />
               <BodyBlock label="Corpo HTML (exibido como texto por seguranca)" value={selectedEmail.html_body} />
 
               <Box sx={{ mt: 1.5 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#374151', mb: 0.5 }}>
-                  Anexos (metadados)
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#374151', mb: 0.8 }}>
+                  Anexos recebidos
                 </Typography>
-                <Box
-                  sx={{
-                    p: 1.2,
-                    borderRadius: 1.5,
-                    border: '1px solid #E5E7EB',
-                    backgroundColor: '#FAFAFA',
-                    fontSize: 12,
-                    color: '#111827',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {JSON.stringify(selectedEmail.attachments_metadata || [], null, 2)}
-                </Box>
+                {Array.isArray(selectedEmail.attachments) && selectedEmail.attachments.length > 0 ? (
+                  <Stack spacing={0.8}>
+                    {selectedEmail.attachments.map((attachment) => (
+                      <Box
+                        key={attachment.id}
+                        sx={{
+                          p: 1,
+                          borderRadius: 1.5,
+                          border: '1px solid #E5E7EB',
+                          backgroundColor: '#FAFAFA',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 1,
+                        }}
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>
+                            {attachment.filename}
+                          </Typography>
+                          <Typography sx={{ fontSize: 12, color: '#6B7280' }}>
+                            {attachment.contentType || '-'} · {formatFileSize(attachment.sizeBytes)}
+                          </Typography>
+                        </Box>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => handleDownloadAttachment(attachment.id)}
+                          disabled={attachmentDownloadId === attachment.id}
+                        >
+                          {attachmentDownloadId === attachment.id ? 'Abrindo...' : 'Baixar'}
+                        </Button>
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Alert severity="info">Sem anexos disponiveis para download.</Alert>
+                )}
               </Box>
             </Stack>
           ) : null}
@@ -436,7 +646,7 @@ export default function InstitutionalInboxPage() {
             <Button onClick={() => applyStatus('READ')} disabled={statusSaving || !selectedEmail}>Marcar como lido</Button>
             <Button onClick={() => applyStatus('ARCHIVED')} disabled={statusSaving || !selectedEmail}>Arquivar</Button>
           </Stack>
-          <Button onClick={() => setDetailsOpen(false)}>Fechar</Button>
+          <Button onClick={closeDetails}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>

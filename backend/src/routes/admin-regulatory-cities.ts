@@ -860,6 +860,7 @@ router.get('/regulatory/cities/:id/communications', async (req: Request, res: Re
           status: true,
           created_at: true,
           provider_message_id: true,
+          reply_to_inbound_email_id: true,
           attachment_count: true,
         },
       }),
@@ -884,6 +885,16 @@ router.get('/regulatory/cities/:id/communications', async (req: Request, res: Re
           has_attachments: true,
           attachment_count: true,
           message_id: true,
+          attachments: {
+            where: { status: 'AVAILABLE' },
+            orderBy: { created_at: 'asc' },
+            select: {
+              id: true,
+              filename: true,
+              content_type: true,
+              size_bytes: true,
+            },
+          },
         },
       }),
     ]);
@@ -906,6 +917,7 @@ router.get('/regulatory/cities/:id/communications', async (req: Request, res: Re
           hasAttachments: (log.attachment_count || 0) > 0,
           originalId: log.id,
           providerMessageId: log.provider_message_id,
+          replyToInboundEmailId: log.reply_to_inbound_email_id,
         })),
         received: receivedLogs.map((log) => ({
           id: log.id,
@@ -918,6 +930,12 @@ router.get('/regulatory/cities/:id/communications', async (req: Request, res: Re
           createdAt: log.received_at,
           snippet: buildSnippet(log.normalized_body || log.text_body),
           hasAttachments: log.has_attachments || (log.attachment_count || 0) > 0,
+          attachments: log.attachments.map((attachment) => ({
+            id: attachment.id,
+            filename: attachment.filename,
+            contentType: attachment.content_type,
+            sizeBytes: attachment.size_bytes,
+          })),
           originalId: log.id,
           messageId: log.message_id,
         })),

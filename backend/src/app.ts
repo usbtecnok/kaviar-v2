@@ -16,6 +16,7 @@ import { passwordResetRoutes } from './routes/password-reset';
 import adminEmailRoutes from './routes/admin-email';
 import inboundEmailRoutes from './routes/inbound-email';
 import adminInboundEmailsRoutes from './routes/admin-inbound-emails';
+import adminInboundEmailAttachmentsRoutes from './routes/admin-inbound-email-attachments';
 import { phoneAuthRoutes } from './routes/phone-auth';
 import { adminRoutes } from './routes/admin';
 import complianceRoutes from './routes/compliance';
@@ -269,6 +270,7 @@ app.use('/api/admin/auth', passwordResetRoutes);
 app.use('/api/admin/email', adminEmailRoutes);
 app.use('/api/inbound/email', inboundEmailRoutes);
 app.use('/api/admin/inbound-emails', adminInboundEmailsRoutes);
+app.use('/api/admin/inbound-email-attachments', adminInboundEmailAttachmentsRoutes);
 
 // Investor invites (SUPER_ADMIN only, before investorView middleware)
 import investorInvitesRoutes from './routes/investor-invites-v2';

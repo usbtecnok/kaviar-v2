@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
+import { InboundAttachmentValidationError, inboundEmailAttachmentsService } from '../services/inbound-email-attachments.service';
 
 const router = Router();
 
@@ -22,6 +23,18 @@ const attachmentMetadataSchema = z.object({
   filename: z.string().trim().min(1).max(255),
   contentType: z.string().trim().min(1).max(255).optional(),
   size: z.number().int().nonnegative().max(25 * 1024 * 1024).optional(),
+});
+
+const reserveInboundAttachmentUploadSchema = z.object({
+  inbound_email_id: z.string().trim().uuid('inbound_email_id invalido'),
+  filename: z.string().trim().min(1).max(255),
+  content_type: z.string().trim().min(1).max(255),
+  size_bytes: z.number().int().positive(),
+  sha256: z.string().trim().length(64),
+});
+
+const finalizeInboundAttachmentUploadSchema = z.object({
+  inbound_email_id: z.string().trim().uuid('inbound_email_id invalido'),
 });
 
 const inboundPayloadSchema = z.object({
@@ -170,6 +183,84 @@ router.post('/cloudflare', async (req: Request, res: Response) => {
 
     console.error('[INBOUND_EMAIL_INGEST_ERROR]', error);
     return res.status(500).json({ success: false, error: 'Erro interno no ingest de emails.' });
+  }
+});
+
+router.post('/cloudflare/attachments/request-upload', async (req: Request, res: Response) => {
+  try {
+    const configuredSecret = (process.env.INBOUND_EMAIL_WEBHOOK_SECRET || '').trim();
+    if (!configuredSecret) {
+      return res.status(503).json({ success: false, error: 'Webhook de inbound desabilitado.' });
+    }
+
+    const incomingSecret = String(req.headers[INBOUND_SECRET_HEADER] || '').trim();
+    if (!incomingSecret || !secureEquals(incomingSecret, configuredSecret)) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const parsed = reserveInboundAttachmentUploadSchema.parse(req.body || {});
+    const reserved = await inboundEmailAttachmentsService.reserveUpload({
+      inboundEmailId: parsed.inbound_email_id,
+      filename: parsed.filename,
+      contentType: parsed.content_type,
+      sizeBytes: parsed.size_bytes,
+      sha256: parsed.sha256,
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        attachment_id: reserved.attachmentId,
+        storage_key: reserved.storageKey,
+        upload_url: reserved.uploadUrl,
+        expires_in: reserved.expiresIn,
+        status: reserved.status,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Payload invalido.' });
+    }
+
+    if (error instanceof InboundAttachmentValidationError) {
+      return res.status(error.statusCode).json({ success: false, error: error.message });
+    }
+
+    console.error('[INBOUND_EMAIL_ATTACHMENT_RESERVE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro interno ao reservar upload do anexo.' });
+  }
+});
+
+router.post('/cloudflare/attachments/:attachmentId/finalize', async (req: Request, res: Response) => {
+  try {
+    const configuredSecret = (process.env.INBOUND_EMAIL_WEBHOOK_SECRET || '').trim();
+    if (!configuredSecret) {
+      return res.status(503).json({ success: false, error: 'Webhook de inbound desabilitado.' });
+    }
+
+    const incomingSecret = String(req.headers[INBOUND_SECRET_HEADER] || '').trim();
+    if (!incomingSecret || !secureEquals(incomingSecret, configuredSecret)) {
+      return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const parsed = finalizeInboundAttachmentUploadSchema.parse(req.body || {});
+    const finalized = await inboundEmailAttachmentsService.finalizeUpload({
+      inboundEmailId: parsed.inbound_email_id,
+      attachmentId: String(req.params.attachmentId || ''),
+    });
+
+    return res.json({ success: true, data: finalized });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: error.errors[0]?.message || 'Payload invalido.' });
+    }
+
+    if (error instanceof InboundAttachmentValidationError) {
+      return res.status(error.statusCode).json({ success: false, error: error.message });
+    }
+
+    console.error('[INBOUND_EMAIL_ATTACHMENT_FINALIZE_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro interno ao finalizar upload do anexo.' });
   }
 });
 

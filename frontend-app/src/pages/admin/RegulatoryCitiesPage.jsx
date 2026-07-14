@@ -171,6 +171,13 @@ const EMPTY_COMMUNICATIONS = {
   received: [],
 };
 
+function formatAttachmentSize(sizeBytes) {
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return '-';
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  if (sizeBytes < 1024 * 1024) return `${(sizeBytes / 1024).toFixed(1)} KB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 const EMPTY_CHECKLIST = {
   city: null,
   items: [],
@@ -392,6 +399,7 @@ export default function RegulatoryCitiesPage() {
   const [communicationsByCity, setCommunicationsByCity] = useState({});
   const [communicationsLoadingId, setCommunicationsLoadingId] = useState(null);
   const [communicationsErrors, setCommunicationsErrors] = useState({});
+  const [attachmentDownloadId, setAttachmentDownloadId] = useState(null);
   const [expandedChecklistId, setExpandedChecklistId] = useState(null);
   const [checklistByCity, setChecklistByCity] = useState({});
   const [checklistLoadingByCity, setChecklistLoadingByCity] = useState({});
@@ -577,6 +585,23 @@ export default function RegulatoryCitiesPage() {
       setCommunicationsErrors((prev) => ({ ...prev, [cityId]: message }));
     } finally {
       setCommunicationsLoadingId((current) => (current === cityId ? null : current));
+    }
+  };
+
+  const handleDownloadAttachment = async (attachmentId) => {
+    setAttachmentDownloadId(attachmentId);
+    try {
+      const response = await api.get(`/api/admin/inbound-email-attachments/${attachmentId}/download`);
+      const url = response?.data?.data?.url;
+      if (!url) {
+        throw new Error('URL temporaria indisponivel.');
+      }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      const message = error?.response?.data?.error || error?.message || 'Nao foi possivel gerar o download do anexo.';
+      setCommunicationsErrors((prev) => ({ ...prev, [expandedCommunicationsId]: message }));
+    } finally {
+      setAttachmentDownloadId(null);
     }
   };
 
@@ -1375,6 +1400,46 @@ export default function RegulatoryCitiesPage() {
                                                         />
                                                       )}
                                                     </Stack>
+                                                    {Array.isArray(comm.attachments) && comm.attachments.length > 0 && (
+                                                      <Stack spacing={0.75} sx={{ mt: 0.9 }}>
+                                                        {comm.attachments.map((attachment) => (
+                                                          <Box
+                                                            key={attachment.id}
+                                                            sx={{
+                                                              display: 'flex',
+                                                              justifyContent: 'space-between',
+                                                              alignItems: { xs: 'flex-start', sm: 'center' },
+                                                              gap: 1,
+                                                              p: 0.9,
+                                                              borderRadius: 1,
+                                                              bgcolor: 'rgba(15,23,42,0.4)',
+                                                            }}
+                                                          >
+                                                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                                                              <Typography sx={{ color: '#E2E8F0', fontSize: 11.5, fontWeight: 600, wordBreak: 'break-word' }}>
+                                                                {attachment.filename}
+                                                              </Typography>
+                                                              <Typography sx={{ color: '#94A3B8', fontSize: 10.5 }}>
+                                                                {attachment.contentType || '-'} • {formatAttachmentSize(attachment.sizeBytes)}
+                                                              </Typography>
+                                                            </Box>
+                                                            <Button
+                                                              size="small"
+                                                              variant="outlined"
+                                                              onClick={() => handleDownloadAttachment(attachment.id)}
+                                                              disabled={attachmentDownloadId === attachment.id}
+                                                              sx={{
+                                                                color: '#F8FAFC',
+                                                                borderColor: 'rgba(184,148,46,0.42)',
+                                                                whiteSpace: 'nowrap',
+                                                              }}
+                                                            >
+                                                              {attachmentDownloadId === attachment.id ? 'Abrindo...' : 'Baixar'}
+                                                            </Button>
+                                                          </Box>
+                                                        ))}
+                                                      </Stack>
+                                                    )}
                                                   </Box>
                                                 ))}
                                               </Stack>

@@ -7,6 +7,8 @@ interface SendEmailParams {
   text: string;
   from: string;
   replyTo?: string[];
+  inReplyTo?: string;
+  references?: string[];
   attachments?: Array<{
     filename: string;
     content: Buffer;
@@ -50,6 +52,8 @@ export class CloudflareSMTPProvider {
       html: params.html,
       text: params.text,
       replyTo: params.replyTo?.length ? params.replyTo.join(',') : undefined,
+      inReplyTo: params.inReplyTo,
+      references: params.references?.length ? params.references : undefined,
       attachments: params.attachments?.map((attachment) => ({
         filename: attachment.filename,
         content: attachment.content,
