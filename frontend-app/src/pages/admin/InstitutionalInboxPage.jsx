@@ -19,6 +19,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api';
 
 const PAGE_SIZE = 15;
@@ -114,6 +115,7 @@ function BodyBlock({ label, value }) {
 }
 
 export default function InstitutionalInboxPage() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState({
     status: 'ALL',
     to: '',
@@ -349,7 +351,11 @@ export default function InstitutionalInboxPage() {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={2.5} maxWidth={1100}>
-        <Box
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.2}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
           sx={{
             '& .admin-page-title': {
               color: '#F8FAFC !important',
@@ -369,19 +375,24 @@ export default function InstitutionalInboxPage() {
             },
           }}
         >
-          <Typography
-            variant="h4"
-            component="h1"
-            className="admin-page-title"
-            sx={{ fontWeight: 800, color: '#F8FAFC !important', mb: 0.5 }}
-            style={{ color: '#F8FAFC' }}
-          >
-            <span style={{ color: 'inherit' }}>Caixa de Entrada Institucional</span>
-          </Typography>
-          <Typography className="admin-page-subtitle" sx={{ color: '#CBD5E1 !important' }} style={{ color: '#CBD5E1' }}>
-            Receba, consulte e responda mensagens dos aliases oficiais da KAVIAR.
-          </Typography>
-        </Box>
+          <Box>
+            <Typography
+              variant="h4"
+              component="h1"
+              className="admin-page-title"
+              sx={{ fontWeight: 800, color: '#F8FAFC !important', mb: 0.5 }}
+              style={{ color: '#F8FAFC' }}
+            >
+              <span style={{ color: 'inherit' }}>Central de E-mails Institucionais</span>
+            </Typography>
+            <Typography className="admin-page-subtitle" sx={{ color: '#CBD5E1 !important' }} style={{ color: '#CBD5E1' }}>
+              Receba, consulte, responda e envie mensagens pelos e-mails oficiais da KAVIAR.
+            </Typography>
+          </Box>
+          <Button variant="contained" onClick={() => navigate('/admin/email')}>
+            Novo e-mail
+          </Button>
+        </Stack>
 
         <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
           <CardContent>
