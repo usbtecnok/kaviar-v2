@@ -111,6 +111,56 @@ describe('admin inbound emails reply route', () => {
       references: ['<root@test>', '<orig@test>'],
       blocked_reason: null,
     });
+    expect(res.body.data.security_risk).toBeDefined();
+  });
+
+  it('serializa security_risk na lista de recebidos', async () => {
+    prismaMock.inbound_email_messages.findMany.mockResolvedValue([
+      makeInboundEmail({
+        id: 'inbound-list-1',
+        from_email: 'remetente@example.com',
+        text_body: 'Segue em anexo meu curriculo.',
+        html_body: '<p><a href="https://externo.test/documento">Visualizar</a></p>',
+        attachment_count: 0,
+        raw_headers: { 'reply-to': 'outro@example.com' },
+      }),
+    ]);
+    prismaMock.inbound_email_messages.count.mockResolvedValue(1);
+
+    const res = await request(app).get('/api/admin/inbound-emails');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data[0].security_risk).toEqual(expect.objectContaining({
+      level: 'HIGH',
+      suspicious: true,
+      reasons: expect.arrayContaining([
+        'MENTIONS_ATTACHMENT_WITHOUT_ATTACHMENT',
+        'EXTERNAL_LINK_PRESENT',
+        'REPLY_TO_DIFFERS_FROM_FROM',
+      ]),
+    }));
+  });
+
+  it('serializa security_risk no detalhe do email', async () => {
+    prismaMock.inbound_email_messages.findUnique.mockResolvedValue(makeInboundEmail({
+      text_body: 'Segue em anexo meu curriculo.',
+      html_body: '<p><a href="https://externo.test/documento">Visualizar</a></p>',
+      attachment_count: 0,
+      raw_headers: { 'reply-to': 'outro@example.com' },
+    }));
+
+    const res = await request(app).get('/api/admin/inbound-emails/inbound-1');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.security_risk).toEqual(expect.objectContaining({
+      level: 'HIGH',
+      suspicious: true,
+      reasons: expect.arrayContaining([
+        'MENTIONS_ATTACHMENT_WITHOUT_ATTACHMENT',
+        'EXTERNAL_LINK_PRESENT',
+        'REPLY_TO_DIFFERS_FROM_FROM',
+      ]),
+    }));
   });
 
   it('deriva destinatario, remetente, assunto e threading no servidor e ignora payload malicioso do frontend', async () => {

@@ -141,6 +141,49 @@ function BodyBlock({ label, value }) {
   );
 }
 
+function RiskBadge({ risk }) {
+  if (!risk || risk.level !== 'HIGH') return null;
+
+  return (
+    <Chip
+      size="small"
+      label="MENSAGEM SUSPEITA"
+      sx={{
+        fontWeight: 800,
+        color: '#991B1B',
+        backgroundColor: '#FEE2E2',
+        border: '1px solid #FCA5A5',
+        borderRadius: '8px',
+      }}
+    />
+  );
+}
+
+function formatRiskReason(reason) {
+  const map = {
+    MENTIONS_ATTACHMENT_WITHOUT_ATTACHMENT: 'Menciona anexo, mas nenhum anexo foi recebido.',
+    EXTERNAL_LINK_PRESENT: 'Contem link externo no corpo da mensagem.',
+    REPLY_TO_DIFFERS_FROM_FROM: 'Reply-To difere do remetente.',
+  };
+  return map[reason] || reason;
+}
+
+function RiskSummary({ risk }) {
+  if (!risk || risk.level !== 'HIGH' || !Array.isArray(risk.reasons) || risk.reasons.length === 0) return null;
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      <Stack spacing={0.4}>
+        {risk.reasons.map((reason) => (
+          <Typography key={reason} sx={{ color: '#991B1B', fontSize: 12, fontWeight: 600 }}>
+            • {formatRiskReason(reason)}
+          </Typography>
+        ))}
+      </Stack>
+    </Box>
+  );
+}
+
 function buildSentListParams(filters, page) {
   const params = {
     page,
@@ -604,9 +647,11 @@ export default function InstitutionalInboxPage() {
                           <Typography sx={{ color: '#6B7280', fontSize: 12 }}>
                             Recebido em: {formatDateTime(item.received_at)}
                           </Typography>
+                          <RiskSummary risk={item.security_risk} />
                         </Box>
 
                         <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                          <RiskBadge risk={item.security_risk} />
                           <StatusChip status={item.status} />
                           <Chip size="small" label={formatAttachmentCount(item.attachment_count)} />
                           <Button variant="outlined" size="small" onClick={() => openDetails(item.id)}>
@@ -761,6 +806,25 @@ export default function InstitutionalInboxPage() {
 
           {selectedEmail && !detailsLoading ? (
             <Stack spacing={1}>
+              {selectedEmail?.security_risk?.level === 'HIGH' ? (
+                <Alert severity="error" sx={{ mb: 1 }}>
+                  <Typography sx={{ fontWeight: 800, mb: 0.5 }}>
+                    ATENCAO — MENSAGEM SUSPEITA
+                  </Typography>
+                  <Typography sx={{ mb: 0.5 }}>
+                    Nao clique, copie ou abra links desta mensagem sem validacao do remetente.
+                  </Typography>
+                  {Array.isArray(selectedEmail?.security_risk?.reasons) && selectedEmail.security_risk.reasons.length > 0 ? (
+                    <Stack spacing={0.3}>
+                      {selectedEmail.security_risk.reasons.map((reason) => (
+                        <Typography key={reason} sx={{ fontSize: 13 }}>
+                          • {formatRiskReason(reason)}
+                        </Typography>
+                      ))}
+                    </Stack>
+                  ) : null}
+                </Alert>
+              ) : null}
               <Typography><strong>Remetente:</strong> {selectedEmail.from_name ? `${selectedEmail.from_name} <${selectedEmail.from_email}>` : selectedEmail.from_email}</Typography>
               <Typography><strong>Destinatario:</strong> {selectedEmail.to_email}</Typography>
               <Typography><strong>Assunto:</strong> {formatSubject(selectedEmail.subject)}</Typography>

@@ -16,6 +16,7 @@ import {
   writeEmailSendLog,
 } from '../services/email/official-email-support';
 import { buildInboundReplyPreview, InboundReplyPreview } from '../services/email/inbound-email-reply.service';
+import { evaluateInboundEmailSecurityRisk } from '../services/email/inbound-email-security-risk';
 import { audit, auditCtx } from '../utils/audit';
 
 const router = Router();
@@ -74,6 +75,7 @@ function serializeReplyPreview(replyPreview: InboundReplyPreview) {
 
 function serializeInboundEmail(item: any) {
   const replyPreview = buildInboundReplyPreview(item);
+  const securityRisk = evaluateInboundEmailSecurityRisk(item);
 
   return {
     id: item.id,
@@ -102,9 +104,29 @@ function serializeInboundEmail(item: any) {
       : [],
     attachments_metadata: Array.isArray(item.attachments_metadata) ? item.attachments_metadata : null,
     raw_headers: item.raw_headers && typeof item.raw_headers === 'object' ? item.raw_headers : null,
+    security_risk: securityRisk,
     reply_preview: serializeReplyPreview(replyPreview),
     created_at: item.created_at,
     updated_at: item.updated_at,
+  };
+}
+
+function serializeInboundListItem(item: any) {
+  return {
+    id: item.id,
+    received_at: item.received_at,
+    from_email: item.from_email,
+    from_name: item.from_name,
+    to_email: item.to_email,
+    subject: item.subject,
+    status: item.status,
+    provider: item.provider,
+    has_attachments: item.has_attachments,
+    attachment_count: item.attachment_count,
+    message_id: item.message_id,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    security_risk: evaluateInboundEmailSecurityRisk(item),
   };
 }
 
@@ -185,6 +207,10 @@ router.get('/', async (req: Request, res: Response) => {
           has_attachments: true,
           attachment_count: true,
           message_id: true,
+          text_body: true,
+          html_body: true,
+          normalized_body: true,
+          raw_headers: true,
           created_at: true,
           updated_at: true,
         },
@@ -194,7 +220,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      data: rows,
+      data: rows.map(serializeInboundListItem),
       pagination: {
         page,
         limit,
