@@ -28,6 +28,7 @@ const mockGetSumUpCheckout = vi.fn();
 const mockIsSumUpEnabled = vi.fn();
 const mockGetSumUpMerchantPaymentMethods = vi.fn();
 const mockHasSumUpPixPaymentMethod = vi.fn();
+const mockResolveSumUpPixPaymentType = vi.fn();
 const mockResolveOnRecharge = vi.fn().mockResolvedValue(0);
 
 class TestSumUpError extends Error {
@@ -48,6 +49,7 @@ vi.mock('../src/services/sumup-service', () => ({
   getSumUpCheckout: (...args: any[]) => mockGetSumUpCheckout(...args),
   getSumUpMerchantPaymentMethods: (...args: any[]) => mockGetSumUpMerchantPaymentMethods(...args),
   hasSumUpPixPaymentMethod: (...args: any[]) => mockHasSumUpPixPaymentMethod(...args),
+  resolveSumUpPixPaymentType: (...args: any[]) => mockResolveSumUpPixPaymentType(...args),
   isSumUpEnabled: () => mockIsSumUpEnabled(),
   SumUpError: TestSumUpError,
 }));
@@ -86,6 +88,7 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     mockIsSumUpEnabled.mockReset();
     mockGetSumUpMerchantPaymentMethods.mockReset();
     mockHasSumUpPixPaymentMethod.mockReset();
+    mockResolveSumUpPixPaymentType.mockReset();
     mockResolveOnRecharge.mockClear();
     _resetWalletV2Cache();
 
@@ -110,7 +113,23 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     mockGetSumUpCheckout.mockResolvedValue({ id: 'sumup_checkout_1', status: 'PENDING' });
     mockIsSumUpEnabled.mockReturnValue(true);
     mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
-    mockHasSumUpPixPaymentMethod.mockReturnValue(true);
+    mockHasSumUpPixPaymentMethod.mockImplementation((methods: any[]) =>
+      methods.some((method) => {
+        const tags = [method?.id, method?.type, method?.code, method?.method]
+          .filter(Boolean)
+          .map((v) => String(v).toLowerCase());
+        return tags.some((tag) => tag.includes('qr_code_pix') || tag === 'pix');
+      })
+    );
+    mockResolveSumUpPixPaymentType.mockImplementation((methods: any[]) => {
+      const tags = methods
+        .flatMap((method: any) => [method?.id, method?.type, method?.code, method?.method])
+        .filter(Boolean)
+        .map((v: any) => String(v).toLowerCase());
+      if (tags.some((tag: string) => tag.includes('qr_code_pix'))) return 'qr_code_pix';
+      if (tags.some((tag: string) => tag === 'pix')) return 'pix';
+      return null;
+    });
   });
 
   it('GET /wallet sem auth retorna 401', async () => {
@@ -210,7 +229,7 @@ describe('Wallet V2 Routes (sumup-only)', () => {
     expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'qr_code_pix' });
   });
 
-  it('POST /recharge com payment_method=pix não bloqueia quando checkout methods retorna só card', async () => {
+  it('POST /recharge com payment_method=pix bloqueia quando checkout methods retorna só card', async () => {
     mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
     mockProcessSumUpCheckout.mockResolvedValue({
       id: 'sumup_checkout_1',
@@ -235,11 +254,9 @@ describe('Wallet V2 Routes (sumup-only)', () => {
       .set(auth)
       .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
 
-    expect(res.status).toBe(200);
-    expect(res.body.data.pix.payment_type).toBe('qr_code_pix');
-    expect(res.body.data.wallet_credit_cents).toBe(2000);
-    expect(res.body.data.charged_amount_cents).toBe(2000);
-    expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'qr_code_pix' });
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
+    expect(mockProcessSumUpCheckout).not.toHaveBeenCalled();
   });
 
   it('POST /recharge com payment_method=pix sem qr_code_pix no merchant retorna 503 sem fallback Asaas', async () => {
@@ -261,7 +278,7 @@ describe('Wallet V2 Routes (sumup-only)', () => {
   });
 
   it('POST /recharge com payment_method=pix e falha no PUT expira recarga e retorna 503', async () => {
-    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
     mockProcessSumUpCheckout.mockRejectedValue(new TestSumUpError(422, 'Checkout não pôde ser processado pelo provedor.'));
     mockQuery
       .mockResolvedValueOnce({ rows: [{ enabled: true }] })

@@ -7,8 +7,10 @@ import {
   createSumUpCheckout,
   getSumUpCheckoutPaymentMethods,
   getSumUpMerchantPaymentMethods,
+  hasSumUpPixPaymentMethod,
   isSumUpEnabled,
   processSumUpCheckout,
+  resolveSumUpPixPaymentType,
   SumUpError,
 } from '../services/sumup-service';
 import { reconcileSumUpRechargeById } from '../services/wallet-v2/sumup-recharge.service';
@@ -188,6 +190,7 @@ router.post('/recharge', async (req: Request, res: Response) => {
   try {
     const driverId = (req as any).driverId;
     let sumupStage = 'init';
+    let resolvedPixPaymentType: 'qr_code_pix' | 'pix' = 'qr_code_pix';
     const requestedProvider = String(req.body?.payment_provider || 'sumup').toLowerCase();
     const rawPaymentMethod = String(req.body?.payment_method || '').toLowerCase();
 
@@ -224,8 +227,12 @@ router.post('/recharge', async (req: Request, res: Response) => {
         .flatMap((method) => [method.id, method.type, method.code, method.method])
         .filter(Boolean)
         .map((value) => String(value).toLowerCase());
-      const merchantHasQrCodePix = methodTags.includes('qr_code_pix');
-      if (!merchantHasQrCodePix) {
+      const merchantHasPix = hasSumUpPixPaymentMethod(methods);
+      const merchantPixPaymentType = resolveSumUpPixPaymentType(methods);
+      console.info(
+        `[WALLET_PIX_SUMUP_STAGE] stage=merchant_payment_methods driver=${driverId} tags=${methodTags.join(',') || 'none'}`
+      );
+      if (!merchantHasPix || !merchantPixPaymentType) {
         console.warn(
           `[WALLET_PIX_SUMUP_STAGE] stage=merchant_payment_methods_no_pix driver=${driverId} tags=${methodTags.join(',') || 'none'}`
         );
@@ -234,10 +241,11 @@ router.post('/recharge', async (req: Request, res: Response) => {
           error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
         });
       }
+      resolvedPixPaymentType = merchantPixPaymentType;
     } catch (methodErr) {
       if (methodErr instanceof SumUpError) {
         console.error(
-          `[WALLET_PIX_SUMUP_STAGE] stage=${sumupStage} driver=${driverId} status=${methodErr.statusCode} method=${methodErr.method || 'unknown'} endpoint=${methodErr.endpoint || 'unknown'}`
+          `[WALLET_PIX_SUMUP_STAGE] stage=${sumupStage} driver=${driverId} sumup_status=${methodErr.statusCode} method=${methodErr.method || 'unknown'} endpoint=${methodErr.endpoint || 'unknown'}`
         );
         return res.status(503).json({
           success: false,
@@ -314,9 +322,21 @@ router.post('/recharge', async (req: Request, res: Response) => {
           .flatMap((method) => [method.id, method.type, method.code, method.method])
           .filter(Boolean)
           .map((value) => String(value).toLowerCase());
+        const checkoutPixPaymentType = resolveSumUpPixPaymentType(checkoutMethods);
         console.info(
           `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} tags=${checkoutMethodsLower.join(',') || 'none'}`
         );
+        if (!checkoutPixPaymentType) {
+          await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
+          console.warn(
+            `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods_no_pix driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} tags=${checkoutMethodsLower.join(',') || 'none'}`
+          );
+          return res.status(503).json({
+            success: false,
+            error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
+          });
+        }
+        resolvedPixPaymentType = checkoutPixPaymentType;
       } catch (checkoutMethodsErr) {
         if (checkoutMethodsErr instanceof SumUpError) {
           console.warn(
@@ -329,8 +349,8 @@ router.post('/recharge', async (req: Request, res: Response) => {
         }
       }
 
-      const pixPaymentType = 'qr_code_pix' as const;
-      sumupStage = 'process_checkout_qr_code_pix';
+      const pixPaymentType = resolvedPixPaymentType;
+      sumupStage = `process_checkout_${pixPaymentType}`;
       const processedCheckout = await processSumUpCheckout(checkout.id, { payment_type: pixPaymentType });
       sumupStage = 'extract_pix_payload';
       const pixPayload = extractPixPayload(processedCheckout as Record<string, any>, pixPaymentType);
@@ -369,7 +389,7 @@ router.post('/recharge', async (req: Request, res: Response) => {
       await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
       if (sumupErr instanceof SumUpError) {
         console.error(
-          `[WALLET_RECHARGE_SUMUP_FAIL] stage=${sumupStage} driver=${driverId} recharge=${rechargeId} sumup_status=${sumupErr.statusCode} method=${sumupErr.method || 'unknown'} endpoint=${sumupErr.endpoint || 'unknown'} response_keys=${sumupErr.responseKeys?.join(',') || 'none'}`
+          `[WALLET_RECHARGE_SUMUP_FAIL] stage=${sumupStage} driver=${driverId} recharge=${rechargeId} sumup_status=${sumupErr.statusCode} method=${sumupErr.method || 'unknown'} endpoint=${sumupErr.endpoint || 'unknown'}`
         );
         if (sumupStage.startsWith('process_checkout_')) {
           return res.status(503).json({

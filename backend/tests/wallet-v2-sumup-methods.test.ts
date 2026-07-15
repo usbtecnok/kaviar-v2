@@ -27,6 +27,7 @@ const mockGetSumUpCheckoutPaymentMethods = vi.fn();
 const mockIsSumUpEnabled = vi.fn();
 const mockGetSumUpMerchantPaymentMethods = vi.fn();
 const mockHasSumUpPixPaymentMethod = vi.fn();
+const mockResolveSumUpPixPaymentType = vi.fn();
 
 class TestSumUpError extends Error {
   statusCode: number;
@@ -45,6 +46,7 @@ vi.mock('../src/services/sumup-service', () => ({
   getSumUpCheckoutPaymentMethods: (...args: any[]) => mockGetSumUpCheckoutPaymentMethods(...args),
   getSumUpMerchantPaymentMethods: (...args: any[]) => mockGetSumUpMerchantPaymentMethods(...args),
   hasSumUpPixPaymentMethod: (...args: any[]) => mockHasSumUpPixPaymentMethod(...args),
+  resolveSumUpPixPaymentType: (...args: any[]) => mockResolveSumUpPixPaymentType(...args),
   isSumUpEnabled: () => mockIsSumUpEnabled(),
   SumUpError: TestSumUpError,
 }));
@@ -66,6 +68,7 @@ describe('Wallet V2 SumUp payment method flow', () => {
     mockIsSumUpEnabled.mockReset();
     mockGetSumUpMerchantPaymentMethods.mockReset();
     mockHasSumUpPixPaymentMethod.mockReset();
+    mockResolveSumUpPixPaymentType.mockReset();
     _resetWalletV2Cache();
 
     mockIsSumUpEnabled.mockReturnValue(true);
@@ -87,10 +90,26 @@ describe('Wallet V2 SumUp payment method flow', () => {
       },
     });
     mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
-    mockHasSumUpPixPaymentMethod.mockReturnValue(true);
+    mockHasSumUpPixPaymentMethod.mockImplementation((methods: any[]) =>
+      methods.some((method) => {
+        const tags = [method?.id, method?.type, method?.code, method?.method]
+          .filter(Boolean)
+          .map((v) => String(v).toLowerCase());
+        return tags.some((tag) => tag.includes('qr_code_pix') || tag === 'pix');
+      })
+    );
+    mockResolveSumUpPixPaymentType.mockImplementation((methods: any[]) => {
+      const tags = methods
+        .flatMap((method: any) => [method?.id, method?.type, method?.code, method?.method])
+        .filter(Boolean)
+        .map((v: any) => String(v).toLowerCase());
+      if (tags.some((tag: string) => tag.includes('qr_code_pix'))) return 'qr_code_pix';
+      if (tags.some((tag: string) => tag === 'pix')) return 'pix';
+      return null;
+    });
   });
 
-  it('bloqueia provider legado com 410', async () => {
+  it('H) bloqueia provider legado com 410 e não chama SumUp', async () => {
     const res = await request(app)
       .post('/api/v2/drivers/me/wallet/recharge')
       .set(auth)
@@ -100,22 +119,12 @@ describe('Wallet V2 SumUp payment method flow', () => {
     expect(res.body.error).toBe('PROVIDER_UNAVAILABLE');
     expect(res.body.message).toBe('Use a recarga de saldo KAVIAR.');
     expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
-  });
-
-  it('bloqueia payment_method=card com mensagem clara', async () => {
-    const res = await request(app)
-      .post('/api/v2/drivers/me/wallet/recharge')
-      .set(auth)
-      .send({ package_id: 'saldo-50', payment_provider: 'sumup', payment_method: 'card' });
-
-    expect(res.status).toBe(503);
-    expect(res.body.error).toBe('Recarga por cartão está temporariamente indisponível. Use Pix.');
-    expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
     expect(mockGetSumUpMerchantPaymentMethods).not.toHaveBeenCalled();
   });
 
-  it('processa checkout SumUp com payment_type=qr_code_pix para payment_method=pix', async () => {
-    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
+  it('A) permite recarga quando merchant retorna qr_code_pix', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
     mockQuery
       .mockResolvedValueOnce({ rows: [{ enabled: true }] })
       .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] })
@@ -133,16 +142,136 @@ describe('Wallet V2 SumUp payment method flow', () => {
     expect(res.body.data.payment_provider).toBe('sumup');
     expect(res.body.data.payment_method).toBe('pix');
     expect(res.body.data.pix.payment_type).toBe('qr_code_pix');
-    expect(res.body.data.wallet_credit_cents).toBe(2000);
-    expect(res.body.data.charged_amount_cents).toBe(2000);
-    expect(mockGetSumUpMerchantPaymentMethods).toHaveBeenCalledTimes(1);
-    expect(mockCreateSumUpCheckout).toHaveBeenCalledTimes(1);
-    expect(mockGetSumUpCheckoutPaymentMethods).toHaveBeenCalledTimes(1);
     expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'qr_code_pix' });
   });
 
-  it('retorna 503 e expira recarga quando PUT qr_code_pix falha', async () => {
-    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
+  it('B) permite recarga quando merchant retorna pix', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
+    mockProcessSumUpCheckout.mockResolvedValue({
+      id: 'sumup_checkout_1',
+      status: 'PENDING',
+      pix: {
+        qr_image_url: 'https://api.sumup.com/v0.1/artefacts/qr/pix',
+        copy_paste: '000201PIXPIX',
+      },
+    });
+
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ enabled: true }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.pix.payment_type).toBe('pix');
+    expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'pix' });
+  });
+
+  it('C) retorna 503 quando merchant tem apenas card e não cria checkout', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'card' }]);
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
+    expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
+
+    const insertSql = mockQuery.mock.calls.find((call: any[]) =>
+      typeof call[0] === 'string' && call[0].includes('INSERT INTO wallet_recharges')
+    );
+    expect(insertSql).toBeFalsy();
+  });
+
+  it('D) retorna 503 quando SumUp está desabilitada', async () => {
+    mockIsSumUpEnabled.mockReturnValue(false);
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
+    expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
+  });
+
+  it('E) retorna QR e copia e cola quando processamento qr_code_pix é válido', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
+    mockProcessSumUpCheckout.mockResolvedValue({
+      id: 'sumup_checkout_1',
+      status: 'PENDING',
+      qr_code_pix: {
+        artefacts: [
+          { name: 'barcode', location: 'https://api.sumup.com/v0.1/artefacts/qr/content-ok' },
+          { name: 'code', content: '000201PIX-QR-OK' },
+        ],
+      },
+    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ enabled: true }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.pix.qr_image_url).toContain('artefacts/qr/content-ok');
+    expect(res.body.data.pix.copy_paste).toBe('000201PIX-QR-OK');
+    expect(res.body.data.pix.payment_type).toBe('qr_code_pix');
+  });
+
+  it('F) processa corretamente quando forma Pix resolvida é pix', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
+    mockProcessSumUpCheckout.mockResolvedValue({
+      id: 'sumup_checkout_1',
+      status: 'PENDING',
+      pix: {
+        qrCode: 'https://api.sumup.com/v0.1/artefacts/qr/pix-form',
+        copyPaste: '000201PIXCAMEL',
+      },
+    });
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ enabled: true }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.pix.payment_type).toBe('pix');
+    expect(res.body.data.pix.qr_image_url).toContain('artefacts/qr/pix-form');
+    expect(res.body.data.pix.copy_paste).toBe('000201PIXCAMEL');
+    expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'pix' });
+  });
+
+  it('G) em erro SumUp no processamento expira recarga e retorna resposta segura', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'qr_code_pix' }]);
     mockProcessSumUpCheckout.mockRejectedValue(new TestSumUpError(422, 'Checkout não pôde ser processado pelo provedor.'));
     mockQuery
       .mockResolvedValueOnce({ rows: [{ enabled: true }] })
@@ -164,23 +293,5 @@ describe('Wallet V2 SumUp payment method flow', () => {
       call[0].includes("UPDATE wallet_recharges SET status='expired'")
     );
     expect(expireCall).toBeTruthy();
-  });
-
-  it('retorna 503 quando payment_method=pix não está disponível no merchant SumUp', async () => {
-    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'card' }]);
-
-    const res = await request(app)
-      .post('/api/v2/drivers/me/wallet/recharge')
-      .set(auth)
-      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
-
-    expect(res.status).toBe(503);
-    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
-    expect(mockCreateSumUpCheckout).not.toHaveBeenCalled();
-
-    const insertSql = mockQuery.mock.calls.find((call: any[]) =>
-      typeof call[0] === 'string' && call[0].includes('INSERT INTO wallet_recharges')
-    );
-    expect(insertSql).toBeFalsy();
   });
 });

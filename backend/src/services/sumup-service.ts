@@ -239,12 +239,18 @@ export async function getSumUpMerchantPaymentMethods(merchantCode?: string): Pro
 }
 
 export function hasSumUpPixPaymentMethod(methods: SumUpMerchantPaymentMethod[]): boolean {
-  return methods.some((method) => {
-    const candidates = [method.id, method.type, method.code, method.method]
-      .filter(Boolean)
-      .map((value) => String(value).toLowerCase());
-    return candidates.some((candidate) => candidate.includes('qr_code_pix') || candidate === 'pix');
-  });
+  return resolveSumUpPixPaymentType(methods) !== null;
+}
+
+export function resolveSumUpPixPaymentType(methods: SumUpMerchantPaymentMethod[]): 'qr_code_pix' | 'pix' | null {
+  const tags = methods
+    .flatMap((method) => [method.id, method.type, method.code, method.method])
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase());
+
+  if (tags.some((tag) => tag.includes('qr_code_pix'))) return 'qr_code_pix';
+  if (tags.some((tag) => tag === 'pix')) return 'pix';
+  return null;
 }
 
 export function isSumUpEnabled(): boolean {
