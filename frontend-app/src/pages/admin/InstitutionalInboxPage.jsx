@@ -16,6 +16,8 @@ import {
   MenuItem,
   Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from '@mui/material';
@@ -27,6 +29,13 @@ const STATUS_OPTIONS = ['ALL', 'NEW', 'READ', 'ARCHIVED'];
 const MAX_REPLY_ATTACHMENTS = 3;
 const MAX_REPLY_ATTACHMENT_SIZE_BYTES = 5 * 1024 * 1024;
 const REPLY_ATTACHMENT_ACCEPT = '.pdf,.jpg,.jpeg,.png';
+const SENT_STATUS_OPTIONS = ['ALL', 'SENT', 'ERROR'];
+const DEFAULT_SENT_FILTERS = {
+  to: '',
+  status: 'ALL',
+  dateFrom: '',
+  dateTo: '',
+};
 
 function buildFriendlyError(error, fallback) {
   const status = error?.response?.status;
@@ -82,6 +91,24 @@ function StatusChip({ status }) {
   );
 }
 
+function SentStatusChip({ status }) {
+  const isSent = status === 'SENT';
+  const label = isSent ? 'Enviado' : status === 'ERROR' ? 'Erro' : (status || 'N/A');
+
+  return (
+    <Chip
+      size="small"
+      label={label}
+      sx={{
+        fontWeight: 700,
+        color: isSent ? '#166534' : '#991B1B',
+        backgroundColor: isSent ? '#DCFCE7' : '#FEE2E2',
+        borderRadius: '8px',
+      }}
+    />
+  );
+}
+
 function formatAttachmentCount(count) {
   const safeCount = Number(count || 0);
   if (safeCount <= 0) return 'Sem anexos';
@@ -114,8 +141,24 @@ function BodyBlock({ label, value }) {
   );
 }
 
+function buildSentListParams(filters, page) {
+  const params = {
+    page,
+    limit: PAGE_SIZE,
+  };
+
+  if (filters.to.trim()) params.to = filters.to.trim();
+  if (filters.status !== 'ALL') params.status = filters.status;
+  if (filters.dateFrom) params.date_from = filters.dateFrom;
+  if (filters.dateTo) params.date_to = filters.dateTo;
+
+  return params;
+}
+
 export default function InstitutionalInboxPage() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('RECEBIDOS');
+
   const [filters, setFilters] = useState({
     status: 'ALL',
     to: '',
@@ -144,6 +187,15 @@ export default function InstitutionalInboxPage() {
   const [replyError, setReplyError] = useState('');
   const [replySuccess, setReplySuccess] = useState('');
   const [attachmentDownloadId, setAttachmentDownloadId] = useState(null);
+
+  const [sentFilters, setSentFilters] = useState(DEFAULT_SENT_FILTERS);
+  const [sentItems, setSentItems] = useState([]);
+  const [sentLoading, setSentLoading] = useState(false);
+  const [sentError, setSentError] = useState('');
+  const [sentPage, setSentPage] = useState(1);
+  const [sentHasMore, setSentHasMore] = useState(false);
+  const [sentDetailsOpen, setSentDetailsOpen] = useState(false);
+  const [selectedSentEmail, setSelectedSentEmail] = useState(null);
 
   const listParams = useMemo(() => {
     const params = {
@@ -181,9 +233,7 @@ export default function InstitutionalInboxPage() {
     try {
       const response = await api.get(`/api/admin/inbound-emails/${selectedEmail.id}/attachments/${attachmentId}/download`);
       const url = response?.data?.data?.url;
-      if (!url) {
-        throw new Error('URL temporaria indisponivel.');
-      }
+      if (!url) throw new Error('URL temporaria indisponivel.');
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error) {
       setDetailsError(buildFriendlyError(error, 'Nao foi possivel gerar o download do anexo.'));
@@ -222,9 +272,42 @@ export default function InstitutionalInboxPage() {
     }
   };
 
+  const loadSentList = async (targetPage = 1, append = false, filtersOverride = sentFilters) => {
+    setSentLoading(true);
+    setSentError('');
+
+    try {
+      const response = await api.get('/api/admin/email/logs', {
+        params: buildSentListParams(filtersOverride, targetPage),
+      });
+
+      const incoming = Array.isArray(response.data?.data) ? response.data.data : [];
+      const totalPages = Number(response.data?.pagination?.totalPages || 0);
+      const currentPage = Number(response.data?.pagination?.page || targetPage);
+
+      setSentItems((prev) => (append ? [...prev, ...incoming] : incoming));
+      setSentPage(currentPage);
+      setSentHasMore(totalPages > 0 ? currentPage < totalPages : incoming.length >= PAGE_SIZE);
+    } catch (error) {
+      setSentError(buildFriendlyError(error, 'Nao foi possivel carregar os emails enviados.'));
+      if (!append) setSentItems([]);
+      setSentHasMore(false);
+    } finally {
+      setSentLoading(false);
+    }
+  };
+
   useEffect(() => {
-    loadList(1, false);
-  }, [filters]);
+    if (activeTab === 'RECEBIDOS') {
+      loadList(1, false);
+    }
+  }, [filters, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'ENVIADOS') {
+      loadSentList(1, false, sentFilters);
+    }
+  }, [activeTab]);
 
   const openDetails = async (id) => {
     setDetailsOpen(true);
@@ -280,6 +363,13 @@ export default function InstitutionalInboxPage() {
       dateFrom: '',
       dateTo: '',
     });
+  };
+
+  const clearSentFilters = () => {
+    const clearedFilters = { ...DEFAULT_SENT_FILTERS };
+    setSentFilters(clearedFilters);
+    setSentPage(1);
+    loadSentList(1, false, clearedFilters);
   };
 
   const handleReplyFiles = (event) => {
@@ -395,132 +485,269 @@ export default function InstitutionalInboxPage() {
         </Stack>
 
         <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
-          <CardContent>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} alignItems={{ xs: 'stretch', md: 'center' }}>
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel id="inbox-status-label">Status</InputLabel>
-                <Select
-                  labelId="inbox-status-label"
-                  label="Status"
-                  value={filters.status}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
-                >
-                  {STATUS_OPTIONS.map((option) => (
-                    <MenuItem key={option} value={option}>{option}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <TextField
-                size="small"
-                label="Para"
-                placeholder="suporte@kaviar.com.br"
-                value={filters.to}
-                onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))}
-              />
-
-              <TextField
-                size="small"
-                label="De"
-                placeholder="cliente@email.com"
-                value={filters.from}
-                onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))}
-              />
-
-              <TextField
-                size="small"
-                label="Busca"
-                placeholder="assunto ou remetente"
-                value={filters.q}
-                onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
-              />
-
-              <TextField
-                size="small"
-                label="Data inicial"
-                type="date"
-                value={filters.dateFrom}
-                onChange={(event) => setFilters((prev) => ({ ...prev, dateFrom: event.target.value }))}
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <TextField
-                size="small"
-                label="Data final"
-                type="date"
-                value={filters.dateTo}
-                onChange={(event) => setFilters((prev) => ({ ...prev, dateTo: event.target.value }))}
-                InputLabelProps={{ shrink: true }}
-              />
-
-              <Button variant="outlined" onClick={clearFilters}>
-                Limpar
-              </Button>
-            </Stack>
+          <CardContent sx={{ pb: '12px !important' }}>
+            <Tabs
+              value={activeTab}
+              onChange={(_, value) => setActiveTab(value)}
+              sx={{
+                minHeight: 40,
+                '& .MuiTab-root': { minHeight: 40, fontWeight: 800 },
+              }}
+            >
+              <Tab value="RECEBIDOS" label="RECEBIDOS" />
+              <Tab value="ENVIADOS" label="ENVIADOS" />
+            </Tabs>
           </CardContent>
         </Card>
 
-        {warningMessage && <Alert severity="warning">{warningMessage}</Alert>}
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
+        {activeTab === 'RECEBIDOS' ? (
+          <>
+            <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+              <CardContent>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} alignItems={{ xs: 'stretch', md: 'center' }}>
+                  <FormControl size="small" sx={{ minWidth: 160 }}>
+                    <InputLabel id="inbox-status-label">Status</InputLabel>
+                    <Select
+                      labelId="inbox-status-label"
+                      label="Status"
+                      value={filters.status}
+                      onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-        <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
-          <CardContent>
-            <Stack spacing={1.2}>
-              {loading && items.length === 0 ? (
-                <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
-              ) : null}
+                  <TextField
+                    size="small"
+                    label="Para"
+                    placeholder="suporte@kaviar.com.br"
+                    value={filters.to}
+                    onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))}
+                  />
 
-              {!loading && items.length === 0 ? (
-                <Alert severity="info">Nenhum email encontrado com os filtros atuais.</Alert>
-              ) : null}
+                  <TextField
+                    size="small"
+                    label="De"
+                    placeholder="cliente@email.com"
+                    value={filters.from}
+                    onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))}
+                  />
 
-              {items.map((item) => (
-                <Box
-                  key={item.id}
-                  sx={{
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 2,
-                    p: 1.4,
-                    backgroundColor: '#FFFFFF',
-                  }}
-                >
-                  <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }}>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography sx={{ fontWeight: 700, color: '#111827' }}>{formatSubject(item.subject)}</Typography>
-                      <Typography sx={{ color: '#6B7280', fontSize: 13 }}>
-                        De: {item.from_name ? `${item.from_name} <${item.from_email}>` : item.from_email}
-                      </Typography>
-                      <Typography sx={{ color: '#6B7280', fontSize: 13 }}>
-                        Para: {item.to_email}
-                      </Typography>
-                      <Typography sx={{ color: '#6B7280', fontSize: 12 }}>
-                        Recebido em: {formatDateTime(item.received_at)}
-                      </Typography>
+                  <TextField
+                    size="small"
+                    label="Busca"
+                    placeholder="assunto ou remetente"
+                    value={filters.q}
+                    onChange={(event) => setFilters((prev) => ({ ...prev, q: event.target.value }))}
+                  />
+
+                  <TextField
+                    size="small"
+                    label="Data inicial"
+                    type="date"
+                    value={filters.dateFrom}
+                    onChange={(event) => setFilters((prev) => ({ ...prev, dateFrom: event.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                  />
+
+                  <TextField
+                    size="small"
+                    label="Data final"
+                    type="date"
+                    value={filters.dateTo}
+                    onChange={(event) => setFilters((prev) => ({ ...prev, dateTo: event.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                  />
+
+                  <Button variant="outlined" onClick={clearFilters}>
+                    Limpar
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {warningMessage && <Alert severity="warning">{warningMessage}</Alert>}
+            {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
+
+            <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+              <CardContent>
+                <Stack spacing={1.2}>
+                  {loading && items.length === 0 ? (
+                    <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
+                  ) : null}
+
+                  {!loading && items.length === 0 ? (
+                    <Alert severity="info">Nenhum email encontrado com os filtros atuais.</Alert>
+                  ) : null}
+
+                  {items.map((item) => (
+                    <Box
+                      key={item.id}
+                      sx={{
+                        border: '1px solid #E5E7EB',
+                        borderRadius: 2,
+                        p: 1.4,
+                        backgroundColor: '#FFFFFF',
+                      }}
+                    >
+                      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }}>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Typography sx={{ fontWeight: 700, color: '#111827' }}>{formatSubject(item.subject)}</Typography>
+                          <Typography sx={{ color: '#6B7280', fontSize: 13 }}>
+                            De: {item.from_name ? `${item.from_name} <${item.from_email}>` : item.from_email}
+                          </Typography>
+                          <Typography sx={{ color: '#6B7280', fontSize: 13 }}>
+                            Para: {item.to_email}
+                          </Typography>
+                          <Typography sx={{ color: '#6B7280', fontSize: 12 }}>
+                            Recebido em: {formatDateTime(item.received_at)}
+                          </Typography>
+                        </Box>
+
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                          <StatusChip status={item.status} />
+                          <Chip size="small" label={formatAttachmentCount(item.attachment_count)} />
+                          <Button variant="outlined" size="small" onClick={() => openDetails(item.id)}>
+                            Ver detalhes
+                          </Button>
+                        </Stack>
+                      </Stack>
                     </Box>
+                  ))}
 
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-                      <StatusChip status={item.status} />
-                      <Chip size="small" label={formatAttachmentCount(item.attachment_count)} />
-                      <Button variant="outlined" size="small" onClick={() => openDetails(item.id)}>
-                        Ver detalhes
-                      </Button>
-                    </Stack>
-                  </Stack>
-                </Box>
-              ))}
+                  <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+                    <Button
+                      variant="contained"
+                      onClick={() => loadList(page + 1, true)}
+                      disabled={loading || !hasMore}
+                    >
+                      {loading && items.length > 0 ? 'Carregando...' : hasMore ? 'Carregar mais' : 'Fim da lista'}
+                    </Button>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}>
+              <CardContent>
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} alignItems={{ xs: 'stretch', md: 'center' }}>
+                  <TextField
+                    size="small"
+                    label="Destinatario"
+                    placeholder="orgao@prefeitura.rio"
+                    value={sentFilters.to}
+                    onChange={(event) => setSentFilters((prev) => ({ ...prev, to: event.target.value }))}
+                  />
 
-              <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
-                <Button
-                  variant="contained"
-                  onClick={() => loadList(page + 1, true)}
-                  disabled={loading || !hasMore}
-                >
-                  {loading && items.length > 0 ? 'Carregando...' : hasMore ? 'Carregar mais' : 'Fim da lista'}
-                </Button>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
+                  <FormControl size="small" sx={{ minWidth: 160 }}>
+                    <InputLabel id="sent-status-label">Status</InputLabel>
+                    <Select
+                      labelId="sent-status-label"
+                      label="Status"
+                      value={sentFilters.status}
+                      onChange={(event) => setSentFilters((prev) => ({ ...prev, status: event.target.value }))}
+                    >
+                      {SENT_STATUS_OPTIONS.map((option) => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <TextField
+                    size="small"
+                    label="Data inicial"
+                    type="date"
+                    value={sentFilters.dateFrom}
+                    onChange={(event) => setSentFilters((prev) => ({ ...prev, dateFrom: event.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                  />
+
+                  <TextField
+                    size="small"
+                    label="Data final"
+                    type="date"
+                    value={sentFilters.dateTo}
+                    onChange={(event) => setSentFilters((prev) => ({ ...prev, dateTo: event.target.value }))}
+                    InputLabelProps={{ shrink: true }}
+                  />
+
+                  <Button variant="contained" onClick={() => loadSentList(1, false, sentFilters)} disabled={sentLoading}>
+                    Atualizar
+                  </Button>
+                  <Button variant="outlined" onClick={clearSentFilters} disabled={sentLoading}>
+                    Limpar
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {sentError && <Alert severity="error">{sentError}</Alert>}
+
+            <Card sx={{ borderRadius: 3, border: '1px solid #E8E5DE', boxShadow: '0 4px 16px rgba(0,0,0,0.03)' }}>
+              <CardContent>
+                <Stack spacing={1.2}>
+                  {sentLoading && sentItems.length === 0 ? (
+                    <Box sx={{ py: 5, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>
+                  ) : null}
+
+                  {!sentLoading && sentItems.length === 0 ? (
+                    <Alert severity="info">Nenhum email enviado encontrado com os filtros atuais.</Alert>
+                  ) : null}
+
+                  {sentItems.map((item) => (
+                    <Box
+                      key={item.id}
+                      sx={{
+                        border: '1px solid #E5E7EB',
+                        borderRadius: 2,
+                        p: 1.4,
+                        backgroundColor: '#FFFFFF',
+                      }}
+                    >
+                      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }}>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Typography sx={{ fontWeight: 700, color: '#111827' }}>{formatSubject(item.subject)}</Typography>
+                          <Typography sx={{ color: '#6B7280', fontSize: 13 }}>
+                            De: {item.from_name ? `${item.from_name} <${item.from_email}>` : (item.from_email || '-')}
+                          </Typography>
+                          <Typography sx={{ color: '#6B7280', fontSize: 13 }}>
+                            Para: {item.to_email || '-'}
+                          </Typography>
+                          <Typography sx={{ color: '#6B7280', fontSize: 12 }}>
+                            Enviado em: {formatDateTime(item.created_at)}
+                          </Typography>
+                        </Box>
+
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+                          <SentStatusChip status={item.status} />
+                          <Chip size="small" label={formatAttachmentCount(item.attachment_count)} />
+                          <Chip size="small" label={item.admin_email || '-'} />
+                          <Button variant="outlined" size="small" onClick={() => { setSelectedSentEmail(item); setSentDetailsOpen(true); }}>
+                            Ver detalhes
+                          </Button>
+                        </Stack>
+                      </Stack>
+                    </Box>
+                  ))}
+
+                  <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1 }}>
+                    <Button
+                      variant="contained"
+                      onClick={() => loadSentList(sentPage + 1, true, sentFilters)}
+                      disabled={sentLoading || !sentHasMore}
+                    >
+                      {sentLoading && sentItems.length > 0 ? 'Carregando...' : sentHasMore ? 'Carregar mais' : 'Fim da lista'}
+                    </Button>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </Stack>
 
       <Dialog open={detailsOpen} onClose={closeDetails} fullWidth maxWidth="md">
@@ -670,6 +897,41 @@ export default function InstitutionalInboxPage() {
             <Button onClick={() => applyStatus('ARCHIVED')} disabled={statusSaving || !selectedEmail}>Arquivar</Button>
           </Stack>
           <Button onClick={closeDetails}>Fechar</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={sentDetailsOpen} onClose={() => { setSentDetailsOpen(false); setSelectedSentEmail(null); }} fullWidth maxWidth="md">
+        <DialogTitle>Detalhes do email enviado</DialogTitle>
+        <DialogContent dividers>
+          {selectedSentEmail ? (
+            <Stack spacing={1.2}>
+              <Typography><strong>Remetente completo:</strong> {selectedSentEmail.from_name ? `${selectedSentEmail.from_name} <${selectedSentEmail.from_email}>` : (selectedSentEmail.from_email || '-')}</Typography>
+              <Typography><strong>Destinatario:</strong> {selectedSentEmail.to_email || '-'}</Typography>
+              <Typography><strong>Assunto completo:</strong> {selectedSentEmail.subject || '-'}</Typography>
+              <Typography><strong>Data/hora:</strong> {formatDateTime(selectedSentEmail.created_at)}</Typography>
+              <Typography><strong>Status:</strong> {selectedSentEmail.status || '-'}</Typography>
+              <Typography><strong>Usuario admin:</strong> {selectedSentEmail.admin_email || '-'}</Typography>
+              <Typography><strong>Provider:</strong> {selectedSentEmail.provider || '-'}</Typography>
+              <Typography><strong>Provider message id:</strong> {selectedSentEmail.provider_message_id || '-'}</Typography>
+              <Typography><strong>Quantidade de anexos:</strong> {Number(selectedSentEmail.attachment_count || 0)}</Typography>
+
+              <BodyBlock
+                label="attachments_metadata"
+                value={selectedSentEmail.attachments_metadata ? JSON.stringify(selectedSentEmail.attachments_metadata, null, 2) : '-'}
+              />
+
+              {selectedSentEmail.error_message ? (
+                <Alert severity="error">
+                  <strong>error_message:</strong> {selectedSentEmail.error_message}
+                </Alert>
+              ) : null}
+            </Stack>
+          ) : (
+            <Alert severity="info">Selecione um email para ver os detalhes.</Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setSentDetailsOpen(false); setSelectedSentEmail(null); }}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Box>
