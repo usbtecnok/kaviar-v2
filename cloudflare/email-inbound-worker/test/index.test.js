@@ -354,14 +354,26 @@ test('ingestInboundMessage pula PUT/finalize quando status=AVAILABLE', async () 
 test('ingestInboundMessage faz PUT e finalize quando PENDING', async () => {
   let putCount = 0;
   let finalizeCount = 0;
+  let lastPutHeaders = null;
 
-  global.fetch = async (url) => {
+  global.fetch = async (url, options = {}) => {
     if (String(url).endsWith('/cloudflare')) return jsonResponse({ data: { id: 'inbound-1' } });
     if (String(url).endsWith('/request-upload')) {
-      return jsonResponse({ data: { attachment_id: 'att-1', upload_url: 'https://upload.test/1', status: 'PENDING' } });
+      return jsonResponse({
+        data: {
+          attachment_id: 'att-1',
+          upload_url: 'https://upload.test/1',
+          upload_headers: {
+            'content-type': 'application/pdf',
+            'x-amz-meta-sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          },
+          status: 'PENDING',
+        },
+      });
     }
     if (String(url).startsWith('https://upload.test/')) {
       putCount += 1;
+      lastPutHeaders = options.headers;
       return new Response('', { status: 200 });
     }
     if (String(url).includes('/finalize')) {
@@ -376,6 +388,74 @@ test('ingestInboundMessage faz PUT e finalize quando PENDING', async () => {
 
   assert.equal(putCount, 1);
   assert.equal(finalizeCount, 1);
+  assert.deepEqual(lastPutHeaders, {
+    'content-type': 'application/pdf',
+    'x-amz-meta-sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  });
+});
+
+test('ingestInboundMessage não inventa x-amz-meta-sha256 quando backend não retornar', async () => {
+  let lastPutHeaders = null;
+
+  global.fetch = async (url, options = {}) => {
+    if (String(url).endsWith('/cloudflare')) return jsonResponse({ data: { id: 'inbound-1' } });
+    if (String(url).endsWith('/request-upload')) {
+      return jsonResponse({
+        data: {
+          attachment_id: 'att-1',
+          upload_url: 'https://upload.test/1',
+          upload_headers: { 'content-type': 'application/pdf' },
+          status: 'PENDING',
+        },
+      });
+    }
+    if (String(url).startsWith('https://upload.test/')) {
+      lastPutHeaders = options.headers;
+      return new Response('', { status: 200 });
+    }
+    if (String(url).includes('/finalize')) return jsonResponse({ data: { status: 'AVAILABLE' } });
+    return jsonResponse({});
+  };
+
+  const raw = createMimeWithAttachments([{ filename: 'a.pdf', contentType: 'application/pdf', content: 'A' }]);
+  await ingestInboundMessage(createMessage({ raw }), env);
+
+  assert.deepEqual(lastPutHeaders, { 'content-type': 'application/pdf' });
+  assert.equal(Object.prototype.hasOwnProperty.call(lastPutHeaders, 'x-amz-meta-sha256'), false);
+});
+
+test('ingestInboundMessage não chama finalize quando upload retorna 403', async () => {
+  let finalizeCount = 0;
+
+  global.fetch = async (url) => {
+    if (String(url).endsWith('/cloudflare')) return jsonResponse({ data: { id: 'inbound-1' } });
+    if (String(url).endsWith('/request-upload')) {
+      return jsonResponse({
+        data: {
+          attachment_id: 'att-1',
+          upload_url: 'https://upload.test/1',
+          upload_headers: {},
+          status: 'PENDING',
+        },
+      });
+    }
+    if (String(url).startsWith('https://upload.test/')) {
+      return new Response('<Error><Code>AccessDenied</Code><Message>There were headers present in the request which were not signed</Message></Error>', {
+        status: 403,
+        headers: { 'Content-Type': 'application/xml' },
+      });
+    }
+    if (String(url).includes('/finalize')) {
+      finalizeCount += 1;
+      return jsonResponse({ data: { status: 'AVAILABLE' } });
+    }
+    return jsonResponse({});
+  };
+
+  const raw = createMimeWithAttachments([{ filename: 'a.pdf', contentType: 'application/pdf', content: 'A' }]);
+  await ingestInboundMessage(createMessage({ raw }), env);
+
+  assert.equal(finalizeCount, 0);
 });
 
 test('ingestInboundMessage isola falha de reserve e continua próximo anexo', async () => {

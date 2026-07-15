@@ -122,6 +122,23 @@ function safeAttachmentFilename(filename, index) {
   return sanitized || `attachment-${index + 1}.bin`;
 }
 
+function normalizeUploadHeaders(uploadHeaders) {
+  if (!uploadHeaders || typeof uploadHeaders !== 'object' || Array.isArray(uploadHeaders)) {
+    return {};
+  }
+
+  const normalized = {};
+  for (const [key, value] of Object.entries(uploadHeaders)) {
+    const headerName = String(key || '').trim();
+    if (!headerName) continue;
+    const lower = headerName.toLowerCase();
+    if (lower === 'authorization' || lower === 'cookie' || lower === 'set-cookie' || lower === 'host') continue;
+    normalized[headerName] = String(value ?? '');
+  }
+
+  return normalized;
+}
+
 export async function fetchJsonOrThrow(url, options = {}) {
   let response;
   try {
@@ -280,6 +297,7 @@ export async function ingestInboundMessage(message, env) {
       }
 
       const uploadUrl = reserveData.upload_url;
+      const uploadHeaders = normalizeUploadHeaders(reserveData.upload_headers);
       const attachmentId = reserveData.attachment_id;
       if (!uploadUrl || !attachmentId) {
         throw new Error('reserve_failed: missing upload_url or attachment_id');
@@ -287,10 +305,7 @@ export async function ingestInboundMessage(message, env) {
 
       const putResponse = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': attachment.contentType,
-          'x-amz-meta-sha256': attachment.sha256,
-        },
+        headers: uploadHeaders,
         body: attachment.bytes,
       });
 

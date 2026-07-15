@@ -211,8 +211,8 @@ router.post('/cloudflare/attachments/request-upload', async (req: Request, res: 
       success: true,
       data: {
         attachment_id: reserved.attachmentId,
-        storage_key: reserved.storageKey,
         upload_url: reserved.uploadUrl,
+        upload_headers: reserved.uploadHeaders,
         expires_in: reserved.expiresIn,
         status: reserved.status,
         reused: reserved.reused,

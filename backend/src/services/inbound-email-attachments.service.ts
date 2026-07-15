@@ -52,6 +52,7 @@ type ReserveUploadResult = {
   attachmentId: string;
   storageKey: string;
   uploadUrl: string | null;
+  uploadHeaders: Record<string, string> | null;
   expiresIn: number | null;
   status: string;
   reused: boolean;
@@ -63,6 +64,11 @@ export interface InboundAttachmentStorageHeadResult {
   contentType: string | null;
   metadata: Record<string, string>;
 }
+
+const PRESIGNED_UPLOAD_HEADER_VALUES: Record<string, (params: { contentType: string; sha256: string }) => string> = {
+  'content-type': ({ contentType }) => contentType,
+  'x-amz-meta-sha256': ({ sha256 }) => sha256,
+};
 
 export interface InboundAttachmentStorage {
   createPresignedPut(params: {
@@ -219,6 +225,38 @@ function buildStorageKey(inboundEmailId: string, attachmentId: string, extension
   return `inbound-email-attachments/${year}/${month}/${inboundEmailId}/${attachmentId}-${nonce}${extension}`;
 }
 
+function parseSignedHeadersFromPresignedUrl(uploadUrl: string): string[] {
+  try {
+    const url = new URL(uploadUrl);
+    const signedHeaders = String(url.searchParams.get('X-Amz-SignedHeaders') || '').trim().toLowerCase();
+    if (!signedHeaders) return [];
+    return signedHeaders
+      .split(';')
+      .map((value) => value.trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function buildUploadHeadersForPresignedPut(params: {
+  uploadUrl: string;
+  contentType: string;
+  sha256: string;
+}): Record<string, string> {
+  const signedHeaders = parseSignedHeadersFromPresignedUrl(params.uploadUrl);
+  const result: Record<string, string> = {};
+
+  for (const signedHeader of signedHeaders) {
+    if (signedHeader === 'host') continue;
+    const resolver = PRESIGNED_UPLOAD_HEADER_VALUES[signedHeader];
+    if (!resolver) continue;
+    result[signedHeader] = resolver({ contentType: params.contentType, sha256: params.sha256 });
+  }
+
+  return result;
+}
+
 export class InboundEmailAttachmentsService {
   constructor(private readonly storage: InboundAttachmentStorage = new S3InboundAttachmentStorage()) {}
 
@@ -260,6 +298,7 @@ export class InboundEmailAttachmentsService {
         attachmentId: params.attachmentId,
         storageKey: params.storageKey,
         uploadUrl: null,
+        uploadHeaders: null,
         expiresIn: null,
         status: STATUS_AVAILABLE,
         reused: params.reused,
@@ -273,11 +312,23 @@ export class InboundEmailAttachmentsService {
       sizeBytes: params.sizeBytes,
       sha256: params.sha256,
     });
+    const uploadHeaders = buildUploadHeadersForPresignedPut({
+      uploadUrl,
+      contentType: params.contentType,
+      sha256: params.sha256,
+    });
+
+    this.log('reserve_presign_contract', {
+      attachment_id: params.attachmentId,
+      signed_headers: parseSignedHeadersFromPresignedUrl(uploadUrl).join(';') || 'none',
+      upload_headers: Object.keys(uploadHeaders).join(';') || 'none',
+    });
 
     return {
       attachmentId: params.attachmentId,
       storageKey: params.storageKey,
       uploadUrl,
+      uploadHeaders,
       expiresIn: DEFAULT_UPLOAD_EXPIRATION_SECONDS,
       status: STATUS_PENDING,
       reused: params.reused,
@@ -454,6 +505,7 @@ export class InboundEmailAttachmentsService {
         id: true,
         inbound_email_id: true,
         storage_key: true,
+        content_type: true,
         size_bytes: true,
         sha256: true,
         status: true,
@@ -479,6 +531,12 @@ export class InboundEmailAttachmentsService {
 
     if (objectHead.contentLength !== attachment.size_bytes) {
       throw new InboundAttachmentValidationError('Objeto remoto com tamanho divergente do reservado.', 409);
+    }
+
+    const remoteContentType = String(objectHead.contentType || '').trim().toLowerCase();
+    const reservedContentType = String(attachment.content_type || '').trim().toLowerCase();
+    if (!remoteContentType || remoteContentType !== reservedContentType) {
+      throw new InboundAttachmentValidationError('Objeto remoto com content-type divergente do reservado.', 409);
     }
 
     if (remoteSha256 !== attachment.sha256) {

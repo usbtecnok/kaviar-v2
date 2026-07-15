@@ -103,6 +103,7 @@ describe('Inbound attachment presign contract', () => {
       id: 'attachment-1',
       inbound_email_id: 'email-1',
       storage_key: 'inbound-email-attachments/2026/07/email-1/attachment-1.pdf',
+      content_type: 'application/pdf',
       size_bytes: 2048,
       sha256: 'a'.repeat(64),
       status: 'PENDING',
@@ -121,7 +122,7 @@ describe('Inbound attachment presign contract', () => {
   });
 
   it('presign usa ContentType + Metadata.sha256 sem ContentLength/Body e cliente inbound usa WHEN_REQUIRED', async () => {
-    await service.reserveUpload({
+    const reserved = await service.reserveUpload({
       inboundEmailId: 'email-1',
       filename: 'guia.pdf',
       contentType: 'application/pdf',
@@ -142,6 +143,24 @@ describe('Inbound attachment presign contract', () => {
     expect(putObjectInputState.value.ContentLength).toBeUndefined();
     expect(putObjectInputState.value.Body).toBeUndefined();
     expect(getSignedUrlMock).toHaveBeenCalledOnce();
+    expect(reserved.uploadHeaders).toEqual({});
+  });
+
+  it('expõe upload_headers quando SignedHeaders exige content-type e metadata', async () => {
+    getSignedUrlMock.mockResolvedValueOnce('https://upload.test?X-Amz-SignedHeaders=content-type%3Bhost%3Bx-amz-meta-sha256');
+
+    const reserved = await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(reserved.uploadHeaders).toEqual({
+      'content-type': 'application/pdf',
+      'x-amz-meta-sha256': 'a'.repeat(64),
+    });
   });
 
   it('reserve continua validando sizeBytes', async () => {
@@ -149,7 +168,7 @@ describe('Inbound attachment presign contract', () => {
       inboundEmailId: 'email-1',
       filename: 'guia.pdf',
       contentType: 'application/pdf',
-      sizeBytes: 11 * 1024 * 1024,
+      sizeBytes: 16 * 1024 * 1024,
       sha256: 'a'.repeat(64),
     })).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({
       message: expect.stringContaining('limite individual'),
@@ -184,6 +203,22 @@ describe('Inbound attachment presign contract', () => {
       attachmentId: 'attachment-1',
     })).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({
       message: expect.stringContaining('sha256 divergente'),
+      statusCode: 409,
+    });
+  });
+
+  it('finalize continua rejeitando content-type remoto divergente', async () => {
+    headObjectState.value = {
+      ContentLength: 2048,
+      ContentType: 'image/png',
+      Metadata: { sha256: 'a'.repeat(64) },
+    };
+
+    await expect(service.finalizeUpload({
+      inboundEmailId: 'email-1',
+      attachmentId: 'attachment-1',
+    })).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({
+      message: expect.stringContaining('content-type divergente'),
       statusCode: 409,
     });
   });

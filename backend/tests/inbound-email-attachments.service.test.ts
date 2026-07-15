@@ -84,6 +84,7 @@ describe('InboundEmailAttachmentsService', () => {
     expect(result.status).toBe('PENDING');
     expect(result.reused).toBe(false);
     expect(result.alreadyAvailable).toBe(false);
+    expect(result.uploadHeaders).toEqual({});
   });
 
   it('replay idêntico PENDING retorna mesmo attachment_id e storage_key sem criar novo', async () => {
@@ -110,6 +111,7 @@ describe('InboundEmailAttachmentsService', () => {
     expect(result.reused).toBe(true);
     expect(result.alreadyAvailable).toBe(false);
     expect(result.uploadUrl).toBe('https://upload.test');
+    expect(result.uploadHeaders).toEqual({});
     expect(prismaMock.inbound_email_attachments.create).not.toHaveBeenCalled();
     expect(prismaMock.inbound_email_messages.update).not.toHaveBeenCalled();
     expect(prismaMock.inbound_email_attachments.aggregate).not.toHaveBeenCalled();
@@ -147,6 +149,8 @@ describe('InboundEmailAttachmentsService', () => {
 
     expect(first.uploadUrl).toBe('https://upload.test?first=1');
     expect(second.uploadUrl).toBe('https://upload.test?second=1');
+    expect(first.uploadHeaders).toEqual({});
+    expect(second.uploadHeaders).toEqual({});
   });
 
   it('AVAILABLE reutilizado retorna mesmo attachment_id, upload_url null e não exige finalize', async () => {
@@ -172,6 +176,7 @@ describe('InboundEmailAttachmentsService', () => {
     expect(result.reused).toBe(true);
     expect(result.alreadyAvailable).toBe(true);
     expect(result.uploadUrl).toBeNull();
+    expect(result.uploadHeaders).toBeNull();
     expect(result.expiresIn).toBeNull();
     expect(storage.createPresignedPut).not.toHaveBeenCalled();
   });

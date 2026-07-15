@@ -35,6 +35,7 @@ describe('inbound attachments reserve contract', () => {
       attachmentId: 'att-1',
       storageKey: 'inbound-email-attachments/key.pdf',
       uploadUrl: null,
+      uploadHeaders: null,
       expiresIn: null,
       status: 'AVAILABLE',
       reused: true,
@@ -57,12 +58,53 @@ describe('inbound attachments reserve contract', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual({
       attachment_id: 'att-1',
-      storage_key: 'inbound-email-attachments/key.pdf',
       upload_url: null,
+      upload_headers: null,
       expires_in: null,
       status: 'AVAILABLE',
       reused: true,
       already_available: true,
+    });
+  });
+
+  it('expõe upload_url e upload_headers quando status é PENDING', async () => {
+    reserveUploadMock.mockResolvedValueOnce({
+      attachmentId: 'att-2',
+      storageKey: 'inbound-email-attachments/key-2.pdf',
+      uploadUrl: 'https://upload.test/signed',
+      uploadHeaders: {
+        'content-type': 'application/pdf',
+        'x-amz-meta-sha256': 'b'.repeat(64),
+      },
+      expiresIn: 300,
+      status: 'PENDING',
+      reused: false,
+      alreadyAvailable: false,
+    });
+
+    const res = await request(app)
+      .post('/api/inbound/email/cloudflare/attachments/request-upload')
+      .set('X-KAVIAR-INBOUND-EMAIL-SECRET', 'secret-123')
+      .send({
+        inbound_email_id: '14d83fd9-1672-4f4f-a6bc-34ef78f1ea48',
+        filename: 'doc.pdf',
+        content_type: 'application/pdf',
+        size_bytes: 123,
+        sha256: 'a'.repeat(64),
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({
+      attachment_id: 'att-2',
+      upload_url: 'https://upload.test/signed',
+      upload_headers: {
+        'content-type': 'application/pdf',
+        'x-amz-meta-sha256': 'b'.repeat(64),
+      },
+      expires_in: 300,
+      status: 'PENDING',
+      reused: false,
+      already_available: false,
     });
   });
 });
