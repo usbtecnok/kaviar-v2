@@ -327,16 +327,12 @@ router.post('/recharge', async (req: Request, res: Response) => {
           `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} tags=${checkoutMethodsLower.join(',') || 'none'}`
         );
         if (!checkoutPixPaymentType) {
-          await pool.query("UPDATE wallet_recharges SET status='expired', updated_at=NOW() WHERE id=$1", [rechargeId]);
           console.warn(
             `[WALLET_PIX_SUMUP_STAGE] stage=checkout_payment_methods_no_pix driver=${driverId} recharge=${rechargeId} checkout=${checkout.id} tags=${checkoutMethodsLower.join(',') || 'none'}`
           );
-          return res.status(503).json({
-            success: false,
-            error: 'Pix pela SumUp indisponível no momento. Tente novamente em instantes.',
-          });
+        } else {
+          resolvedPixPaymentType = checkoutPixPaymentType;
         }
-        resolvedPixPaymentType = checkoutPixPaymentType;
       } catch (checkoutMethodsErr) {
         if (checkoutMethodsErr instanceof SumUpError) {
           console.warn(

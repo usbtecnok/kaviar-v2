@@ -147,7 +147,7 @@ describe('Wallet V2 SumUp payment method flow', () => {
 
   it('B) permite recarga quando merchant retorna pix', async () => {
     mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
-    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
     mockProcessSumUpCheckout.mockResolvedValue({
       id: 'sumup_checkout_1',
       status: 'PENDING',
@@ -288,6 +288,34 @@ describe('Wallet V2 SumUp payment method flow', () => {
 
     expect(res.status).toBe(503);
     expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
+    const expireCall = mockQuery.mock.calls.find((call: any[]) =>
+      typeof call[0] === 'string' &&
+      call[0].includes("UPDATE wallet_recharges SET status='expired'")
+    );
+    expect(expireCall).toBeTruthy();
+  });
+
+  it('G2) merchant pix + checkout card + falha no process pix expira recarga e retorna erro seguro', async () => {
+    mockGetSumUpMerchantPaymentMethods.mockResolvedValue([{ id: 'pix' }]);
+    mockGetSumUpCheckoutPaymentMethods.mockResolvedValue([{ id: 'card' }]);
+    mockProcessSumUpCheckout.mockRejectedValue(new TestSumUpError(422, 'Checkout não pôde ser processado pelo provedor.'));
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ enabled: true }] })
+      .mockResolvedValueOnce({ rows: [{ id: 'saldo-20', amount_cents: '2000', label: 'R$ 20' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rows: [{ c: '0' }] })
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({});
+
+    const res = await request(app)
+      .post('/api/v2/drivers/me/wallet/recharge')
+      .set(auth)
+      .send({ package_id: 'saldo-20', payment_provider: 'sumup', payment_method: 'pix' });
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('Pix pela SumUp indisponível no momento. Tente novamente em instantes.');
+    expect(mockProcessSumUpCheckout).toHaveBeenCalledWith('sumup_checkout_1', { payment_type: 'pix' });
+
     const expireCall = mockQuery.mock.calls.find((call: any[]) =>
       typeof call[0] === 'string' &&
       call[0].includes("UPDATE wallet_recharges SET status='expired'")
