@@ -365,7 +365,6 @@ test('ingestInboundMessage faz PUT e finalize quando PENDING', async () => {
           upload_url: 'https://upload.test/1',
           upload_headers: {
             'content-type': 'application/pdf',
-            'x-amz-meta-sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           },
           status: 'PENDING',
         },
@@ -390,8 +389,8 @@ test('ingestInboundMessage faz PUT e finalize quando PENDING', async () => {
   assert.equal(finalizeCount, 1);
   assert.deepEqual(lastPutHeaders, {
     'content-type': 'application/pdf',
-    'x-amz-meta-sha256': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   });
+  assert.equal(Object.prototype.hasOwnProperty.call(lastPutHeaders, 'x-amz-meta-sha256'), false);
 });
 
 test('ingestInboundMessage não inventa x-amz-meta-sha256 quando backend não retornar', async () => {

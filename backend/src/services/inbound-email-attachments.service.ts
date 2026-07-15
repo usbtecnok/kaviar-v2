@@ -245,7 +245,9 @@ function buildUploadHeadersForPresignedPut(params: {
   sha256: string;
 }): Record<string, string> {
   const signedHeaders = parseSignedHeadersFromPresignedUrl(params.uploadUrl);
-  const result: Record<string, string> = {};
+  const result: Record<string, string> = {
+    'content-type': params.contentType,
+  };
 
   for (const signedHeader of signedHeaders) {
     if (signedHeader === 'host') continue;
@@ -528,13 +530,22 @@ export class InboundEmailAttachmentsService {
 
     const objectHead = await this.storage.headObject(attachment.storage_key);
     const remoteSha256 = String(objectHead.metadata.sha256 || '').trim().toLowerCase();
+    const remoteContentType = String(objectHead.contentType || '').trim().toLowerCase();
+    const reservedContentType = String(attachment.content_type || '').trim().toLowerCase();
+
+    this.log('finalize_head_observed', {
+      attachment_id: attachment.id,
+      remote_content_type: remoteContentType || 'none',
+      reserved_content_type: reservedContentType || 'none',
+      remote_content_length: objectHead.contentLength ?? 'null',
+      reserved_size_bytes: attachment.size_bytes,
+      has_metadata_sha256: remoteSha256 ? 'true' : 'false',
+    });
 
     if (objectHead.contentLength !== attachment.size_bytes) {
       throw new InboundAttachmentValidationError('Objeto remoto com tamanho divergente do reservado.', 409);
     }
 
-    const remoteContentType = String(objectHead.contentType || '').trim().toLowerCase();
-    const reservedContentType = String(attachment.content_type || '').trim().toLowerCase();
     if (!remoteContentType || remoteContentType !== reservedContentType) {
       throw new InboundAttachmentValidationError('Objeto remoto com content-type divergente do reservado.', 409);
     }

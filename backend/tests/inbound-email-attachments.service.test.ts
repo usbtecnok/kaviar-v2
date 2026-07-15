@@ -84,7 +84,9 @@ describe('InboundEmailAttachmentsService', () => {
     expect(result.status).toBe('PENDING');
     expect(result.reused).toBe(false);
     expect(result.alreadyAvailable).toBe(false);
-    expect(result.uploadHeaders).toEqual({});
+    expect(result.uploadHeaders).toEqual({
+      'content-type': 'application/pdf',
+    });
   });
 
   it('replay idêntico PENDING retorna mesmo attachment_id e storage_key sem criar novo', async () => {
@@ -111,7 +113,9 @@ describe('InboundEmailAttachmentsService', () => {
     expect(result.reused).toBe(true);
     expect(result.alreadyAvailable).toBe(false);
     expect(result.uploadUrl).toBe('https://upload.test');
-    expect(result.uploadHeaders).toEqual({});
+    expect(result.uploadHeaders).toEqual({
+      'content-type': 'application/pdf',
+    });
     expect(prismaMock.inbound_email_attachments.create).not.toHaveBeenCalled();
     expect(prismaMock.inbound_email_messages.update).not.toHaveBeenCalled();
     expect(prismaMock.inbound_email_attachments.aggregate).not.toHaveBeenCalled();
@@ -149,8 +153,12 @@ describe('InboundEmailAttachmentsService', () => {
 
     expect(first.uploadUrl).toBe('https://upload.test?first=1');
     expect(second.uploadUrl).toBe('https://upload.test?second=1');
-    expect(first.uploadHeaders).toEqual({});
-    expect(second.uploadHeaders).toEqual({});
+    expect(first.uploadHeaders).toEqual({
+      'content-type': 'application/pdf',
+    });
+    expect(second.uploadHeaders).toEqual({
+      'content-type': 'application/pdf',
+    });
   });
 
   it('AVAILABLE reutilizado retorna mesmo attachment_id, upload_url null e não exige finalize', async () => {
@@ -342,6 +350,41 @@ describe('InboundEmailAttachmentsService', () => {
     expect(storage.headObject).toHaveBeenCalledWith('inbound-email-attachments/2026/07/email-1/attachment-1.pdf');
     expect(prismaMock.inbound_email_attachments.update).toHaveBeenCalledOnce();
     expect(result.status).toBe('AVAILABLE');
+  });
+
+  it('finalize permite image/png quando reservado e remoto coincidem', async () => {
+    prismaMock.inbound_email_attachments.findUnique.mockResolvedValueOnce({
+      id: 'attachment-png',
+      inbound_email_id: 'email-1',
+      storage_key: 'inbound-email-attachments/2026/07/email-1/attachment-png.png',
+      size_bytes: 1024,
+      sha256: 'b'.repeat(64),
+      status: 'PENDING',
+      filename: 'imagem.png',
+      content_type: 'image/png',
+    });
+    storage.headObject.mockResolvedValueOnce({
+      contentLength: 1024,
+      contentType: 'image/png',
+      metadata: { sha256: 'b'.repeat(64) },
+    });
+
+    const result = await service.finalizeUpload({ inboundEmailId: 'email-1', attachmentId: 'attachment-png' });
+    expect(result.status).toBe('AVAILABLE');
+  });
+
+  it('finalize rejeita application/octet-stream quando reservado é application/pdf', async () => {
+    storage.headObject.mockResolvedValueOnce({
+      contentLength: 2048,
+      contentType: 'application/octet-stream',
+      metadata: { sha256: 'a'.repeat(64) },
+    });
+
+    await expect(service.finalizeUpload({ inboundEmailId: 'email-1', attachmentId: 'attachment-1' })).rejects
+      .toMatchObject<Partial<InboundAttachmentValidationError>>({
+        statusCode: 409,
+        message: expect.stringContaining('content-type divergente'),
+      });
   });
 
   it('não gera download para attachment PENDING', async () => {

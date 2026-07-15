@@ -11,6 +11,7 @@ function parsePresigned(urlStr: string) {
   const url = new URL(urlStr);
   return {
     signedHeaders: url.searchParams.get('X-Amz-SignedHeaders') || '',
+    contentTypeQuery: url.searchParams.get('content-type'),
     checksumAlgorithm: url.searchParams.get('x-amz-sdk-checksum-algorithm'),
     checksumCrc32: url.searchParams.get('x-amz-checksum-crc32'),
     hasMetaSha: url.searchParams.has('x-amz-meta-sha256'),
@@ -38,6 +39,7 @@ describe('AWS SDK presigner checksum behavior (real SDK, no network)', () => {
     const parsed = parsePresigned(url);
 
     expect(parsed.signedHeaders).toBe('host');
+    expect(parsed.contentTypeQuery).toBeNull();
     expect(parsed.checksumAlgorithm).toBe('CRC32');
     expect(parsed.checksumCrc32).toBeTypeOf('string');
     expect(parsed.hasMetaSha).toBe(true);
@@ -54,6 +56,7 @@ describe('AWS SDK presigner checksum behavior (real SDK, no network)', () => {
     const parsed = parsePresigned(url);
 
     expect(parsed.signedHeaders).toBe('host');
+    expect(parsed.contentTypeQuery).toBeNull();
     expect(parsed.checksumAlgorithm).toBeNull();
     expect(parsed.checksumCrc32).toBeNull();
     expect(parsed.hasMetaSha).toBe(true);

@@ -143,10 +143,28 @@ describe('Inbound attachment presign contract', () => {
     expect(putObjectInputState.value.ContentLength).toBeUndefined();
     expect(putObjectInputState.value.Body).toBeUndefined();
     expect(getSignedUrlMock).toHaveBeenCalledOnce();
-    expect(reserved.uploadHeaders).toEqual({});
+    expect(reserved.uploadHeaders).toEqual({
+      'content-type': 'application/pdf',
+    });
   });
 
-  it('expõe upload_headers quando SignedHeaders exige content-type e metadata', async () => {
+  it('SignedHeaders=host ainda expõe content-type para preservar MIME no S3', async () => {
+    getSignedUrlMock.mockResolvedValueOnce('https://upload.test?X-Amz-SignedHeaders=host&x-amz-meta-sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+
+    const reserved = await service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 2048,
+      sha256: 'a'.repeat(64),
+    });
+
+    expect(reserved.uploadHeaders).toEqual({
+      'content-type': 'application/pdf',
+    });
+  });
+
+  it('expõe x-amz-meta-sha256 apenas quando SignedHeaders exige metadata', async () => {
     getSignedUrlMock.mockResolvedValueOnce('https://upload.test?X-Amz-SignedHeaders=content-type%3Bhost%3Bx-amz-meta-sha256');
 
     const reserved = await service.reserveUpload({
@@ -211,6 +229,22 @@ describe('Inbound attachment presign contract', () => {
     headObjectState.value = {
       ContentLength: 2048,
       ContentType: 'image/png',
+      Metadata: { sha256: 'a'.repeat(64) },
+    };
+
+    await expect(service.finalizeUpload({
+      inboundEmailId: 'email-1',
+      attachmentId: 'attachment-1',
+    })).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({
+      message: expect.stringContaining('content-type divergente'),
+      statusCode: 409,
+    });
+  });
+
+  it('finalize rejeita explicitamente remote application/octet-stream quando reservado é application/pdf', async () => {
+    headObjectState.value = {
+      ContentLength: 2048,
+      ContentType: 'application/octet-stream',
       Metadata: { sha256: 'a'.repeat(64) },
     };
 

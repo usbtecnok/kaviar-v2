@@ -74,7 +74,6 @@ describe('inbound attachments reserve contract', () => {
       uploadUrl: 'https://upload.test/signed',
       uploadHeaders: {
         'content-type': 'application/pdf',
-        'x-amz-meta-sha256': 'b'.repeat(64),
       },
       expiresIn: 300,
       status: 'PENDING',
@@ -99,7 +98,6 @@ describe('inbound attachments reserve contract', () => {
       upload_url: 'https://upload.test/signed',
       upload_headers: {
         'content-type': 'application/pdf',
-        'x-amz-meta-sha256': 'b'.repeat(64),
       },
       expires_in: 300,
       status: 'PENDING',
