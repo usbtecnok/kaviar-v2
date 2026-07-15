@@ -13,7 +13,8 @@ const DEFAULT_BUCKET = process.env.S3_UPLOADS_BUCKET || 'kaviar-uploads-84789536
 const DEFAULT_REGION = process.env.AWS_REGION || 'us-east-2';
 const DEFAULT_UPLOAD_EXPIRATION_SECONDS = 300;
 const DEFAULT_DOWNLOAD_EXPIRATION_SECONDS = 300;
-const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENTS_PER_EMAIL = 10;
+const MAX_ATTACHMENT_SIZE_BYTES = 15 * 1024 * 1024;
 const MAX_EMAIL_ATTACHMENTS_SIZE_BYTES = 25 * 1024 * 1024;
 
 const BLOCKED_EXTENSIONS = new Set([
@@ -221,6 +222,15 @@ function buildStorageKey(inboundEmailId: string, attachmentId: string, extension
 export class InboundEmailAttachmentsService {
   constructor(private readonly storage: InboundAttachmentStorage = new S3InboundAttachmentStorage()) {}
 
+  private log(event: string, data: Record<string, unknown>) {
+    const compact = Object.entries(data)
+      .filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => `${key}=${String(value)}`)
+      .join(' ');
+
+    console.info(`[INBOUND_EMAIL_ATTACHMENT] event=${event}${compact ? ` ${compact}` : ''}`);
+  }
+
   private async syncInboundEmailAttachmentState(inboundEmailId: string): Promise<void> {
     const count = await prisma.inbound_email_attachments.count({
       where: { inbound_email_id: inboundEmailId },
@@ -282,6 +292,13 @@ export class InboundEmailAttachmentsService {
     const sizeBytes = assertAllowedSize(input.sizeBytes);
     const sha256 = assertHexSha256(input.sha256);
 
+    this.log('reserve_start', {
+      inbound_email_id: inboundEmailId,
+      filename: sanitizedFilename,
+      mime: contentType,
+      size_bytes: sizeBytes,
+    });
+
     const inboundEmail = await prisma.inbound_email_messages.findUnique({
       where: { id: inboundEmailId },
       select: { id: true },
@@ -320,6 +337,20 @@ export class InboundEmailAttachmentsService {
       });
     }
 
+    const attachmentCount = await prisma.inbound_email_attachments.count({
+      where: { inbound_email_id: inboundEmailId },
+    });
+
+    if (attachmentCount >= MAX_ATTACHMENTS_PER_EMAIL) {
+      this.log('reserve_rejected_limit_count', {
+        inbound_email_id: inboundEmailId,
+        filename: sanitizedFilename,
+        count: attachmentCount,
+        max_attachments: MAX_ATTACHMENTS_PER_EMAIL,
+      });
+      throw new InboundAttachmentValidationError(`Email excede o limite de ${MAX_ATTACHMENTS_PER_EMAIL} anexos.`);
+    }
+
     const aggregate = await prisma.inbound_email_attachments.aggregate({
       where: { inbound_email_id: inboundEmailId },
       _sum: { size_bytes: true },
@@ -347,6 +378,16 @@ export class InboundEmailAttachmentsService {
       });
 
       await this.syncInboundEmailAttachmentState(inboundEmailId);
+
+      this.log('reserve_success', {
+        inbound_email_id: inboundEmailId,
+        attachment_id: attachmentId,
+        filename: sanitizedFilename,
+        mime: contentType,
+        size_bytes: sizeBytes,
+        storage_key: storageKey,
+        status: STATUS_PENDING,
+      });
 
       return this.buildReserveResponse({
         attachmentId,
@@ -384,6 +425,15 @@ export class InboundEmailAttachmentsService {
         throw new InboundAttachmentValidationError('Falha de concorrencia ao reservar anexo. Tente novamente.', 409);
       }
 
+      this.log('reserve_reused_after_race', {
+        inbound_email_id: inboundEmailId,
+        attachment_id: winner.id,
+        filename: sanitizedFilename,
+        mime: winner.content_type,
+        size_bytes: winner.size_bytes,
+        status: winner.status,
+      });
+
       return this.buildReserveResponse({
         attachmentId: winner.id,
         storageKey: winner.storage_key,
@@ -414,6 +464,12 @@ export class InboundEmailAttachmentsService {
       throw new InboundAttachmentValidationError('Attachment inbound nao encontrado.', 404);
     }
 
+    this.log('finalize_start', {
+      inbound_email_id: attachment.inbound_email_id,
+      attachment_id: attachment.id,
+      size_bytes: attachment.size_bytes,
+    });
+
     if (attachment.status !== STATUS_PENDING) {
       throw new InboundAttachmentValidationError('Attachment inbound ja finalizado.', 409);
     }
@@ -440,6 +496,12 @@ export class InboundEmailAttachmentsService {
     });
 
     await this.syncInboundEmailAttachmentState(attachment.inbound_email_id);
+
+    this.log('finalize_success', {
+      inbound_email_id: attachment.inbound_email_id,
+      attachment_id: updated.id,
+      status: updated.status,
+    });
 
     return updated;
   }
@@ -474,10 +536,50 @@ export class InboundEmailAttachmentsService {
       expiresIn: DEFAULT_DOWNLOAD_EXPIRATION_SECONDS,
     };
   }
+
+  async createDownloadUrlForMessage(inboundEmailId: string, attachmentId: string) {
+    const attachment = await prisma.inbound_email_attachments.findUnique({
+      where: { id: attachmentId },
+      select: {
+        id: true,
+        inbound_email_id: true,
+        filename: true,
+        content_type: true,
+        storage_key: true,
+        status: true,
+      },
+    });
+
+    if (!attachment || attachment.inbound_email_id !== inboundEmailId.trim() || attachment.status !== STATUS_AVAILABLE) {
+      throw new InboundAttachmentValidationError('Attachment indisponivel para download.', 404);
+    }
+
+    const url = await this.storage.createPresignedGet({
+      storageKey: attachment.storage_key,
+      filename: attachment.filename,
+      contentType: attachment.content_type,
+    });
+
+    this.log('download_url_created', {
+      inbound_email_id: inboundEmailId.trim(),
+      attachment_id: attachment.id,
+      filename: attachment.filename,
+      mime: attachment.content_type,
+    });
+
+    return {
+      id: attachment.id,
+      filename: attachment.filename,
+      contentType: attachment.content_type,
+      url,
+      expiresIn: DEFAULT_DOWNLOAD_EXPIRATION_SECONDS,
+    };
+  }
 }
 
 export const inboundEmailAttachmentsService = new InboundEmailAttachmentsService();
 export const inboundEmailAttachmentRules = {
+  maxAttachmentsPerEmail: MAX_ATTACHMENTS_PER_EMAIL,
   maxAttachmentSizeBytes: MAX_ATTACHMENT_SIZE_BYTES,
   maxEmailAttachmentsSizeBytes: MAX_EMAIL_ATTACHMENTS_SIZE_BYTES,
   blockedExtensions: [...BLOCKED_EXTENSIONS],

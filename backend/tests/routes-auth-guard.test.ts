@@ -13,6 +13,7 @@ const routes: { method: 'get' | 'post' | 'put'; path: string }[] = [
   { method: 'get',  path: '/api/passengers/fake/locations' },
   { method: 'get',  path: '/api/trips/fee-percentage' },
   { method: 'get',  path: '/api/admin/inbound-email-attachments/fake/download' },
+  { method: 'get',  path: '/api/admin/inbound-emails/fake/attachments/fake/download' },
   { method: 'post', path: '/api/admin/inbound-emails/fake/reply' },
   { method: 'get',  path: '/api/drivers/fake/neighborhood-stats' },
   { method: 'put',  path: '/api/admin/drivers/fake/photo-approve' },

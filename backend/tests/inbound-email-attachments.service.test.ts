@@ -314,9 +314,22 @@ describe('InboundEmailAttachmentsService', () => {
       inboundEmailId: 'email-1',
       filename: 'guia.pdf',
       contentType: 'application/pdf',
-      sizeBytes: 11 * 1024 * 1024,
+      sizeBytes: 16 * 1024 * 1024,
       sha256: 'a'.repeat(64),
     })).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({ message: expect.stringContaining('limite individual') });
+  });
+
+  it('rejeita quando email excede 10 anexos', async () => {
+    prismaMock.inbound_email_attachments.findFirst.mockResolvedValue(null);
+    prismaMock.inbound_email_attachments.count.mockResolvedValue(10);
+
+    await expect(service.reserveUpload({
+      inboundEmailId: 'email-1',
+      filename: 'guia.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 1024,
+      sha256: 'a'.repeat(64),
+    })).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({ message: expect.stringContaining('limite de 10 anexos') });
   });
 
   it('faz transição PENDING para AVAILABLE no finalize', async () => {
@@ -336,5 +349,21 @@ describe('InboundEmailAttachmentsService', () => {
     });
 
     await expect(service.createDownloadUrl('attachment-1')).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({ statusCode: 404 });
+  });
+
+  it('gera download apenas quando attachment pertence à mensagem informada', async () => {
+    prismaMock.inbound_email_attachments.findUnique.mockResolvedValueOnce({
+      id: 'attachment-1',
+      inbound_email_id: 'email-1',
+      filename: 'documento.pdf',
+      content_type: 'application/pdf',
+      storage_key: 'inbound-email-attachments/key',
+      status: 'AVAILABLE',
+    });
+
+    const result = await service.createDownloadUrlForMessage('email-1', 'attachment-1');
+    expect(result.url).toBe('https://download.test');
+
+    await expect(service.createDownloadUrlForMessage('email-2', 'attachment-1')).rejects.toMatchObject<Partial<InboundAttachmentValidationError>>({ statusCode: 404 });
   });
 });

@@ -1,30 +1,35 @@
 # Caixa de Entrada Institucional KAVIAR (v1)
 
 ## Escopo desta versão
-- Inbox institucional somente leitura no Admin KAVIAR.
+- Inbox institucional no Admin KAVIAR.
 - Ingestao de e-mails inbound via Cloudflare Email Worker.
 - Encaminhamento para Gmail preservado.
 - Sem Gmail API.
-- Sem resposta de e-mail pelo frontend.
-- Sem download/persistencia de anexos binarios.
+- Resposta de e-mail pelo frontend administrativo.
+- Persistencia real de anexos inbound com metadata no PostgreSQL e arquivo em S3 privado.
 
 ## Arquitetura
 1. Um e-mail chega em alias institucional (ex.: `suporte@kaviar.com.br`).
-2. Cloudflare Email Worker recebe a mensagem.
-3. Worker envia `POST` para backend KAVIAR em `/api/inbound/email/cloudflare` com header secreto.
+2. Cloudflare Email Worker recebe a mensagem e faz parse MIME com `postal-mime`.
+3. Worker envia `POST` para backend KAVIAR em `/api/inbound/email/cloudflare` com header secreto e metadata da mensagem.
 4. Backend valida segredo + payload e grava em `inbound_email_messages`.
-5. Worker continua fluxo e encaminha a mensagem para o Gmail atual.
-6. Admin consulta inbox em `/admin/inbox` via endpoints protegidos de Admin.
+5. Para cada anexo, o Worker reserva upload no backend, faz `PUT` em URL presignada do S3 e finaliza o attachment.
+6. Backend persiste metadata em `inbound_email_attachments` e marca o attachment como `AVAILABLE` apos validar tamanho + sha256.
+7. Worker continua fluxo e encaminha a mensagem para o Gmail atual.
+8. Admin consulta inbox em `/admin/inbox` via endpoints protegidos de Admin e obtém download seguro por URL assinada curta.
 
 ## Endpoints backend
 - Publico protegido por segredo:
   - `POST /api/inbound/email/cloudflare`
+  - `POST /api/inbound/email/cloudflare/attachments/request-upload`
+  - `POST /api/inbound/email/cloudflare/attachments/:attachmentId/finalize`
   - Header obrigatorio: `X-KAVIAR-INBOUND-EMAIL-SECRET`
   - Valida com `INBOUND_EMAIL_WEBHOOK_SECRET`
 
 - Admin protegido (`authenticateAdmin + requireSuperAdmin`):
   - `GET /api/admin/inbound-emails`
   - `GET /api/admin/inbound-emails/:id`
+  - `GET /api/admin/inbound-emails/:id/attachments/:attachmentId/download`
   - `PATCH /api/admin/inbound-emails/:id`
 
 ## Model Prisma
@@ -49,6 +54,19 @@ Campos principais:
 - `attachment_count`
 - `attachments_metadata` (JSON)
 - `raw_headers` (JSON)
+- `created_at`, `updated_at`
+
+Tabela: `inbound_email_attachments`
+
+Campos principais:
+- `id`
+- `inbound_email_id`
+- `filename`
+- `content_type`
+- `size_bytes`
+- `storage_key`
+- `sha256`
+- `status` (`PENDING`, `AVAILABLE`)
 - `created_at`, `updated_at`
 
 ## Variaveis de ambiente
@@ -96,16 +114,16 @@ curl -X POST http://localhost:3000/api/inbound/email/cloudflare \
 3. `npm run build`
 4. Abrir rota Admin: `/admin/inbox`
 
-## Migration (sem aplicar em producao agora)
-Migration criada:
+## Migrations relevantes
 - `backend/prisma/migrations/20260711153000_add_inbound_email_messages/migration.sql`
+- `backend/prisma/migrations/20260714001500_add_inbound_email_attachments/migration.sql`
+- `backend/prisma/migrations/20260714030000_add_inbound_attachment_idempotency_unique/migration.sql`
 
-Publicacao futura por etapas:
-1. Subir migration + schema e aprovar.
-2. Aplicar migration em producao.
-3. Publicar backend.
-4. Publicar frontend.
-5. Publicar Worker Cloudflare e regras de Email Routing.
+Publicacao por etapas:
+1. Aplicar migrations pendentes em producao, quando houver.
+2. Publicar backend.
+3. Publicar frontend.
+4. Publicar Worker Cloudflare e regras de Email Routing.
 
 ## Configuracao futura do Worker no Cloudflare
 1. Criar Worker com o codigo de `cloudflare/email-inbound-worker`.

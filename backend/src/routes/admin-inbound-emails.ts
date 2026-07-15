@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticateAdmin, requireSuperAdmin } from '../middlewares/auth';
 import { prisma } from '../lib/prisma';
 import { emailService } from '../services/email/email.service';
+import { InboundAttachmentValidationError, inboundEmailAttachmentsService } from '../services/inbound-email-attachments.service';
 import {
   EMAIL_LOG_STATUS,
   MAX_ATTACHMENTS,
@@ -253,6 +254,23 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     console.error('[ADMIN_INBOUND_EMAILS_GET_ERROR]', error);
     return res.status(500).json({ success: false, error: 'Erro ao carregar email inbound.' });
+  }
+});
+
+router.get('/:id/attachments/:attachmentId/download', async (req: Request, res: Response) => {
+  try {
+    const result = await inboundEmailAttachmentsService.createDownloadUrlForMessage(
+      String(req.params.id || ''),
+      String(req.params.attachmentId || '')
+    );
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof InboundAttachmentValidationError) {
+      return res.status(error.statusCode).json({ success: false, error: error.message });
+    }
+
+    console.error('[ADMIN_INBOUND_EMAILS_ATTACHMENT_DOWNLOAD_ERROR]', error);
+    return res.status(500).json({ success: false, error: 'Erro ao gerar download temporario do anexo.' });
   }
 });
 

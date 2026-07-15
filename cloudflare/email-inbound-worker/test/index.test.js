@@ -209,6 +209,29 @@ test('parseInboundEmail computa attachment_count e has_attachments', async () =>
   assert.equal(parsed.inboundPayload.attachments_metadata[0].filename, 'guia.pdf');
 });
 
+test('parseInboundEmail ignora anexo acima de 15 MB', async () => {
+  const largeContent = 'A'.repeat(15 * 1024 * 1024 + 1);
+  const raw = createMimeWithAttachments([{ filename: 'grande.pdf', contentType: 'application/pdf', content: largeContent }]);
+  const parsed = await parseInboundEmail(createMessage({ raw }));
+
+  assert.equal(parsed.attachments.length, 0);
+  assert.equal(parsed.inboundPayload.attachment_count, 0);
+});
+
+test('parseInboundEmail limita a 10 anexos por mensagem', async () => {
+  const items = Array.from({ length: 12 }, (_, index) => ({
+    filename: `doc-${index + 1}.pdf`,
+    contentType: 'application/pdf',
+    content: `PDF-${index + 1}`,
+  }));
+
+  const raw = createMimeWithAttachments(items);
+  const parsed = await parseInboundEmail(createMessage({ raw }));
+
+  assert.equal(parsed.attachments.length, 10);
+  assert.equal(parsed.inboundPayload.attachment_count, 10);
+});
+
 test('parseInboundEmail aceita message.raw como ReadableStream real e extrai text/html/pdf com bytes+sha corretos', async () => {
   const { mime, pdfBytes } = createMultipartAlternativeWithPdf();
   const message = createMessage({ raw: createReadableStreamFromString(mime, 17) });

@@ -81,6 +81,13 @@ function StatusChip({ status }) {
   );
 }
 
+function formatAttachmentCount(count) {
+  const safeCount = Number(count || 0);
+  if (safeCount <= 0) return 'Sem anexos';
+  if (safeCount === 1) return '1 anexo';
+  return `${safeCount} anexos`;
+}
+
 function BodyBlock({ label, value }) {
   return (
     <Box sx={{ mt: 1.5 }}>
@@ -164,8 +171,13 @@ export default function InstitutionalInboxPage() {
     setAttachmentDownloadId(attachmentId);
     setDetailsError('');
 
+    if (!selectedEmail?.id) {
+      setAttachmentDownloadId(null);
+      return;
+    }
+
     try {
-      const response = await api.get(`/api/admin/inbound-email-attachments/${attachmentId}/download`);
+      const response = await api.get(`/api/admin/inbound-emails/${selectedEmail.id}/attachments/${attachmentId}/download`);
       const url = response?.data?.data?.url;
       if (!url) {
         throw new Error('URL temporaria indisponivel.');
@@ -477,7 +489,7 @@ export default function InstitutionalInboxPage() {
 
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
                       <StatusChip status={item.status} />
-                      <Chip size="small" label={item.has_attachments ? `Anexos: ${item.attachment_count || 0}` : 'Sem anexos'} />
+                      <Chip size="small" label={formatAttachmentCount(item.attachment_count)} />
                       <Button variant="outlined" size="small" onClick={() => openDetails(item.id)}>
                         Ver detalhes
                       </Button>

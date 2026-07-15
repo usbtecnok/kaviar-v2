@@ -1,5 +1,9 @@
 import PostalMime from 'postal-mime';
 
+const MAX_ATTACHMENTS_PER_EMAIL = 10;
+const MAX_ATTACHMENT_SIZE_BYTES = 15 * 1024 * 1024;
+const MAX_EMAIL_ATTACHMENTS_SIZE_BYTES = 25 * 1024 * 1024;
+
 function normalizeHeaderMap(headers) {
   const raw = {};
   for (const [key, value] of headers) {
@@ -62,6 +66,7 @@ async function sha256Hex(bytes) {
 export async function buildAttachmentEntries(parsedAttachments) {
   const attachments = [];
   const source = Array.isArray(parsedAttachments) ? parsedAttachments : [];
+  let totalBytes = 0;
 
   for (let i = 0; i < source.length; i += 1) {
     const attachment = source[i];
@@ -73,7 +78,24 @@ export async function buildAttachmentEntries(parsedAttachments) {
     const filename = safeAttachmentFilename(attachment?.filename, i);
     const contentType = String(attachment?.mimeType || attachment?.contentType || 'application/octet-stream').trim() || 'application/octet-stream';
     const sizeBytes = bytes.byteLength;
+
+    if (attachments.length >= MAX_ATTACHMENTS_PER_EMAIL) {
+      console.log(`attachment_skipped reason=max_attachments filename=${filename}`);
+      continue;
+    }
+
+    if (sizeBytes > MAX_ATTACHMENT_SIZE_BYTES) {
+      console.log(`attachment_skipped reason=max_attachment_size filename=${filename} mime=${contentType} size_bytes=${sizeBytes}`);
+      continue;
+    }
+
+    if (totalBytes + sizeBytes > MAX_EMAIL_ATTACHMENTS_SIZE_BYTES) {
+      console.log(`attachment_skipped reason=max_email_attachments_size filename=${filename} mime=${contentType} size_bytes=${sizeBytes}`);
+      continue;
+    }
+
     const sha256 = await sha256Hex(bytes);
+    totalBytes += sizeBytes;
 
     attachments.push({
       index: i,
@@ -182,6 +204,8 @@ export async function parseInboundEmail(message) {
 
   const attachments = await buildAttachmentEntries(parsed.attachments);
 
+  console.log(`inbound_email_parsed message_id=${messageId || 'none'} attachments=${attachments.length}`);
+
   return {
     inboundPayload: {
       received_at: new Date().toISOString(),
@@ -229,6 +253,8 @@ export async function ingestInboundMessage(message, env) {
     const attachment = parsed.attachments[i];
 
     try {
+      console.log(`attachment_ingest_start message_id=${parsed.inboundPayload.message_id || 'none'} inbound_email_id=${inboundEmailId} idx=${i + 1} filename=${attachment.filename} mime=${attachment.contentType} size_bytes=${attachment.sizeBytes}`);
+
       const reserveResponse = await fetchJsonOrThrow(`${env.INBOUND_WEBHOOK_URL}/attachments/request-upload`, {
         method: 'POST',
         headers: {
@@ -249,6 +275,7 @@ export async function ingestInboundMessage(message, env) {
       const alreadyAvailable = reserveData.already_available === true || status === 'AVAILABLE';
 
       if (alreadyAvailable) {
+        console.log(`attachment_ingest_reused message_id=${parsed.inboundPayload.message_id || 'none'} inbound_email_id=${inboundEmailId} idx=${i + 1} filename=${attachment.filename} status=${status || 'AVAILABLE'}`);
         continue;
       }
 
@@ -284,9 +311,11 @@ export async function ingestInboundMessage(message, env) {
       if (finalizeStatus !== 'AVAILABLE') {
         throw new Error(`finalize_failed: unexpected status ${finalizeStatus || 'unknown'}`);
       }
+
+      console.log(`attachment_ingest_success message_id=${parsed.inboundPayload.message_id || 'none'} inbound_email_id=${inboundEmailId} idx=${i + 1} filename=${attachment.filename} mime=${attachment.contentType} size_bytes=${attachment.sizeBytes}`);
     } catch (error) {
       const reason = (error && error.message) || 'unknown_error';
-      console.log(`attachment_ingest_failed idx=${i + 1} filename=${attachment.filename} reason=${reason.slice(0, 180)}`);
+      console.log(`attachment_ingest_failed message_id=${parsed.inboundPayload.message_id || 'none'} inbound_email_id=${inboundEmailId} idx=${i + 1} filename=${attachment.filename} mime=${attachment.contentType} size_bytes=${attachment.sizeBytes} reason=${reason.slice(0, 180)}`);
     }
   }
 }
