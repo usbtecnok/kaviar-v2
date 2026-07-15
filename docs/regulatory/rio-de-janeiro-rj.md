@@ -1,82 +1,63 @@
-# Rio de Janeiro/RJ - Relatório regulatório preliminar
+# Rio de Janeiro/RJ - Relatorio regulatorio interno (KAVIAR)
 
-## Classificacao preliminar
+## Classificacao regulatoria interna
 
 - Municipio: Rio de Janeiro/RJ
 - Modalidade: CAR / transporte remunerado privado individual de passageiros por aplicativo
-- Status recomendado: REGULATED
-- Aplicacao no sistema: NAO APLICAR AINDA
-- Motivo: ha obrigacoes da plataforma KAVIAR que precisam ser resolvidas antes de qualquer bloqueio individual de motoristas.
-
-## Fontes oficiais
-
-- [Prefeitura do Rio - decreto sobre transporte por aplicativo](https://prefeitura.rio/fazenda/prefeitura-publica-decreto-para-regulamentar-transporte-por-aplicativo/)
-- [Prefeitura do Rio - regras de credenciamento de aplicativos e motoristas](https://prefeitura.rio/transportes/prefeitura-do-rio-publica-regras-de-credenciamento-de-aplicativos-e-motoristas/)
-- [Câmara Municipal do Rio - projeto sobre transporte por aplicativos](https://www.camara.rio/comunicacao/noticias/1428-projeto-que-regulamenta-transporte-por-aplicativos-comeca-a-ser-debatido)
-- [Câmara Municipal do Rio - pauta com regulamentacao de aplicativos de transporte](https://www.camara.rio/comunicacao/noticias/1480-pauta-semanal-projetos-sobre-licenciamento-de-construcoes-e-regulamentacao-de-aplicativos-de-transporte-voltam-a-ser-debatidos)
-
-## Base oficial identificada
-
-As fontes da Prefeitura informam que o Rio de Janeiro possui regulamentacao municipal para o transporte individual privado remunerado por aplicativo. A nota de 16/03/2021 afirma que a Prefeitura publicou decreto sobre o tema. A nota de 30/03/2021 informa que a SMTR e a Secretaria Municipal de Fazenda e Planejamento publicaram resolucao conjunta com credenciamento obrigatorio de empresas e motoristas.
-
-Na leitura disponivel da pagina oficial, aparece tambem a referencia ao Decreto Rio n° 48.612, de 15 de marco de 2021, citado como base de requisitos dos motoristas parceiros. A pagina oficial menciona ainda o Decreto Rio n° 48.666, de 26 de marco de 2021, como parte do ajuste regulatorio.
-
-## Matriz por ator
-
-### A. Plataforma / KAVIAR
-
-- Credenciamento publico no municipio.
-- Taxa de 1,5% sobre o valor total cobrado dos passageiros no mes anterior.
-- Pagamento via DARM.
-- Envio mensal de dados a SMTR.
-- Declaracao de conformidade dos motoristas.
-- Risco de advertencia, multa e suspensao do credenciamento em caso de descumprimento.
-
-### B. Motorista
-
-- Credenciamento gratuito junto a SMTR.
-- Validade do credenciamento ligada a CNH.
-- CNH categoria B ou superior com atividade remunerada.
-- Antecedentes criminais.
-- Inscricao como contribuinte individual no INSS e espelho do CNIS com ocupacao de motorista.
-- Seguros exigidos, incluindo APP, RC-F e DPVAT, conforme a fonte oficial consultada.
-
-### C. Veiculo
-
-- CRLV valido.
-- Idade maxima de 10 anos na fonte oficial mais recente consultada.
-- Minimo de 4 portas.
-- Capacidade maxima de 7 passageiros.
-- Declaracao do proprietario ou contrato de locacao quando aplicavel.
-
-## Decisao operacional recomendada
-
-- Nao tratar Rio de Janeiro como NOT_REQUIRED.
-- Nao bloquear motoristas do Rio automaticamente ainda.
-- Criar pendencia institucional separada para avaliar o credenciamento da plataforma KAVIAR.
-- Depois disso, cadastrar a regra municipal para motorista e veiculo, se a decisao interna for seguir com a aplicacao operacional completa.
-
-## Proposta futura de regra sistêmica, sem aplicar
-
-- city: Rio de Janeiro
-- state: RJ
-- modality: CAR
 - regulation_status: REGULATED
-- requires_city_approval: true
-- responsible_agency: Secretaria Municipal de Transportes do Rio de Janeiro - SMTR
-- platform_compliance_required: true
+- platform_compliance_status: AWAITING_SMTR_FORMAL_CONFIRMATION
+- Leitura operacional: existe materia sujeita a regulacao municipal, porem sem base vigente geral confirmada para reativar automaticamente as obrigacoes do regime de 2021.
 
-## Riscos
+## REGIME HISTORICO DE 2021 - DECRETO 48.612 REVOGADO EM 2023
 
-- Bloquear indevidamente motoristas antes de resolver o credenciamento da plataforma.
-- Misturar regra de transporte de passageiros com regra de entregas por aplicativo.
-- Usar regra antiga ou desatualizada.
-- Tratar noticia da Camara como lei vigente sem confirmacao no Diario Oficial.
+- O Decreto Rio no 48.612/2021 instituiu, em 2021, um regime com credenciamento, referencias arrecadatorias e envio de dados.
+- O Decreto Rio no 48.666/2021 alterou dispositivos do Decreto 48.612/2021.
+- A Resolucao Conjunta SMTR/SMFP no 048/2021 disciplinou fluxos operacionais associados ao regime de 2021.
+- Esse bloco historico deve ser preservado apenas como contexto documental, sem presuncao de vigencia operacional automatica em 2026.
 
-## Observacao operacional
+## DECRETO 51.934/2023
 
-Este documento e somente um relatorio de pesquisa. Nenhuma regra foi aplicada no sistema, nenhum cadastro foi alterado e nenhum bloqueio foi ativado.
+- O art. 1o do Decreto Rio no 51.934, de 13/01/2023, revogou expressamente o Decreto Rio no 48.612/2021.
+- Efeito interno: o decreto-base do regime geral de 2021 foi extinto para fins de suporte normativo primario.
 
-## Documento complementar
+## SITUACAO EM 15/07/2026
 
-- Ver analise institucional da plataforma em `docs/regulatory/rio-de-janeiro-platform-compliance.md`.
+- Decreto 48.612: REVOGADO.
+- Decreto 48.666: PERDA DE OBJETO NO REGIME ANALISADO.
+- Resolucao 048: VIGENCIA OPERACIONAL NAO CONFIRMADA.
+- CPPAPP: NAO CONFIRMADO COMO RITO ATUAL.
+- CPMAPP: NAO CONFIRMADO COMO RITO ATUAL.
+- 1,5%: SEM BASE VIGENTE ATUAL CONFIRMADA NA PESQUISA.
+- DARM especifico: NAO CONFIRMADO.
+- CSV mensal geral: NAO CONFIRMADO.
+- Regime CAR sucessor geral: NAO LOCALIZADO.
+- Consulta formal a SMTR: PENDENTE DE ENVIO.
+
+## REGIME SETORIAL DE MOTOCICLETAS
+
+- Decreto Rio no 57.000/2025.
+- Escopo especifico: condutores parceiros de motocicletas por aplicativos.
+- Diretriz interna: nao aplicar automaticamente esse decreto a modalidade CAR (automoveis).
+
+## Diretriz de aplicacao interna
+
+- Nao tratar obrigacoes do bloco de 2021 como vigentes por padrao em 2026.
+- Nao implementar automaticamente 1,5%, DARM, CSV mensal, CPPAPP ou CPMAPP sem confirmacao formal atual da SMTR.
+- Manter trilha de consulta institucional ativa para confirmacao de ato e canal atualmente aplicaveis.
+
+## Fontes primarias (DOWEB)
+
+- Decreto Rio no 48.612/2021 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/717127/4873.json
+- Decreto Rio no 48.612/2021 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/717127/4873
+- Decreto Rio no 48.666/2021 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/720524/4892.json
+- Decreto Rio no 48.666/2021 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/720524/4892
+- Resolucao Conjunta SMTR/SMFP no 048/2021 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/720509/4892.json
+- Resolucao Conjunta SMTR/SMFP no 048/2021 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/720509/4892
+- Decreto Rio no 51.934/2023 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/914525/5596.json
+- Decreto Rio no 51.934/2023 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/914525/5596
+- Decreto Rio no 57.000/2025 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/1208152/7634.json
+- Decreto Rio no 57.000/2025 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/1208152/7634
+
+## Observacao
+
+Documento interno de governanca regulatoria. Nao autoriza alteracao de regra em backend, frontend, app, banco, seed, CRM ou infraestrutura.

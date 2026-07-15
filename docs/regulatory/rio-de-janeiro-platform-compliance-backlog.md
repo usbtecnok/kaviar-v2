@@ -2,59 +2,59 @@
 
 ## Objetivo
 
-Registrar backlog de trabalho para compliance institucional da KAVIAR no municipio do Rio de Janeiro, sem executar alteracoes de produto nesta fase.
+Manter backlog institucional para o Rio (CAR) sem tratar como vigentes, em 2026, obrigacoes do regime historico de 2021 sem confirmacao formal atual.
 
-## Regras desta fase
+## Status de referencia
 
-- Backlog apenas documental.
-- Nenhuma alteracao em app/backend/CRM.
-- Nenhum bloqueio municipal em producao.
-- Nenhum deploy/OTA.
+- regulation_status: REGULATED
+- platform_compliance_status: AWAITING_SMTR_FORMAL_CONFIRMATION
 
-## Representacao legal da KAVIAR
+## REGIME HISTORICO DE 2021 - DECRETO 48.612 REVOGADO EM 2023
 
-O credenciamento institucional da plataforma no municipio do Rio de Janeiro deve ser realizado pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA por meio de seu socio-administrador ou por procurador formalmente autorizado. Gestores territoriais nao devem ser tratados como representantes legais da empresa para fins de protocolo, assinatura, credenciamento, obrigacao fiscal ou envio institucional de dados, salvo se houver procuracao especifica.
+- Registrar historico de 2021 para trilha de auditoria.
+- Nao usar historico de 2021 como gatilho automatico de obrigacoes correntes.
 
-- O credenciamento da plataforma e unico para o municipio do Rio de Janeiro.
-- O credenciamento da plataforma nao deve ser repetido por cada gestor territorial.
-- O cadastro individual de motoristas e obrigacao separada do credenciamento institucional da plataforma.
-- A atuacao de gestores territoriais no CRM e operacional e nao societaria/juridica.
+## DECRETO 51.934/2023
 
-## Prioridade P0 (obrigatorio antes de qualquer mudanca sistemica)
+- Registrar que o art. 1o revogou expressamente o Decreto Rio no 48.612/2021.
 
-- Confirmar canal oficial e rito de credenciamento da plataforma com SMTR.
-- Confirmar lista oficial de documentos exigidos para pessoa juridica.
-- Confirmar e documentar internamente o signatario legal (socio-administrador) ou procurador com poderes especificos.
-- Confirmar procedimento oficial de recolhimento da taxa de 1,5% (DARM).
-- Confirmar formato/canal/prazo do envio mensal de dados.
-- Obter numero de protocolo/processo e registrar rastreabilidade.
+## SITUACAO EM 15/07/2026
 
-## Prioridade P1 (preparacao interna apos confirmacoes oficiais)
+- Decreto 48.612: REVOGADO.
+- Decreto 48.666: PERDA DE OBJETO NO REGIME ANALISADO.
+- Resolucao 048: VIGENCIA OPERACIONAL NAO CONFIRMADA.
+- CPPAPP: NAO CONFIRMADO COMO RITO ATUAL.
+- CPMAPP: NAO CONFIRMADO COMO RITO ATUAL.
+- 1,5%: SEM BASE VIGENTE ATUAL CONFIRMADA NA PESQUISA.
+- DARM especifico: NAO CONFIRMADO.
+- CSV mensal geral: NAO CONFIRMADO.
+- Regime CAR sucessor geral: NAO LOCALIZADO.
+- Consulta formal a SMTR: PENDENTE DE ENVIO.
 
-- Fechar dossie societario e de representacao da empresa.
-- Fechar procedimento fiscal mensal (apuracao, emissao, pagamento, conciliacao).
-- Fechar especificacao de dados e controles LGPD para compartilhamento com ente publico.
-- Definir RACI interno (Juridico, Fiscal, DPO, Engenharia, Operacoes).
+## REGIME SETORIAL DE MOTOCICLETAS
 
-## Prioridade P2 (pronto para eventual implementacao futura)
+- Decreto Rio no 57.000/2025.
+- Tratar como escopo setorial de motocicletas, sem transposicao automatica para CAR.
 
-- Especificar requisitos funcionais para gate municipal de motoristas no RJ.
-- Especificar requisitos de observabilidade e auditoria do fluxo regulatorio.
-- Especificar plano de rollout e plano de contingencia operacional.
+## Prioridade P0
 
-## Dependencias externas
+- Protocolar consulta formal para confirmar ato e canal vigentes para CAR.
+- Obter resposta escrita da SMTR (ou orgao oficialmente indicado).
+- Consolidar matriz interna: confirmado x nao confirmado x inaplicavel.
+- Atualizar documentos internos com referencia ao ato formal indicado na resposta.
 
-- Retorno oficial de SMTR/Fazenda.
-- Publicacoes no Diario Oficial com eventuais atualizacoes normativas.
-- Estabilidade dos canais digitais oficiais (Carioca Digital, Processo.Rio, Atendimento Digital SMTR).
+## Prioridade P1
 
-## Riscos se pular etapas
+- Ajustar checklist documental para rito confirmado pela SMTR.
+- Ajustar minuta de oficio e perguntas conforme resposta oficial.
+- Formalizar parecer juridico-regulatorio interno de encerramento da pendencia.
 
-- Bloqueio de motoristas sem base institucional da plataforma.
-- Exposicao regulatoria por ausencia de credenciamento/rotina fiscal formalizada.
-- Exposicao LGPD por envio de dados sem especificacao oficial minima.
+## Prioridade P2 (fora desta fase documental)
 
-## Criterio de transicao para proxima fase
+- Se houver confirmacao formal e aprovacao interna, abrir frente separada para eventual especificacao tecnica.
 
-- Apenas apos cumprir todos os itens P0 com evidencia documental.
-- Decisao formal interna (Juridico + Operacoes) para abrir frente de implementacao tecnica.
+## Itens explicitamente fora de escopo nesta fase
+
+- Implementacao de 1,5%, DARM, CSV mensal geral, CPPAPP, CPMAPP.
+- Gate de motorista, bloqueio de veiculo ou automacoes municipais.
+- Qualquer alteracao em backend, frontend, app, prisma, migrations, banco, seed, CRM, workflows ou AWS.

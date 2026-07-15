@@ -2,122 +2,86 @@
 
 ## Objetivo do plano
 
-Preparar a KAVIAR para protocolar e confirmar o credenciamento institucional como plataforma de transporte remunerado privado individual de passageiros no municipio do Rio de Janeiro/RJ, antes de qualquer decisao de bloqueio municipal de motoristas.
+Conduzir somente a frente institucional de confirmacao formal com a SMTR para o escopo CAR, sem implementar regra automatica do regime historico de 2021.
 
-## Status atual
+## Status interno alvo
 
-- Status operacional: PLATFORM_COMPLIANCE_PENDING.
-- Decisao operacional vigente: nao bloquear motoristas do Rio ainda.
-- Escopo desta frente: somente documentacao e preparacao institucional.
+- regulation_status: REGULATED
+- platform_compliance_status: AWAITING_SMTR_FORMAL_CONFIRMATION
+- Decisao operacional vigente: nao implementar regras automaticas municipais do Rio ate confirmacao formal.
 
-## Representacao legal da KAVIAR
+## REGIME HISTORICO DE 2021 - DECRETO 48.612 REVOGADO EM 2023
 
-O credenciamento institucional da plataforma no municipio do Rio de Janeiro deve ser realizado pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA por meio de seu socio-administrador ou por procurador formalmente autorizado. Gestores territoriais nao devem ser tratados como representantes legais da empresa para fins de protocolo, assinatura, credenciamento, obrigacao fiscal ou envio institucional de dados, salvo se houver procuracao especifica.
+- Preservar o historico de 2021 apenas como referencia documental.
+- Nao assumir vigencia automatica de 1,5%, DARM, CPPAPP, CPMAPP ou CSV mensal geral com base exclusiva em atos de 2021.
 
-- O credenciamento da plataforma e unico para o municipio do Rio de Janeiro.
-- O credenciamento da plataforma nao deve ser repetido por cada gestor territorial.
-- O cadastro individual de motoristas e obrigacao separada do credenciamento institucional da plataforma.
-- A atuacao de gestores territoriais no CRM e operacional e nao societaria/juridica.
+## DECRETO 51.934/2023
 
-## Fontes oficiais de referencia
+- Registrar expressamente: art. 1o revogou o Decreto Rio no 48.612/2021.
+- Consequencia operacional: dependencias do decreto-base devem ser tratadas como nao confirmadas para 2026 ate resposta formal da SMTR.
 
-- https://prefeitura.rio/fazenda/prefeitura-publica-decreto-para-regulamentar-transporte-por-aplicativo/
-- https://prefeitura.rio/transportes/prefeitura-do-rio-publica-regras-de-credenciamento-de-aplicativos-e-motoristas/
-- https://transportes.prefeitura.rio/atendimentodigitalsmtr/
-- https://transportes.prefeitura.rio/consulta-de-andamento-de-processos/
-- https://carioca.rio/orgao/secretaria-municipal-de-transportes-smtr/
-- https://processo.rio/
-- http://doweb.rio.rj.gov.br/
+## SITUACAO EM 15/07/2026
 
-## Leitura consolidada por grau de certeza
+- Decreto 48.612: REVOGADO.
+- Decreto 48.666: PERDA DE OBJETO NO REGIME ANALISADO.
+- Resolucao 048: VIGENCIA OPERACIONAL NAO CONFIRMADA.
+- CPPAPP: NAO CONFIRMADO COMO RITO ATUAL.
+- CPMAPP: NAO CONFIRMADO COMO RITO ATUAL.
+- 1,5%: SEM BASE VIGENTE ATUAL CONFIRMADA NA PESQUISA.
+- DARM especifico: NAO CONFIRMADO.
+- CSV mensal geral: NAO CONFIRMADO.
+- Regime CAR sucessor geral: NAO LOCALIZADO.
+- Consulta formal a SMTR: PENDENTE DE ENVIO.
 
-## Confirmado por fonte oficial
+## REGIME SETORIAL DE MOTOCICLETAS
 
-- Existe regulacao municipal para transporte por aplicativo no Rio.
-- Existe obrigacao de credenciamento para plataformas e motoristas.
-- Existe taxa de 1,5% atribuida as plataformas, com referencia ao mes anterior.
-- Ha mencao de recolhimento por DARM e prazo ate o terceiro dia util de cada mes.
-- Ha obrigacao de envio mensal de dados a SMTR.
+- Decreto Rio no 57.000/2025.
+- Escopo restrito a motocicletas por aplicativos.
+- Nao aplicar automaticamente a modalidade CAR.
 
-## Pendente de confirmacao oficial especifica
+## Plano operacional em etapas
 
-- Canal unico e atualizado para protocolo de nova plataforma (servico exato e endpoint oficial).
-- Lista fechada de documentos exigidos para pessoa juridica neste tipo de credenciamento.
-- Layout tecnico oficial de envio de dados (arquivo, API, periodicidade, validacao).
-- Codigo de receita exato do DARM e procedimento operacional atualizado.
+## Etapa 1 - Dossie juridico-documental
 
-## Hipotese operacional KAVIAR
+- Consolidar documentos societarios e de representacao legal.
+- Consolidar memoria regulatoria com status de 15/07/2026.
+- Preparar oficio de consulta formal com perguntas objetivas sobre ato e canal vigentes para CAR.
 
-- Tratar onboarding institucional como fluxo SMTR + Fazenda (regulatorio + arrecadatorio).
-- Tratar go-live da cidade como dependente de compliance institucional minimo comprovado.
+## Etapa 2 - Protocolo e acompanhamento com SMTR
 
-## Responsaveis internos sugeridos
+- Protocolar consulta formal pelos canais oficiais disponiveis.
+- Registrar numero de protocolo/processo, data e responsavel interno.
+- Executar acompanhamento semanal ate resposta conclusiva.
 
-- Juridico regulatorio: liderar interpretacao normativa e oficio para SMTR.
-- Fiscal/financeiro: definir rotina de DARM e conciliacao mensal.
-- DPO/privacidade: validar base legal, minimizacao e controles LGPD.
-- Engenharia de dados: preparar extracao mensal e trilha de auditoria.
-- Operacoes/PM: coordenar cronograma, aprovacoes e gate de rollout.
+## Etapa 3 - Matriz de resposta regulatoria
 
-## Passo a passo operacional
+- Classificar cada bloco (credenciamento, dados, fiscal) como confirmado, nao confirmado ou inaplicavel.
+- Atualizar documentacao interna com referencia expressa ao ato indicado pela SMTR.
+- Submeter parecer final juridico-operacional para aprovacao interna.
 
-## Etapa 1 - Preparacao de dossie interno
+## Etapa 4 - Gate de implementacao (fora deste escopo)
 
-- Consolidar documentos societarios da empresa.
-- Consolidar descricao tecnica da plataforma.
-- Consolidar politica de conformidade de motoristas.
-- Consolidar minuta de declaracao de conformidade para envio mensal.
+- Somente com confirmacao formal e aprovacao interna discutir qualquer implementacao tecnica.
+- Esta etapa nao autoriza alteracoes de codigo nesta frente documental.
 
-## Etapa 2 - Consulta formal a SMTR
+## Fora de escopo explicito
 
-- Enviar lista oficial de perguntas (ver arquivo de perguntas SMTR).
-- Solicitar confirmacao de canal de protocolo e rito documental.
-- Solicitar referencia do ato normativo vigente aplicavel ao credenciamento da plataforma.
+- Implementar taxa de 1,5%.
+- Implementar DARM.
+- Implementar CSV mensal geral.
+- Implementar CPPAPP/CPMAPP.
+- Implementar gate de motorista ou bloqueio de veiculo.
+- Alterar backend, frontend, app mobile, prisma, migrations, banco, seed, CRM, workflows ou AWS.
 
-## Etapa 3 - Definicao de protocolo
+## Fontes primarias (DOWEB)
 
-- Abrir protocolo no canal oficial indicado.
-- Registrar numero de processo/protocolo, data, orgao e anexos enviados.
-- Definir responsavel de acompanhamento semanal ate resposta conclusiva.
-- Garantir que signatario e socio-administrador da empresa ou procurador formalmente constituido.
-
-## Etapa 4 - Rotina fiscal e de dados
-
-- Definir procedimento mensal da base de calculo da taxa de 1,5%.
-- Definir procedimento de emissao/pagamento DARM e guarda de comprovantes.
-- Definir rotina de exportacao e envio dos dados mensais exigidos.
-
-## Etapa 5 - Gate operacional
-
-- Nao ativar bloqueio por cidade antes de evidencia minima de compliance institucional.
-- Submeter parecer final para aprovacao executiva/juridica.
-- Somente apos aprovacao, discutir implementacao de regra no sistema.
-
-## Documentos necessarios (resumo)
-
-- Ver checklist completo em docs/regulatory/rio-de-janeiro-company-documents-checklist.md.
-
-## Pendencias que precisam confirmacao oficial
-
-- Nome do servico/canal oficial para credenciamento de plataforma de transporte por app.
-- Lista oficial de anexos obrigatorios da pessoa juridica.
-- Especificacao oficial do envio mensal de dados e formato.
-- Procedimento oficial de recolhimento da taxa com codigo DARM.
-
-## Criterios de saida desta frente
-
-- Perguntas formais enviadas e respondidas (ou protocolo de consulta em andamento com SLA).
-- Rito de credenciamento da plataforma claramente definido.
-- Rotina fiscal de taxa e rotina de dados mensais desenhadas.
-- Parecer interno recomendando proximo passo (seguir para implementacao ou manter pendencia).
-
-## Restricoes explicitas desta fase
-
-- Nao implementar regra municipal.
-- Nao bloquear motoristas do Rio.
-- Nao alterar backend/app/CRM.
-- Nao alterar seed.
-- Nao alterar banco.
-- Nao mexer em ENABLE_MUNICIPAL_REGULATORY_GATE.
-- Nao rodar deploy.
-- Nao publicar OTA.
+- Decreto Rio no 48.612/2021 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/717127/4873.json
+- Decreto Rio no 48.612/2021 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/717127/4873
+- Decreto Rio no 48.666/2021 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/720524/4892.json
+- Decreto Rio no 48.666/2021 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/720524/4892
+- Resolucao Conjunta SMTR/SMFP no 048/2021 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/720509/4892.json
+- Resolucao Conjunta SMTR/SMFP no 048/2021 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/720509/4892
+- Decreto Rio no 51.934/2023 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/914525/5596.json
+- Decreto Rio no 51.934/2023 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/914525/5596
+- Decreto Rio no 57.000/2025 (info): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_info/1208152/7634.json
+- Decreto Rio no 57.000/2025 (conteudo): https://doweb.rio.rj.gov.br/apifront/portal/edicoes/publicacoes_ver_conteudo/1208152/7634

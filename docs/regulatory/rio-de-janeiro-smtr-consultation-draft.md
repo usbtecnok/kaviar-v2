@@ -1,4 +1,4 @@
-# Rio de Janeiro/RJ - Minuta oficial de consulta para SMTR
+# Rio de Janeiro/RJ - Minuta de consulta formal para SMTR
 
 ## Identificacao da solicitante
 
@@ -6,20 +6,14 @@
 - CNPJ: 67.783.601/0001-99
 - Representante legal: Aparecido de Goes
 - Cargo: Socio-administrador
-- CPF: [preencher apenas na versao protocolada]
-- RG: [preencher apenas na versao protocolada]
-- Telefone: [preencher apenas na versao protocolada]
-- Endereco residencial: [preencher apenas na versao protocolada, se exigido]
-- Assunto: consulta formal sobre credenciamento de plataforma de transporte remunerado privado individual de passageiros por aplicativo no Municipio do Rio de Janeiro
+- Assunto: consulta formal sobre ato e canal vigentes para plataforma de transporte remunerado privado individual de passageiros por aplicativo (CAR)
 
-## Representacao legal da KAVIAR
+## Contexto regulatorio informado no oficio
 
-O credenciamento institucional da plataforma no municipio do Rio de Janeiro deve ser realizado pela KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA por meio de seu socio-administrador ou por procurador formalmente autorizado. Gestores territoriais nao devem ser tratados como representantes legais da empresa para fins de protocolo, assinatura, credenciamento, obrigacao fiscal ou envio institucional de dados, salvo se houver procuracao especifica.
-
-- O credenciamento da plataforma e unico para o municipio do Rio de Janeiro.
-- O credenciamento da plataforma nao deve ser repetido por cada gestor territorial.
-- O cadastro individual de motoristas e obrigacao separada do credenciamento institucional da plataforma.
-- A atuacao de gestores territoriais no CRM e operacional e nao societaria/juridica.
+- O Decreto Rio no 48.612/2021 foi revogado expressamente pelo art. 1o do Decreto Rio no 51.934/2023.
+- O Decreto Rio no 48.666/2021 teve perda de objeto no regime analisado apos a revogacao do decreto-base.
+- A Resolucao Conjunta SMTR/SMFP no 048/2021 nao teve revogacao expressa localizada, mas sua vigencia operacional atual para CAR nao esta confirmada.
+- Em 15/07/2026, a KAVIAR nao localizou ato sucessor geral confirmado para CAR restabelecendo CPPAPP, CPMAPP, 1,5%, DARM especifico e CSV mensal geral nos moldes de 2021.
 
 ## Minuta de oficio
 
@@ -29,40 +23,28 @@ Prefeitura da Cidade do Rio de Janeiro
 
 Prezados(as),
 
-A KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, pessoa juridica de direito privado, por seu socio-administrador ou procurador formalmente constituido, vem, respeitosamente, apresentar CONSULTA FORMAL para orientacao oficial acerca do credenciamento institucional da plataforma de transporte remunerado privado individual de passageiros por aplicativo no Municipio do Rio de Janeiro.
+A KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA, por seu socio-administrador ou procurador formalmente constituido, apresenta CONSULTA FORMAL para confirmacao escrita do ato normativo e do canal atualmente aplicaveis ao credenciamento institucional de plataforma de transporte remunerado privado individual de passageiros por aplicativo no Municipio do Rio de Janeiro (modalidade CAR).
 
-O objetivo desta consulta e obter confirmacao escrita dos requisitos atualmente vigentes para regularizacao da plataforma, de modo a garantir cumprimento regulatorio, fiscal e de governanca de dados, antes de qualquer inicio de operacao efetiva no municipio.
+Solicitamos, por gentileza, resposta oficial aos pontos abaixo:
 
-Considerando as referencias normativas e comunicados oficiais da Prefeitura e da SMTR sobre credenciamento de plataformas e motoristas, recolhimento de taxa municipal e envio mensal de informacoes, solicitamos, por gentileza, resposta oficial aos seguintes pontos:
-
-1. Qual e o canal correto e oficial para protocolo do pedido de credenciamento de nova plataforma de transporte por aplicativo no municipio?
-2. Quais documentos sao exigidos atualmente para o credenciamento da plataforma (pessoa juridica), incluindo anexos obrigatorios e eventuais formularios padrao?
-3. Qual e o procedimento oficial para recolhimento da taxa municipal de 1,5%, incluindo base de calculo, competencia, prazo e orientacao de emissao/pagamento via DARM?
-4. Qual e o formato oficial para envio mensal de dados a SMTR, com indicacao de canal de transmissao, layout/campos obrigatorios, periodicidade, regras de validacao e eventual retificacao?
-5. E permitido protocolar o credenciamento da plataforma antes do inicio da operacao efetiva no municipio?
-6. E permitido cadastrar motoristas para futura operacao local antes da conclusao do credenciamento institucional da plataforma, ou a regularizacao da plataforma e requisito previo?
-7. Solicitamos confirmacao formal de que os requisitos informados nesta resposta correspondem ao regramento vigente na data da resposta, com indicacao dos atos normativos aplicaveis.
-
-Solicitamos, ainda, se possivel, indicacao do setor responsavel para acompanhamento tecnico do tema e do canal oficial para tratativas complementares.
-
-Permanecemos a disposicao para envio imediato da documentacao societaria e tecnica que venha a ser indicada por esse orgao.
+1. Qual e o ato normativo atualmente aplicavel ao credenciamento institucional da plataforma (escopo CAR)?
+2. Qual e o canal oficial atual para protocolo e acompanhamento desse pedido?
+3. Ha rito atualmente vigente equivalente a CPPAPP e CPMAPP? Em caso positivo, indicar fundamento e procedimento.
+4. Ha obrigacao atualmente vigente de recolhimento especifico (incluindo eventual 1,5% e DARM) para escopo CAR? Em caso positivo, informar fundamento, base de calculo, competencia e prazo.
+5. Ha obrigacao atualmente vigente de envio mensal geral de dados/CSV para escopo CAR? Em caso positivo, informar canal, layout, periodicidade e regras de validacao.
+6. Existe orientacao oficial sobre dependencia entre regularizacao institucional da plataforma e eventual regularizacao individual de condutores no escopo CAR?
+7. Solicitamos confirmacao de que a resposta reflete o regramento vigente na data de emissao, com referencia expressa aos atos aplicaveis.
 
 Atenciosamente,
 
 KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
 Representante legal: Aparecido de Goes
 Cargo: Socio-administrador
-CPF: [preencher apenas na versao protocolada]
-RG: [preencher apenas na versao protocolada]
-E-mail para retorno: [preencher]
-Telefone: [preencher apenas na versao protocolada]
-Endereco residencial: [preencher apenas na versao protocolada, se exigido]
 Data: [preencher]
 
-## Observacoes internas de uso
+## Observacoes internas
 
 - Documento preparatorio para protocolo institucional.
-- Por seguranca e LGPD, dados pessoais do representante legal devem ser preenchidos somente na versao final enviada/protocolada perante o orgao publico, nao nesta minuta versionada no repositorio.
 - Nao aplicar regra no sistema com base apenas nesta minuta.
 - Nao bloquear motoristas com base apenas nesta minuta.
-- Nao alterar backend, app, CRM, seed, banco ou flags nesta frente.
+- Nao alterar backend, app, CRM, banco, seed ou flags nesta frente.

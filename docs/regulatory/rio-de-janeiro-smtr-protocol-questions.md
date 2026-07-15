@@ -2,45 +2,35 @@
 
 ## Uso do documento
 
-Este roteiro serve para abertura de consulta formal institucional da KAVIAR junto aos canais oficiais da Prefeitura do Rio/SMTR/Fazenda.
+Roteiro para consulta formal institucional da KAVIAR junto aos canais oficiais da Prefeitura/SMTR, com foco em confirmar o regime vigente para CAR em 2026.
 
-## Contexto minimo para cabecalho do oficio
+## Contexto minimo para cabecalho
 
-- Empresa: KAVIAR LTDA.
-- Objeto: orientacao oficial para credenciamento de plataforma de transporte remunerado privado individual de passageiros por aplicativo no municipio do Rio de Janeiro.
-- Finalidade: cumprir obrigacoes institucionais antes de ativacao operacional de bloqueio municipal no sistema interno.
+- Empresa: KAVIAR TECNOLOGIA E SERVICOS DIGITAIS LTDA
+- Objeto: confirmacao formal de ato e canal vigentes para credenciamento de plataforma (CAR)
+- Referencia de auditoria: Decreto 48.612 revogado pelo Decreto 51.934; vigencia operacional da Resolucao 048 nao confirmada para CAR
 
 ## Perguntas principais
 
-1. Qual e o canal oficial atual para credenciamento de nova plataforma de transporte por aplicativo?
-2. O credenciamento ocorre via Carioca Digital, Processo.Rio, Atendimento Digital SMTR, e-mail, protocolo fisico ou outro canal?
-3. Qual e o orgao responsavel principal pelo credenciamento da plataforma: SMTR, Fazenda ou fluxo conjunto?
-4. Quais documentos obrigatorios a KAVIAR LTDA deve apresentar para protocolo inicial?
-5. A KAVIAR pode protocolar o credenciamento antes de iniciar operacao efetiva no municipio?
-6. Qual e o procedimento oficial de recolhimento da taxa de 1,5%?
-7. Qual codigo de receita e parametrizacao correta no DARM para esta obrigacao?
-8. A base de calculo de 1,5% incide sobre qual conceito de valor (bruto total de corridas, base ajustada ou outro)?
-9. O recolhimento e sempre sobre a competencia do mes anterior? Qual data limite oficial?
-10. Como deve ser feito o envio mensal de dados a SMTR (canal, periodicidade e responsavel)?
-11. Existe layout oficial de arquivo (campos, tipo, formato, validacao e versao)?
-12. Existe ambiente de testes/homologacao para o envio de dados da plataforma?
-13. Quais penalidades sao aplicaveis por atraso, omissao de dados ou operacao sem credenciamento?
-14. O motorista so pode operar apos credenciamento individual municipal?
-15. A aprovacao/regularizacao da plataforma deve ocorrer antes do cadastro individual de motoristas para operacao local?
-16. Existe ato normativo mais recente que substitui ou complementa as regras de 2021 para plataformas?
-17. Existe contato tecnico oficial para integracao de dados e duvidas de formato?
-
-## Anexos recomendados ao envio das perguntas
-
-- Carta da empresa assinada por representante legal.
-- Cartao CNPJ.
-- Breve descricao do servico da plataforma.
-- Contato tecnico e juridico para retorno.
+1. Qual e o ato normativo atualmente aplicavel ao credenciamento institucional de plataforma no escopo CAR?
+2. Qual e o canal oficial para protocolo e acompanhamento (Carioca Digital, Processo.Rio, Atendimento Digital SMTR ou outro)?
+3. O rito atualmente vigente para CAR contempla procedimento equivalente a CPPAPP e CPMAPP? Se sim, qual fundamento e passo a passo?
+4. Quais documentos obrigatorios devem acompanhar o protocolo inicial da pessoa juridica?
+5. A plataforma pode protocolar o credenciamento antes do inicio da operacao?
+6. Existe obrigacao arrecadatoria especifica vigente para CAR (incluindo eventual 1,5%)? Qual o fundamento?
+7. Caso exista obrigacao arrecadatoria, qual o procedimento oficial (inclusive eventual DARM, codigo, competencia e prazo)?
+8. Existe obrigacao vigente de envio mensal geral de dados para CAR? Se sim, qual canal e periodicidade?
+9. Existe layout oficial (campos, formato, validacao, versao e retificacao)?
+10. Existe ambiente de testes/homologacao para transmissao de dados da plataforma?
+11. Quais penalidades se aplicam para descumprimento no escopo CAR, com base no ato vigente informado?
+12. A regularizacao institucional da plataforma e requisito previo para qualquer regularizacao individual de condutores no escopo CAR?
+13. Existe ato normativo mais recente que substitui ou complemente formalmente o regime geral de 2021 para automoveis?
+14. Qual e o contato tecnico oficial para duvidas de integracao de dados e acompanhamento regulatorio?
 
 ## Resultado esperado do protocolo
 
-- Confirmacao escrita de canal e rito de credenciamento.
-- Confirmacao escrita de documentos exigidos.
-- Confirmacao escrita de regra de taxa/DARM.
-- Confirmacao escrita de layout e canal de envio de dados.
-- Confirmacao escrita sobre dependencia entre compliance de plataforma e compliance de motorista.
+- Confirmacao escrita de ato vigente e canal oficial.
+- Confirmacao escrita de requisitos documentais.
+- Confirmacao escrita sobre existencia (ou inexistencia) de obrigacao arrecadatoria especifica para CAR.
+- Confirmacao escrita sobre existencia (ou inexistencia) de envio mensal geral de dados para CAR.
+- Confirmacao escrita sobre dependencia entre compliance institucional da plataforma e eventuais requisitos de condutores.
