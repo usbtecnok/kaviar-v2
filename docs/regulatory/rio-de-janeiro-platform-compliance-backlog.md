@@ -29,7 +29,9 @@ Manter backlog institucional para o Rio (CAR) sem tratar como vigentes, em 2026,
 - DARM especifico: NAO CONFIRMADO.
 - CSV mensal geral: NAO CONFIRMADO.
 - Regime CAR sucessor geral: NAO LOCALIZADO.
-- Consulta formal a SMTR: PENDENTE DE ENVIO.
+- Consulta formal a SMTR: EM ANDAMENTO.
+
+Evidencia de envio institucional: ver `docs/regulatory/rio-de-janeiro-platform-compliance.md`.
 
 ## REGIME SETORIAL DE MOTOCICLETAS
 

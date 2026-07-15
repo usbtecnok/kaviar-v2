@@ -43,7 +43,15 @@
 - DARM especifico: NAO CONFIRMADO.
 - CSV mensal geral: NAO CONFIRMADO.
 - Regime CAR sucessor geral: NAO LOCALIZADO.
-- Consulta formal a SMTR: PENDENTE DE ENVIO.
+- Consulta formal a SMTR: EM ANDAMENTO.
+
+## Evidencia documental do envio institucional
+
+- Data real do envio (UTC): 2026-07-15T20:09:21.134Z (campo `created_at` em `email_send_logs`, status `SENT`).
+- Destinatario: gabinete.smtr@prefeitura.rio.
+- Assunto: Enquadramento regulatorio atual para credenciamento de plataforma de transporte privado por aplicativo.
+- Situacao: KAVIAR aguarda resposta formal da SMTR.
+- Proximo passo: analisar a resposta e atualizar a matriz regulatoria antes de qualquer implementacao tecnica.
 
 ## REGIME SETORIAL DE MOTOCICLETAS
 

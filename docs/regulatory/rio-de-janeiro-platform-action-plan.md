@@ -31,7 +31,9 @@ Conduzir somente a frente institucional de confirmacao formal com a SMTR para o 
 - DARM especifico: NAO CONFIRMADO.
 - CSV mensal geral: NAO CONFIRMADO.
 - Regime CAR sucessor geral: NAO LOCALIZADO.
-- Consulta formal a SMTR: PENDENTE DE ENVIO.
+- Consulta formal a SMTR: EM ANDAMENTO.
+
+Evidencia de envio institucional: ver `docs/regulatory/rio-de-janeiro-platform-compliance.md`.
 
 ## REGIME SETORIAL DE MOTOCICLETAS
 
