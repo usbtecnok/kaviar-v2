@@ -1,4 +1,5 @@
 import { pool } from '../../db';
+import { PoolClient } from 'pg';
 import { getSumUpCheckout } from '../sumup-service';
 import { WalletService } from './wallet.service';
 import { FeeSplitService } from './fee-split.service';
@@ -18,11 +19,17 @@ export type SumUpRechargeReconcileResult = {
   credited: boolean;
 };
 
-async function applyRechargeConfirmation(recharge: { id: string; driver_id: string; amount_cents: number | string }): Promise<void> {
+async function applyRechargeCreditAtomic(
+  recharge: { id: string; driver_id: string; amount_cents: number | string },
+  client?: PoolClient
+): Promise<void> {
   const amountCents = Number(recharge.amount_cents);
-  await walletService.ensureWallet(recharge.driver_id);
-  await walletService.creditRecharge(recharge.driver_id, BigInt(amountCents), recharge.id);
+  await walletService.ensureWallet(recharge.driver_id, client);
+  await walletService.creditRecharge(recharge.driver_id, BigInt(amountCents), recharge.id, client);
+}
 
+async function applyRechargePostConfirmation(recharge: { id: string; driver_id: string; amount_cents: number | string }): Promise<void> {
+  const amountCents = Number(recharge.amount_cents);
   try {
     const frPercent = parseInt(process.env.FAMILY_RETURN_PERCENT || '0', 10);
     const frFlag = await pool.query("SELECT enabled FROM feature_flags WHERE key = 'FAMILY_RETURN_ENABLED' LIMIT 1");
@@ -91,29 +98,72 @@ export async function reconcileSumUpRechargeById(rechargeId: string, expectedDri
   const checkoutStatus = String(checkout.status || '').toUpperCase();
 
   if (checkoutStatus === 'PAID') {
-    const confirmed = await pool.query(
-      "UPDATE wallet_recharges SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW() WHERE id = $1 AND status = 'pending' RETURNING id, driver_id, amount_cents",
-      [row.id]
-    );
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    if (confirmed.rows[0]) {
-      await applyRechargeConfirmation(confirmed.rows[0]);
+      const locked = await client.query(
+        'SELECT id, driver_id, amount_cents, status, payment_provider, external_id FROM wallet_recharges WHERE id = $1 FOR UPDATE',
+        [row.id]
+      );
+      const lockedRow = locked.rows[0];
+
+      if (!lockedRow) {
+        await client.query('COMMIT');
       return {
-        recharge_id: row.id,
+          recharge_id: rechargeId,
+          previous_status: 'not_found',
+          checkout_status: null,
+          final_status: 'not_found',
+          credited: false,
+        };
+      }
+
+      if (lockedRow.payment_provider !== 'sumup') {
+        await client.query('COMMIT');
+        return {
+          recharge_id: lockedRow.id,
+          previous_status: String(lockedRow.status || ''),
+          checkout_status: null,
+          final_status: 'ignored',
+          credited: false,
+        };
+      }
+
+      if (lockedRow.status !== 'pending' || !lockedRow.external_id) {
+        await client.query('COMMIT');
+        return {
+          recharge_id: lockedRow.id,
+          previous_status: String(lockedRow.status || ''),
+          checkout_status: null,
+          final_status: lockedRow.status === 'confirmed' ? 'confirmed' : lockedRow.status === 'expired' ? 'expired' : 'pending',
+          credited: false,
+        };
+      }
+
+      await applyRechargeCreditAtomic(lockedRow, client);
+
+      await client.query(
+        "UPDATE wallet_recharges SET status = 'confirmed', confirmed_at = NOW(), updated_at = NOW() WHERE id = $1 AND status = 'pending'",
+        [lockedRow.id]
+      );
+
+      await client.query('COMMIT');
+      await applyRechargePostConfirmation(lockedRow);
+
+      return {
+        recharge_id: lockedRow.id,
         previous_status: 'pending',
         checkout_status: checkoutStatus,
         final_status: 'confirmed',
         credited: true,
       };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    return {
-      recharge_id: row.id,
-      previous_status: 'pending',
-      checkout_status: checkoutStatus,
-      final_status: 'confirmed',
-      credited: false,
-    };
   }
 
   if (checkoutStatus === 'FAILED' || checkoutStatus === 'EXPIRED' || checkoutStatus === 'CANCELLED') {

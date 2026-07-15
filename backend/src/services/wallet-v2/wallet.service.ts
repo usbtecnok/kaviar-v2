@@ -1,5 +1,7 @@
 import { Pool, PoolClient } from 'pg';
 
+type Queryable = Pick<PoolClient, 'query'>;
+
 export interface WalletBalance {
   balance_cents: bigint;
   reserved_cents: bigint;
@@ -16,8 +18,9 @@ export interface LedgerEntry {
 export class WalletService {
   constructor(private pool: Pool) {}
 
-  async ensureWallet(driverId: string): Promise<void> {
-    await this.pool.query(
+  async ensureWallet(driverId: string, client?: PoolClient): Promise<void> {
+    const db = this.getDb(client);
+    await db.query(
       `INSERT INTO driver_wallets (driver_id, balance_cents, reserved_cents, updated_at)
        VALUES ($1, 0, 0, NOW()) ON CONFLICT (driver_id) DO NOTHING`,
       [driverId]
@@ -35,26 +38,13 @@ export class WalletService {
     return { balance_cents: bal, reserved_cents: res, available_cents: bal - res };
   }
 
-  async creditRecharge(driverId: string, amountCents: bigint, rechargeId: string): Promise<LedgerEntry> {
+  async creditRecharge(driverId: string, amountCents: bigint, rechargeId: string, client?: PoolClient): Promise<LedgerEntry> {
+    if (client) {
+      return this.creditRechargeInClient(client, driverId, amountCents, rechargeId);
+    }
+
     return this.withTransaction(async (client) => {
-      const key = `recharge:${rechargeId}`;
-      const existing = await this.checkIdempotency(client, key);
-      if (existing) return existing;
-
-      const wallet = await this.lockWallet(client, driverId);
-      const newBalance = wallet.balance_cents + amountCents;
-
-      await client.query(
-        'UPDATE driver_wallets SET balance_cents = $2, updated_at = NOW() WHERE driver_id = $1',
-        [driverId, newBalance.toString()]
-      );
-
-      return this.insertLedger(client, {
-        driverId, entryType: 'recharge', balanceDelta: amountCents, reservedDelta: BigInt(0),
-        balanceAfter: newBalance, reservedAfter: wallet.reserved_cents,
-        referenceType: 'recharge', referenceId: rechargeId,
-        actorType: 'webhook', actorId: 'legacy_payment', reason: `recharge:${rechargeId}`, key,
-      });
+      return this.creditRechargeInClient(client, driverId, amountCents, rechargeId);
     });
   }
 
@@ -192,6 +182,31 @@ export class WalletService {
     } finally {
       client.release();
     }
+  }
+
+  private getDb(client?: PoolClient): Queryable {
+    return client || this.pool;
+  }
+
+  private async creditRechargeInClient(client: PoolClient, driverId: string, amountCents: bigint, rechargeId: string): Promise<LedgerEntry> {
+    const key = `recharge:${rechargeId}`;
+    const existing = await this.checkIdempotency(client, key);
+    if (existing) return existing;
+
+    const wallet = await this.lockWallet(client, driverId);
+    const newBalance = wallet.balance_cents + amountCents;
+
+    await client.query(
+      'UPDATE driver_wallets SET balance_cents = $2, updated_at = NOW() WHERE driver_id = $1',
+      [driverId, newBalance.toString()]
+    );
+
+    return this.insertLedger(client, {
+      driverId, entryType: 'recharge', balanceDelta: amountCents, reservedDelta: BigInt(0),
+      balanceAfter: newBalance, reservedAfter: wallet.reserved_cents,
+      referenceType: 'recharge', referenceId: rechargeId,
+      actorType: 'webhook', actorId: 'legacy_payment', reason: `recharge:${rechargeId}`, key,
+    });
   }
 
   private async lockWallet(client: PoolClient, driverId: string) {
