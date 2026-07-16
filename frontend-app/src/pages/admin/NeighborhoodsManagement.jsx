@@ -275,10 +275,10 @@ export default function NeighborhoodsManagement() {
                     <Typography variant="h6" color="warning.main" gutterBottom>
                       ⚠️ Geofence ainda não cadastrada
                     </Typography>
-                    <Typography variant="body2" sx={{ mb: 2, color: '#CBD5E1' }}>
+                    <Typography variant="body2" sx={{ mb: 2, color: '#475569' }}>
                       Geofence ainda não cadastrada — mapa apenas para referência.
                     </Typography>
-                    <Typography variant="caption" sx={{ color: '#94A3B8' }}>
+                    <Typography variant="caption" sx={{ color: '#64748B' }}>
                       Centro exibido para {selectedCity}.
                     </Typography>
                   </Box>
@@ -287,7 +287,7 @@ export default function NeighborhoodsManagement() {
                     <Typography variant="h6" color="warning.main" gutterBottom>
                       ⚠️ Geometria inválida
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
+                    <Typography variant="body2" sx={{ color: '#475569' }}>
                       Geometria oficial com formato inválido. Mapa centralizado na cidade.
                     </Typography>
                   </Box>
@@ -296,7 +296,7 @@ export default function NeighborhoodsManagement() {
                     <Typography variant="h6" color="warning.main" gutterBottom>
                       ⚠️ Geometria incompatível com a cidade selecionada
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
+                    <Typography variant="body2" sx={{ color: '#475569' }}>
                       Geometria oficial ignorada para evitar desenho fora de {selectedCity}.
                     </Typography>
                   </Box>
@@ -314,7 +314,7 @@ export default function NeighborhoodsManagement() {
                     <Typography variant="h6" color="error.main" gutterBottom>
                       🚫 Sem permissão
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
+                    <Typography variant="body2" sx={{ color: '#475569' }}>
                       Seu perfil não possui acesso à geometria dos bairros.
                     </Typography>
                   </Box>
@@ -332,7 +332,7 @@ export default function NeighborhoodsManagement() {
                     <Typography variant="h6" color="error.main" gutterBottom>
                       ❌ Não foi possível carregar a geometria
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
+                    <Typography variant="body2" sx={{ color: '#475569' }}>
                       Erro de conexão com o servidor. Tente novamente.
                     </Typography>
                   </Box>
