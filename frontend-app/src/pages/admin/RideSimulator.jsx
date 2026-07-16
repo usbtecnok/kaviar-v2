@@ -91,6 +91,12 @@ export default function RideSimulator() {
 
   const territoryLabel = { local: '🟢 LOCAL / Área 1', adjacent: '🟡 ADJACENT / Região próxima', external: '🔴 EXTERNAL / Área 2' };
 
+  const hasValue = (value) => (
+    value !== undefined &&
+    value !== null &&
+    Number.isFinite(Number(value))
+  );
+
   const toNumber = (value, fallback = 0) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
@@ -102,9 +108,12 @@ export default function RideSimulator() {
 
   const feeModel = result?.fee_model || 'TERRITORIAL_CREDITS';
   const isFlatFee = feeModel === 'FLAT_FEE';
+  const hasDuration = hasValue(result?.duration_min);
+  const hasBillableMinutes = hasValue(result?.billable_minutes);
+  const hasPricingSource = result?.pricing_source === 'google_route' || result?.pricing_source === 'fallback_haversine';
   const pricingSourceLabel = result?.pricing_source === 'google_route'
     ? 'Google Maps — rota real'
-    : 'Estimativa em linha reta, quando houver fallback';
+    : 'Estimativa em linha reta';
 
   return (
     <Box>
@@ -192,14 +201,26 @@ export default function RideSimulator() {
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Distância</Typography></Grid>
             <Grid item xs={6}><Typography variant="body2">{km(result.distance_km)}</Typography></Grid>
 
-            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Duração estimada</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body2">{min(result.duration_min)}</Typography></Grid>
+            {hasDuration ? (
+              <>
+                <Grid item xs={6}><Typography variant="body2" color="text.secondary">Duração estimada</Typography></Grid>
+                <Grid item xs={6}><Typography variant="body2">{min(result.duration_min)}</Typography></Grid>
+              </>
+            ) : null}
 
-            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Minutos tarifáveis</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body2">{min(result.billable_minutes)}</Typography></Grid>
+            {hasBillableMinutes ? (
+              <>
+                <Grid item xs={6}><Typography variant="body2" color="text.secondary">Minutos tarifáveis</Typography></Grid>
+                <Grid item xs={6}><Typography variant="body2">{min(result.billable_minutes)}</Typography></Grid>
+              </>
+            ) : null}
 
-            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Fonte do cálculo</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body2">{pricingSourceLabel}</Typography></Grid>
+            {hasPricingSource ? (
+              <>
+                <Grid item xs={6}><Typography variant="body2" color="text.secondary">Fonte do cálculo</Typography></Grid>
+                <Grid item xs={6}><Typography variant="body2">{pricingSourceLabel}</Typography></Grid>
+              </>
+            ) : null}
 
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Preço final</Typography></Grid>
             <Grid item xs={6}><Typography variant="body1" fontWeight={700}>{money(result.price)}</Typography></Grid>
