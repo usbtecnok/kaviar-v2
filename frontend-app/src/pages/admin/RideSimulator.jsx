@@ -91,6 +91,21 @@ export default function RideSimulator() {
 
   const territoryLabel = { local: '🟢 LOCAL / Área 1', adjacent: '🟡 ADJACENT / Região próxima', external: '🔴 EXTERNAL / Área 2' };
 
+  const toNumber = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const money = (value) => `R$ ${toNumber(value).toFixed(2)}`;
+  const km = (value) => `${toNumber(value).toFixed(2)} km`;
+  const min = (value) => `${toNumber(value).toFixed(2)} min`;
+
+  const feeModel = result?.fee_model || 'TERRITORIAL_CREDITS';
+  const isFlatFee = feeModel === 'FLAT_FEE';
+  const pricingSourceLabel = result?.pricing_source === 'google_route'
+    ? 'Google Maps — rota real'
+    : 'Estimativa em linha reta, quando houver fallback';
+
   return (
     <Box>
       <Typography variant="h5" sx={{ mb: 1 }}>Simulador de Corrida</Typography>
@@ -175,29 +190,71 @@ export default function RideSimulator() {
             )}
 
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Distância</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body2">{result.distance_km} km</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2">{km(result.distance_km)}</Typography></Grid>
+
+            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Duração estimada</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2">{min(result.duration_min)}</Typography></Grid>
+
+            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Minutos tarifáveis</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2">{min(result.billable_minutes)}</Typography></Grid>
+
+            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Fonte do cálculo</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2">{pricingSourceLabel}</Typography></Grid>
 
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Preço final</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body1" fontWeight={700}>R$ {result.price.toFixed(2)}</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body1" fontWeight={700}>{money(result.price)}</Typography></Grid>
 
-            {result.surcharge_applied > 0 && (
+            {result.territory_floor_applied ? (
+              <>
+                <Grid item xs={6}><Typography variant="body2" color="text.secondary">Piso territorial</Typography></Grid>
+                <Grid item xs={6}><Typography variant="body2" color="warning.main">Aplicado: {money(result.territory_floor_value)}</Typography></Grid>
+              </>
+            ) : null}
+
+            {toNumber(result.surcharge_applied) > 0 && (
               <><Grid item xs={6}><Typography variant="body2" color="text.secondary">Adicional Área 2</Typography></Grid>
-              <Grid item xs={6}><Typography variant="body2" color="error">+ R$ {result.surcharge_applied.toFixed(2)}</Typography></Grid></>
+              <Grid item xs={6}><Typography variant="body2" color="error">+ {money(result.surcharge_applied)}</Typography></Grid></>
             )}
 
             <Grid item xs={12}><Box sx={{ borderTop: '1px solid #eee', my: 1 }} /></Grid>
 
+            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Modelo de cobrança</Typography></Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" fontWeight={600}>
+                {isFlatFee ? 'Taxa única' : 'Modelo territorial legado'}
+              </Typography>
+            </Grid>
+
+            {isFlatFee ? (
+              <>
+                <Grid item xs={6}><Typography variant="body2" color="text.secondary">Observação</Typography></Grid>
+                <Grid item xs={6}><Typography variant="body2">Taxa única — sem cobrança fixa por corrida</Typography></Grid>
+              </>
+            ) : null}
+
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Taxa KAVIAR</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body2">{result.fee_percent}% = R$ {result.fee_amount.toFixed(2)}</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2">{toNumber(result.fee_percent).toFixed(2)}% = {money(result.fee_amount)}</Typography></Grid>
 
             <Grid item xs={6}><Typography variant="body2" color="text.secondary">Motorista bruto</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body2">R$ {result.driver_earnings.toFixed(2)}</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2">{money(result.driver_earnings)}</Typography></Grid>
 
-            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Taxa</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body2">{result.credit_cost} × R$ 2,00 = R$ {result.credit_value.toFixed(2)}</Typography></Grid>
+            {!isFlatFee ? (
+              <>
+                <Grid item xs={6}><Typography variant="body2" color="text.secondary">Créditos de operação — modelo legado</Typography></Grid>
+                <Grid item xs={6}><Typography variant="body2">{toNumber(result.credit_cost)} × R$ 2,00 = {money(result.credit_value)}</Typography></Grid>
+              </>
+            ) : null}
 
-            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Motorista líquido</Typography></Grid>
-            <Grid item xs={6}><Typography variant="body1" fontWeight={700} color={result.driver_net_after_credit >= 10 ? 'success.main' : 'warning.main'}>R$ {result.driver_net_after_credit.toFixed(2)}</Typography></Grid>
+            <Grid item xs={6}><Typography variant="body2" color="text.secondary">Motorista recebe</Typography></Grid>
+            <Grid item xs={6}>
+              <Typography
+                variant="body1"
+                fontWeight={700}
+                color={(isFlatFee ? toNumber(result.driver_earnings) : toNumber(result.driver_net_after_credit)) >= 10 ? 'success.main' : 'warning.main'}
+              >
+                {money(isFlatFee ? result.driver_earnings : result.driver_net_after_credit)}
+              </Typography>
+            </Grid>
 
             {result.origin_neighborhood && (
               <><Grid item xs={6}><Typography variant="caption" color="text.secondary">Bairro origem</Typography></Grid>
