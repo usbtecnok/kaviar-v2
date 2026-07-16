@@ -9,7 +9,8 @@ import {
   Button,
   CircularProgress,
   Alert,
-  Chip
+  Chip,
+  Stack
 } from '@mui/material';
 import { LocationCity, Map } from '@mui/icons-material';
 import api from '../../api';
@@ -20,10 +21,38 @@ export default function NeighborhoodsByCity() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cityStats, setCityStats] = useState({});
+  const [ratesConfig, setRatesConfig] = useState(null);
+  const [ratesLoading, setRatesLoading] = useState(true);
+  const [ratesError, setRatesError] = useState('');
 
   useEffect(() => {
     loadData();
+    loadRatesConfig();
   }, []);
+
+  const loadRatesConfig = async () => {
+    setRatesLoading(true);
+    setRatesError('');
+    try {
+      const response = await api.get('/api/match/config');
+      setRatesConfig(response.data || null);
+    } catch (err) {
+      console.error('❌ Rates config fetch error:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setRatesError('Sem permissão para carregar a configuração de taxas territoriais.');
+      } else {
+        setRatesError('Não foi possível carregar a configuração de taxas territoriais.');
+      }
+      setRatesConfig(null);
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  const formatPercent = (value) => {
+    if (typeof value !== 'number' || Number.isNaN(value)) return '—';
+    return `${value.toFixed(2).replace('.', ',')}%`;
+  };
 
   const loadData = async () => {
     try {
@@ -91,8 +120,46 @@ export default function NeighborhoodsByCity() {
       </Typography>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-        Total: {neighborhoods.length} bairros em {cities.length} cidades
+        Total: {neighborhoods.length} áreas territoriais em {cities.length} cidades
       </Typography>
+
+      <Card sx={{ mb: 3, border: '1px solid #E8E5DE' }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+            Configuração de taxas territoriais
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Regras tarifárias globais de match territorial. Estes percentuais não representam desempenho de cada bairro.
+          </Typography>
+
+          {ratesLoading && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2" color="text.secondary">
+                Carregando configuração de taxas...
+              </Typography>
+            </Box>
+          )}
+
+          {!ratesLoading && ratesError && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {ratesError}
+            </Alert>
+          )}
+
+          {!ratesLoading && !ratesError && ratesConfig && (
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <Chip label={`Match Local: ${formatPercent(ratesConfig.match_local_percent)}`} color="success" />
+              <Chip label={`Match Bairro: ${formatPercent(ratesConfig.match_bairro_percent)}`} color="primary" />
+              <Chip label={`Match Externo: ${formatPercent(ratesConfig.match_externo_percent)}`} color="warning" />
+            </Stack>
+          )}
+
+          {!ratesLoading && !ratesError && !ratesConfig && (
+            <Alert severity="info">Configuração de taxas indisponível no momento.</Alert>
+          )}
+        </CardContent>
+      </Card>
 
       <Grid container spacing={3}>
         {cities.map(city => {
@@ -130,35 +197,21 @@ export default function NeighborhoodsByCity() {
                       {stats.total}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      bairros cadastrados
+                      áreas territoriais cadastradas
                     </Typography>
                     {stats.withGeofence > 0 && (
                       <Typography variant="caption" color="success.main">
-                        {stats.withGeofence} com mapa
+                        {stats.withGeofence} com geofence
                       </Typography>
                     )}
                     {stats.withGeofence === 0 && (
                       <Typography variant="caption" color="warning.main">
-                        ⚠️ Sem mapas cadastrados
+                        ⚠️ Sem geofences cadastradas
                       </Typography>
                     )}
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                    {stats.matchLocal > 0 && (
-                      <Chip
-                        label={`${stats.matchLocal} Match Local 7%`}
-                        size="small"
-                        color="success"
-                      />
-                    )}
-                    {stats.matchBairro > 0 && (
-                      <Chip
-                        label={`${stats.matchBairro} Match Bairro 12%`}
-                        size="small"
-                        color="primary"
-                      />
-                    )}
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
+                      Cobertura de geofence: {stats.withGeofence} de {stats.total} — {stats.total > 0 ? Math.round((stats.withGeofence / stats.total) * 100) : 0}%
+                    </Typography>
                   </Box>
 
                   <Button

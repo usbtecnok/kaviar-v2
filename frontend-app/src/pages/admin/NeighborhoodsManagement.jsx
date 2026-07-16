@@ -108,18 +108,19 @@ export default function NeighborhoodsManagement() {
   });
 
   const getMatchType = (neighborhood) => {
-    if (neighborhood.area_type === 'FAVELA' || neighborhood.area_type === 'COMUNIDADE') {
-      return { label: 'Match Local 7%', color: 'success' };
-    } else if (neighborhood.area_type === 'BAIRRO_OFICIAL') {
-      return { label: 'Match Bairro 12%', color: 'primary' };
+    switch (neighborhood.area_type) {
+      case 'BAIRRO_OFICIAL':
+        return { label: 'Bairro oficial', color: 'primary' };
+      case 'FAVELA':
+        return { label: 'Favela', color: 'warning' };
+      case 'COMUNIDADE':
+        return { label: 'Comunidade', color: 'success' };
+      case 'DISTRITO':
+        return { label: 'Distrito', color: 'secondary' };
+      default:
+        return { label: 'Tipo não definido', color: 'default' };
     }
-    return { label: 'Externo 20%', color: 'warning' };
   };
-
-  const cityCounts = neighborhoods.reduce((acc, n) => {
-    acc[n.city] = (acc[n.city] || 0) + 1;
-    return acc;
-  }, {});
 
   return (
     <Box sx={{ p: 3 }}>
@@ -150,7 +151,7 @@ export default function NeighborhoodsManagement() {
       </Typography>
       
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {filteredNeighborhoods.length} bairros cadastrados
+        {filteredNeighborhoods.length} áreas territoriais cadastradas
       </Typography>
 
       <Grid container spacing={3}>
@@ -160,7 +161,7 @@ export default function NeighborhoodsManagement() {
               <TableHead>
                 <TableRow>
                   <TableCell><strong>Nome</strong></TableCell>
-                  <TableCell><strong>Match Territorial</strong></TableCell>
+                    <TableCell><strong>Tipo territorial</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -168,7 +169,7 @@ export default function NeighborhoodsManagement() {
                   <TableRow>
                     <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
                       <Typography color="text.secondary">
-                        Nenhum bairro encontrado para {selectedCity}
+                          Nenhuma área territorial encontrada para {selectedCity}
                       </Typography>
                     </TableCell>
                   </TableRow>
