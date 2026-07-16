@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Box, 
   Typography, 
@@ -19,6 +19,13 @@ import {
 import { ArrowBack } from '@mui/icons-material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../api';
+import LeafletGeofenceMap from '../../components/maps/LeafletGeofenceMap';
+import {
+  getCityCenter,
+  isCompatibleWithCity,
+  isValidPolygonCoordinates,
+  shouldFetchGeofence
+} from './neighborhoodsGeofenceUtils';
 
 export default function NeighborhoodsManagement() {
   const [neighborhoods, setNeighborhoods] = useState([]);
@@ -26,9 +33,11 @@ export default function NeighborhoodsManagement() {
   const [error, setError] = useState('');
   const [selectedNeighborhood, setSelectedNeighborhood] = useState(null);
   const [geofence, setGeofence] = useState(null);
+  const [geofenceLoading, setGeofenceLoading] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedCity = searchParams.get('city') || 'Rio de Janeiro';
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     fetchNeighborhoods();
@@ -55,18 +64,43 @@ export default function NeighborhoodsManagement() {
   };
 
   const handleSelectNeighborhood = async (neighborhood) => {
+    const requestId = ++requestIdRef.current;
     setSelectedNeighborhood(neighborhood);
     setGeofence(null);
+    setGeofenceLoading(true);
+
+    if (!shouldFetchGeofence(neighborhood)) {
+      if (requestId === requestIdRef.current) {
+        setGeofence('NO_GEOMETRY');
+        setGeofenceLoading(false);
+      }
+      return;
+    }
     
     try {
       const response = await api.get(`/api/governance/neighborhoods/${neighborhood.id}/geofence`);
+
+      if (requestId !== requestIdRef.current) return;
       
-      if (response.data.success && response.data.data && response.data.data.coordinates) {
-        setGeofence(response.data.data.coordinates);
+      const coordinates = response.data?.data?.coordinates;
+      if (response.data.success && coordinates) {
+        if (!isValidPolygonCoordinates(coordinates)) {
+          setGeofence('INVALID_GEOMETRY');
+          return;
+        }
+
+        if (!isCompatibleWithCity(coordinates, selectedCity)) {
+          setGeofence('INCOMPATIBLE_CITY_GEOMETRY');
+          return;
+        }
+
+        setGeofence({ type: 'Polygon', coordinates });
       } else {
         setGeofence('NO_GEOMETRY');
       }
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+
       console.error('Erro ao carregar geofence:', err);
       const status = err.response?.status;
       if (status === 401) {
@@ -77,6 +111,10 @@ export default function NeighborhoodsManagement() {
         setGeofence('RATE_LIMITED');
       } else {
         setGeofence('NETWORK_ERROR');
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setGeofenceLoading(false);
       }
     }
   };
@@ -150,7 +188,7 @@ export default function NeighborhoodsManagement() {
         🗺️ {selectedCity}
       </Typography>
       
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="body2" sx={{ mb: 3, color: '#D1D5DB' }}>
         {filteredNeighborhoods.length} áreas territoriais cadastradas
       </Typography>
 
@@ -161,15 +199,15 @@ export default function NeighborhoodsManagement() {
               <TableHead>
                 <TableRow>
                   <TableCell><strong>Nome</strong></TableCell>
-                    <TableCell><strong>Tipo territorial</strong></TableCell>
+                  <TableCell><strong>Tipo territorial</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredNeighborhoods.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
-                      <Typography color="text.secondary">
-                          Nenhuma área territorial encontrada para {selectedCity}
+                      <Typography sx={{ color: '#CBD5E1' }}>
+                        Nenhuma área territorial encontrada para {selectedCity}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -210,9 +248,20 @@ export default function NeighborhoodsManagement() {
                 <Typography variant="h6" gutterBottom>
                   {selectedNeighborhood.name}
                 </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="caption" sx={{ mb: 2, color: '#9CA3AF' }}>
                   {selectedCity}
                 </Typography>
+                <Box sx={{ height: 360, border: '1px solid #334155', borderRadius: 1, mb: 2 }}>
+                  <LeafletGeofenceMap
+                    geometry={geofence?.type === 'Polygon' ? geofence : null}
+                    referenceCenter={getCityCenter(selectedCity)}
+                    zoom={getCityCenter(selectedCity).zoom}
+                    noGeofence={geofence !== null && geofence !== undefined && geofence?.type !== 'Polygon'}
+                    selectedAreaId={selectedNeighborhood.id}
+                    isVisible
+                    height={360}
+                  />
+                </Box>
                 {geofence === 'NO_GEOMETRY' ? (
                   <Box sx={{ 
                     display: 'flex', 
@@ -224,94 +273,87 @@ export default function NeighborhoodsManagement() {
                     p: 3
                   }}>
                     <Typography variant="h6" color="warning.main" gutterBottom>
-                      ⚠️ Geometria não cadastrada
+                      ⚠️ Geofence ainda não cadastrada
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Este bairro ainda não possui polígono de geofencing cadastrado.
+                    <Typography variant="body2" sx={{ mb: 2, color: '#CBD5E1' }}>
+                      Geofence ainda não cadastrada — mapa apenas para referência.
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {selectedCity === 'São Paulo' 
-                        ? 'Os bairros de São Paulo estão aguardando importação de dados oficiais.'
-                        : 'Entre em contato com o administrador para cadastrar a geometria.'}
+                    <Typography variant="caption" sx={{ color: '#94A3B8' }}>
+                      Centro exibido para {selectedCity}.
+                    </Typography>
+                  </Box>
+                ) : geofence === 'INVALID_GEOMETRY' ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', p: 3 }}>
+                    <Typography variant="h6" color="warning.main" gutterBottom>
+                      ⚠️ Geometria inválida
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
+                      Geometria oficial com formato inválido. Mapa centralizado na cidade.
+                    </Typography>
+                  </Box>
+                ) : geofence === 'INCOMPATIBLE_CITY_GEOMETRY' ? (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', p: 3 }}>
+                    <Typography variant="h6" color="warning.main" gutterBottom>
+                      ⚠️ Geometria incompatível com a cidade selecionada
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
+                      Geometria oficial ignorada para evitar desenho fora de {selectedCity}.
                     </Typography>
                   </Box>
                 ) : geofence === 'AUTH_ERROR' ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', p: 3 }}>
                     <Typography variant="h6" color="error.main" gutterBottom>
                       🔒 Sessão expirada
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
                       Faça login novamente para visualizar a geometria.
                     </Typography>
                   </Box>
                 ) : geofence === 'FORBIDDEN' ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', p: 3 }}>
                     <Typography variant="h6" color="error.main" gutterBottom>
                       🚫 Sem permissão
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
                       Seu perfil não possui acesso à geometria dos bairros.
                     </Typography>
                   </Box>
                 ) : geofence === 'RATE_LIMITED' ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', p: 3 }}>
                     <Typography variant="h6" color="warning.main" gutterBottom>
                       ⏳ Limite temporário atingido
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
                       Tente novamente em alguns segundos.
                     </Typography>
                   </Box>
                 ) : geofence === 'NETWORK_ERROR' ? (
-                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center', p: 3 }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', p: 3 }}>
                     <Typography variant="h6" color="error.main" gutterBottom>
                       ❌ Não foi possível carregar a geometria
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
                       Erro de conexão com o servidor. Tente novamente.
                     </Typography>
                   </Box>
-                ) : geofence ? (
-                  <Box sx={{ height: 500, border: '1px solid #ddd', borderRadius: 1 }}>
-                    <iframe
-                      srcDoc={`
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                          <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-                          <style>body { margin: 0; } #map { height: 100vh; }</style>
-                        </head>
-                        <body>
-                          <div id="map"></div>
-                          <script>
-                            const map = L.map('map').setView([-22.9068, -43.1729], 11);
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                              attribution: '© OpenStreetMap'
-                            }).addTo(map);
-                            
-                            const geojson = ${JSON.stringify(geofence)};
-                            const layer = L.geoJSON(geojson, {
-                              style: { color: '#2196f3', weight: 2, fillOpacity: 0.2 }
-                            }).addTo(map);
-                            map.fitBounds(layer.getBounds());
-                          </script>
-                        </body>
-                        </html>
-                      `}
-                      style={{ width: '100%', height: '100%', border: 'none' }}
-                      title="Mapa do bairro"
-                    />
-                  </Box>
+                ) : geofence?.type === 'Polygon' ? (
+                  <Typography variant="body2" sx={{ color: '#CBD5E1' }}>
+                    Geofence oficial exibida no mapa.
+                  </Typography>
                 ) : (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 2 }}>
                     <CircularProgress />
                   </Box>
+                )}
+                {geofenceLoading && (
+                  <Typography variant="caption" sx={{ color: '#94A3B8', mt: 1 }}>
+                    Carregando geometria...
+                  </Typography>
                 )}
               </>
             ) : (
               <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <Typography color="text.secondary">
+                <Typography sx={{ color: '#CBD5E1' }}>
                   Selecione um bairro para ver o mapa
                 </Typography>
               </Box>
@@ -322,7 +364,7 @@ export default function NeighborhoodsManagement() {
 
       {neighborhoods.length === 0 && (
         <Alert severity="info" sx={{ mt: 2 }}>
-          Nenhum bairro cadastrado no sistema.
+          Nenhuma área territorial cadastrada no sistema.
         </Alert>
       )}
     </Box>
