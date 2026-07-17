@@ -1,14 +1,25 @@
 import { Router, Request, Response } from 'express';
 import { allowFinanceAccess, authenticateAdmin } from '../middlewares/auth';
+import { audit, auditCtx } from '../utils/audit';
 import {
+  financeAccountCreateBodySchema,
+  financeAccountPatchBodySchema,
   financeAccountsListQuerySchema,
   financeCategoriesListQuerySchema,
+  financeCategoryCreateBodySchema,
+  financeCategoryPatchBodySchema,
+  financeCostCenterCreateBodySchema,
+  financeCostCenterPatchBodySchema,
   financeCostCentersListQuerySchema,
   financeIdParamSchema,
   financeRecognitionPoliciesListQuerySchema,
   financeTransactionsListQuerySchema,
 } from '../services/finance/finance-query-validation';
 import {
+  FinanceWriteError,
+  createFinanceAccount,
+  createFinanceCategory,
+  createFinanceCostCenter,
   getFinanceAccountById,
   getFinanceCategoryById,
   getFinanceCostCenterById,
@@ -19,6 +30,9 @@ import {
   listFinanceCostCenters,
   listFinanceRecognitionPolicies,
   listFinanceTransactions,
+  updateFinanceAccount,
+  updateFinanceCategory,
+  updateFinanceCostCenter,
 } from '../services/finance/finance-query.service';
 import {
   serializeAccountDetail,
@@ -43,8 +57,44 @@ function validationError(response: Response, error: any) {
   return response.status(400).json({ success: false, error: message });
 }
 
+function requireWriteRecord<T>(record: T | null, entityLabel: string): T {
+  if (!record) {
+    throw new Error(`${entityLabel} não pôde ser recarregado após a operação`);
+  }
+  return record;
+}
+
 function notFound(response: Response, message: string) {
   return response.status(404).json({ success: false, error: message });
+}
+
+function financeWriteError(response: Response, error: unknown) {
+  if (error instanceof FinanceWriteError) {
+    return response.status(error.status).json({ success: false, error: error.message });
+  }
+  return response.status(500).json({ success: false, error: 'Erro interno do servidor' });
+}
+
+async function registerFinanceAudit(
+  req: Request,
+  action: string,
+  entityType: string,
+  entityId: string,
+  oldValue: any,
+  newValue: any,
+) {
+  const ctx = auditCtx(req);
+  await audit({
+    adminId: ctx.adminId,
+    adminEmail: ctx.adminEmail,
+    action,
+    entityType,
+    entityId,
+    oldValue,
+    newValue,
+    ipAddress: ctx.ip,
+    userAgent: ctx.ua,
+  });
 }
 
 router.get('/accounts', async (req: Request, res: Response) => {
@@ -69,6 +119,41 @@ router.get('/accounts/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[ADMIN_FINANCE_ACCOUNT_DETAIL]', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+router.post('/accounts', async (req: Request, res: Response) => {
+  try {
+    const parsed = financeAccountCreateBodySchema.safeParse(req.body);
+    if (!parsed.success) return validationError(res, parsed.error);
+
+    const admin = (req as any).admin;
+    const created = await createFinanceAccount(parsed.data, admin);
+    const record = requireWriteRecord(created.record, 'Conta financeira');
+    await registerFinanceAudit(req, 'FINANCE_ACCOUNT_CREATE', 'financial_accounts', record.id, created.auditBefore, created.auditAfter);
+    return res.status(201).json({ success: true, data: serializeAccountDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_ACCOUNT_CREATE]', error);
+    return financeWriteError(res, error);
+  }
+});
+
+router.patch('/accounts/:id', async (req: Request, res: Response) => {
+  try {
+    const parsedParams = financeIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) return validationError(res, parsedParams.error);
+
+    const parsedBody = financeAccountPatchBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+
+    const admin = (req as any).admin;
+    const updated = await updateFinanceAccount(parsedParams.data.id, parsedBody.data, admin);
+    const record = requireWriteRecord(updated.record, 'Conta financeira');
+    await registerFinanceAudit(req, 'FINANCE_ACCOUNT_UPDATE', 'financial_accounts', record.id, updated.auditBefore, updated.auditAfter);
+    return res.json({ success: true, data: serializeAccountDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_ACCOUNT_PATCH]', error);
+    return financeWriteError(res, error);
   }
 });
 
@@ -97,6 +182,41 @@ router.get('/categories/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/categories', async (req: Request, res: Response) => {
+  try {
+    const parsed = financeCategoryCreateBodySchema.safeParse(req.body);
+    if (!parsed.success) return validationError(res, parsed.error);
+
+    const admin = (req as any).admin;
+    const created = await createFinanceCategory(parsed.data, admin);
+    const record = requireWriteRecord(created.record, 'Categoria financeira');
+    await registerFinanceAudit(req, 'FINANCE_CATEGORY_CREATE', 'financial_categories', record.id, created.auditBefore, created.auditAfter);
+    return res.status(201).json({ success: true, data: serializeCategoryDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_CATEGORY_CREATE]', error);
+    return financeWriteError(res, error);
+  }
+});
+
+router.patch('/categories/:id', async (req: Request, res: Response) => {
+  try {
+    const parsedParams = financeIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) return validationError(res, parsedParams.error);
+
+    const parsedBody = financeCategoryPatchBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+
+    const admin = (req as any).admin;
+    const updated = await updateFinanceCategory(parsedParams.data.id, parsedBody.data, admin);
+    const record = requireWriteRecord(updated.record, 'Categoria financeira');
+    await registerFinanceAudit(req, 'FINANCE_CATEGORY_UPDATE', 'financial_categories', record.id, updated.auditBefore, updated.auditAfter);
+    return res.json({ success: true, data: serializeCategoryDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_CATEGORY_PATCH]', error);
+    return financeWriteError(res, error);
+  }
+});
+
 router.get('/cost-centers', async (req: Request, res: Response) => {
   try {
     const parsed = financeCostCentersListQuerySchema.safeParse(req.query);
@@ -119,6 +239,41 @@ router.get('/cost-centers/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[ADMIN_FINANCE_COST_CENTER_DETAIL]', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+router.post('/cost-centers', async (req: Request, res: Response) => {
+  try {
+    const parsed = financeCostCenterCreateBodySchema.safeParse(req.body);
+    if (!parsed.success) return validationError(res, parsed.error);
+
+    const admin = (req as any).admin;
+    const created = await createFinanceCostCenter(parsed.data, admin);
+    const record = requireWriteRecord(created.record, 'Centro de custo');
+    await registerFinanceAudit(req, 'FINANCE_COST_CENTER_CREATE', 'financial_cost_centers', record.id, created.auditBefore, created.auditAfter);
+    return res.status(201).json({ success: true, data: serializeCostCenterDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_COST_CENTER_CREATE]', error);
+    return financeWriteError(res, error);
+  }
+});
+
+router.patch('/cost-centers/:id', async (req: Request, res: Response) => {
+  try {
+    const parsedParams = financeIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) return validationError(res, parsedParams.error);
+
+    const parsedBody = financeCostCenterPatchBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+
+    const admin = (req as any).admin;
+    const updated = await updateFinanceCostCenter(parsedParams.data.id, parsedBody.data, admin);
+    const record = requireWriteRecord(updated.record, 'Centro de custo');
+    await registerFinanceAudit(req, 'FINANCE_COST_CENTER_UPDATE', 'financial_cost_centers', record.id, updated.auditBefore, updated.auditAfter);
+    return res.json({ success: true, data: serializeCostCenterDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_COST_CENTER_PATCH]', error);
+    return financeWriteError(res, error);
   }
 });
 

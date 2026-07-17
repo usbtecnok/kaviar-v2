@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-const DB_URL = 'postgresql://finance:finance@127.0.0.1:55432/finance_phase1c_a1_test?schema=public';
+const DB_URL = process.env.DATABASE_URL || 'postgresql://finance:finance@127.0.0.1:55432/finance_phase1c_a1_test?schema=public';
 const JWT_SECRET = 'finance-integration-secret';
 
 process.env.DATABASE_URL = DB_URL;
@@ -29,6 +29,13 @@ const ids = {
   allocation: 'finance-allocation-main',
   linkOutbound: 'finance-link-outbound',
   linkInbound: 'finance-link-inbound',
+};
+
+const OFFICIAL_CATALOG_EXPECTED = {
+  categories: 40,
+  costCenters: 8,
+  policies: 5,
+  accounts: 0,
 };
 
 let app: express.Express;
@@ -177,10 +184,10 @@ async function createFixtures() {
       code: 'POL-001',
       subject: 'RIDE_REVENUE',
       scope_type: 'COST_CENTER',
-      territory_id: ids.territory,
+      territory_id: null,
       cost_center_id: ids.costCenterChild,
-      city: 'Rio de Janeiro',
-      state: 'RJ',
+      city: null,
+      state: null,
       policy: 'GROSS_PRINCIPAL',
       status: 'APPROVED',
       effective_from: new Date('2026-06-01T00:00:00.000Z'),
@@ -207,9 +214,9 @@ async function createFixtures() {
         origin_id: 'origin-main',
         account_id: ids.accountSensitive,
         counterparty_account_id: ids.accountSecondary,
-        category_id: ids.categoryChild,
-        cost_center_id: ids.costCenterChild,
-        transfer_group_id: 'group-1',
+        category_id: null,
+        cost_center_id: null,
+        transfer_group_id: null,
         direction: 'IN',
         transaction_type: 'INCOME',
         status: 'POSTED',
@@ -279,10 +286,12 @@ async function createFixtures() {
         origin_type: 'BANK',
         origin_id: 'origin-linked',
         account_id: ids.accountSecondary,
+        counterparty_account_id: ids.accountSensitive,
         category_id: ids.categoryParent,
         cost_center_id: ids.costCenterParent,
+        transfer_group_id: 'group-1',
         direction: 'OUT',
-        transaction_type: 'EXPENSE',
+        transaction_type: 'TRANSFER',
         status: 'POSTED',
         payment_method: 'CASH',
         recognition_policy: 'NET_AGENT',
@@ -343,6 +352,20 @@ async function createFixtures() {
   });
 }
 
+async function assertOfficialCatalogCounts(stage: string) {
+  const [categories, costCenters, policies, accounts] = await Promise.all([
+    prisma.financial_categories.count(),
+    prisma.financial_cost_centers.count(),
+    prisma.financial_recognition_policies.count(),
+    prisma.financial_accounts.count(),
+  ]);
+
+  expect(
+    { categories, costCenters, policies, accounts },
+    `Catálogo financeiro divergente em: ${stage}`,
+  ).toEqual(OFFICIAL_CATALOG_EXPECTED);
+}
+
 async function cleanupFixtures() {
   await prisma.financial_transaction_links.deleteMany({ where: { id: { in: [ids.linkOutbound, ids.linkInbound] } } });
   await prisma.financial_transaction_allocations.deleteMany({ where: { id: ids.allocation } });
@@ -375,11 +398,13 @@ beforeAll(async () => {
   app = appModule.default;
   prisma = prismaModule.prisma;
   await prisma.$connect();
+  await assertOfficialCatalogCounts('query integration before suite');
   await createFixtures();
 });
 
 afterAll(async () => {
   await cleanupFixtures();
+  await assertOfficialCatalogCounts('query integration after suite cleanup');
   await prisma.$disconnect();
 });
 
@@ -474,6 +499,8 @@ describe('admin finance query integration', () => {
     expect(page1.body.data[0]).not.toHaveProperty('account_digit_encrypted');
     expect(page1.body.data[0]).not.toHaveProperty('pix_key_encrypted');
     expect(page1.body.data[0]).not.toHaveProperty('document_encrypted');
+    expect(page1.body.data[0]).not.toHaveProperty('account_last4');
+    expect(page1.body.data[0]).not.toHaveProperty('pix_key_last4');
     expect(page1.body.data[0]).not.toHaveProperty('currency_balance');
 
     expect(page2.status).toBe(200);
@@ -491,6 +518,8 @@ describe('admin finance query integration', () => {
     expect(detail.body.data).not.toHaveProperty('account_digit_encrypted');
     expect(detail.body.data).not.toHaveProperty('pix_key_encrypted');
     expect(detail.body.data).not.toHaveProperty('document_encrypted');
+    expect(detail.body.data).not.toHaveProperty('account_last4');
+    expect(detail.body.data).not.toHaveProperty('pix_key_last4');
     expect(detail.body.data).not.toHaveProperty('current_balance_cents');
 
     const missing = await request(app)
@@ -566,14 +595,14 @@ describe('admin finance query integration', () => {
 
   it('reads recognition policies with summaries only', async () => {
     const list = await request(app)
-      .get('/api/admin/finance/recognition-policies?subject=RIDE_REVENUE&scope_type=COST_CENTER&policy=GROSS_PRINCIPAL&status=APPROVED&territory_id=' + ids.territory + '&cost_center_id=' + ids.costCenterChild + '&city=Rio de Janeiro&state=RJ&page=1&limit=10')
+      .get('/api/admin/finance/recognition-policies?subject=RIDE_REVENUE&scope_type=COST_CENTER&policy=GROSS_PRINCIPAL&status=APPROVED&cost_center_id=' + ids.costCenterChild + '&page=1&limit=10')
       .set('Authorization', authHeader(ids.superAdmin).Authorization);
 
     expect(list.status).toBe(200);
     expect(list.body.data).toHaveLength(1);
     expect(list.body.data[0]).toMatchObject({
       id: ids.recognitionPolicy,
-      territory: expect.objectContaining({ id: ids.territory }),
+      territory: null,
       cost_center: expect.objectContaining({ id: ids.costCenterChild }),
       approved_by_admin: expect.objectContaining({ id: ids.superAdmin }),
       created_by_admin: expect.objectContaining({ id: ids.financeAdmin }),
@@ -601,8 +630,8 @@ describe('admin finance query integration', () => {
     const filters = [
       '/api/admin/finance/transactions?search=Recebimento&account_id=' + ids.accountSensitive,
       '/api/admin/finance/transactions?counterparty_account_id=' + ids.accountSecondary,
-      '/api/admin/finance/transactions?category_id=' + ids.categoryChild,
-      '/api/admin/finance/transactions?cost_center_id=' + ids.costCenterChild,
+      '/api/admin/finance/transactions?category_id=' + ids.categoryParent,
+      '/api/admin/finance/transactions?cost_center_id=' + ids.costCenterParent,
       '/api/admin/finance/transactions?direction=IN',
       '/api/admin/finance/transactions?transaction_type=INCOME',
       '/api/admin/finance/transactions?status=POSTED',
@@ -644,8 +673,8 @@ describe('admin finance query integration', () => {
     expect(list.body.data[0]).not.toHaveProperty('incoming_links');
     expect(list.body.data[0].account).toEqual(expect.objectContaining({ id: ids.accountSensitive, name: 'Conta Sensível' }));
     expect(list.body.data[0].counterparty_account).toEqual(expect.objectContaining({ id: ids.accountSecondary }));
-    expect(list.body.data[0].category).toEqual(expect.objectContaining({ id: ids.categoryChild }));
-    expect(list.body.data[0].cost_center).toEqual(expect.objectContaining({ id: ids.costCenterChild }));
+    expect(list.body.data[0].category).toBeNull();
+    expect(list.body.data[0].cost_center).toBeNull();
 
     const detail = await request(app)
       .get(`/api/admin/finance/transactions/${ids.transactionMain}`)
@@ -661,8 +690,8 @@ describe('admin finance query integration', () => {
     expect(detail.body.data.metadata).toEqual(expect.objectContaining({ channel: 'api', source: 'integration' }));
     expect(detail.body.data.account).toEqual(expect.objectContaining({ id: ids.accountSensitive, name: 'Conta Sensível' }));
     expect(detail.body.data.counterparty_account).toEqual(expect.objectContaining({ id: ids.accountSecondary, name: 'Caixa Operacional' }));
-    expect(detail.body.data.category).toEqual(expect.objectContaining({ id: ids.categoryChild, name: 'Categoria Filha' }));
-    expect(detail.body.data.cost_center).toEqual(expect.objectContaining({ id: ids.costCenterChild, name: 'Centro Filho' }));
+    expect(detail.body.data.category).toBeNull();
+    expect(detail.body.data.cost_center).toBeNull();
     expect(detail.body.data.reversal_of).toBeNull();
     expect(detail.body.data.reversals).toEqual([
       expect.objectContaining({ id: ids.transactionReversal, status: 'REVERSED' }),
@@ -699,19 +728,15 @@ describe('admin finance query integration', () => {
     expect(missing.status).toBe(404);
   });
 
-  it('keeps write methods read-only and does not mutate data', async () => {
+  it('keeps unsupported methods unavailable for read-only resources from phase 1C-A1', async () => {
     const before = await snapshotCounts();
 
-    const writeChecks = [
-      request(app).post('/api/admin/finance/accounts').set('Authorization', authHeader(ids.superAdmin).Authorization),
-      request(app).patch(`/api/admin/finance/accounts/${ids.accountSensitive}`).set('Authorization', authHeader(ids.superAdmin).Authorization),
-      request(app).delete(`/api/admin/finance/accounts/${ids.accountSensitive}`).set('Authorization', authHeader(ids.superAdmin).Authorization),
-      request(app).post('/api/admin/finance/transactions').set('Authorization', authHeader(ids.superAdmin).Authorization),
-      request(app).patch(`/api/admin/finance/transactions/${ids.transactionMain}`).set('Authorization', authHeader(ids.superAdmin).Authorization),
+    const unsupportedChecks = [
+      request(app).put(`/api/admin/finance/transactions/${ids.transactionMain}`).set('Authorization', authHeader(ids.superAdmin).Authorization),
       request(app).delete(`/api/admin/finance/transactions/${ids.transactionMain}`).set('Authorization', authHeader(ids.superAdmin).Authorization),
     ];
 
-    for (const call of writeChecks) {
+    for (const call of unsupportedChecks) {
       const response = await call;
       expect([404, 405]).toContain(response.status);
     }

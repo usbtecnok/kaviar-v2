@@ -19,6 +19,18 @@ function optionalStrictString(maxLength = 200) {
   );
 }
 
+function optionalNullableTrimmedString(maxLength = 200) {
+  return z.preprocess((value) => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed === '' ? null : trimmed;
+    }
+    return value;
+  }, z.string().max(maxLength).nullable().optional());
+}
+
 function strictBooleanQuery() {
   return z.enum(['true', 'false']).transform((value) => value === 'true');
 }
@@ -61,6 +73,73 @@ function strictDateQuery(fieldName: string) {
     z.string().min(1).refine((value) => parseStrictDate(value) !== null, { message: `${fieldName} inválida` }).transform((value) => parseStrictDate(value) as Date),
   );
 }
+
+function strictDateOnlyBody(fieldName: string) {
+  return z.preprocess(
+    (value) => {
+      if (value === null) return null;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed === '' ? null : trimmed;
+      }
+      return value;
+    },
+    z
+      .string()
+      .regex(/^(\d{4})-(\d{2})-(\d{2})$/, `${fieldName} deve estar no formato YYYY-MM-DD`)
+      .refine((value) => parseStrictDate(value) !== null, { message: `${fieldName} inválida` })
+      .transform((value) => parseStrictDate(value) as Date),
+  );
+}
+
+function strictTimestampBody(fieldName: string) {
+  return z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : value),
+    z
+      .string()
+      .min(1)
+      .refine((value) => !Number.isNaN(new Date(value).getTime()), { message: `${fieldName} inválida` })
+      .transform((value) => new Date(value)),
+  );
+}
+
+const PG_BIGINT_MIN = BigInt('-9223372036854775808');
+const PG_BIGINT_MAX = BigInt('9223372036854775807');
+
+function strictBigIntStringBody(fieldName: string) {
+  return z.preprocess(
+    (value) => (typeof value === 'string' ? value.trim() : value),
+    z
+      .string()
+      .regex(/^-?\d+$/, `${fieldName} deve ser string inteira assinada`)
+      .refine((value) => {
+        try {
+          const parsed = BigInt(value);
+          return parsed >= PG_BIGINT_MIN && parsed <= PG_BIGINT_MAX;
+        } catch {
+          return false;
+        }
+      }, { message: `${fieldName} fora do intervalo de bigint` }),
+  );
+}
+
+const strictCodeBody = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
+  z.string().min(1).max(120).regex(/^[A-Z0-9][A-Z0-9._-]*$/, 'code inválido'),
+);
+
+const optionalStateBody = z.preprocess(
+  (value) => {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed === '' ? null : trimmed.toUpperCase();
+    }
+    return value;
+  },
+  z.string().regex(/^[A-Z]{2}$/, 'state deve ter exatamente duas letras').nullable().optional(),
+);
 
 function paginationSchema(defaultLimit = 25) {
   return z.object({
@@ -149,9 +228,134 @@ export const financeIdParamSchema = z.object({
   id: strictTrimmedString(120),
 });
 
+export const financeAccountCreateBodySchema = z
+  .object({
+    code: strictCodeBody,
+    name: strictTrimmedString(160),
+    type: z.enum(accountTypeValues),
+    institution_name: optionalNullableTrimmedString(160),
+    bank_code: optionalNullableTrimmedString(20),
+    currency: z.preprocess((value) => (typeof value === 'string' ? value.trim().toUpperCase() : value), z.string().length(3)).optional(),
+    opening_balance_cents: strictBigIntStringBody('opening_balance_cents').optional(),
+    opening_balance_date: strictDateOnlyBody('opening_balance_date').nullable().optional(),
+    allows_negative_balance: z.boolean().optional(),
+    is_cash_equivalent: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    notes: optionalNullableTrimmedString(2000),
+  })
+  .strict();
+
+const financeAccountPatchCoreSchema = z
+  .object({
+    expected_updated_at: strictTimestampBody('expected_updated_at'),
+    code: strictCodeBody.optional(),
+    name: strictTrimmedString(160).optional(),
+    type: z.enum(accountTypeValues).optional(),
+    institution_name: optionalNullableTrimmedString(160),
+    bank_code: optionalNullableTrimmedString(20),
+    currency: z.preprocess((value) => (typeof value === 'string' ? value.trim().toUpperCase() : value), z.string().length(3)).optional(),
+    opening_balance_cents: strictBigIntStringBody('opening_balance_cents').optional(),
+    opening_balance_date: strictDateOnlyBody('opening_balance_date').nullable().optional(),
+    allows_negative_balance: z.boolean().optional(),
+    is_cash_equivalent: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    notes: optionalNullableTrimmedString(2000),
+  })
+  .strict();
+
+export const financeAccountPatchBodySchema = financeAccountPatchCoreSchema.superRefine((value, context) => {
+  const updateKeys = Object.keys(value).filter((key) => key !== 'expected_updated_at' && (value as any)[key] !== undefined);
+  if (updateKeys.length === 0) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'PATCH requer ao menos um campo para atualização' });
+  }
+});
+
+export const financeCategoryCreateBodySchema = z
+  .object({
+    code: strictCodeBody,
+    name: strictTrimmedString(160),
+    kind: z.enum(categoryKindValues),
+    parent_id: optionalNullableTrimmedString(120),
+    default_direction: z.enum(directionValues).nullable().optional(),
+    requires_document: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    sort_order: z.number().int().min(0).max(100000).optional(),
+  })
+  .strict();
+
+const financeCategoryPatchCoreSchema = z
+  .object({
+    expected_updated_at: strictTimestampBody('expected_updated_at'),
+    code: strictCodeBody.optional(),
+    name: strictTrimmedString(160).optional(),
+    kind: z.enum(categoryKindValues).optional(),
+    parent_id: optionalNullableTrimmedString(120),
+    default_direction: z.enum(directionValues).nullable().optional(),
+    requires_document: z.boolean().optional(),
+    is_active: z.boolean().optional(),
+    sort_order: z.number().int().min(0).max(100000).optional(),
+  })
+  .strict();
+
+export const financeCategoryPatchBodySchema = financeCategoryPatchCoreSchema.superRefine((value, context) => {
+  const updateKeys = Object.keys(value).filter((key) => key !== 'expected_updated_at' && (value as any)[key] !== undefined);
+  if (updateKeys.length === 0) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'PATCH requer ao menos um campo para atualização' });
+  }
+});
+
+const financeCostCenterCreateBodyBaseSchema = z
+  .object({
+    code: strictCodeBody,
+    name: strictTrimmedString(160),
+    type: z.enum(costCenterTypeValues),
+    parent_id: optionalNullableTrimmedString(120),
+    territory_id: optionalNullableTrimmedString(120),
+    city: optionalNullableTrimmedString(120),
+    state: optionalStateBody,
+    is_active: z.boolean().optional(),
+  })
+  .strict();
+
+export const financeCostCenterCreateBodySchema = financeCostCenterCreateBodyBaseSchema.superRefine((value, context) => {
+  if (value.city && !value.state) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'state é obrigatório quando city for informada', path: ['state'] });
+  }
+});
+
+const financeCostCenterPatchCoreSchema = z
+  .object({
+    expected_updated_at: strictTimestampBody('expected_updated_at'),
+    code: strictCodeBody.optional(),
+    name: strictTrimmedString(160).optional(),
+    type: z.enum(costCenterTypeValues).optional(),
+    parent_id: optionalNullableTrimmedString(120),
+    territory_id: optionalNullableTrimmedString(120),
+    city: optionalNullableTrimmedString(120),
+    state: optionalStateBody,
+    is_active: z.boolean().optional(),
+  })
+  .strict();
+
+export const financeCostCenterPatchBodySchema = financeCostCenterPatchCoreSchema.superRefine((value, context) => {
+  const updateKeys = Object.keys(value).filter((key) => key !== 'expected_updated_at' && (value as any)[key] !== undefined);
+  if (updateKeys.length === 0) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'PATCH requer ao menos um campo para atualização' });
+  }
+  if (value.city && !value.state) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: 'state é obrigatório quando city for informada', path: ['state'] });
+  }
+});
+
 export type FinanceAccountsListQuery = z.infer<typeof financeAccountsListQuerySchema>;
 export type FinanceCategoriesListQuery = z.infer<typeof financeCategoriesListQuerySchema>;
 export type FinanceCostCentersListQuery = z.infer<typeof financeCostCentersListQuerySchema>;
 export type FinanceRecognitionPoliciesListQuery = z.infer<typeof financeRecognitionPoliciesListQuerySchema>;
 export type FinanceTransactionsListQuery = z.infer<typeof financeTransactionsListQuerySchema>;
 export type FinanceIdParam = z.infer<typeof financeIdParamSchema>;
+export type FinanceAccountCreateBody = z.infer<typeof financeAccountCreateBodySchema>;
+export type FinanceAccountPatchBody = z.infer<typeof financeAccountPatchBodySchema>;
+export type FinanceCategoryCreateBody = z.infer<typeof financeCategoryCreateBodySchema>;
+export type FinanceCategoryPatchBody = z.infer<typeof financeCategoryPatchBodySchema>;
+export type FinanceCostCenterCreateBody = z.infer<typeof financeCostCenterCreateBodySchema>;
+export type FinanceCostCenterPatchBody = z.infer<typeof financeCostCenterPatchBodySchema>;

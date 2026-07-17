@@ -270,6 +270,8 @@ describe('admin finance routes', () => {
     });
     expect(res.body.data[0]).not.toHaveProperty('agency_encrypted');
     expect(res.body.data[0]).not.toHaveProperty('account_number_encrypted');
+    expect(res.body.data[0]).not.toHaveProperty('account_last4');
+    expect(res.body.data[0]).not.toHaveProperty('pix_key_last4');
   });
 
   it('retorna 404 para conta inexistente', async () => {

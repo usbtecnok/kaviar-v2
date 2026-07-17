@@ -37,8 +37,6 @@ export function serializeAccountItem(account: any) {
     type: account.type,
     institution_name: account.institution_name ?? null,
     bank_code: account.bank_code ?? null,
-    account_last4: account.account_last4 ?? null,
-    pix_key_last4: account.pix_key_last4 ?? null,
     currency: account.currency,
     opening_balance_cents: toBigIntString(account.opening_balance_cents),
     opening_balance_date: toIsoDate(account.opening_balance_date),
