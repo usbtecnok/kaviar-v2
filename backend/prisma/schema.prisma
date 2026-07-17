@@ -8,6 +8,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum financial_recognition_subject {
+  RIDE_REVENUE
+  PREPAID_DRIVER_CREDITS
+  MANAGER_PAYMENTS
+  COMMERCIAL_PAYMENTS
+  OTHER
+}
+
+enum financial_recognition_scope_type {
+  GLOBAL
+  TERRITORY
+  CITY
+  COST_CENTER
+}
+
+enum financial_recognition_policy {
+  UNCLASSIFIED
+  GROSS_PRINCIPAL
+  NET_AGENT
+}
+
+enum financial_recognition_policy_status {
+  DRAFT
+  APPROVED
+  SUPERSEDED
+  REVOKED
+}
+
+enum financial_account_type {
+  BANK
+  CASH
+  PIX_WALLET
+  RECEIVABLE
+  PAYABLE
+  TAX
+  CLEARING
+  THIRD_PARTY
+  INTERNAL
+  ESCROW
+}
+
+enum financial_category_kind {
+  REVENUE
+  EXPENSE
+  CONTRIBUTION
+  WITHDRAWAL
+  TRANSFER
+  LIABILITY
+  CLEARING
+  ADJUSTMENT
+}
+
+enum financial_cost_center_type {
+  COMPANY
+  DEPARTMENT
+  TERRITORY
+  CITY
+  PROJECT
+  OTHER
+}
+
+enum financial_direction {
+  IN
+  OUT
+}
+
 model admins {
   id                          String              @id @default(uuid())
   name                        String
@@ -45,6 +111,15 @@ model admins {
   municipal_authorizations_approved municipal_authorizations[] @relation("municipal_authorizations_approved_by_admin")
   municipal_package_audit_logs municipal_package_audit_logs[] @relation("municipal_package_audit_actor")
   email_send_logs             email_send_logs[]
+  financial_accounts_created                 financial_accounts[]              @relation("financial_accounts_created_by")
+  financial_accounts_updated                 financial_accounts[]              @relation("financial_accounts_updated_by")
+  financial_categories_created               financial_categories[]            @relation("financial_categories_created_by")
+  financial_categories_updated               financial_categories[]            @relation("financial_categories_updated_by")
+  financial_cost_centers_created             financial_cost_centers[]          @relation("financial_cost_centers_created_by")
+  financial_cost_centers_updated             financial_cost_centers[]          @relation("financial_cost_centers_updated_by")
+  financial_recognition_policies_created     financial_recognition_policies[]  @relation("financial_recognition_policies_created_by")
+  financial_recognition_policies_updated     financial_recognition_policies[]  @relation("financial_recognition_policies_updated_by")
+  financial_recognition_policies_approved    financial_recognition_policies[]  @relation("financial_recognition_policies_approved_by")
 }
 
 model communities {
@@ -2179,11 +2254,144 @@ model operational_territories {
   shadow_results       wallet_shadow_results[]
   moto_compliance      moto_passenger_compliance?
   insurance_coverages  operational_insurance_coverages[]
+  financial_cost_centers         financial_cost_centers[]          @relation("financial_cost_centers_territory")
+  financial_recognition_policies financial_recognition_policies[]  @relation("financial_recognition_policies_territory")
 
   @@unique([name, level, parent_id])
   @@index([level])
   @@index([status])
   @@index([parent_id])
+}
+
+model financial_recognition_policies {
+  id                   String                              @id @default(uuid())
+  code                 String
+  subject              financial_recognition_subject
+  scope_type           financial_recognition_scope_type
+  territory_id         String?
+  cost_center_id       String?
+  city                 String?
+  state                String?
+  policy               financial_recognition_policy
+  status               financial_recognition_policy_status
+  effective_from       DateTime
+  effective_until      DateTime?
+  approved_by_admin_id String?
+  approved_at          DateTime?
+  reason               String
+  notes                String?
+  created_by_admin_id  String?
+  updated_by_admin_id  String?
+  created_at           DateTime                            @default(now())
+  updated_at           DateTime                            @updatedAt
+
+  territory         operational_territories? @relation("financial_recognition_policies_territory", fields: [territory_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  cost_center       financial_cost_centers?  @relation("financial_recognition_policies_cost_center", fields: [cost_center_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  approved_by_admin admins?                  @relation("financial_recognition_policies_approved_by", fields: [approved_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  created_by_admin  admins?                  @relation("financial_recognition_policies_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updated_by_admin  admins?                  @relation("financial_recognition_policies_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([code])
+  @@index([subject, scope_type, status], map: "financial_recognition_policies_subject_scope_status_idx")
+  @@index([territory_id])
+  @@index([cost_center_id])
+  @@index([effective_from, effective_until], map: "financial_recognition_policies_effective_from_effective_until_i")
+  @@map("financial_recognition_policies")
+}
+
+model financial_accounts {
+  id                       String                 @id @default(uuid())
+  code                     String
+  name                     String
+  type                     financial_account_type
+  institution_name         String?
+  bank_code                String?
+  agency_encrypted         String?
+  account_number_encrypted String?
+  account_digit_encrypted  String?
+  pix_key_encrypted        String?
+  document_encrypted       String?
+  account_fingerprint      String?
+  account_last4            String?
+  pix_key_last4            String?
+  encryption_key_version   String?
+  currency                 String                 @default("BRL")
+  opening_balance_cents    BigInt                 @default(0)
+  opening_balance_date     DateTime?
+  allows_negative_balance  Boolean                @default(false)
+  is_cash_equivalent       Boolean                @default(false)
+  is_active                Boolean                @default(true)
+  notes                    String?
+  created_by_admin_id      String?
+  updated_by_admin_id      String?
+  created_at               DateTime               @default(now())
+  updated_at               DateTime               @updatedAt
+
+  created_by_admin admins? @relation("financial_accounts_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updated_by_admin admins? @relation("financial_accounts_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([code])
+  @@index([type, is_active])
+  @@index([currency])
+  @@map("financial_accounts")
+}
+
+model financial_categories {
+  id                  String                  @id @default(uuid())
+  code                String
+  name                String
+  kind                financial_category_kind
+  parent_id           String?
+  default_direction   financial_direction?
+  requires_document   Boolean                 @default(false)
+  is_system           Boolean                 @default(false)
+  is_active           Boolean                 @default(true)
+  sort_order          Int                     @default(0)
+  created_by_admin_id String?
+  updated_by_admin_id String?
+  created_at          DateTime                @default(now())
+  updated_at          DateTime                @updatedAt
+
+  parent           financial_categories?  @relation("financial_categories_hierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  children         financial_categories[] @relation("financial_categories_hierarchy")
+  created_by_admin admins?                @relation("financial_categories_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updated_by_admin admins?                @relation("financial_categories_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([code])
+  @@index([kind, is_active])
+  @@index([parent_id])
+  @@index([sort_order])
+  @@map("financial_categories")
+}
+
+model financial_cost_centers {
+  id                  String                     @id @default(uuid())
+  code                String
+  name                String
+  type                financial_cost_center_type
+  parent_id           String?
+  territory_id        String?
+  city                String?
+  state               String?
+  is_active           Boolean                    @default(true)
+  created_by_admin_id String?
+  updated_by_admin_id String?
+  created_at          DateTime                   @default(now())
+  updated_at          DateTime                   @updatedAt
+
+  parent               financial_cost_centers?          @relation("financial_cost_centers_hierarchy", fields: [parent_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  children             financial_cost_centers[]         @relation("financial_cost_centers_hierarchy")
+  territory            operational_territories?         @relation("financial_cost_centers_territory", fields: [territory_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  recognition_policies financial_recognition_policies[] @relation("financial_recognition_policies_cost_center")
+  created_by_admin     admins?                          @relation("financial_cost_centers_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  updated_by_admin     admins?                          @relation("financial_cost_centers_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([code])
+  @@index([type, is_active])
+  @@index([parent_id])
+  @@index([territory_id])
+  @@index([city, state])
+  @@map("financial_cost_centers")
 }
 
 model operational_insurance_coverages {

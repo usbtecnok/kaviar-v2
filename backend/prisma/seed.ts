@@ -3,12 +3,207 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+type FinanceCategorySeed = {
+  code: string;
+  name: string;
+  kind: string;
+  parent_code?: string | null;
+  default_direction?: string | null;
+  requires_document?: boolean;
+  sort_order?: number;
+};
+
+type FinanceCostCenterSeed = {
+  code: string;
+  name: string;
+  type: string;
+  parent_code?: string | null;
+  territory_code?: string | null;
+  city?: string | null;
+  state?: string | null;
+  is_active?: boolean;
+};
+
+type FinanceRecognitionPolicySeed = {
+  code: string;
+  subject: string;
+  scope_type: string;
+  policy: string;
+  status: string;
+  reason: string;
+  notes?: string | null;
+};
+
+export const FINANCE_CATEGORY_SEEDS: FinanceCategorySeed[] = [
+  { code: 'receita', name: 'Receitas', kind: 'REVENUE', sort_order: 10 },
+  { code: 'receita.taxa_corrida', name: 'Taxa de corrida', kind: 'REVENUE', parent_code: 'receita', sort_order: 11 },
+  { code: 'receita.adesao_gestor', name: 'Adesão de gestor', kind: 'REVENUE', parent_code: 'receita', sort_order: 12 },
+  { code: 'receita.mensalidade', name: 'Mensalidade', kind: 'REVENUE', parent_code: 'receita', sort_order: 13 },
+  { code: 'receita.servico_comercial', name: 'Serviço comercial', kind: 'REVENUE', parent_code: 'receita', sort_order: 14 },
+  { code: 'receita.combo_premium', name: 'Combo premium', kind: 'REVENUE', parent_code: 'receita', sort_order: 15 },
+  { code: 'receita.outras_receitas', name: 'Outras receitas', kind: 'REVENUE', parent_code: 'receita', sort_order: 16 },
+  { code: 'despesa', name: 'Despesas', kind: 'EXPENSE', sort_order: 20 },
+  { code: 'despesa.aws', name: 'AWS', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 21 },
+  { code: 'despesa.cloudflare', name: 'Cloudflare', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 22 },
+  { code: 'despesa.twilio', name: 'Twilio', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 23 },
+  { code: 'despesa.google_play', name: 'Google/Play Store', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 24 },
+  { code: 'despesa.expo', name: 'Expo', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 25 },
+  { code: 'despesa.dominio', name: 'Domínio', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 26 },
+  { code: 'despesa.contabilidade', name: 'Contabilidade', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 27 },
+  { code: 'despesa.juridico', name: 'Jurídico', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 28 },
+  { code: 'despesa.marketing', name: 'Marketing', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 29 },
+  { code: 'despesa.taxas_bancarias', name: 'Taxas bancárias', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 30 },
+  { code: 'despesa.sumup', name: 'SumUp', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 31 },
+  { code: 'despesa.asaas', name: 'Asaas', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 32 },
+  { code: 'despesa.despesas_municipais', name: 'Despesas municipais', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 33 },
+  { code: 'despesa.equipamentos', name: 'Equipamentos', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 34 },
+  { code: 'despesa.telefonia_internet', name: 'Telefonia/internet', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 35 },
+  { code: 'despesa.reembolsos', name: 'Reembolsos', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 36 },
+  { code: 'despesa.pro_labore', name: 'Pró-labore', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 37 },
+  { code: 'despesa.impostos', name: 'Impostos', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 38 },
+  { code: 'despesa.outras_despesas', name: 'Outras despesas', kind: 'EXPENSE', parent_code: 'despesa', sort_order: 39 },
+  { code: 'aporte', name: 'Aportes', kind: 'CONTRIBUTION', sort_order: 40 },
+  { code: 'aporte.socio', name: 'Aporte de sócio', kind: 'CONTRIBUTION', parent_code: 'aporte', sort_order: 41 },
+  { code: 'retirada', name: 'Retiradas', kind: 'WITHDRAWAL', sort_order: 50 },
+  { code: 'retirada.socio', name: 'Retirada de sócio', kind: 'WITHDRAWAL', parent_code: 'retirada', sort_order: 51 },
+  { code: 'transferencia', name: 'Transferências', kind: 'TRANSFER', sort_order: 60 },
+  { code: 'transferencia.interna', name: 'Transferência interna', kind: 'TRANSFER', parent_code: 'transferencia', sort_order: 61 },
+  { code: 'passivo', name: 'Passivos de terceiros', kind: 'LIABILITY', sort_order: 70 },
+  { code: 'passivo.creditos_pre_pagos', name: 'Créditos pré-pagos', kind: 'LIABILITY', parent_code: 'passivo', sort_order: 71 },
+  { code: 'passivo.valores_motoristas', name: 'Valores de motoristas', kind: 'LIABILITY', parent_code: 'passivo', sort_order: 72 },
+  { code: 'passivo.valores_gestores', name: 'Valores de gestores', kind: 'LIABILITY', parent_code: 'passivo', sort_order: 73 },
+  { code: 'passivo.valores_comercios', name: 'Valores de comércios', kind: 'LIABILITY', parent_code: 'passivo', sort_order: 74 },
+  { code: 'passivo.retencoes', name: 'Retenções', kind: 'LIABILITY', parent_code: 'passivo', sort_order: 75 },
+  { code: 'passivo.outros_terceiros', name: 'Outros terceiros', kind: 'LIABILITY', parent_code: 'passivo', sort_order: 76 },
+];
+
+export const FINANCE_COST_CENTER_SEEDS: FinanceCostCenterSeed[] = [
+  { code: 'kaviar-geral', name: 'KAVIAR Geral', type: 'COMPANY', is_active: true },
+  { code: 'tecnologia', name: 'Tecnologia', type: 'DEPARTMENT', parent_code: 'kaviar-geral', is_active: true },
+  { code: 'marketing', name: 'Marketing', type: 'DEPARTMENT', parent_code: 'kaviar-geral', is_active: true },
+  { code: 'regulatorio', name: 'Regulatório', type: 'DEPARTMENT', parent_code: 'kaviar-geral', is_active: true },
+  { code: 'comercial', name: 'Comercial', type: 'DEPARTMENT', parent_code: 'kaviar-geral', is_active: true },
+  { code: 'rio-de-janeiro', name: 'Rio de Janeiro', type: 'CITY', parent_code: 'kaviar-geral', territory_code: 'territory-rj-city', city: 'Rio de Janeiro', state: 'RJ', is_active: true },
+  { code: 'tambau', name: 'Tambaú', type: 'CITY', parent_code: 'kaviar-geral', city: 'Tambaú', state: 'SP', is_active: true },
+  { code: 'santa-rita-do-passa-quatro', name: 'Santa Rita do Passa Quatro', type: 'CITY', parent_code: 'kaviar-geral', city: 'Santa Rita do Passa Quatro', state: 'SP', is_active: true },
+];
+
+export const FINANCE_RECOGNITION_POLICY_SEEDS: FinanceRecognitionPolicySeed[] = [
+  { code: 'ride_revenue.default', subject: 'RIDE_REVENUE', scope_type: 'GLOBAL', policy: 'UNCLASSIFIED', status: 'DRAFT', reason: 'Seed inicial sem classificação definitiva', notes: 'Política de entrada apenas para base do módulo financeiro.' },
+  { code: 'prepaid_driver_credits.default', subject: 'PREPAID_DRIVER_CREDITS', scope_type: 'GLOBAL', policy: 'UNCLASSIFIED', status: 'DRAFT', reason: 'Seed inicial sem classificação definitiva', notes: 'Tratamento posterior como passivo.' },
+  { code: 'manager_payments.default', subject: 'MANAGER_PAYMENTS', scope_type: 'GLOBAL', policy: 'UNCLASSIFIED', status: 'DRAFT', reason: 'Seed inicial sem classificação definitiva', notes: 'Pagamentos de gestores permanecem sem classificação definitiva.' },
+  { code: 'commercial_payments.default', subject: 'COMMERCIAL_PAYMENTS', scope_type: 'GLOBAL', policy: 'UNCLASSIFIED', status: 'DRAFT', reason: 'Seed inicial sem classificação definitiva', notes: 'Pagamentos comerciais aguardam regra contábil.' },
+  { code: 'other.default', subject: 'OTHER', scope_type: 'GLOBAL', policy: 'UNCLASSIFIED', status: 'DRAFT', reason: 'Seed inicial sem classificação definitiva', notes: 'Fallback sem decisão contábil.' },
+];
+
+async function seedFinancialFoundation(adminId: string, rioDeJaneiroTerritoryId: string) {
+  const categoryByCode = new Map<string, { id: string }>();
+
+  for (const seed of FINANCE_CATEGORY_SEEDS) {
+    const parentId = seed.parent_code ? categoryByCode.get(seed.parent_code)?.id ?? null : null;
+    const row = await prisma.financial_categories.upsert({
+      where: { code: seed.code },
+      update: {
+        name: seed.name,
+        kind: seed.kind,
+        parent_id: parentId,
+        default_direction: seed.default_direction ?? null,
+        requires_document: seed.requires_document ?? false,
+        is_system: true,
+        is_active: true,
+        sort_order: seed.sort_order ?? 0,
+        updated_by_admin_id: adminId,
+      },
+      create: {
+        code: seed.code,
+        name: seed.name,
+        kind: seed.kind,
+        parent_id: parentId,
+        default_direction: seed.default_direction ?? null,
+        requires_document: seed.requires_document ?? false,
+        is_system: true,
+        is_active: true,
+        sort_order: seed.sort_order ?? 0,
+        created_by_admin_id: adminId,
+        updated_by_admin_id: adminId,
+      },
+    });
+
+    categoryByCode.set(seed.code, { id: row.id });
+  }
+
+  const costCenterByCode = new Map<string, { id: string }>();
+
+  for (const seed of FINANCE_COST_CENTER_SEEDS) {
+    const parentId = seed.parent_code ? costCenterByCode.get(seed.parent_code)?.id ?? null : null;
+    const territoryId = seed.territory_code === 'territory-rj-city' ? rioDeJaneiroTerritoryId : null;
+    const row = await prisma.financial_cost_centers.upsert({
+      where: { code: seed.code },
+      update: {
+        name: seed.name,
+        type: seed.type,
+        parent_id: parentId,
+        territory_id: territoryId,
+        city: seed.city ?? null,
+        state: seed.state ?? null,
+        is_active: seed.is_active ?? true,
+        updated_by_admin_id: adminId,
+      },
+      create: {
+        code: seed.code,
+        name: seed.name,
+        type: seed.type,
+        parent_id: parentId,
+        territory_id: territoryId,
+        city: seed.city ?? null,
+        state: seed.state ?? null,
+        is_active: seed.is_active ?? true,
+        created_by_admin_id: adminId,
+        updated_by_admin_id: adminId,
+      },
+    });
+
+    costCenterByCode.set(seed.code, { id: row.id });
+  }
+
+  for (const seed of FINANCE_RECOGNITION_POLICY_SEEDS) {
+    await prisma.financial_recognition_policies.upsert({
+      where: { code: seed.code },
+      update: {
+        subject: seed.subject,
+        scope_type: seed.scope_type,
+        policy: seed.policy,
+        status: seed.status,
+        effective_from: new Date('2026-01-01T00:00:00.000Z'),
+        effective_until: null,
+        reason: seed.reason,
+        notes: seed.notes ?? null,
+        created_by_admin_id: adminId,
+        updated_by_admin_id: adminId,
+      },
+      create: {
+        code: seed.code,
+        subject: seed.subject,
+        scope_type: seed.scope_type,
+        policy: seed.policy,
+        status: seed.status,
+        effective_from: new Date('2026-01-01T00:00:00.000Z'),
+        effective_until: null,
+        reason: seed.reason,
+        notes: seed.notes ?? null,
+        created_by_admin_id: adminId,
+        updated_by_admin_id: adminId,
+      },
+    });
+  }
+}
+
 async function main() {
   console.log('🔧 Inicializando dados padrão...');
 
   // Admin padrão
   const hashedPassword = await bcrypt.hash('admin123', 12);
-  await prisma.admins.upsert({
+  const admin = await prisma.admins.upsert({
     where: { email: 'admin@kaviar.com' },
     update: { password: hashedPassword },
     create: {
@@ -153,6 +348,9 @@ async function main() {
   });
   console.log('✅ Território: RJ (state) → Rio de Janeiro (city)');
 
+  await seedFinancialFoundation(admin.id, rjCity.id);
+  console.log('✅ Base financeira 1A: categorias, centros de custo e políticas UNCLASSIFIED');
+
   // Regras municipais iniciais: Santa Rita do Passa Quatro/SP
   const santaRitaCar = await prisma.municipal_regulations.upsert({
     where: {
@@ -248,3 +446,5 @@ main()
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
+
+export { seedFinancialFoundation };

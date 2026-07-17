@@ -1,0 +1,105 @@
+-- Seed inicial idempotente da fundacao financeira (Fase 1A).
+-- Escopo restrito: categorias, centros de custo e politicas de reconhecimento.
+
+INSERT INTO "financial_categories" (
+  "id",
+  "code",
+  "name",
+  "kind",
+  "parent_id",
+  "default_direction",
+  "requires_document",
+  "is_system",
+  "is_active",
+  "sort_order",
+  "updated_at"
+) VALUES
+  ('fcat_' || md5('receita'), 'receita', 'Receitas', 'REVENUE'::financial_category_kind, NULL, NULL, false, true, true, 10, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('receita.taxa_corrida'), 'receita.taxa_corrida', 'Taxa de corrida', 'REVENUE'::financial_category_kind, 'fcat_' || md5('receita'), NULL, false, true, true, 11, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('receita.adesao_gestor'), 'receita.adesao_gestor', 'Adesão de gestor', 'REVENUE'::financial_category_kind, 'fcat_' || md5('receita'), NULL, false, true, true, 12, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('receita.mensalidade'), 'receita.mensalidade', 'Mensalidade', 'REVENUE'::financial_category_kind, 'fcat_' || md5('receita'), NULL, false, true, true, 13, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('receita.servico_comercial'), 'receita.servico_comercial', 'Serviço comercial', 'REVENUE'::financial_category_kind, 'fcat_' || md5('receita'), NULL, false, true, true, 14, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('receita.combo_premium'), 'receita.combo_premium', 'Combo premium', 'REVENUE'::financial_category_kind, 'fcat_' || md5('receita'), NULL, false, true, true, 15, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('receita.outras_receitas'), 'receita.outras_receitas', 'Outras receitas', 'REVENUE'::financial_category_kind, 'fcat_' || md5('receita'), NULL, false, true, true, 16, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa'), 'despesa', 'Despesas', 'EXPENSE'::financial_category_kind, NULL, NULL, false, true, true, 20, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.aws'), 'despesa.aws', 'AWS', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 21, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.cloudflare'), 'despesa.cloudflare', 'Cloudflare', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 22, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.twilio'), 'despesa.twilio', 'Twilio', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 23, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.google_play'), 'despesa.google_play', 'Google/Play Store', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 24, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.expo'), 'despesa.expo', 'Expo', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 25, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.dominio'), 'despesa.dominio', 'Domínio', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 26, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.contabilidade'), 'despesa.contabilidade', 'Contabilidade', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 27, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.juridico'), 'despesa.juridico', 'Jurídico', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 28, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.marketing'), 'despesa.marketing', 'Marketing', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 29, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.taxas_bancarias'), 'despesa.taxas_bancarias', 'Taxas bancárias', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 30, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.sumup'), 'despesa.sumup', 'SumUp', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 31, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.asaas'), 'despesa.asaas', 'Asaas', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 32, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.despesas_municipais'), 'despesa.despesas_municipais', 'Despesas municipais', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 33, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.equipamentos'), 'despesa.equipamentos', 'Equipamentos', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 34, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.telefonia_internet'), 'despesa.telefonia_internet', 'Telefonia/internet', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 35, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.reembolsos'), 'despesa.reembolsos', 'Reembolsos', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 36, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.pro_labore'), 'despesa.pro_labore', 'Pró-labore', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 37, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.impostos'), 'despesa.impostos', 'Impostos', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 38, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('despesa.outras_despesas'), 'despesa.outras_despesas', 'Outras despesas', 'EXPENSE'::financial_category_kind, 'fcat_' || md5('despesa'), NULL, false, true, true, 39, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('aporte'), 'aporte', 'Aportes', 'CONTRIBUTION'::financial_category_kind, NULL, NULL, false, true, true, 40, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('aporte.socio'), 'aporte.socio', 'Aporte de sócio', 'CONTRIBUTION'::financial_category_kind, 'fcat_' || md5('aporte'), NULL, false, true, true, 41, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('retirada'), 'retirada', 'Retiradas', 'WITHDRAWAL'::financial_category_kind, NULL, NULL, false, true, true, 50, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('retirada.socio'), 'retirada.socio', 'Retirada de sócio', 'WITHDRAWAL'::financial_category_kind, 'fcat_' || md5('retirada'), NULL, false, true, true, 51, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('transferencia'), 'transferencia', 'Transferências', 'TRANSFER'::financial_category_kind, NULL, NULL, false, true, true, 60, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('transferencia.interna'), 'transferencia.interna', 'Transferência interna', 'TRANSFER'::financial_category_kind, 'fcat_' || md5('transferencia'), NULL, false, true, true, 61, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('passivo'), 'passivo', 'Passivos de terceiros', 'LIABILITY'::financial_category_kind, NULL, NULL, false, true, true, 70, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('passivo.creditos_pre_pagos'), 'passivo.creditos_pre_pagos', 'Créditos pré-pagos', 'LIABILITY'::financial_category_kind, 'fcat_' || md5('passivo'), NULL, false, true, true, 71, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('passivo.valores_motoristas'), 'passivo.valores_motoristas', 'Valores de motoristas', 'LIABILITY'::financial_category_kind, 'fcat_' || md5('passivo'), NULL, false, true, true, 72, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('passivo.valores_gestores'), 'passivo.valores_gestores', 'Valores de gestores', 'LIABILITY'::financial_category_kind, 'fcat_' || md5('passivo'), NULL, false, true, true, 73, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('passivo.valores_comercios'), 'passivo.valores_comercios', 'Valores de comércios', 'LIABILITY'::financial_category_kind, 'fcat_' || md5('passivo'), NULL, false, true, true, 74, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('passivo.retencoes'), 'passivo.retencoes', 'Retenções', 'LIABILITY'::financial_category_kind, 'fcat_' || md5('passivo'), NULL, false, true, true, 75, CURRENT_TIMESTAMP),
+  ('fcat_' || md5('passivo.outros_terceiros'), 'passivo.outros_terceiros', 'Outros terceiros', 'LIABILITY'::financial_category_kind, 'fcat_' || md5('passivo'), NULL, false, true, true, 76, CURRENT_TIMESTAMP)
+ON CONFLICT ("code") DO NOTHING;
+
+INSERT INTO "financial_cost_centers" (
+  "id",
+  "code",
+  "name",
+  "type",
+  "parent_id",
+  "territory_id",
+  "city",
+  "state",
+  "is_active",
+  "updated_at"
+) VALUES
+  ('fcc_' || md5('kaviar-geral'), 'kaviar-geral', 'KAVIAR Geral', 'COMPANY'::financial_cost_center_type, NULL, NULL, NULL, NULL, true, CURRENT_TIMESTAMP),
+  ('fcc_' || md5('tecnologia'), 'tecnologia', 'Tecnologia', 'DEPARTMENT'::financial_cost_center_type, 'fcc_' || md5('kaviar-geral'), NULL, NULL, NULL, true, CURRENT_TIMESTAMP),
+  ('fcc_' || md5('marketing'), 'marketing', 'Marketing', 'DEPARTMENT'::financial_cost_center_type, 'fcc_' || md5('kaviar-geral'), NULL, NULL, NULL, true, CURRENT_TIMESTAMP),
+  ('fcc_' || md5('regulatorio'), 'regulatorio', 'Regulatório', 'DEPARTMENT'::financial_cost_center_type, 'fcc_' || md5('kaviar-geral'), NULL, NULL, NULL, true, CURRENT_TIMESTAMP),
+  ('fcc_' || md5('comercial'), 'comercial', 'Comercial', 'DEPARTMENT'::financial_cost_center_type, 'fcc_' || md5('kaviar-geral'), NULL, NULL, NULL, true, CURRENT_TIMESTAMP),
+  ('fcc_' || md5('rio-de-janeiro'), 'rio-de-janeiro', 'Rio de Janeiro', 'CITY'::financial_cost_center_type, 'fcc_' || md5('kaviar-geral'), NULL, 'Rio de Janeiro', 'RJ', true, CURRENT_TIMESTAMP),
+  ('fcc_' || md5('tambau'), 'tambau', 'Tambaú', 'CITY'::financial_cost_center_type, 'fcc_' || md5('kaviar-geral'), NULL, 'Tambaú', 'SP', true, CURRENT_TIMESTAMP),
+  ('fcc_' || md5('santa-rita-do-passa-quatro'), 'santa-rita-do-passa-quatro', 'Santa Rita do Passa Quatro', 'CITY'::financial_cost_center_type, 'fcc_' || md5('kaviar-geral'), NULL, 'Santa Rita do Passa Quatro', 'SP', true, CURRENT_TIMESTAMP)
+ON CONFLICT ("code") DO NOTHING;
+
+INSERT INTO "financial_recognition_policies" (
+  "id",
+  "code",
+  "subject",
+  "scope_type",
+  "territory_id",
+  "cost_center_id",
+  "city",
+  "state",
+  "policy",
+  "status",
+  "effective_from",
+  "effective_until",
+  "approved_by_admin_id",
+  "approved_at",
+  "reason",
+  "notes",
+  "updated_at"
+) VALUES
+  ('frp_' || md5('ride_revenue.default'), 'ride_revenue.default', 'RIDE_REVENUE'::financial_recognition_subject, 'GLOBAL'::financial_recognition_scope_type, NULL, NULL, NULL, NULL, 'UNCLASSIFIED'::financial_recognition_policy, 'DRAFT'::financial_recognition_policy_status, TIMESTAMP '2026-01-01 00:00:00', NULL, NULL, NULL, 'Seed inicial sem classificação definitiva', 'Política de entrada apenas para base do módulo financeiro.', CURRENT_TIMESTAMP),
+  ('frp_' || md5('prepaid_driver_credits.default'), 'prepaid_driver_credits.default', 'PREPAID_DRIVER_CREDITS'::financial_recognition_subject, 'GLOBAL'::financial_recognition_scope_type, NULL, NULL, NULL, NULL, 'UNCLASSIFIED'::financial_recognition_policy, 'DRAFT'::financial_recognition_policy_status, TIMESTAMP '2026-01-01 00:00:00', NULL, NULL, NULL, 'Seed inicial sem classificação definitiva', 'Tratamento posterior como passivo.', CURRENT_TIMESTAMP),
+  ('frp_' || md5('manager_payments.default'), 'manager_payments.default', 'MANAGER_PAYMENTS'::financial_recognition_subject, 'GLOBAL'::financial_recognition_scope_type, NULL, NULL, NULL, NULL, 'UNCLASSIFIED'::financial_recognition_policy, 'DRAFT'::financial_recognition_policy_status, TIMESTAMP '2026-01-01 00:00:00', NULL, NULL, NULL, 'Seed inicial sem classificação definitiva', 'Pagamentos de gestores permanecem sem classificação definitiva.', CURRENT_TIMESTAMP),
+  ('frp_' || md5('commercial_payments.default'), 'commercial_payments.default', 'COMMERCIAL_PAYMENTS'::financial_recognition_subject, 'GLOBAL'::financial_recognition_scope_type, NULL, NULL, NULL, NULL, 'UNCLASSIFIED'::financial_recognition_policy, 'DRAFT'::financial_recognition_policy_status, TIMESTAMP '2026-01-01 00:00:00', NULL, NULL, NULL, 'Seed inicial sem classificação definitiva', 'Pagamentos comerciais aguardam regra contábil.', CURRENT_TIMESTAMP),
+  ('frp_' || md5('other.default'), 'other.default', 'OTHER'::financial_recognition_subject, 'GLOBAL'::financial_recognition_scope_type, NULL, NULL, NULL, NULL, 'UNCLASSIFIED'::financial_recognition_policy, 'DRAFT'::financial_recognition_policy_status, TIMESTAMP '2026-01-01 00:00:00', NULL, NULL, NULL, 'Seed inicial sem classificação definitiva', 'Fallback sem decisão contábil.', CURRENT_TIMESTAMP)
+ON CONFLICT ("code") DO NOTHING;
