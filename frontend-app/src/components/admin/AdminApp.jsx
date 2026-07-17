@@ -59,6 +59,7 @@ import StaffManagement from "../../pages/admin/StaffManagement";
 import AuditLogs from "../../pages/admin/AuditLogs";
 import ReferralManagement from "../../pages/admin/ReferralManagement";
 import FinancePayments from "../../pages/admin/FinancePayments";
+import FinanceiroPage from "../../pages/admin/FinanceiroPage";
 import TerritoriesPage from "../../pages/admin/TerritoriesPage";
 import TerritoryDetailPage from "../../pages/admin/TerritoryDetailPage";
 import RegionalAdminsPage from "../../pages/admin/RegionalAdminsPage";
@@ -94,7 +95,7 @@ import { useState, useEffect } from 'react';
 function FinanceHomeRedirect() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
-  if (admin?.role === 'FINANCE') return <FinancePayments />;
+  if (admin?.role === 'FINANCE') return <Navigate to="/admin/financeiro" replace />;
   if (admin?.role === 'TERRITORIAL_OPERATOR') return <OperatorHome />;
   if (admin?.role === 'TERRITORIAL_MANAGER') return <ManagerHome />;
   if (['PET_OPERATOR', 'PET_SUPERVISOR', 'PET_ADMIN'].includes(admin?.role)) return <Navigate to="/admin/pet" replace />;
@@ -181,6 +182,7 @@ function AdminHome() {
   const adminData = localStorage.getItem('kaviar_admin_data');
   const admin = adminData ? JSON.parse(adminData) : null;
   const isSuperAdmin = admin?.role === 'SUPER_ADMIN';
+  const canAccessFinance = ['SUPER_ADMIN', 'FINANCE'].includes(admin?.role);
   const canAccessOperations = ['SUPER_ADMIN', 'OPERATOR', 'TERRITORIAL_MANAGER', 'TERRITORIAL_OPERATOR'].includes(admin?.role);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -484,6 +486,9 @@ function AdminHome() {
               ...(isSuperAdmin ? [{ Icon: Storefront, title: 'Comércios — Admin', desc: 'Financeiro, portal e ativações avançadas', to: '/admin/commerce' }] : []),
             ]},
             { section: 'Financeiro', items: [
+              ...(canAccessFinance ? [
+                { Icon: Paid, title: 'Painel Financeiro Administrativo', desc: 'Contas, categorias e centros de custo em leitura', to: '/admin/financeiro' },
+              ] : []),
               ...(isSuperAdmin ? [
                 { Icon: Paid, title: 'Preços e Taxas', desc: 'Ajuste preços, taxas e adicionais', to: '/admin/pricing' },
                 { Icon: Paid, title: 'Tabela Territorial', desc: 'Pisos mínimos por rota e território', to: '/admin/territory-floors' },
@@ -716,6 +721,11 @@ export default function AdminApp() {
           <Route path="/finance-payments" element={
             <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'FINANCE']}>
               <FinancePayments />
+            </ProtectedAdminRoute>
+          } />
+          <Route path="/financeiro" element={
+            <ProtectedAdminRoute allowedRoles={['SUPER_ADMIN', 'FINANCE']}>
+              <FinanceiroPage />
             </ProtectedAdminRoute>
           } />
           <Route path="/credit-purchases" element={
