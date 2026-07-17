@@ -74,6 +74,96 @@ enum financial_direction {
   OUT
 }
 
+enum financial_transaction_type {
+  INCOME
+  EXPENSE
+  TRANSFER
+  RECEIVABLE
+  PAYABLE
+  ADJUSTMENT
+  REVERSAL
+  REFUND
+  RECONCILIATION
+  ACCRUAL
+  SETTLEMENT
+  WITHDRAWAL
+  DEPOSIT
+  TAX
+  FEE
+  COMPENSATION
+}
+
+enum financial_transaction_status {
+  DRAFT
+  PENDING
+  POSTED
+  CANCELED
+  REVERSED
+  BLOCKED
+  RECONCILED
+  CLOSED
+}
+
+enum financial_payment_method {
+  PIX
+  ASAAS
+  SUMUP
+  BANK_TRANSFER
+  TED
+  DOC
+  CASH
+  CARD
+  BOLETO
+  INTERNAL
+  NONE
+}
+
+enum financial_source_type {
+  RIDE
+  DRIVER_WALLET
+  CREDIT_SALE
+  TERRITORIAL_PAYOUT
+  COMMERCIAL_ORDER
+  MANUAL
+  BANK_IMPORT
+  BANK_WEBHOOK
+  PAYMENT_PROVIDER
+  NFSE
+  ACCOUNTING
+  REFUND
+  TAX
+  ADJUSTMENT
+}
+
+enum financial_origin_type {
+  OPERATIONAL
+  COMMERCIAL
+  BANK
+  PROVIDER
+  MANUAL
+  ACCOUNTING
+  TAX
+  INTERNAL
+}
+
+enum financial_transaction_allocation_type {
+  SIMPLE
+  ALLOCATED
+  ADJUSTMENT
+  RECLASSIFICATION
+}
+
+enum financial_transaction_link_type {
+  SETTLEMENT
+  TRANSFER_PAIR
+  REVERSAL
+  DOCUMENT_LINK
+  RECONCILIATION
+  COMPETENCE
+  RATEIO
+  ACCOUNTANT_REVIEW
+}
+
 model admins {
   id                          String              @id @default(uuid())
   name                        String
@@ -120,6 +210,11 @@ model admins {
   financial_recognition_policies_created     financial_recognition_policies[]  @relation("financial_recognition_policies_created_by")
   financial_recognition_policies_updated     financial_recognition_policies[]  @relation("financial_recognition_policies_updated_by")
   financial_recognition_policies_approved    financial_recognition_policies[]  @relation("financial_recognition_policies_approved_by")
+  financial_transactions_created             financial_transactions[]           @relation("FinancialTransactionCreatedBy")
+  financial_transactions_approved            financial_transactions[]           @relation("FinancialTransactionApprovedBy")
+  financial_transactions_responsible         financial_transactions[]           @relation("FinancialTransactionResponsible")
+  financial_transaction_allocations_created  financial_transaction_allocations[] @relation("FinancialTransactionAllocationCreatedBy")
+  financial_transaction_links_created        financial_transaction_links[]      @relation("FinancialTransactionLinkCreatedBy")
 }
 
 model communities {
@@ -2329,6 +2424,8 @@ model financial_accounts {
 
   created_by_admin admins? @relation("financial_accounts_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   updated_by_admin admins? @relation("financial_accounts_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  transactions_as_account financial_transactions[] @relation("FinancialTransactionAccount")
+  transactions_as_counterparty financial_transactions[] @relation("FinancialTransactionCounterpartyAccount")
 
   @@unique([code])
   @@index([type, is_active])
@@ -2356,6 +2453,8 @@ model financial_categories {
   children         financial_categories[] @relation("financial_categories_hierarchy")
   created_by_admin admins?                @relation("financial_categories_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   updated_by_admin admins?                @relation("financial_categories_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  financial_transactions financial_transactions[]
+  financial_transaction_allocations financial_transaction_allocations[]
 
   @@unique([code])
   @@index([kind, is_active])
@@ -2385,6 +2484,8 @@ model financial_cost_centers {
   recognition_policies financial_recognition_policies[] @relation("financial_recognition_policies_cost_center")
   created_by_admin     admins?                          @relation("financial_cost_centers_created_by", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   updated_by_admin     admins?                          @relation("financial_cost_centers_updated_by", fields: [updated_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  financial_transactions financial_transactions[]
+  financial_transaction_allocations financial_transaction_allocations[]
 
   @@unique([code])
   @@index([type, is_active])
@@ -2392,6 +2493,133 @@ model financial_cost_centers {
   @@index([territory_id])
   @@index([city, state])
   @@map("financial_cost_centers")
+}
+
+model financial_transactions {
+  id                      String                        @id @default(uuid())
+  external_reference      String?
+  provider                String?
+  provider_event_id       String?
+  source_type             financial_source_type
+  source_id               String?
+  origin_type             financial_origin_type
+  origin_id               String?
+
+  account_id              String
+  counterparty_account_id String?
+  category_id             String?
+  cost_center_id          String?
+  transfer_group_id       String?
+
+  direction               financial_direction
+  transaction_type        financial_transaction_type
+  status                  financial_transaction_status @default(DRAFT)
+  payment_method          financial_payment_method?
+  recognition_policy      financial_recognition_policy?
+
+  competence_date         DateTime
+  transaction_date        DateTime
+  due_date                DateTime?
+  settlement_date         DateTime?
+
+  gross_amount_cents      BigInt
+  fee_amount_cents        BigInt                       @default(0)
+  discount_amount_cents   BigInt                       @default(0)
+  retention_amount_cents  BigInt                       @default(0)
+  net_amount_cents        BigInt
+  transfer_amount_cents   BigInt?
+
+  reversal_of_id          String?
+  canceled_reason         String?
+  canceled_at             DateTime?
+
+  description             String
+  memo                    String?
+  metadata                Json?
+  idempotency_key         String?                      @unique
+
+  created_by_admin_id     String?
+  approved_by_admin_id    String?
+  responsible_admin_id    String?
+
+  created_at              DateTime                     @default(now())
+  updated_at              DateTime                     @updatedAt
+
+  account                 financial_accounts           @relation("FinancialTransactionAccount", fields: [account_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  counterparty_account    financial_accounts?          @relation("FinancialTransactionCounterpartyAccount", fields: [counterparty_account_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  category                financial_categories?        @relation(fields: [category_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  cost_center             financial_cost_centers?      @relation(fields: [cost_center_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  reversal_of             financial_transactions?      @relation("FinancialTransactionReversal", fields: [reversal_of_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  reversals               financial_transactions[]     @relation("FinancialTransactionReversal")
+  created_by_admin        admins?                      @relation("FinancialTransactionCreatedBy", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  approved_by_admin       admins?                      @relation("FinancialTransactionApprovedBy", fields: [approved_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  responsible_admin       admins?                      @relation("FinancialTransactionResponsible", fields: [responsible_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  allocations             financial_transaction_allocations[]
+  outgoing_links          financial_transaction_links[] @relation("FinancialTransactionLinkSource")
+  incoming_links          financial_transaction_links[] @relation("FinancialTransactionLinkTarget")
+
+  @@index([account_id, transaction_date])
+  @@index([counterparty_account_id])
+  @@index([category_id, competence_date])
+  @@index([cost_center_id, competence_date])
+  @@index([status, direction])
+  @@index([source_type, source_id])
+  @@index([provider, provider_event_id])
+  @@index([origin_type, origin_id])
+  @@index([transfer_group_id])
+  @@index([reversal_of_id])
+  @@index([created_by_admin_id])
+  @@index([approved_by_admin_id])
+  @@index([responsible_admin_id])
+  @@map("financial_transactions")
+}
+
+model financial_transaction_allocations {
+  id                  String                              @id @default(uuid())
+  transaction_id      String
+  category_id         String
+  cost_center_id      String?
+  amount_cents        BigInt
+  allocation_type     financial_transaction_allocation_type
+  description         String?
+  metadata            Json?
+  created_by_admin_id String?
+  created_at          DateTime                            @default(now())
+  updated_at          DateTime                            @updatedAt
+
+  transaction         financial_transactions              @relation(fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  category            financial_categories                @relation(fields: [category_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  cost_center         financial_cost_centers?            @relation(fields: [cost_center_id], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  created_by_admin    admins?                             @relation("FinancialTransactionAllocationCreatedBy", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([transaction_id])
+  @@index([category_id])
+  @@index([cost_center_id])
+  @@index([allocation_type])
+  @@index([created_by_admin_id])
+  @@map("financial_transaction_allocations")
+}
+
+model financial_transaction_links {
+  id                    String                        @id @default(uuid())
+  transaction_id        String
+  linked_transaction_id String
+  link_type             financial_transaction_link_type
+  amount_cents          BigInt?
+  metadata              Json?
+  created_by_admin_id   String?
+  created_at            DateTime                      @default(now())
+  updated_at            DateTime                      @updatedAt
+
+  transaction           financial_transactions        @relation("FinancialTransactionLinkSource", fields: [transaction_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  linked_transaction    financial_transactions        @relation("FinancialTransactionLinkTarget", fields: [linked_transaction_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  created_by_admin      admins?                       @relation("FinancialTransactionLinkCreatedBy", fields: [created_by_admin_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([transaction_id, linked_transaction_id, link_type])
+  @@index([link_type])
+  @@index([linked_transaction_id])
+  @@index([created_by_admin_id])
+  @@map("financial_transaction_links")
 }
 
 model operational_insurance_coverages {
