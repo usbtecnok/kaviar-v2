@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -8,6 +8,10 @@ import {
   Chip,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
   MenuItem,
   Tab,
@@ -22,12 +26,34 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { AccountBalance, Category, Refresh, Schema } from '@mui/icons-material';
 import {
+  AccountBalance,
+  Add,
+  Category,
+  Edit,
+  PlayCircleOutline,
+  Refresh,
+  Schema,
+  StopCircleOutlined,
+} from '@mui/icons-material';
+import {
+  createFinanceAccount,
+  getFinanceAccountErrorPresentation,
   listFinanceAccounts,
   listFinanceCategories,
   listFinanceCostCenters,
+  updateFinanceAccount,
 } from '../../services/adminFinanceService';
+import AccountFormDialog from '../../components/admin/finance/AccountFormDialog';
+import {
+  ACCOUNT_TYPE_OPTIONS,
+  buildAccountStatusPatchPayload,
+  buildCreateAccountPayload,
+  buildUpdateAccountPayload,
+  getAccountTypeLabel,
+  hasAccountChanges,
+} from '../../utils/adminFinanceAccountUtils';
+import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 const BLUE = {
   pageBg: 'linear-gradient(180deg, #EEF6FF 0%, #E3F0FF 100%)',
@@ -66,9 +92,9 @@ const toBooleanLabel = (value) => (value ? 'Ativo' : 'Inativo');
 
 const toDateTime = (value) => {
   if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString('pt-BR');
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) return '-';
+  return new Intl.DateTimeFormat('pt-BR').format(timestamp);
 };
 
 const resolveListPayload = (payload) => {
@@ -104,7 +130,35 @@ function EmptyState({ message }) {
 }
 
 export default function FinanceiroPage() {
+  const { getAdminData } = useAdminAuth();
+
+  let admin = null;
+  try {
+    admin = getAdminData();
+  } catch (_error) {
+    admin = null;
+  }
+
+  const adminRole = admin?.role || '';
+  const isSuperAdmin = adminRole === 'SUPER_ADMIN';
   const [activeTab, setActiveTab] = useState(0);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
+  const [accountDialogMode, setAccountDialogMode] = useState('create');
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [accountDialogError, setAccountDialogError] = useState(null);
+  const [accountActionError, setAccountActionError] = useState('');
+  const [accountSubmitting, setAccountSubmitting] = useState(false);
+  const [toggleDialogState, setToggleDialogState] = useState({
+    open: false,
+    account: null,
+    nextIsActive: false,
+    loading: false,
+    error: null,
+  });
+  const accountSubmitGuardRef = useRef(false);
+  const toggleGuardRef = useRef(false);
+  const accountDialogTriggerRef = useRef(null);
+  const toggleDialogTriggerRef = useRef(null);
 
   const [accountsQuery, setAccountsQuery] = useState({
     page: 1,
@@ -143,6 +197,7 @@ export default function FinanceiroPage() {
   );
 
   const loadAccounts = async () => {
+    setAccountActionError('');
     setAccountsState((prev) => ({ ...prev, loading: true, error: '' }));
     try {
       const payload = await listFinanceAccounts(accountsQuery);
@@ -150,6 +205,158 @@ export default function FinanceiroPage() {
       setAccountsState({ loading: false, error: '', ...resolved });
     } catch (error) {
       setAccountsState((prev) => ({ ...prev, loading: false, error: error.message || 'Erro ao carregar contas.' }));
+    }
+  };
+
+  const openCreateAccountDialog = (event) => {
+    accountDialogTriggerRef.current = event?.currentTarget || null;
+    setAccountDialogError(null);
+    setSelectedAccount(null);
+    setAccountDialogMode('create');
+    setAccountDialogOpen(true);
+  };
+
+  const openEditAccountDialog = (account, event) => {
+    accountDialogTriggerRef.current = event?.currentTarget || null;
+    setAccountDialogError(null);
+    setSelectedAccount(account);
+    setAccountDialogMode('edit');
+    setAccountDialogOpen(true);
+  };
+
+  const closeAccountDialog = () => {
+    if (accountSubmitting) return;
+    setAccountDialogOpen(false);
+    setSelectedAccount(null);
+    setAccountDialogError(null);
+
+    const triggerElement = accountDialogTriggerRef.current;
+    accountDialogTriggerRef.current = null;
+    setTimeout(() => {
+      if (triggerElement && typeof triggerElement.focus === 'function') {
+        triggerElement.focus();
+      }
+    }, 0);
+  };
+
+  const openToggleAccountDialog = (account, event) => {
+    toggleDialogTriggerRef.current = event?.currentTarget || null;
+    setAccountActionError('');
+    setToggleDialogState({
+      open: true,
+      account,
+      nextIsActive: !account?.is_active,
+      loading: false,
+      error: null,
+    });
+  };
+
+  const closeToggleAccountDialog = () => {
+    if (toggleDialogState.loading) return;
+    setToggleDialogState({
+      open: false,
+      account: null,
+      nextIsActive: false,
+      loading: false,
+      error: null,
+    });
+
+    const triggerElement = toggleDialogTriggerRef.current;
+    toggleDialogTriggerRef.current = null;
+    setTimeout(() => {
+      if (triggerElement && typeof triggerElement.focus === 'function') {
+        triggerElement.focus();
+      }
+    }, 0);
+  };
+
+  const handleReloadAccountsFromForm = async () => {
+    await loadAccounts();
+    closeAccountDialog();
+  };
+
+  const handleReloadAccountsFromToggle = async () => {
+    await loadAccounts();
+    closeToggleAccountDialog();
+  };
+
+  const handleAccountSubmit = async (formValues) => {
+    if (accountSubmitGuardRef.current) return;
+
+    accountSubmitGuardRef.current = true;
+    setAccountDialogError(null);
+    setAccountSubmitting(true);
+
+    try {
+      if (accountDialogMode === 'create') {
+        const payload = buildCreateAccountPayload(formValues);
+        await createFinanceAccount(payload);
+      } else {
+        const payload = buildUpdateAccountPayload(formValues, selectedAccount, {
+          isSuperAdmin,
+          role: adminRole,
+        });
+        if (!hasAccountChanges(payload)) {
+          setAccountDialogOpen(false);
+          setSelectedAccount(null);
+          return;
+        }
+        await updateFinanceAccount(selectedAccount.id, payload);
+      }
+
+      setAccountDialogOpen(false);
+      setSelectedAccount(null);
+      await loadAccounts();
+    } catch (error) {
+      setAccountDialogError(
+        getFinanceAccountErrorPresentation(error, {
+          operation: accountDialogMode === 'create' ? 'create' : 'update',
+        })
+      );
+    } finally {
+      setAccountSubmitting(false);
+      accountSubmitGuardRef.current = false;
+    }
+  };
+
+  const handleToggleAccountStatus = async () => {
+    if (toggleGuardRef.current) return;
+
+    const account = toggleDialogState.account;
+    if (!account) return;
+
+    toggleGuardRef.current = true;
+    setToggleDialogState((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      await updateFinanceAccount(account.id, buildAccountStatusPatchPayload(account, toggleDialogState.nextIsActive));
+      setToggleDialogState({
+        open: false,
+        account: null,
+        nextIsActive: false,
+        loading: false,
+        error: null,
+      });
+
+      const triggerElement = toggleDialogTriggerRef.current;
+      toggleDialogTriggerRef.current = null;
+      setTimeout(() => {
+        if (triggerElement && typeof triggerElement.focus === 'function') {
+          triggerElement.focus();
+        }
+      }, 0);
+
+      await loadAccounts();
+    } catch (error) {
+      const presentation = getFinanceAccountErrorPresentation(error, { operation: 'toggle' });
+      setAccountActionError(presentation.message);
+      setToggleDialogState((prev) => ({
+        ...prev,
+        loading: false,
+        error: presentation,
+      }));
+    } finally {
+      setToggleDialogState((prev) => ({ ...prev, loading: false }));
+      toggleGuardRef.current = false;
     }
   };
 
@@ -214,9 +421,9 @@ export default function FinanceiroPage() {
               }
             >
               <MenuItem value="">Todos</MenuItem>
-              <MenuItem value="BANK">BANK</MenuItem>
-              <MenuItem value="CASH">CASH</MenuItem>
-              <MenuItem value="WALLET">WALLET</MenuItem>
+              {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>{getAccountTypeLabel(option)}</MenuItem>
+              ))}
             </TextField>
           </Grid>
           <Grid item xs={12} md={2}>
@@ -262,9 +469,21 @@ export default function FinanceiroPage() {
               {accountsState.error ? 'Tentar novamente' : 'Atualizar'}
             </Button>
           </Grid>
+          <Grid item xs={12} md={2}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<Add />}
+              onClick={openCreateAccountDialog}
+              sx={{ height: '40px' }}
+            >
+              Nova conta
+            </Button>
+          </Grid>
         </Grid>
 
         {accountsState.error && <Alert severity="error" sx={{ mb: 2 }}>{accountsState.error}</Alert>}
+        {accountActionError && <Alert severity="warning" sx={{ mb: 2 }}>{accountActionError}</Alert>}
 
         <Card sx={{ border: `1px solid ${BLUE.border}` }}>
           <TableContainer>
@@ -279,18 +498,19 @@ export default function FinanceiroPage() {
                   <TableCell>Situação</TableCell>
                   <TableCell>Saldo negativo</TableCell>
                   <TableCell>Atualizado em</TableCell>
+                  <TableCell align="right">Ações</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {accountsState.loading ? (
                   <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                      <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                       <CircularProgress size={22} />
                     </TableCell>
                   </TableRow>
                 ) : accountsState.data.length === 0 ? (
                   <TableRow>
-                      <TableCell colSpan={8}>
+                      <TableCell colSpan={9}>
                       <EmptyState message="Nenhuma conta encontrada para os filtros selecionados." />
                     </TableCell>
                   </TableRow>
@@ -311,6 +531,29 @@ export default function FinanceiroPage() {
                       </TableCell>
                         <TableCell>{item.allows_negative_balance ? 'Sim' : 'Não'}</TableCell>
                       <TableCell>{toDateTime(item.updated_at)}</TableCell>
+                      <TableCell align="right">
+                        <Box sx={{ display: 'inline-flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Edit fontSize="small" />}
+                            onClick={(event) => openEditAccountDialog(item, event)}
+                            disabled={toggleDialogState.loading}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="small"
+                            color={item.is_active ? 'warning' : 'success'}
+                            variant="outlined"
+                            startIcon={item.is_active ? <StopCircleOutlined fontSize="small" /> : <PlayCircleOutline fontSize="small" />}
+                            onClick={(event) => openToggleAccountDialog(item, event)}
+                            disabled={toggleDialogState.loading}
+                          >
+                            {item.is_active ? 'Desativar' : 'Ativar'}
+                          </Button>
+                        </Box>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -632,7 +875,7 @@ export default function FinanceiroPage() {
               Painel Financeiro Administrativo
             </Typography>
             <Typography sx={{ color: BLUE.subtext, mt: 0.5 }}>
-              Etapa 1C-B: estrutura visual azul e consulta somente leitura de contas, categorias e centros de custo.
+              Etapa 1C-B: painel financeiro com gestão de contas e consulta de categorias e centros de custo.
             </Typography>
 
             <Grid container spacing={1.5} sx={{ mt: 1 }}>
@@ -713,6 +956,73 @@ export default function FinanceiroPage() {
           </CardContent>
         </Card>
       </Container>
+      <AccountFormDialog
+        open={accountDialogOpen}
+        mode={accountDialogMode}
+        account={selectedAccount}
+        role={adminRole}
+        isSuperAdmin={isSuperAdmin}
+        submitting={accountSubmitting}
+        error={accountDialogError}
+        onClose={closeAccountDialog}
+        onReloadData={handleReloadAccountsFromForm}
+        onSubmit={handleAccountSubmit}
+      />
+      <Dialog
+        open={toggleDialogState.open}
+        onClose={(_, reason) => {
+          if (toggleDialogState.loading) return;
+          if (reason === 'escapeKeyDown' || reason === 'backdropClick') {
+            closeToggleAccountDialog();
+            return;
+          }
+          closeToggleAccountDialog();
+        }}
+        disableEscapeKeyDown={toggleDialogState.loading}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="finance-account-toggle-dialog-title"
+      >
+        <DialogTitle id="finance-account-toggle-dialog-title">
+          {toggleDialogState.nextIsActive ? 'Ativar conta' : 'Desativar conta'}
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Alert severity={toggleDialogState.nextIsActive ? 'info' : 'warning'}>
+              {toggleDialogState.nextIsActive
+                ? `Confirme a ativacao da conta ${toggleDialogState.account?.name || '-'}.`
+                : `Confirme a desativacao da conta ${toggleDialogState.account?.name || '-'}. A operacao pode ser bloqueada se a conta ja tiver uso ou transacoes pendentes.`}
+            </Alert>
+            {toggleDialogState.error?.message && (
+              <Alert severity="warning">
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <span>{toggleDialogState.error.message}</span>
+                  {toggleDialogState.error.showReload && (
+                    <Box>
+                      <Button size="small" onClick={handleReloadAccountsFromToggle} disabled={toggleDialogState.loading}>
+                        {toggleDialogState.error.reloadLabel || 'Recarregar dados'}
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              </Alert>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeToggleAccountDialog} disabled={toggleDialogState.loading}>Cancelar</Button>
+          <Button
+            variant="contained"
+            color={toggleDialogState.nextIsActive ? 'success' : 'error'}
+            onClick={handleToggleAccountStatus}
+            disabled={toggleDialogState.loading}
+          >
+            {toggleDialogState.loading
+              ? (toggleDialogState.nextIsActive ? 'Ativando...' : 'Desativando...')
+              : (toggleDialogState.nextIsActive ? 'Ativar conta' : 'Desativar conta')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
