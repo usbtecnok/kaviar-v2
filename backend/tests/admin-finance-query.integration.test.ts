@@ -32,7 +32,7 @@ const ids = {
 };
 
 const OFFICIAL_CATALOG_EXPECTED = {
-  categories: 40,
+  categories: 51,
   costCenters: 8,
   policies: 5,
   accounts: 0,
