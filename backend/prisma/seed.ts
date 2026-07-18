@@ -76,7 +76,7 @@ export const FINANCE_CATEGORY_SEEDS: FinanceCategorySeed[] = [
   { idSource: 'despesa.asaas', code: 'ASAAS_LEGACY', name: 'Asaas (legado)', kind: 'EXPENSE', parent_code: 'DESPESAS_FINANCEIRAS', sort_order: 8040, default_direction: 'OUT', requires_document: false, is_active: false, is_system: true },
   { idSource: 'despesa.impostos', code: 'IMPOSTOS_LEGACY', name: 'Impostos (legado)', kind: 'EXPENSE', parent_code: 'DESPESAS_FINANCEIRAS', sort_order: 8050, default_direction: 'OUT', requires_document: false, is_active: false, is_system: true },
 
-  { idSource: 'publicidade_digital', code: 'PUBLICIDADE_DIGITAL', name: 'Publicidade digital', kind: 'CLEARING', parent_code: 'VALORES_EM_TRANSITO', sort_order: 14040, default_direction: 'OUT', requires_document: false, is_active: false, is_system: true },
+  { idSource: 'publicidade_digital', code: 'PUBLICIDADE_DIGITAL', name: 'Publicidade digital', kind: 'EXPENSE', parent_code: 'MARKETING_E_VENDAS', sort_order: 6020, default_direction: 'OUT', requires_document: false, is_active: true, is_system: true },
 
   { idSource: 'ajustes_e_deducoes_receita', code: 'AJUSTES_E_DEDUCOES_RECEITA', name: 'Ajustes e deduções de receita', kind: 'ADJUSTMENT', sort_order: 9000, default_direction: 'OUT', requires_document: false, is_active: true, is_system: true },
   { idSource: 'ajustes_e_deducoes_receita.chargebacks', code: 'CHARGEBACKS_LIQUIDACAO', name: 'Chargebacks liquidação', kind: 'ADJUSTMENT', parent_code: 'AJUSTES_E_DEDUCOES_RECEITA', sort_order: 9010, default_direction: 'OUT', requires_document: false, is_active: true, is_system: true },

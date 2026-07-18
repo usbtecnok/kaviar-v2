@@ -11,9 +11,12 @@ const backendRoot = process.cwd();
 const prismaRoot = resolve(backendRoot, 'prisma');
 const migrationsRoot = resolve(prismaRoot, 'migrations');
 const normalizeMigrationDir = '20260717120000_normalize_finance_category_catalog';
+const fixPublicidadeMigrationDir = '20260718230000_fix_publicidade_digital_category';
 const historicalCutoffMigrationDir = '20260717012000_phase1b_financial_ledger';
 const normalizeMigrationPath = resolve(migrationsRoot, normalizeMigrationDir, 'migration.sql');
 const normalizeMigrationSql = readFileSync(normalizeMigrationPath, 'utf8');
+const fixPublicidadeMigrationPath = resolve(migrationsRoot, fixPublicidadeMigrationDir, 'migration.sql');
+const fixPublicidadeMigrationSql = readFileSync(fixPublicidadeMigrationPath, 'utf8');
 const bootstrapRoot = resolve(prismaRoot, 'bootstrap', '20260712_current');
 const bootstrapPreSqlPath = resolve(bootstrapRoot, 'pre-bootstrap.sql');
 const bootstrapBaselineSqlPath = resolve(bootstrapRoot, 'baseline.sql');
@@ -138,7 +141,9 @@ function deterministicCategoryId(source: string) {
 
 type FixtureOptions = {
   includeNormalizeMigration: boolean;
+  includeFixPublicidadeMigration?: boolean;
   mutateNormalizeSql?: (sql: string) => string;
+  mutateFixPublicidadeSql?: (sql: string) => string;
 };
 
 function createHistoricalPrismaFixture(options: FixtureOptions) {
@@ -162,8 +167,9 @@ function createHistoricalPrismaFixture(options: FixtureOptions) {
   for (const dirName of migrationDirs) {
     const isHistorical = dirName.localeCompare(historicalCutoffMigrationDir) <= 0;
     const isNormalize = dirName === normalizeMigrationDir;
+    const isFixPublicidade = dirName === fixPublicidadeMigrationDir;
 
-    if (!isHistorical && !(options.includeNormalizeMigration && isNormalize)) {
+    if (!isHistorical && !(options.includeNormalizeMigration && isNormalize) && !(options.includeFixPublicidadeMigration && isFixPublicidade)) {
       continue;
     }
 
@@ -174,6 +180,11 @@ function createHistoricalPrismaFixture(options: FixtureOptions) {
   if (options.includeNormalizeMigration && options.mutateNormalizeSql) {
     const fixtureMigrationPath = resolve(migrationsTargetRoot, normalizeMigrationDir, 'migration.sql');
     writeFileSync(fixtureMigrationPath, options.mutateNormalizeSql(readFileSync(fixtureMigrationPath, 'utf8')));
+  }
+
+  if (options.includeFixPublicidadeMigration && options.mutateFixPublicidadeSql) {
+    const fixtureMigrationPath = resolve(migrationsTargetRoot, fixPublicidadeMigrationDir, 'migration.sql');
+    writeFileSync(fixtureMigrationPath, options.mutateFixPublicidadeSql(readFileSync(fixtureMigrationPath, 'utf8')));
   }
 
   return {
@@ -231,6 +242,28 @@ function applyNormalizeMigrationViaPrisma(databaseUrlToUse: string, mutateNormal
   }
 }
 
+function applyCatalogMigrationsViaPrisma(databaseUrlToUse: string) {
+  const fixture = createHistoricalPrismaFixture({ includeNormalizeMigration: true, includeFixPublicidadeMigration: true });
+  try {
+    return runPrismaMigrateDeploy(databaseUrlToUse, fixture.schemaPath);
+  } finally {
+    rmSync(fixture.tempRoot, { recursive: true, force: true });
+  }
+}
+
+function applyFixPublicidadeMigrationViaPrisma(databaseUrlToUse: string, mutateFixPublicidadeSql?: (sql: string) => string) {
+  const fixture = createHistoricalPrismaFixture({
+    includeNormalizeMigration: true,
+    includeFixPublicidadeMigration: true,
+    mutateFixPublicidadeSql,
+  });
+  try {
+    return runPrismaMigrateDeploy(databaseUrlToUse, fixture.schemaPath);
+  } finally {
+    rmSync(fixture.tempRoot, { recursive: true, force: true });
+  }
+}
+
 function applyHistoricalMigrationsViaPrisma(databaseUrlToUse: string) {
   const fixture = createHistoricalPrismaFixture({ includeNormalizeMigration: false });
   try {
@@ -256,6 +289,21 @@ async function expectNormalizeFailureViaPrisma(databaseUrlToUse: string, expecte
   try {
     applyNormalizeMigrationViaPrisma(databaseUrlToUse, mutateNormalizeSql);
     throw new Error('Expected normalize migration to fail');
+  } catch (error) {
+    const output = `${(error as any).stdout ?? ''}${(error as any).stderr ?? ''}`;
+    expect(output).toContain(expectedFragment);
+    return output;
+  }
+}
+
+async function expectFixPublicidadeFailureViaPrisma(
+  databaseUrlToUse: string,
+  expectedFragment: string,
+  mutateFixPublicidadeSql?: (sql: string) => string,
+) {
+  try {
+    applyFixPublicidadeMigrationViaPrisma(databaseUrlToUse, mutateFixPublicidadeSql);
+    throw new Error('Expected 3A.1 corrective migration to fail');
   } catch (error) {
     const output = `${(error as any).stdout ?? ''}${(error as any).stderr ?? ''}`;
     expect(output).toContain(expectedFragment);
@@ -491,18 +539,18 @@ afterAll(async () => {
 });
 
 describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
-  it('applies normalize migration through prisma using a historical baseline and validates final catalog invariants', async () => {
+  it('applies 3A + 3A.1 through prisma using a historical baseline and validates final catalog invariants', async () => {
     await withHistoricalClone('finance-happy-prisma', async ({ databaseUrl: databaseUrlToUse, client }) => {
       const legacySnapshot = normalizeCatalogRows(await fetchCatalogRows(client));
       expect(legacySnapshot).toHaveLength(40);
       expect(new Set(legacySnapshot.map((row) => row.code))).toEqual(expectedLegacyCodeSet);
 
-      applyNormalizeMigrationViaPrisma(databaseUrlToUse);
+      applyCatalogMigrationsViaPrisma(databaseUrlToUse);
 
       const finalRows = normalizeCatalogRows(await fetchCatalogRows(client));
       expect(finalRows).toHaveLength(51);
-      expect(finalRows.filter((row) => row.is_active).length).toBe(41);
-      expect(finalRows.filter((row) => !row.is_active).length).toBe(10);
+      expect(finalRows.filter((row) => row.is_active).length).toBe(42);
+      expect(finalRows.filter((row) => !row.is_active).length).toBe(9);
       expect(finalRows.filter((row) => row.parent_id === null).length).toBe(13);
       expect(finalRows.filter((row) => row.parent_id !== null).length).toBe(38);
       expect(finalRows.filter((row) => row.requires_document).length).toBe(0);
@@ -514,13 +562,13 @@ describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
 
       expect(kindCounts).toEqual({
         REVENUE: 7,
-        EXPENSE: 24,
+        EXPENSE: 25,
         ADJUSTMENT: 2,
         CONTRIBUTION: 2,
         WITHDRAWAL: 2,
         TRANSFER: 2,
         LIABILITY: 7,
-        CLEARING: 5,
+        CLEARING: 4,
       });
 
       const finalByCode = new Map(finalRows.map((row) => [row.code, row] as const));
@@ -568,11 +616,11 @@ describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
 
   it('runs prisma migrate deploy a second time with no pending migrations and keeps the catalog structurally identical', async () => {
     await withHistoricalClone('finance-second-deploy', async ({ databaseUrl: databaseUrlToUse, client }) => {
-      applyNormalizeMigrationViaPrisma(databaseUrlToUse);
+      applyCatalogMigrationsViaPrisma(databaseUrlToUse);
       const beforeSecondDeploy = normalizeCatalogRows(await fetchCatalogRows(client));
       const beforeHash = hashCatalog(beforeSecondDeploy);
 
-      const secondOutput = applyNormalizeMigrationViaPrisma(databaseUrlToUse);
+      const secondOutput = applyCatalogMigrationsViaPrisma(databaseUrlToUse);
       expect(secondOutput).toContain('No pending migrations to apply');
 
       const afterSecondDeploy = normalizeCatalogRows(await fetchCatalogRows(client));
@@ -583,12 +631,199 @@ describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
         `
           SELECT count(*)::int AS count
           FROM _prisma_migrations
-          WHERE migration_name = $1 AND finished_at IS NOT NULL
+          WHERE migration_name IN ($1, $2) AND finished_at IS NOT NULL
         `,
-        [normalizeMigrationDir],
+        [normalizeMigrationDir, fixPublicidadeMigrationDir],
       );
-      expect(Number(rows[0]?.count ?? 0)).toBe(1);
+      expect(Number(rows[0]?.count ?? 0)).toBe(2);
     });
+  });
+
+  it('proves 3A.1 changes only PUBLICIDADE_DIGITAL while preserving its deterministic id', async () => {
+    await withHistoricalClone('finance-fix-publicidade-only-target', async ({ databaseUrl: databaseUrlToUse, client }) => {
+      applyNormalizeMigrationViaPrisma(databaseUrlToUse);
+
+      const before = normalizeCatalogRows(await fetchCatalogRows(client));
+      const beforePublicidade = before.find((row) => row.code === 'PUBLICIDADE_DIGITAL');
+      expect(beforePublicidade).toBeDefined();
+      expect(beforePublicidade?.id).toBe(deterministicCategoryId('publicidade_digital'));
+      expect(beforePublicidade?.kind).toBe('CLEARING');
+      expect(beforePublicidade?.parent_code).toBe('VALORES_EM_TRANSITO');
+      expect(beforePublicidade?.is_active).toBe(false);
+      expect(beforePublicidade?.default_direction).toBe('OUT');
+      expect(beforePublicidade?.sort_order).toBe(14040);
+
+      applyFixPublicidadeMigrationViaPrisma(databaseUrlToUse);
+
+      const after = normalizeCatalogRows(await fetchCatalogRows(client));
+      const afterPublicidade = after.find((row) => row.code === 'PUBLICIDADE_DIGITAL');
+      expect(afterPublicidade).toBeDefined();
+      expect(afterPublicidade?.id).toBe(deterministicCategoryId('publicidade_digital'));
+      expect(afterPublicidade?.kind).toBe('EXPENSE');
+      expect(afterPublicidade?.parent_code).toBe('MARKETING_E_VENDAS');
+      expect(afterPublicidade?.is_active).toBe(true);
+      expect(afterPublicidade?.default_direction).toBe('OUT');
+      expect(afterPublicidade?.sort_order).toBe(6020);
+
+      const beforeWithoutTarget = before.filter((row) => row.code !== 'PUBLICIDADE_DIGITAL');
+      const afterWithoutTarget = after.filter((row) => row.code !== 'PUBLICIDADE_DIGITAL');
+      expect(afterWithoutTarget).toEqual(beforeWithoutTarget);
+    });
+  });
+
+  it('enforces 3A.1 guard rails and keeps rollback atomic for each failure scenario', async () => {
+    const scenarios: Array<{
+      name: string;
+      expectedFragment: string;
+      mutate: (client: Client) => Promise<void>;
+    }> = [
+      {
+        name: 'PUBLICIDADE_DIGITAL absent',
+        expectedFragment: 'Expected 51 finance categories before corrective migration, found 50',
+        mutate: async (client) => {
+          await client.query(`DELETE FROM financial_categories WHERE code = 'PUBLICIDADE_DIGITAL'`);
+        },
+      },
+      {
+        name: 'PUBLICIDADE_DIGITAL deterministic id mismatch',
+        expectedFragment: 'PUBLICIDADE_DIGITAL does not match expected pre-correction state',
+        mutate: async (client) => {
+          await client.query(`UPDATE financial_categories SET id = 'fcat_publicidade_digital_wrong' WHERE code = 'PUBLICIDADE_DIGITAL'`);
+        },
+      },
+      {
+        name: 'PUBLICIDADE_DIGITAL kind mismatch',
+        expectedFragment: 'PUBLICIDADE_DIGITAL does not match expected pre-correction state',
+        mutate: async (client) => {
+          await client.query(`UPDATE financial_categories SET kind = 'EXPENSE'::financial_category_kind WHERE code = 'PUBLICIDADE_DIGITAL'`);
+        },
+      },
+      {
+        name: 'PUBLICIDADE_DIGITAL parent mismatch',
+        expectedFragment: 'PUBLICIDADE_DIGITAL does not match expected pre-correction state',
+        mutate: async (client) => {
+          await client.query(
+            `UPDATE financial_categories
+             SET parent_id = (SELECT id FROM financial_categories WHERE code = 'MARKETING_E_VENDAS')
+             WHERE code = 'PUBLICIDADE_DIGITAL'`,
+          );
+        },
+      },
+      {
+        name: 'PUBLICIDADE_DIGITAL status mismatch',
+        expectedFragment: 'PUBLICIDADE_DIGITAL does not match expected pre-correction state',
+        mutate: async (client) => {
+          await client.query(`UPDATE financial_categories SET is_active = true WHERE code = 'PUBLICIDADE_DIGITAL'`);
+        },
+      },
+      {
+        name: 'MARKETING_E_VENDAS absent',
+        expectedFragment: 'MARKETING_E_VENDAS missing or incompatible',
+        mutate: async (client) => {
+          await client.query(`UPDATE financial_categories SET code = 'MARKETING_E_VENDAS_TEMP' WHERE code = 'MARKETING_E_VENDAS'`);
+        },
+      },
+      {
+        name: 'MARKETING_E_VENDAS kind incompatible',
+        expectedFragment: 'MARKETING_E_VENDAS missing or incompatible',
+        mutate: async (client) => {
+          await client.query(`UPDATE financial_categories SET kind = 'CLEARING'::financial_category_kind WHERE code = 'MARKETING_E_VENDAS'`);
+        },
+      },
+      {
+        name: 'PUBLICIDADE_DIGITAL has child',
+        expectedFragment: 'Expected 51 finance categories before corrective migration, found 52',
+        mutate: async (client) => {
+          const { rows } = await client.query<{ id: string }>(`SELECT id FROM financial_categories WHERE code = 'PUBLICIDADE_DIGITAL'`);
+          await client.query(
+            `INSERT INTO financial_categories (
+              id, code, name, kind, parent_id, default_direction, requires_document, is_system, is_active, sort_order, created_by_admin_id, updated_by_admin_id, created_at, updated_at
+            ) VALUES (
+              'fcat_publicidade_child_temp', 'PUBLICIDADE_DIGITAL_CHILD_TEMP', 'Publicidade Child Temp',
+              'CLEARING'::financial_category_kind, $1, 'OUT'::financial_direction, false, true, true, 14041, NULL, NULL, NOW(), NOW()
+            )`,
+            [rows[0].id],
+          );
+        },
+      },
+      {
+        name: 'financial transaction uses PUBLICIDADE_DIGITAL',
+        expectedFragment: 'Expected zero financial_transactions using PUBLICIDADE_DIGITAL, found 1',
+        mutate: async (client) => {
+          await insertMinimalAccount(client, 'ACC_FIX_NEG_TX', 'acc_fix_neg_tx');
+          await insertMinimalTransaction(client, 'acc_fix_neg_tx', 'txn_fix_neg_tx', 'idem-fix-neg-tx');
+          await client.query(
+            `UPDATE financial_transactions
+             SET category_id = (SELECT id FROM financial_categories WHERE code = 'PUBLICIDADE_DIGITAL')
+             WHERE id = 'txn_fix_neg_tx'`,
+          );
+        },
+      },
+      {
+        name: 'financial allocation uses PUBLICIDADE_DIGITAL',
+        expectedFragment: 'Expected zero financial_transaction_allocations using PUBLICIDADE_DIGITAL, found 1',
+        mutate: async (client) => {
+          await insertMinimalAccount(client, 'ACC_FIX_NEG_ALLOC', 'acc_fix_neg_alloc');
+          await insertMinimalTransaction(client, 'acc_fix_neg_alloc', 'txn_fix_neg_alloc', 'idem-fix-neg-alloc');
+          await client.query(
+            `INSERT INTO financial_transaction_allocations (
+              id,
+              transaction_id,
+              category_id,
+              cost_center_id,
+              amount_cents,
+              allocation_type,
+              description,
+              metadata,
+              created_by_admin_id,
+              created_at,
+              updated_at
+            ) VALUES (
+              'alloc_fix_neg_alloc',
+              'txn_fix_neg_alloc',
+              (SELECT id FROM financial_categories WHERE code = 'PUBLICIDADE_DIGITAL'),
+              NULL,
+              '1000',
+              'ALLOCATED'::financial_transaction_allocation_type,
+              'Negative allocation for fix guard',
+              NULL,
+              NULL,
+              NOW(),
+              NOW()
+            )`,
+          );
+        },
+      },
+      {
+        name: 'extra category exists',
+        expectedFragment: 'Expected 51 finance categories before corrective migration, found 52',
+        mutate: async (client) => {
+          await insertExtraCategory(client, 'TEMP_EXTRA_FOR_FIX', 'temp_extra_for_fix');
+        },
+      },
+      {
+        name: 'catalog has missing category',
+        expectedFragment: 'Expected 51 finance categories before corrective migration, found 50',
+        mutate: async (client) => {
+          await client.query(`DELETE FROM financial_categories WHERE code = 'REEMBOLSOS'`);
+        },
+      },
+    ];
+
+    for (const [index, scenario] of scenarios.entries()) {
+      await withHistoricalClone(`finance-fixg-${index + 1}`, async ({ databaseUrl: databaseUrlToUse, client }) => {
+        applyNormalizeMigrationViaPrisma(databaseUrlToUse);
+
+        const before = normalizeCatalogRows(await fetchCatalogRows(client));
+        await scenario.mutate(client);
+        const mutated = normalizeCatalogRows(await fetchCatalogRows(client));
+
+        await expectFixPublicidadeFailureViaPrisma(databaseUrlToUse, scenario.expectedFragment);
+
+        const after = normalizeCatalogRows(await fetchCatalogRows(client));
+        expect(after).toEqual(mutated);
+      });
+    }
   });
 
   it('proves atomic rollback when a post-condition fails during prisma migrate deploy', async () => {
@@ -801,7 +1036,7 @@ describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
 
   it('keeps the official seed idempotent across two executions after normalize migration', async () => {
     await withHistoricalClone('finance-seed-idempotent', async ({ databaseUrl: databaseUrlToUse, client }) => {
-      applyNormalizeMigrationViaPrisma(databaseUrlToUse);
+      applyCatalogMigrationsViaPrisma(databaseUrlToUse);
 
       runPrismaSeed(databaseUrlToUse);
       const firstPass = normalizeCatalogRows(await fetchCatalogRows(client));
@@ -819,6 +1054,7 @@ describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
       expect(await countRows(client, 'SELECT count(*)::int AS count FROM financial_transactions')).toBe(0);
       expect(await countRows(client, 'SELECT count(*)::int AS count FROM financial_transaction_allocations')).toBe(0);
       expect(await countRows(client, 'SELECT count(*)::int AS count FROM financial_accounts')).toBe(0);
+      expect(await countRows(client, 'SELECT count(*)::int AS count FROM financial_recognition_policies')).toBe(5);
       expect(await countRows(client, 'SELECT count(*)::int AS count FROM financial_recognition_policies WHERE status = $1', ['APPROVED'])).toBe(0);
     });
   });
@@ -848,5 +1084,27 @@ describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
     }
 
     expect(normalizeMigrationSql).not.toContain('ON CONFLICT');
+
+    const expectedFixGuards = [
+      'Expected 51 finance categories before corrective migration, found %',
+      'Expected exactly one PUBLICIDADE_DIGITAL category, found %',
+      'PUBLICIDADE_DIGITAL does not match expected pre-correction state',
+      'MARKETING_E_VENDAS missing or incompatible',
+      'PUBLICIDADE_DIGITAL must not have child categories, found %',
+      'Expected zero financial_transactions using PUBLICIDADE_DIGITAL, found %',
+      'Expected zero financial_transaction_allocations using PUBLICIDADE_DIGITAL, found %',
+      'Expected exactly one PUBLICIDADE_DIGITAL row update, affected %',
+      'Expected 42 active finance categories after corrective migration, found %',
+      'Expected 9 inactive finance categories after corrective migration, found %',
+      'Expected EXPENSE=25 after corrective migration, found %',
+      'Expected CLEARING=4 after corrective migration, found %',
+      'Detected unintended changes in categories other than PUBLICIDADE_DIGITAL',
+    ];
+
+    for (const fragment of expectedFixGuards) {
+      expect(fixPublicidadeMigrationSql).toContain(fragment);
+    }
+
+    expect(fixPublicidadeMigrationSql).not.toContain('ON CONFLICT');
   });
 });
