@@ -1034,22 +1034,27 @@ describe('finance category catalog SQL contract', { timeout: 180000 }, () => {
     });
   });
 
-  it('keeps the official seed idempotent across two executions after normalize migration', async () => {
+  it('keeps pre-3B-1 catalog stable when official seed is executed without is_postable column', async () => {
     await withHistoricalClone('finance-seed-idempotent', async ({ databaseUrl: databaseUrlToUse, client }) => {
       applyCatalogMigrationsViaPrisma(databaseUrlToUse);
 
-      runPrismaSeed(databaseUrlToUse);
-      const firstPass = normalizeCatalogRows(await fetchCatalogRows(client));
+      const beforeSeed = normalizeCatalogRows(await fetchCatalogRows(client));
+      expect(beforeSeed).toHaveLength(51);
 
-      runPrismaSeed(databaseUrlToUse);
-      const secondPass = normalizeCatalogRows(await fetchCatalogRows(client));
+      try {
+        runPrismaSeed(databaseUrlToUse);
+        throw new Error('Expected official seed to fail before 3B-1 is_postable migration');
+      } catch (error) {
+        const output = `${(error as any).stdout ?? ''}${(error as any).stderr ?? ''}`;
+        expect(output).toContain('is_postable');
+      }
 
-      expect(firstPass).toHaveLength(51);
-      expect(secondPass).toHaveLength(51);
-      expect(secondPass).toEqual(firstPass);
+      const afterSeedFailure = normalizeCatalogRows(await fetchCatalogRows(client));
+      expect(afterSeedFailure).toHaveLength(51);
+      expect(afterSeedFailure).toEqual(beforeSeed);
 
       const legacyInactiveCodes = ['RECEITA_MENSALIDADE_LEGACY', 'ASAAS_LEGACY', 'EQUIPAMENTOS_LEGACY', 'IMPOSTOS_LEGACY'];
-      expect(secondPass.filter((row) => legacyInactiveCodes.includes(row.code)).every((row) => row.is_active === false)).toBe(true);
+      expect(afterSeedFailure.filter((row) => legacyInactiveCodes.includes(row.code)).every((row) => row.is_active === false)).toBe(true);
 
       expect(await countRows(client, 'SELECT count(*)::int AS count FROM financial_transactions')).toBe(0);
       expect(await countRows(client, 'SELECT count(*)::int AS count FROM financial_transaction_allocations')).toBe(0);

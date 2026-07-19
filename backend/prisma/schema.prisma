@@ -2443,6 +2443,7 @@ model financial_categories {
   requires_document   Boolean                 @default(false)
   is_system           Boolean                 @default(false)
   is_active           Boolean                 @default(true)
+  is_postable         Boolean
   sort_order          Int                     @default(0)
   created_by_admin_id String?
   updated_by_admin_id String?

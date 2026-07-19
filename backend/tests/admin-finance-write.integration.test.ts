@@ -207,6 +207,7 @@ async function createCategoryFixture(overrides: any = {}) {
       requires_document: false,
       is_system: false,
       is_active: true,
+      is_postable: false,
       sort_order: 1,
       created_by_admin_id: ids.superAdmin,
       updated_by_admin_id: ids.superAdmin,
@@ -554,6 +555,36 @@ describe('admin finance write integration', () => {
 
     expect(created.status).toBe(201);
     expect(await latestAudit('FINANCE_CATEGORY_CREATE', created.body.data.id)).toBeTruthy();
+
+    const persistedCreated = await prisma.financial_categories.findUnique({
+      where: { id: created.body.data.id },
+      select: { is_postable: true },
+    });
+    expect(persistedCreated?.is_postable).toBe(false);
+
+    const postWithIsPostable = await request(app)
+      .post('/api/admin/finance/categories')
+      .set('Authorization', authHeader(ids.financeAdmin).Authorization)
+      .send({ code: 'CAT.WRITE.001.POSTABLE', name: 'Categoria', kind: 'EXPENSE', is_postable: true });
+    expect(postWithIsPostable.status).toBe(400);
+
+    const patchWithIsPostable = await request(app)
+      .patch(`/api/admin/finance/categories/${created.body.data.id}`)
+      .set('Authorization', authHeader(ids.financeAdmin).Authorization)
+      .send({ expected_updated_at: created.body.data.updated_at, is_postable: true });
+    expect(patchWithIsPostable.status).toBe(400);
+
+    const persistedAfterPatchAttempt = await prisma.financial_categories.findUnique({
+      where: { id: created.body.data.id },
+      select: { is_postable: true },
+    });
+    expect(persistedAfterPatchAttempt?.is_postable).toBe(false);
+
+    const getCreated = await request(app)
+      .get(`/api/admin/finance/categories/${created.body.data.id}`)
+      .set('Authorization', authHeader(ids.financeAdmin).Authorization);
+    expect(getCreated.status).toBe(200);
+    expect(getCreated.body.data.is_postable).toBeUndefined();
 
     const isSystem = await request(app)
       .post('/api/admin/finance/categories')

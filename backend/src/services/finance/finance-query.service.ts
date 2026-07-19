@@ -990,6 +990,7 @@ export async function createFinanceCategory(data: any, actor: FinanceActor) {
           requires_document: data.requires_document ?? false,
           is_system: false,
           is_active: data.is_active ?? true,
+          is_postable: false,
           sort_order: data.sort_order ?? 0,
           created_by_admin_id: actor.id,
           updated_by_admin_id: actor.id,
