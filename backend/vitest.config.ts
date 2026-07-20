@@ -12,6 +12,10 @@ export default defineConfig({
       'tests/ride-status-atomic.test.ts',
       'tests/community-activation.test.ts',
     ],
+    setupFiles: ['./tests/setup/assert-safe-test-database.ts'],
     testTimeout: 10000,
+    env: {
+      NODE_ENV: 'test',
+    },
   },
 });
