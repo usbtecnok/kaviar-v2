@@ -76,6 +76,8 @@ type FinanceActor = {
   id: string;
   role: string;
   email?: string;
+  ip?: string;
+  ua?: string;
 };
 
 function isSuperAdmin(actor: FinanceActor) {
@@ -114,7 +116,7 @@ async function assertCategoryParent(parentId: string | null | undefined, kind?: 
   if (kind && parent.kind !== kind) throw new FinanceWriteError(400, 'kind da categoria pai deve ser igual ao da categoria filha');
 }
 
-async function lockRow(tx: any, tableName: 'financial_accounts' | 'financial_categories' | 'financial_cost_centers', id: string) {
+async function lockRow(tx: any, tableName: 'financial_accounts' | 'financial_categories' | 'financial_cost_centers' | 'financial_recognition_policies', id: string) {
   const rows: Array<{ id: string }> = await tx.$queryRawUnsafe(
     `SELECT id FROM "${tableName}" WHERE id = $1 FOR UPDATE`,
     id,
@@ -1293,6 +1295,513 @@ export async function updateFinanceCostCenter(id: string, data: any, actor: Fina
 
     const record = await getFinanceCostCenterById(id);
     return { record, ...result };
+  } catch (error) {
+    if (isSerializableConflict(error)) throw new FinanceWriteError(409, SERIALIZABLE_CONFLICT_MESSAGE);
+    throw error;
+  }
+}
+
+// ─── Recognition Policy helpers ──────────────────────────────────────────────
+
+function buildPolicyId() {
+  return `frp_${randomUUID().replace(/-/g, '')}`;
+}
+
+function serializePolicyAuditState(policy: any) {
+  if (!policy) return null;
+  return {
+    id: policy.id,
+    code: policy.code,
+    subject: policy.subject,
+    scope_type: policy.scope_type,
+    territory_id: policy.territory_id ?? null,
+    cost_center_id: policy.cost_center_id ?? null,
+    city: policy.city ?? null,
+    state: policy.state ?? null,
+    policy: policy.policy,
+    status: policy.status,
+    effective_from: policy.effective_from?.toISOString() ?? null,
+    effective_until: policy.effective_until?.toISOString() ?? null,
+    approved_by_admin_id: policy.approved_by_admin_id ?? null,
+    approved_at: policy.approved_at?.toISOString() ?? null,
+    reason: policy.reason,
+    notes: policy.notes ?? null,
+    created_by_admin_id: policy.created_by_admin_id ?? null,
+    updated_by_admin_id: policy.updated_by_admin_id ?? null,
+    created_at: policy.created_at?.toISOString() ?? null,
+    updated_at: policy.updated_at?.toISOString() ?? null,
+  };
+}
+
+function buildScopeMatchWhere(scope_type: string, policy: any) {
+  switch (scope_type) {
+    case 'GLOBAL':
+      return { territory_id: null, cost_center_id: null, city: null, state: null };
+    case 'TERRITORY':
+      return { territory_id: policy.territory_id };
+    case 'CITY':
+      return { city: policy.city, state: policy.state };
+    case 'COST_CENTER':
+      return { cost_center_id: policy.cost_center_id };
+    default:
+      return {};
+  }
+}
+
+function scopesMatch(a: any, b: any): boolean {
+  switch (a.scope_type) {
+    case 'GLOBAL':
+      return true;
+    case 'TERRITORY':
+      return a.territory_id === b.territory_id;
+    case 'CITY':
+      return a.city === b.city && a.state === b.state;
+    case 'COST_CENTER':
+      return a.cost_center_id === b.cost_center_id;
+    default:
+      return false;
+  }
+}
+
+// Checks for an APPROVED policy with the same subject+scope and overlapping dates.
+// excludeId: policy to ignore (used during supersede to skip the old policy).
+// Runs inside an existing Serializable transaction for concurrency safety.
+async function assertNoConflictingApprovedPolicy(tx: Prisma.TransactionClient, policy: any, excludeId: string | null) {
+  const scopeWhere = buildScopeMatchWhere(policy.scope_type, policy);
+
+  // Two intervals overlap when: A.from <= B.until AND B.from <= A.until
+  // null effective_until means indefinite (+∞), so:
+  //   A.until IS NULL always satisfies B.from <= A.until
+  //   B.until IS NULL always satisfies A.from <= B.until
+  // We use explicit OR conditions to handle NULLs — NOT OR fails because
+  // NULL comparisons evaluate to NULL (not FALSE), causing rows to be skipped.
+  const overlapConditions: any[] = [
+    // existing.until IS NULL (indefinite) OR existing.until >= new.from
+    { OR: [{ effective_until: null }, { effective_until: { gte: policy.effective_from } }] },
+  ];
+  if (policy.effective_until) {
+    // new.until IS NOT NULL → existing.from <= new.until
+    overlapConditions.push({ effective_from: { lte: policy.effective_until } });
+  }
+
+  const conflicts = await tx.financial_recognition_policies.findMany({
+    where: {
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      subject: policy.subject,
+      scope_type: policy.scope_type,
+      ...scopeWhere,
+      status: 'APPROVED',
+      AND: overlapConditions,
+    },
+    select: { id: true, code: true },
+    take: 1,
+  });
+
+  if (conflicts.length > 0) {
+    throw new FinanceWriteError(409, `Conflito de vigência com policy APPROVED existente: ${conflicts[0].code}`);
+  }
+}
+
+// The select shape used for all policy reads inside transactions (audit snapshot).
+const POLICY_SELECT = {
+  id: true,
+  code: true,
+  subject: true,
+  scope_type: true,
+  territory_id: true,
+  cost_center_id: true,
+  city: true,
+  state: true,
+  policy: true,
+  status: true,
+  effective_from: true,
+  effective_until: true,
+  approved_by_admin_id: true,
+  approved_at: true,
+  reason: true,
+  notes: true,
+  created_by_admin_id: true,
+  updated_by_admin_id: true,
+  created_at: true,
+  updated_at: true,
+} as const;
+
+// ─── Recognition Policy service functions ────────────────────────────────────
+
+export function previousUtcDate(date: Date): Date {
+  const prev = new Date(date);
+  prev.setUTCDate(prev.getUTCDate() - 1);
+  return prev;
+}
+
+async function auditInTx(
+  tx: Prisma.TransactionClient,
+  params: {
+    adminId: string;
+    adminEmail?: string;
+    action: string;
+    entityType: string;
+    entityId: string;
+    oldValue?: any;
+    newValue?: any;
+    ipAddress?: string;
+  },
+) {
+  const oldJson: string | null = params.oldValue != null ? JSON.stringify(params.oldValue) : null;
+  const newJson: string | null = params.newValue != null ? JSON.stringify(params.newValue) : null;
+  await tx.$executeRaw`
+    INSERT INTO admin_audit_logs
+      (admin_id, admin_email, action, entity_type, entity_id, old_value, new_value, ip_address)
+    VALUES (
+      ${params.adminId},
+      ${params.adminEmail ?? null},
+      ${params.action},
+      ${params.entityType},
+      ${params.entityId},
+      ${oldJson}::jsonb,
+      ${newJson}::jsonb,
+      ${params.ipAddress ?? null}
+    )
+  `;
+}
+
+export async function createFinanceRecognitionPolicy(data: any, actor: FinanceActor) {
+  if (!isSuperAdmin(actor)) {
+    throw new FinanceWriteError(403, 'Criação de política de reconhecimento exige SUPER_ADMIN');
+  }
+
+  try {
+    const created = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const id = buildPolicyId();
+      const policy = await tx.financial_recognition_policies.create({
+        data: {
+          id,
+          code: data.code,
+          subject: data.subject,
+          scope_type: data.scope_type,
+          territory_id: data.territory_id ?? null,
+          cost_center_id: data.cost_center_id ?? null,
+          city: data.city ?? null,
+          state: data.state ?? null,
+          policy: data.policy,
+          status: 'DRAFT',
+          effective_from: data.effective_from,
+          effective_until: data.effective_until ?? null,
+          reason: data.reason,
+          notes: data.notes ?? null,
+          approved_by_admin_id: null,
+          approved_at: null,
+          created_by_admin_id: actor.id,
+          updated_by_admin_id: actor.id,
+        },
+        select: POLICY_SELECT,
+      });
+      await auditInTx(tx, {
+        adminId: actor.id,
+        adminEmail: actor.email,
+        action: 'FINANCE_RECOGNITION_POLICY_CREATE',
+        entityType: 'financial_recognition_policies',
+        entityId: policy.id,
+        oldValue: null,
+        newValue: serializePolicyAuditState(policy),
+        ipAddress: actor.ip,
+      });
+      return policy;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const record = await getFinanceRecognitionPolicyById(created.id);
+    return { record };
+  } catch (error) {
+    if (isCodeUniqueViolation(error)) {
+      throw new FinanceWriteError(409, 'Código de política já existe');
+    }
+    if (isSerializableConflict(error)) throw new FinanceWriteError(409, SERIALIZABLE_CONFLICT_MESSAGE);
+    throw error;
+  }
+}
+
+export async function updateFinanceRecognitionPolicyDraft(id: string, data: any, actor: FinanceActor) {
+  if (!isSuperAdmin(actor)) {
+    throw new FinanceWriteError(403, 'Edição de política de reconhecimento exige SUPER_ADMIN');
+  }
+
+  try {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const exists = await lockRow(tx, 'financial_recognition_policies', id);
+      if (!exists) throw new FinanceWriteError(404, 'Política de reconhecimento não encontrada');
+
+      const current = await tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT });
+      if (!current) throw new FinanceWriteError(404, 'Política de reconhecimento não encontrada');
+
+      if (current.status !== 'DRAFT') {
+        throw new FinanceWriteError(409, 'Somente políticas DRAFT podem ser editadas');
+      }
+
+      const updateData: any = { updated_by_admin_id: actor.id };
+      for (const key of ['code', 'subject', 'scope_type', 'territory_id', 'cost_center_id', 'city', 'state', 'policy', 'effective_from', 'effective_until', 'reason', 'notes']) {
+        if (data[key] !== undefined) updateData[key] = data[key];
+      }
+
+      const updated = await tx.financial_recognition_policies.updateMany({
+        where: { id, updated_at: data.expected_updated_at },
+        data: updateData,
+      });
+
+      if (updated.count !== 1) {
+        throw new FinanceWriteError(409, 'Conflito de atualização (expected_updated_at divergente)');
+      }
+
+      const after = await tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT });
+      await auditInTx(tx, {
+        adminId: actor.id,
+        adminEmail: actor.email,
+        action: 'FINANCE_RECOGNITION_POLICY_UPDATE',
+        entityType: 'financial_recognition_policies',
+        entityId: id,
+        oldValue: serializePolicyAuditState(current),
+        newValue: serializePolicyAuditState(after),
+        ipAddress: actor.ip,
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const record = await getFinanceRecognitionPolicyById(id);
+    return { record };
+  } catch (error) {
+    if (isSerializableConflict(error)) throw new FinanceWriteError(409, SERIALIZABLE_CONFLICT_MESSAGE);
+    if (isCodeUniqueViolation(error)) throw new FinanceWriteError(409, 'Código de política já existe');
+    throw error;
+  }
+}
+
+export async function approveFinanceRecognitionPolicy(id: string, data: any, actor: FinanceActor) {
+  if (!isSuperAdmin(actor)) {
+    throw new FinanceWriteError(403, 'Aprovação de política exige SUPER_ADMIN');
+  }
+
+  try {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const exists = await lockRow(tx, 'financial_recognition_policies', id);
+      if (!exists) throw new FinanceWriteError(404, 'Política de reconhecimento não encontrada');
+
+      const current = await tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT });
+      if (!current) throw new FinanceWriteError(404, 'Política de reconhecimento não encontrada');
+
+      if (current.status !== 'DRAFT') {
+        throw new FinanceWriteError(409, 'Somente políticas DRAFT podem ser aprovadas');
+      }
+      if (current.policy === 'UNCLASSIFIED') {
+        throw new FinanceWriteError(422, 'Política UNCLASSIFIED não pode ser aprovada');
+      }
+
+      await assertNoConflictingApprovedPolicy(tx, current, null);
+
+      const approvedAt = new Date();
+      const updated = await tx.financial_recognition_policies.updateMany({
+        where: { id, updated_at: data.expected_updated_at },
+        data: {
+          status: 'APPROVED',
+          approved_by_admin_id: actor.id,
+          approved_at: approvedAt,
+          reason: data.reason,
+          updated_by_admin_id: actor.id,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new FinanceWriteError(409, 'Conflito de atualização (expected_updated_at divergente)');
+      }
+
+      const after = await tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT });
+      await auditInTx(tx, {
+        adminId: actor.id,
+        adminEmail: actor.email,
+        action: 'FINANCE_RECOGNITION_POLICY_APPROVE',
+        entityType: 'financial_recognition_policies',
+        entityId: id,
+        oldValue: serializePolicyAuditState(current),
+        newValue: serializePolicyAuditState(after),
+        ipAddress: actor.ip,
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const record = await getFinanceRecognitionPolicyById(id);
+    return { record };
+  } catch (error) {
+    if (isSerializableConflict(error)) throw new FinanceWriteError(409, SERIALIZABLE_CONFLICT_MESSAGE);
+    throw error;
+  }
+}
+
+export async function revokeFinanceRecognitionPolicy(id: string, data: any, actor: FinanceActor) {
+  if (!isSuperAdmin(actor)) {
+    throw new FinanceWriteError(403, 'Revogação de política exige SUPER_ADMIN');
+  }
+
+  try {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const exists = await lockRow(tx, 'financial_recognition_policies', id);
+      if (!exists) throw new FinanceWriteError(404, 'Política de reconhecimento não encontrada');
+
+      const current = await tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT });
+      if (!current) throw new FinanceWriteError(404, 'Política de reconhecimento não encontrada');
+
+      if (current.status !== 'APPROVED') {
+        throw new FinanceWriteError(409, 'Somente políticas APPROVED podem ser revogadas');
+      }
+
+      const updated = await tx.financial_recognition_policies.updateMany({
+        where: { id, updated_at: data.expected_updated_at },
+        data: {
+          status: 'REVOKED',
+          reason: data.reason,
+          updated_by_admin_id: actor.id,
+          // approved_by_admin_id and approved_at are intentionally preserved
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new FinanceWriteError(409, 'Conflito de atualização (expected_updated_at divergente)');
+      }
+
+      const after = await tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT });
+      await auditInTx(tx, {
+        adminId: actor.id,
+        adminEmail: actor.email,
+        action: 'FINANCE_RECOGNITION_POLICY_REVOKE',
+        entityType: 'financial_recognition_policies',
+        entityId: id,
+        oldValue: serializePolicyAuditState(current),
+        newValue: serializePolicyAuditState(after),
+        ipAddress: actor.ip,
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const record = await getFinanceRecognitionPolicyById(id);
+    return { record };
+  } catch (error) {
+    if (isSerializableConflict(error)) throw new FinanceWriteError(409, SERIALIZABLE_CONFLICT_MESSAGE);
+    throw error;
+  }
+}
+
+// Atomically transitions old policy APPROVED → SUPERSEDED and new policy DRAFT → APPROVED.
+// Both updates occur in the same Serializable transaction — no window where two APPROVED
+// policies with conflicting dates can coexist.
+export async function supersedFinanceRecognitionPolicy(id: string, data: any, actor: FinanceActor) {
+  if (!isSuperAdmin(actor)) {
+    throw new FinanceWriteError(403, 'Substituição de política exige SUPER_ADMIN');
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Lock both rows in deterministic lexical-ID order to prevent deadlocks under concurrency.
+      const sortedIds = [id, data.replacement_policy_id].sort();
+      for (const rowId of sortedIds) {
+        const exists = await lockRow(tx, 'financial_recognition_policies', rowId);
+        if (!exists) {
+          if (rowId === id) throw new FinanceWriteError(404, 'Política original não encontrada');
+          throw new FinanceWriteError(404, 'Política de substituição não encontrada');
+        }
+      }
+
+      const [oldPolicy, newPolicy] = await Promise.all([
+        tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT }),
+        tx.financial_recognition_policies.findUnique({ where: { id: data.replacement_policy_id }, select: POLICY_SELECT }),
+      ]);
+
+      if (!oldPolicy) throw new FinanceWriteError(404, 'Política original não encontrada');
+      if (!newPolicy) throw new FinanceWriteError(404, 'Política de substituição não encontrada');
+
+      if (oldPolicy.status !== 'APPROVED') {
+        throw new FinanceWriteError(409, 'Política original deve estar APPROVED');
+      }
+      if (newPolicy.status !== 'DRAFT') {
+        throw new FinanceWriteError(409, 'Política de substituição deve estar DRAFT');
+      }
+      if (newPolicy.policy === 'UNCLASSIFIED') {
+        throw new FinanceWriteError(422, 'Política de substituição não pode ser UNCLASSIFIED');
+      }
+      if (oldPolicy.subject !== newPolicy.subject) {
+        throw new FinanceWriteError(409, 'subject da política de substituição deve ser igual ao da original');
+      }
+      if (oldPolicy.scope_type !== newPolicy.scope_type) {
+        throw new FinanceWriteError(409, 'scope_type da política de substituição deve ser igual ao da original');
+      }
+      if (!scopesMatch(oldPolicy, newPolicy)) {
+        throw new FinanceWriteError(409, 'Escopo concreto da política de substituição deve ser igual ao da original');
+      }
+      if (newPolicy.effective_from <= oldPolicy.effective_from) {
+        throw new FinanceWriteError(409, 'effective_from da política de substituição deve ser estritamente posterior ao da original');
+      }
+
+      // Compute inclusive upper bound for old policy: day before new policy starts.
+      const oldEffectiveUntil = previousUtcDate(newPolicy.effective_from);
+
+      const approvedAt = new Date();
+
+      // OL updates first — throw OL error before conflict check so callers see the right 409 message.
+      const [updatedOld, updatedNew] = await Promise.all([
+        tx.financial_recognition_policies.updateMany({
+          where: { id, updated_at: data.expected_updated_at },
+          data: { status: 'SUPERSEDED', effective_until: oldEffectiveUntil, reason: data.reason, updated_by_admin_id: actor.id },
+        }),
+        tx.financial_recognition_policies.updateMany({
+          where: { id: data.replacement_policy_id, updated_at: data.expected_updated_at_new },
+          data: {
+            status: 'APPROVED',
+            approved_by_admin_id: actor.id,
+            approved_at: approvedAt,
+            reason: data.reason,
+            updated_by_admin_id: actor.id,
+          },
+        }),
+      ]);
+
+      if (updatedOld.count !== 1) {
+        throw new FinanceWriteError(409, 'Conflito de atualização na política original (expected_updated_at divergente)');
+      }
+      if (updatedNew.count !== 1) {
+        throw new FinanceWriteError(409, 'Conflito de atualização na política de substituição (expected_updated_at_new divergente)');
+      }
+
+      // Conflict check: exclude the newly-approved replacement policy itself.
+      await assertNoConflictingApprovedPolicy(tx, newPolicy, data.replacement_policy_id);
+
+      const [afterOld, afterNew] = await Promise.all([
+        tx.financial_recognition_policies.findUnique({ where: { id }, select: POLICY_SELECT }),
+        tx.financial_recognition_policies.findUnique({ where: { id: data.replacement_policy_id }, select: POLICY_SELECT }),
+      ]);
+
+      await auditInTx(tx, {
+        adminId: actor.id,
+        adminEmail: actor.email,
+        action: 'FINANCE_RECOGNITION_POLICY_SUPERSEDE',
+        entityType: 'financial_recognition_policies',
+        entityId: id,
+        oldValue: serializePolicyAuditState(oldPolicy),
+        newValue: serializePolicyAuditState(afterOld),
+        ipAddress: actor.ip,
+      });
+      await auditInTx(tx, {
+        adminId: actor.id,
+        adminEmail: actor.email,
+        action: 'FINANCE_RECOGNITION_POLICY_APPROVE',
+        entityType: 'financial_recognition_policies',
+        entityId: data.replacement_policy_id,
+        oldValue: serializePolicyAuditState(newPolicy),
+        newValue: serializePolicyAuditState(afterNew),
+        ipAddress: actor.ip,
+      });
+
+      return null;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    const [superseded, approved] = await Promise.all([
+      getFinanceRecognitionPolicyById(id),
+      getFinanceRecognitionPolicyById(data.replacement_policy_id),
+    ]);
+
+    return { superseded, approved };
   } catch (error) {
     if (isSerializableConflict(error)) throw new FinanceWriteError(409, SERIALIZABLE_CONFLICT_MESSAGE);
     throw error;

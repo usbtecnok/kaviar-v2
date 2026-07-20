@@ -347,6 +347,128 @@ export const financeCostCenterPatchBodySchema = financeCostCenterPatchCoreSchema
   }
 });
 
+function validateRecognitionPolicyScope(
+  value: {
+    scope_type: string;
+    territory_id?: string | null;
+    cost_center_id?: string | null;
+    city?: string | null;
+    state?: string | null;
+  },
+  context: z.RefinementCtx,
+) {
+  const { scope_type, territory_id, cost_center_id, city, state } = value;
+  switch (scope_type) {
+    case 'GLOBAL':
+      if (territory_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'territory_id deve ser nulo para GLOBAL', path: ['territory_id'] });
+      if (cost_center_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'cost_center_id deve ser nulo para GLOBAL', path: ['cost_center_id'] });
+      if (city) context.addIssue({ code: z.ZodIssueCode.custom, message: 'city deve ser nulo para GLOBAL', path: ['city'] });
+      if (state) context.addIssue({ code: z.ZodIssueCode.custom, message: 'state deve ser nulo para GLOBAL', path: ['state'] });
+      break;
+    case 'TERRITORY':
+      if (!territory_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'territory_id é obrigatório para TERRITORY', path: ['territory_id'] });
+      if (cost_center_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'cost_center_id deve ser nulo para TERRITORY', path: ['cost_center_id'] });
+      if (city) context.addIssue({ code: z.ZodIssueCode.custom, message: 'city deve ser nulo para TERRITORY', path: ['city'] });
+      if (state) context.addIssue({ code: z.ZodIssueCode.custom, message: 'state deve ser nulo para TERRITORY', path: ['state'] });
+      break;
+    case 'CITY':
+      if (!city) context.addIssue({ code: z.ZodIssueCode.custom, message: 'city é obrigatório para CITY', path: ['city'] });
+      if (!state) context.addIssue({ code: z.ZodIssueCode.custom, message: 'state é obrigatório para CITY', path: ['state'] });
+      if (territory_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'territory_id deve ser nulo para CITY', path: ['territory_id'] });
+      if (cost_center_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'cost_center_id deve ser nulo para CITY', path: ['cost_center_id'] });
+      break;
+    case 'COST_CENTER':
+      if (!cost_center_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'cost_center_id é obrigatório para COST_CENTER', path: ['cost_center_id'] });
+      if (territory_id) context.addIssue({ code: z.ZodIssueCode.custom, message: 'territory_id deve ser nulo para COST_CENTER', path: ['territory_id'] });
+      if (city) context.addIssue({ code: z.ZodIssueCode.custom, message: 'city deve ser nulo para COST_CENTER', path: ['city'] });
+      if (state) context.addIssue({ code: z.ZodIssueCode.custom, message: 'state deve ser nulo para COST_CENTER', path: ['state'] });
+      break;
+  }
+}
+
+const recognitionPolicyBodyBase = {
+  code: strictCodeBody,
+  subject: z.enum(recognitionSubjectValues),
+  scope_type: z.enum(recognitionScopeTypeValues),
+  territory_id: optionalNullableTrimmedString(120),
+  cost_center_id: optionalNullableTrimmedString(120),
+  city: optionalNullableTrimmedString(120),
+  state: optionalStateBody,
+  policy: z.enum(recognitionPolicyValues),
+  effective_from: strictDateOnlyBody('effective_from'),
+  effective_until: strictDateOnlyBody('effective_until').nullable().optional(),
+  reason: strictTrimmedString(2000),
+  notes: optionalNullableTrimmedString(2000),
+};
+
+export const financeRecognitionPolicyCreateBodySchema = z
+  .object(recognitionPolicyBodyBase)
+  .strict()
+  .superRefine((value, context) => {
+    if (value.effective_until && value.effective_until <= value.effective_from) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'effective_until deve ser posterior a effective_from', path: ['effective_until'] });
+    }
+    validateRecognitionPolicyScope(value, context);
+  });
+
+const financeRecognitionPolicyPatchCoreSchema = z
+  .object({
+    expected_updated_at: strictTimestampBody('expected_updated_at'),
+    code: strictCodeBody.optional(),
+    subject: z.enum(recognitionSubjectValues).optional(),
+    scope_type: z.enum(recognitionScopeTypeValues).optional(),
+    territory_id: optionalNullableTrimmedString(120),
+    cost_center_id: optionalNullableTrimmedString(120),
+    city: optionalNullableTrimmedString(120),
+    state: optionalStateBody,
+    policy: z.enum(recognitionPolicyValues).optional(),
+    effective_from: strictDateOnlyBody('effective_from').optional(),
+    effective_until: strictDateOnlyBody('effective_until').nullable().optional(),
+    reason: strictTrimmedString(2000).optional(),
+    notes: optionalNullableTrimmedString(2000),
+  })
+  .strict();
+
+export const financeRecognitionPolicyPatchBodySchema = financeRecognitionPolicyPatchCoreSchema.superRefine(
+  (value, context) => {
+    const updateKeys = Object.keys(value).filter(
+      (key) => key !== 'expected_updated_at' && (value as any)[key] !== undefined,
+    );
+    if (updateKeys.length === 0) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'PATCH requer ao menos um campo para atualização' });
+    }
+    if (value.effective_from && value.effective_until && value.effective_until <= value.effective_from) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: 'effective_until deve ser posterior a effective_from', path: ['effective_until'] });
+    }
+    if (value.scope_type) {
+      validateRecognitionPolicyScope({ scope_type: value.scope_type, ...value }, context);
+    }
+  },
+);
+
+export const financeRecognitionPolicyApproveBodySchema = z
+  .object({
+    expected_updated_at: strictTimestampBody('expected_updated_at'),
+    reason: strictTrimmedString(2000),
+  })
+  .strict();
+
+export const financeRecognitionPolicyRevokeBodySchema = z
+  .object({
+    expected_updated_at: strictTimestampBody('expected_updated_at'),
+    reason: strictTrimmedString(2000),
+  })
+  .strict();
+
+export const financeRecognitionPolicySupersedBodySchema = z
+  .object({
+    replacement_policy_id: strictTrimmedString(120),
+    expected_updated_at: strictTimestampBody('expected_updated_at'),
+    expected_updated_at_new: strictTimestampBody('expected_updated_at_new'),
+    reason: strictTrimmedString(2000),
+  })
+  .strict();
+
 export type FinanceAccountsListQuery = z.infer<typeof financeAccountsListQuerySchema>;
 export type FinanceCategoriesListQuery = z.infer<typeof financeCategoriesListQuerySchema>;
 export type FinanceCostCentersListQuery = z.infer<typeof financeCostCentersListQuerySchema>;
@@ -359,3 +481,8 @@ export type FinanceCategoryCreateBody = z.infer<typeof financeCategoryCreateBody
 export type FinanceCategoryPatchBody = z.infer<typeof financeCategoryPatchBodySchema>;
 export type FinanceCostCenterCreateBody = z.infer<typeof financeCostCenterCreateBodySchema>;
 export type FinanceCostCenterPatchBody = z.infer<typeof financeCostCenterPatchBodySchema>;
+export type FinanceRecognitionPolicyCreateBody = z.infer<typeof financeRecognitionPolicyCreateBodySchema>;
+export type FinanceRecognitionPolicyPatchBody = z.infer<typeof financeRecognitionPolicyPatchBodySchema>;
+export type FinanceRecognitionPolicyApproveBody = z.infer<typeof financeRecognitionPolicyApproveBodySchema>;
+export type FinanceRecognitionPolicyRevokeBody = z.infer<typeof financeRecognitionPolicyRevokeBodySchema>;
+export type FinanceRecognitionPolicySupersedBody = z.infer<typeof financeRecognitionPolicySupersedBodySchema>;

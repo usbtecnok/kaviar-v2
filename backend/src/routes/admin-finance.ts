@@ -13,13 +13,20 @@ import {
   financeCostCentersListQuerySchema,
   financeIdParamSchema,
   financeRecognitionPoliciesListQuerySchema,
+  financeRecognitionPolicyApproveBodySchema,
+  financeRecognitionPolicyCreateBodySchema,
+  financeRecognitionPolicyPatchBodySchema,
+  financeRecognitionPolicyRevokeBodySchema,
+  financeRecognitionPolicySupersedBodySchema,
   financeTransactionsListQuerySchema,
 } from '../services/finance/finance-query-validation';
 import {
   FinanceWriteError,
+  approveFinanceRecognitionPolicy,
   createFinanceAccount,
   createFinanceCategory,
   createFinanceCostCenter,
+  createFinanceRecognitionPolicy,
   getFinanceAccountById,
   getFinanceCategoryById,
   getFinanceCostCenterById,
@@ -30,9 +37,12 @@ import {
   listFinanceCostCenters,
   listFinanceRecognitionPolicies,
   listFinanceTransactions,
+  revokeFinanceRecognitionPolicy,
+  supersedFinanceRecognitionPolicy,
   updateFinanceAccount,
   updateFinanceCategory,
   updateFinanceCostCenter,
+  updateFinanceRecognitionPolicyDraft,
 } from '../services/finance/finance-query.service';
 import {
   serializeAccountDetail,
@@ -299,6 +309,101 @@ router.get('/recognition-policies/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[ADMIN_FINANCE_RECOGNITION_POLICY_DETAIL]', error);
     return res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+  }
+});
+
+router.post('/recognition-policies', async (req: Request, res: Response) => {
+  try {
+    const parsedBody = financeRecognitionPolicyCreateBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+    const admin = (req as any).admin;
+    const ctx = auditCtx(req);
+    const actorWithCtx = { ...admin, ip: ctx.ip, ua: ctx.ua };
+    const created = await createFinanceRecognitionPolicy(parsedBody.data, actorWithCtx);
+    const record = requireWriteRecord(created.record, 'Política de reconhecimento');
+    return res.status(201).json({ success: true, data: serializeRecognitionPolicyDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_RECOGNITION_POLICY_CREATE]', error);
+    return financeWriteError(res, error);
+  }
+});
+
+router.patch('/recognition-policies/:id', async (req: Request, res: Response) => {
+  try {
+    const parsedParams = financeIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) return validationError(res, parsedParams.error);
+    const parsedBody = financeRecognitionPolicyPatchBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+    const admin = (req as any).admin;
+    const ctx = auditCtx(req);
+    const actorWithCtx = { ...admin, ip: ctx.ip, ua: ctx.ua };
+    const updated = await updateFinanceRecognitionPolicyDraft(parsedParams.data.id, parsedBody.data, actorWithCtx);
+    const record = requireWriteRecord(updated.record, 'Política de reconhecimento');
+    return res.json({ success: true, data: serializeRecognitionPolicyDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_RECOGNITION_POLICY_PATCH]', error);
+    return financeWriteError(res, error);
+  }
+});
+
+router.post('/recognition-policies/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const parsedParams = financeIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) return validationError(res, parsedParams.error);
+    const parsedBody = financeRecognitionPolicyApproveBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+    const admin = (req as any).admin;
+    const ctx = auditCtx(req);
+    const actorWithCtx = { ...admin, ip: ctx.ip, ua: ctx.ua };
+    const approved = await approveFinanceRecognitionPolicy(parsedParams.data.id, parsedBody.data, actorWithCtx);
+    const record = requireWriteRecord(approved.record, 'Política de reconhecimento');
+    return res.json({ success: true, data: serializeRecognitionPolicyDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_RECOGNITION_POLICY_APPROVE]', error);
+    return financeWriteError(res, error);
+  }
+});
+
+router.post('/recognition-policies/:id/revoke', async (req: Request, res: Response) => {
+  try {
+    const parsedParams = financeIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) return validationError(res, parsedParams.error);
+    const parsedBody = financeRecognitionPolicyRevokeBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+    const admin = (req as any).admin;
+    const ctx = auditCtx(req);
+    const actorWithCtx = { ...admin, ip: ctx.ip, ua: ctx.ua };
+    const revoked = await revokeFinanceRecognitionPolicy(parsedParams.data.id, parsedBody.data, actorWithCtx);
+    const record = requireWriteRecord(revoked.record, 'Política de reconhecimento');
+    return res.json({ success: true, data: serializeRecognitionPolicyDetail(record) });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_RECOGNITION_POLICY_REVOKE]', error);
+    return financeWriteError(res, error);
+  }
+});
+
+router.post('/recognition-policies/:id/supersede', async (req: Request, res: Response) => {
+  try {
+    const parsedParams = financeIdParamSchema.safeParse(req.params);
+    if (!parsedParams.success) return validationError(res, parsedParams.error);
+    const parsedBody = financeRecognitionPolicySupersedBodySchema.safeParse(req.body);
+    if (!parsedBody.success) return validationError(res, parsedBody.error);
+    const admin = (req as any).admin;
+    const ctx = auditCtx(req);
+    const actorWithCtx = { ...admin, ip: ctx.ip, ua: ctx.ua };
+    const result = await supersedFinanceRecognitionPolicy(parsedParams.data.id, parsedBody.data, actorWithCtx);
+    const superseded = requireWriteRecord(result.superseded, 'Política original');
+    const approved = requireWriteRecord(result.approved, 'Política de substituição');
+    return res.json({
+      success: true,
+      data: {
+        superseded: serializeRecognitionPolicyDetail(superseded),
+        approved: serializeRecognitionPolicyDetail(approved),
+      },
+    });
+  } catch (error) {
+    console.error('[ADMIN_FINANCE_RECOGNITION_POLICY_SUPERSEDE]', error);
+    return financeWriteError(res, error);
   }
 });
 
