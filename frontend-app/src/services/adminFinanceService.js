@@ -245,3 +245,19 @@ export const updateFinanceAccount = async (id, payload) => {
     'Não foi possível atualizar a conta financeira.'
   );
 };
+
+export const listFinanceRecognitionPolicies = async (params = {}) => {
+  return performGet(
+    `${FINANCE_BASE_PATH}/recognition-policies`,
+    params,
+    'Não foi possível carregar políticas de reconhecimento.'
+  );
+};
+
+export const getFinanceRecognitionPolicyById = async (id) => {
+  return performGet(
+    `${FINANCE_BASE_PATH}/recognition-policies/${encodeURIComponent(id)}`,
+    {},
+    'Não foi possível carregar a política de reconhecimento.'
+  );
+};
