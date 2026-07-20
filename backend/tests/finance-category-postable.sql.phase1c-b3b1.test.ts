@@ -401,7 +401,7 @@ describe('finance category postable SQL contract phase 1C-B 3B-1', { timeout: 18
     });
   });
 
-  it('seed remains idempotent across two executions with explicit 51/51 is_postable', async () => {
+  it('seed remains idempotent across two executions with explicit 53/53 is_postable', async () => {
     await withHistoricalClone('finance-b3b1-seed', async ({ databaseUrl: databaseUrlToUse, client }) => {
       applyMigrationsThrough3B1(databaseUrlToUse);
 
@@ -414,8 +414,8 @@ describe('finance category postable SQL contract phase 1C-B 3B-1', { timeout: 18
       const secondHash = hashRows(second);
 
       expect(secondHash).toBe(firstHash);
-      expect(second).toHaveLength(51);
-      expect(second.filter((row) => row.is_postable)).toHaveLength(29);
+      expect(second).toHaveLength(53);
+      expect(second.filter((row) => row.is_postable)).toHaveLength(31);
       expect(second.filter((row) => !row.is_postable)).toHaveLength(22);
       expect(await count(client, 'SELECT count(*)::int AS count FROM financial_transactions')).toBe(0);
       expect(await count(client, 'SELECT count(*)::int AS count FROM financial_transaction_allocations')).toBe(0);

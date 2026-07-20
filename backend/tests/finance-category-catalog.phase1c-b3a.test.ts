@@ -65,11 +65,11 @@ describe('finance category catalog phase 1C-B 3A', () => {
     const categoryMap = buildCategoryMap();
     const childrenMap = buildChildrenMap();
 
-    expect(categories).toHaveLength(51);
-    expect(categories.filter((category) => category.is_active !== false)).toHaveLength(42);
+    expect(categories).toHaveLength(53);
+    expect(categories.filter((category) => category.is_active !== false)).toHaveLength(44);
     expect(categories.filter((category) => category.is_active === false)).toHaveLength(9);
     expect(categories.filter((category) => !category.parent_code)).toHaveLength(13);
-    expect(categories.filter((category) => category.parent_code).length).toBe(38);
+    expect(categories.filter((category) => category.parent_code).length).toBe(40);
 
     expect(
       categories.reduce<Record<string, number>>((accumulator, category) => {
@@ -78,12 +78,12 @@ describe('finance category catalog phase 1C-B 3A', () => {
       }, {}),
     ).toEqual({
       REVENUE: 7,
-      EXPENSE: 25,
+      EXPENSE: 26,
       ADJUSTMENT: 2,
       CONTRIBUTION: 2,
       WITHDRAWAL: 2,
       TRANSFER: 2,
-      LIABILITY: 7,
+      LIABILITY: 8,
       CLEARING: 4,
     });
 
@@ -112,7 +112,7 @@ describe('finance category catalog phase 1C-B 3A', () => {
     expect(detectCycle()).toBeNull();
 
     const childCount = categories.filter((category) => category.parent_code).length;
-    expect(childCount).toBe(38);
+    expect(childCount).toBe(40);
 
     for (const code of ACTIVE_REQUIRED_CODES) {
       expect(categoryMap.get(code)?.is_active).toBe(true);

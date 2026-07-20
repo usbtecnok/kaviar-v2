@@ -347,11 +347,11 @@ describe('finance foundation SQL constraints', () => {
 
       await expectQueryFailure(`
         INSERT INTO financial_categories (
-          id, code, name, kind, parent_id, requires_document, is_system, is_active, sort_order,
+          id, code, name, kind, parent_id, requires_document, is_system, is_active, is_postable, sort_order,
           created_by_admin_id, updated_by_admin_id, created_at, updated_at
         ) VALUES (
           'sql-category-self', 'sql.category.self.parent', 'Self', 'EXPENSE', 'sql-category-self',
-          false, false, true, 0, $1, $1, now(), now()
+          false, false, true, false, 0, $1, $1, now(), now()
         )
       `, [adminId]);
 
@@ -368,20 +368,20 @@ describe('finance foundation SQL constraints', () => {
       const categoryId = '33333333-3333-3333-3333-333333333333';
       await client.query(`
         INSERT INTO financial_categories (
-          id, code, name, kind, requires_document, is_system, is_active, sort_order,
+          id, code, name, kind, requires_document, is_system, is_active, is_postable, sort_order,
           created_by_admin_id, updated_by_admin_id, created_at, updated_at
         ) VALUES (
-          $1, 'sql.category.parent', 'Parent', 'EXPENSE', false, false, true, 0, $2, $2, now(), now()
+          $1, 'sql.category.parent', 'Parent', 'EXPENSE', false, false, true, false, 0, $2, $2, now(), now()
         )
       `, [categoryId, adminId]);
 
       await client.query(`
         INSERT INTO financial_categories (
-          id, code, name, kind, parent_id, requires_document, is_system, is_active, sort_order,
+          id, code, name, kind, parent_id, requires_document, is_system, is_active, is_postable, sort_order,
           created_by_admin_id, updated_by_admin_id, created_at, updated_at
         ) VALUES (
           '44444444-4444-4444-4444-444444444444', 'sql.category.child', 'Child', 'EXPENSE', $1,
-          false, false, true, 0, $2, $2, now(), now()
+          false, false, true, false, 0, $2, $2, now(), now()
         )
       `, [categoryId, adminId]);
 

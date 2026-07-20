@@ -38,6 +38,7 @@ const expectedPostableByCode: Record<string, { id: string; is_postable: boolean 
   TWILIO: { id: 'fcat_e53f3bbfb08d5bd450e187c585ac1329', is_postable: true },
   TELEFONIA_INTERNET: { id: 'fcat_8fff5834777905ddcb4f04658eab1b56', is_postable: true },
   REGULACAO_MUNICIPAL: { id: 'fcat_7b5e85344192f123d2f0ec9f734c8050', is_postable: true },
+  TAXAS_MUNICIPAIS_SOBRE_CORRIDAS: { id: 'fcat_cd17b84eaa92c309e549b872b98146ac', is_postable: true },
   CONTABILIDADE: { id: 'fcat_e11c24a9128072b5c8d72a1160f120cb', is_postable: false },
   PRO_LABORE: { id: 'fcat_26dc69afcd59ee348780a6616ad410ff', is_postable: false },
   OUTRAS_DESPESAS: { id: 'fcat_986dd29e49fd4a974f30244fff3be359', is_postable: false },
@@ -62,6 +63,7 @@ const expectedPostableByCode: Record<string, { id: string; is_postable: boolean 
   VALORES_COMERCIOS: { id: 'fcat_3b46cfde209a61fa1147695d65983f4a', is_postable: true },
   RETENCOES: { id: 'fcat_7554f1f984d6e2cec1ffebf9e9bfdf5c', is_postable: true },
   OUTROS_TERCEIROS: { id: 'fcat_64b288f3a9a88d7fb337636025756bbb', is_postable: true },
+  BONUS_ANUAL_MOTORISTAS_A_PAGAR: { id: 'fcat_fb31c48ce603495524e0afcb71625353', is_postable: true },
   VALORES_EM_TRANSITO: { id: 'fcat_06f6c36e2a194d6fdb0156125463d49b', is_postable: false },
   VALORES_PROCESSADOR: { id: 'fcat_55aeb27283122e6d674ac56a8fd522f2', is_postable: true },
   RECEBIVEIS_LIQUIDAR: { id: 'fcat_847582905061204c351065cd7f93b531', is_postable: true },
@@ -93,16 +95,16 @@ describe('finance category postable phase 1C-B 3B-1', () => {
     expect(model).not.toContain('is_postable         Boolean                 @default');
   });
 
-  it('keeps explicit 51/51 code -> id -> is_postable mapping with canonical invariants', () => {
-    expect(categories).toHaveLength(51);
+  it('keeps explicit 53/53 code -> id -> is_postable mapping with canonical invariants', () => {
+    expect(categories).toHaveLength(53);
 
     const expectedCodes = Object.keys(expectedPostableByCode);
-    expect(expectedCodes).toHaveLength(51);
+    expect(expectedCodes).toHaveLength(53);
 
     const codeSet = new Set(categories.map((c) => c.code));
     const idSet = new Set(categories.map((c) => deterministicCategoryId(c.idSource)));
-    expect(codeSet.size).toBe(51);
-    expect(idSet.size).toBe(51);
+    expect(codeSet.size).toBe(53);
+    expect(idSet.size).toBe(53);
 
     const actualByCode = new Map(categories.map((category) => [category.code, category] as const));
     for (const code of expectedCodes) {
@@ -112,7 +114,7 @@ describe('finance category postable phase 1C-B 3B-1', () => {
       expect(category?.is_postable, `unexpected is_postable for ${code}`).toBe(expectedPostableByCode[code].is_postable);
     }
 
-    expect(categories.filter((category) => category.is_postable)).toHaveLength(29);
+    expect(categories.filter((category) => category.is_postable)).toHaveLength(31);
     expect(categories.filter((category) => !category.is_postable)).toHaveLength(22);
 
     const childrenMap = childrenByCode();

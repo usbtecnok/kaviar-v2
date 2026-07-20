@@ -335,11 +335,11 @@ describe('finance ledger phase 1B SQL constraints', () => {
       `
         INSERT INTO financial_categories (
           id, code, name, kind, default_direction,
-          requires_document, is_system, is_active, sort_order,
+          requires_document, is_system, is_active, is_postable, sort_order,
           created_by_admin_id, updated_by_admin_id, created_at, updated_at
         ) VALUES (
           $1, 'phase1b.cat', 'Phase1B Category', 'REVENUE', 'IN',
-          false, false, true, 1,
+          false, false, true, false, 1,
           $2, $2, now(), now()
         )
       `,
@@ -659,11 +659,11 @@ describe('finance ledger phase 1B SQL constraints', () => {
         `
           INSERT INTO financial_categories (
             id, code, name, kind, default_direction,
-            requires_document, is_system, is_active, sort_order,
+            requires_document, is_system, is_active, is_postable, sort_order,
             created_by_admin_id, updated_by_admin_id, created_at, updated_at
           ) VALUES (
             'finance-phase1b-category-delete', 'phase1b.cat.delete', 'Delete Category', 'REVENUE', 'IN',
-            false, false, true, 1,
+            false, false, true, false, 1,
             $1, $1, now(), now()
           )
         `,
