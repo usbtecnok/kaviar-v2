@@ -584,7 +584,7 @@ describe('admin finance write integration', () => {
       .get(`/api/admin/finance/categories/${created.body.data.id}`)
       .set('Authorization', authHeader(ids.financeAdmin).Authorization);
     expect(getCreated.status).toBe(200);
-    expect(getCreated.body.data.is_postable).toBeUndefined();
+    expect(getCreated.body.data.is_postable).toBe(false);
 
     const isSystem = await request(app)
       .post('/api/admin/finance/categories')

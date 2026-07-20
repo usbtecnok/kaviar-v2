@@ -660,19 +660,20 @@ export default function FinanceiroPage() {
                   <TableCell>Categoria pai</TableCell>
                   <TableCell>Sistema</TableCell>
                     <TableCell>Situação</TableCell>
+                  <TableCell>Classificação</TableCell>
                   <TableCell>Ordem</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {categoriesState.loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
                       <CircularProgress size={22} />
                     </TableCell>
                   </TableRow>
                 ) : categoriesState.data.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <EmptyState message="Nenhuma categoria encontrada para os filtros selecionados." />
                     </TableCell>
                   </TableRow>
@@ -690,6 +691,18 @@ export default function FinanceiroPage() {
                           label={toBooleanLabel(Boolean(item.is_active))}
                           sx={{ bgcolor: item.is_active ? '#DCFCE7' : '#F1F5F9', color: item.is_active ? '#166534' : '#475569' }}
                         />
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const isPostable = item.is_postable === true;
+                          return (
+                            <Chip
+                              size="small"
+                              label={isPostable ? 'Permite lançamentos' : 'Somente agrupamento'}
+                              sx={{ bgcolor: isPostable ? '#DBEAFE' : '#F1F5F9', color: isPostable ? '#1E40AF' : '#475569' }}
+                            />
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>{item.sort_order ?? '-'}</TableCell>
                     </TableRow>

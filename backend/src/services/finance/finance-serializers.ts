@@ -63,6 +63,7 @@ export function serializeCategorySummary(category: any) {
     name: category.name,
     kind: category.kind,
     is_active: category.is_active,
+    is_postable: category.is_postable,
     sort_order: category.sort_order,
   };
 }
@@ -78,6 +79,7 @@ export function serializeCategoryItem(category: any) {
     requires_document: category.requires_document,
     is_system: category.is_system,
     is_active: category.is_active,
+    is_postable: category.is_postable,
     sort_order: category.sort_order,
     created_by_admin: serializeAdminSummary(category.created_by_admin),
     updated_by_admin: serializeAdminSummary(category.updated_by_admin),

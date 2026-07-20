@@ -730,6 +730,90 @@ describe('admin finance query integration', () => {
     expect(missing.status).toBe(404);
   });
 
+  it('exposes is_postable in all category reads and enforces blocklist for POST/PATCH writes', async () => {
+    const listResponse = await request(app)
+      .get('/api/admin/finance/categories?page=1&limit=100')
+      .set('Authorization', authHeader(ids.superAdmin).Authorization);
+    expect(listResponse.status).toBe(200);
+    const fixtureIds = [ids.categoryParent, ids.categoryChild];
+    const officialCatalog = listResponse.body.data.filter((c: any) => !fixtureIds.includes(c.id));
+    expect(officialCatalog).toHaveLength(53);
+
+    const postableCount = officialCatalog.filter((c: any) => c.is_postable === true).length;
+    const nonPostableCount = officialCatalog.filter((c: any) => c.is_postable === false).length;
+    expect(postableCount).toBe(31);
+    expect(nonPostableCount).toBe(22);
+
+    const specific = ['BONUS_ANUAL_MOTORISTAS_A_PAGAR', 'TAXAS_MUNICIPAIS_SOBRE_CORRIDAS', 'OBRIGACOES_OPERACIONAIS', 'OPERACOES_E_SUPORTE', 'PUBLICIDADE_DIGITAL', 'CUSTOS_DIRETOS_PLATAFORMA'];
+    for (const code of specific) {
+      const cat = listResponse.body.data.find((c: any) => c.code === code);
+      expect(cat, `Category ${code} not found in catalog`).toBeDefined();
+      expect(typeof cat.is_postable).toBe('boolean');
+    }
+
+    const bonusCategory = listResponse.body.data.find((c: any) => c.code === 'BONUS_ANUAL_MOTORISTAS_A_PAGAR');
+    expect(bonusCategory?.is_postable).toBe(true);
+    const municipalCategory = listResponse.body.data.find((c: any) => c.code === 'TAXAS_MUNICIPAIS_SOBRE_CORRIDAS');
+    expect(municipalCategory?.is_postable).toBe(true);
+    const obligationsCategory = listResponse.body.data.find((c: any) => c.code === 'OBRIGACOES_OPERACIONAIS');
+    expect(obligationsCategory?.is_postable).toBe(false);
+
+    const detailResponse = await request(app)
+      .get(`/api/admin/finance/categories/${listResponse.body.data[0].id}`)
+      .set('Authorization', authHeader(ids.superAdmin).Authorization);
+    expect(detailResponse.status).toBe(200);
+    expect(typeof detailResponse.body.data.is_postable).toBe('boolean');
+    expect(Array.isArray(detailResponse.body.data.children)).toBe(true);
+    for (const child of detailResponse.body.data.children) {
+      expect(typeof child.is_postable).toBe('boolean');
+    }
+
+    const postWithIsPostableTrue = await request(app)
+      .post('/api/admin/finance/categories')
+      .set('Authorization', authHeader(ids.superAdmin).Authorization)
+      .send({ code: 'CAT.POSTABLE.TRUE', name: 'Test', kind: 'EXPENSE', is_postable: true });
+    expect(postWithIsPostableTrue.status).toBe(400);
+
+    const postWithIsPostableFalse = await request(app)
+      .post('/api/admin/finance/categories')
+      .set('Authorization', authHeader(ids.superAdmin).Authorization)
+      .send({ code: 'CAT.POSTABLE.FALSE', name: 'Test', kind: 'EXPENSE', is_postable: false });
+    expect(postWithIsPostableFalse.status).toBe(400);
+
+    const created = await request(app)
+      .post('/api/admin/finance/categories')
+      .set('Authorization', authHeader(ids.financeAdmin).Authorization)
+      .send({ code: 'CAT.POSTABLE.CREATED', name: 'Test Created', kind: 'EXPENSE' });
+    expect(created.status).toBe(201);
+    expect(created.body.data.is_postable).toBe(false);
+
+    const patchWithIsPostable = await request(app)
+      .patch(`/api/admin/finance/categories/${created.body.data.id}`)
+      .set('Authorization', authHeader(ids.financeAdmin).Authorization)
+      .send({ expected_updated_at: created.body.data.updated_at, is_postable: true });
+    expect(patchWithIsPostable.status).toBe(400);
+
+    const patchWithIsPostableFalseValue = await request(app)
+      .patch(`/api/admin/finance/categories/${created.body.data.id}`)
+      .set('Authorization', authHeader(ids.financeAdmin).Authorization)
+      .send({ expected_updated_at: created.body.data.updated_at, is_postable: false });
+    expect(patchWithIsPostableFalseValue.status).toBe(400);
+    const afterFalsePatch = await request(app)
+      .get(`/api/admin/finance/categories/${created.body.data.id}`)
+      .set('Authorization', authHeader(ids.superAdmin).Authorization);
+    expect(afterFalsePatch.body.data.is_postable).toBe(false);
+    expect(afterFalsePatch.body.data.updated_at).toBe(created.body.data.updated_at);
+
+    const patchValid = await request(app)
+      .patch(`/api/admin/finance/categories/${created.body.data.id}`)
+      .set('Authorization', authHeader(ids.financeAdmin).Authorization)
+      .send({ expected_updated_at: created.body.data.updated_at, name: 'Test Renamed' });
+    expect(patchValid.status).toBe(200);
+    expect(patchValid.body.data.is_postable).toBe(false);
+
+    await prisma.financial_categories.delete({ where: { id: created.body.data.id } });
+  });
+
   it('keeps unsupported methods unavailable for read-only resources from phase 1C-A1', async () => {
     const before = await snapshotCounts();
 
