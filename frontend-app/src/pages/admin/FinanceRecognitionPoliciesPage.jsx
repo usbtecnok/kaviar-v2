@@ -13,6 +13,7 @@ import {
   Grid,
   IconButton,
   MenuItem,
+  Snackbar,
   Table,
   TableBody,
   TableCell,
@@ -23,12 +24,13 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Close, Refresh } from '@mui/icons-material';
+import { Add, Close, Refresh } from '@mui/icons-material';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 import {
   getFinanceRecognitionPolicyById,
   listFinanceRecognitionPolicies,
 } from '../../services/adminFinanceService';
+import RecognitionPolicyFormDialog from '../../components/admin/finance/RecognitionPolicyFormDialog';
 import {
   RECOGNITION_POLICY_COLORS,
   RECOGNITION_POLICY_LABELS,
@@ -155,7 +157,7 @@ function SummaryCard({ label, count, statusKey, activeFilter, onFilterClick }) {
   );
 }
 
-function PolicyDetailDrawer({ open, policyId, onClose }) {
+function PolicyDetailDrawer({ open, policyId, onClose, isSuperAdmin, onEdit }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [policy, setPolicy] = useState(null);
@@ -254,6 +256,20 @@ function PolicyDetailDrawer({ open, policyId, onClose }) {
               <StatusChip status={policy.status} />
               <PolicyChip policy={policy.policy} />
             </Box>
+
+            {isSuperAdmin && policy.status === 'DRAFT' && onEdit && (
+              <Box sx={{ mb: 2 }}>
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<Add />}
+                  onClick={() => { onClose(); onEdit(policy.id); }}
+                  aria-label={`Editar política ${policy.code}`}
+                >
+                  Editar
+                </Button>
+              </Box>
+            )}
 
             <Divider sx={{ mb: 2 }} />
 
@@ -365,6 +381,12 @@ export default function FinanceRecognitionPoliciesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPolicyId, setDetailPolicyId] = useState(null);
 
+  // ── Form dialog ───────────────────────────────────────────────────────────────
+  const [formDialog, setFormDialog] = useState({ open: false, mode: 'create', policyId: null });
+
+  // ── Toast ─────────────────────────────────────────────────────────────────────
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+
   // ── Load main list ────────────────────────────────────────────────────────────
   const loadPolicies = useCallback(async () => {
     setLoading(true);
@@ -394,8 +416,8 @@ export default function FinanceRecognitionPoliciesPage() {
     loadPolicies();
   }, [loadPolicies]);
 
-  // ── Load global status counts (once on mount) ─────────────────────────────────
-  useEffect(() => {
+  // ── Load global status counts ─────────────────────────────────────────────────
+  const loadCounts = useCallback(() => {
     const statuses = ['DRAFT', 'APPROVED', 'REVOKED', 'SUPERSEDED'];
     Promise.all(
       statuses.map((s) =>
@@ -409,6 +431,18 @@ export default function FinanceRecognitionPoliciesPage() {
       setCounts(next);
     });
   }, []);
+
+  useEffect(() => {
+    loadCounts();
+  }, [loadCounts]);
+
+  // ── Form dialog success handler ───────────────────────────────────────────────
+  const handleFormSuccess = useCallback((message) => {
+    setFormDialog({ open: false, mode: 'create', policyId: null });
+    setToast({ open: true, message, severity: 'success' });
+    loadPolicies();
+    loadCounts();
+  }, [loadPolicies, loadCounts]);
 
   // ── Client-side code filter applied on top of loaded results ─────────────────
   // REMOVED: backend has no `code` query param; client-side filter was page-scoped only.
@@ -458,15 +492,30 @@ export default function FinanceRecognitionPoliciesPage() {
         {/* ── Page header ──────────────────────────────────────────────────── */}
         <Card sx={{ mb: 2.5, border: `1px solid ${BLUE.borderStrong}`, background: `linear-gradient(120deg, ${BLUE.cardBg} 0%, ${BLUE.sectionBg} 100%)`, boxShadow: '0 10px 25px rgba(37,99,235,0.10)' }}>
           <CardContent sx={{ py: 2.5 }}>
-            <Typography sx={{ color: BLUE.primary, fontWeight: 800, fontSize: 24 }}>
-              Políticas financeiras
-            </Typography>
-            <Typography sx={{ color: BLUE.subtext, mt: 0.5, fontSize: 14 }}>
-              Consulte as regras que controlam o reconhecimento das operações da KAVIAR.
-            </Typography>
-            <Typography sx={{ color: BLUE.subtext, mt: 0.5, fontSize: 12 }}>
-              Regras que determinam como as operações da KAVIAR serão reconhecidas pelo sistema financeiro.
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+              <Box>
+                <Typography sx={{ color: BLUE.primary, fontWeight: 800, fontSize: 24 }}>
+                  Políticas financeiras
+                </Typography>
+                <Typography sx={{ color: BLUE.subtext, mt: 0.5, fontSize: 14 }}>
+                  Consulte as regras que controlam o reconhecimento das operações da KAVIAR.
+                </Typography>
+                <Typography sx={{ color: BLUE.subtext, mt: 0.5, fontSize: 12 }}>
+                  Regras que determinam como as operações da KAVIAR serão reconhecidas pelo sistema financeiro.
+                </Typography>
+              </Box>
+              {isSuperAdmin && (
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => setFormDialog({ open: true, mode: 'create', policyId: null })}
+                  sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                  aria-label="Criar nova política financeira"
+                >
+                  Nova política
+                </Button>
+              )}
+            </Box>
           </CardContent>
         </Card>
 
@@ -731,15 +780,28 @@ export default function FinanceRecognitionPoliciesPage() {
 
                       {/* Ações */}
                       <TableCell align="right">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => openDetail(item.id)}
-                          sx={{ fontSize: 11, minWidth: 'auto', borderColor: BLUE.border, color: BLUE.primary, '&:hover': { borderColor: BLUE.primary } }}
-                          aria-label={`Ver detalhes da política ${item.code}`}
-                        >
-                          Ver detalhes
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => openDetail(item.id)}
+                            sx={{ fontSize: 11, minWidth: 'auto', borderColor: BLUE.border, color: BLUE.primary, '&:hover': { borderColor: BLUE.primary } }}
+                            aria-label={`Ver detalhes da política ${item.code}`}
+                          >
+                            Ver detalhes
+                          </Button>
+                          {isSuperAdmin && item.status === 'DRAFT' && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              onClick={() => setFormDialog({ open: true, mode: 'edit', policyId: item.id })}
+                              sx={{ fontSize: 11, minWidth: 'auto' }}
+                              aria-label={`Editar política ${item.code}`}
+                            >
+                              Editar
+                            </Button>
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))
@@ -769,7 +831,34 @@ export default function FinanceRecognitionPoliciesPage() {
         open={detailOpen}
         policyId={detailPolicyId}
         onClose={closeDetail}
+        isSuperAdmin={isSuperAdmin}
+        onEdit={(id) => setFormDialog({ open: true, mode: 'edit', policyId: id })}
       />
+
+      {/* ── Form dialog ──────────────────────────────────────────────────────── */}
+      <RecognitionPolicyFormDialog
+        open={formDialog.open}
+        mode={formDialog.mode}
+        policyId={formDialog.policyId}
+        onClose={() => setFormDialog((prev) => ({ ...prev, open: false }))}
+        onSuccess={handleFormSuccess}
+      />
+
+      {/* ── Toast ────────────────────────────────────────────────────────────── */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={5000}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

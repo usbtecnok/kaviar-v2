@@ -261,3 +261,27 @@ export const getFinanceRecognitionPolicyById = async (id) => {
     'Não foi possível carregar a política de reconhecimento.'
   );
 };
+
+export const createFinanceRecognitionPolicy = async (payload) => {
+  return performPost(
+    `${FINANCE_BASE_PATH}/recognition-policies`,
+    payload,
+    'Não foi possível criar a política de reconhecimento.'
+  );
+};
+
+export const updateFinanceRecognitionPolicy = async (id, payload) => {
+  return performPatch(
+    `${FINANCE_BASE_PATH}/recognition-policies/${encodeURIComponent(id)}`,
+    payload,
+    'Não foi possível atualizar a política de reconhecimento.'
+  );
+};
+
+export const listTerritories = async () => {
+  return performGet(
+    '/api/admin/territories',
+    {},
+    'Não foi possível carregar territórios.'
+  );
+};
