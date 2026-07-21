@@ -871,24 +871,39 @@ export const BLUEPRINT_EXPENSES: AccountBlueprint[] = [
 ];
 
 // Cost Centers (not GL accounts, but part of GL structure)
-export const BLUEPRINT_COST_CENTERS = [
+export interface CostCenterBlueprint {
+  code: string;
+  type: string;
+  description: string;
+  materialization_status: AccountBlueprintStatus;
+}
+
+export const BLUEPRINT_COST_CENTERS: CostCenterBlueprint[] = [
   {
     code: 'CC001',
+    materialization_status:
+      AccountBlueprintStatus.PENDING_ADMIN,
     type: 'COMPANY',
     description: 'Corporate / Matrix level',
   },
   {
     code: 'CC002',
+    materialization_status:
+      AccountBlueprintStatus.PENDING_ADMIN,
     type: 'TERRITORY',
     description: 'Per-territory operation (e.g., São Paulo, Rio de Janeiro)',
   },
   {
     code: 'CC003',
+    materialization_status:
+      AccountBlueprintStatus.PENDING_ADMIN,
     type: 'CITY',
     description: 'City-level tracking (optional, for refined cost allocation)',
   },
   {
     code: 'CC004',
+    materialization_status:
+      AccountBlueprintStatus.PENDING_ADMIN,
     type: 'DEPARTMENT',
     description: 'Department/function level (optional, for internal allocation)',
   },
