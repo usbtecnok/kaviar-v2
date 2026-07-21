@@ -19,7 +19,8 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:validate": "tsx scripts/validate-db.ts",
-    "seed:drivers": "NODE_ENV=development tsx prisma/seed-drivers.ts"
+    "seed:drivers": "NODE_ENV=development tsx prisma/seed-drivers.ts",
+    "finance:accounts:validate": "tsx scripts/finance/validate-account-blueprint.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
