@@ -22,14 +22,14 @@ import {
 
 describe('Account Blueprint', () => {
   describe('Blueprint Structure', () => {
-    it('should have 37 total accounts', () => {
-      expect(ALL_ACCOUNT_BLUEPRINTS).toHaveLength(37);
+    it('should have 38 total accounts', () => {
+      expect(ALL_ACCOUNT_BLUEPRINTS).toHaveLength(38);
     });
 
     it('should have correct distribution by section', () => {
       expect(BLUEPRINT_ASSETS).toHaveLength(8); // 1101-1103, 1201-1203, 1301, 1401
       expect(BLUEPRINT_LIABILITIES).toHaveLength(13); // 2101-2104, 2201-2203, 2301-2304, 2401-2402
-      expect(BLUEPRINT_REVENUE).toHaveLength(5); // 3101-3103, 3201-3202
+      expect(BLUEPRINT_REVENUE).toHaveLength(6); // 3101-3103, 3201-3202, 3301
       expect(BLUEPRINT_EXPENSES).toHaveLength(11); // 4101-4103, 4201-4203, 4301-4303, 4401-4402
     });
 
@@ -335,7 +335,7 @@ describe('Account Blueprint', () => {
 
     it('should produce validation report with stats', () => {
       const report = validateBlueprint();
-      expect(report.stats.total_accounts).toBe(37);
+      expect(report.stats.total_accounts).toBe(38);
       expect(report.stats.ready_for_creation).toBeGreaterThanOrEqual(0);
       expect(report.stats.pending_decisions).toBeGreaterThanOrEqual(0);
       expect(report.stats.blocked).toBeGreaterThanOrEqual(0);
@@ -397,7 +397,7 @@ describe('Account Blueprint', () => {
   describe('Statistics', () => {
     it('should provide accurate blueprint statistics', () => {
       const stats = getBluestrintStats();
-      expect(stats.total_accounts).toBe(37);
+      expect(stats.total_accounts).toBe(38);
       expect(stats.ready_for_creation).toBeGreaterThanOrEqual(0);
       expect(stats.pending_decisions).toBeGreaterThanOrEqual(0);
       expect(stats.blocked).toBeGreaterThanOrEqual(0);
@@ -458,6 +458,79 @@ describe('Account Blueprint', () => {
       for (const cc of BLUEPRINT_COST_CENTERS) {
         expect(cc.code.startsWith('CC')).toBe(true);
       }
+    });
+  });
+
+  describe('Phase 3C-2D.2B — Bonus Policy & Revenue Deduction', () => {
+    it('4202 is REJECTED (superseded by revenue-deduction treatment)', () => {
+      const entry = ALL_ACCOUNT_BLUEPRINTS.find((a) => a.code === '4202');
+      expect(entry).toBeDefined();
+      expect(entry?.decision_status).toBe(AccountBlueprintStatus.REJECTED);
+    });
+
+    it('4402 is REJECTED (duplicate of same economic fact as 4202/2103)', () => {
+      const entry = ALL_ACCOUNT_BLUEPRINTS.find((a) => a.code === '4402');
+      expect(entry).toBeDefined();
+      expect(entry?.decision_status).toBe(AccountBlueprintStatus.REJECTED);
+    });
+
+    it('3301 exists with economic_nature REVENUE_DEDUCTION', () => {
+      const entry = ALL_ACCOUNT_BLUEPRINTS.find((a) => a.code === '3301');
+      expect(entry).toBeDefined();
+      expect(entry?.economic_nature).toBe('REVENUE_DEDUCTION');
+    });
+
+    it('3301 is BLOCKED_BY_SCHEMA (not READY)', () => {
+      const entry = ALL_ACCOUNT_BLUEPRINTS.find((a) => a.code === '3301');
+      expect(entry?.decision_status).toBe(AccountBlueprintStatus.BLOCKED_BY_SCHEMA);
+    });
+
+    it('3301 has REVENUE_DEDUCTION_NOT_SUPPORTED blocking reason', () => {
+      const entry = ALL_ACCOUNT_BLUEPRINTS.find((a) => a.code === '3301');
+      expect(entry?.blocking_reasons).toContain(
+        AccountBlueprintBlockingReason.REVENUE_DEDUCTION_NOT_SUPPORTED,
+      );
+    });
+
+    it('4202 and 4402 are NOT in the READY set', () => {
+      const readyAccounts = getReadyAccounts();
+      const readyCodes = readyAccounts.map((a) => a.code);
+      expect(readyCodes).not.toContain('4202');
+      expect(readyCodes).not.toContain('4402');
+    });
+
+    it('3301 is NOT in the READY set', () => {
+      const readyAccounts = getReadyAccounts();
+      const readyCodes = readyAccounts.map((a) => a.code);
+      expect(readyCodes).not.toContain('3301');
+    });
+
+    it('no fixed percentage appears in bonus-related account names or notes', () => {
+      const bonusRelated = ALL_ACCOUNT_BLUEPRINTS.filter((a) =>
+        a.name.toLowerCase().includes('bonus') ||
+        (a.notes ?? '').toLowerCase().includes('bonus'),
+      );
+      for (const account of bonusRelated) {
+        // Allow mentions in REJECTED/NOT-fixed context only
+        const name = account.name;
+        expect(name).not.toMatch(/fixed [0-9]+%/i);
+      }
+    });
+
+    it('exactly 2 REJECTED entries exist (4202 and 4402)', () => {
+      const rejected = ALL_ACCOUNT_BLUEPRINTS.filter(
+        (a) => a.decision_status === AccountBlueprintStatus.REJECTED,
+      );
+      expect(rejected).toHaveLength(2);
+      expect(rejected.map((a) => a.code).sort()).toEqual(['4202', '4402']);
+    });
+
+    it('exactly 1 BLOCKED_BY_SCHEMA entry exists (3301)', () => {
+      const blocked = ALL_ACCOUNT_BLUEPRINTS.filter(
+        (a) => a.decision_status === AccountBlueprintStatus.BLOCKED_BY_SCHEMA,
+      );
+      expect(blocked).toHaveLength(1);
+      expect(blocked[0].code).toBe('3301');
     });
   });
 });

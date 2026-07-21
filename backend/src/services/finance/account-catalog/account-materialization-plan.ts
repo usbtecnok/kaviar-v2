@@ -116,11 +116,16 @@ function actionForNonReadyCandidate(
 ): MaterializationAction {
   if (
     candidate.decision_status ===
-      AccountBlueprintStatus.BLOCKED_BY_SCHEMA ||
-    candidate.decision_status ===
-      AccountBlueprintStatus.REJECTED
+      AccountBlueprintStatus.BLOCKED_BY_SCHEMA
   ) {
     return MaterializationAction.BLOCKED;
+  }
+
+  if (
+    candidate.decision_status ===
+    AccountBlueprintStatus.REJECTED
+  ) {
+    return MaterializationAction.SKIPPED;
   }
 
   return MaterializationAction.SKIPPED;

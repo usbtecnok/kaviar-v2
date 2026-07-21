@@ -19,10 +19,15 @@ const emptySnapshot: ExistingFinancialCatalogSnapshot = {
 };
 
 describe('account materialization plan', () => {
-  it('normaliza exatamente 41 itens do blueprint', () => {
+  it('normaliza exatamente 42 itens do blueprint', () => {
+    // Blueprint v1.1.0 (phase-3c-2d-2b):
+    //   BLUEPRINT_ASSETS (8) + BLUEPRINT_LIABILITIES (13) = 21 accounts
+    //   BLUEPRINT_REVENUE (6) + BLUEPRINT_EXPENSES (11)  = 17 categories
+    //   BLUEPRINT_COST_CENTERS (4)                        =  4 cost centers
+    //   Total candidates = 42
     const candidates = buildMaterializationCandidates();
 
-    expect(candidates).toHaveLength(41);
+    expect(candidates).toHaveLength(42);
 
     expect(
       candidates.filter(
@@ -38,7 +43,7 @@ describe('account materialization plan', () => {
           item.target_model ===
           MaterializationTargetModel.FINANCIAL_CATEGORY,
       ),
-    ).toHaveLength(16);
+    ).toHaveLength(17);
 
     expect(
       candidates.filter(
@@ -49,22 +54,49 @@ describe('account materialization plan', () => {
     ).toHaveLength(4);
   });
 
-  it('planeja somente os 16 itens READY para criação', () => {
+  it('planeja somente os 14 itens READY para criação (phase-3c-2d-2b)', () => {
+    // Phase 3C-2D.2B changes:
+    //   4202 → REJECTED (was READY); 4402 → REJECTED (was READY)
+    //   3301 → BLOCKED_BY_SCHEMA (new entry, not READY)
+    //   Categories READY: 6 → 4 (3103, 4103, 4303, 4401)
+    //   Accounts READY stays at 10 (1101-1401, 2101-2103)
+    //   Total writes: 16 → 14
     const plan = buildAccountMaterializationPlan(emptySnapshot);
 
     expect(plan.accounts.create).toBe(10);
-    expect(plan.categories.create).toBe(6);
+    expect(plan.categories.create).toBe(4);
     expect(plan.cost_centers.create).toBe(0);
 
     expect(plan.accounts.skipped).toBe(11);
-    expect(plan.categories.skipped).toBe(10);
+    expect(plan.categories.skipped).toBe(12);
+    expect(plan.categories.blocked).toBe(1);
     expect(plan.cost_centers.skipped).toBe(4);
 
-    expect(plan.total_operations).toBe(41);
-    expect(plan.total_writes).toBe(16);
+    expect(plan.total_operations).toBe(42);
+    expect(plan.total_writes).toBe(14);
     expect(plan.total_conflicts).toBe(0);
-    expect(plan.total_skipped).toBe(25);
-    expect(plan.can_apply).toBe(true);
+    expect(plan.total_skipped).toBe(27);
+    expect(plan.can_apply).toBe(false);
+
+    const blockedRevenueDeduction = plan.items.find(
+      (item) => item.candidate.code === '3301',
+    );
+
+    const rejectedLegacyBonus = plan.items.filter(
+      (item) =>
+        item.candidate.code === '4202' ||
+        item.candidate.code === '4402',
+    );
+
+    expect(blockedRevenueDeduction?.action).toBe(
+      MaterializationAction.BLOCKED,
+    );
+
+    for (const item of rejectedLegacyBonus) {
+      expect(item.action).toBe(
+        MaterializationAction.SKIPPED,
+      );
+    }
   });
 
   it('mantém centros de custo pendentes de autorização', () => {
@@ -193,7 +225,7 @@ describe('account materialization plan', () => {
       MaterializationMatchKind.EXACT,
     );
     expect(plan.categories.no_op).toBe(1);
-    expect(plan.categories.create).toBe(5);
+    expect(plan.categories.create).toBe(3); // 4 READY categories - 1 NOOP = 3
   });
 
   it('bloqueia conflito de direção da categoria', () => {

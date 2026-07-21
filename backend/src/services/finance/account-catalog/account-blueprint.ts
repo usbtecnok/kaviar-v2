@@ -5,10 +5,20 @@
  * WITHOUT creating any records in the database. It serves as a specification
  * for future account creation and validation.
  *
- * Status: PHASE 3C-2D.1 (Technical Blueprint - Not Yet Materialized)
+ * Status: PHASE 3C-2D.2B (Administrative decisions and bonus policy incorporated)
+ *
+ * Changes in v1.1.0:
+ * - 2103: renamed to "Payable to Drivers - Earned Bonus" (bonus policy finalized)
+ * - 3201: renamed; status PENDING_ACCOUNTANT (admin approved concept, accounting pending)
+ * - 4102: renamed; status PENDING_ACCOUNTANT (admin approved concept, accounting pending)
+ * - 4202: REJECTED — superseded by revenue-deduction treatment (policy change)
+ * - 4402: REJECTED — duplicate of same economic fact as 4202/2103; cannot coexist
+ * - 3301: NEW — Revenue Deduction - Driver Earned Bonus (BLOCKED_BY_SCHEMA, economic_nature=REVENUE_DEDUCTION)
+ * - 2101: notes updated to reflect 100% credit policy and no bonus financing from purchase
+ * - 3101: notes updated to reflect agent/intermediary role and 82% passthrough
  */
 
-export const BLUEPRINT_VERSION = '1.0.0';
+export const BLUEPRINT_VERSION = '1.1.0';
 export const BLUEPRINT_DATE = '2026-07-21';
 
 export enum AccountBlueprintStatus {
@@ -64,6 +74,9 @@ export enum AccountBlueprintBlockingReason {
 
   // Account violates business rule (e.g., fixed percentage on bonus)
   BUSINESS_RULE_VIOLATION = 'BUSINESS_RULE_VIOLATION',
+
+  // economic_nature REVENUE_DEDUCTION is not yet representable in current schema/materializer
+  REVENUE_DEDUCTION_NOT_SUPPORTED = 'REVENUE_DEDUCTION_NOT_SUPPORTED',
 }
 
 export interface AccountBlueprint {
@@ -302,7 +315,7 @@ export const BLUEPRINT_LIABILITIES: AccountBlueprint[] = [
     is_third_party: true,
     decision_status: AccountBlueprintStatus.READY_FOR_TECHNICAL_CREATION,
     blocking_reasons: [],
-    notes: 'Driver pre-paid credits (from SumUp recharge). KAVIAR owes value back to driver. Decreases on ride consumption.',
+    notes: 'Driver pre-paid credits (from SumUp recharge). 100% of purchased value becomes consumable credit — no portion of the purchase is retained to finance bonuses. KAVIAR owes the full value back to the driver. Liability decreases as the platform fee is consumed on valid completed rides (the 18% fee is debited here; the 82% driver earnings are settled separately via 2102). The purchase itself generates no revenue.',
   },
   {
     code: '2102',
@@ -325,7 +338,7 @@ export const BLUEPRINT_LIABILITIES: AccountBlueprint[] = [
   },
   {
     code: '2103',
-    name: 'Payable to Drivers - Bonus',
+    name: 'Payable to Drivers - Earned Bonus',
     parent_code: null,
     proposed_account_type: 'PAYABLE',
     mapped_real_account_type: 'PAYABLE',
@@ -340,7 +353,7 @@ export const BLUEPRINT_LIABILITIES: AccountBlueprint[] = [
     is_third_party: true,
     decision_status: AccountBlueprintStatus.READY_FOR_TECHNICAL_CREATION,
     blocking_reasons: [],
-    notes: 'Annual bonus KAVIAR-financed portion. Accrued during year, paid Oct-Dec. Configurable campaign model (not fixed 5%).',
+    notes: 'Obligation financed entirely by KAVIAR. Arises after a valid completed ride. Amount is defined by a configurable, versioned campaign — no fixed percentage. Can be settled via PIX/bank transfer or converted to driver credits. driver_id is a counterparty reference, not an individual accounting account. Do not create one account per driver.',
   },
   {
     code: '2104',
@@ -564,7 +577,7 @@ export const BLUEPRINT_REVENUE: AccountBlueprint[] = [
     is_third_party: false,
     decision_status: AccountBlueprintStatus.PENDING_ACCOUNTANT,
     blocking_reasons: [AccountBlueprintBlockingReason.COUNTER_REVIEW_REQUIRED],
-    notes: '18% intermediation fee from rides. Will be a financial_category (kind=REVENUE), not a posting account. Treatment as NET_AGENT pending counter validation. Tax base pending.',
+    notes: 'KAVIAR acts as agent/intermediary — recognizes only the platform fee (approximately 18%), not the gross ride value. The 82% paid directly to the driver does not transit through KAVIAR accounting. Revenue recognition occurs on a valid completed ride. Taxation (ISS) and fiscal emission (NFS-e) remain dependent on municipal parametrization and applicable tax regime. Gross vs. net recognition treatment pending counter validation.',
   },
   {
     code: '3102',
@@ -608,7 +621,7 @@ export const BLUEPRINT_REVENUE: AccountBlueprint[] = [
   // Other Revenue (3201-3202)
   {
     code: '3201',
-    name: 'Revenue - Affiliate / Commission',
+    name: 'Revenue - Commercial Partnerships / Referral Commission',
     parent_code: null,
     proposed_account_type: 'REVENUE (Category)',
     mapped_real_account_type: 'CLEARING',
@@ -621,9 +634,9 @@ export const BLUEPRINT_REVENUE: AccountBlueprint[] = [
     requires_counterparty: false,
     requires_reconciliation: false,
     is_third_party: false,
-    decision_status: AccountBlueprintStatus.PENDING_ADMIN,
+    decision_status: AccountBlueprintStatus.PENDING_ACCOUNTANT,
     blocking_reasons: [AccountBlueprintBlockingReason.COUNTER_REVIEW_REQUIRED],
-    notes: 'Partner program and other revenue sources. Scope not yet defined. Will be a financial_category.',
+    notes: 'Admin-approved: represents only values economically belonging to KAVIAR (commission received for referral, advertising or commercial intermediation). Must not represent gross commerce sales, driver money, manager share or commissions owed by KAVIAR. Requires contract, triggering event, calculation rule, validity period and documentation. Gross vs. net recognition remains pending counter decision.',
   },
   {
     code: '3202',
@@ -643,6 +656,31 @@ export const BLUEPRINT_REVENUE: AccountBlueprint[] = [
     decision_status: AccountBlueprintStatus.PENDING_ACCOUNTANT,
     blocking_reasons: [AccountBlueprintBlockingReason.COUNTER_REVIEW_REQUIRED],
     notes: 'Pre-paid credits converted to revenue when consumed. Recognition timing pending counter decision. Will be a financial_category.',
+  },
+  // Revenue Deduction (3301)
+  // BLOCKED_BY_SCHEMA: the current schema and materializer do not have an unambiguous
+  // representation for REVENUE_DEDUCTION economic_nature. This entry is recorded in the
+  // blueprint as a proposal. It must NOT be materialized as EXPENSE or plain REVENUE.
+  // Unblock condition: schema must add native support for REVENUE_DEDUCTION kind so the
+  // materializer can represent it unambiguously (e.g., as a contra-revenue category).
+  {
+    code: '3301',
+    name: 'Revenue Deduction - Driver Earned Bonus',
+    parent_code: null,
+    proposed_account_type: 'REVENUE_DEDUCTION (Category)',
+    mapped_real_account_type: 'CLEARING',
+    normal_balance: 'DEBIT',
+    currency: 'BRL',
+    economic_nature: 'REVENUE_DEDUCTION',
+    is_postable: false,
+    requires_cost_center: true,
+    requires_territory: false,
+    requires_counterparty: false,
+    requires_reconciliation: true,
+    is_third_party: false,
+    decision_status: AccountBlueprintStatus.BLOCKED_BY_SCHEMA,
+    blocking_reasons: [AccountBlueprintBlockingReason.REVENUE_DEDUCTION_NOT_SUPPORTED],
+    notes: 'Dedução da Receita - Bônus Adquirido por Motoristas. BLOCKED_BY_SCHEMA: the current financial_category_kind enum and materializer do not support REVENUE_DEDUCTION as a distinct economic nature — classifying it as EXPENSE or REVENUE would be incorrect. Counterpart of 2103 (Payable to Drivers - Earned Bonus). Triggered by a valid completed ride. Amount is campaign-configurable (no fixed percentage). Unblock condition: add REVENUE_DEDUCTION to financial_category_kind enum and update the materializer to handle it as a contra-revenue item (separate from operating expenses).',
   },
 ];
 
@@ -674,7 +712,7 @@ export const BLUEPRINT_EXPENSES: AccountBlueprint[] = [
   },
   {
     code: '4102',
-    name: 'Expense - Partner Commission',
+    name: 'Expense - Commercial Partner Commission',
     parent_code: null,
     proposed_account_type: 'EXPENSE (Category)',
     mapped_real_account_type: 'CLEARING',
@@ -687,9 +725,9 @@ export const BLUEPRINT_EXPENSES: AccountBlueprint[] = [
     requires_counterparty: true,
     requires_reconciliation: true,
     is_third_party: true,
-    decision_status: AccountBlueprintStatus.PENDING_ADMIN,
+    decision_status: AccountBlueprintStatus.PENDING_ACCOUNTANT,
     blocking_reasons: [AccountBlueprintBlockingReason.COUNTER_REVIEW_REQUIRED],
-    notes: 'Partner/affiliate commission/fees. Currently part of manager share; may become separate. Will be a financial_category.',
+    notes: 'Admin-approved: commercial partner commission must be separated from manager territorial share and from referral rewards. Requires partner_id, contract, versioned rule, triggering event and accrual period. Treatment as expense, contractual cost or revenue deduction remains pending counter decision.',
   },
   {
     code: '4103',
@@ -740,15 +778,15 @@ export const BLUEPRINT_EXPENSES: AccountBlueprint[] = [
     normal_balance: 'DEBIT',
     currency: 'BRL',
     economic_nature: 'EXPENSE',
-    is_postable: true,
+    is_postable: false,
     requires_cost_center: true,
     requires_territory: false,
     requires_counterparty: false,
     requires_reconciliation: true,
     is_third_party: false,
-    decision_status: AccountBlueprintStatus.READY_FOR_TECHNICAL_CREATION,
-    blocking_reasons: [],
-    notes: 'KAVIAR-financed bonus accrual. Configurable campaign model (NOT fixed 5%). Paired with 2103. Will be a financial_category.',
+    decision_status: AccountBlueprintStatus.REJECTED,
+    blocking_reasons: [AccountBlueprintBlockingReason.BUSINESS_RULE_VIOLATION],
+    notes: 'REJECTED — superseded by revenue-deduction treatment per approved bonus policy (v1.1.0). The bonus must be classified as a revenue deduction (REVENUE_DEDUCTION), not as an operating expense. Use 3301 (Revenue Deduction - Driver Earned Bonus) and 2103 (Payable to Drivers - Earned Bonus) instead. Do not delete existing database records; do not create destructive logic; do not attempt to correct production.',
   },
   {
     code: '4203',
@@ -858,15 +896,15 @@ export const BLUEPRINT_EXPENSES: AccountBlueprint[] = [
     normal_balance: 'DEBIT',
     currency: 'BRL',
     economic_nature: 'EXPENSE',
-    is_postable: true,
+    is_postable: false,
     requires_cost_center: true,
     requires_territory: false,
     requires_counterparty: false,
     requires_reconciliation: true,
     is_third_party: false,
-    decision_status: AccountBlueprintStatus.READY_FOR_TECHNICAL_CREATION,
-    blocking_reasons: [],
-    notes: 'Linked to 4202. KAVIAR-financed annual bonus. Configurable campaign model. Will be a financial_category.',
+    decision_status: AccountBlueprintStatus.REJECTED,
+    blocking_reasons: [AccountBlueprintBlockingReason.BUSINESS_RULE_VIOLATION],
+    notes: 'REJECTED — duplicate of the same economic fact as 4202 and the driver earned bonus. Cannot coexist as a second materializable category for the same bonus. The approved policy establishes a single revenue-deduction treatment via 3301. Do not use this code for new postings.',
   },
 ];
 
@@ -911,10 +949,10 @@ export const BLUEPRINT_COST_CENTERS: CostCenterBlueprint[] = [
 
 // Summary counts
 export const BLUEPRINT_SUMMARY = {
-  total_accounts: 37,
+  total_accounts: 38,
   assets: 8,
   liabilities: 13,
-  revenue: 5,
+  revenue: 6,
   expenses_and_provisions: 11,
   cost_centers: 4,
   ready_for_technical_creation: 0, // Will be calculated by validator

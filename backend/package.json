@@ -22,7 +22,10 @@
     "seed:drivers": "NODE_ENV=development tsx prisma/seed-drivers.ts",
     "finance:accounts:validate": "tsx scripts/finance/validate-account-blueprint.ts",
     "finance:accounts:plan": "tsx scripts/finance/plan-account-materialization.ts",
-    "finance:accounts:materialize:local": "tsx scripts/finance/materialize-account-blueprint-local.ts"
+    "finance:accounts:materialize:local": "tsx scripts/finance/materialize-account-blueprint-local.ts",
+    "finance:decisions:validate": "tsx scripts/finance/validate-decision-register.ts",
+    "finance:decisions:generate": "tsx scripts/finance/generate-decision-docs.ts",
+    "finance:decisions:check": "tsx scripts/finance/check-decision-docs.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

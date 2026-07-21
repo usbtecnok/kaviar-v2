@@ -119,52 +119,45 @@ function deterministicIdFactory(
 }
 
 describe('account materialization apply', () => {
-  it('cria somente 10 contas e 6 categorias READY', async () => {
+  it('recusa o blueprint enquanto existir item bloqueado por schema', async () => {
     const repository =
       new InMemoryMaterializationRepository();
 
-    const result = await applyAccountMaterialization(
-      repository,
-      deterministicIdFactory,
+    await expect(
+      applyAccountMaterialization(
+        repository,
+        deterministicIdFactory,
+      ),
+    ).rejects.toThrow(
+      'Plano atual possui conflito ou bloqueio',
     );
 
-    expect(result.total_created).toBe(16);
-    expect(result.created_accounts).toHaveLength(10);
-    expect(result.created_categories).toHaveLength(6);
-    expect(result.created_cost_centers).toEqual([]);
-    expect(result.before_total_writes).toBe(16);
-    expect(result.after_total_writes).toBe(0);
-    expect(result.idempotent_noop).toBe(false);
-
-    expect(repository.snapshot.accounts).toHaveLength(10);
-    expect(repository.snapshot.categories).toHaveLength(6);
+    expect(repository.snapshot.accounts).toEqual([]);
+    expect(repository.snapshot.categories).toEqual([]);
     expect(repository.snapshot.cost_centers).toEqual([]);
   });
 
-  it('a segunda execução é idempotente', async () => {
+  it('repete a recusa sem produzir efeitos colaterais', async () => {
     const repository =
       new InMemoryMaterializationRepository();
 
-    await applyAccountMaterialization(
-      repository,
-      deterministicIdFactory,
-    );
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await expect(
+        applyAccountMaterialization(
+          repository,
+          deterministicIdFactory,
+        ),
+      ).rejects.toThrow(
+        'Plano atual possui conflito ou bloqueio',
+      );
+    }
 
-    const second = await applyAccountMaterialization(
-      repository,
-      deterministicIdFactory,
-    );
-
-    expect(second.total_created).toBe(0);
-    expect(second.before_total_writes).toBe(0);
-    expect(second.after_total_writes).toBe(0);
-    expect(second.idempotent_noop).toBe(true);
-
-    expect(repository.snapshot.accounts).toHaveLength(10);
-    expect(repository.snapshot.categories).toHaveLength(6);
+    expect(repository.snapshot.accounts).toEqual([]);
+    expect(repository.snapshot.categories).toEqual([]);
+    expect(repository.snapshot.cost_centers).toEqual([]);
   });
 
-  it('recusa conflito estrutural antes de escrever', async () => {
+  it('recusa conflito estrutural sem escrever', async () => {
     const repository =
       new InMemoryMaterializationRepository({
         accounts: [
@@ -189,10 +182,12 @@ describe('account materialization apply', () => {
     );
 
     expect(repository.snapshot.accounts).toHaveLength(1);
+    expect(repository.snapshot.accounts[0]?.type).toBe('CASH');
     expect(repository.snapshot.categories).toEqual([]);
+    expect(repository.snapshot.cost_centers).toEqual([]);
   });
 
-  it('faz rollback se a criação de categorias falhar', async () => {
+  it('não alcança a etapa de escrita enquanto houver bloqueio', async () => {
     const repository =
       new InMemoryMaterializationRepository();
 
@@ -204,7 +199,7 @@ describe('account materialization apply', () => {
         deterministicIdFactory,
       ),
     ).rejects.toThrow(
-      'Falha simulada ao criar categorias',
+      'Plano atual possui conflito ou bloqueio',
     );
 
     expect(repository.snapshot.accounts).toEqual([]);

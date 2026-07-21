@@ -78,6 +78,8 @@ validate-territory.sql
 # === JSON (exceto configs do projeto) ===
 *.json
 !package.json
+# Exceção: registros de decisões financeiras versionados (fase 3C-2D.2B+)
+!docs/finance/*.json
 !package-lock.json
 !tsconfig.json
 !tsconfig.build.json
