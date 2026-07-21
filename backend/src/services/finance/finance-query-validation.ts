@@ -124,8 +124,12 @@ function strictBigIntStringBody(fieldName: string) {
 }
 
 const strictCodeBody = z.preprocess(
-  (value) => (typeof value === 'string' ? value.trim().toUpperCase() : value),
-  z.string().min(1).max(120).regex(/^[A-Z0-9][A-Z0-9._-]*$/, 'code inválido'),
+  (value) => (typeof value === 'string' ? value.trim() : value),
+  z
+    .string()
+    .min(1)
+    .max(120)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/, 'code inválido'),
 );
 
 const optionalStateBody = z.preprocess(

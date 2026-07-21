@@ -34,7 +34,7 @@ const titleId = 'recognition-policy-form-title';
 const discardTitleId = 'recognition-policy-discard-title';
 const reloadTitleId = 'recognition-policy-reload-title';
 
-const CODE_PATTERN = /^[A-Z0-9][A-Z0-9._-]*$/;
+const CODE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const CC_PAGE_LIMIT = 25;
 
 const defaultFormValues = () => ({
@@ -77,7 +77,7 @@ function validateForm(values) {
   if (!code) {
     errors.code = 'Código é obrigatório.';
   } else if (!CODE_PATTERN.test(code)) {
-    errors.code = 'Use apenas letras maiúsculas, números, ponto, underscore ou hífen, começando com letra ou número.';
+    errors.code = 'Use letras, números, ponto, underscore ou hífen, começando com letra ou número.';
   }
 
   if (!values.subject) errors.subject = 'Operação é obrigatória.';
