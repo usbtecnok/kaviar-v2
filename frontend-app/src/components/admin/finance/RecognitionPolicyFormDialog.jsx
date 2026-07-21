@@ -113,7 +113,7 @@ function validateForm(values) {
 function buildPostPayload(values) {
   const scope = values.scope_type;
   return {
-    code: values.code.trim().toUpperCase(),
+    code: values.code.trim(),
     subject: values.subject,
     policy: values.policy,
     scope_type: scope,
@@ -128,8 +128,13 @@ function buildPostPayload(values) {
   };
 }
 
-function buildPatchPayload(values, expectedUpdatedAt) {
-  return { ...buildPostPayload(values), expected_updated_at: expectedUpdatedAt };
+function buildPatchPayload(values, expectedUpdatedAt, initialValues) {
+  const payload = { ...buildPostPayload(values) };
+  if (initialValues && values.code === initialValues.code) {
+    delete payload.code;
+  }
+  payload.expected_updated_at = expectedUpdatedAt;
+  return payload;
 }
 
 function buildErrorPresentation(error) {
@@ -456,7 +461,7 @@ export default function RecognitionPolicyFormDialog({ open, mode, policyId, onCl
         const result = await createFinanceRecognitionPolicy(buildPostPayload(formValues));
         onSuccess('Política criada como rascunho.', result?.data);
       } else {
-        const result = await updateFinanceRecognitionPolicy(policyId, buildPatchPayload(formValues, expectedUpdatedAt));
+        const result = await updateFinanceRecognitionPolicy(policyId, buildPatchPayload(formValues, expectedUpdatedAt, initialFormValuesRef.current));
         onSuccess('Política atualizada com sucesso.', result?.data);
       }
     } catch (error) {
@@ -514,7 +519,7 @@ export default function RecognitionPolicyFormDialog({ open, mode, policyId, onCl
               <TextField
                 label="Código"
                 value={formValues.code}
-                onChange={(e) => handleChange('code', e.target.value.toUpperCase())}
+                onChange={(e) => handleChange('code', e.target.value)}
                 fullWidth
                 required
                 size="small"
@@ -523,7 +528,7 @@ export default function RecognitionPolicyFormDialog({ open, mode, policyId, onCl
                 inputProps={{ maxLength: 120, style: { fontFamily: 'monospace' } }}
                 placeholder="EX.: RIDE_REVENUE.CITY_RIO_2026"
                 {...tf('code')}
-                helperText={fieldErrors.code || 'Letras maiúsculas, números, ponto, underscore ou hífen.'}
+                helperText={fieldErrors.code || 'Letras (maiúsculas ou minúsculas), números, ponto, underscore ou hífen.'}
               />
             </Grid>
 
