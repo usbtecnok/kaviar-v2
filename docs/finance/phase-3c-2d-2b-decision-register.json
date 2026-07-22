@@ -212,7 +212,87 @@
   "decision_progress": {
     "phase_start": "2026-07-21",
     "admin_decisions_completed_at": "2026-07-21T15:20:04Z",
-    "next_step": "Aguardar respostas do contador (15 itens) e do jurídico (4 itens) para atualizar o blueprint para v1.2.0."
+    "operational_decisions_completed_at": "2026-07-22T09:36:41Z",
+    "next_step": "Aguardar validações externas (LEGAL, ACCOUNTANT, REGULATORY) e respostas do contador (15 itens) e do jurídico (4 itens) para atualizar o blueprint."
+  },
+  "operational_decisions": {
+    "approved_by": "Aparecido de Góes (Proprietário KAVIAR)",
+    "approved_at": "2026-07-22T09:36:41Z",
+    "scope": "wallet_manager_partner_operational_policies",
+    "bonus_policy_reopened": false,
+    "total": 10,
+    "decisions": [
+      {
+        "id": "OP-01",
+        "title": "Origem da comissão do parceiro",
+        "response": "OUTRA",
+        "summary": "Contratos atuais: KAVIAR paga despesa separada. Novos contratos: fatia territorial máxima (X+Y<=40%).",
+        "external_validation": ["LEGAL_CONFIRMATION"]
+      },
+      {
+        "id": "OP-02",
+        "title": "Base de cálculo do gestor",
+        "response": "A",
+        "summary": "40% sobre a taxa bruta da plataforma (18% da corrida). Sem deduções de gateway, impostos, bônus ou perdas.",
+        "external_validation": []
+      },
+      {
+        "id": "OP-03",
+        "title": "Expiração dos créditos comprados",
+        "response": "D",
+        "summary": "Não expiram. Contas inativas >12m sinalizadas para contato. Sinalização não autoriza confisco.",
+        "external_validation": ["ACCOUNTANT_CONFIRMATION"]
+      },
+      {
+        "id": "OP-04",
+        "title": "Saldo comprado é sacável",
+        "response": "A_AJUSTADA",
+        "summary": "Não sacável livremente. Finalidade: pagar taxas. Pertence ao motorista. Reembolso conforme OP-05.",
+        "external_validation": ["LEGAL_CONFIRMATION", "REGULATORY_CONFIRMATION"]
+      },
+      {
+        "id": "OP-05",
+        "title": "Reembolso de créditos não utilizados",
+        "response": "OUTRA",
+        "summary": "Política objetiva: reembolso obrigatório em 8 hipóteses + solicitações comuns com processo. Reembolso cancela bônus proporcional.",
+        "external_validation": ["LEGAL_CONFIRMATION"]
+      },
+      {
+        "id": "OP-06",
+        "title": "Limite do saldo comprado na wallet",
+        "response": "D",
+        "summary": "Configurável pelo admin. Inicial: R$500. Aplica-se apenas ao saldo comprado. Não elimina risco regulatório.",
+        "external_validation": ["REGULATORY_CONFIRMATION"]
+      },
+      {
+        "id": "OP-07",
+        "title": "Prioridade de consumo da wallet",
+        "response": "A",
+        "summary": "Promocional primeiro, depois comprado. Compensação e bônus anual nunca consumidos para taxa.",
+        "external_validation": []
+      },
+      {
+        "id": "OP-08",
+        "title": "MED, chargeback e contestação",
+        "response": "B",
+        "summary": "KAVIAR absorve perda imediata quando motorista prestou serviço. Pode buscar recuperação contra passageiro. Motorista só responsabilizado com evidência e processo.",
+        "external_validation": []
+      },
+      {
+        "id": "OP-09",
+        "title": "Ajustes negativos do gestor",
+        "response": "OUTRA",
+        "summary": "Somente fraude/dolo/erro/prejuízo/contrato. Processo obrigatório com 15 dias de contestação e SUPER_ADMIN. Proibido ajuste por bônus, risco normal ou meta.",
+        "external_validation": ["LEGAL_CONFIRMATION"]
+      },
+      {
+        "id": "OP-10",
+        "title": "Encerramento e transição do gestor",
+        "response": "A_AJUSTADA",
+        "summary": "Normal: fim do mês + 30 dias para pagamento. Excepcional: suspensão imediata por fraude/risco. Valores adquiridos preservados. Parceiros reatribuídos.",
+        "external_validation": ["LEGAL_CONFIRMATION"]
+      }
+    ]
   },
   "decisions": [
     {

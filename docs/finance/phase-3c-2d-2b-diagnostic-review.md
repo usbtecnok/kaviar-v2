@@ -1138,9 +1138,28 @@ Este lançamento é **apenas conceitual**. Não pode ser executado porque:
 | Pendência | Classificação | Prazo sugerido |
 |-----------|---------------|----------------|
 | VERIFY_2026_IBS_CBS_NFSE_READINESS | SPECIALIST_ACCOUNTANT_REQUIRED + MUNICIPAL_CONFIRMATION | Antes de agosto 2026 |
-| Definir base do parceiro vs. gestor | INTERNAL_DECISION_PENDING | Antes da folha do contador |
+| ~~Definir base do parceiro vs. gestor~~ | ~~INTERNAL_DECISION_PENDING~~ | ✅ RESOLVIDO (2026-07-22) |
 | Confirmar regime tributário | SPECIALIST_ACCOUNTANT_REQUIRED | Imediato |
 | Analisar contrato SumUp (MED/chargeback) | NEEDS_EXTERNAL_VALIDATION | Antes de implementar workflow |
+
+### H.4 Decisões operacionais aprovadas (2026-07-22)
+
+10 decisões administrativas do proprietário foram registradas em:
+
+`docs/finance/phase-3c-2d-2b-admin-decisions-operational.md`
+
+| Nº | Decisão | Resposta | Validação pendente |
+|----|---------|----------|-------------------|
+| 1 | Comissão do parceiro | OUTRA (híbrida: contratos atuais preservados / novos com fatia territorial) | LEGAL_CONFIRMATION |
+| 2 | Base de cálculo do gestor | A (taxa bruta, sem deduções) | — |
+| 3 | Expiração dos créditos | D (não expiram + sinalização 12m) | ACCOUNTANT_CONFIRMATION |
+| 4 | Saldo sacável | A AJUSTADA (não sacável, com reembolso) | LEGAL + REGULATORY |
+| 5 | Reembolso de créditos | OUTRA (política objetiva com hipóteses) | LEGAL_CONFIRMATION |
+| 6 | Limite da wallet | D (configurável, R$ 500 inicial) | REGULATORY_CONFIRMATION |
+| 7 | Prioridade de consumo | A (promocional primeiro) | — |
+| 8 | MED/chargeback | B (KAVIAR absorve + recuperação) | — |
+| 9 | Ajustes negativos gestor | OUTRA (processo + 15 dias contestação) | LEGAL_CONFIRMATION |
+| 10 | Encerramento gestor | A AJUSTADA (fim mês + exceção imediata) | LEGAL_CONFIRMATION |
 
 ---
 
