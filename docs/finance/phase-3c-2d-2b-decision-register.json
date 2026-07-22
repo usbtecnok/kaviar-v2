@@ -31,52 +31,158 @@
   },
   "business_policies": {
     "bonus": {
-      "policy_id": "BONUS-POLICY-v1",
+      "policy_id": "BONUS-POLICY-v1.2",
       "approved_by": "KAVIAR Administration",
       "approved_at": "2026-07-21T15:20:04Z",
+      "last_updated": "2026-07-22T09:20:17Z",
       "frozen": true,
-      "summary": "Política oficial do bônus KAVIAR — congelada para esta implementação.",
+      "summary": "Política oficial do bônus KAVIAR — congelada para esta implementação. Contém duas modalidades: bônus por campanha (BP-01 a BP-10) e bônus anual de reconhecimento (BP-11 a BP-29).",
       "rules": [
         {
           "id": "BP-01",
+          "part": "I",
           "description": "O motorista recebe 100% do valor comprado como saldo consumível.",
           "example": "Pagamento de R$100 gera R$100 em créditos. Nenhum valor da compra é retido para financiar bônus."
         },
         {
           "id": "BP-02",
+          "part": "I",
           "description": "O bônus é integralmente financiado pela KAVIAR."
         },
         {
           "id": "BP-03",
+          "part": "I",
           "description": "O bônus não nasce na compra dos créditos."
         },
         {
           "id": "BP-04",
+          "part": "I",
           "description": "O evento gerador é uma corrida válida concluída."
         },
         {
           "id": "BP-05",
+          "part": "I",
           "description": "A base do bônus é a taxa de intermediação efetivamente reconhecida pela KAVIAR, não o valor total da corrida."
         },
         {
           "id": "BP-06",
+          "part": "I",
           "description": "O percentual é configurável e versionado por campanha. Nenhum percentual fixo deve aparecer em nome de conta, código, blueprint, regra de domínio fixa ou teste."
         },
         {
           "id": "BP-07",
+          "part": "I",
           "description": "Após a corrida válida gerar o bônus, o direito torna-se incondicional."
         },
         {
           "id": "BP-08",
+          "part": "I",
           "description": "Corrida cancelada, fraudulenta, estornada ou invalidada não gera bônus definitivo."
         },
         {
           "id": "BP-09",
+          "part": "I",
           "description": "O bônus pode ser liquidado por PIX/transferência ou conversão para créditos no aplicativo."
         },
         {
           "id": "BP-10",
+          "part": "I",
           "description": "Tratamento contábil: contraprestação a pagar ao cliente, redução da receita, passivo certo após o evento gerador."
+        },
+        {
+          "id": "BP-11",
+          "part": "II",
+          "description": "O bônus anual de 10% é um presente de reconhecimento pela confiança e compra de créditos. Não é prêmio por desempenho em corridas."
+        },
+        {
+          "id": "BP-12",
+          "part": "II",
+          "description": "Evento gerador exclusivo: recarga elegível confirmada por Pix. Não depende de corridas, nota, disciplina, produtividade nem permanência ativa."
+        },
+        {
+          "id": "BP-13",
+          "part": "II",
+          "description": "Notas baixas não cancelam o bônus adquirido."
+        },
+        {
+          "id": "BP-14",
+          "part": "II",
+          "description": "Indisciplina não cancela o bônus adquirido. Consequências disciplinares são tratadas separadamente."
+        },
+        {
+          "id": "BP-15",
+          "part": "II",
+          "description": "Remoção da plataforma não cancela o bônus adquirido. Não elimina valores legítimos, não autoriza confisco nem expiração antecipada."
+        },
+        {
+          "id": "BP-16",
+          "part": "II",
+          "description": "Canal alternativo obrigatório para motorista removido solicitar bônus na janela anual."
+        },
+        {
+          "id": "BP-17",
+          "part": "II",
+          "description": "Janela anual de solicitação: 1º de outubro a 31 de dezembro. Bônus não solicitado permanece acumulado para a próxima janela."
+        },
+        {
+          "id": "BP-18",
+          "part": "II",
+          "description": "Proibição de compensação ou confisco por fatos não relacionados à recarga originadora."
+        },
+        {
+          "id": "BP-19",
+          "part": "II",
+          "description": "Reversão somente por problema comprovado na recarga originadora (Pix não confirmado, duplicidade, fraude no pagamento, devolução, erro técnico, decisão judicial)."
+        },
+        {
+          "id": "BP-20",
+          "part": "II",
+          "description": "Fraude operacional é diferente de fraude na recarga. Bônus legítimos de outras recargas permanecem protegidos."
+        },
+        {
+          "id": "BP-21",
+          "part": "II",
+          "description": "Registro do direito adquirido vinculado a: motorista, recarga, Pix, valor, percentual, data, ciclo, status, reversões, solicitações, pagamentos e auditoria."
+        },
+        {
+          "id": "BP-22",
+          "part": "II",
+          "description": "Comunicação clara ao motorista: reconhecimento pela recarga; bônus não perdido por nota, suspensão ou encerramento; janela anual informada."
+        },
+        {
+          "id": "BP-23",
+          "part": "II",
+          "description": "Regra consolidada: 10%, recarga elegível, presente de reconhecimento, não depende de corridas/nota/disciplina, não expira, janela anual, KAVIAR financia, gestor e parceiro não participam, reversão somente por problema na recarga, conta 3301 permanece bloqueada."
+        },
+        {
+          "id": "BP-24",
+          "part": "II",
+          "description": "O bônus de 10% é registrado e exibido imediatamente no aplicativo após a confirmação efetiva do Pix da recarga elegível. Pix pendente não gera bônus. Não depende de corrida nem de consumo do saldo."
+        },
+        {
+          "id": "BP-25",
+          "part": "II",
+          "description": "Novas recargas elegíveis confirmadas entre 1º de janeiro e 30 de setembro continuam gerando bônus normalmente. O bônus acumula fora da janela e fica disponível para solicitação em 1º de outubro. Bônus transportados de anos anteriores permanecem somados."
+        },
+        {
+          "id": "BP-26",
+          "part": "II",
+          "description": "Solicitação enviada entre 1º de outubro e 31 de dezembro permanece válida até análise e efetiva liquidação, ainda que o pagamento ocorra após 31 de dezembro. Atrasos administrativos ou bancários não prejudicam o motorista."
+        },
+        {
+          "id": "BP-27",
+          "part": "II",
+          "description": "O fluxo de solicitação é exclusivo para bônus anual. Não permite solicitar saldo principal, compensação de cancelamento, reembolso, ganhos de corridas, ajustes ou outros créditos promocionais."
+        },
+        {
+          "id": "BP-28",
+          "part": "II",
+          "description": "O bônus anual é controlado separadamente na wallet: PURCHASED_BALANCE, ANNUAL_BONUS, CANCELLATION_COMPENSATION. A exibição identifica claramente dinheiro do motorista, presente da KAVIAR e compensação."
+        },
+        {
+          "id": "BP-29",
+          "part": "II",
+          "description": "Compensação de cancelamento não constitui recarga elegível e não gera bônus. Também não geram bônus: taxa de cancelamento futura, créditos manuais, reembolsos, valores de corridas, bônus anteriores, créditos promocionais ou ajustes administrativos. Somente dinheiro novo pago pelo motorista gera bônus."
         }
       ],
       "conceptual_journal_entries": [
